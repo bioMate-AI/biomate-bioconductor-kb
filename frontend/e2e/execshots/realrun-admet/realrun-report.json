@@ -1,0 +1,49 @@
+{
+  "runId": "34aedd59-20b6-4567-b81e-81c12bebabad",
+  "terminalStatus": "completed",
+  "verdicts": {
+    "CARD-name": {
+      "verdict": "PASS",
+      "note": "workflow card/panel shows real name \"Predict ADMET Properties (AI)\""
+    },
+    "RUN-click": {
+      "verdict": "PASS",
+      "note": "Confirm & Run clicked"
+    },
+    "RS-04": {
+      "verdict": "PASS",
+      "note": "overall badge/action-bar flipped idle→running via SSE"
+    },
+    "AB-01": {
+      "verdict": "PASS",
+      "note": "running action bar with Pause/Stop rendered"
+    },
+    "RS-05": {
+      "verdict": "PASS",
+      "note": "a phase card data-status flipped to running (live)"
+    },
+    "QC-01": {
+      "verdict": "FAIL",
+      "note": "no hERG gate fired — gateEvents=0, inlineGate=0 (terminal=completed)"
+    },
+    "AL-01": {
+      "verdict": "N/A",
+      "note": "no remediation emitted (auto-loop panel render is commented out; SSE updates=0) — treated as N/A not FAIL"
+    },
+    "FN-01": {
+      "verdict": "PASS",
+      "note": "findings populated (summary/keyResults present)"
+    },
+    "DL-01": {
+      "verdict": "PASS",
+      "note": "download-report control present (afterrun btn=1, anchor href=n/a (button-driven))"
+    }
+  },
+  "sseCounts": {},
+  "wfName": "Predict ADMET Properties (AI)",
+  "hergSnippet": null,
+  "measured": null,
+  "threshold": null,
+  "recordExecStatus": "completed",
+  "allSSE": []
+}

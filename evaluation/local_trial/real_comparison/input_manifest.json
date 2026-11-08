@@ -1,0 +1,34 @@
+{
+  "scope": "Frozen real CLL inputs; no scientific jobs launched",
+  "inputs": [
+    {
+      "file": "mrna.csv",
+      "sha256": "85a11799c7b2d0a25f16cbdc36092537c7f4acfafbbbd67507f90f86f28c90f7",
+      "bytes": 12544620,
+      "features": 5000,
+      "samples": 200,
+      "duplicate_sample_ids": 0,
+      "ragged_rows": 0
+    },
+    {
+      "file": "methylation.csv",
+      "sha256": "fa379ebbfc7bb9df6be796d13086a03653351be837f5e38b10021a8da4d70f31",
+      "bytes": 14865881,
+      "features": 4248,
+      "samples": 200,
+      "duplicate_sample_ids": 0,
+      "ragged_rows": 0
+    }
+  ],
+  "labels": {
+    "sha256": "61069b2cbf2fc4940633768a0328d029be66647ffd40561eb7c00f60211944fe",
+    "bytes": 1517,
+    "valid_rows": 188,
+    "duplicate_ids": 0
+  },
+  "shared_labeled_samples": 188,
+  "class_counts_on_shared_cohort": {
+    "0": 84,
+    "1": 104
+  }
+}

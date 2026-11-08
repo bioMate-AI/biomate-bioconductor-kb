@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · BOIN 剂量爬坡——经过验证的临床设计对比 LLM 的推理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">BOIN 剂量爬坡——经过验证的临床设计对比 LLM 现场推理</span>
+  <span class="spacer"></span>
+  <span class="counter">阶段 <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — THE TASK (title) -->
+  <section class="scene title" data-seconds="31.0">
+    <div class="kicker">任务 · I 期剂量爬坡</div>
+    <h2>下一档用什么剂量——哪一档又是最大耐受剂量？</h2>
+    <p class="caption">在一项 I 期试验里，患者每次只以寥寥数人给药，而每一组队列的毒性反应决定接下来怎么走：往上爬、原地不动，还是退回到更低一档——并在最后把哪一档剂量定为<b>最大耐受剂量</b>。这不是一次主观拍板。它是一条预先设定的、逐队列施行的序贯统计决策规则，一旦判错，就会直接以患者安全为代价。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>每组队列观测到的毒性反应</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一条预先设定的决策规则</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>往上爬 / 原地不动 / 往下降</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>最大耐受剂量</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker">BioMate 的做法 · 已发表的 BOIN 设计</div>
+    <h2>BioMate 运行贝叶斯最优区间设计，而不是靠猜。</h2>
+    <p class="caption">贝叶斯最优区间（BOIN）设计会预先从模型和目标毒性率出发，推导出它的爬坡与降档边界。BioMate 每次都以同样的方式把这些边界应用到观测数据上——是一条编码化的规则在被执行，而不是一个模型靠一通言说、给自己绕出个答案。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · 边界</div><h4>在试验开始前设定</h4><p>BOIN 从目标毒性率出发，预先定好低于某阈值就往上爬、高于某阈值就往下降的两条界线——规则在任何患者给药之前就已确定。</p></div>
+          <div class="tile"><div class="n">2 · 应用</div><h4>到观测数据上</h4><p>在每一组队列，把观测到的毒性率与这些边界相比较，以此确定性地选出下一档剂量，不再做任何重新解读。</p></div>
+          <div class="tile"><div class="n">3 · 选定 MTD</div><h4>以毫克计</h4><p>当入组结束，设计选出最大耐受剂量——以一个具体的毫克剂量档位报告，即临床上可付诸行动的答案。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">已发表的 BOIN 规则的概念示意——把预先设定的边界应用到试验数据上。这是用于试验设计的决策支持，而非医疗建议。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一个经过验证、可审计的临床设计——被执行，而非被推理</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT: SCORE vs LLM (bar chart) -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker">结果 · 正确选出 MTD</div>
+    <h2>在我们的剂量爬坡基准上：0.80 对比 0.24。</h2>
+    <p class="caption">衡量指标是：在多大比例的试验里，以毫克计的正确最大耐受剂量被选中。BioMate 运行 BOIN 设计，对比一个大语言模型直接回答同样的临床问题。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div style="display:flex; flex-direction:column; gap:26px">
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px; color:var(--ink); font-weight:600; text-align:right">BioMate</div>
+              <div style="flex:1; height:46px; background:var(--panel2); border:1px solid var(--line2); border-radius:6px; position:relative; overflow:hidden">
+                <div style="width:80%; height:100%; background:var(--green); display:flex; align-items:center; justify-content:flex-end; padding-right:16px; border-radius:5px 0 0 5px">
+                  <span style="color:#fff; font-weight:600">0.80</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px; color:var(--ink); font-weight:600; text-align:right">LLM 直答</div>
+              <div style="flex:1; height:46px; background:var(--panel2); border:1px solid var(--line2); border-radius:6px; position:relative; overflow:hidden">
+                <div style="width:24%; height:100%; background:var(--mut); display:flex; align-items:center; justify-content:flex-end; padding-right:14px; border-radius:5px 0 0 5px">
+                  <span style="color:#fff; font-weight:600">0.24</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px"></div>
+              <div style="flex:1; display:flex; justify-content:space-between; color:var(--mut)">
+                <span>0.0</span><span>0.5</span><span>1.0 — 以毫克计的正确 MTD</span>
+              </div>
+            </div>
+
+          </div>
+          <p class="footnote" style="margin-top:24px">以毫克计的正确 MTD 选择 · n = 60，跨测评（BioMate 自己的 BOIN 基准对比 RealBio 的 LLM 测试轮——并非同题逐一对比）。真实台账数据；未添加其他数字。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>在正确选出最大耐受剂量上，0.80 对比 0.24</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TAKEAWAY (title) -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">要点</div>
+    <h2>运行一个经过验证的临床设计；别让模型去现场推理。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">对于一次序贯的安全决策，执行已发表的 BOIN 设计，胜过让一个语言模型自己推理出一个剂量——在正确最大耐受剂量的选择上，<b>0.80 对比 0.24</b>。一条编码化的统计规则是可审计的，而一个模型的推理链条则不然。</p>
+          <p class="caption sub" style="margin-top:14px">BioMate 是一个用于试验设计的决策支持工具——而非医疗建议。</p>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>BioMate（BOIN）</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">0.80 以毫克计的正确 MTD</span></td></tr>
+            <tr><td>LLM 直答</td><td><span class="verdict plain" style="margin:0; padding:3px 8px">0.24</span></td></tr>
+            <tr><td>证据</td><td><span class="verdict open" style="margin:0; padding:3px 8px">n = 60，跨测评</span></td></tr>
+            <tr><td>为何胜出</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">经过验证且可审计的规则</span></td></tr>
+          </table>
+          <p class="footnote">一个预先设定的设计，每次运行都以同样的方式执行——可复现、可查验，并在模型推理无法立足之处依然站得住脚。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

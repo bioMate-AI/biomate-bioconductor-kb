@@ -1,0 +1,51 @@
+[
+ {
+  "name": "nf-core/mag",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/mag\\\" needs 4 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"host_genome\",\"label\":\"Host genome FASTA or Bowtie2 index for decontamination\",\"description\":\"Host genome FASTA or Bowtie2 index for decontamination\",\"type\":\"string\"},{\"name\":\"checkm_db\",\"label\":\"CheckM database path (auto-downloaded if null)\",\"description\":\"CheckM database path (auto-downloaded if null)\",\"type\":\"string\"},{\"name\":\"gt"
+  }
+ },
+ {
+  "name": "nf-core/ampliseq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/ampliseq\\\" needs 7 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"FW_primer\",\"label\":\"Forward primer sequence (e.g. GTGYCAGCMGCCGCGGTAA for 515F)\",\"description\":\"Forward primer sequence (e.g. GTGYCAGCMGCCGCGGTAA for 515F)\",\"type\":\"string\"},{\"name\":\"RV_primer\",\"label\":\"Reverse primer sequence (e.g. GGACTACNVGGGTWTCTAAT for 806R)\",\"description\":\"Reverse primer sequence (e.g. GGACTACNVGGGTWTCTAA"
+  }
+ },
+ {
+  "name": "nf-core/scrnaseq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/scrnaseq\\\" needs 3 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"genome\",\"label\":\"Reference genome: GRCh38 | GRCm39\",\"description\":\"Reference genome: GRCh38 | GRCm39\",\"type\":\"string\"},{\"name\":\"barcode_whitelist\",\"label\":\"Barcode whitelist (auto-detected for 10X)\",\"description\":\"Barcode whitelist (auto-detected for 10X)\",\"type\":\"string\"},{\"name\":\"email\",\"label\":\"Email\",\"description\":\"Email\",\""
+  }
+ },
+ {
+  "name": "nf-core/atacseq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/atacseq\\\" needs 3 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"genome\",\"label\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"description\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"type\":\"string\"},{\"name\":\"macs_gsize\",\"label\":\"MACS2 genome size: hs | mm | ce | dm (or numeric)\",\"description\":\"MACS2 genome size: hs | mm | ce | dm (or numeric)\",\"type\":\"string\"},{\"name\":\"emai"
+  }
+ },
+ {
+  "name": "nf-core/chipseq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/chipseq\\\" needs 3 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"genome\",\"label\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"description\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"type\":\"string\"},{\"name\":\"macs_gsize\",\"label\":\"MACS2 genome size: hs | mm | ce | dm\",\"description\":\"MACS2 genome size: hs | mm | ce | dm\",\"type\":\"string\"},{\"name\":\"email\",\"label\":\"Email\",\"descri"
+  }
+ },
+ {
+  "name": "nf-core/scdownstream",
+  "runId": "e007170b-1286-4498-96a6-23464e3b1409",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 3,
+  "error": "",
+  "minutes": 1.0
+ }
+]

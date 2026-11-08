@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/eager",
+  "runId": "7eefc7a3-5f18-4b48-a87e-cf26e4b6631b",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 204,
+  "error": "",
+  "minutes": 7.1
+ }
+]

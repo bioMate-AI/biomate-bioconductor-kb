@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 模块一 —— 搜索与证据：几秒钟，一份带引用的答案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:22ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+.tag.ship{background:var(--green-bg); color:var(--green)}
+.tag.open{background:var(--amber-bg); color:var(--amber)}
+.tag.gap{background:var(--red-bg); color:var(--red)}
+
+/* screenshot + teaching split */
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:14px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+/* teaching bullet list */
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">模块一 · 搜索与证据</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">8</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE / VALUE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>检索与证据</b></div>
+    <div class="kicker">问一句"已知的是什么" —— 拿回一份带引用的答案</div>
+    <h2>几秒钟，一份可信、可溯源的带源答案。</h2>
+    <p class="caption">用大白话提出一个关于证据的问题，BioMate 就替你读遍文献、数据库和专利记录，再交回一份简短的答案——其中<b>每一条论断都带着它的来源</b>——附上你可以点开、核对的编号引用。</p>
+    <p class="caption sub">在你为一个靶点、一套机制或一种副作用投入时间和金钱之前，那一小时的人工文献调研——在这里变成几秒钟，而且可审计。贯穿全讲的例子：蛋白 <b>JAK1</b> 与<b>类风湿关节炎</b>之间的证据。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>用大白话提问</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一份带源答案</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>论断 + 编号来源</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>点开并核对</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker">它要替代的那个麻烦</div>
+    <h2>人工文献调研又慢，又难以审计。</h2>
+    <p class="caption">动手做任何实验之前，你都得先弄清楚已经确定的是什么：这个靶点真的和这种疾病相关吗？这个副作用有人报道过吗？今天，这意味着一场散落各处、耗上数小时的阅读——而交出去的结论，同事只能凭你一面之词相信。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">代价</div><h4>要耗上几小时，而非几秒</h4><p>打开一个数据库、一个搜索引擎、翻开几篇论文——边读边相互印证，还要祈祷自己没漏掉那篇唱反调的研究。</p></div>
+            <div class="tile"><div class="n">摩擦</div><h4>散落在各个标签页</h4><p>文献、精选数据库和专利记录各在一处，各有各的形态，各藏在不同的搜索框后面。</p></div>
+            <div class="tile"><div class="n">风险</div><h4>不留下任何痕迹</h4><p>一份没有来源的小结，是一条你无法核对的论断——在组会上、申请书里、评审中都站不住脚。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">真正的问题从来不只是"答案是什么"——而是"答案是什么，以及我凭什么确定它是对的"。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>人工这条路：出活慢，又难以信赖</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — HOW IT WORKS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">它是怎么做到的</div>
+    <h2>用大白话提问。拿回一份基于证据的带引用答案。</h2>
+    <p class="caption">你像问同事那样把问题打出来。BioMate 读懂你的目标，直接在对话中作答——几秒钟给出一份带引用的答案，不必跑任何流水线——并取用横跨文献、数据库和专利申请的已发表证据。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:space-between">
+            <span class="chip"><span class="i"></span>"JAK1 与类风湿关节炎相关的证据有哪些？"</span>
+            <span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>答案就在这里 · 附带来源</span>
+            <span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>读遍证据</span>
+            <span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>带引用的答案</span>
+          </div>
+          <div class="row3" style="margin-top:26px">
+            <div class="tile"><div class="n">文献</div><h4>论文与预印本</h4><p>经同行评审的发现，来自 PubMed 这样的来源——在综合时保留其中的分歧。</p></div>
+            <div class="tile"><div class="n">数据库</div><h4>精选记录</h4><p>靶点、结构、通路、实验和临床试验等记录，来自 Open Targets 这样的精选来源。</p></div>
+            <div class="tile"><div class="n">专利</div><h4>申请记录</h4><p>专利文献与科学文献并读，让答案映照出已发表信息的全貌。</p></div>
+          </div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>几秒钟一份带引用答案——不必跑流水线，不花算力</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT A GOOD ANSWER LOOKS LIKE -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker">一份好答案长什么样</div>
+    <h2>每一条论断都带着它的来源。</h2>
+    <p class="caption">BioMate 的答案不是一段聊天机器人式的大段话——而是一份形态固定的小型带源报告，其中每一部分都各得其所，每一句事实性的话都能追溯到一个真实、可点开的来源。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>编号论断。</b>每一句事实性的话都带着一个标记（<code>¹</code>、<code>²</code>），把它系到下方的来源上。没有标记的句子是背景铺垫，写法上就让你一眼看出——绝不是伪装成事实的"引用"。</span></li>
+            <li><span class="b"></span><span><b>一份真实的来源列表。</b>每个来源一行——论文的<b>标题</b>、它的 <b>PubMed 编号</b>，以及一个能在出版方打开它的链接。而不是一串光秃秃的链接。</span></li>
+            <li><span class="b"></span><span><b>可点开核对。</b>每一行都能在出版方打开该来源的全文，于是你是在核对答案，而不是相信它。</span></li>
+            <li><span class="b"></span><span><b>检索过程是怎样的。</b>面板会显示它取用了哪些数据库——Europe PMC、OpenAlex、PubMed——各自返回了多少条、又保留了多少条，于是答案背后的检索过程是看得见的。</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>一条你能核对的论断，而不是一段你必须盲信的话</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — TWO KINDS OF REQUEST RECAP -->
+  <section class="scene" data-seconds="39.4">
+    <div class="kicker">同一个消息框 · 两类请求</div>
+    <h2>一份带源答案，或一次完整分析——都出自同一个消息框。</h2>
+    <p class="caption">BioMate 的每一次请求，都会以两种方式之一来处理，而你提问的方式一模一样。搜索与证据总是以对话里的一份带源答案返回；在你自己的数据上做分析，则会在云端跑一条流水线。BioMate 读懂你需要哪一种，并在动手之前告诉你。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1fr 1fr">
+          <div class="card big">
+            <div class="tile" style="border:none; background:transparent; padding:0">
+              <div class="n">本模块 · 一份带源答案</div>
+              <h4>问一句"已知的是什么"</h4>
+              <p>一份基于已发表证据的带引用答案，几秒钟返回。不读你的任何东西，不启动任何计算。用它在你投入时间或金钱之前把一个问题弄清楚。</p>
+            </div>
+          </div>
+          <div class="card big">
+            <div class="tile" style="border:none; background:transparent; padding:0">
+              <div class="n">下一模块 · 一次完整的分析运行</div>
+              <h4>在你的数据上跑一遍</h4>
+              <p>在你自己的文件上跑一条完整的分析流水线，在云端算力上运行，交回一份报告。BioMate 在启动任何一次云端运行之前，都会先征得你确认。</p>
+            </div>
+          </div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>两类都用同样的方式提问——BioMate 判断是哪一类，并提前告诉你</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — LIVE CITED ANSWER -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">实况</span> · 一份真实的带引用答案</div>
+    <h2>JAK1–类风湿关节炎那个答案，连同它的来源。</h2>
+    <p class="caption">这就是那道大白话问题的答案，直接返回在对话里：带着编号标记的论断，一份每行都是真实论文、附 <b>PubMed 编号</b>与<b>打开</b>链接的来源列表，一段关于它是怎么检索出来的说明，以及下方的边界说明。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">带引用的答案 · 就在对话里</span>
+        <div class="frame"><img src="assets/live/search-answer.png" alt="一份关于 JAK1 与类风湿关节炎的 BioMate 带引用答案，含编号论断、逐条来源的引用列表，以及边界说明"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b gr"></span><span><b>几秒钟一份有依据的答案。</b>JAK1 是一个被充分研究过的靶点，这份综合有扎实的支撑——而这份扎实就体现在它的来源上。</span></li>
+          <li><span class="b"></span><span><b>标记对得上真实来源。</b>每一个编号论断都对应下方的一篇真实论文——论文标题、PubMed 编号，以及一个打开它的链接。</span></li>
+          <li><span class="b"></span><span><b>点开任意来源去审计它。</b>逐条翻看这些引用，到出版方页面去读全文。</span></li>
+          <li><span class="b am"></span><span><b>边界说明就在下方。</b>它如实写明这份答案能、以及不能作为什么的证据。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>一份你可以点开并核对的带引用答案</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — HOW TO TRUST IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker">凭什么信它</div>
+    <h2>它引用真实的来源——并告诉你它没有涵盖什么。</h2>
+    <p class="caption">这份信任嵌在答案的形态里。BioMate 报告已知的内容并展示其出处；凡证据单薄之处，它直说，而不会把一条站不住的论断包装成笃定的措辞。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b gr"></span><span><b>只用真实引用。</b>每一条论断都系在一个确实存在、你能点开的来源上。BioMate 报告它所找到的——它绝不编造参考文献。</span></li>
+            <li><span class="b"></span><span><b>它回答的是"已知的是什么"。</b>答案综合已发表的记录并把来源一并带上——于是结论和它的证据始终同行。</span></li>
+            <li><span class="b am"></span><span><b>边界说明块始终在场。</b>一段简短的话写明这份答案<b>不能</b>作为什么的证据——在这里，是说它综合的是已发表文献，并不是对你自己数据的裁决。</span></li>
+            <li><span class="b"></span><span><b>单薄会如实说明。</b>只有一个来源、或只出自一个实验室，都会如实报告。一份有所保留的答案，恰恰是这份诚实在起作用——它给你一条可以掂量的论断，而不是一条只能盲信的话。</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>每一条论断都有出处；每一份答案都有诚实的边界</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">一眼看清它的价值</div>
+    <h2 style="font-size:40px">提问 → 读带引用的答案 → 点开来源。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">这个习惯每次都一样。用大白话提出一个关于证据的问题，读那份带着编号来源的答案，点开一条引用去核对，再读一读边界说明。原本一小时的人工文献调研，变成几秒钟就有的一份带引用答案——而正因为它的出处随之同行，你才能把它放进组会、申请书或评审里，并真能为之负责。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>用大白话打出一个关于证据的问题</li>
+            <li><span class="k">2</span>读那份答案——带编号来源的论断</li>
+            <li><span class="k">3</span>点开一条引用，到源头去核对</li>
+            <li><span class="k">4</span>读一读边界说明，再把这个发现带着往下走</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>大白话的问题</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">像问同事那样问</span></td></tr>
+            <tr><td>在对话里作答</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">几秒钟给出答案</span></td></tr>
+            <tr><td>读取的证据</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">文献 · 数据库 · 专利</span></td></tr>
+            <tr><td>每一条论断都带引用</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">点开并核对</span></td></tr>
+            <tr><td>每一份答案都有边界</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">说清已知的是什么</span></td></tr>
+          </table>
+          <p class="footnote">一份你可以信赖、也可以溯源的带引用答案：已知的内容，取自真实的来源，并附着它的出处——原本一小时的人工文献调研，几秒钟就返回。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

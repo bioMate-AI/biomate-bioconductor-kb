@@ -1,0 +1,201 @@
+[
+  {
+    "path": "backend/database/compliance/audit.db",
+    "category": "application_and_operations",
+    "matching_cells": 0,
+    "matching_rows": 0,
+    "tables": [
+      {
+        "table": "audit_log",
+        "matching_cells": 0
+      }
+    ],
+    "status": "scanned"
+  },
+  {
+    "path": "backend/database/galaxy_ai_tools.db",
+    "category": "application_and_operations",
+    "matching_cells": 8208,
+    "matching_rows": 2200,
+    "tables": [
+      {
+        "table": "tool_compatibility",
+        "matching_cells": 0
+      },
+      {
+        "table": "tool_usage_patterns",
+        "matching_cells": 0
+      },
+      {
+        "table": "tools",
+        "matching_cells": 4399
+      },
+      {
+        "table": "update_log",
+        "matching_cells": 0
+      },
+      {
+        "table": "dataset_tool_mapping",
+        "matching_cells": 202
+      },
+      {
+        "table": "schema_migrations",
+        "matching_cells": 0
+      },
+      {
+        "table": "users",
+        "matching_cells": 0
+      },
+      {
+        "table": "user_interactions",
+        "matching_cells": 0
+      },
+      {
+        "table": "user_patterns",
+        "matching_cells": 0
+      },
+      {
+        "table": "data_type_detections",
+        "matching_cells": 0
+      },
+      {
+        "table": "context_inferences",
+        "matching_cells": 0
+      },
+      {
+        "table": "chat_sessions",
+        "matching_cells": 0
+      },
+      {
+        "table": "chat_messages",
+        "matching_cells": 0
+      },
+      {
+        "table": "session_workflows",
+        "matching_cells": 0
+      },
+      {
+        "table": "session_datasets",
+        "matching_cells": 0
+      },
+      {
+        "table": "session_compressions",
+        "matching_cells": 0
+      },
+      {
+        "table": "workflows",
+        "matching_cells": 1572
+      },
+      {
+        "table": "tool_knowledge",
+        "matching_cells": 310
+      },
+      {
+        "table": "workflow_generation_audit",
+        "matching_cells": 0
+      },
+      {
+        "table": "workflow_user_corrections",
+        "matching_cells": 0
+      },
+      {
+        "table": "learned_domain_keywords",
+        "matching_cells": 0
+      },
+      {
+        "table": "routing_cache",
+        "matching_cells": 0
+      },
+      {
+        "table": "tools_fts_content",
+        "matching_cells": 1725
+      },
+      {
+        "table": "workflow_embeddings",
+        "matching_cells": 0
+      },
+      {
+        "table": "workflow_chains",
+        "matching_cells": 0
+      },
+      {
+        "table": "user_domain_profiles",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_protocols",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_parameters",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_tools",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_chunks",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_chunks_vec_info",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_chunks_vec_chunks",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_chunks_vec_rowids",
+        "matching_cells": 0
+      },
+      {
+        "table": "cryo_em_chunks_vec_vector_chunks00",
+        "matching_cells": 0
+      },
+      {
+        "table": "pilot_feedback",
+        "matching_cells": 0
+      },
+      {
+        "table": "workflow_phase_rationale",
+        "matching_cells": 0
+      },
+      {
+        "table": "rationale_registry",
+        "matching_cells": 0
+      },
+      {
+        "table": "db_update_log",
+        "matching_cells": 0
+      }
+    ],
+    "status": "scanned"
+  },
+  {
+    "path": "backend/database/regulatory_skills.db",
+    "category": "application_and_operations",
+    "matching_cells": 0,
+    "matching_rows": 0,
+    "tables": [
+      {
+        "table": "documents",
+        "matching_cells": 0
+      },
+      {
+        "table": "skills",
+        "matching_cells": 0
+      },
+      {
+        "table": "pbpk_benchmarks",
+        "matching_cells": 0
+      },
+      {
+        "table": "narrative_patterns",
+        "matching_cells": 0
+      }
+    ],
+    "status": "scanned"
+  }
+]

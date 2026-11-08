@@ -1,0 +1,21 @@
+# Learned knowledge bridge components — 29 October 2026
+
+Two standalone components now implement the first part of the bridge design. They are not yet connected to ChemFM generation, DPO, the optimiser or model checkpoints. No learned knowledge benefit is claimed.
+
+`hybrid/knowledge_memory.py` packs immutable static evidence into categorical IDs, externally supplied frozen molecular embeddings, explicit presence/eligibility masks, null/padding slots and a conditioning digest. Admission requires a frozen catalogue and explicit learned-conditioning permission; parent-selection permission is insufficient. Exact quotations, source hashes, extraction hashes and reviewer provenance remain audit records, not predictor features. Source, target and caller-resolved parent exclusions apply before evidence payload use. Numeric priors and observed-outcome memory are not implemented. Review labels and parent/embedding qualification remain external scientific prerequisites; validation of their schema does not certify their truth.
+
+`hybrid/knowledge_attention.py` implements the existing IH-LM cross-attention pattern as an isolated residual module. Its output projection starts at zero; masked memory cannot affect attention. A separate frozen reference copy is stored with policy state, and reference selection is nesting- and exception-safe. The module accepts projected memory; learned projection and categorical embeddings remain to be implemented. It does not itself enforce decoder causality or choose the generator's reference weights.
+
+Next integration steps are a typed trainable feature projection, an explicit decoder context carrying a frozen per-group memory digest, policy/reference switching alongside LoRA, optimiser and checkpoint extension, then tiny-decoder cache/causality/resume validation. Only after these checks should an appropriately budgeted full-size model diagnostic run. The original M1–M5 predictor remains distinct.
+
+## Remote validation r4
+
+The source-only synthetic regression bundle is pinned by archive SHA-256 `aa83efe6dac19648953876e953bede8938537a65fc0dd772bf689406299d5f34` and manifest SHA-256 `ba148639af8c738dd00933e31a0814202a4ca6e01593f5dbf2e91ebcfdc7be32`. The reusable packaging script is now `hybrid/ec2/build_qa_bundle.py`; it imports no project modules and refuses existing output/archive paths.
+
+Worker `i-06a7e166313ccbb4b` launched at 2026-10-29 20:09:13 America/Chicago (01:09:13 UTC on 30 October), under the existing additional USD 1 synthetic CPU-QA allowance. Compute is capped at USD 0.10/hour, bootstrap shutdown at 25 minutes, and the independent operator deadline is 20:39:13 America/Chicago. Prior r2/r3 workers were confirmed terminated and no live project worker was found before launch. This allowance does not cover patent re-extraction or GPU training.
+
+Logs: `s3://biomate-nextflow-work/cyclic_peptide/allatom/integration_qa/integration-qa-20261029-r4/`. Status at preparation: running; acceptance and termination require verification.
+
+The r4 worker returned one failure and 174 passes in the integration suite, then terminated. Literature/patent suites did not run because the runner stops on failure. The failing applicability fixture shared one scope dictionary between the task and evidence; changing evidence therefore changed the task as well. The fixture now copies that dictionary. No production-code change was needed for this observed failure.
+
+Retry r5 uses archive `4cb07ec93aae6ea31f4b8cc265a8bba8a60fbb6bf990c5bce99db0f8f1ddca10`, manifest `e15d6ee092073a5d1c76a59189cff9b78753296e57696b9184d0982328016211`, and instance `i-0f5eb29ec9cbc8de9`. Launch: 20:11:44 America/Chicago; independent operator deadline: 20:41:44. The same shutdown/cost controls and remaining synthetic QA allowance apply. Logs use the `integration-qa-20261029-r5/` sibling prefix. Final acceptance passed: 175 integration tests, 16 literature tests and 49 patent tests (240 total), zero failures/errors/skips. Runner and bootstrap exit codes were both 0; pip check passed. Both r4 and r5 workers were independently confirmed terminated. Results and the exact tested source manifest are retained in `20261029_knowledge_bridge_qa_r5/`. These are synthetic component tests, not decoder integration or scientific validation.

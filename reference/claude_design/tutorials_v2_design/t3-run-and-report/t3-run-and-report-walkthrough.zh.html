@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T3 — 运行工作流并读懂报告</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">教程 3 · 运行工作流并读懂报告</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="30.4">
+    <div class="kicker">日常的中间环节——先跑起来，再读结果</div>
+    <h2>运行一条经过测试的流水线，读一份你拿得出依据的报告。</h2>
+    <p class="caption"><b>工作流</b>就是一整套多步骤的分析，已经替你测试并连接好。你用自然语言说清楚目标、附上数据，BioMate 就在云端把这条流水线跑完，再交回一份报告——结果、每一个输出文件，以及一份完整的生成过程记录。</p>
+    <p class="caption sub">贯穿示例：对三个分子——阿司匹林、咖啡因、布洛芬——运行<b>预测 ADMET 性质（AI）</b>，一次真实、已完成的运行。我们会看着它从配置、到实时进度、再到那份报告：一个合并的 <b>结果（Results）</b> 标签页——发现摘要，下方逐个预览每个输出文件——以及 <b>可复现记录（Reproducibility record）</b> 标签页。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>确认并运行</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>看实时阶段</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>结果·发现</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>结果·输出</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>可复现记录</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPTS -->
+  <section class="scene" data-seconds="35.9">
+    <div class="kicker">开始前要懂的几个概念</div>
+    <h2>五个词，就能让整份报告读得懂。</h2>
+    <p class="caption">你不用去拼装工具——你运行一条现成的流水线，再读取返回的结果。这五个概念，就是你需要的全部。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row5">
+            <div class="tile"><div class="n">1 · 工作流</div><h4>流水线</h4><p>一套现成、经过测试的多步骤分析。你直接运行，而不用自己搭建。</p></div>
+            <div class="tile"><div class="n">2 · 阶段／步骤</div><h4>各个阶段</h4><p>大的阶段，每个由一个个具体的工具步骤组成。每一步接收输入、产出输出。</p></div>
+            <div class="tile"><div class="n">3 · 参数</div><h4>各项设置</h4><p>运行所用的设置——带着合理的默认值，在任何东西开跑<b>之前</b>先展示。</p></div>
+            <div class="tile"><div class="n">4 · 质控闸门</div><h4>护栏</h4><p>运行途中的一次自动检查。它绝不会悄悄放过一个没通过的结果。</p></div>
+            <div class="tile"><div class="n">5 · 运行后报告</div><h4>结果</h4><p>两个标签页：合并的 <b>结果（Results）</b> 视图（发现 + 每个输出）以及可复现记录。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">"测试过／经过验证"是指每一步用的都是已发表、成熟的方法——不代表结果在临床上已被证明。工作流是计算层面的早期筛查，不是成品答案。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——每一次运行共享的词汇表</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — PRE-RUN (r1) -->
+  <section class="scene" data-seconds="35.1">
+    <div class="kicker"><span class="st">第一步</span> · 配置并确认运行</div>
+    <h2>在任何算力被花掉之前——看清将要发生什么。</h2>
+    <p class="caption">你用自然语言提出了 ADMET 的需求；BioMate 挑中了那个经过验证的工作流，并打开了它的面板。现在核对右侧的配置，再点下<b>"确认并运行"</b>。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">运行前 · 工作流设置</span>
+        <div class="frame"><img src="../assets/live/prerun.png" alt="ADMET 运行前参数面板，带确认并运行"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>输入已映射。</b>这次运行只需要参数——没有数据文件要对接。换成别的工作流，你会在这里附上 FASTQ、CSV、FASTA 或 SMILES 文件。</span></li>
+          <li><span class="b"></span><span><b>必填参数，已填好。</b>你的分子列表（阿司匹林、咖啡因、布洛芬）和预测模型都已展示出来，并可编辑。</span></li>
+          <li><span class="b"></span><span><b>输出与权限。</b>结果存放在哪里（由 BioMate 托管，90 天），以及你就是能运行它的 Owner（所有者）。</span></li>
+          <li><span class="b"></span><span>这是你事先<b>核对或修改</b>一切的机会。然后<b>确认并运行</b>。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>在你确认之前，什么都不会运行</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — RUNNING (r2) -->
+  <section class="scene" data-seconds="36.2">
+    <div class="kicker"><span class="st">第二步</span> · 看着它运行——阶段与质控闸门</div>
+    <h2>实时进度，以及一目了然的质控闸门。</h2>
+    <p class="caption">在 <b>Phases</b>（阶段）标签页里，每个步骤实时地从 <code>pending → running → completed</code> 推进。这次 ADMET 运行展示了它的两个步骤，以及它将执行的质控闸门。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">运行中 · Phases 标签页</span>
+        <div class="frame"><img src="../assets/live/running.png" alt="ADMET 运行中，带步骤进度和质控闸门"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>步骤实时更新。</b>第一个预测步骤正在运行（0 / 2）；下一步还在等待。</span></li>
+          <li><span class="b am"></span><span><b>质控闸门是心脏安全性阈值</b>——CiPA hERG 安全裕度、qNet 风险、APD90 延长、EAD 概率。这些就是运行要据以检查的上限。</span></li>
+          <li><span class="b"></span><span><b>它绝不会悄悄越过一个没通过的检查。</b>一旦某个结果越线，运行就会把它标出来，并把实测值与上限并列。</span></li>
+          <li><span class="b"></span><span>你随时可以<b>暂停</b>或<b>停止</b>，也可以让它在后台继续跑，同时继续对话。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>质控阈值完整展示</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — COMPLETED + REAL FINDINGS -->
+  <section class="scene" data-seconds="47.0">
+    <div class="kicker"><span class="st">第三步</span> · 完成——发现报告</div>
+    <h2>一段好读的摘要，数字直接取自你的结果。</h2>
+    <p class="caption">运行完成了：一个绿色的 <b>Completed</b>（已完成）徽标，报告停在 <b>结果（Results）</b> 标签页上——一段简短、自然语言的发现摘要，讲清这次运行发现了什么，关键数值都直接读自结果文件。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">已完成 · 结果（Results）标签页</span>
+        <div class="frame"><img src="../assets/live/completed.png" alt="ADMET 已完成，带填好的发现摘要"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b gr"></span><span><b>已完成，并给出清晰结论。</b>"已为 3 个化合物完成 ADMET 预测"——关键性质均对照标准阈值做了评估。</span></li>
+          <li><span class="b"></span><span><b>真实数值，摆在最显眼处。</b>hERG 抑制 <b>0.003</b>、DILI 概率 <b>0.855</b>、口服生物利用度 <b>0.873</b>——取自结果文件，而非手写。</span></li>
+          <li><span class="b"></span><span><b>展开看细节。</b><b>Key Results</b>（关键结果）展开按化合物逐一列出的完整表格；<b>Download findings</b>（下载发现）一键存下整份摘要。</span></li>
+          <li><span class="b am"></span><span><b>如实说明。</b>一行 Caveats（注意事项）提醒你，这些都是计算得出的估计值——在推进之前仍需用湿实验加以验证。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>结果直接读自你的文件</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — OUTPUTS (r5) -->
+  <section class="scene" data-seconds="35.3">
+    <div class="kicker"><span class="st">第四步</span> · 输出——每个文件，按步骤归类</div>
+    <h2>摘要的背后：运行产生的每一个文件。</h2>
+    <p class="caption"><b>Outputs</b>（输出）区——就在同一个 <b>结果（Results）</b> 标签页、发现摘要的下方——列出运行产生的每一个文件，并按产生它的步骤分组，那是摘要背后的原始结果，可供你亲自下载、阅读。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">结果（Results）标签页 · 输出区</span>
+        <div class="frame"><img src="../assets/live/outputs.png" alt="ADMET 输出——六个文件按步骤分组"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>每个文件，各带其类型。</b><code>predict_admet_properties_results.json</code>、<code>toxicity_report.json</code>、<code>qc_metrics.json</code>、<code>pk_summary.json</code>、一张结果表格，以及 <code>versions.yml</code>（软件记录）。</span></li>
+          <li><span class="b"></span><span><b>归在产生它的步骤之下</b>——于是你能从头到尾追溯整条流水线。</span></li>
+          <li><span class="b"></span><span><b>查看或下载</b>任意单个文件，把它们<b>全部打包成一个压缩包</b>，打开来做交互式分析，或保存到某个项目。</span></li>
+          <li><span class="b"></span><span>这是看清<b>每一步输入与输出</b>的最清晰视图——摘要背后的原始真相。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>每一个结果文件，都归你所有</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — REPRODUCIBILITY (r6) -->
+  <section class="scene" data-seconds="41.3">
+    <div class="kicker"><span class="st">第五步</span> · 可复现记录——你的审计轨迹</div>
+    <h2>让结果站得住脚的一切，一次下载尽收。</h2>
+    <p class="caption"><b>可复现记录</b>是完整的审计轨迹——一切整份保存在一起，不隐藏、也不丢弃任何部分。这正是你附到论文、专利或监管递交材料上的东西。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">运行后 · 可复现记录</span>
+        <div class="frame"><img src="../assets/live/record.png" alt="可复现记录——运行编号、参数、输出、校验和"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>身份与时间。</b>运行编号 <code>46953d98…</code>、状态 Completed（已完成）、创建与完成的时间戳——把这次确切的运行钉得死死的。</span></li>
+          <li><span class="b"></span><span><b>参数与输出</b>——全部九个文件及其类型和大小，外加可展开的方法、软件版本、引用文献、质控报告，以及完整的决策轨迹。</span></li>
+          <li><span class="b gr"></span><span><b>可核验的校验和。</b>每个文件都有一个 SHA-256 指纹，任何人都能据此确认自己拿到的是完全相同的那个结果。</span></li>
+          <li><span class="b"></span><span><b>一键：下载记录（JSON）</b>——整份审计轨迹收进单个文件。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>一个你拿得出依据的结果</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="39.0">
+    <div class="kicker">一眼看懂这个习惯</div>
+    <h2>确认并运行 → 实时查看 → 读「结果」与记录。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">每一次运行都是同一个样子。配置好并确认；实时看着各个阶段和质控闸门；然后读合并的 <b>结果（Results）</b> 视图——发现与每个输出——以及 <b>可复现记录</b>。正是这份记录，把"运行完了"变成一个你能够解释、也拿得出依据的结果。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>用自然语言提出要求；核对设置；确认并运行</li>
+            <li><span class="k">2</span>看着各阶段从 pending → running → completed；留意质控闸门</li>
+            <li><span class="k">3</span>读摘要——用自然语言给出的关键发现</li>
+            <li><span class="k">4–5</span>逐个文件读输出；下载可复现记录</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>运行配置与确认</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">在你确认之前什么都不会运行</span></td></tr>
+            <tr><td>实时阶段与质控闸门</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">实时进度</span></td></tr>
+            <tr><td>摘要发现</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">读自你的文件</span></td></tr>
+            <tr><td>输出（每个文件，按步骤）</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">归你下载</span></td></tr>
+            <tr><td>可复现记录</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">完整审计轨迹</span></td></tr>
+          </table>
+          <p class="footnote">一份报告：一段自然语言的摘要、每一个输出文件，以及一份带可核验校验和的完整可复现记录——无需购买任何软件授权。工作流是计算层面的早期筛查，不是临床结果。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

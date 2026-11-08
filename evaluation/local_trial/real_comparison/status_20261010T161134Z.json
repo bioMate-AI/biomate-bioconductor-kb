@@ -1,0 +1,244 @@
+{
+  "snf": {
+    "http_status": 200,
+    "response": {
+      "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+      "status": "completed",
+      "progress": {
+        "totalSteps": 0,
+        "completedSteps": 0,
+        "percentComplete": 0
+      },
+      "metrics": {
+        "runtime": {
+          "totalSeconds": 142,
+          "perStepSeconds": {},
+          "startedAt": "2026-10-10T16:09:02.583Z",
+          "completedAt": "2026-10-10T16:11:24.688Z"
+        },
+        "resources": {
+          "peakMemoryGB": 0,
+          "avgCpuPercent": 0,
+          "diskUsedGB": 0
+        },
+        "quality": {},
+        "outputs": {
+          "fileCount": 0,
+          "totalSizeBytes": 0,
+          "byType": {},
+          "bySize": {}
+        },
+        "perStepLlmCost": {}
+      },
+      "nextflowStatus": {
+        "run_id": "372658d6-c6a5-4f2d-8d16-82247c2735d6",
+        "invocation_id": "5a275665-9801-4698-a2bc-57ffef288083",
+        "status": "succeeded",
+        "returncode": 0,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02",
+        "work_dir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/372658d6-c6a5-4f2d-8d16-82247c2735d6",
+        "log_tail": [
+          "Oct-10 16:09:16.425 [Actor Thread 4] INFO  nextflow.file.FilePorter - Staging foreign file: [path]",
+          "Oct-10 16:09:19.356 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `BIOC_SNF_MULTIOMICS (sample)` submitted > job=[id]; work-dir=[storage]",
+          "Oct-10 16:09:19.357 [AWSBatch-executor-1] INFO  nextflow.Session - [5d/706f5a] Submitted process > BIOC_SNF_MULTIOMICS (sample)",
+          "Oct-10 16:11:13.552 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: BIOC_SNF_MULTIOMICS (sample); status: COMPLETED; exit: 0; error: -; workDir: [storage]",
+          "Oct-10 16:11:13.553 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=12; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Oct-10 16:11:14.313 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=12; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Oct-10 16:11:14.349 [main] DEBUG nextflow.Session - Session await > all processes finished",
+          "Oct-10 16:11:23.158 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+          "Oct-10 16:11:23.158 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+          "Oct-10 16:11:23.160 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
+          "Oct-10 16:11:23.162 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
+          "Oct-10 16:11:23.178 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=58.8s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=6; peakMemory=36 GB; ]",
+          "Oct-10 16:11:23.276 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+          "Oct-10 16:11:23.291 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+          "Oct-10 16:11:23.315 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.3.0'",
+          "Oct-10 16:11:23.315 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+          "Oct-10 16:11:23.318 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
+          "Oct-10 16:11:23.319 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
+          "Oct-10 16:11:23.319 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:05.072 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
+          "Oct-10 16:09:11.234 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
+          "Oct-10 16:09:13.550 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD"
+        ],
+        "is_batch": true,
+        "s3_output_files": [
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/methylation.csv",
+            "name": "methylation.csv",
+            "size": 14865881,
+            "extension": "csv"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/mrna.csv",
+            "name": "mrna.csv",
+            "size": 12544620,
+            "extension": "csv"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_analysis_plots.pdf",
+            "name": "snf_analysis_plots.pdf",
+            "size": 136551,
+            "extension": "pdf"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_clusters.csv",
+            "name": "snf_clusters.csv",
+            "size": 1819,
+            "extension": "csv"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_views.csv",
+            "name": "snf_views.csv",
+            "size": 51,
+            "extension": "csv"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/versions.yml",
+            "name": "versions.yml",
+            "size": 42,
+            "extension": "yml"
+          }
+        ],
+        "qc_report": null,
+        "qc_gates": [],
+        "started_at": 1791648542.5839431,
+        "completed_at": 1791648684.6882207,
+        "duration_s": 142,
+        "completedTasks": 1,
+        "failedTasks": 0,
+        "runningTasks": 0,
+        "totalTasks": 1,
+        "progressPercent": 100,
+        "processes": [
+          {
+            "id": "1",
+            "name": "BIOC_SNF_MULTIOMICS (sample)",
+            "status": "COMPLETED",
+            "work_dir": "",
+            "task_files": [],
+            "outputs": [],
+            "process": "bioc_snf_multiomics (sample)"
+          }
+        ]
+      },
+      "artifactReadiness": {
+        "hasOutputs": true,
+        "visualizableCount": 0,
+        "downloadableCount": 2,
+        "totalOutputs": 0,
+        "meetsContract": false,
+        "completionContract": {
+          "mode": "artifacts_required",
+          "state": "artifact_unavailable",
+          "registeredOutputCount": 0,
+          "meetsContract": false
+        }
+      }
+    }
+  },
+  "mfa": {
+    "http_status": 200,
+    "response": {
+      "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+      "status": "running",
+      "progress": {
+        "totalSteps": 0,
+        "completedSteps": 0,
+        "percentComplete": 0
+      },
+      "metrics": {
+        "runtime": {
+          "totalSeconds": 147,
+          "perStepSeconds": {},
+          "startedAt": "2026-10-10T16:09:06.201Z"
+        },
+        "resources": {
+          "peakMemoryGB": 0,
+          "avgCpuPercent": 0,
+          "diskUsedGB": 0
+        },
+        "quality": {},
+        "outputs": {
+          "fileCount": 0,
+          "totalSizeBytes": 0,
+          "byType": {},
+          "bySize": {}
+        },
+        "perStepLlmCost": {}
+      },
+      "nextflowStatus": {
+        "run_id": "e46a0e05-41b0-4653-86b7-f257dd030de1",
+        "invocation_id": "72f17123-47f8-408e-a29c-2e0373c64464",
+        "status": "running",
+        "returncode": null,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397",
+        "work_dir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e46a0e05-41b0-4653-86b7-f257dd030de1",
+        "log_tail": [
+          "Oct-10 16:09:17.895 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'BIOC_RGCCA_MULTIOMICS': maxForks=0; fair=false; array=0",
+          "Oct-10 16:09:18.096 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: BIOC_RGCCA_MULTIOMICS",
+          "Oct-10 16:09:18.129 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:18.142 [main] DEBUG nextflow.Session - Igniting dataflow network (2)",
+          "Oct-10 16:09:18.144 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > BIOC_RGCCA_MULTIOMICS",
+          "Oct-10 16:09:18.152 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:",
+          "  Script_fb90380b5a192b88: [path]",
+          "  Script_a9e0e92dce849f4b: [path]",
+          "Oct-10 16:09:18.153 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination",
+          "Oct-10 16:09:18.153 [main] DEBUG nextflow.Session - Session await",
+          "Oct-10 16:09:19.298 [FileTransfer-2] DEBUG nextflow.file.FilePorter - Copying foreign file [path] to work dir: [storage]",
+          "Oct-10 16:09:19.394 [FileTransfer-2] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=[path] to=[storage]",
+          "Oct-10 16:09:19.394 [FileTransfer-2] DEBUG nextflow.cloud.aws.nio.S3Client - Creating S3 transfer manager pool - max-treads=10;",
+          "Oct-10 16:09:19.395 [FileTransfer-2] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Oct-10 16:09:19.465 [FileTransfer-1] DEBUG nextflow.file.FilePorter - Copying foreign file [path] to work dir: [storage]",
+          "Oct-10 16:09:19.559 [FileTransfer-1] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=[path] to=[storage]",
+          "Oct-10 16:09:21.200 [Actor Thread 4] INFO  nextflow.file.FilePorter - Staging foreign file: [path]",
+          "Oct-10 16:09:22.800 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `BIOC_RGCCA_MULTIOMICS (sample)` submitted > job=[id]; work-dir=[storage]",
+          "Oct-10 16:09:22.801 [AWSBatch-executor-1] INFO  nextflow.Session - [fc/d41140] Submitted process > BIOC_RGCCA_MULTIOMICS (sample)",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:09.516 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
+          "Oct-10 16:09:15.773 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
+          "Oct-10 16:09:18.129 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD"
+        ],
+        "is_batch": true,
+        "s3_output_files": [],
+        "qc_report": null,
+        "qc_gates": [],
+        "started_at": 1791648546.20193,
+        "completed_at": null,
+        "duration_s": 147,
+        "completedTasks": 0,
+        "failedTasks": 0,
+        "runningTasks": 0,
+        "totalTasks": 0,
+        "progressPercent": 0,
+        "processes": []
+      }
+    }
+  },
+  "benchmark": {
+    "http_status": 200,
+    "response": {
+      "benchmarkId": "bm_mv2la6qj_0",
+      "status": "running",
+      "children": [
+        {
+          "method": "snf",
+          "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+          "status": "completed"
+        },
+        {
+          "method": "mfa",
+          "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+          "status": "running"
+        }
+      ]
+    }
+  }
+}

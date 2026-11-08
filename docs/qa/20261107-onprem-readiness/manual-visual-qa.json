@@ -1,0 +1,245 @@
+{
+  "status": "visual-review-complete-for-labelled-review-revisions-not-release-qualification",
+  "total_pages": 42,
+  "document_regression_tests": 5,
+  "retired_term_scan_entries": 52,
+  "documents": [
+    {
+      "document": "BioMate本地部署交付清单.docx",
+      "document_sha256": "c1013713c45602e17404e420119319b55c91c280608869eca93068746acbed61",
+      "changes": 29,
+      "render_directory": "docs/qa/20261107-onprem-readiness/render-v131/delivery",
+      "pages": [
+        {
+          "page": 1,
+          "sha256": "844a3649374c08ca274ec8ad0b39bc491a5a0aedb00b4fa00ddfa355fd878032",
+          "visually_inspected": true
+        },
+        {
+          "page": 2,
+          "sha256": "7875310de12f6a7460bfc2f39a457c2ad28e95b1d2f8facd91b4a832843fd3c5",
+          "visually_inspected": true
+        },
+        {
+          "page": 3,
+          "sha256": "f01b2533b9f99cddfe30e879c396cfc2a5bbcca2064e74b3c3741d947857d8be",
+          "visually_inspected": true
+        },
+        {
+          "page": 4,
+          "sha256": "bd5fd40e323f693ca05048c32deb1f407288e1ef31e753f1f581e0c155182489",
+          "visually_inspected": true
+        },
+        {
+          "page": 5,
+          "sha256": "d27ab6d9e7d396ea3a7da03ceed9d13426153ae1432a0ee324c5aefe81fd845b",
+          "visually_inspected": true
+        },
+        {
+          "page": 6,
+          "sha256": "edbc5ce32c84acc14e3115d7961de3c84d78d809cc32c77a1d3d9368c80f6447",
+          "visually_inspected": true
+        },
+        {
+          "page": 7,
+          "sha256": "65dd67f9bc5a00b4918bd6402a39680f03ed96b92c96ba116deac953b89d7cda",
+          "visually_inspected": true
+        },
+        {
+          "page": 8,
+          "sha256": "e3385d9801f3436d4a187487ffde8573c44bbc3bb64f522f98c3bfbb6bd43be4",
+          "visually_inspected": true
+        },
+        {
+          "page": 9,
+          "sha256": "8be07789e9f27cb4985cae3a8b7a14bf00b4809026d8cad912e3f5465f95e3f5",
+          "visually_inspected": true
+        },
+        {
+          "page": 10,
+          "sha256": "60c60b49a9f0f9987e5ae1242fffc663313813caa8c6f2ccd40dee218fc48ae8",
+          "visually_inspected": true
+        },
+        {
+          "page": 11,
+          "sha256": "187525bdc43a575dc697fc9d83b3a21d279c79079e70b6c479cdccfa241bae94",
+          "visually_inspected": true
+        },
+        {
+          "page": 12,
+          "sha256": "8c326035b97c4f55d143cf62e1f8179194349ed8b1aeb20d50aca149666d1b1a",
+          "visually_inspected": true
+        },
+        {
+          "page": 13,
+          "sha256": "815472a9e2c1148ffc33864bbe24c0bc02cacc5bb15544f7d01a22b33ab2b663",
+          "visually_inspected": true
+        },
+        {
+          "page": 14,
+          "sha256": "3327fcb7ccac6d95a660877a4881e145c33858f8a6581a5dc75208923dc0790c",
+          "visually_inspected": true
+        }
+      ],
+      "review_basis": "Final rendered page PNGs are byte-identical to the 14/21 original-resolution pages already visually inspected in v103."
+    },
+    {
+      "document": "BioMate本地部署运维手册.docx",
+      "document_sha256": "d0729b5fe77189a055aa7cf2adce856e7c0e6142141b83dfa1077e85305c18d8",
+      "changes": 46,
+      "render_directory": "docs/qa/20261107-onprem-readiness/render-v131/operations",
+      "pages": [
+        {
+          "page": 1,
+          "sha256": "9205bfd3a5ba2188bb27c7de9100bdeb3563cb449c0f8743e8961e01daba5440",
+          "visually_inspected": true
+        },
+        {
+          "page": 2,
+          "sha256": "604acf28ee00b47cbb6a53875caf69b7d10e13c2dc9e4dee83c0706cae5489ed",
+          "visually_inspected": true
+        },
+        {
+          "page": 3,
+          "sha256": "64f5871b322cc04d264c493cd3bafdcf776f5f5a5268e537ba9e6cbdacd6b62f",
+          "visually_inspected": true
+        },
+        {
+          "page": 4,
+          "sha256": "e0b322e4b93e6b67876ee93b53a75f8e9f757f37314b6125692f6cd6369dfc03",
+          "visually_inspected": true
+        },
+        {
+          "page": 5,
+          "sha256": "8ddabdf38612f81dba40ca1bed092571dbb94395642cf5e3ba2dc4a4fd85812b",
+          "visually_inspected": true
+        },
+        {
+          "page": 6,
+          "sha256": "415d24af7ea1b8efd4de1e91c1ec0a2fdf8bd23ff1a0bc35159b600061601e28",
+          "visually_inspected": true
+        },
+        {
+          "page": 7,
+          "sha256": "cc240828cd9f664c66d4a8ac0db46dc4213072c64a574fdccfe5837526ba294c",
+          "visually_inspected": true
+        },
+        {
+          "page": 8,
+          "sha256": "d7d4f12b0ae3ba91f6f2b2ef9f120d85498365f9c35be3d93171339ac6afd716",
+          "visually_inspected": true
+        },
+        {
+          "page": 9,
+          "sha256": "c60f384616703e3cfbf67fffcf39dbbe01bdd606e7cd7a4a13486e331a614ee2",
+          "visually_inspected": true
+        },
+        {
+          "page": 10,
+          "sha256": "f561785fcf03b04a230d8f23725d8e7fe000a699a8b79ac2abbfdb9115d567f1",
+          "visually_inspected": true
+        },
+        {
+          "page": 11,
+          "sha256": "617515d6a3e3476598cf32b14c66706bfd6003efa24a2c0d2db8ccbc576110fd",
+          "visually_inspected": true
+        },
+        {
+          "page": 12,
+          "sha256": "2fbe69e4ae489756e7bd50cf3af7391107cca8021c6153974512daad8725c247",
+          "visually_inspected": true
+        },
+        {
+          "page": 13,
+          "sha256": "243da034351cd15fa60ac52e65e58ce0d659044d29126ac595ac237d69f46203",
+          "visually_inspected": true
+        },
+        {
+          "page": 14,
+          "sha256": "8c7f16199a6761f192c5aa607d4c27a66e03a5a88be68d063e5c548f952e2360",
+          "visually_inspected": true
+        },
+        {
+          "page": 15,
+          "sha256": "04c1f5530137f691ff3ab761fb0011d0690710f3019a79d24680484db805d2fc",
+          "visually_inspected": true
+        },
+        {
+          "page": 16,
+          "sha256": "60a769f5c59c097a6c5cb88515b32daf03f4a0d72717fddbd0c4d26a6ed289b7",
+          "visually_inspected": true
+        },
+        {
+          "page": 17,
+          "sha256": "2a37f7878631edaf6eb52db6721cd441a49606140b8351df60070bcc8cdd4e74",
+          "visually_inspected": true
+        },
+        {
+          "page": 18,
+          "sha256": "5042a7783b765f0247b571f7a7047fa3712ad76f17b882ffe89583f8e1d310b4",
+          "visually_inspected": true
+        },
+        {
+          "page": 19,
+          "sha256": "52181ea6e5ce5bbbef5c994a6d13683b67488c0446644c90b92dc0d1cc32df9e",
+          "visually_inspected": true
+        },
+        {
+          "page": 20,
+          "sha256": "15e71dffae795685b2d14766c807d7036eeecfdd3334b0531140bd0d1cb49cb2",
+          "visually_inspected": true
+        },
+        {
+          "page": 21,
+          "sha256": "150a59844af6a9b9caec5bda05df93b498df223ff940c1b93bed3d690f52e84b",
+          "visually_inspected": true
+        }
+      ],
+      "review_basis": "Final rendered page PNGs are byte-identical to the 14/21 original-resolution pages already visually inspected in v103."
+    },
+    {
+      "document": "BioMate本地部署运维远程支持手册.docx",
+      "document_sha256": "206bab60451e952132246055a923bbc3cf59220849cac6c21cb41550ef6e1c48",
+      "changes": 57,
+      "render_directory": "docs/qa/20261107-onprem-readiness/render-v132/support",
+      "pages": [
+        {
+          "page": 1,
+          "sha256": "d135a8e49ef040f46d50bdde70c4081596aa8d35d6a0bb40220bd37f6f4dd6ba",
+          "visually_inspected": true
+        },
+        {
+          "page": 2,
+          "sha256": "39d1e303de3aeeba7c7e33c099fe303be8182e099ac7d929f7b18d799211a096",
+          "visually_inspected": true
+        },
+        {
+          "page": 3,
+          "sha256": "e72d336e77e319d6104671ec83c5e27011832af4c981b30b317e635a3aa3e151",
+          "visually_inspected": true
+        },
+        {
+          "page": 4,
+          "sha256": "348519464f76f7a0952e067f739262c99e8f884030b6960a0cad8e31a2e0f8f5",
+          "visually_inspected": true
+        },
+        {
+          "page": 5,
+          "sha256": "8746a762c10e51ef13c23f0e975d04475debde8ed9d7e6e9c4e8ee71a039c40e",
+          "visually_inspected": true
+        },
+        {
+          "page": 6,
+          "sha256": "49bc69ecf0eaf9c576d5c3a252cb37c1f8cb3f4050f832835b34d3c5fccd6a4d",
+          "visually_inspected": true
+        },
+        {
+          "page": 7,
+          "sha256": "0d79f59583ab420e7ec123baa28636503a7f8a8b1d7eb64ea4abc40368473390",
+          "visually_inspected": true
+        }
+      ],
+      "review_basis": "All support pages inspected at original resolution in v131; final v132 page 3 inspected again, all six other pages byte-identical."
+    }
+  ]
+}

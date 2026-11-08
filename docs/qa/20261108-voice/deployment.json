@@ -1,0 +1,16 @@
+{
+  "base": "e06ade54e1bc8cae058fcd52c8895cc946e1b45c",
+  "release": "voice-20261108-700803a2d456",
+  "ssmCommand": "414957de-2a70-4123-ab88-5fc26af4eb8d",
+  "health": "passed",
+  "backendChanged": false,
+  "rollbackContainer": "biomate-dev-frontend-rollback-voice-20261108-700803a2d456",
+  "voiceEnabled": true,
+  "liveVoiceEnabled": true,
+  "providerCheck": {
+    "ttsStatus": 200,
+    "sttStatus": 200,
+    "transcript": "Please compare BRCA1 and TP53"
+  },
+  "secretsRecorded": false
+}

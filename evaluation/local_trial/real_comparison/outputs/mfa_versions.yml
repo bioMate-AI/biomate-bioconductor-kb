@@ -1,0 +1,2 @@
+"BIOC_RGCCA_MULTIOMICS":
+    method: MFA (base-R block-weighted SVD; R 4.4.2)

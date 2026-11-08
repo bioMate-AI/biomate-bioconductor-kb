@@ -1,0 +1,196 @@
+{
+  "B2_fewshot_baselines/fewshot_baselines.json": {
+    "protocol": "k labelled cells per class drawn from held-out-study cells; classifier fitted on them; macro-F1 on the remaining held-out cells",
+    "n_test_cells": 47612,
+    "n_test_studies": 107,
+    "ks": "4,16,64,256",
+    "draws": 5,
+    "ckpts": {
+      "seed1": {
+        "sanity_zero_shot_frozen_z": 0.6542,
+        "k4": {
+          "z": {
+            "mean": 0.5309,
+            "sd": 0.0486
+          },
+          "raw": {
+            "mean": 0.3021,
+            "sd": 0.0375
+          },
+          "lin64": {
+            "mean": 0.3506,
+            "sd": 0.019
+          }
+        },
+        "k16": {
+          "z": {
+            "mean": 0.5505,
+            "sd": 0.0106
+          },
+          "raw": {
+            "mean": 0.4612,
+            "sd": 0.0183
+          },
+          "lin64": {
+            "mean": 0.4489,
+            "sd": 0.0257
+          }
+        },
+        "k64": {
+          "z": {
+            "mean": 0.5752,
+            "sd": 0.0106
+          },
+          "raw": {
+            "mean": 0.5967,
+            "sd": 0.0148
+          },
+          "lin64": {
+            "mean": 0.5136,
+            "sd": 0.0149
+          }
+        },
+        "k256": {
+          "z": {
+            "mean": 0.5816,
+            "sd": 0.0112
+          },
+          "raw": {
+            "mean": 0.623,
+            "sd": 0.0156
+          },
+          "lin64": {
+            "mean": 0.5686,
+            "sd": 0.0121
+          }
+        }
+      },
+      "seed2": {
+        "sanity_zero_shot_frozen_z": 0.6639,
+        "k4": {
+          "z": {
+            "mean": 0.5311,
+            "sd": 0.0423
+          },
+          "raw": {
+            "mean": 0.3021,
+            "sd": 0.0375
+          },
+          "lin64": {
+            "mean": 0.3506,
+            "sd": 0.019
+          }
+        },
+        "k16": {
+          "z": {
+            "mean": 0.5447,
+            "sd": 0.0204
+          },
+          "raw": {
+            "mean": 0.4612,
+            "sd": 0.0183
+          },
+          "lin64": {
+            "mean": 0.4489,
+            "sd": 0.0257
+          }
+        },
+        "k64": {
+          "z": {
+            "mean": 0.5742,
+            "sd": 0.0097
+          },
+          "raw": {
+            "mean": 0.5967,
+            "sd": 0.0148
+          },
+          "lin64": {
+            "mean": 0.5136,
+            "sd": 0.0149
+          }
+        },
+        "k256": {
+          "z": {
+            "mean": 0.5895,
+            "sd": 0.0076
+          },
+          "raw": {
+            "mean": 0.623,
+            "sd": 0.0156
+          },
+          "lin64": {
+            "mean": 0.5686,
+            "sd": 0.0121
+          }
+        }
+      }
+    }
+  },
+  "B2_geneformer_baseline/V1-10M/geneformer_baseline.json": {
+    "method": "Geneformer V1-10M (frozen, zero-shot embedding)",
+    "probe_macroF1": 0.5076,
+    "probe_null_macroF1": 0.0719,
+    "sanity_raw_gene_probe": 0.5751,
+    "genes_mapped": 17555,
+    "genes_total": 22877,
+    "max_tokens": 2048,
+    "median_tokens_per_cell": 1311,
+    "embedding": "mean over tokens, second-to-last layer",
+    "n_probe_train": 100000,
+    "n_probe_test": 47612,
+    "test_studies": 107,
+    "minutes": 9.1
+  },
+  "B2_scvi_baseline/seed0/scvi_baseline.json": {
+    "method": "scVI",
+    "seed": 0,
+    "n_latent": 64,
+    "fit_cells": 200000,
+    "max_epochs": 30,
+    "probe_macroF1": 0.5744,
+    "probe_null_macroF1": 0.0719,
+    "sanity_raw_gene_probe": 0.5748,
+    "n_probe_train": 100000,
+    "n_probe_test": 47612,
+    "test_studies": 107,
+    "minutes": 12.3
+  },
+  "immune_mosaic_long_20261028/evidence_provenance.json": {
+    "modality_channels": {
+      "rna": 2000,
+      "knowledge": 768,
+      "tcr": 14,
+      "protein": 35,
+      "atac": 512,
+      "genetics": 7
+    },
+    "knowledge_channel": {
+      "active": true,
+      "dim": 768,
+      "origin": "MSigDB GO-BP/KEGG/Reactome (pathways) + MSigDB C3 GTRD (TF regulons)"
+    },
+    "genetics": {
+      "active": true,
+      "origin": "OpenTargets L2G/eQTL (genetics_channel_hvg2000.npz)"
+    },
+    "pinnacle_kg": {
+      "active": false,
+      "origin": "PINNACLE context-specific PPI"
+    },
+    "perturb_grounding": {
+      "active": true,
+      "n_ko": 602,
+      "origin": "Replogle-Nadig Perturb-seq KO deltas"
+    },
+    "target_eval_gold": {
+      "active": true,
+      "origin": "DisGeNET disease-gene (gold_targets_immune.json)"
+    },
+    "depmap_validation": {
+      "origin": "DepMap negated-Chronos immune-lineage essentiality (proxy-or-real gated)"
+    },
+    "ppi_evidence": {
+      "origin": "STRING high-confidence PPI (string_ppi_hc.parquet)"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "split_indices.npz": "b44980216c65b5944fec513dda74113e2b05c0db50c40bf4a4908c6713ba9210",
+  "memory.json": "d188882190aff3dfc31bafc9991a09cc307ae2611ce9d29132b3eb6c752a00d1",
+  "results.json": "38acef06f72e6509b31b09b6cdc876a92a5f6886b6ea100bf1bc07cb8e2446c5",
+  "predictions.npz": "00cda06c3f6bc1a826743d0aa7e9489365cd088aa5672d4d807fbce6fe9f95cc",
+  "protocol.json": "09bde44c7636f4ea85b2e311d44fd3ee0597f0eadf9e6f1c5f380867f4f87364",
+  "container_status.txt": "29464a2f4d719c2ecc87d295d9533efbb05b3b4126f5ec124f81a930b228a4bc",
+  "run_diagnostic.py": "44413b56795634ca06c958bc36611c276c40c45fd7b9fb5deef492ae49ba14e9"
+}

@@ -1,0 +1,14 @@
+{
+  "integration_smoke.json": "81ed49303e8bcc8a7f0e37c5d9b8ffc3a867042787704b794c3f7ab0e30efb88",
+  "gse261278_3seed_12epoch_oof.npz": "c04c89b3532cf8e2942421fad6624c1cf49a6ddebafcc091842479c2b40425a3",
+  "extended.log": "70856875d50d711c34cacade3a1fe0fa565a32cf3b27db74d9b1eb41b1a4727b",
+  "gse261278_3seed_12epoch.json": "dca46619be11ccbff76f7a7b2366a44b23c3dbb5b2bd8a8a49a3eccb5d684081",
+  "REPORT.md": "1cf866d09811596eee4eebc817771da8e531261e77c3800921bad22dcc3b044e",
+  "profile_eval.py": "7493dfcc1dfa8612374fd39846b36b8c448176af0d4b2749ae407f3104f98525",
+  "integration_smoke.py": "87b5ac64b57e17c82b762f152dc095e0aaf6cde23d8e78acafea2d0bf0ec025f",
+  "gse261278_3fold_oof.npz": "53cdeed8b4cd8a45ba773818083b27ed09aabf1668bca8af91d1c059bcc1f43a",
+  "extended_memory.json": "0ebd6cb5358d08c0285ec361a85b2002ddd48b780212810074c133923990603a",
+  "profile_extended.py": "8a89ab6ab6a85b46df45e0aaeb453c6dad7e53e4cfbe858a6a0d8f085440b595",
+  "gse261278_3fold.json": "91e73b6edd6c92e8335624deb7e3a6d0f2cb3be9079124ec540506124e785746",
+  "folds_memory.json": "41a12fd1cef4abb5577ff44f5a1aeea8ba2b298dd2cbdcf4accfc42ec2e312f0"
+}

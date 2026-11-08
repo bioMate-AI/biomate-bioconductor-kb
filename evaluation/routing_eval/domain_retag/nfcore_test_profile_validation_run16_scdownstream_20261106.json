@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/scdownstream",
+  "runId": "90d0b571-a578-4a1c-8b04-3f30121e9f75",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 6,
+  "error": "Process SOUPX (SRR28679756) failed: Essential container in task exited \u2014 No plausible marker genes found.  Is the channel low complexity (see help)?  If not, reduce tfidfMin or soupQuantile | Execution halted",
+  "minutes": 4.1
+ }
+]

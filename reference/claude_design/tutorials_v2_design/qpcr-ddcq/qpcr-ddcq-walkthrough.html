@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · qPCR — ΔΔCq quantification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">Instrument tutorial · qPCR ΔΔCq quantification</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="32">
+    <div class="kicker">qPCR — from raw cycle numbers to relative expression</div>
+    <h2>Turn a Cq table into fold-change, with one request.</h2>
+    <p class="caption">Your qPCR machine reports a <b>Cq</b> value for every well — the cycle number at which the signal crosses the threshold. BioMate takes that table and runs the standard <b>ΔΔCq</b> relative-quantification analysis: normalise to your reference genes, compare treated against control, and return the <b>fold-change for each target gene</b> — on cloud compute, with a reproducible record.</p>
+    <p class="caption sub">Along the way you keep a defensible record: the reference genes, the control label, and the outputs that produced every number.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Cq table</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Normalise to reference genes</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Treated vs control</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Fold-change per gene</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>A raw Cq is not an answer — and doing ΔΔCq by hand is fiddly.</h2>
+    <p class="caption">A Cq of 24 for your gene means nothing on its own: it depends on how much sample went into the well, on pipetting, and on reaction efficiency. To say whether a gene went up or down, the numbers have to be normalised and compared.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · MANY SUBTRACTIONS</div><h4>Every well, every gene</h4><p>Each sample needs its target Cq minus its reference Cq, then a control average, then a power of two.</p></div>
+            <div class="tile"><div class="n">2 · EASY TO SLIP</div><h4>One wrong cell</h4><p>A mis-copied formula or a mislabelled control quietly shifts every fold-change that follows.</p></div>
+            <div class="tile"><div class="n">3 · HARD TO DEFEND</div><h4>No clear record</h4><p>A spreadsheet rarely shows which genes and which control group produced a given number.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The method itself is standard and well established. The goal is to apply it consistently, every time.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the problem in one line</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas that make a fold-change readable.</h2>
+    <p class="caption">ΔΔCq is a short chain of three simple steps. These four ideas cover all of it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · Cq VALUE</div><h4>The raw number</h4><p>The cycle where a well's signal crosses the line. <b>Lower Cq means more starting material.</b></p></div>
+            <div class="tile"><div class="n">2 · REFERENCE GENES</div><h4>The normaliser</h4><p>Genes that should not change between conditions, such as GAPDH or ACTB. Subtracting them cancels out how much sample was loaded.</p></div>
+            <div class="tile"><div class="n">3 · ΔΔCq</div><h4>Compared to control</h4><p>Each sample's normalised value minus the control group's average. Zero means "same as control".</p></div>
+            <div class="tile"><div class="n">4 · FOLD-CHANGE</div><h4>The readable answer</h4><p>Two to the power of minus ΔΔCq: 2.0 is twice control, 0.5 is half. About one cycle is a two-fold change.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Treated versus control is the comparison. Fold-change above 1 means higher in treated; below 1 means lower; near 1 means unchanged.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of ΔΔCq</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>Three things, all of which you already know.</h2>
+    <p class="caption">There is nothing to configure beyond what you designed into the experiment.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · A Cq TABLE</div><h4>Your exported values</h4><p>One row per well: the sample, the target gene, and the Cq. Any machine's CSV or text export works.</p></div>
+            <div class="tile"><div class="n">2 · REFERENCE GENES</div><h4>Which ones normalise</h4><p>The reference gene or genes you designed primers for, listed by name — for example GAPDH and ACTB.</p></div>
+            <div class="tile"><div class="n">3 · THE GROUPS</div><h4>Which is control</h4><p>The label that marks your control samples, so every treated sample can be compared against them.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Biological replicates make the result stronger — ideally three or more per group.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Three inputs, nothing else</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Ask in plain language; confirm; it runs.</h2>
+    <p class="caption">You describe the analysis the way you would to a colleague — for example, relative expression on this Cq table, treated versus control, reference genes GAPDH and ACTB.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Plain-English request</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Standard ΔΔCq method selected</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Review &amp; confirm</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Runs on cloud compute</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The standard method is chosen for you.</b> BioMate opens the ΔΔCq analysis, built on the published Bioconductor NormqPCR package.</span></li>
+            <li><span class="b"></span><span><b>You review before anything runs.</b> The reference genes and control label are shown, filled in and editable, with your Cq table attached.</span></li>
+            <li><span class="b"></span><span><b>Then Confirm &amp; Run.</b> It is a small-table calculation, so it finishes quickly.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — LIVE RESULTS -->
+  <section class="scene" data-seconds="28">
+    <div class="kicker"><span class="st">Step 3</span> · The results — fold-change per target</div>
+    <h2>One table: how much each gene changed.</h2>
+    <p class="caption">The run returns the ΔΔCq results — a fold-change for each target gene, treated compared with control.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Results · ΔΔCq fold-change table</span>
+        <div class="frame"><img src="../assets/live/qpcr-results.png" alt="qPCR ΔΔCq results — fold-change per target gene"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>One row per target gene,</b> normalised to your reference genes.</span></li>
+          <li><span class="b gr"></span><span><b>Above 1 is higher in treated;</b> below 1 is lower; near 1 is unchanged.</span></li>
+          <li><span class="b"></span><span><b>Downloadable tables</b> for your figures or supplement.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Fold-change per target gene</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>A standard method, a clear record, and a good habit.</h2>
+    <p class="caption">The calculation is the published ΔΔCq method, applied the same way every run. What makes it defensible is what you can show alongside it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Check the reference genes.</b> A believable result has your reference gene looking flat across conditions. If it swings widely, the normalisation is shaky.</span></li>
+            <li><span class="b"></span><span><b>Replicates matter.</b> A large fold-change from a single well is a hint; with three or more replicates per group it becomes a result.</span></li>
+            <li><span class="b gr"></span><span><b>A record you can cite.</b> The reference genes, control label, software version, and output checksums are kept together as a reproducibility record.</span></li>
+            <li><span class="b am"></span><span><b>Sanity-check your first run.</b> On your own data, compare one fold-change with a value you calculate by hand. That is simply good practice, and it builds trust quickly.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A result you can defend</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2>Cq table → name references and control → run → read fold-change.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">The value is simple: raw cycle numbers become relative expression with one request, using the standard published method, on cloud compute, with a record you can defend in a paper or a lab meeting.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Bring your Cq table</li>
+            <li><span class="k">2</span>Name the reference genes and the control label</li>
+            <li><span class="k">3</span>Confirm &amp; Run</li>
+            <li><span class="k">4</span>Read fold-change per gene; keep the record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Your Cq table</span></td></tr>
+            <tr><td>Method</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Standard ΔΔCq</span></td></tr>
+            <tr><td>Result</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Fold-change per gene</span></td></tr>
+            <tr><td>Record</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Reproducibility record</span></td></tr>
+          </table>
+          <p class="footnote">No spreadsheet formulas, no software to license. Always sanity-check your first run against a hand-calculated value.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

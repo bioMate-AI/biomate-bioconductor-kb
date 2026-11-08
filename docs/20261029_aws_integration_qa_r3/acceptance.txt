@@ -1,0 +1,4 @@
+/w/out/integration-qa/junit.xml {'tests': 150, 'failures': 0, 'errors': 0, 'skipped': 0}
+/w/out/integration-qa/knowledge_scale-junit.xml {'tests': 16, 'failures': 0, 'errors': 0, 'skipped': 0}
+/w/out/integration-qa/patent_mining-junit.xml {'tests': 49, 'failures': 0, 'errors': 0, 'skipped': 0}
+SYNTHETIC_CPU_QA_PASS; not real-model M1 or study acceptance

@@ -1,0 +1,6 @@
+{
+  "n_cells": 15000,
+  "all_nonzero_counts_integer": true,
+  "genes_aligned": 1988,
+  "transform": "CP10k over all source genes then log1p then HVG alignment; fold scaling unchanged"
+}

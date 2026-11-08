@@ -1,0 +1,1327 @@
+{
+  "task": "hybrid immune LLM \u2014 JOINT multi-task training (debug)",
+  "backbone": "proto",
+  "bottleneck_mode": "free",
+  "batch_defense": "on",
+  "seed": 0,
+  "n": 22065317,
+  "n_celltypes": 21,
+  "n_studies": 714,
+  "training": {
+    "history": [
+      {
+        "epoch": 0,
+        "val_annot_macroF1": 0.2779,
+        "val_objectives": {
+          "annot_macroF1": 0.2779,
+          "lin_macroF1": 0.2778,
+          "target_macroF1": 0.2008,
+          "biomk_R2": 0.0,
+          "leakage_balacc": 0.7767,
+          "leakage_chance": 0.0476,
+          "leakage_ratio": 16.31,
+          "leakage_at_chance": false,
+          "cond_leak_norm_median": 0.629,
+          "cond_leak_norm_max": 0.867,
+          "cond_leak_norm_std": 0.14,
+          "cond_leak_ratio_median": 4.028,
+          "cond_at_chance": false,
+          "cond_n_celltypes": 8
+        },
+        "losses": {
+          "annot": 0.2373,
+          "lin": 0.2374,
+          "target": 0.8265,
+          "biomk": 0.3868,
+          "recognition": 0.1818,
+          "contrast": 6.9994,
+          "causal_adv": 6.6413,
+          "recon": 0.2746,
+          "target_z": 0.8133,
+          "perturb_ground": 0.0005,
+          "recon:tcr": 0.1766,
+          "recon:protein": 0.2668,
+          "recon:atac": 0.6497,
+          "recon:genetics": 0.0054,
+          "strat": 0.2755
+        },
+        "weighted_losses": {
+          "annot": 0.2373,
+          "lin": 0.1187,
+          "target": 0.4132,
+          "recognition": 0.0909,
+          "contrast": 6.9994,
+          "recon": 0.0275,
+          "target_z": 0.0813,
+          "perturb_ground": 0.0002,
+          "strat": 0.2755
+        },
+        "loss_max_over_median": 58.96388930726779
+      },
+      {
+        "epoch": 1,
+        "val_annot_macroF1": 0.2922,
+        "val_objectives": {
+          "annot_macroF1": 0.2922,
+          "lin_macroF1": 0.2915,
+          "target_macroF1": 0.1996,
+          "biomk_R2": 0.0,
+          "leakage_balacc": 0.7725,
+          "leakage_chance": 0.0476,
+          "leakage_ratio": 16.22,
+          "leakage_at_chance": false,
+          "cond_leak_norm_median": 0.661,
+          "cond_leak_norm_max": 0.853,
+          "cond_leak_norm_std": 0.139,
+          "cond_leak_ratio_median": 4.011,
+          "cond_at_chance": false,
+          "cond_n_celltypes": 8
+        },
+        "losses": {
+          "annot": 0.2223,
+          "lin": 0.2223,
+          "target": 0.8199,
+          "biomk": 0.3261,
+          "strat": 0.2125,
+          "recognition": 0.1792,
+          "contrast": 6.9605,
+          "causal_adv": 6.6351,
+          "recon": 0.2581,
+          "target_z": 0.7849,
+          "perturb_ground": 0.0004,
+          "recon:tcr": 0.1587,
+          "recon:protein": 0.2252,
+          "recon:atac": 0.6462,
+          "recon:genetics": 0.0023
+        },
+        "weighted_losses": {
+          "annot": 0.2223,
+          "lin": 0.1112,
+          "target": 0.41,
+          "strat": 0.2125,
+          "recognition": 0.0896,
+          "contrast": 6.9605,
+          "recon": 0.0258,
+          "target_z": 0.0785,
+          "perturb_ground": 0.0001
+        },
+        "loss_max_over_median": 62.614419785912766
+      },
+      {
+        "epoch": 2,
+        "val_annot_macroF1": 0.3063,
+        "val_objectives": {
+          "annot_macroF1": 0.3063,
+          "lin_macroF1": 0.3053,
+          "target_macroF1": 0.2032,
+          "biomk_R2": 0.0,
+          "leakage_balacc": 0.7604,
+          "leakage_chance": 0.0476,
+          "leakage_ratio": 15.97,
+          "leakage_at_chance": false,
+          "cond_leak_norm_median": 0.663,
+          "cond_leak_norm_max": 0.856,
+          "cond_leak_norm_std": 0.141,
+          "cond_leak_ratio_median": 4.016,
+          "cond_at_chance": false,
+          "cond_n_celltypes": 8
+        },
+        "losses": {
+          "annot": 0.2142,
+          "lin": 0.2142,
+          "target": 0.8147,
+          "biomk": 0.285,
+          "strat": 0.2043,
+          "recognition": 0.1774,
+          "contrast": 6.9363,
+          "causal_adv": 6.6322,
+          "recon": 0.2514,
+          "target_z": 0.7671,
+          "perturb_ground": 0.0004,
+          "recon:tcr": 0.1499,
+          "recon:protein": 0.2087,
+          "recon:atac": 0.6446,
+          "recon:genetics": 0.0024
+        },
+        "weighted_losses": {
+          "annot": 0.2142,
+          "lin": 0.1071,
+          "target": 0.4074,
+          "strat": 0.2043,
+          "recognition": 0.0887,
+          "contrast": 6.9363,
+          "recon": 0.0251,
+          "target_z": 0.0767,
+          "perturb_ground": 0.0001
+        },
+        "loss_max_over_median": 64.75029140035039
+      },
+      {
+        "epoch": 3,
+        "val_annot_macroF1": 0.2782,
+        "val_objectives": {
+          "annot_macroF1": 0.2782,
+          "lin_macroF1": 0.2774,
+          "target_macroF1": 0.2051,
+          "biomk_R2": 0.0,
+          "leakage_balacc": 0.7533,
+          "leakage_chance": 0.0476,
+          "leakage_ratio": 15.82,
+          "leakage_at_chance": false,
+          "cond_leak_norm_median": 0.661,
+          "cond_leak_norm_max": 0.863,
+          "cond_leak_norm_std": 0.144,
+          "cond_leak_ratio_median": 4.025,
+          "cond_at_chance": false,
+          "cond_n_celltypes": 8
+        },
+        "losses": {
+          "annot": 0.2078,
+          "lin": 0.2078,
+          "target": 0.8112,
+          "biomk": 0.2519,
+          "recognition": 0.1759,
+          "contrast": 6.9167,
+          "causal_adv": 6.6315,
+          "recon": 0.2455,
+          "target_z": 0.757,
+          "perturb_ground": 0.0004,
+          "recon:tcr": 0.1446,
+          "recon:protein": 0.1906,
+          "recon:atac": 0.6445,
+          "recon:genetics": 0.0024,
+          "strat": 0.1475
+        },
+        "weighted_losses": {
+          "annot": 0.2078,
+          "lin": 0.1039,
+          "target": 0.4056,
+          "recognition": 0.0879,
+          "contrast": 6.9167,
+          "recon": 0.0246,
+          "target_z": 0.0757,
+          "perturb_ground": 0.0001,
+          "strat": 0.1475
+        },
+        "loss_max_over_median": 66.56283702043666
+      },
+      {
+        "epoch": 4,
+        "val_annot_macroF1": 0.2876,
+        "val_objectives": {
+          "annot_macroF1": 0.2876,
+          "lin_macroF1": 0.2872,
+          "target_macroF1": 0.1999,
+          "biomk_R2": 0.0,
+          "leakage_balacc": 0.7561,
+          "leakage_chance": 0.0476,
+          "leakage_ratio": 15.88,
+          "leakage_at_chance": false,
+          "cond_leak_norm_median": 0.652,
+          "cond_leak_norm_max": 0.857,
+          "cond_leak_norm_std": 0.14,
+          "cond_leak_ratio_median": 3.975,
+          "cond_at_chance": false,
+          "cond_n_celltypes": 8
+        },
+        "losses": {
+          "annot": 0.2017,
+          "lin": 0.2017,
+          "target": 0.8089,
+          "biomk": 0.2291,
+          "strat": 0.1476,
+          "recognition": 0.1746,
+          "contrast": 6.8977,
+          "causal_adv": 6.6288,
+          "recon": 0.2431,
+          "target_z": 0.7505,
+          "perturb_ground": 0.0004,
+          "recon:tcr": 0.1385,
+          "recon:protein": 0.188,
+          "recon:atac": 0.6433,
+          "recon:genetics": 0.0025
+        },
+        "weighted_losses": {
+          "annot": 0.2017,
+          "lin": 0.1008,
+          "target": 0.4045,
+          "strat": 0.1476,
+          "recognition": 0.0873,
+          "contrast": 6.8977,
+          "recon": 0.0243,
+          "target_z": 0.0751,
+          "perturb_ground": 0.0001
+        },
+        "loss_max_over_median": 68.41089839119206
+      },
+      {
+        "epoch": 5,
+        "val_annot_macroF1": 0.2848,
+        "val_objectives": {
+          "annot_macroF1": 0.2848,
+          "lin_macroF1": 0.2844,
+          "target_macroF1": 0.2041,
+          "biomk_R2": 0.0,
+          "leakage_balacc": 0.762,
+          "leakage_chance": 0.0476,
+          "leakage_ratio": 16.0,
+          "leakage_at_chance": false,
+          "cond_leak_norm_median": 0.635,
+          "cond_leak_norm_max": 0.865,
+          "cond_leak_norm_std": 0.139,
+          "cond_leak_ratio_median": 4.013,
+          "cond_at_chance": false,
+          "cond_n_celltypes": 8
+        },
+        "losses": {
+          "annot": 0.196,
+          "lin": 0.196,
+          "target": 0.8068,
+          "biomk": 0.2236,
+          "strat": 0.1109,
+          "recognition": 0.1736,
+          "contrast": 6.8807,
+          "causal_adv": 6.6284,
+          "recon": 0.243,
+          "target_z": 0.7437,
+          "perturb_ground": 0.0004,
+          "recon:tcr": 0.1432,
+          "recon:protein": 0.1862,
+          "recon:atac": 0.6402,
+          "recon:genetics": 0.0025
+        },
+        "weighted_losses": {
+          "annot": 0.196,
+          "lin": 0.098,
+          "target": 0.4034,
+          "strat": 0.1109,
+          "recognition": 0.0868,
+          "contrast": 6.8807,
+          "recon": 0.0243,
+          "target_z": 0.0744,
+          "perturb_ground": 0.0001
+        },
+        "loss_max_over_median": 70.21372291107951
+      }
+    ],
+    "val_best_annot_macroF1": 0.3063,
+    "test_objectives": {
+      "annot_macroF1": 0.3429,
+      "lin_macroF1": 0.3426,
+      "target_macroF1": 0.3603,
+      "biomk_R2": 0.0,
+      "leakage_balacc": null,
+      "probe_frozenz_macroF1": 0.3386,
+      "probe_rawhvg_macroF1": 0.295,
+      "probe_pcamatched_macroF1": 0.2893,
+      "pca_components": 512,
+      "n_train_labelled": 100000,
+      "n_test_labelled": 60000,
+      "linear_advantage": 0.0436,
+      "linear_advantage_matched": 0.0493,
+      "probe_frozenz_weightedF1": 0.3912,
+      "probe_rawhvg_weightedF1": 0.3819,
+      "linear_advantage_weightedF1": 0.0093,
+      "tabular_annotation_loco": {
+        "raw_hvg": {
+          "macro_f1": 0.3324,
+          "auc": NaN,
+          "n_eval": 33193,
+          "n_held_out_cohorts": 6,
+          "n_qualifying_cohorts": 74,
+          "lift_f1": 0.0,
+          "lift_auc": NaN
+        },
+        "raw+z": {
+          "macro_f1": 0.3822,
+          "auc": NaN,
+          "n_eval": 33193,
+          "n_held_out_cohorts": 6,
+          "n_qualifying_cohorts": 74,
+          "lift_f1": 0.0498,
+          "lift_auc": NaN,
+          "per_cohort_lift": {
+            "n": 6,
+            "median": 0.0575,
+            "min": 0.0028,
+            "max": 0.2222,
+            "frac_positive": 1.0,
+            "values": [
+              0.058,
+              0.0034,
+              0.2063,
+              0.0028,
+              0.0569,
+              0.2222
+            ]
+          }
+        },
+        "probe_split": "test",
+        "n_probe_cells": 40000
+      },
+      "tabular_responder_loco": {
+        "raw_hvg": {
+          "macro_f1": 0.1879,
+          "auc": 0.0859,
+          "n_eval": 1777,
+          "n_held_out_cohorts": 6,
+          "n_qualifying_cohorts": 11,
+          "lift_f1": 0.0,
+          "lift_auc": 0.0
+        },
+        "raw+z": {
+          "macro_f1": 0.9696,
+          "auc": 0.9915,
+          "n_eval": 1777,
+          "n_held_out_cohorts": 6,
+          "n_qualifying_cohorts": 11,
+          "lift_f1": 0.7817,
+          "lift_auc": 0.9056,
+          "per_cohort_lift": {
+            "n": 6,
+            "median": 0.3206,
+            "min": 0.1595,
+            "max": 0.4804,
+            "frac_positive": 1.0,
+            "values": [
+              0.4589,
+              0.1595,
+              0.4804,
+              0.2614,
+              0.2486,
+              0.3799
+            ]
+          }
+        }
+      },
+      "virtual_ko_screen": {
+        "n_genes_screened": 2000,
+        "top5_genes": [
+          "RPL41",
+          "RPL34",
+          "RPS15A",
+          "RPS27",
+          "RPS28"
+        ],
+        "depmap_essentiality_rho": 0.167,
+        "depmap_n_overlap": 1845,
+        "depmap_note": null,
+        "deconf_top5_genes": [
+          "RPL41",
+          "RPL34",
+          "RPS15A",
+          "RPS27",
+          "TMSB10"
+        ],
+        "deconf_depmap_rho": 0.1624,
+        "enriched": {
+          "go_bp": [
+            "GOBP_CYTOPLASMIC_TRANSLATION",
+            "GOBP_RIBOSOMAL_SMALL_SUBUNIT_BIOGENESIS",
+            "GOBP_RIBOSOME_BIOGENESIS",
+            "GOBP_RRNA_METABOLIC_PROCESS",
+            "GOBP_NCRNA_PROCESSING"
+          ],
+          "kegg": [
+            "KEGG_RIBOSOME",
+            "KEGG_OXIDATIVE_PHOSPHORYLATION",
+            "KEGG_PARKINSONS_DISEASE"
+          ],
+          "reactome": [
+            "rRNA processing",
+            "Peptide chain elongation",
+            "Eukaryotic Translation Elongation",
+            "Selenocysteine synthesis",
+            "PELO:HBS1L and ABCE1 dissociate a ribosome on a non-stop mRNA"
+          ]
+        },
+        "ppi_coherence_z": 74.482,
+        "ppi_coherence_p": 0.0
+      },
+      "virtual_ko_screen_evidence_full": {
+        "n_hits": 50,
+        "top_hits": [
+          "RPL41",
+          "RPL34",
+          "RPS15A",
+          "RPS27",
+          "RPS28",
+          "RPL30",
+          "RPS12",
+          "TMSB10",
+          "RPL37",
+          "RPL28",
+          "MT-ATP6",
+          "RPL26",
+          "RPL32",
+          "RPS25",
+          "RPL18A"
+        ],
+        "enrichment": {
+          "go_bp": [
+            {
+              "set": "GOBP_CYTOPLASMIC_TRANSLATION",
+              "overlap": 32,
+              "set_size": 112,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "GOBP_RIBOSOMAL_SMALL_SUBUNIT_BIOGENESIS",
+              "overlap": 11,
+              "set_size": 42,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "GOBP_RIBOSOME_BIOGENESIS",
+              "overlap": 15,
+              "set_size": 101,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "GOBP_RRNA_METABOLIC_PROCESS",
+              "overlap": 9,
+              "set_size": 69,
+              "p": 3.3e-05,
+              "fdr": 0.001372
+            },
+            {
+              "set": "GOBP_NCRNA_PROCESSING",
+              "overlap": 9,
+              "set_size": 79,
+              "p": 9.9e-05,
+              "fdr": 0.003297
+            },
+            {
+              "set": "GOBP_ATP_BIOSYNTHETIC_PROCESS",
+              "overlap": 5,
+              "set_size": 23,
+              "p": 0.000191,
+              "fdr": 0.005285
+            },
+            {
+              "set": "GOBP_NUCLEOSIDE_TRIPHOSPHATE_BIOSYNTHETIC_PROCESS",
+              "overlap": 5,
+              "set_size": 23,
+              "p": 0.000191,
+              "fdr": 0.00453
+            },
+            {
+              "set": "GOBP_ATP_METABOLIC_PROCESS",
+              "overlap": 5,
+              "set_size": 28,
+              "p": 0.000508,
+              "fdr": 0.010532
+            },
+            {
+              "set": "GOBP_PROTON_MOTIVE_FORCE_DRIVEN_ATP_SYNTHESIS",
+              "overlap": 4,
+              "set_size": 18,
+              "p": 0.000818,
+              "fdr": 0.015081
+            },
+            {
+              "set": "GOBP_NUCLEOSIDE_TRIPHOSPHATE_METABOLIC_PROCESS",
+              "overlap": 5,
+              "set_size": 34,
+              "p": 0.001283,
+              "fdr": 0.021298
+            },
+            {
+              "set": "GOBP_RIBOSE_PHOSPHATE_BIOSYNTHETIC_PROCESS",
+              "overlap": 5,
+              "set_size": 34,
+              "p": 0.001283,
+              "fdr": 0.019362
+            },
+            {
+              "set": "GOBP_POSITIVE_REGULATION_OF_INTRINSIC_APOPTOTIC_SIGNALING_PATHWAY_IN_RESPONSE_TO_DNA_DAMAGE",
+              "overlap": 2,
+              "set_size": 3,
+              "p": 0.001809,
+              "fdr": 0.025024
+            },
+            {
+              "set": "GOBP_REGULATION_OF_INTRINSIC_APOPTOTIC_SIGNALING_PATHWAY_IN_RESPONSE_TO_DNA_DAMAGE",
+              "overlap": 3,
+              "set_size": 11,
+              "p": 0.002107,
+              "fdr": 0.02691
+            },
+            {
+              "set": "GOBP_NUCLEOSIDE_PHOSPHATE_BIOSYNTHETIC_PROCESS",
+              "overlap": 5,
+              "set_size": 38,
+              "p": 0.002146,
+              "fdr": 0.025446
+            },
+            {
+              "set": "GOBP_OXIDATIVE_PHOSPHORYLATION",
+              "overlap": 5,
+              "set_size": 45,
+              "p": 0.004578,
+              "fdr": 0.050661
+            }
+          ],
+          "kegg": [
+            {
+              "set": "KEGG_RIBOSOME",
+              "overlap": 31,
+              "set_size": 80,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "KEGG_OXIDATIVE_PHOSPHORYLATION",
+              "overlap": 5,
+              "set_size": 43,
+              "p": 0.003745,
+              "fdr": 0.009363
+            },
+            {
+              "set": "KEGG_PARKINSONS_DISEASE",
+              "overlap": 5,
+              "set_size": 49,
+              "p": 0.006627,
+              "fdr": 0.011044
+            }
+          ],
+          "reactome": [
+            {
+              "set": "rRNA processing",
+              "overlap": 36,
+              "set_size": 114,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Peptide chain elongation",
+              "overlap": 32,
+              "set_size": 82,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Eukaryotic Translation Elongation",
+              "overlap": 32,
+              "set_size": 85,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Selenocysteine synthesis",
+              "overlap": 31,
+              "set_size": 80,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "PELO:HBS1L and ABCE1 dissociate a ribosome on a non-stop mRNA",
+              "overlap": 31,
+              "set_size": 81,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Selenoamino acid metabolism",
+              "overlap": 31,
+              "set_size": 81,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Viral mRNA Translation",
+              "overlap": 31,
+              "set_size": 81,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Eukaryotic Translation Termination",
+              "overlap": 31,
+              "set_size": 83,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Nonsense Mediated Decay (NMD) independent of the Exon Junction Complex (EJC)",
+              "overlap": 31,
+              "set_size": 83,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Response of EIF2AK4 (GCN2) to amino acid deficiency",
+              "overlap": 31,
+              "set_size": 84,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "ZNF598 and the Ribosome-associated Quality Trigger (RQT) complex dissociate a ribosome stalled on a no-go mRNA",
+              "overlap": 31,
+              "set_size": 84,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Nonsense Mediated Decay (NMD) enhanced by the Exon Junction Complex (EJC)",
+              "overlap": 31,
+              "set_size": 92,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Nonsense-Mediated Decay (NMD)",
+              "overlap": 31,
+              "set_size": 92,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "SRP-dependent cotranslational protein targeting to membrane",
+              "overlap": 31,
+              "set_size": 92,
+              "p": 0.0,
+              "fdr": 0.0
+            },
+            {
+              "set": "Formation of a pool of free 40S subunits",
+              "overlap": 31,
+              "set_size": 93,
+              "p": 0.0,
+              "fdr": 0.0
+            }
+          ]
+        },
+        "ppi_coherence": {
+          "intra_edges": 567,
+          "null_mean": 13.84,
+          "z": 74.482,
+          "empirical_p": 0.0,
+          "per_hit_hit_neighbors": {
+            "RPS3": 37,
+            "RPS29": 34,
+            "RPL8": 34,
+            "RPL9": 34,
+            "RPL34": 33,
+            "RPS27": 33,
+            "RPS28": 33,
+            "RPL30": 33,
+            "RPL32": 33,
+            "RPS25": 33,
+            "RPL18A": 33,
+            "EEF1A1": 33,
+            "RPL35A": 33,
+            "RPL31": 33,
+            "RPS27A": 33
+          }
+        },
+        "dossier": {
+          "RPL41": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation",
+              "Eukaryotic Translation Termination",
+              "Formation of a pool of free 40S subunits"
+            ],
+            "ppi_degree": 69,
+            "ppi_hit_neighbors": [
+              "RPL30",
+              "RPL34",
+              "RPS27",
+              "RPS28"
+            ]
+          },
+          "RPL34": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation",
+              "Eukaryotic Translation Termination",
+              "Formation of a pool of free 40S subunits"
+            ],
+            "ppi_degree": 260,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL30",
+              "RPL37",
+              "RPL41",
+              "RPS12"
+            ]
+          },
+          "RPS15A": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION",
+              "GOBP_POSITIVE_REGULATION_OF_CELL_CYCLE",
+              "GOBP_RESPONSE_TO_VIRUS",
+              "GOBP_RIBOSOMAL_SMALL_SUBUNIT_BIOGENESIS",
+              "GOBP_RIBOSOME_BIOGENESIS"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Activation of the mRNA upon binding of the cap-binding complex and eIFs, and subsequent binding to 43S",
+              "Antimicrobial mechanism of IFN-stimulated genes",
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation"
+            ],
+            "ppi_degree": 257,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL30",
+              "RPL34",
+              "RPL37",
+              "RPS12"
+            ]
+          },
+          "RPS27": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION",
+              "GOBP_NCRNA_PROCESSING",
+              "GOBP_NON_MEMBRANE_BOUNDED_ORGANELLE_ASSEMBLY",
+              "GOBP_PROTEIN_RNA_COMPLEX_ORGANIZATION",
+              "GOBP_RIBOSOMAL_SMALL_SUBUNIT_ASSEMBLY",
+              "GOBP_RIBOSOMAL_SMALL_SUBUNIT_BIOGENESIS"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Activation of the mRNA upon binding of the cap-binding complex and eIFs, and subsequent binding to 43S",
+              "Amplification  of signal from unattached  kinetochores via a MAD2  inhibitory signal",
+              "Amplification of signal from the kinetochores",
+              "Antimicrobial mechanism of IFN-stimulated genes",
+              "Cap-dependent Translation Initiation",
+              "Cell Cycle Checkpoints"
+            ],
+            "ppi_degree": 271,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL30",
+              "RPL34",
+              "RPL37",
+              "RPL41"
+            ]
+          },
+          "RPS28": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION",
+              "GOBP_MATURATION_OF_SSU_RRNA",
+              "GOBP_NCRNA_PROCESSING",
+              "GOBP_NON_MEMBRANE_BOUNDED_ORGANELLE_ASSEMBLY",
+              "GOBP_PROTEIN_RNA_COMPLEX_ORGANIZATION",
+              "GOBP_RIBOSOMAL_SMALL_SUBUNIT_ASSEMBLY"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Activation of the mRNA upon binding of the cap-binding complex and eIFs, and subsequent binding to 43S",
+              "Antimicrobial mechanism of IFN-stimulated genes",
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation"
+            ],
+            "ppi_degree": 322,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL30",
+              "RPL34",
+              "RPL37",
+              "RPL41"
+            ]
+          },
+          "RPL30": {
+            "go_bp": [
+              "GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE",
+              "GOBP_ANTIMICROBIAL_HUMORAL_RESPONSE",
+              "GOBP_CELL_KILLING",
+              "GOBP_CYTOPLASMIC_TRANSLATION",
+              "GOBP_DEFENSE_RESPONSE_TO_BACTERIUM",
+              "GOBP_DEFENSE_RESPONSE_TO_GRAM_NEGATIVE_BACTERIUM"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation",
+              "Eukaryotic Translation Termination",
+              "Formation of a pool of free 40S subunits"
+            ],
+            "ppi_degree": 281,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL34",
+              "RPL37",
+              "RPL41",
+              "RPS12"
+            ]
+          },
+          "RPS12": {
+            "go_bp": [
+              "GOBP_CANONICAL_WNT_SIGNALING_PATHWAY",
+              "GOBP_CELL_CELL_SIGNALING_BY_WNT",
+              "GOBP_CYTOPLASMIC_TRANSLATION",
+              "GOBP_POSITIVE_REGULATION_OF_CANONICAL_WNT_SIGNALING_PATHWAY",
+              "GOBP_POSITIVE_REGULATION_OF_WNT_SIGNALING_PATHWAY",
+              "GOBP_REGULATION_OF_CANONICAL_WNT_SIGNALING_PATHWAY"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Activation of the mRNA upon binding of the cap-binding complex and eIFs, and subsequent binding to 43S",
+              "Antimicrobial mechanism of IFN-stimulated genes",
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation"
+            ],
+            "ppi_degree": 260,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL30",
+              "RPL34",
+              "RPL37",
+              "RPS15A"
+            ]
+          },
+          "TMSB10": {
+            "go_bp": [
+              "GOBP_ACTIN_FILAMENT_ORGANIZATION",
+              "GOBP_ACTIN_POLYMERIZATION_OR_DEPOLYMERIZATION",
+              "GOBP_MAINTENANCE_OF_LOCATION",
+              "GOBP_MAINTENANCE_OF_LOCATION_IN_CELL",
+              "GOBP_MAINTENANCE_OF_PROTEIN_LOCATION",
+              "GOBP_MAINTENANCE_OF_PROTEIN_LOCATION_IN_CELL"
+            ],
+            "ppi_degree": 4,
+            "ppi_hit_neighbors": []
+          },
+          "RPL37": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION",
+              "GOBP_POSITIVE_REGULATION_OF_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR",
+              "GOBP_REGULATION_OF_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR",
+              "GOBP_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation",
+              "Eukaryotic Translation Termination",
+              "Formation of a pool of free 40S subunits"
+            ],
+            "ppi_degree": 200,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL28",
+              "RPL30",
+              "RPL34",
+              "RPS12",
+              "RPS15A"
+            ]
+          },
+          "RPL28": {
+            "go_bp": [
+              "GOBP_CYTOPLASMIC_TRANSLATION"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation",
+              "Eukaryotic Translation Termination",
+              "Formation of a pool of free 40S subunits"
+            ],
+            "ppi_degree": 227,
+            "ppi_hit_neighbors": [
+              "RPL26",
+              "RPL30",
+              "RPL34",
+              "RPL37",
+              "RPS12",
+              "RPS15A"
+            ]
+          },
+          "MT-ATP6": {
+            "go_bp": [
+              "GOBP_AEROBIC_RESPIRATION",
+              "GOBP_ATP_BIOSYNTHETIC_PROCESS",
+              "GOBP_ATP_METABOLIC_PROCESS",
+              "GOBP_CELLULAR_RESPIRATION",
+              "GOBP_ENERGY_DERIVATION_BY_OXIDATION_OF_ORGANIC_COMPOUNDS",
+              "GOBP_NUCLEOSIDE_PHOSPHATE_BIOSYNTHETIC_PROCESS"
+            ],
+            "kegg": [
+              "KEGG_ALZHEIMERS_DISEASE",
+              "KEGG_HUNTINGTONS_DISEASE",
+              "KEGG_OXIDATIVE_PHOSPHORYLATION",
+              "KEGG_PARKINSONS_DISEASE"
+            ],
+            "reactome": [
+              "Aerobic respiration and respiratory electron transport",
+              "Cristae formation",
+              "FASTK family proteins regulate processing and stability of mitochondrial RNAs",
+              "Formation of ATP by chemiosmotic coupling",
+              "Mitochondrial RNA degradation",
+              "Mitochondrial biogenesis"
+            ],
+            "ppi_degree": 114,
+            "ppi_hit_neighbors": []
+          },
+          "RPL26": {
+            "go_bp": [
+              "GOBP_CELLULAR_RESPONSE_TO_ABIOTIC_STIMULUS",
+              "GOBP_CELLULAR_RESPONSE_TO_GAMMA_RADIATION",
+              "GOBP_CELLULAR_RESPONSE_TO_IONIZING_RADIATION",
+              "GOBP_CELLULAR_RESPONSE_TO_LIGHT_STIMULUS",
+              "GOBP_CELLULAR_RESPONSE_TO_RADIATION",
+              "GOBP_CELLULAR_RESPONSE_TO_UV"
+            ],
+            "kegg": [
+              "KEGG_RIBOSOME"
+            ],
+            "reactome": [
+              "Cap-dependent Translation Initiation",
+              "Cellular response to starvation",
+              "Eukaryotic Translation Elongation",
+              "Eukaryotic Translation Initiation",
+              "Eukaryotic Translation Termination",
+              "Formation of a pool of free 40S subunits"
+            ],
+            "ppi_degree": 280,
+            "ppi_hit_neighbors": [
+              "RPL28",
+              "RPL30",
+              "RPL34",
+              "RPL37",
+              "RPS12",
+              "RPS15A"
+            ]
+          }
+        }
+      }
+    },
+    "final_held_annot_macroF1": 0.3429,
+    "n_train": 13919238,
+    "n_val": 1668100,
+    "n_test": 6477979,
+    "n_test_studies": 462
+  },
+  "final_held_annot_macroF1": 0.3429,
+  "target_id_gold": {
+    "n_scored": 174,
+    "universe_note": "AUROC over the ~2000-HVG pool; the 0.585 genetics-prior bar is a ~7477-gene universe \u2014 NOT head-to-head comparable.",
+    "mean_model_AUROC": 0.4172,
+    "mean_model_z_AUROC": 0.5907,
+    "mean_coexp_AUROC": 0.527,
+    "mean_degree_null_AUROC": 0.9359,
+    "mean_netdeg_null_AUROC": null,
+    "mean_depmap_essential_AUROC": 0.3865,
+    "model_minus_coexp": -0.1098,
+    "model_minus_degreenull": -0.5187,
+    "model_z_minus_degreenull": -0.3452,
+    "model_z_minus_coexp": 0.0637,
+    "degree_null_bar": 0.9359,
+    "random_baseline": 0.5,
+    "mean_model_z_prec@10": 0.031,
+    "mean_model_z_prec@50": 0.0229,
+    "mean_degree_null_prec@10": 0.346,
+    "beats_degree_null_expr": false,
+    "beats_degree_null_z": false,
+    "high_priority": {
+      "n": 8,
+      "mean_model_AUROC": 0.4294,
+      "mean_model_z_AUROC": 0.5577,
+      "mean_degree_null_AUROC": 0.9279
+    },
+    "top15_by_model_z": [
+      {
+        "disorder": "Autoimmune state",
+        "n_gold": 10,
+        "hp": false,
+        "model_AUROC": 0.5625,
+        "model_z_AUROC": 0.8989,
+        "coexp_AUROC": 0.6876,
+        "degree_null_AUROC": 0.9759,
+        "model_z_prec@10": 0.1,
+        "model_z_prec@50": 0.02,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.2,
+        "depmap_essential_AUROC": 0.3205
+      },
+      {
+        "disorder": "Autoimmune Primary Adrenal Insufficiency",
+        "n_gold": 8,
+        "hp": false,
+        "model_AUROC": 0.314,
+        "model_z_AUROC": 0.8813,
+        "coexp_AUROC": 0.8466,
+        "degree_null_AUROC": 0.9976,
+        "model_z_prec@10": 0.1,
+        "model_z_prec@50": 0.04,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.4,
+        "depmap_essential_AUROC": 0.3268
+      },
+      {
+        "disorder": "Polymyalgia Rheumatica",
+        "n_gold": 11,
+        "hp": false,
+        "model_AUROC": 0.143,
+        "model_z_AUROC": 0.8719,
+        "coexp_AUROC": 0.3301,
+        "degree_null_AUROC": 0.9818,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.3,
+        "depmap_essential_AUROC": 0.3299
+      },
+      {
+        "disorder": "Anterior uveitis",
+        "n_gold": 8,
+        "hp": false,
+        "model_AUROC": 0.3333,
+        "model_z_AUROC": 0.8414,
+        "coexp_AUROC": 0.8973,
+        "degree_null_AUROC": 0.9937,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.04,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.2,
+        "depmap_essential_AUROC": 0.385
+      },
+      {
+        "disorder": "Arthritis, Reactive",
+        "n_gold": 11,
+        "hp": false,
+        "model_AUROC": 0.5452,
+        "model_z_AUROC": 0.8133,
+        "coexp_AUROC": 0.7982,
+        "degree_null_AUROC": 0.9761,
+        "model_z_prec@10": 0.2,
+        "model_z_prec@50": 0.04,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.3,
+        "depmap_essential_AUROC": 0.3865
+      },
+      {
+        "disorder": "Anti-Basement Membrane Glomerulonephritis",
+        "n_gold": 11,
+        "hp": false,
+        "model_AUROC": 0.4196,
+        "model_z_AUROC": 0.802,
+        "coexp_AUROC": 0.4764,
+        "degree_null_AUROC": 0.9597,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.1,
+        "depmap_essential_AUROC": 0.3974
+      },
+      {
+        "disorder": "Latent autoimmune diabetes mellitus in adult",
+        "n_gold": 8,
+        "hp": false,
+        "model_AUROC": 0.614,
+        "model_z_AUROC": 0.7829,
+        "coexp_AUROC": 0.7223,
+        "degree_null_AUROC": 0.9982,
+        "model_z_prec@10": 0.1,
+        "model_z_prec@50": 0.02,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.4,
+        "depmap_essential_AUROC": 0.1881
+      },
+      {
+        "disorder": "Autoimmune Lymphoproliferative Syndrome",
+        "n_gold": 8,
+        "hp": false,
+        "model_AUROC": 0.2944,
+        "model_z_AUROC": 0.7703,
+        "coexp_AUROC": 0.6586,
+        "degree_null_AUROC": 0.9675,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.2,
+        "depmap_essential_AUROC": 0.3315
+      },
+      {
+        "disorder": "Sarcoidosis, Pulmonary",
+        "n_gold": 10,
+        "hp": false,
+        "model_AUROC": 0.6774,
+        "model_z_AUROC": 0.7684,
+        "coexp_AUROC": 0.4587,
+        "degree_null_AUROC": 0.9902,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.1,
+        "depmap_essential_AUROC": 0.2912
+      },
+      {
+        "disorder": "Hepatitis, Autoimmune",
+        "n_gold": 23,
+        "hp": false,
+        "model_AUROC": 0.4062,
+        "model_z_AUROC": 0.7659,
+        "coexp_AUROC": 0.6854,
+        "degree_null_AUROC": 0.9887,
+        "model_z_prec@10": 0.1,
+        "model_z_prec@50": 0.02,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.5,
+        "depmap_essential_AUROC": 0.3109
+      },
+      {
+        "disorder": "Common Variable Immunodeficiency",
+        "n_gold": 31,
+        "hp": false,
+        "model_AUROC": 0.4107,
+        "model_z_AUROC": 0.743,
+        "coexp_AUROC": 0.3926,
+        "degree_null_AUROC": 0.948,
+        "model_z_prec@10": 0.1,
+        "model_z_prec@50": 0.04,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.5,
+        "depmap_essential_AUROC": 0.3199
+      },
+      {
+        "disorder": "Autoimmune thrombocytopenia",
+        "n_gold": 15,
+        "hp": false,
+        "model_AUROC": 0.5521,
+        "model_z_AUROC": 0.7308,
+        "coexp_AUROC": 0.5571,
+        "degree_null_AUROC": 0.953,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.2,
+        "depmap_essential_AUROC": 0.2675
+      },
+      {
+        "disorder": "Early Rheumatoid Arthritis",
+        "n_gold": 11,
+        "hp": false,
+        "model_AUROC": 0.4956,
+        "model_z_AUROC": 0.7236,
+        "coexp_AUROC": 0.4749,
+        "degree_null_AUROC": 0.9866,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.3,
+        "depmap_essential_AUROC": 0.1828
+      },
+      {
+        "disorder": "Allergic sensitization",
+        "n_gold": 11,
+        "hp": false,
+        "model_AUROC": 0.5585,
+        "model_z_AUROC": 0.7222,
+        "coexp_AUROC": 0.479,
+        "degree_null_AUROC": 0.9831,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.02,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.3,
+        "depmap_essential_AUROC": 0.2663
+      },
+      {
+        "disorder": "Idiopathic crescentic glomerulonephritis",
+        "n_gold": 12,
+        "hp": false,
+        "model_AUROC": 0.4402,
+        "model_z_AUROC": 0.7192,
+        "coexp_AUROC": 0.7985,
+        "degree_null_AUROC": 0.9592,
+        "model_z_prec@10": 0.0,
+        "model_z_prec@50": 0.0,
+        "model_prec@10": 0.0,
+        "degree_null_prec@10": 0.1,
+        "depmap_essential_AUROC": 0.5249
+      }
+    ]
+  },
+  "perturb_ground_calibrated": {
+    "mean_mse": 0.0071,
+    "mean_pearson": 0.4971,
+    "mean_wmse": 0.0459,
+    "mean_weighted_rho": 0.5793,
+    "mean_nir": 0.887,
+    "mean_drf_weighted_rho": 0.1349,
+    "n_ko_scored": 256,
+    "n_meas": 1930,
+    "note": "DRF: fraction of mean-baseline->perfect gap closed (weighted-\u03c1); report naive mse/pearson alongside"
+  },
+  "fewshot_probe": [
+    {
+      "k_per_class": 0,
+      "n_adapt": 0,
+      "n_test": 150000,
+      "macroF1": 0.211
+    },
+    {
+      "k_per_class": 16,
+      "n_adapt": 304,
+      "n_test": 149696,
+      "macroF1": 0.2995
+    },
+    {
+      "k_per_class": 64,
+      "n_adapt": 1126,
+      "n_test": 148874,
+      "macroF1": 0.419
+    },
+    {
+      "k_per_class": 256,
+      "n_adapt": 3970,
+      "n_test": 146030,
+      "macroF1": 0.4745
+    }
+  ]
+}

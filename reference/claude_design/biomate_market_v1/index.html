@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>BioMate — Market Overview</title>
+<style>
+  :root{
+    --navy:#0B2545; --navy2:#12365f; --teal:#12808A; --teal2:#29A2AB;
+    --amber:#E9A23B; --card:#F2F6F8; --mute:#53677A; --foot:#8699A8;
+    --line:#DBE4EA; --ink:#0B2545; --white:#fff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#333}
+  body{font-family:"PingFang SC","Microsoft YaHei","Source Sans 3",-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .slide{width:1920px;height:1080px;position:relative;overflow:hidden;background:var(--white);color:var(--ink)}
+  /* header */
+  .kick{position:absolute;top:96px;left:120px;font:600 22px/1 "Source Sans 3",sans-serif;letter-spacing:.22em;color:var(--teal);text-transform:uppercase}
+  .h1{position:absolute;top:132px;left:118px;font-weight:800;font-size:70px;line-height:1.05;color:var(--navy);letter-spacing:-.5px}
+  .sub{position:absolute;top:224px;left:120px;font-size:27px;color:var(--mute);font-weight:400}
+  .rule{position:absolute;top:290px;left:120px;width:1680px;height:4px;background:linear-gradient(90deg,var(--teal),var(--teal2) 60%,rgba(41,162,171,0));border-radius:3px}
+  .foot{position:absolute;bottom:52px;left:120px;font:600 22px/1 "Source Sans 3",sans-serif;letter-spacing:.18em;color:var(--foot)}
+  .pg{position:absolute;bottom:50px;right:120px;font:600 24px/1 "Source Sans 3",sans-serif;color:var(--foot)}
+  .logo{position:absolute;top:70px;right:110px;height:46px}
+  .cn{font-weight:700}
+  .en{color:var(--mute);font-weight:400}
+  /* CARD */
+  .card{background:var(--card);border-radius:20px;position:absolute;overflow:hidden}
+  .card .top{position:absolute;top:0;left:0;right:0;height:8px}
+  .badge{display:inline-flex;align-items:center;gap:12px;font-weight:800;color:var(--navy)}
+  svg.ic{flex:0 0 auto}
+</style>
+</head>
+<body>
+
+<!-- ================= SLIDE 1 · COVER ================= -->
+<section class="slide" id="slide-1" style="background:radial-gradient(1200px 700px at 78% 18%,#173a63 0%,var(--navy) 55%,#06182e 100%)">
+  <img class="logo" src="assets/logo.png" style="top:84px;left:120px;right:auto;height:60px;filter:brightness(0) invert(1)">
+  <div style="position:absolute;top:360px;left:120px;right:120px">
+    <div style="font:700 26px/1 'Source Sans 3';letter-spacing:.28em;color:var(--teal2);text-transform:uppercase;margin-bottom:34px">Product Introduction</div>
+    <div style="font-weight:800;font-size:104px;line-height:1.02;color:#fff;letter-spacing:-1px">BioMate 药物发现平台</div>
+    <div style="font-weight:600;font-size:46px;color:#9fc7cf;margin-top:14px">BioMate for Drug Discovery</div>
+    <div style="font-size:30px;color:#c9d6e2;margin-top:40px;max-width:1350px;line-height:1.5">面向药物发现的 AI 分子生成与优化平台，运行在可验证的执行底座之上<br><span style="color:#8fa6bd;font-size:26px">AI molecular generation &amp; optimization — on a verified execution platform</span></div>
+    <div style="display:inline-flex;align-items:center;gap:18px;margin-top:52px;padding:20px 34px;border:1.5px solid rgba(41,162,171,.5);border-radius:999px;background:rgba(18,128,138,.12)">
+      <span style="font-weight:700;font-size:28px;color:#fff">生成 <span style="color:var(--teal2)">→</span> 验证 <span style="color:var(--teal2)">→</span> 学习</span>
+      <span style="font-size:24px;color:#9fc7cf">支持本地或云端部署 · Generate → verify → learn — on-prem or cloud</span>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:60px;left:120px;font:600 24px/1 'Source Sans 3';letter-spacing:.16em;color:#6f89a6">产品介绍 · PRODUCT INTRODUCTION · 2026 年 9 月</div>
+</section>
+
+<!-- ================= SLIDE 2 · WHY ================= -->
+<section class="slide" id="slide-2">
+  <div class="kick">Why BioMate</div>
+  <div class="h1">为什么选择 BioMate</div>
+  <div class="sub">A leading AI drug-discovery platform — outstanding today, improving every cycle</div>
+  <div class="rule"></div>
+  <!-- outstanding -->
+  <div class="card" style="top:360px;left:120px;width:820px;height:600px">
+    <div class="top" style="background:var(--teal2)"></div>
+    <div style="padding:44px 46px">
+      <div class="badge" style="font-size:34px;margin-bottom:8px">领先之处 <span style="color:var(--teal);font-size:24px;font-weight:700">What's outstanding</span></div>
+      <div id="o-list"></div>
+    </div>
+  </div>
+  <!-- optimizing -->
+  <div class="card" style="top:360px;left:980px;width:820px;height:600px">
+    <div class="top" style="background:var(--navy)"></div>
+    <div style="padding:44px 46px">
+      <div class="badge" style="font-size:34px;margin-bottom:8px">持续优化 <span style="color:var(--navy);font-size:24px;font-weight:700">Always optimizing</span></div>
+      <div id="p-list"></div>
+    </div>
+  </div>
+  <div class="foot">· WHY BIOMATE</div><div class="pg">02</div>
+</section>
+
+<!-- ================= SLIDE 3 · THE AI ================= -->
+<section class="slide" id="slide-3">
+  <div class="kick">The AI inside</div>
+  <div class="h1">驱动平台的 AI</div>
+  <div class="sub">The AI inside — deep learning for drug R&amp;D, from design to decision</div>
+  <div class="rule"></div>
+  <div id="ai-grid"></div>
+  <div class="foot">· THE AI</div><div class="pg">03</div>
+</section>
+
+<!-- ================= SLIDE 4 · DIFFERENTIATION ================= -->
+<section class="slide" id="slide-4">
+  <div class="kick">Core differentiation</div>
+  <div class="h1">差异化优势</div>
+  <div class="sub">Differentiated by design — proprietary depth in the loop, speed, and the generative model</div>
+  <div class="rule"></div>
+  <div id="diff-grid"></div>
+  <div style="position:absolute;bottom:118px;left:120px;width:1680px;background:linear-gradient(90deg,rgba(18,128,138,.10),rgba(233,162,59,.10));border-left:6px solid var(--amber);border-radius:10px;padding:24px 34px">
+    <span style="font-weight:800;font-size:24px;color:var(--navy)">通用工具止于通用能力——闭环、速度与生成模型的深度设计，构成核心差异化壁垒。</span>
+    <span style="font-size:19px;color:var(--mute)">　Generic tools stop at generic capability — this depth is the differentiation.</span>
+  </div>
+  <div class="foot">· CORE DIFFERENTIATION</div><div class="pg">04</div>
+</section>
+
+<!-- ================= SLIDE 5 · FLYWHEEL HERO ================= -->
+<section class="slide" id="slide-5" style="background:radial-gradient(1100px 780px at 50% 58%,#0f2d52 0%,var(--navy) 60%,#06182e 100%);color:#fff">
+  <div class="kick" style="color:var(--teal2)">The loop</div>
+  <div class="h1" style="color:#fff">生成—验证—学习：闭环飞轮</div>
+  <div class="sub" style="color:#9fc7cf">The generate–verify–learn loop — each assay round makes models and candidates stronger</div>
+  <div class="rule" style="background:linear-gradient(90deg,var(--teal2),var(--amber) 60%,rgba(233,162,59,0))"></div>
+  <svg width="1920" height="1080" style="position:absolute;top:0;left:0" viewBox="0 0 1920 1080">
+    <defs>
+      <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#29A2AB"/><stop offset="1" stop-color="#E9A23B"/>
+      </linearGradient>
+    </defs>
+    <circle cx="960" cy="650" r="280" fill="none" stroke="url(#ring)" stroke-width="10" stroke-linecap="round"/>
+    <g id="fly-arrows" fill="#E9A23B"></g>
+  </svg>
+  <!-- center hub -->
+  <div style="position:absolute;top:460px;left:770px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,#12808A 0%,#0d5a63 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 0 60px rgba(41,162,171,.35);border:2px solid rgba(41,162,171,.5)">
+    <div style="font-weight:800;font-size:40px;color:#fff">闭环飞轮</div>
+    <div style="font-size:22px;color:#bfe3e7;margin:6px 0 16px">Closed loop</div>
+    <div style="font-size:22px;color:#eafcff;font-weight:600">数据不出域<br>模型持续优化</div>
+  </div>
+  <!-- nodes -->
+  <div id="fly-nodes"></div>
+  <div class="foot" style="color:#6f89a6">· LOOP</div><div class="pg" style="color:#6f89a6">05</div>
+</section>
+
+<!-- ================= SLIDE 6 · INTERFACE ================= -->
+<section class="slide" id="slide-6">
+  <div class="kick">Product</div>
+  <div class="h1">化学家看到的界面</div>
+  <div class="sub">What a chemist works in</div>
+  <div class="rule"></div>
+  <!-- browser frame -->
+  <div style="position:absolute;top:370px;left:120px;width:1040px;height:600px;border-radius:16px;overflow:hidden;box-shadow:0 30px 70px rgba(11,37,69,.22);border:1px solid var(--line)">
+    <div style="height:44px;background:#e9eef2;display:flex;align-items:center;gap:9px;padding:0 18px">
+      <span style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></span>
+      <span style="width:13px;height:13px;border-radius:50%;background:#febc2e"></span>
+      <span style="width:13px;height:13px;border-radius:50%;background:#28c840"></span>
+      <span style="margin-left:18px;font-size:18px;color:#7a8a99">BioMate · 药物项目工作空间</span>
+    </div>
+    <div style="display:flex;height:556px;background:#fff;font-size:15px">
+      <!-- sidebar -->
+      <div style="width:248px;background:#f7f9fb;border-right:1px solid #e3e9ee;padding:18px 16px;color:#0B2545">
+        <img src="assets/logo.png" style="height:24px;margin-bottom:18px">
+        <div style="color:#12808A;font-weight:700;margin:8px 0">＋ 新建对话</div>
+        <div style="margin:12px 0;color:#53677A">☰ 工作流 <span style="background:#d9edef;color:#12808A;border-radius:8px;padding:1px 8px;font-size:12px;margin-left:4px">84</span></div>
+        <div style="margin:12px 0;color:#53677A">⇄ 连接器</div>
+        <div style="margin:12px 0;color:#53677A">▤ IND 报告</div>
+        <div style="margin:18px 0 8px;font-size:12px;letter-spacing:.1em;color:#8699A8">项目 · PROJECTS</div>
+        <div style="background:#e2eef0;border-left:3px solid #12808A;border-radius:6px;padding:9px 10px;font-weight:700">大环肽 ADMET 筛选</div>
+        <div style="padding:9px 10px;color:#53677A">RNA-seq 差异表达</div>
+        <div style="padding:9px 10px;color:#53677A">WGS 变异检测</div>
+        <div style="padding:9px 10px;color:#53677A">蛋白质组 定量</div>
+        <div style="margin-top:16px;color:#8699A8;font-size:14px">⚙ 设置与 API 密钥</div>
+      </div>
+      <!-- main -->
+      <div style="flex:1;padding:20px 24px;background:#fff">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eef2f5;padding-bottom:12px">
+          <div style="font-size:19px;font-weight:800;color:#0B2545">大环肽 ADMET 筛选</div>
+          <span style="background:#e6f4ec;color:#1a8a55;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700">● 运行中</span>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <span style="flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:#0B2545;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700">AI</span>
+          <div style="background:#f2f6f8;border-radius:12px;padding:11px 14px;font-size:14px;color:#0B2545;line-height:1.5">已为该项目生成 ADMET 筛选工作流：<b>生成候选 → 计算验证 → QC 门 → 多目标优选</b>，共 4 个阶段。可逐项确认后运行。</div>
+        </div>
+        <div style="border:1px solid #e3e9ee;border-radius:14px;margin-top:14px;overflow:hidden">
+          <div style="background:#f7f9fb;padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #eef2f5"><b style="color:#0B2545;font-size:15px">ADMET 筛选工作流</b><span style="background:#e2eef0;color:#12808A;border-radius:6px;padding:2px 8px;font-size:12px">药物发现</span><span style="margin-left:auto;color:#8699A8;font-size:12px">4 阶段 · 12 步骤</span></div>
+          <div style="display:flex;gap:10px;padding:14px">
+            <div style="flex:1;background:#eafaf0;border:1px solid #bfe6cf;border-radius:10px;padding:12px;text-align:center"><div style="font-size:12px;color:#1a8a55">✓ 完成</div><b style="font-size:14px;color:#0B2545">生成</b></div>
+            <div style="flex:1;background:#e6f4f6;border:1px solid #a9d7dd;border-radius:10px;padding:12px;text-align:center"><div style="font-size:12px;color:#12808A">⟳ 运行中</div><b style="font-size:14px;color:#0B2545">验证</b></div>
+            <div style="flex:1;background:#f4f7f9;border:1px solid #dde5ea;border-radius:10px;padding:12px;text-align:center"><div style="font-size:12px;color:#8699A8">○ 待运行</div><b style="font-size:14px;color:#0B2545">QC 门</b></div>
+            <div style="flex:1;background:#f4f7f9;border:1px solid #dde5ea;border-radius:10px;padding:12px;text-align:center"><div style="font-size:12px;color:#8699A8">○ 待运行</div><b style="font-size:14px;color:#0B2545">优选</b></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:14px;font-size:13px">
+          <span style="background:#e6f4ec;color:#1a8a55;border-radius:8px;padding:6px 12px">hERG ✓ 通过</span>
+          <span style="background:#e6f4ec;color:#1a8a55;border-radius:8px;padding:6px 12px">CYP ✓ 通过</span>
+          <span style="background:#fdf3e2;color:#c47f16;border-radius:8px;padding:6px 12px">DILI ⚠ 拦截 → 自动调参重试</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- points -->
+  <div id="ui-points" style="position:absolute;top:372px;left:1220px;width:580px"></div>
+  <div class="foot">产品界面 · PRODUCT</div><div class="pg">06</div>
+</section>
+
+<!-- ================= SLIDE 7 · WORKFLOW PANEL MOCKUP ================= -->
+<section class="slide" id="slide-7">
+  <div class="kick">Product</div>
+  <div class="h1">工作流面板 · 阶段、质控门与自动纠正</div>
+  <div class="sub">The workflow panel — phases, QC gate &amp; auto-correction</div>
+  <div class="rule"></div>
+  <div style="position:absolute;top:360px;left:120px;width:1680px;height:620px;border-radius:16px;box-shadow:0 24px 60px rgba(11,37,69,.14);border:1px solid var(--line);overflow:hidden;background:#fff">
+    <div style="height:46px;background:#e9eef2;display:flex;align-items:center;gap:9px;padding:0 18px">
+      <span style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></span>
+      <span style="width:13px;height:13px;border-radius:50%;background:#febc2e"></span>
+      <span style="width:13px;height:13px;border-radius:50%;background:#28c840"></span>
+      <span style="margin-left:18px;font-size:18px;color:#7a8a99">ADMET 筛选 · Workflow Panel</span>
+    </div>
+    <div id="wf-flow" style="display:flex;align-items:stretch;gap:0;padding:60px 40px"></div>
+  </div>
+  <div class="foot">· PRODUCT</div><div class="pg">07</div>
+</section>
+
+<!-- ================= SLIDE 8 · DELIVERABLES ================= -->
+<section class="slide" id="slide-8">
+  <div class="kick">Deliverables</div>
+  <div class="h1">交付物：一份可决策的候选分子包</div>
+  <div class="sub">What comes out — a decision-ready candidate package</div>
+  <div class="rule"></div>
+  <div id="deliv-grid"></div>
+  <div class="foot">交付物 · DELIVERABLES</div><div class="pg">08</div>
+</section>
+
+<!-- ================= SLIDE 9 · BREADTH PIPELINE ================= -->
+<section class="slide" id="slide-9">
+  <div class="kick">Coverage</div>
+  <div class="h1">覆盖整个研发链条，而非仅早期发现</div>
+  <div class="sub">Beyond early discovery — the whole R&amp;D pipeline</div>
+  <div class="rule"></div>
+  <div style="position:absolute;top:322px;left:120px;font-size:25px;color:var(--navy);font-weight:600">覆盖从靶点发现到临床的完整链条，而非仅早期发现。<span style="color:var(--mute);font-weight:400;font-size:21px">　A single platform spanning target discovery through clinic — not just early-stage.</span></div>
+  <div id="pipe" style="position:absolute;top:400px;left:120px;width:1680px;display:flex;flex-wrap:wrap;gap:20px"></div>
+  <div style="position:absolute;bottom:120px;left:120px;width:1680px;background:var(--card);border-radius:12px;padding:22px 32px;border-left:6px solid var(--teal)">
+    <span style="font-weight:700;font-size:25px;color:var(--navy)">各研发环节均以生产级流程在云端执行，结果可追溯、可复现。</span>
+    <span style="font-size:21px;color:var(--mute)">　Every stage runs as production-grade pipelines in the cloud — traceable and reproducible.</span>
+  </div>
+  <div class="foot">· COVERAGE</div><div class="pg">09</div>
+</section>
+
+<!-- ================= SLIDE 10 · PILOT TIMELINE ================= -->
+<section class="slide" id="slide-10">
+  <div class="kick">Pilot</div>
+  <div class="h1">平台落地路径：五个阶段</div>
+  <div class="sub">How a pilot runs — five stages</div>
+  <div class="rule"></div>
+  <div id="pilot" style="position:absolute;top:400px;left:120px;width:1680px;display:flex;gap:22px"></div>
+  <div class="foot">落地路径 · PILOT</div><div class="pg">10</div>
+</section>
+
+<script>
+const IC={
+ loop:'<path d="M21 12a9 9 0 1 1-2.6-6.3M21 3v5h-5" fill="none" stroke="#12808A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+ gen:'<path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z" fill="none" stroke="#12808A" stroke-width="2.2" stroke-linejoin="round"/>',
+ pred:'<path d="M4 19V5m0 14h16M8 15l3-4 3 2 4-6" fill="none" stroke="#12808A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+ multi:'<circle cx="8" cy="8" r="4" fill="none" stroke="#12808A" stroke-width="2.2"/><circle cx="16" cy="16" r="4" fill="none" stroke="#12808A" stroke-width="2.2"/><path d="M11 11l2 2" stroke="#12808A" stroke-width="2.2"/>',
+ verify:'<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" fill="none" stroke="#12808A" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="#12808A" stroke-width="2.2" stroke-linecap="round"/>',
+ speed:'<path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="none" stroke="#12808A" stroke-width="2.2" stroke-linejoin="round"/>',
+ mol:'<circle cx="6" cy="12" r="2.5" fill="none" stroke="#12808A" stroke-width="2.2"/><circle cx="18" cy="7" r="2.5" fill="none" stroke="#12808A" stroke-width="2.2"/><circle cx="17" cy="17" r="2.5" fill="none" stroke="#12808A" stroke-width="2.2"/><path d="M8 11l8-4M8 13l7 3" stroke="#12808A" stroke-width="2.2"/>',
+ lock:'<rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="#12808A" stroke-width="2.2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="#12808A" stroke-width="2.2"/>'
+};
+function icon(name,color){return '<svg class="ic" width="34" height="34" viewBox="0 0 24 24">'+IC[name].replaceAll('#12808A',color||'#12808A')+'</svg>'}
+
+// slide 2 lists
+const OUT=[["一体化 AI 药物发现：从靶点到可决策候选，一个平台跑通","End-to-end AI discovery — target to decision-ready candidates, one platform"],
+["深度学习贯穿全程：生成式 AI 设计新分子，深度模型预测亲和力·ADMET·成药性","Deep learning throughout — generative AI designs molecules; deep models predict affinity·ADMET·developability"],
+["先验证、再推进：物理与独立复核把关，减少无效线索与实验浪费","Verify before advancing — fewer false leads, less wasted lab spend"],
+["私域部署：在自有数据上训练，数据不出域","On-premises — trained on in-house data; data never leaves the domain"]];
+const OPT=[["闭环学习：每轮实验让模型更准，优势随数据复利","Closed-loop learning — models sharpen every round; a compounding edge"],
+["越跑越快：并行计算与分层筛选，把算力用在刀刃上","Faster each cycle — parallel compute + tiered screening"],
+["始终最新：随领域进展接入最新深度学习模型","Always current — latest deep-learning models as the field advances"],
+["面向结果：更快锁定更优、更安全、更易合成的候选","Outcome-driven — better, safer, more synthesizable candidates, faster"]];
+function litem(cn,en,color){return '<div style="display:flex;gap:16px;margin-top:26px"><span style="flex:0 0 auto;width:11px;height:11px;border-radius:50%;background:'+color+';margin-top:11px"></span><div><div style="font-size:23px;font-weight:700;color:#0B2545;line-height:1.35">'+cn+'</div><div style="font-size:18px;color:#53677A;margin-top:3px">'+en+'</div></div></div>'}
+document.getElementById('o-list').innerHTML=OUT.map(x=>litem(x[0],x[1],'#29A2AB')).join('');
+document.getElementById('p-list').innerHTML=OPT.map(x=>litem(x[0],x[1],'#0B2545')).join('');
+
+// slide 3 AI grid
+const AI=[["gen","生成式 AI","Generative AI","设计全新分子与骨架，拓展可探索的化学空间","Designs novel molecules & scaffolds — expands the explorable chemical space"],
+["pred","深度预测模型","Deep predictive models","预测结合亲和力、ADMET 与成药性——先筛后做","Predicts binding affinity, ADMET & developability — screen before you synthesize"],
+["multi","多目标 AI 优化","Multi-objective AI","在活性 × 安全 × 可合成之间自动权衡择优","Auto-balances potency × safety × synthesizability"],
+["loop","闭环学习","Closed-loop learning","基于自有实验数据持续微调，越跑越准","Continuously fine-tunes on in-house assay data — sharper every cycle"]];
+document.getElementById('ai-grid').innerHTML='<div style="position:absolute;top:370px;left:120px;width:1680px;display:grid;grid-template-columns:1fr 1fr;gap:34px">'+
+ AI.map(a=>'<div style="background:#F2F6F8;border-radius:20px;padding:44px 46px;position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:8px;background:#29A2AB"></div><div style="display:flex;align-items:center;gap:18px;margin-bottom:20px"><span style="width:64px;height:64px;border-radius:16px;background:#e2eef0;display:flex;align-items:center;justify-content:center">'+icon(a[0])+'</span><div><div style="font-size:32px;font-weight:800;color:#0B2545">'+a[1]+'</div><div style="font-size:20px;color:#12808A;font-weight:700">'+a[2]+'</div></div></div><div style="font-size:24px;color:#0B2545;font-weight:600;line-height:1.4">'+a[3]+'</div><div style="font-size:19px;color:#53677A;margin-top:8px;line-height:1.4">'+a[4]+'</div></div>').join('')+'</div>';
+
+// slide 4 differentiation
+const DIFF=[["#29A2AB","verify","闭环设计","The closed loop",[["验证门控","每个候选先过物理与独立复核，再进入下一步","Verification-gated — every candidate clears physics + independent review before it advances"],["从实验数据中学习","每轮湿实验反馈用于持续改进模型","Learns from the bench — each wet-lab round continuously improves the models"],["自动纠错","向目标产品画像收敛","Self-correcting — converges to the Target Product Profile"]]],
+["#0B2545","speed","速度工程","Speed engineering",[["分层级联筛选","昂贵算力只花在存活候选上","Tiered cascade — costly compute spent only on survivors"],["大规模并行云执行","百万级化学空间快速穿越","Massively parallel cloud — sweep million-scale spaces fast"],["自适应调度","更快、更省地完成每一轮","Adaptive scheduling — faster and cheaper per cycle"]]],
+["#E9A23B","mol","自研生成模型","Proprietary generative model",[["面向难成药化学","专为大环/环肽等高价值空间设计，通用生成器难覆盖","Built for hard-to-drug chemistry — macrocycles/peptides generic generators miss"],["按构造有效","在有效化学空间内直接生成——可合成，而非事后过滤","Valid by construction — makeable molecules, not generate-then-filter"],["生成即多目标","活性、安全、可合成在生成中同时优化导向","Multi-objective-native — potency, safety & synthesizability steered together during generation"]]]];
+document.getElementById('diff-grid').innerHTML='<div style="position:absolute;top:360px;left:120px;width:1680px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px">'+
+ DIFF.map(d=>'<div style="background:#F2F6F8;border-radius:20px;padding:38px 36px;position:relative;overflow:hidden;height:560px"><div style="position:absolute;top:0;left:0;right:0;height:8px;background:'+d[0]+'"></div><div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">'+icon(d[1],d[0]=='#E9A23B'?'#c47f16':d[0])+'<div><div style="font-size:28px;font-weight:800;color:#0B2545">'+d[2]+'</div><div style="font-size:18px;color:#53677A;font-weight:700">'+d[3]+'</div></div></div>'+
+ d[4].map(r=>'<div style="margin-top:20px"><div style="font-size:22px;font-weight:800;color:'+(d[0]=='#E9A23B'?'#c47f16':d[0])+'">› '+r[0]+'</div><div style="font-size:20px;color:#0B2545;margin-top:2px;line-height:1.35">'+r[1]+'</div><div style="font-size:16px;color:#53677A;margin-top:2px;line-height:1.35">'+r[2]+'</div></div>').join('')+'</div>').join('')+'</div>';
+
+// slide 5 flywheel nodes
+const CX=960,CY=650,R=280;
+const NODES=[["01","生成","Generate","de novo · 骨架跃迁",-90],
+["02","验证","Verify","docking·MD·FEP · ADMET · QC 门",-18],
+["03","优选","Rank","多目标 Pareto 优选",54],
+["04","实验","Make & Test","合成 + 湿实验",126],
+["05","学习","Learn","微调 · 再训练",198]];
+document.getElementById('fly-nodes').innerHTML=NODES.map(n=>{
+  const a=n[4]*Math.PI/180, x=CX+R*Math.cos(a), y=CY+R*Math.sin(a);
+  return '<div style="position:absolute;left:'+x+'px;top:'+y+'px;transform:translate(-50%,-50%);width:260px;text-align:center"><div style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(9,32,58,.72);border:1.5px solid rgba(41,162,171,.6);border-radius:18px;padding:16px 18px"><div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#29A2AB,#E9A23B);color:#08243f;font-weight:800;font-size:23px;display:flex;align-items:center;justify-content:center;margin-bottom:8px">'+n[0]+'</div><div style="font-weight:800;font-size:27px;color:#fff">'+n[1]+' <span style="font-size:18px;color:#9fc7cf;font-weight:600">'+n[2]+'</span></div><div style="font-size:17px;color:#c9d6e2;margin-top:4px">'+n[3]+'</div></div></div>';
+}).join('');
+// clockwise arrowheads at midpoints between nodes
+const MIDS=[-54,18,90,162,234];
+document.getElementById('fly-arrows').innerHTML=MIDS.map(m=>{
+  const a=m*Math.PI/180, x=CX+R*Math.cos(a), y=CY+R*Math.sin(a), rot=m+90;
+  return '<path d="M-13,-11 L15,0 L-13,11 L-6,0 Z" transform="translate('+x+','+y+') rotate('+rot+')"/>';
+}).join('');
+
+// slide 6 points
+const UIP=[["以药物项目为中心的工作空间——计划、阶段、QC 门、运行，都在同一个面板里","A program-centric workspace — plan, phases, QC gates and runs in one panel"],
+["任务被拆成可检视的阶段与步骤，运行前可逐项确认","Work decomposes into inspectable phases and steps, confirmed before running"],
+["参数、QC 阈值与中间结果随时可调、可预览","Parameters, QC thresholds and intermediate outputs can be adjusted or previewed at any point"],
+["大规模筛选可先跑小比例试点，再决定是否全量","Large screens can run as a small pilot first, then scale"],
+["与 ELN / 化合物库 / LIMS 双向打通，结果回写既有系统","Bidirectional with ELN / compound library / LIMS — results written back to existing systems"]];
+document.getElementById('ui-points').innerHTML=UIP.map((x,i)=>'<div style="display:flex;gap:18px;margin-bottom:30px"><span style="flex:0 0 auto;width:44px;height:44px;border-radius:12px;background:#e2eef0;color:#12808A;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span><div><div style="font-size:23px;font-weight:700;color:#0B2545;line-height:1.4">'+x[0]+'</div><div style="font-size:17px;color:#53677A;margin-top:3px;line-height:1.4">'+x[1]+'</div></div></div>').join('');
+
+// slide 7 workflow flow
+const WF=[["gen","生成 Generate","候选分子生成","#29A2AB",false],
+["verify","验证 Verify","docking · ADMET · 物理复核","#12808A",false],
+["lock","QC 门 QC gate","QC 拦截：DILI 风险","#E9A23B",true],
+["loop","自动纠正 Auto-correct","自动调参 → 重试","#12808A",false],
+["verify","完成 Done","通过 · 进入优选","#29A2AB",false]];
+document.getElementById('wf-flow').innerHTML=WF.map((w,i)=>'<div style="flex:1;display:flex;align-items:center"><div style="flex:1;background:'+(w[4]?'#fdf3e2':'#F2F6F8')+';border:'+(w[4]?'2px solid #E9A23B':'1px solid #DBE4EA')+';border-radius:16px;padding:28px 20px;text-align:center;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center">'+
+ '<span style="width:66px;height:66px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px">'+icon(w[0],w[3]=='#E9A23B'?'#c47f16':w[3])+'</span>'+
+ '<div style="font-size:24px;font-weight:800;color:#0B2545">'+w[1]+'</div><div style="font-size:18px;color:#53677A;margin-top:10px;line-height:1.4">'+w[2]+'</div>'+
+ (w[4]?'<div style="margin-top:14px;font-size:15px;color:#c47f16;font-weight:700;background:#fbe6c4;border-radius:8px;padding:6px 10px">自动纠正触发 · auto-fix</div>':'')+'</div>'+
+ (i<WF.length-1?'<div style="flex:0 0 auto;padding:0 6px;color:#29A2AB;font-size:34px;font-weight:800">→</div>':'')+'</div>').join('');
+
+// slide 8 deliverables
+const DEL=[["01","排序候选集","考虑合成可行性的候选分子列表，按多维判据排序","A ranked, synthesis-aware candidate set"],
+["02","逐项证据","亲和力 / 合成可及性 / 安全性各自的计算结果与不确定性","Per-criterion results with uncertainty"],
+["03","版本与溯源","模型版本、参数、QC 结果与决策记录，可审计复现","Model versions, parameters, QC outcomes, decision log"],
+["04","下一轮建议","建议合成/测试的分子，以及扩大或终止的判断依据","What to synthesize next — and the basis for expand / no-go"]];
+document.getElementById('deliv-grid').innerHTML='<div style="position:absolute;top:380px;left:120px;width:1680px;display:grid;grid-template-columns:1fr 1fr;gap:34px">'+
+ DEL.map(d=>'<div style="background:#F2F6F8;border-radius:20px;padding:40px 44px;display:flex;gap:26px"><div style="flex:0 0 auto;font-size:56px;font-weight:800;color:#29A2AB;line-height:1">'+d[0]+'</div><div><div style="font-size:30px;font-weight:800;color:#0B2545">'+d[1]+'</div><div style="font-size:23px;color:#0B2545;margin-top:10px;line-height:1.4">'+d[2]+'</div><div style="font-size:18px;color:#53677A;margin-top:6px">'+d[3]+'</div></div></div>').join('')+'</div>';
+
+// slide 9 pipeline
+const PIPE=[["靶点发现","Target ID","人类遗传学/GWAS · 功能基因组学 · 单细胞"],
+["疾病生物学","Disease biology","单细胞/空间转录组 · 多组学整合"],
+["靶点评估","Target evaluation","可成药性 · Open Targets · 靶点安全"],
+["生物标志物/转化","Biomarkers","免疫解卷积 · 生存分层 · 伴随诊断"],
+["安全/毒理","Safety / tox","ADMET · hERG/CYP · FDA 信号"],
+["DMPK","DMPK","PBPK · PK-PD · NCA"],
+["临床","Clinical","试验模拟 · 自适应剂量"],
+["NGS 流程 ✅已验证","Pipelines","RNA-seq · 变异检测 · ChIP/ATAC · 蛋白质组 MS"]];
+document.getElementById('pipe').innerHTML=PIPE.map((p,i)=>'<div style="width:398px;background:#F2F6F8;border-radius:16px;padding:26px 28px;position:relative"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;border-radius:6px 0 0 6px;background:'+(i==7?'#E9A23B':'linear-gradient(#29A2AB,#12808A)')+'"></div><div style="font-size:26px;font-weight:800;color:#0B2545">'+p[0]+'</div><div style="font-size:17px;color:#12808A;font-weight:700;margin:2px 0 10px">'+p[1]+'</div><div style="font-size:18px;color:#53677A;line-height:1.4">'+p[2]+'</div></div>').join('');
+
+// slide 10 pilot
+const PILOT=[["STAGE 01","调研与数据审计","Discovery + data audit","确定靶点画像、数据字典、评分契约、基线与验证方案"],
+["STAGE 02","回顾性评估","Retrospective evaluation","在留出的历史数据上做生成与排序；汇报富集度、校准度与不确定性"],
+["STAGE 03","人工复核的设计循环","Human-reviewed design cycle","多样化候选通过 亲和力 × 成药性 × 可合成性 × 安全性 四道门"],
+["STAGE 04","前瞻性实验轮次","Prospective assay round","合成并测试一小批商定的化合物；预测对比实测；在版本化治理下再训练"],
+["STAGE 05","决策包","Decision package","排序后的、考虑合成可行性的候选集 + 证据 + 版本记录 + 扩大/终止建议"]];
+document.getElementById('pilot').innerHTML=PILOT.map((p,i)=>'<div style="flex:1;position:relative"><div style="height:10px;background:'+(i==4?'#E9A23B':'#29A2AB')+';border-radius:6px;margin-bottom:0"></div><div style="width:26px;height:26px;border-radius:50%;background:'+(i==4?'#E9A23B':'#12808A')+';margin:-18px 0 20px 0;border:4px solid #fff;box-shadow:0 0 0 2px '+(i==4?'#E9A23B':'#12808A')+'"></div><div style="font:700 18px/1 Source Sans 3;letter-spacing:.12em;color:#12808A;margin-bottom:12px">'+p[0]+'</div><div style="font-size:25px;font-weight:800;color:#0B2545;line-height:1.25">'+p[1]+'</div><div style="font-size:16px;color:#53677A;font-weight:700;margin:4px 0 16px">'+p[2]+'</div><div style="font-size:19px;color:#0B2545;line-height:1.45">'+p[3]+'</div></div>').join('');
+</script>
+</body>
+</html>

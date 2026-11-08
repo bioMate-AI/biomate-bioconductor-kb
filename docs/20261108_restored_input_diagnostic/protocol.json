@@ -1,0 +1,29 @@
+{
+  "status": "completed",
+  "date": "2026-11-08",
+  "scaler_s3": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/rna_baseline/stream_cache/stream_hvg_scaler.npz",
+  "scaler_sha256": "0951a8e2034a2340b22734aa4b026a7d074da13ce4d763ba683da9fb7e10a9c5",
+  "scaler_exact": false,
+  "source_resources": "preserved fs_long/work GMT and TF parquet, no network refresh",
+  "gene_order_check": true,
+  "expected_knowledge_dims": 768,
+  "C_grid": [
+    0.01,
+    0.1,
+    1,
+    10
+  ],
+  "reference_C": 1,
+  "selection": "none",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "folds": 3,
+  "labels": 0.1,
+  "count_transform": "CP10k over source genes then log1p then checkpoint HVG alignment",
+  "feature_scaling": "saved corpus scaler before encoding; classifier StandardScaler fit only labelled feature rows",
+  "limits": "exploratory; historical launch-time resource identity not proven; pretraining overlap unresolved",
+  "validation": "144 converged fits, 48 finite OOF arrays; scaler gene order and 768 knowledge dimensions verified"
+}

@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 结合自由能 — 在合成之前为类似物排序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:60px 104px 64px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; margin-top:34px}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+
+/* ---- d4 custom visuals (lambda ladder + edge network) ---- */
+.svgwrap{width:100%; max-width:1120px; margin:4px auto 0; display:block}
+.svgwrap svg{width:100%; height:auto; display:block}
+.netwrap{width:100%; max-width:720px; margin:0 auto}
+.n-node{fill:#fff; stroke:var(--blue); stroke-width:3}
+.n-node-t{font-family:var(--ff-mono); font-size:26px; font-weight:600; fill:var(--ink); text-anchor:middle}
+.n-edge{stroke:var(--line2); stroke-width:3}
+.n-edge.tight{stroke:var(--green)}
+.n-elab{font-family:var(--ff-mono); font-size:19px; font-weight:600; text-anchor:middle}
+.lam-track{stroke:var(--line2); stroke-width:4}
+.lam-lab{font-family:var(--ff-mono); font-size:19px; fill:var(--mut); text-anchor:middle}
+.lam-end{font-family:var(--ff-ui); font-size:24px; font-weight:650; fill:var(--ink); text-anchor:middle}
+
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">相对结合自由能（FEP）— 在合成之前按活性为同系类似物排序</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>结合自由能 · FEP</b></div>
+    <div class="kicker">献给要决定下一个该做哪个类似物的药物化学家</div>
+    <h2>哪个类似物结合得更紧？FEP 在你上实验台之前就为它们排序。</h2>
+    <p class="caption lead">你有一个先导和若干相近的类似物。FEP 在你动手合成之前，排出谁结合得最紧。</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>先导 + 类似物</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>炼金术式 FEP</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>&Delta;&Delta;G &plusmn; 误差</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>按活性排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>合成赢家</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>Docking 是好闸门——却是衡量相近类似物的差尺子。</h2>
+    <p class="caption lead">Docking 能分开结合剂与非结合剂，却排不出相近类似物那种不足 1 kcal 的精细先后。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <div class="statrow">
+          <div class="stat"><div class="si">&#9678;</div><div class="sh">Docking 打分</div><div class="sp">快速的粗筛——在约 1&nbsp;kcal/mol 以下并不可靠，而类似物的差异恰在此处。</div></div>
+          <div class="stat" style="border-color:var(--blue); background:var(--blue-bg)"><div class="si" style="color:var(--blue)">&Delta;&Delta;G</div><div class="sh">FEP / RBFE</div><div class="sp">以物理为根基、不足 1 kcal 的排序——在你合成之前把系列排好。</div></div>
+        </div>
+        <div class="vlabel">选错一个，就是<b>数周的化学合成外加一次检测</b>——全花在错的分子上。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，整套方法就顺理成章。</h2>
+    <p class="caption lead">四个概念撑起整套方法——不需要统计力学。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="criteria">
+          <div class="crit"><span class="cn">01 · &Delta;G</span><span class="ct">结合自由能</span><span class="cd">越负 = 结合越紧</span></div>
+          <div class="crit"><span class="cn">02 · &Delta;&Delta;G</span><span class="ct">相对值，A 对 B</span><span class="cd">把它们排出先后的那个差值</span></div>
+          <div class="crit"><span class="cn">03 · 炼金术式</span><span class="ct">把 A 形变成 B</span><span class="cd">经由中间的 &lambda; 态</span></div>
+          <div class="crit"><span class="cn">04 · 热力学循环</span><span class="ct">闭合回路</span><span class="cd">口袋 + 溶剂——一次自校验</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 → 工作流 → GPU</div>
+    <h2>说出目标；BioMate 在云端 GPU 上打开真实的 FEP 引擎。</h2>
+    <p class="caption lead">用大白话提出需求，BioMate 就在云端 GPU 上打开真实的 OpenFE RBFE 工作流。</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:58vh; margin-top:22px">
+      <figure class="shotcol" style="flex:1.35">
+        <span class="lbl">实时产品 · OpenFE Relative Binding Free Energy (RBFE)</span>
+        <div class="frame"><img src="assets/live/fep-zh-panel.png" alt="BioMate 的结合自由能（FEP/RBFE）工作流面板"/></div>
+      </figure>
+      <div class="teachcol" style="flex:1">
+        <ul class="points" style="font-size:19px">
+          <li><span class="b"></span><span><b>大白话即可路由</b> &rarr; OpenFE RBFE 工作流。</span></li>
+          <li><span class="b"></span><span><b>三个输入：</b> <code>receptor</code> + <code>ligand_a/b</code>——其余选项收起。</span></li>
+          <li><span class="b gr"></span><span><b>一键</b> &rarr; 真实的 OpenFE / OpenMM GPU 运行。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 FEP 工作流，已为你配置就绪</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 你要带来什么</div>
+    <h2>一个靶点、一个参照配体，以及你要测试的类似物。</h2>
+    <p class="caption lead">一个靶点、一个参照配体和那个类似物——BioMate 会自动把它们映射起来。</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">受体</div>
+          <svg width="160" height="120" viewBox="0 0 160 120"><g class="mol" transform="translate(6,4)">
+            <path d="M12,106 L12,52 Q12,20 46,20 L58,20 Q64,42 84,42 Q104,42 110,20 L122,20 Q148,20 148,52 L148,106 Z" fill="#eef3fb" stroke-width="3.2"/>
+            <circle class="r" cx="84" cy="30" r="9"/><line x1="84" y1="39" x2="84" y2="56" stroke-width="3.2"/><circle class="r2" cx="84" cy="64" r="8"/>
+          </g></svg>
+          <div class="gl-lbl">靶点结构（PDB）</div></div>
+        <div class="glyph"><div class="n">配体 A &rarr; B</div>
+          <svg width="200" height="120" viewBox="0 0 200 120"><g class="mol" transform="translate(6,16)">
+            <path d="M22,10 L48,10 L61,32 L48,54 L22,54 L9,32 Z"/><circle class="r" cx="61" cy="32" r="8" transform="translate(6,0)"/>
+            <path class="gl-arrow" d="M86,32 L118,32"/><path class="gl-arrow" d="M110,25 L120,32 L110,39"/>
+            <g transform="translate(118,0)"><path d="M22,10 L48,10 L61,32 L48,54 L22,54 L9,32 Z"/><circle class="r2" cx="67" cy="32" r="8"/></g>
+          </g></svg>
+          <div class="gl-lbl">同系配对（换掉一处）</div></div>
+        <div class="glyph"><div class="n">网络</div>
+          <svg width="160" height="120" viewBox="0 0 160 120"><g class="mol" transform="translate(10,8)">
+            <line x1="70" y1="18" x2="22" y2="86" class="ar"/><line x1="70" y1="18" x2="118" y2="86" class="ar"/><line x1="22" y1="86" x2="118" y2="86" class="ar"/>
+            <circle class="r" cx="70" cy="18" r="11"/><circle class="r2" cx="22" cy="86" r="11"/><circle class="r2" cx="118" cy="86" r="11"/>
+          </g></svg>
+          <div class="gl-lbl">微扰图（LOMAP）</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE FEP CALCULATION -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">计算</span> · 它究竟在模拟什么</div>
+    <h2>跨 &lambda; 窗口把 A 形变成 B——再估计 &Delta;&Delta;G。</h2>
+    <p class="caption lead">跨 &lambda; 窗口把配体 A 形变成 B——GPU 上真实的 OpenMM 采样。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="svgwrap">
+        <svg viewBox="0 0 1040 200">
+          <line class="lam-track" x1="70" y1="104" x2="970" y2="104"/>
+          <text class="lam-end" x="70" y="46">A</text>
+          <text class="lam-end" x="970" y="46">B</text>
+          <g>
+            <circle cx="70"  cy="104" r="22" fill="#1a4a9c"/>
+            <circle cx="250" cy="104" r="22" fill="#2f5389"/>
+            <circle cx="430" cy="104" r="22" fill="#3c5b6f"/>
+            <circle cx="610" cy="104" r="22" fill="#356153"/>
+            <circle cx="790" cy="104" r="22" fill="#276541"/>
+            <circle cx="970" cy="104" r="22" fill="#1c6b3a"/>
+          </g>
+          <text class="lam-lab" x="70"  y="168">&lambda;=0</text>
+          <text class="lam-lab" x="520" y="168">&middot;&middot;&middot;  11 个 &lambda; 窗口  &middot;&middot;&middot;</text>
+          <text class="lam-lab" x="970" y="168">&lambda;=1</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:26px">
+        <div class="stat"><div class="si">&#9881;</div><div class="sh">1 · 准备</div><div class="sp">RDKit 三维构象，CPU</div></div>
+        <div class="stat" style="border-color:var(--blue); background:var(--blue-bg)"><div class="si" style="color:var(--blue)">&#9889;</div><div class="sh">2 · 采样</div><div class="sp">GPU 上的 OpenMM 分子动力学</div></div>
+        <div class="stat"><div class="si">&#931;</div><div class="sh">3 · 估计</div><div class="sp">MBAR &rarr; &Delta;&Delta;G &plusmn; SEM</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">输出</span> · 一个排好序、站得住脚的数字</div>
+    <h2>每条边的 &Delta;&Delta;G 带一个误差——而且循环必须闭合。</h2>
+    <p class="caption lead">每条边都交回一个带不确定度的 &Delta;&Delta;G；循环必须闭合。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="netwrap">
+        <svg viewBox="0 0 720 420">
+          <line class="n-edge tight" x1="360" y1="86" x2="150" y2="330"/>
+          <line class="n-edge" x1="150" y1="330" x2="570" y2="330"/>
+          <line class="n-edge" x1="570" y1="330" x2="360" y2="86"/>
+          <g>
+            <rect x="178" y="178" width="150" height="36" rx="8" fill="var(--green-bg)" stroke="var(--green)"/>
+            <text class="n-elab" x="253" y="203" fill="var(--green)">&minus;1.2 &plusmn; 0.3</text>
+            <rect x="285" y="312" width="150" height="36" rx="8" fill="#fff" stroke="var(--line2)"/>
+            <text class="n-elab" x="360" y="337" fill="var(--ink2)">+0.8 &plusmn; 0.2</text>
+            <rect x="392" y="178" width="150" height="36" rx="8" fill="#fff" stroke="var(--line2)"/>
+            <text class="n-elab" x="467" y="203" fill="var(--ink2)">+0.5 &plusmn; 0.3</text>
+          </g>
+          <g>
+            <circle class="n-node" cx="360" cy="86" r="40"/><text class="n-node-t" x="360" y="95">L1</text>
+            <circle class="n-node" cx="150" cy="330" r="40"/><text class="n-node-t" x="150" y="339">L2</text>
+            <circle class="n-node" cx="570" cy="330" r="40"/><text class="n-node-t" x="570" y="339">L3</text>
+          </g>
+        </svg>
+      </div>
+      <div class="sc-note" style="margin-top:8px"><span class="vflag green">&Sigma; &asymp; 0.1 — 循环闭合 &#10003;</span> 每个数字都带着它的不确定度；误差小、收敛好的边，才是你拿来下手的那些。</div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">用好这个结果</span> · 先决策，再在实验台上确认</div>
+    <h2>负值结合更紧——去合成那些，其余的往后放。</h2>
+    <p class="caption lead">负的 &Delta;&Delta;G 结合更紧——去合成那些，其余往后放，再在实验台上确认。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="scorecard">
+        <div class="sc-col"><div class="sc-name">类似物 B2</div><div class="sc-bar ok"><i style="width:88%"></i></div><div class="sc-val">&Delta;&Delta;G &minus;1.4 &rarr; 合成</div></div>
+        <div class="sc-col"><div class="sc-name">类似物 B5</div><div class="sc-bar ok"><i style="width:52%"></i></div><div class="sc-val">&Delta;&Delta;G &minus;0.6 &rarr; 合成</div></div>
+        <div class="sc-col"><div class="sc-name">类似物 B3</div><div class="sc-bar warn"><i style="width:22%"></i></div><div class="sc-val">&Delta;&Delta;G +0.9 &rarr; 往后放</div></div>
+      </div>
+      <div class="sc-note"><span class="vflag blue">验证</span> 把一条边与一个已发表的 &Delta;&Delta;G 作比较（如 Tyk2 / CDK2）——再用检测确认那些赢家。</div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+    <!-- ADDED PRODUCT SCENE -->
+  <section class="scene" data-kind="live" data-seconds="30.0" data-added="1">
+    <div class="kicker"><span class="st">真实产品</span> · 参数与输入 <span class="badge flow">产品</span></div>
+    <h2>运行前，核对真实的参数与输入</h2>
+    <p class="caption lead">必填项、输入文件、输出位置与权限，都集中在同一个面板里。</p>
+    <div class="scene-body shotwrap">
+      <figure class="shotcol">
+        <span class="lbl">真实产品 · BioMate 中的 FEP 结合自由能 · 工作流设置</span>
+        <div class="frame"><img src="assets/live/fep-settings-zh.png" alt="真实产品 · BioMate 中的 FEP 结合自由能 · 工作流设置"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>用大白话描述任务，BioMate 摆出真实参数</span></li>
+          <li><span class="b gr"></span><span>必填项清晰标注，可一键覆盖默认值</span></li>
+          <li><span class="b rd"></span><span>确认后在云端运行，无需本地安装</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+<section class="scene" data-seconds="44.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>一个有明示假设的物理工具——而非一个黑箱。</h2>
+    <p class="caption lead">一个有明示假设的物理工具——相对、依赖构象、且耗算力。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">&#8596;</div><div class="sh">相对，而非绝对</div><div class="sp">对着一个参照给系列排序——而非一个亲和力。</div></div>
+        <div class="stat"><div class="si">&#9888;</div><div class="sh">构象是废料，数字就是废料</div><div class="sp">需要正确的结构和足够的采样。</div></div>
+        <div class="stat"><div class="si">&#9201;</div><div class="sh">每条边在 GPU 上数小时</div><div class="sp">一项刻意为之的计算，而非一个快速过滤器。</div></div>
+      </div>
+      <div style="text-align:center; margin-top:30px"><span class="verdict open"><span class="mk"></span>具体而诚实——假设已明示，校验已内建</span></div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:42px">用物理排序。做出赢家。在实验台上确认。</h2>
+    <p class="caption lead" style="text-align:center; margin:0 auto 10px">在一轮合成开始之前，FEP 告诉你哪个类似物值得去做。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="recap">
+        <div class="rchip"><span class="rk">回答</span><span class="rv">哪个类似物结合更紧</span></div>
+        <div class="rchip"><span class="rk">引擎</span><span class="rv">OpenFE + OpenMM</span></div>
+        <div class="rchip"><span class="rk">输出</span><span class="rv">每条边的 &Delta;&Delta;G &plusmn; SEM</span></div>
+        <div class="rchip"><span class="rk">算力</span><span class="rv">云端 GPU Batch</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

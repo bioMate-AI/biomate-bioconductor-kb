@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "entries": 5,
+  "bytes_read_including_archive_layers": 115157,
+  "findings": [
+    {
+      "path": "docker-compose.onprem.yml",
+      "kind": "content",
+      "term": "biomni"
+    }
+  ],
+  "errors": []
+}

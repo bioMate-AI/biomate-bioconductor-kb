@@ -1,0 +1,1848 @@
+{
+  "schemaVersion": 1,
+  "title": "BioMate Learning Series",
+  "languages": [
+    "en",
+    "zh"
+  ],
+  "status": "IN_PRODUCTION_NOT_RELEASED",
+  "coverageNote": "28 bilingual source chapters plus focused episodes. This is the initial editorial inventory, not proof of exhaustive product coverage. Verify shipped workflows and add unmapped functions before declaring coverage complete.",
+  "releaseRequirements": [
+    "Demonstrated function verified in real BioMate with reproducible evidence",
+    "Scientific claims reviewed against actual inputs and outputs",
+    "English and Chinese editorial and terminology review",
+    "Readable screenshots and diagrams at delivery resolution",
+    "Narration, captions and timing reviewed in the final encoded video",
+    "Client and marketing review passed"
+  ],
+  "episodes": [
+    {
+      "id": "m1-search-and-evidence",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Module 1 — Search & evidence: asking \"what is known?\"",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M1-search-and-evidence.md",
+        "zh": "docs/user-manual/tutorials/zh/M1-search-and-evidence.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — asking an evidence question",
+        "5. How to read the answer",
+        "6. What to do with the answer",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "BLOCKED",
+        "evidence": [
+          "docs/qa/20261003-tutorial-release/navigation/audit.json"
+        ],
+        "scope": "New Chat displays a seeded welcome message and does not mount the expected cold-start module dashboard. Do not film the documented route as working until corrected and verified."
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "m2-data-analysis",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Module 2 — Data analysis: working on your own data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M2-data-analysis.md",
+        "zh": "docs/user-manual/tutorials/zh/M2-data-analysis.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step",
+        "4a. A quick calculation (ad-hoc compute)",
+        "4b. A full pipeline (validated workflow)",
+        "5. The data-check card (what you see when you bring a file in)",
+        "6. The most important path: promoting a quick look into a defensible run",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "BLOCKED",
+        "evidence": [
+          "docs/qa/20261003-tutorial-release/navigation/audit.json"
+        ],
+        "scope": "New Chat displays a seeded welcome message and does not mount the expected cold-start module dashboard. Do not film the documented route as working until corrected and verified."
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "s1-sidebar-navigation",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial S1 — The sidebar: finding your way around BioMate",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/S1-sidebar-navigation.md",
+        "zh": "docs/user-manual/tutorials/zh/S1-sidebar-navigation.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — every sidebar entry, top to bottom",
+        "4.0 The header — logo, BETA chip, and the collapse button",
+        "4.1 New Chat — start a fresh conversation",
+        "4.2 Workflows — your run history and pipeline library",
+        "4.3 Connectors — everything your workspace is attached to",
+        "4.4 Data — your datasets, their quality and lineage",
+        "4.5 Models — train, adapt, and run prediction models",
+        "4.6 Design & Generate — propose new candidate molecules",
+        "4.7 Recent Tools — jump back to a tool you used lately",
+        "4.8 Projects — folders that group related work",
+        "4.9 Chat history — your recent conversations, with status dots",
+        "4.10 Settings & API Keys — your account and preferences",
+        "4.11 The footer — your profile and sign-out",
+        "5. Honest limits — what to expect",
+        "6. Not available in this version (so you don't go looking)",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t0-getting-started",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 0 — Getting started: your first question to BioMate",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T0-getting-started.md",
+        "zh": "docs/user-manual/tutorials/zh/T0-getting-started.zh.md"
+      },
+      "functions": [
+        "1. What BioMate is (in one honest paragraph)",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — asking your first question",
+        "5. How to read your first answer",
+        "6. Honest limits — what to expect on day one",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "BLOCKED",
+        "evidence": [
+          "docs/qa/20261003-tutorial-release/navigation/audit.json"
+        ],
+        "scope": "New Chat displays a seeded welcome message and does not mount the expected cold-start module dashboard. Do not film the documented route as working until corrected and verified."
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t1-design-and-generate",
+      "series": "drug-development",
+      "kind": "chapter",
+      "title": "Tutorial 1 — Designing new drug molecules (Design & Generate)",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T1-design-and-generate.md",
+        "zh": "docs/user-manual/tutorials/zh/T1-design-and-generate.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves (why you'd ever do this)",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step",
+        "5. How to read the results",
+        "6. What happens next — the closed loop",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t10-exploring-your-datasets",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 10 — Exploring your datasets: metadata, preview, lineage & versions",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T10-exploring-your-datasets.md",
+        "zh": "docs/user-manual/tutorials/zh/T10-exploring-your-datasets.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — reading a dataset object",
+        "4.1 Metadata — the plain facts (works today)",
+        "4.2 Preview / visualization — see the real contents (partial today)",
+        "4.3 Lineage & consumers — where it came from and what used it (works today)",
+        "4.4 Versioning — the append-only log (partial today)",
+        "4.5 Access scope — who can reach it (partial today)",
+        "5. Honest limits — what is not yet built",
+        "6. Where to go next",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t11-drug-development-end-to-end",
+      "series": "drug-development",
+      "kind": "chapter",
+      "title": "Tutorial 11 — The whole drug-development pipeline, end to end",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves (why one tool is never the whole story)",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — the eight stages",
+        "Stage 1 — Framing the goal",
+        "Stage 2 — Generating / designing candidates",
+        "Stage 3 — Property prediction (is it drug-like and safe?)",
+        "Stage 4 — Structure-based evaluation (does it actually fit the target?)",
+        "Stage 5 — Multi-objective optimization & developability ranking",
+        "Stage 6 — The closed loop (Design–Build–Test–Learn) and the QC gate",
+        "Stage 7 — PK / PBPK modeling (what dose would a human need?)",
+        "Stage 8 — Reading the results & the reproducibility record",
+        "5. The pipeline at a glance",
+        "6. Honest limits — what to expect",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t2-models-and-the-closed-loop",
+      "series": "drug-development",
+      "kind": "chapter",
+      "title": "Tutorial 2 — Models and the closed loop (how BioMate gets smarter)",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+        "zh": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves (why models matter)",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — browsing and reusing a model",
+        "5. How to read the results",
+        "6. The closed loop in practice (tying it together)",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t3-running-a-workflow-and-reading-the-report",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 3 — Running a workflow and reading the report",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T3-running-a-workflow-and-reading-the-report.md",
+        "zh": "docs/user-manual/tutorials/zh/T3-running-a-workflow-and-reading-the-report.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step",
+        "5. How to read the report",
+        "6. Input and output of each step, and what the result means",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t4-bringing-your-own-data",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 4 — Bringing your own data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T4-bringing-your-own-data.md",
+        "zh": "docs/user-manual/tutorials/zh/T4-bringing-your-own-data.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — getting your data in",
+        "5. How to read a dataset object",
+        "6. From data to an analysis",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t5-viewing-your-results",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 5 — Viewing your results: outputs, previews & interactive tools",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — opening a result",
+        "5. What each kind of file looks like when you open it",
+        "6. How to tell a good output from a wrong one — quickly",
+        "7. Saving and sharing what you found",
+        "8. Interactive tools (RStudio / Jupyter / CellxGene) — the honest scope",
+        "9. Where to go next",
+        "10. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t6-connecting-instruments",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 6 — Connecting lab & hospital instruments",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T6-connecting-instruments.md",
+        "zh": "docs/user-manual/tutorials/zh/T6-connecting-instruments.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — registering an instrument",
+        "5. The instrument types you can register",
+        "6. How to act on new data",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t7-projects-and-collaboration",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 7 — Projects, standing instructions & collaboration",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T7-projects-and-collaboration.md",
+        "zh": "docs/user-manual/tutorials/zh/T7-projects-and-collaboration.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step",
+        "4a. Create the project and set its standing instructions",
+        "4b. Record a plan, and keep a private note",
+        "4c. Share the project with teammates",
+        "4d. See your own permissions — disabled, not hidden",
+        "5. Honest limits — what to expect",
+        "6. Where to go next",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t8-reports-edit-and-export",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 8 — Reports as editable files, and exporting them",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T8-reports-edit-and-export.md",
+        "zh": "docs/user-manual/tutorials/zh/T8-reports-edit-and-export.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — editing the report",
+        "5. Step by step — exporting the report",
+        "6. How to read what you exported",
+        "7. Honest limits (read this before you expect more)",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "t9-connecting-data-and-tools",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial 9 — Connecting data sources & tools",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T9-connecting-data-and-tools.md",
+        "zh": "docs/user-manual/tutorials/zh/T9-connecting-data-and-tools.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — by the kind of connection",
+        "4a. Browsing the public databases (read-only — nothing to switch on)",
+        "4b. AI & Platforms (also read-only reference)",
+        "4c. Your connections → Connect a private database (a real, working flow)",
+        "4d. Your connections → Add an MCP server (a real, working flow)",
+        "4e. Adding a data source as a directory (index-in-place vs. copy) — concept, not yet in this dialog",
+        "4f. Adding a skill / expert — what actually works today",
+        "5. Honest limits — what to expect",
+        "6. Where to go next",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "w1-workflow-panel-tabs",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial W1 — The workflow panel before and during a run",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/W1-workflow-panel-tabs.md",
+        "zh": "docs/user-manual/tutorials/zh/W1-workflow-panel-tabs.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — from opening the panel to a running workflow",
+        "5. The Workflow settings tab — reading and setting parameters",
+        "6. The Phases tab — watching a run live",
+        "7. When a quality gate fires mid-run",
+        "8. Honest limits — what the panel does and doesn't do today",
+        "9. Where to go next",
+        "10. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "w2-after-run-panel",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial W2 — The after-run panel: Summary, Outputs, and the Reproducibility record",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/W2-after-run-panel.md",
+        "zh": "docs/user-manual/tutorials/zh/W2-after-run-panel.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. The Summary tab — where the findings live",
+        "5. The Outputs tab — every file, by step",
+        "6. The Reproducibility record tab — the full audit trail",
+        "7. The one-click \"Download report\"",
+        "8. When a run failed",
+        "9. Honest limits — what to expect",
+        "10. Where to go next",
+        "11. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "w3-full-step-view",
+      "series": "platform",
+      "kind": "chapter",
+      "title": "Tutorial W3 — The full step view: opening one step as an object",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/W3-full-step-view.md",
+        "zh": "docs/user-manual/tutorials/zh/W3-full-step-view.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. The ideas you need first (plain-language background)",
+        "3. When you'd use this",
+        "4. Step by step — opening and reading a step",
+        "4.1 Open the full step view",
+        "4.2 Read the provenance row (what fed it → what ran → what came out)",
+        "4.3 Read the resolved parameters and their origins",
+        "4.4 Open an output — rendered, then raw",
+        "4.5 Where \"number → source\" fits (and where it doesn't yet)",
+        "4.6 Re-running from this step",
+        "5. Honest limits — what this view does and doesn't do today",
+        "6. Where to go next",
+        "7. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "basespace-sequencing",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — Illumina BaseSpace → RNA-seq, variant calling (WGS) & 16S",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/basespace-sequencing.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/basespace-sequencing.zh.md"
+      },
+      "functions": [
+        "1. What this instrument produces",
+        "2. The BioMate analysis it drives (and why)",
+        "2a. RNA-seq → \"which genes change between groups?\" *(best-validated)*",
+        "2b. WGS / WES → \"what DNA variants does this genome carry?\" *(best-validated)*",
+        "2c. 16S / amplicon → \"what microbes, in what proportions?\"",
+        "3. Before you start — get the data in (see T6)",
+        "4. Step by step — run it",
+        "5. Reading the result / report",
+        "6. Honest limits — what to expect",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "benchling-eln-lims",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — Benchling ELN / LIMS → drug-discovery ADMET screening",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/benchling-eln-lims.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/benchling-eln-lims.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. What this \"instrument\" produces",
+        "3. The BioMate analysis it drives (and why)",
+        "4. Before you start — connecting Benchling",
+        "5. Step by step — run the screening",
+        "6. Reading the result",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "cryoem-reconstruction",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — Thermo EPU / cryo-EM microscope → 3-D reconstruction",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/cryoem-reconstruction.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/cryoem-reconstruction.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. What this instrument produces",
+        "3. The BioMate analysis it drives (and why)",
+        "4. Before you start — getting the movies to BioMate",
+        "5. Step by step — run the reconstruction",
+        "6. Reading the result — the map and the numbers",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "flow-cytometry-gating",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — flow cytometer → gating & immunophenotyping (FCS)",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/flow-cytometry-gating.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/flow-cytometry-gating.zh.md"
+      },
+      "functions": [
+        "1. What this instrument produces",
+        "2. The BioMate analysis it drives (and why)",
+        "3. Before you start — get the data in (see T6)",
+        "4. Step by step — run it",
+        "5. Reading the result / report",
+        "6. Honest limits — what to expect",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "lcms-proteomics-metabolomics",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — LC-MS → proteomics (DDA/DIA) & metabolomics feature detection",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/lcms-proteomics-metabolomics.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/lcms-proteomics-metabolomics.zh.md"
+      },
+      "functions": [
+        "1. What this instrument produces",
+        "2. The BioMate analysis it drives (and why)",
+        "2a. Proteomics — \"which proteins, and how much?\"",
+        "2b. Metabolomics — \"which small-molecule features, and how much?\"",
+        "3. Before you start — get the data in (see T6)",
+        "4. Step by step — run it",
+        "5. Reading the result / report",
+        "6. Honest limits — what to expect (read this carefully)",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "nanopore-minknow",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — Oxford Nanopore MinKNOW → long-read analysis",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/nanopore-minknow.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/nanopore-minknow.zh.md"
+      },
+      "functions": [
+        "1. The problem this solves",
+        "2. What this instrument produces",
+        "3. The BioMate analysis it drives (and why)",
+        "4. Before you start — getting the reads to BioMate",
+        "5. Step by step — run the analysis",
+        "6. Reading the result",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "opentrons-liquid-handling",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — Opentrons OT-2 / Flex (liquid-handling robot)",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/opentrons-liquid-handling.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/opentrons-liquid-handling.zh.md"
+      },
+      "functions": [
+        "1. The honest starting point — this is a sample-prep robot, not a data instrument",
+        "2. What this instrument produces",
+        "3. The BioMate \"workflow\" it drives (and why)",
+        "4. Before you start — getting the robot connected",
+        "5. Step by step — run a protocol",
+        "6. Reading the result — and where the real analysis begins",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "plate-reader-assays",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — plate reader → dose–response, IC50 & assay quantification",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/plate-reader-assays.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/plate-reader-assays.zh.md"
+      },
+      "functions": [
+        "1. What this instrument produces",
+        "2. The BioMate analysis it drives (and why)",
+        "2a. Dose–response / IC50 / EC50 (the most common)",
+        "2b. Screening a whole plate for hits (HTS)",
+        "2c. Enzyme kinetics / ELISA / viability",
+        "3. Before you start — get the data in (see T6)",
+        "4. Step by step — run it",
+        "5. Reading the result / report",
+        "6. Honest limits — what to expect",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "qpcr-quantification",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — qPCR → relative gene-expression (ΔΔCt)",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/qpcr-quantification.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/qpcr-quantification.zh.md"
+      },
+      "functions": [
+        "1. What this instrument produces",
+        "2. The BioMate analysis it drives (and why)",
+        "3. Before you start — get the data in (see T6)",
+        "4. Step by step — run it",
+        "5. Reading the result / report",
+        "6. Honest limits — what to expect",
+        "7. Where to go next",
+        "8. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "sila2-devices",
+      "series": "instruments",
+      "kind": "chapter",
+      "title": "Instrument tutorial — SiLA2 devices (a standard, not one machine)",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/sila2-devices.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/sila2-devices.zh.md"
+      },
+      "functions": [
+        "1. The honest starting point — SiLA2 is a connection standard, not an instrument",
+        "2. What a SiLA2 device produces (it depends)",
+        "3. The BioMate \"workflow\" it drives — conditional by type",
+        "4. Before you start — getting the device connected",
+        "5. Step by step — work with a SiLA2 device",
+        "6. Reading the result",
+        "7. Honest limits — what to expect",
+        "8. Where to go next",
+        "9. Key terms"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "composer",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t0-getting-started",
+      "title": "The composer: attachments, clarification and lane selection",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T0-getting-started.md",
+        "zh": "docs/user-manual/tutorials/zh/T0-getting-started.zh.md"
+      },
+      "functions": [
+        "The composer: attachments, clarification and lane selection"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "molecule-generation",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t1-design-and-generate",
+      "title": "Generate small-molecule candidates",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T1-design-and-generate.md",
+        "zh": "docs/user-manual/tutorials/zh/T1-design-and-generate.zh.md"
+      },
+      "functions": [
+        "Generate small-molecule candidates"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "multi-objective-ranking",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t1-design-and-generate",
+      "title": "Compare and rank candidates across objectives",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T1-design-and-generate.md",
+        "zh": "docs/user-manual/tutorials/zh/T1-design-and-generate.zh.md"
+      },
+      "functions": [
+        "Compare and rank candidates across objectives"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "pretrained-models",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t2-models-and-the-closed-loop",
+      "title": "Run and inspect a pre-trained model",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+        "zh": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md"
+      },
+      "functions": [
+        "Run and inspect a pre-trained model"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "model-training",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t2-models-and-the-closed-loop",
+      "title": "Train a model and inspect held-out evaluation",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+        "zh": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md"
+      },
+      "functions": [
+        "Train a model and inspect held-out evaluation"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "model-adaptation",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t2-models-and-the-closed-loop",
+      "title": "Adapt a model to a new task",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+        "zh": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md"
+      },
+      "functions": [
+        "Adapt a model to a new task"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "model-optimization",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t2-models-and-the-closed-loop",
+      "title": "Optimize and compare model versions",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+        "zh": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md"
+      },
+      "functions": [
+        "Optimize and compare model versions"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "wet-lab-loop",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t2-models-and-the-closed-loop",
+      "title": "Return measurements and review a closed-loop round",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+        "zh": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md"
+      },
+      "functions": [
+        "Return measurements and review a closed-loop round"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "table-viewer",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t5-viewing-your-results",
+      "title": "Inspect tabular results",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "Inspect tabular results"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "sequence-viewer",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t5-viewing-your-results",
+      "title": "Inspect sequence results",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "Inspect sequence results"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "variant-viewer",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t5-viewing-your-results",
+      "title": "Inspect variant results",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "Inspect variant results"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "structure-viewer",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t5-viewing-your-results",
+      "title": "Inspect molecular structures",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "Inspect molecular structures"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "interactive-analysis",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t5-viewing-your-results",
+      "title": "Open results in an interactive analysis tool",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "Open results in an interactive analysis tool"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "project-instructions",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t7-projects-and-collaboration",
+      "title": "Set project instructions",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T7-projects-and-collaboration.md",
+        "zh": "docs/user-manual/tutorials/zh/T7-projects-and-collaboration.zh.md"
+      },
+      "functions": [
+        "Set project instructions"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "project-sharing",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t7-projects-and-collaboration",
+      "title": "Share a project and check roles",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T7-projects-and-collaboration.md",
+        "zh": "docs/user-manual/tutorials/zh/T7-projects-and-collaboration.zh.md"
+      },
+      "functions": [
+        "Share a project and check roles"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "report-editing",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t8-reports-edit-and-export",
+      "title": "Edit a report and save a version",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T8-reports-edit-and-export.md",
+        "zh": "docs/user-manual/tutorials/zh/T8-reports-edit-and-export.zh.md"
+      },
+      "functions": [
+        "Edit a report and save a version"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "report-export",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t8-reports-edit-and-export",
+      "title": "Export a report and inspect the downloaded files",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T8-reports-edit-and-export.md",
+        "zh": "docs/user-manual/tutorials/zh/T8-reports-edit-and-export.zh.md"
+      },
+      "functions": [
+        "Export a report and inspect the downloaded files"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "database-connectors",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t9-connecting-data-and-tools",
+      "title": "Connect a database and verify a query",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T9-connecting-data-and-tools.md",
+        "zh": "docs/user-manual/tutorials/zh/T9-connecting-data-and-tools.zh.md"
+      },
+      "functions": [
+        "Connect a database and verify a query"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "mcp-connectors",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t9-connecting-data-and-tools",
+      "title": "Connect an MCP tool and review capabilities",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T9-connecting-data-and-tools.md",
+        "zh": "docs/user-manual/tutorials/zh/T9-connecting-data-and-tools.zh.md"
+      },
+      "functions": [
+        "Connect an MCP tool and review capabilities"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "dataset-lineage",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t10-exploring-your-datasets",
+      "title": "Trace dataset origin and downstream use",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T10-exploring-your-datasets.md",
+        "zh": "docs/user-manual/tutorials/zh/T10-exploring-your-datasets.zh.md"
+      },
+      "functions": [
+        "Trace dataset origin and downstream use"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "dataset-versions",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t10-exploring-your-datasets",
+      "title": "Read a dataset version log",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T10-exploring-your-datasets.md",
+        "zh": "docs/user-manual/tutorials/zh/T10-exploring-your-datasets.zh.md"
+      },
+      "functions": [
+        "Read a dataset version log"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "admet-evidence",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t11-drug-development-end-to-end",
+      "title": "Interpret ADMET predictions and their limits",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "Interpret ADMET predictions and their limits"
+      ],
+      "verification": {
+        "status": "PARTIAL",
+        "evidence": [
+          "docs/qa/20261003-tutorial-release/live-audit.json"
+        ],
+        "scope": "Existing completed run, six output downloads, Summary/Outputs/Record UI verified. Fresh submission and scientific model validation are not covered."
+      },
+      "production": {
+        "storyboard": "reference/claude_design/tutorials/review-pilot/storyboard.json",
+        "frames": "docs/qa/20261003-tutorial-release/pilot-frames",
+        "audio": "recording/audio/series/admet-evidence",
+        "narratedReviewDirectory": "recording/output/series-review/admet-evidence"
+      },
+      "review": {
+        "status": "CHANGES_REQUIRED",
+        "audit": "docs/qa/20261003-tutorial-release/SCIENCE_AND_PRESENTATION_AUDIT.md",
+        "openItems": [
+          "Full listening and pronunciation review",
+          "Exact caption alignment",
+          "UI close-ups and necessary action footage",
+          "Full final audiovisual review"
+        ]
+      }
+    },
+    {
+      "id": "physicochemical-properties",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t11-drug-development-end-to-end",
+      "title": "Inspect physicochemical predictions",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "Inspect physicochemical predictions"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "qsar-prediction",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t11-drug-development-end-to-end",
+      "title": "Interpret a QSAR prediction",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "Interpret a QSAR prediction"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "molecular-docking",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t11-drug-development-end-to-end",
+      "title": "Run docking and interpret poses and scores",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "Run docking and interpret poses and scores"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "rbfe",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t11-drug-development-end-to-end",
+      "title": "Review relative binding free-energy results",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "Review relative binding free-energy results"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "pk-pbpk",
+      "series": "drug-development",
+      "kind": "focused",
+      "parent": "t11-drug-development-end-to-end",
+      "title": "Interpret PK and PBPK simulations",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+        "zh": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md"
+      },
+      "functions": [
+        "Interpret PK and PBPK simulations"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "literature-evidence",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "m1-search-and-evidence",
+      "title": "Search literature and inspect citations",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M1-search-and-evidence.md",
+        "zh": "docs/user-manual/tutorials/zh/M1-search-and-evidence.zh.md"
+      },
+      "functions": [
+        "Search literature and inspect citations"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "database-evidence",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "m1-search-and-evidence",
+      "title": "Find evidence in scientific databases",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M1-search-and-evidence.md",
+        "zh": "docs/user-manual/tutorials/zh/M1-search-and-evidence.zh.md"
+      },
+      "functions": [
+        "Find evidence in scientific databases"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "patent-evidence",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "m1-search-and-evidence",
+      "title": "Search patents and inspect source material",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M1-search-and-evidence.md",
+        "zh": "docs/user-manual/tutorials/zh/M1-search-and-evidence.zh.md"
+      },
+      "functions": [
+        "Search patents and inspect source material"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "internal-evidence",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "m1-search-and-evidence",
+      "title": "Search authorized internal evidence",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M1-search-and-evidence.md",
+        "zh": "docs/user-manual/tutorials/zh/M1-search-and-evidence.zh.md"
+      },
+      "functions": [
+        "Search authorized internal evidence"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "instant-analysis",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "m2-data-analysis",
+      "title": "Run an instant data analysis",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M2-data-analysis.md",
+        "zh": "docs/user-manual/tutorials/zh/M2-data-analysis.zh.md"
+      },
+      "functions": [
+        "Run an instant data analysis"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "cloud-analysis",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "m2-data-analysis",
+      "title": "Run a cloud workflow with resolved inputs",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/M2-data-analysis.md",
+        "zh": "docs/user-manual/tutorials/zh/M2-data-analysis.zh.md"
+      },
+      "functions": [
+        "Run a cloud workflow with resolved inputs"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "wgs-analysis",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "basespace-sequencing",
+      "title": "Analyze germline sequencing data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/basespace-sequencing.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/basespace-sequencing.zh.md"
+      },
+      "functions": [
+        "Analyze germline sequencing data"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "rnaseq-analysis",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "basespace-sequencing",
+      "title": "Analyze bulk RNA sequencing data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/basespace-sequencing.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/basespace-sequencing.zh.md"
+      },
+      "functions": [
+        "Analyze bulk RNA sequencing data"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "proteomics-dda",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "lcms-proteomics-metabolomics",
+      "title": "Analyze DDA proteomics data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/lcms-proteomics-metabolomics.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/lcms-proteomics-metabolomics.zh.md"
+      },
+      "functions": [
+        "Analyze DDA proteomics data"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "proteomics-dia",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "lcms-proteomics-metabolomics",
+      "title": "Analyze DIA proteomics data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/lcms-proteomics-metabolomics.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/lcms-proteomics-metabolomics.zh.md"
+      },
+      "functions": [
+        "Analyze DIA proteomics data"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "metabolomics",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "lcms-proteomics-metabolomics",
+      "title": "Analyze metabolomics data",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/lcms-proteomics-metabolomics.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/lcms-proteomics-metabolomics.zh.md"
+      },
+      "functions": [
+        "Analyze metabolomics data"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "dose-response",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "plate-reader-assays",
+      "title": "Fit and inspect a dose–response curve",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/plate-reader-assays.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/plate-reader-assays.zh.md"
+      },
+      "functions": [
+        "Fit and inspect a dose–response curve"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "hts-hit-calling",
+      "series": "instruments",
+      "kind": "focused",
+      "parent": "plate-reader-assays",
+      "title": "Review screening controls and hit calling",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/instruments/plate-reader-assays.md",
+        "zh": "docs/user-manual/tutorials/zh/instruments/plate-reader-assays.zh.md"
+      },
+      "functions": [
+        "Review screening controls and hit calling"
+      ],
+      "verification": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "production": {},
+      "review": {
+        "status": "NOT_REVIEWED"
+      }
+    },
+    {
+      "id": "result-downloads",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "t5-viewing-your-results",
+      "title": "Keep the evidence behind a result",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+        "zh": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md"
+      },
+      "functions": [
+        "result-downloads"
+      ],
+      "verification": {
+        "status": "PARTIAL",
+        "evidence": [
+          "docs/qa/20261003-tutorial-release/live-audit.json",
+          "recording/video/series-actions/result-downloads-v2/en/timeline.json",
+          "recording/video/series-actions/result-downloads-v2/zh/timeline.json"
+        ],
+        "scope": "Existing run read-only UI and output retrieval. Record export and checksum computation not demonstrated."
+      },
+      "production": {
+        "storyboard": "reference/claude_design/tutorials/series/episodes/result-downloads/storyboard.json",
+        "frames": "docs/qa/20261003-tutorial-release/series-frames/result-downloads",
+        "audio": "recording/audio/series/result-downloads",
+        "narratedReviewDirectory": "recording/output/series-review/result-downloads",
+        "liveReviewDirectory": "recording/output/series-live-v2",
+        "liveReviewFormat": "REAL_UI_SCREEN_RECORDING"
+      },
+      "review": {
+        "status": "CHANGES_REQUIRED",
+        "audit": "docs/qa/20261003-tutorial-release/SCIENCE_AND_PRESENTATION_AUDIT.md",
+        "openItems": [
+          "Re-record with positive loaded-content assertion; Chinese QC preview still loading in v2 visual sample",
+          "Full listening and pronunciation review",
+          "Exact caption alignment",
+          "UI close-ups and mobile readability",
+          "Full final audiovisual and visible scientific-claim review"
+        ]
+      }
+    },
+    {
+      "id": "reproducibility-record",
+      "series": "platform",
+      "kind": "focused",
+      "parent": "w2-after-run-panel",
+      "title": "Trace a result back to its run",
+      "tutorials": {
+        "en": "docs/user-manual/tutorials/W2-after-run-panel.md",
+        "zh": "docs/user-manual/tutorials/zh/W2-after-run-panel.zh.md"
+      },
+      "functions": [
+        "reproducibility-record"
+      ],
+      "verification": {
+        "status": "PARTIAL",
+        "evidence": [
+          "docs/qa/20261003-tutorial-release/live-audit.json"
+        ],
+        "scope": "Existing run read-only UI and output retrieval. Record export and checksum computation not demonstrated."
+      },
+      "production": {
+        "storyboard": "reference/claude_design/tutorials/series/episodes/reproducibility-record/storyboard.json",
+        "frames": "docs/qa/20261003-tutorial-release/series-frames/reproducibility-record",
+        "audio": "recording/audio/series/reproducibility-record",
+        "narratedReviewDirectory": "recording/output/series-review/reproducibility-record"
+      },
+      "review": {
+        "status": "CHANGES_REQUIRED",
+        "audit": "docs/qa/20261003-tutorial-release/SCIENCE_AND_PRESENTATION_AUDIT.md",
+        "openItems": [
+          "Full listening and pronunciation review",
+          "Exact caption alignment",
+          "UI close-ups and necessary action footage",
+          "Full final audiovisual review"
+        ]
+      }
+    }
+  ]
+}

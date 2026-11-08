@@ -1,0 +1,44 @@
+[
+  {
+    "method": "snf",
+    "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+    "status": "completed",
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_clusters.csv",
+    "local_file": "outputs/snf_clusters.csv"
+  },
+  {
+    "method": "snf",
+    "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+    "status": "completed",
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_views.csv",
+    "local_file": "outputs/snf_views.csv"
+  },
+  {
+    "method": "snf",
+    "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+    "status": "completed",
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/versions.yml",
+    "local_file": "outputs/snf_versions.yml"
+  },
+  {
+    "method": "mfa",
+    "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+    "status": "completed",
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/mfa_clusters.csv",
+    "local_file": "outputs/mfa_clusters.csv"
+  },
+  {
+    "method": "mfa",
+    "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+    "status": "completed",
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/mfa_views.csv",
+    "local_file": "outputs/mfa_views.csv"
+  },
+  {
+    "method": "mfa",
+    "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+    "status": "completed",
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/versions.yml",
+    "local_file": "outputs/mfa_versions.yml"
+  }
+]

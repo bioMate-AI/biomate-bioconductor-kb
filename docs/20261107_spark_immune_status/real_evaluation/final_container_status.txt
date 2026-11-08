@@ -1,0 +1,4 @@
+Exit=0 OOMKilled=false
+               total        used        free      shared  buff/cache   available
+Mem:           121Gi       5.4Gi       100Gi        28Mi        16Gi       116Gi
+Swap:           15Gi       1.1Gi        14Gi

@@ -1,0 +1,39 @@
+# =====================================================================================================
+# pdl1_m2c_test_noenergy.yaml — generate.py config for M2c DE-NOVO generation on the PD-L1 (5O45) target,
+# WITHOUT energy guidance. This is the DEFAULT for a single UNSEEN target (--energy off): there is no
+# held-out train distribution to fit consec-dist over, so latent_geometry_guidance is disabled here.
+#
+# Provenance: derived from configs/pepbench/test_codesign.yaml + m2c_test_codesign.yaml. The ONLY meaningful
+# difference from the guided config is sample_opt.energy_func: null (guidance off -> setup_latent_guidance
+# NOT required; ldm.sample skips the consec_dist assert, ldm.py:189-191).
+#
+# WHY energy_func must be set HERE (not via a dotted override): overwrite_values casts a new value to
+# type(ori_value)(value) (config_utils.py:32). 'default'->'null' would stay the STRING 'null' (ldm.sample
+# would try to call it), and None->str errors. So the two energy modes use two separate config FILES.
+# mmap_dir / specify_index / n_samples are filled by pdl1_m2c_generate.py via overwrite_values (they exist here).
+# =====================================================================================================
+
+dataset:
+  test:
+    class: CoDesignDataset                     # STOCK (receptor present) — pocket conditions the diffusion
+    mmap_dir: ./data/pdl1_m2c_target/processed
+    specify_index: ./data/pdl1_m2c_target/processed/test_index.txt   # the PD-L1 generation target variants
+    backbone_only: false
+    use_covariance_matrix: true                # receptor present -> matches training normalization
+
+dataloader:
+  num_workers: 4
+  batch_size: 8                                # a few length variants; small batch keeps reverse-diffusion
+                                               # within T4/L4 memory even at length 16
+
+backbone_only: false
+struct_only: false
+seq_only: false
+# n_samples per target VARIANT: this is the de-novo pool size per length. 150 across ~4 length variants
+# = ~600 raw designs feeding the §3 re-rank. Overridable by the launcher (--n_samples).
+n_samples: 150
+
+# energy guidance OFF (single unseen target). No setup_latent_guidance step needed.
+sample_opt:
+  energy_func: null
+  energy_lambda: 0.0

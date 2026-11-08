@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Generative lead design with reinforcement learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:60px 104px 64px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; margin-top:34px}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Generative lead design — describe the molecule you want, get novel candidates designed by RL</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Generative Lead Design</b></div>
+    <div class="kicker">For the medicinal chemist who wants new chemical matter</div>
+    <h2>You don't have a molecule yet. BioMate designs candidates from scratch.</h2>
+    <p class="caption lead">Generative design <b>invents</b> novel candidates aimed at a goal you state — not picked from a library.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A goal + a seed scaffold</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>REINVENT4 generates</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>A scoring function rewards</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Filter + rank</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Ranked candidate hypotheses</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Drug-like chemical space is far too vast to enumerate or screen.</h2>
+    <p class="caption lead">The drug-like space is astronomically large — no library, screen, or compute can cover it.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <div class="bignum">10<sup style="font-size:.5em; vertical-align:super">60</sup></div>
+        <div class="vlabel">synthesizable, drug-like molecules — <b>more than the stars in the observable universe</b></div>
+        <div class="statrow">
+          <div class="stat"><div class="si">∞</div><div class="sh">Can't enumerate</div><div class="sp">The list is longer than any machine can write</div></div>
+          <div class="stat"><div class="si">⧉</div><div class="sh">Analogs explode</div><div class="sp">One scaffold yields millions of mostly-junk variants</div></div>
+          <div class="stat"><div class="si">◎</div><div class="sh">Search by design</div><div class="sp">Propose only novel, makeable, on-target molecules</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>One loop is the whole method: generate, score, learn — repeat.</h2>
+    <p class="caption lead">A generator proposes, a scoring function judges, and RL steers the next batch.</p>
+    <div class="scene-body" style="justify-content:center">
+      <svg width="560" height="440" viewBox="0 0 560 440" style="display:block">
+        <defs>
+          <marker id="rlh" markerWidth="16" markerHeight="16" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,1 L11,5 L1,9" fill="none" stroke="#1a4a9c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <!-- loop arcs (clockwise): GENERATE -> SCORE -> LEARN -> GENERATE, center (280,230) r=175 -->
+        <g fill="none" stroke="#1a4a9c" stroke-width="3.4" opacity=".85">
+          <path d="M334.1,63.6 A175 175 0 0 1 451.2,266.4" marker-end="url(#rlh)"/>
+          <path d="M397.1,360 A175 175 0 0 1 162.9,360" marker-end="url(#rlh)"/>
+          <path d="M108.8,266.4 A175 175 0 0 1 225.9,63.6" marker-end="url(#rlh)"/>
+        </g>
+        <!-- nodes -->
+        <g>
+          <circle cx="280" cy="55" r="56" fill="#fff" stroke="#1a4a9c" stroke-width="2.6"/>
+          <circle cx="431.5" cy="317.5" r="56" fill="#fff" stroke="#1a4a9c" stroke-width="2.6"/>
+          <circle cx="128.5" cy="317.5" r="56" fill="#fff" stroke="#1a4a9c" stroke-width="2.6"/>
+        </g>
+        <g font-family="IBM Plex Mono,monospace" fill="#1a4a9c" font-size="14" text-anchor="middle" font-weight="600">
+          <text x="280" y="46">1</text><text x="431.5" y="308.5">2</text><text x="128.5" y="308.5">3</text>
+        </g>
+        <g font-family="IBM Plex Sans,sans-serif" fill="#101828" font-size="21" text-anchor="middle" font-weight="650">
+          <text x="280" y="70">GENERATE</text><text x="431.5" y="332.5">SCORE</text><text x="128.5" y="332.5">LEARN</text>
+        </g>
+        <g text-anchor="middle">
+          <text x="280" y="222" font-family="IBM Plex Mono,monospace" fill="#5a6474" font-size="15" letter-spacing="1.5">RL LOOP</text>
+          <text x="280" y="250" font-family="IBM Plex Sans,sans-serif" fill="#20293a" font-size="17">× several objectives</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="49.0">
+    <div class="kicker"><span class="st">In BioMate</span> · plain goal → workflow → cloud</div>
+    <h2>Say the goal in plain English; BioMate routes it to a generative workflow.</h2>
+    <p class="caption lead">No neural network to configure — state the intent and BioMate sets up the real run.</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0; margin-top:20px">
+      <figure class="shotcol" style="flex:1.9">
+        <span class="lbl">Live product · one of BioMate's generative models — REINVENT4 Generative Lead Design</span>
+        <div class="frame"><img src="assets/live/generative-live-panel.png" alt="BioMate workflow panel for REINVENT4 Generative Lead Design — inputs, synthesizability seed, output location, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain English in, workflow out.</b> One of BioMate's generators — here REINVENT4 — opens with its real parameter panel.</span></li>
+          <li><span class="b gr"></span><span><b>Seed scaffold, pre-filled.</b> Override the seed SMILES with your own scaffold.</span></li>
+          <li><span class="b am"></span><span><b>One click to run.</b> <b>Confirm &amp; Run</b> launches it on cloud compute.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>A real generative workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE SCORING FUNCTION -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">The reward</span> · what you optimize toward</div>
+    <h2>The scoring function is the objective — results are only as good as it.</h2>
+    <p class="caption lead">RL optimizes whatever you reward. BioMate exposes three real scoring-function choices.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">⚗</div><div class="sh">qed_sa</div><div class="sp">Drug-likeness + synthesizability · <b>default</b>, no target needed</div></div>
+        <div class="stat"><div class="si">⌖</div><div class="sh">docking_gnina</div><div class="sp">Docking pose vs a receptor you supply · in-silico, not measured</div></div>
+        <div class="stat"><div class="si">⚙</div><div class="sh">custom_toml</div><div class="sp">Your own REINVENT4 reward recipe · full multi-objective</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--blue); background:var(--blue-bg); border-color:var(--blue)">⚑ Reward-bound</span> whatever you reward is what you get — define the objective well.</div>
+    </div>
+  </section>
+
+  <!-- 5 — THE RL OPTIMIZATION LOOP -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker"><span class="st">The engine</span> · generate, score, improve</div>
+    <h2>REINVENT4 runs a loop that steers generation toward the reward.</h2>
+    <p class="caption lead">A trained policy writes SMILES, scores each, and updates toward higher reward.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="pipeflow" style="max-width:1000px">
+        <div class="pstep"><div class="pn">1 · PROPOSE</div><div class="pc">Policy writes a batch</div><div class="pt"><span class="eg">SMILES</span><span>not enumerated</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">batch</span></div>
+        <div class="pstep"><div class="pn">2 · SCORE</div><div class="pc">Reward each molecule</div><div class="pt"><span class="eg">scoring_function</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">rewards</span></div>
+        <div class="pstep"><div class="pn">3 · UPDATE</div><div class="pc">Steer the policy</div><div class="pt"><span class="eg">toward higher reward</span></div></div>
+      </div>
+      <div class="ploop">&#8634; repeat for n_steps — default 500 (≈15 min on GPU)</div>
+      <div class="statrow" style="max-width:920px; margin-top:28px">
+        <div class="stat"><div class="si" style="font-family:var(--ff-mono);color:var(--blue)">500</div><div class="sh">n_steps</div><div class="sp">RL epochs · 200 for a quick run</div></div>
+        <div class="stat"><div class="si" style="font-family:var(--ff-mono);color:var(--blue)">128</div><div class="sh">batch_size</div><div class="sp">Molecules sampled per epoch</div></div>
+        <div class="stat"><div class="si" style="font-family:var(--ff-mono);color:var(--blue)">1.0</div><div class="sh">temperature</div><div class="sp">Sampling spread · lower = conservative</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">The result</span> · ranked, filtered candidates</div>
+    <h2>A ranked table of novel candidates — each with its scores.</h2>
+    <p class="caption lead">Filtered for drug-likeness, PAINS, and novelty — then ranked, every score shown.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="vis" style="max-width:880px; gap:24px">
+        <table style="width:100%; border-collapse:collapse; font-family:var(--ff-mono)">
+          <thead><tr style="color:var(--mut); font-size:15px; letter-spacing:.06em; text-transform:uppercase">
+            <th style="text-align:left; padding:12px 16px; border-bottom:2px solid var(--line2)">Candidate</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">score*</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">QED</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">SA</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">Verdict</th>
+          </tr></thead>
+          <tbody style="font-size:22px; color:var(--ink)">
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0001</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.94</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.71</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">2.8</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green); font-size:16px">&#10003; accepted</td></tr>
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0002</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.91</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.66</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">3.1</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green); font-size:16px">&#10003; accepted</td></tr>
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0003</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.88</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.63</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">3.4</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green); font-size:16px">&#10003; accepted</td></tr>
+            <tr><td style="padding:14px 16px; color:var(--mut); font-weight:600">BM-0014</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">0.52</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">0.31</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">5.6</td><td style="text-align:right; padding:14px 16px; color:var(--red); font-size:16px">&#10007; PAINS</td></tr>
+          </tbody>
+        </table>
+        <div class="vlabel" style="font-size:14px"><b>score*</b> is a ranking key only — rejected candidates stay visible with their reason.</div>
+        <div class="statrow" style="max-width:880px; margin-top:0">
+          <div class="stat"><div class="sh" style="font-family:var(--ff-mono); font-size:16px; color:var(--blue)">generated_molecules.csv</div><div class="sp" style="margin-top:6px">Every accepted molecule, with scores</div></div>
+          <div class="stat"><div class="sh" style="font-family:var(--ff-mono); font-size:16px; color:var(--blue)">top_compounds.sdf</div><div class="sp" style="margin-top:6px">Top-N as 3D conformers</div></div>
+          <div class="stat"><div class="sh" style="font-family:var(--ff-mono); font-size:16px; color:var(--blue)">report.html</div><div class="sp" style="margin-top:6px">Structure grid + score-vs-epoch</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT RESPONSIBLY -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker">Using it responsibly</div>
+    <h2>These are hypotheses, not hits — a starting point for the bench.</h2>
+    <p class="caption lead">Every candidate is an in-silico estimate — a prioritized shortlist of experiments, not answers.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">①</div><div class="sh">Triage</div><div class="sp">Read the top ranks as leads worth a chemist's eye</div></div>
+        <div class="stat"><div class="si">②</div><div class="sh">Synthesize</div><div class="sp">A predicted score is not a real compound — make it</div></div>
+        <div class="stat"><div class="si">③</div><div class="sh">Assay</div><div class="sp">Confirm activity, selectivity, and safety at the bench</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--amber); background:var(--amber-bg); border-color:var(--amber)">&#9873; Estimates</span> the experiment, not the model, decides which candidates are real.</div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker">Precise about scope · what you get</div>
+    <h2>Precise about scope, so you know exactly what you're getting.</h2>
+    <p class="caption lead">A real, specific design engine — novel, synthesizable structures aimed at your target.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">⌦</div><div class="sh">Reward-bound</div><div class="sp">Only as good as the scoring function you choose</div></div>
+        <div class="stat"><div class="si">◐</div><div class="sh">Learned vs baseline</div><div class="sp">Real RL policy by default · <code>brics</code> is a labeled comparator</div></div>
+        <div class="stat"><div class="si">⌖</div><div class="sh">Design engine</div><div class="sp">One of BioMate's generators — swap in others too</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="36.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">State the goal. Get novel candidates, designed and ranked.</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <p class="caption lead" style="text-align:center; margin:0 auto 26px">You define the reward; BioMate's generator proposes, filters, and ranks novel candidates.</p>
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · GOAL</div><div class="pc">Goal + seed scaffold</div><div class="pt"><span>plain English</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">intent</span></div>
+        <div class="pstep"><div class="pn">2 · GENERATE</div><div class="pc">A generator proposes</div><div class="pt"><span class="eg">REINVENT4</span><span>+ other models</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">candidates</span></div>
+        <div class="pstep"><div class="pn">3 · SCORE</div><div class="pc">Reward steers RL</div><div class="pt"><span class="eg">qed_sa</span><span>docking · custom</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">scores</span></div>
+        <div class="pstep"><div class="pn">4 · RANK</div><div class="pc">Filter + rank</div><div class="pt"><span class="eg">drug-like · novel</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">shortlist</span></div>
+        <div class="pstep"><div class="pn">5 · OUTPUT</div><div class="pc">Ranked candidates</div><div class="pt"><span class="eg">CSV · SDF · report</span></div></div>
+      </div>
+      <div class="ploop">&#8634; candidates are hypotheses — the lab makes them real, then the loop improves</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

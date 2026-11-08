@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-11-08T07:19:22.560Z",
+  "fixture": "synthetic Chrome microphone; not physical microphone or acoustic listening certification",
+  "checks": {
+    "enProviderRoundTrip": {
+      "bytes": 51452,
+      "transcript": "Please repeat BRCA1 and TP53"
+    },
+    "zhProviderRoundTrip": {
+      "bytes": 50198,
+      "transcript": "请检查 BRCA1 和 TP53。"
+    },
+    "batchDictation": "Please repeat BRCA1 and TP53.",
+    "cleanedUp": true
+  }
+}

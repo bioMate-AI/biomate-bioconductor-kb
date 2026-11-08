@@ -1,0 +1,21 @@
+{
+  "passed": false,
+  "qualification": "native x86 existing-image smoke; not a rebuild or on-prem E2E",
+  "job_id": "0d93a446-dc19-4322-b475-d265effc01bf",
+  "job_definition": "biomate-release-workflow-tools-native-20261107:1",
+  "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:b68d6f5bfcfec7c0fe0b5f6fdd6464863ec420d6fd952e0e1cd809aee49b8af4",
+  "smoke_sha256": "cf6f18667e85e60142853633ae42f2d401d21fff7a3d194967fd1953044fd2a1",
+  "resources": {"vcpus": 1, "memory_mib": 6144, "attempts": 1, "execution_timeout_seconds": 300},
+  "status": "FAILED",
+  "exit_code": 1,
+  "created_at_ms": 1794100032605,
+  "started_at_ms": 1794100161924,
+  "log_stream": "biomate-release-workflow-tools-native-20261107/default/1a86cb8a3fd1432fad5ce09c3eb42464",
+  "messages": [
+    "Traceback (most recent call last):",
+    "  File \"<string>\", line 1, in <module>",
+    "  File \"/reviewed-smoke.py\", line 21, in <module>",
+    "ModuleNotFoundError: No module named 'cv2'"
+  ],
+  "interpretation": "The existing immutable x86 image lacks OpenCV. The stronger gate must remain failing until a rebuilt or separately qualified artifact provides required dependencies. Later assertions did not execute and are not passes."
+}

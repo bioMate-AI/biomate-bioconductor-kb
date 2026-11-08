@@ -1,0 +1,77 @@
+name: "radiology_radiomics_extraction"
+description: >
+  RESEARCH-USE-ONLY radiomics feature extraction for CT, MR and PET images from SUPPLIED segmentations. Computes
+  standard first-order, shape and texture features (PyRadiomics; definitions follow the Image Biomarker
+  Standardisation Initiative) for the region of interest given as a mask, per patient, and joins them into a
+  cohort table keyed by patient_id so they can be combined with clinical and molecular data. It does not segment,
+  diagnose or recommend treatment. DICOM series are read with slice-order, spacing and rescale checks; PET values
+  are used as given (no DICOM SUV conversion). Every setting and input hash is recorded.
+keywords:
+  - radiology
+  - radiomics
+  - CT
+  - MRI
+  - PET
+  - DICOM
+  - NIfTI
+  - image_biomarkers
+  - IBSI
+  - research_use_only
+tools:
+  - pyradiomics:
+      description: "Open-source radiomics feature extraction (first-order, shape, GLCM, GLRLM, GLSZM, GLDM, NGTDM)"
+      homepage: "https://pyradiomics.readthedocs.io/"
+      documentation: "https://pyradiomics.readthedocs.io/"
+      doi: "10.1158/0008-5472.CAN-17-0339"
+      licence: ["BSD-3-Clause"]
+  - simpleitk:
+      description: "Image reader/resampler (DICOM series, NIfTI, NRRD, MHA)"
+      homepage: "https://simpleitk.org/"
+      licence: ["Apache-2.0"]
+input:
+  - meta:
+      type: map
+      description: "Groovy Map: id (patient), modality (CT|MR|PET|OTHER), label, series_uid"
+  - image:
+      type: file
+      description: "NIfTI/NRRD/MHA image, or a DICOM series directory or .zip"
+  - mask:
+      type: file
+      description: "Segmentation (label image) on the image grid; DICOM-SEG and RTSTRUCT are not read"
+params:
+  - modality:
+      type: string
+      description: "REQUIRED: CT, MR, PET or OTHER. CT default bin width 25; MR default normalise then 32 bins; PET default bin width 0.25 (SUV-scaled input assumed); OTHER needs --bin_width or --bin_count"
+  - samplesheet:
+      type: string
+      description: "CSV patient_id,image,mask[,modality,label,series_uid] for several patients"
+  - feature_classes:
+      type: string
+      description: "Comma list from firstorder,shape,glcm,glrlm,glszm,gldm,ngtdm (default all)"
+  - image_types:
+      type: string
+      description: "Comma list from Original,LoG,Wavelet (default Original)"
+  - correct_mask:
+      type: boolean
+      description: "Resample the mask to the image grid when they differ (recorded); otherwise a mismatch stops the run"
+output:
+  - features:
+      type: file
+      description: "features_long.csv and features_wide.csv per patient"
+      pattern: "features_*.csv"
+  - qc:
+      type: file
+      description: "Image and mask geometry, region size and volume, intensity range, warnings"
+      pattern: "qc_summary.json"
+  - provenance:
+      type: file
+      description: "Software versions, every setting used, SHA-256 of every input"
+      pattern: "provenance.json"
+  - cohort:
+      type: file
+      description: "Merged table, one row per patient"
+      pattern: "features_wide_all.csv"
+authors:
+  - "@biomate"
+maintainers:
+  - "@biomate"

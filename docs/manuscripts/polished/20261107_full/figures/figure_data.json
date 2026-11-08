@@ -1,0 +1,422 @@
+{
+  "realbio_routing": [
+    [
+      "Claude Opus 5",
+      "0.615",
+      "0.990",
+      "0.805",
+      "0.870",
+      "0.330"
+    ],
+    [
+      "GPT-6.1-sol-pro",
+      "0.590",
+      "0.985",
+      "0.718",
+      "0.870",
+      "0.450"
+    ],
+    [
+      "Gemini 3.1 Pro",
+      "0.580",
+      "0.975",
+      "0.757",
+      "0.880",
+      "0.630"
+    ],
+    [
+      "Kimi K3",
+      "0.495",
+      "0.970",
+      "0.672",
+      "0.770",
+      "0.360"
+    ],
+    [
+      "GLM-5.3-prime",
+      "0.375",
+      "0.955",
+      "0.682",
+      "0.820",
+      "0.550"
+    ],
+    [
+      "GLM-5.2",
+      "0.400",
+      "0.950",
+      "0.691",
+      "0.830",
+      "0.440"
+    ],
+    [
+      "GPT-5.6-luna",
+      "0.355",
+      "0.950",
+      "0.667",
+      "0.830",
+      "0.340"
+    ],
+    [
+      "DeepSeek V4-pro",
+      "0.415",
+      "0.850",
+      "0.691",
+      "0.800",
+      "0.420"
+    ],
+    [
+      "Qwen3.5-27B",
+      "0.240",
+      "0.935",
+      "0.719",
+      "\u2014",
+      "\u2014"
+    ],
+    [
+      "BioMate 9B (on-prem, base)",
+      "0.180",
+      "0.905",
+      "0.703",
+      "0.870",
+      "0.430"
+    ],
+    [
+      "Qwen3.5-9B",
+      "0.120",
+      "0.830",
+      "0.600",
+      "\u2014",
+      "\u2014"
+    ],
+    [
+      "Qwen2.5-7B",
+      "0.140",
+      "0.735",
+      "0.499",
+      "\u2014",
+      "\u2014"
+    ],
+    [
+      "BioMate 9B (on-prem, fine-tuned)",
+      "0.285",
+      "0.810",
+      "0.716",
+      "0.850",
+      "0.430"
+    ]
+  ],
+  "realbio_parameters": [
+    [
+      "Raw local 9B",
+      "0.703",
+      "0.785",
+      "0.636"
+    ],
+    [
+      "Rules alone",
+      "0.470",
+      "0.960",
+      "0.311"
+    ],
+    [
+      "Rules plus local 9B",
+      "0.843",
+      "0.900",
+      "0.793"
+    ]
+  ],
+  "realbio_profiles": [
+    [
+      "Claude Opus 5",
+      "0.615",
+      "0.990",
+      "0.805",
+      "0.870",
+      "0.330"
+    ],
+    [
+      "GPT-6.1-sol-pro",
+      "0.590",
+      "0.985",
+      "0.718",
+      "0.870",
+      "0.450"
+    ],
+    [
+      "Gemini 3.1 Pro",
+      "0.580",
+      "0.975",
+      "0.757",
+      "0.880",
+      "0.630"
+    ],
+    [
+      "Kimi K3",
+      "0.495",
+      "0.970",
+      "0.672",
+      "0.770",
+      "0.360"
+    ],
+    [
+      "GLM-5.3-prime",
+      "0.375",
+      "0.955",
+      "0.682",
+      "0.820",
+      "0.550"
+    ],
+    [
+      "GLM-5.2",
+      "0.400",
+      "0.950",
+      "0.691",
+      "0.830",
+      "0.440"
+    ],
+    [
+      "GPT-5.6-luna",
+      "0.355",
+      "0.950",
+      "0.667",
+      "0.830",
+      "0.340"
+    ],
+    [
+      "DeepSeek V4-pro",
+      "0.415",
+      "0.850",
+      "0.691",
+      "0.800",
+      "0.420"
+    ],
+    [
+      "Qwen3.5-27B",
+      "0.240",
+      "0.935",
+      "0.719",
+      "\u2014",
+      "\u2014"
+    ],
+    [
+      "BioMate 9B (on-prem, base)",
+      "0.180",
+      "0.905",
+      "0.703",
+      "0.870",
+      "0.430"
+    ],
+    [
+      "Qwen3.5-9B",
+      "0.120",
+      "0.830",
+      "0.600",
+      "\u2014",
+      "\u2014"
+    ],
+    [
+      "Qwen2.5-7B",
+      "0.140",
+      "0.735",
+      "0.499",
+      "\u2014",
+      "\u2014"
+    ],
+    [
+      "BioMate 9B (on-prem, fine-tuned)",
+      "0.285",
+      "0.810",
+      "0.716",
+      "0.850",
+      "0.430"
+    ]
+  ],
+  "realbio_channels": [
+    [
+      "Qwen3.5-9B",
+      "0.750",
+      "0.964",
+      "0.214"
+    ],
+    [
+      "GLM-5.2",
+      "0.821",
+      "1.000",
+      "0.179"
+    ],
+    [
+      "DeepSeek",
+      "0.833",
+      "0.976",
+      "0.143"
+    ],
+    [
+      "Kimi",
+      "0.845",
+      "0.988",
+      "0.143"
+    ],
+    [
+      "Gemini 3.1",
+      "0.893",
+      "0.988",
+      "0.095"
+    ],
+    [
+      "Claude Opus 5",
+      "0.905",
+      "1.000",
+      "0.095"
+    ]
+  ],
+  "drugdev_dose": [
+    [
+      "Oracle with hidden curve",
+      "0.85",
+      "1.00",
+      "\u2014",
+      "1.00 by construction"
+    ],
+    [
+      "Claude Opus 5",
+      "0.25\u20130.30",
+      "0.60\u20130.68",
+      "0",
+      "0.95\u20131.00"
+    ],
+    [
+      "GPT-6.1-sol",
+      "0.10",
+      "\u22480.01",
+      "1\u20134",
+      "1.00"
+    ],
+    [
+      "Stock Qwen3.5-9B",
+      "0.30",
+      "0.58",
+      "0",
+      "0.30"
+    ],
+    [
+      "BioMate 9B continued-pretrained",
+      "0.50",
+      "0.74",
+      "0",
+      "0.05"
+    ],
+    [
+      "BioMate 9B fine-tuned",
+      "0.30",
+      "0.31",
+      "0",
+      "0.10"
+    ]
+  ],
+  "drugdev_pk": [
+    [
+      "Claude Opus 5",
+      "0.467"
+    ],
+    [
+      "Gemini 3.1 Pro",
+      "0.400"
+    ],
+    [
+      "GPT-5.6-luna",
+      "0.333"
+    ],
+    [
+      "GLM-5.2",
+      "0.267"
+    ],
+    [
+      "GPT-5.6",
+      "0.200"
+    ],
+    [
+      "DeepSeek V4-pro",
+      "0.067"
+    ],
+    [
+      "BioMate 9B (base)",
+      "0.067"
+    ],
+    [
+      "Qwen3.8-Max",
+      "0.000"
+    ],
+    [
+      "Qwen3.8-27B",
+      "0.000"
+    ],
+    [
+      "Kimi K3",
+      "0.000"
+    ],
+    [
+      "BioMate 9B (SFT)",
+      "0.000"
+    ],
+    [
+      "Biomni (A1 scaffold)",
+      "0.000"
+    ]
+  ],
+  "drugdev_coverage": [
+    [
+      "C Lead-optimization triage",
+      "3",
+      "Advance or deprioritize analogues; identify liability",
+      "ADMET reference inputs and project policy"
+    ],
+    [
+      "E FEP selection",
+      "2",
+      "Rank binders and select candidates",
+      "Experimental relative free energy"
+    ],
+    [
+      "H Dose escalation",
+      "3",
+      "Select MTD and safety flags",
+      "Benchmark dose-selection policy"
+    ],
+    [
+      "F1/G Dose projection",
+      "3",
+      "Starting-dose or human-clearance estimate",
+      "MRSD formula and allometric assumptions"
+    ],
+    [
+      "F2 Tissue/organ exposure",
+      "3",
+      "Assess target-site exposure",
+      "Unbound partition/class-level references"
+    ],
+    [
+      "F3 Dose schedule",
+      "3",
+      "Choose regimen from the PK/PD driver",
+      "Curated pharmacokinetic/pharmacodynamic class"
+    ],
+    [
+      "F4 Special populations",
+      "4",
+      "Adjust for organ impairment or interactions",
+      "Label-derived or provisional class values"
+    ],
+    [
+      "P Process knowledge",
+      "6",
+      "Identify gates and prerequisites",
+      "Curated development-process references"
+    ],
+    [
+      "W Workflow chain",
+      "3",
+      "Order stages and enforce gates",
+      "Reference directed acyclic graph"
+    ]
+  ]
+}

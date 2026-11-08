@@ -1,0 +1,108 @@
+{
+  "snf": {
+    "http_status": 200,
+    "response": {
+      "workflow_id": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+      "status": "completed",
+      "output_files": [
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/methylation.csv",
+          "name": "methylation.csv",
+          "size": 14865881,
+          "extension": "csv",
+          "download_url": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/methylation.csv",
+          "download_endpoint": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/methylation.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/mrna.csv",
+          "name": "mrna.csv",
+          "size": 12544620,
+          "extension": "csv",
+          "download_url": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/mrna.csv",
+          "download_endpoint": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/mrna.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_analysis_plots.pdf",
+          "name": "snf_analysis_plots.pdf",
+          "size": 136551,
+          "extension": "pdf",
+          "download_url": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/snf_analysis_plots.pdf",
+          "download_endpoint": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/snf_analysis_plots.pdf"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_clusters.csv",
+          "name": "snf_clusters.csv",
+          "size": 1819,
+          "extension": "csv",
+          "download_url": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/snf_clusters.csv",
+          "download_endpoint": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/snf_clusters.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/snf_views.csv",
+          "name": "snf_views.csv",
+          "size": 51,
+          "extension": "csv",
+          "download_url": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/snf_views.csv",
+          "download_endpoint": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/snf_views.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02/versions.yml",
+          "name": "versions.yml",
+          "size": 42,
+          "extension": "yml",
+          "download_url": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/versions.yml",
+          "download_endpoint": "/api/runs/cab2c69d-fc91-4861-b7e0-4ac265847b59/output/versions.yml"
+        }
+      ]
+    }
+  },
+  "mfa": {
+    "http_status": 200,
+    "response": {
+      "workflow_id": "e9acdf33-6575-44cb-82e5-725130386d7f",
+      "status": "completed",
+      "output_files": [
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/methylation.csv",
+          "name": "methylation.csv",
+          "size": 14865881,
+          "extension": "csv",
+          "download_url": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/methylation.csv",
+          "download_endpoint": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/methylation.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/mfa_clusters.csv",
+          "name": "mfa_clusters.csv",
+          "size": 1819,
+          "extension": "csv",
+          "download_url": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/mfa_clusters.csv",
+          "download_endpoint": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/mfa_clusters.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/mfa_views.csv",
+          "name": "mfa_views.csv",
+          "size": 51,
+          "extension": "csv",
+          "download_url": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/mfa_views.csv",
+          "download_endpoint": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/mfa_views.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/mrna.csv",
+          "name": "mrna.csv",
+          "size": 12544620,
+          "extension": "csv",
+          "download_url": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/mrna.csv",
+          "download_endpoint": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/mrna.csv"
+        },
+        {
+          "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397/versions.yml",
+          "name": "versions.yml",
+          "size": 78,
+          "extension": "yml",
+          "download_url": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/versions.yml",
+          "download_endpoint": "/api/runs/e9acdf33-6575-44cb-82e5-725130386d7f/output/versions.yml"
+        }
+      ]
+    }
+  }
+}
