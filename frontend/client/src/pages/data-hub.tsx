@@ -208,7 +208,7 @@ export default function DataHubPage() {
   }
 
   return (
-    <div className="data-hub-container w-full min-w-0 px-5 py-4 space-y-4" data-testid="data-hub">
+    <div className="data-hub-container flex-1 min-h-0 overflow-y-auto w-full min-w-0 px-5 py-4 space-y-4" data-testid="data-hub">
       {/* Breadcrumb + title — Models-module header language. */}
       <div className="space-y-1">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

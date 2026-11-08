@@ -2,7 +2,7 @@ import React from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import zh from '@/locales/zh/common.json';
-vi.mock('@/lib/i18n', () => ({ t: (key: string, vars?: Record<string, unknown>) => {
+vi.mock('@/lib/i18n', () => ({ locale: 'zh', t: (key: string, vars?: Record<string, unknown>) => {
  const value = key.split('.').reduce((v: any, part) => v?.[part], zh);
  if (typeof value !== 'string') throw new Error(`Missing Chinese key: ${key}`);
  return value.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars?.[k] ?? ''));

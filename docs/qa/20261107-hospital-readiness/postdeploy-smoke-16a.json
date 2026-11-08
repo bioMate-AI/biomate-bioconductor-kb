@@ -1,0 +1,241 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "checks": [
+    {
+      "name": "exact deployed frontend commit",
+      "pass": true,
+      "http": 200,
+      "commit": "16a4446031239cf021e27c46cdf9717b250501cd"
+    },
+    {
+      "name": "existing fixture login",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned Models surface /api/models",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned Models surface /api/model-tracks/train",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned Models surface /api/model-tracks/adapt",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned Models surface /api/model-tracks/optimise",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned Models surface /api/model-training-versions",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "anonymous boundary /api/models",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous boundary /api/model-tracks/train",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous boundary /api/model-tracks/adapt",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous boundary /api/model-training-versions",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous boundary /api/perception/profile",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "unmatched project never falls back to global models",
+      "pass": true,
+      "http": 403
+    },
+    {
+      "name": "retained synthetic QA project files",
+      "pass": true,
+      "http": 200,
+      "count": 3
+    },
+    {
+      "name": "retained Run Manager inventory",
+      "pass": true,
+      "http": 200,
+      "count": 100
+    },
+    {
+      "name": "file profile qa_protocol.yml",
+      "pass": true,
+      "http": 200,
+      "quality": "watch",
+      "shape": {
+        "rows": 0,
+        "cols": 0
+      }
+    },
+    {
+      "name": "permission-checked preview link qa_protocol.yml",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "cross-run private file reference denied qa_protocol.yml",
+      "pass": true,
+      "http": 403
+    },
+    {
+      "name": "file profile qa_metadata.json",
+      "pass": true,
+      "http": 200,
+      "quality": "watch",
+      "shape": {
+        "rows": 0,
+        "cols": 0
+      }
+    },
+    {
+      "name": "permission-checked preview link qa_metadata.json",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "cross-run private file reference denied qa_metadata.json",
+      "pass": true,
+      "http": 403
+    },
+    {
+      "name": "file profile qa_counts.csv",
+      "pass": true,
+      "http": 200,
+      "quality": "good",
+      "shape": {
+        "rows": 3,
+        "cols": 5
+      }
+    },
+    {
+      "name": "permission-checked preview link qa_counts.csv",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "cross-run private file reference denied qa_counts.csv",
+      "pass": true,
+      "http": 403
+    },
+    {
+      "name": "deployed exact hospital fixture true_drivers.csv",
+      "pass": true,
+      "http": 200,
+      "bytes": 302
+    },
+    {
+      "name": "deployed exact hospital fixture provenance.json",
+      "pass": true,
+      "http": 200,
+      "bytes": 1445
+    },
+    {
+      "name": "deployed exact hospital fixture ground_truth.csv",
+      "pass": true,
+      "http": 200,
+      "bytes": 2121
+    },
+    {
+      "name": "deployed exact hospital fixture rna.csv",
+      "pass": true,
+      "http": 200,
+      "bytes": 1567117
+    },
+    {
+      "name": "deployed exact hospital fixture mo_feature_matrix.csv",
+      "pass": true,
+      "http": 200,
+      "bytes": 2432486
+    },
+    {
+      "name": "deployed exact hospital fixture README.md",
+      "pass": true,
+      "http": 200,
+      "bytes": 1056
+    },
+    {
+      "name": "deployed exact hospital fixture methyl.csv",
+      "pass": true,
+      "http": 200,
+      "bytes": 607135
+    },
+    {
+      "name": "deployed exact hospital fixture protein.csv",
+      "pass": true,
+      "http": 200,
+      "bytes": 402488
+    },
+    {
+      "name": "anonymous legacy boundary /detail",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous legacy boundary /status",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous legacy boundary /download_commands",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous legacy boundary /iterations",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous legacy boundary /reproducibility",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous legacy boundary /compare",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "anonymous legacy boundary /logs",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "owned historical run retained",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned legacy reproducibility record",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "owned legacy reproducibility invocation alias",
+      "pass": true,
+      "http": 200
+    }
+  ]
+}

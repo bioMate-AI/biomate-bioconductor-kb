@@ -471,7 +471,9 @@
       "get_key_post": "— 提供免费额度。",
       "anthropic_saved": "Anthropic 密钥已保存 — 对话将使用您的配额",
       "anthropic_key_label": "Anthropic API 密钥"
-    }
+    },
+    "appearance": "外观",
+    "content": "设置内容"
   },
   "errors": {
     "generic": "出现错误，请重试。",
@@ -1210,7 +1212,8 @@
     "skill_markdown": "请选择 Markdown（.md）技能文件。",
     "skill_import_failed": "无法导入此技能。请检查文件头部元数据和访问权限。",
     "skill_importing": "正在导入技能…",
-    "skill_imported": "技能已导入，可在“技能与专家”中使用。"
+    "skill_imported": "技能已导入，可在“技能与专家”中使用。",
+    "all_kinds": "返回连接器类型"
   },
   "citation_reader": {
     "retrieved_excerpt": "检索摘录",
@@ -1285,5 +1288,26 @@
     "no_notes": "暂无笔记。",
     "delete_note": "删除笔记",
     "delete_note_error": "无法删除笔记，原笔记已保留。"
+  },
+  "active_project": {
+    "label": "项目：",
+    "clear": "清除当前项目"
+  },
+  "project_members": {
+    "title": "成员与角色",
+    "your_role": "您在此项目中的角色",
+    "you": "您",
+    "invite_link": "邀请链接",
+    "copied": "已复制！",
+    "copy": "复制",
+    "revoke_link": "撤销链接",
+    "generate_link": "生成分享链接",
+    "viewer": "查看者",
+    "editor": "编辑者",
+    "invite": "邀请",
+    "no_members": "暂无协作者。",
+    "owner": "所有者",
+    "transfer": "转移所有权",
+    "leave": "退出项目"
   }
 }

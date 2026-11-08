@@ -428,6 +428,9 @@ interface ConnectorsDialogProps {
 export function ConnectorsDialog({ open, onOpenChange, embedded = false }: ConnectorsDialogProps) {
   const [sourceView, setSourceView] = useState<'public' | 'private' | 'instruments'>('public');
   const [adding, setAdding] = useState(false);
+  const [setupOrigin, setSetupOrigin] = useState<{tab: TabId; view: 'public' | 'private' | 'instruments'} | null>(null);
+  const beginAdding = () => { setSetupOrigin({ tab: activeTab, view: sourceView }); setAdding(true); };
+  const cancelAdding = () => { if (setupOrigin) { setActiveTab(setupOrigin.tab); setSourceView(setupOrigin.view); } setSetupOrigin(null); setAdding(false); };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [packs, setPacks] = useState<SkillPack[] | null>(null);
   const [packsError, setPacksError] = useState(false);
@@ -481,7 +484,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
         data-testid="connectors-dialog"
       >
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="text-xl font-semibold">Connectors</h1><div className="flex items-center gap-2"><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button><button className="text-sm border border-border rounded-md px-3 py-1.5" data-testid="connectors-close" onClick={() => onOpenChange(false)}>{tOr('actions.close', 'Close')}</button></div></div></> : <DialogTitle>Connectors</DialogTitle>}
+          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="text-xl font-semibold">Connectors</h1><div className="flex items-center gap-2"><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => adding || setupOrigin ? cancelAdding() : beginAdding()}>{adding || setupOrigin ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button><button className="text-sm border border-border rounded-md px-3 py-1.5" data-testid="connectors-close" onClick={() => onOpenChange(false)}>{tOr('actions.close', 'Close')}</button></div></div></> : <div className="flex items-center justify-between gap-3 pr-8"><DialogTitle>Connectors</DialogTitle><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => adding || setupOrigin ? cancelAdding() : beginAdding()}>{adding || setupOrigin ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button></div>}
           <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
           <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
@@ -533,6 +536,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           ))}
         </div>
 
+        {setupOrigin && !adding && <div className="px-5 py-2 border-b border-border shrink-0"><button data-testid="connector-setup-back" className="text-sm underline" onClick={() => setAdding(true)}>{tOr('connectors.all_kinds', 'Back to connector kinds')}</button></div>}
         <div data-testid="connectors-scroll" style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
         {adding && (
           <div className="p-5 border-b border-border">

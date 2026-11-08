@@ -1,9 +1,9 @@
-import { t } from '@/lib/i18n';
+import { t, locale } from '@/lib/i18n';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
-import { parseOutputFormats, EXAMPLE_OUTPUT_FORMATS, appendMissingOutputFormats, type OutputFormat, type OutputFormatKind } from '@/lib/output-requirements';
+import { parseOutputFormats, exampleOutputFormats, appendMissingOutputFormats, type OutputFormat, type OutputFormatKind } from '@/lib/output-requirements';
 
 /* ── Stream 4: project Instructions page (Rules · Output formats · Skills & experts · Memory) ──
    Appearance matches the data-centric prototype (claude_code_core/dataui/ProjectSetup.jsx):
@@ -37,6 +37,7 @@ const accChip: CSSProperties = { background: 'var(--accent-soft)', color: 'var(-
 export function ProjectInstructionsPage({ projectId, projectName, canEdit, instructions, onInstructionsSaved }: {
   projectId: string; projectName: string; canEdit: boolean; instructions: string; onInstructionsSaved: (text: string) => void;
 }) {
+  const examples = exampleOutputFormats(locale);
   const [rules, setRules] = useState<string[]>([]);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
@@ -177,7 +178,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
         {canEdit && (
           <div style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-md, 8px)', background: 'var(--bg)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="instructions-formats-examples">
             <span style={{ ...S.hint, fontWeight: 600 }}>{t("project_instructions.examples")}</span>
-            {EXAMPLE_OUTPUT_FORMATS.map((ex, i) => (
+            {examples.map((ex, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <span className="chip">{t(`project_instructions.kind_${ex.kind}`)}</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
@@ -187,7 +188,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
                 <button className="btn sm ghost" title={t("project_instructions.use_hint", { name: ex.name })} disabled={savingSettings || formatEditor !== null || appendMissingOutputFormats(formats, [ex]).length === formats.length} onClick={() => saveSettings(selected, appendMissingOutputFormats(formats, [ex]))}>{t("project_instructions.use")}</button>
               </div>
             ))}
-            <button className="btn sm" style={{ alignSelf: 'flex-start', marginTop: 2 }} data-testid="formats-seed-examples" disabled={savingSettings || formatEditor !== null || appendMissingOutputFormats(formats, EXAMPLE_OUTPUT_FORMATS).length === formats.length} onClick={() => saveSettings(selected, appendMissingOutputFormats(formats, EXAMPLE_OUTPUT_FORMATS))}>{t("project_instructions.seed")}</button>
+            <button className="btn sm" style={{ alignSelf: 'flex-start', marginTop: 2 }} data-testid="formats-seed-examples" disabled={savingSettings || formatEditor !== null || appendMissingOutputFormats(formats, examples).length === formats.length} onClick={() => saveSettings(selected, appendMissingOutputFormats(formats, examples))}>{t("project_instructions.seed")}</button>
           </div>
         )}
         {canEdit && <button className="btn sm" style={{ alignSelf: 'flex-start' }} disabled={savingSettings || formatEditor !== null} onClick={() => setFormatEditor({ index: null, value: { kind: 'report', name: '', detail: '', on: false } })}>{t("project_instructions.add_format")}</button>}

@@ -56,10 +56,28 @@ export const EXAMPLE_OUTPUT_FORMATS: OutputFormat[] = [
   { kind: 'naming',  name: 'File naming convention',   detail: '<project>_<assay>_<contrast>_<yyyymmdd> — applied at ingest and to every output.', on: false },
 ];
 
+const CHINESE_EXAMPLE_OUTPUT_FORMATS: OutputFormat[] = [
+  { kind: 'report', name: '内部备忘录', detail: '先列研究发现（不超过 200 字），再写方法和质量控制审计。图像为 300 dpi，配色适合灰度打印。', on: false },
+  { kind: 'figure', name: '论文图表规范', detail: '使用矢量 SVG；坐标轴标签为 Arial 8 pt；去除多余装饰；分图字母放在左下角。', on: false },
+  { kind: 'table', name: '补充表格', detail: '每个比较使用单独的工作表；A 列为基因 ID；先列效应量，再列 p 值。', on: false },
+  { kind: 'naming', name: '文件命名约定', detail: '<project>_<assay>_<contrast>_<yyyymmdd> — 用于导入文件和所有输出文件。', on: false },
+];
+
+/** Locale affects new examples, never rewrites saved user requirements. */
+export function exampleOutputFormats(language: string): OutputFormat[] {
+  return (language === 'zh' ? CHINESE_EXAMPLE_OUTPUT_FORMATS : EXAMPLE_OUTPUT_FORMATS).map(format => ({ ...format }));
+}
+
 /** Insert missing templates by semantic content, preserving user variants and enabled states.
  * Existing duplicates are deliberately retained: removing persisted entries requires user intent. */
 export function appendMissingOutputFormats(existing: OutputFormat[], additions: OutputFormat[]): OutputFormat[] {
-  const key = (f: OutputFormat) => JSON.stringify([f.kind, f.name.trim(), f.detail.trim()]);
+  const contentKey = (f: OutputFormat) => JSON.stringify([f.kind, f.name.trim(), f.detail.trim()]);
+  const key = (f: OutputFormat) => {
+    const raw = contentKey(f);
+    // Translated built-ins are the same template. Keep user-edited variants.
+    const index = EXAMPLE_OUTPUT_FORMATS.findIndex((example, i) => contentKey(example) === raw || contentKey(CHINESE_EXAMPLE_OUTPUT_FORMATS[i]) === raw);
+    return index < 0 ? raw : `builtin:${index}`;
+  };
   const seen = new Set(existing.map(key));
   const next = [...existing];
   for (const format of additions) {

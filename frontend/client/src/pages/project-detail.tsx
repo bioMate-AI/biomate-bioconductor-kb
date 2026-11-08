@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n"
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -1008,21 +1009,21 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           {project && <div className={`border-t border-border p-4 shrink-0${activeTab === "instructions" ? " w-full max-w-4xl mx-auto sm:px-6" : ""}`} data-testid="members-panel">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">Members & roles</h4>
+              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">{t('project_members.title')}</h4>
               {/* The current user's OWN role for this project (real, from the server). */}
               <span
                 data-testid="my-role-badge"
                 className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary capitalize"
-                title="Your role in this project"
+                title={t('project_members.your_role')}
               >
-                You: {myRole}
+                {t('project_members.you')}: {t(`project_members.${myRole}`)}
               </span>
             </div>
 
             {/* Share link — owner only */}
             {isOwner && (
               <div className="mb-3 p-2.5 rounded-md bg-muted/40 border border-border">
-                <p className="text-xs font-medium mb-1.5">Invite link</p>
+                <p className="text-xs font-medium mb-1.5">{t('project_members.invite_link')}</p>
                 {shareToken ? (
                   <div className="space-y-1.5">
                     <div className="flex gap-1.5">
@@ -1038,7 +1039,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         onClick={handleCopyShareLink}
                         data-testid="button-copy-share-link"
                       >
-                        {shareLinkCopied ? "Copied!" : "Copy"}
+                        {shareLinkCopied ? t('project_members.copied') : t('project_members.copy')}
                       </Button>
                     </div>
                     <button
@@ -1046,7 +1047,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       onClick={handleRevokeShareLink}
                       data-testid="button-revoke-share-link"
                     >
-                      Revoke link
+                      {t('project_members.revoke_link')}
                     </button>
                   </div>
                 ) : (
@@ -1057,7 +1058,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                     data-testid="button-generate-share-link"
                   >
                     {shareLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
-                    Generate share link
+                    {t('project_members.generate_link')}
                   </Button>
                 )}
               </div>
@@ -1079,8 +1080,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="viewer">{t('project_members.viewer')}</SelectItem>
+                      <SelectItem value="editor">{t('project_members.editor')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1091,14 +1092,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   data-testid="button-share-invite"
                 >
                   {inviting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
-                  Invite
+                  {t('project_members.invite')}
                 </Button>
                 {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
               </div>
             )}
 
             {members.length === 0 && isOwner ? (
-              <p className="text-xs text-muted-foreground">No collaborators yet.</p>
+              <p className="text-xs text-muted-foreground">{t('project_members.no_members')}</p>
             ) : (
               <div className="space-y-1.5">
                 {members.map(m => {
@@ -1120,20 +1121,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       </div>
                       {/* Role badge / change dropdown */}
                       {m.role === "owner" ? (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Owner</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">{t('project_members.owner')}</span>
                       ) : isOwner ? (
                         <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id, v as "viewer" | "editor")}>
                           <SelectTrigger className="h-5 w-16 text-[10px] px-1.5 border-0 bg-muted/60 rounded shrink-0" data-testid={`select-role-${m.user_id}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="viewer">{t('project_members.viewer')}</SelectItem>
+                            <SelectItem value="editor">{t('project_members.editor')}</SelectItem>
                           </SelectContent>
                         </Select>
                       ) : (
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${m.role === "editor" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-muted text-muted-foreground"}`}>
-                          {m.role}
+                          {t(`project_members.${m.role}`)}
                         </span>
                       )}
                       {/* Make owner — transfers ownership to this member (owner-only, confirm dialog) */}
@@ -1142,7 +1143,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           onClick={() => { setTransferError(null); setTransferTarget(m) }}
                           className="text-muted-foreground hover:text-primary shrink-0"
                           aria-label={`Make ${m.email} owner`}
-                          title="Transfer ownership"
+                          title={t('project_members.transfer')}
                           data-testid={`button-transfer-owner-${m.user_id}`}
                         >
                           <Crown className="w-3 h-3" />
@@ -1169,7 +1170,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                     className="mt-1 text-[11px] text-muted-foreground hover:text-destructive"
                     data-testid="button-leave-project"
                   >
-                    Leave project
+                    {t('project_members.leave')}
                   </button>
                 )}
               </div>

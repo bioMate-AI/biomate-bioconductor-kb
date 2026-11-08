@@ -91,7 +91,7 @@ describe("ProjectDetailPage — Members & roles panel", () => {
 
     expect(await screen.findByTestId("members-panel")).toBeInTheDocument()
     // Own role badge reflects the real server role.
-    expect(screen.getByTestId("my-role-badge")).toHaveTextContent("You: owner")
+    expect(screen.getByTestId("my-role-badge")).toHaveTextContent("You: Owner")
     // Every member row is rendered.
     expect(screen.getByTestId("member-row-u-owner")).toHaveTextContent("Olive Owner")
     expect(screen.getByTestId("member-row-u-editor")).toHaveTextContent("Ed Editor")
@@ -101,7 +101,7 @@ describe("ProjectDetailPage — Members & roles panel", () => {
   it("keeps viewer restrictions without displaying the removed permissions summary", async () => {
     installFetch({ role: "viewer", members: [OWNER_MEMBER, VIEWER_MEMBER] })
     render(<ProjectDetailPage projectId={PROJECT.id} onBack={() => {}} />)
-    await waitFor(() => expect(screen.getByTestId("my-role-badge")).toHaveTextContent("You: viewer"))
+    await waitFor(() => expect(screen.getByTestId("my-role-badge")).toHaveTextContent("You: Viewer"))
     expect(screen.queryByTestId("roles-card")).toBeNull()
     expect(screen.queryByTestId("button-edit-instructions")).toBeNull()
 

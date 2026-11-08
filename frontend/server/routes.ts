@@ -1,3 +1,4 @@
+import { waitForInteractiveSession } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
@@ -11166,19 +11167,14 @@ ${paramLines || '(none recorded)'}`;
       const result = await userProxy(req).launchInteractiveTool(toolId, targetHistoryId!, {
         input: { src: "hda", id: hdaId },
       });
-      // A Galaxy job id is not an interactive access URL. Resolve only the
-      // entry point belonging to this user's launched job, as /interactive/launch does.
-      let entryPointUrl: string | null = result.entry_point_url
-        ? rewriteInteractiveToolUrl(result.entry_point_url) : null;
-      for (let attempt = 0; attempt < 30 && !entryPointUrl && result.job_id; attempt++) {
-        const ep = tokenForJob(result.job_id);
-        if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url}`; break; }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      if (!entryPointUrl) return res.status(503).json({
-        success: false, jobId: result.job_id,
-        error: "The file was staged, but the notebook session has not provided an access URL yet. The session may still be starting.",
+      const readiness = await waitForInteractiveSession(result.job_id, {
+        getJob: id => userProxy(req).getJob(id), tokenForJob, targetForToken,
       });
+      if (!readiness.ready) return res.status(503).json({
+        success: false, jobId: result.job_id,
+        error: readiness.reason === 'failed' ? "The notebook job stopped before the session became available." : "The file was staged, but the notebook session is not ready. This launch may still be active; check its status before launching another session.",
+      });
+      const entryPointUrl = readiness.url;
       res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
     } catch (error: any) {
       console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
@@ -17532,32 +17528,15 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         launchInputs
       );
 
-      // Resolve the per-session entry-point token for THIS job so the client can
-      // open /interactive/<token>/<entry_url> (routed by the multi-session proxy).
-      // Correlated to the launched job_id (decoded in-container), so it is race-free
-      // under concurrent launches. The entry-point row is written a moment after the
-      // job is created, so poll briefly. Note: we deliberately do NOT wait for the
-      // container to be "active" — in DooD the entry point never flips to configured,
-      // but the raw token + container are usable via the /interactive proxy at once.
-      let entryPointUrl: string | null = result.entry_point_url || null;
-      if (result.job_id) {
-        // Poll up to ~30s: lightweight tools (Jupyter) register their entry point in ~2s, but heavier
-        // ones (CellxGene copies + loads the h5ad; other viewers pull large images) take ~15-25s to
-        // dispatch + register. 12s was too short and returned a null URL for those.
-        for (let i = 0; i < 30 && !entryPointUrl; i++) {
-          const ep = tokenForJob(result.job_id);
-          // entry_url is already normalized (no leading slash); empty for tools that land at root
-          // (RStudio) → /interactive/<token>/ ; 'ipython/lab' for Jupyter.
-          if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url}`; break; }
-          await new Promise((r) => setTimeout(r, 1000));
-        }
-      }
-
-      res.json({
-        ...result,
-        entry_point_url: entryPointUrl,
-        message: `Interactive tool launched. ${entryPointUrl ? "Access URL provided." : "Waiting for session."}`
+      const readiness = await waitForInteractiveSession(result.job_id, {
+        getJob: id => userProxy(req).getJob(id), tokenForJob, targetForToken,
       });
+      if (!readiness.ready) return res.status(503).json({
+        success: false, job_id: result.job_id,
+        error: 'InteractiveSessionUnavailable',
+        message: readiness.reason === 'failed' ? 'The interactive job stopped before the session became available.' : 'The interactive session is not ready. This launch may still be active; check its status before launching another session.',
+      });
+      res.json({ ...result, entry_point_url: readiness.url, message: 'Interactive session is ready.' });
     } catch (error: any) {
       console.error("[Interactive] Error launching:", error.message);
       // If Galaxy responded at all (any status code), our server code is working fine —

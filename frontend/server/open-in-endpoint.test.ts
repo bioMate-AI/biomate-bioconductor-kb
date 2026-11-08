@@ -38,8 +38,9 @@ describe("open-in (project file → interactive tool) — contract", () => {
     expect(route).toContain('userProxy(req).launchInteractiveTool');
     expect(route).not.toContain('galaxyAPIProxy.launchInteractiveTool');
     expect(route).not.toContain('/interactivetool/jobs/');
-    expect(route).toContain('tokenForJob(result.job_id)');
-    expect(route).toContain('if (!entryPointUrl) return res.status(503)');
+    expect(route).toContain('waitForInteractiveSession(result.job_id');
+    expect(route).toContain('getJob: id => userProxy(req).getJob(id)');
+    expect(route).toContain('if (!readiness.ready) return res.status(503)');
   });
 
 });

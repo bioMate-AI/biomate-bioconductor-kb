@@ -83,6 +83,8 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 AWS_REGION="${AWS_REGION:-us-west-2}"
 SNS_TOPIC_ARN="${SNS_TOPIC_ARN:-arn:aws:sns:$AWS_REGION:399683337364:biomate-deploy-events}"
 CLEANUP_FILES=""        # space-separated temp files to rm on exit (append, don't re-trap)
+REMOTE_SYNC_LEASE=""
+REMOTE_SYNC_LEASE_ACQUIRED=0
 SYNC_STARTED=0          # set to 1 once we enter do_sync; gates the notification
 CURRENT_COMMIT=""       # populated at the entry point; referenced by notify_sync
 SYNC_RESULT=""          # healthy|rolled_back|rollback_failed|failed — set by do_sync, read by notify_sync
@@ -128,6 +130,9 @@ $note" \
 
 on_exit() {
   local rc=$?
+  if [[ "$REMOTE_SYNC_LEASE_ACQUIRED" == "1" ]]; then
+    ec2_ssh "test \$(cat /opt/biomate/.dev-deploy.lock/owner) = '$REMOTE_SYNC_LEASE' && rm /opt/biomate/.dev-deploy.lock/owner && rmdir /opt/biomate/.dev-deploy.lock" >/dev/null 2>&1 || true
+  fi
   rm -f "$LOCK_FILE" $CLEANUP_FILES 2>/dev/null || true
   [[ "$SYNC_STARTED" -eq 1 ]] && notify_sync "$rc"
   return 0
@@ -1276,164 +1281,32 @@ resync_galaxy_env() {
 # docs/20260617_RSTUDIO_IT_PROGRESS.md). The Galaxy container must be able to
 # `docker run` child containers (RStudio/Jupyter/CellxGene). It needs (1) the
 # host docker socket mounted — requires a container recreate — and (2) a docker
-# CLI inside the container (installed via apt, correct libs). Plus the
-# gx-it-proxy sidecar that routes browser → the IT container. Health-guarded:
+# trusted Docker CLI inside the container, with validated shared libraries. The
+# existing proxy remains untouched. Health-guarded:
 # if Galaxy does not come back after the recreate, it is restored WITHOUT the
 # socket so dev is never left down. Gated behind BIOMATE_ENABLE_IT=1.
 # NOTE: mounting the host docker socket gives the Galaxy container effective
 # root on the host — acceptable on DEV only; production needs a real IT job
 # destination (k8s/ECS), not this.
 enable_interactive_tools() {
-  log "[it] Enabling Galaxy Interactive Tools (docker socket + CLI + gx-it-proxy)..."
-  # Ship the job_conf (has the docker_interactive DooD-safe destination) so IT mode
-  # deploys it even though it skips the full sync.
-  local _jc="$REPO_ROOT/backend/config/job_conf.yml"
-  [[ -f "$_jc" ]] && ec2_scp "$_jc" "${EC2_USER}@${EC2_HOST}:/tmp/it_job_conf.yml"
-  ec2_ssh '
-    set -e
-    GC=$(docker ps -a --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
-    GC="${GC:-biomate-galaxy-dev}"
-
-    have_sock() { docker inspect "$GC" --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q /var/run/docker.sock; }
-    gx_healthy() { for i in $(seq 1 40); do curl -fsS -o /dev/null --max-time 5 http://localhost:8081/api/version 2>/dev/null && return 0; sleep 3; done; return 1; }
-
-    recreate_with() {  # $1 = extra docker run args (e.g. the socket mount)
-      local EXTRA="$1"
-      local NET PORTS MOUNTS IMG
-      NET=$(docker inspect "$GC" --format "{{.HostConfig.NetworkMode}}")
-      PORTS=$(docker inspect "$GC" --format "{{range \$p,\$b := .HostConfig.PortBindings}}{{range \$b}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}" | sed "s#/tcp##g")
-      MOUNTS=$(docker inspect "$GC" --format "{{range .Mounts}}-v {{.Source}}:{{.Destination}} {{end}}")
-      IMG=$(docker inspect "$GC" --format "{{.Config.Image}}")
-      docker inspect "$GC" --format "{{range .Config.Env}}{{println .}}{{end}}" | grep -vE "^(PATH|HOME|TERM|HOSTNAME|SHELL|SHLVL|LOGNAME|USER|_)=" > /tmp/gxit_env
-      docker rm -f "$GC" >/dev/null
-      docker run -d --name "$GC" --network "$NET" $PORTS $MOUNTS $EXTRA \
-        --restart unless-stopped --env-file /tmp/gxit_env "$IMG" >/dev/null
-      docker network connect biomate-dev-net "$GC" 2>/dev/null || true
-    }
-
-    # 1. Ensure the docker socket is mounted (recreate if missing), health-guarded.
-    if have_sock; then
-      echo "[it] docker.sock already mounted"
-    else
-      echo "[it] recreating $GC WITH docker.sock (health-guarded)..."
-      recreate_with "-v /var/run/docker.sock:/var/run/docker.sock"
-      if gx_healthy; then
-        echo "[it] ✓ galaxy healthy after socket-mount recreate"
-      else
-        echo "[it] ✗ galaxy UNHEALTHY after recreate — restoring WITHOUT socket"
-        recreate_with ""
-        gx_healthy && echo "[it] restored (no socket)" || echo "[it] FATAL: galaxy did not recover"
-        exit 1
-      fi
-    fi
-
-    # 2. docker CLI inside the container — install as ROOT (container runs as the
-    #    galaxy user, which cannot write apt lists). docker.io provides /usr/bin/docker.
-    if docker exec "$GC" sh -lc "command -v docker" >/dev/null 2>&1; then
-      echo "[it] docker CLI already present"
-    else
-      echo "[it] installing docker CLI in $GC (as root)..."
-      docker exec -u root "$GC" sh -lc "apt-get update -qq && apt-get install -y -qq docker.io" 2>&1 | tail -2 || echo "[it] WARN docker CLI install returned nonzero"
-    fi
-    docker exec "$GC" sh -lc "command -v docker >/dev/null && docker -v" || echo "[it] WARN docker CLI still missing"
-
-    # 2b. The socket is root:<gid> but jobs run as the galaxy user — grant access.
-    #     chmod 666 on the bind-mounted host socket (dev-only loosening; ephemeral,
-    #     re-applied on each recreate).
-    docker exec -u root "$GC" sh -lc "chmod 666 /var/run/docker.sock" \
-      && echo "[it] docker.sock made group/other accessible for the galaxy user" \
-      || echo "[it] WARN could not chmod docker.sock"
-    # Sanity: can the galaxy user now talk to docker?
-    docker exec "$GC" sh -lc "docker ps >/dev/null 2>&1 && echo \"[it] ✓ galaxy user can run docker\" || echo \"[it] ✗ galaxy user still cannot run docker\""
-
-    # 2c. DooD PATH ALIGNMENT. Galaxy IT tools genuinely need /app on the host: the child
-    #     mounts -v /app:/app:ro and the tool_script copies /app/tools/interactive templates.
-    #     Galaxy runs from its own image /app; we materialize a copy of /app ON THE HOST so the
-    #     child mounts resolve, with /app/database re-pointed at the LIVE DB. Uses passwordless
-    #     sudo + copies every top-level dir EXCEPT database.
-    HOSTDB=$(docker inspect "$GC" --format "{{range .Mounts}}{{if eq .Destination \"/app/database\"}}{{.Source}}{{end}}{{end}}")
-    sudo mkdir -p /app
-    if [ ! -e /app/lib/galaxy ]; then
-      echo "[it] materializing Galaxy /app on host (one-time, multi-GB — copying top-level dirs)..."
-      for d in $(docker exec "$GC" sh -lc "ls -1 /app"); do
-        [ "$d" = "database" ] && continue
-        echo "[it]   cp /app/$d ..."
-        sudo rm -rf "/app/$d" 2>/dev/null
-        sudo docker cp "$GC":/app/"$d" /app/"$d" || echo "[it]   WARN cp /app/$d failed"
-      done
-      echo "[it]   /app materialized: $(ls /app 2>/dev/null | tr "\n" " ")"
-    else
-      echo "[it] host /app already materialized"
-    fi
-    # /app/database must be the LIVE DB (symlink), not a copy.
-    if [ -n "$HOSTDB" ] && [ -d "$HOSTDB" ]; then
-      [ -L /app/database ] || sudo rm -rf /app/database 2>/dev/null
-      sudo ln -sfn "$HOSTDB" /app/database
-      [ -e /app/database/jobs_directory ] && [ -e /app/tools/interactive ] \
-        && echo "[it] ✓ DooD aligned: host /app materialized + /app/database -> $HOSTDB (live)" \
-        || echo "[it] WARN /app not fully materialized (jobs_directory or tools/interactive missing)"
-    else
-      echo "[it] WARN could not resolve live DB dir"
-    fi
-
-    # 3. gx-it-proxy sidecar (browser to IT container routing) — Stage D. It MUST use
-    #    the SAME sqlite as the Galaxy interactivetools_map (HOSTDB/interactivetools_map.sqlite)
-    #    and creates the gxitproxy table in it — otherwise Galaxy entry-point
-    #    registration dies with "no such table: gxitproxy".
-    #    Mount the galaxy DB dir so the proxy + Galaxy share the one map file.
-    docker rm -f gx-it-proxy >/dev/null 2>&1 || true
-    if [ -n "$HOSTDB" ] && [ -d "$HOSTDB" ]; then
-      echo "[it] launching gx-it-proxy (shared sessions = $HOSTDB/interactivetools_map.sqlite)..."
-      docker run -d --name gx-it-proxy --network host --restart unless-stopped \
-        -v "$HOSTDB":/gxdata \
-        node:18-slim sh -lc "npx -y @galaxyproject/gx-it-proxy --port 4002 --sessions /gxdata/interactivetools_map.sqlite" >/dev/null 2>&1 \
-        && echo "[it] gx-it-proxy started on :4002 (shared map)" || echo "[it] WARN gx-it-proxy launch failed"
-      sleep 12
-      docker exec "$GC" sh -lc "python3 -c \"import sqlite3; print('gxitproxy' in [r[0] for r in sqlite3.connect('/app/database/interactivetools_map.sqlite').execute('select name from sqlite_master')])\"" 2>/dev/null \
-        | grep -q True && echo "[it] ✓ gxitproxy table present in shared map" || echo "[it] WARN gxitproxy table not yet created"
-    else
-      echo "[it] WARN cannot locate galaxy DB dir for gx-it-proxy sessions"
-    fi
-    # 3b. Port fix: under BRIDGE networking (isolated per container) the bgruening
-    #     docker-jupyter-notebook:2021-03-05 image serves on its default 8888 (verified via
-    #     the container: "Jupyter Server is running at http://127.0.0.1:8888/ipython/lab" +
-    #     netstat 0.0.0.0:8888). An earlier patch set the tool XML to 8889 (that was only true
-    #     under --net host where jupyter bumped past a taken 8888). Publish/register 8888 so the
-    #     published host port maps to the port jupyter actually listens on. Base64-delivered
-    #     sed reverts 8889 -> 8888 (avoids heredoc quoting issues).
-    echo c2VkIC1pICdzIzxwb3J0Pjg4ODk8L3BvcnQ+Izxwb3J0Pjg4ODg8L3BvcnQ+IycgL2FwcC90b29scy9pbnRlcmFjdGl2ZS9pbnRlcmFjdGl2ZXRvb2xfanVweXRlcl9ub3RlYm9vay54bWwgMj4vZGV2L251bGwgfHwgdHJ1ZQo= | base64 -d > /tmp/it_port_patch.sh
-    docker cp /tmp/it_port_patch.sh "$GC":/tmp/it_port_patch.sh 2>/dev/null && docker exec -u root "$GC" sh /tmp/it_port_patch.sh 2>/dev/null && echo "[it] jupyter tool port set to 8888 (matches the image)"
-    sudo sh /tmp/it_port_patch.sh 2>/dev/null || true
-
-    # 4. Deploy the shipped job_conf (docker_interactive destination) + reload Galaxy so
-    #    interactive tools route to the DooD-safe destination.
-    if [ -f /tmp/it_job_conf.yml ]; then
-      docker cp /tmp/it_job_conf.yml "$GC":/app/config/job_conf.yml && echo "[it] job_conf.yml deployed (docker_interactive)"
-      docker exec "$GC" galaxyctl restart gunicorn >/dev/null 2>&1 \
-        || docker exec "$GC" sh -lc "kill -HUP \$(pgrep -f gunicorn | head -1)" 2>/dev/null || true
-      for i in $(seq 1 40); do curl -fsS -o /dev/null --max-time 5 http://localhost:8081/api/version 2>/dev/null && break; sleep 3; done
-      echo "[it] galaxy reloaded with new job_conf"
-    fi
-
-    # 5. Reap orphaned IT containers left over from prior universe.sqlite resets
-    #    (base64-delivered to avoid apostrophe/quoting issues in this single-quoted
-    #    ssh block; dot-sourced so it inherits $GC). Keeps only containers still
-    #    linked to a live entry-point token in the current DB.
-    echo IyBSZWFwIG9ycGhhbmVkIGludGVyYWN0aXZlLXRvb2wgY29udGFpbmVyczoganVweXRlciBjb250YWluZXJzIHdob3NlIG5hbWUgaXMgTk9UCiMgaW4gdGhlIGN1cnJlbnQgdW5pdmVyc2Uuc3FsaXRlICh0aGVpciBlbnRyeSBwb2ludCB3YXMgd2lwZWQgYnkgYSBzcWxpdGUgcmVzZXQgb24KIyBhIHByaW9yIHN5bmMpLiBLZWVwcyBvbmx5IGNvbnRhaW5lcnMgc3RpbGwgbGlua2VkIHRvIGEgbGl2ZSBlbnRyeS1wb2ludCB0b2tlbi4KTElWRT0kKGRvY2tlciBleGVjICIkR0MiIHB5dGhvbjMgLWMgImltcG9ydCBzcWxpdGUzCmM9c3FsaXRlMy5jb25uZWN0KCcvYXBwL2RhdGFiYXNlL3VuaXZlcnNlLnNxbGl0ZScpCnByaW50KCcgJy5qb2luKHJbMF0gZm9yIHIgaW4gYy5leGVjdXRlKCdzZWxlY3QgamNhLmNvbnRhaW5lcl9uYW1lIGZyb20gam9iX2NvbnRhaW5lcl9hc3NvY2lhdGlvbiBqY2Egam9pbiBpbnRlcmFjdGl2ZXRvb2xfZW50cnlfcG9pbnQgZXAgb24gZXAuam9iX2lkPWpjYS5qb2JfaWQgd2hlcmUgZXAudG9rZW4gaXMgbm90IG51bGwnKSkpIiAyPi9kZXYvbnVsbCkKUkVBUEVEPTAKZm9yIGNuIGluICQoZG9ja2VyIHBzIC0tZmlsdGVyIGFuY2VzdG9yPXF1YXkuaW8vYmdydWVuaW5nL2RvY2tlci1qdXB5dGVyLW5vdGVib29rOjIwMjEtMDMtMDUgLS1mb3JtYXQgJ3t7Lk5hbWVzfX0nKTsgZG8KICBjYXNlICIgJExJVkUgIiBpbgogICAgKiIgJGNuICIqKSA6IDs7ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICMgc3RpbGwgbGlua2VkIOKAlCBrZWVwCiAgICAqKSBkb2NrZXIgcm0gLWYgIiRjbiIgPi9kZXYvbnVsbCAyPiYxICYmIFJFQVBFRD0kKChSRUFQRUQrMSkpIDs7CiAgZXNhYwpkb25lCmVjaG8gIltpdF0gcmVhcGVkICRSRUFQRUQgb3JwaGFuZWQganVweXRlciBjb250YWluZXIocyk7ICQoZG9ja2VyIHBzIC0tZmlsdGVyIGFuY2VzdG9yPXF1YXkuaW8vYmdydWVuaW5nL2RvY2tlci1qdXB5dGVyLW5vdGVib29rOjIwMjEtMDMtMDUgLXEgfCB3YyAtbCB8IHRyIC1kICcgJykgbGl2ZSByZW1haW4iCg== | base64 -d > /tmp/it_reap.sh && . /tmp/it_reap.sh
-
-    # 6. Enable nginx WebSocket upgrade forwarding (Jupyter kernel channels need it;
-    #    the location / block historically lacked Upgrade/Connection headers, so WS handshakes
-    #    arrived as plain GETs and Jupyter rejected them with 400).
-    echo IyBFbmFibGUgbmdpbnggV2ViU29ja2V0IHVwZ3JhZGUgZm9yd2FyZGluZyBmb3IgL2ludGVyYWN0aXZlIChKdXB5dGVyIGtlcm5lbCBjaGFubmVscykuCiMgTk9URTogc2l0ZXMtZW5hYmxlZC9iaW9tYXRlLWRldi5jb25mIGlzIHRoZSBBQ1RJVkUgY29uZmlnIChhIHJlYWwgZmlsZSBoZXJlLCBOT1QgYSBzeW1saW5rCiMgdG8gc2l0ZXMtYXZhaWxhYmxlKSwgc28gaXQgbXVzdCBiZSBlZGl0ZWQgZGlyZWN0bHkuIElkZW1wb3RlbnQuCk5HQ09ORj0vZXRjL25naW54L3NpdGVzLWVuYWJsZWQvYmlvbWF0ZS1kZXYuY29uZgppZiBbICEgLWYgL2V0Yy9uZ2lueC9jb25mLmQvd3NfdXBncmFkZS5jb25mIF07IHRoZW4KICBwcmludGYgJ21hcCAkaHR0cF91cGdyYWRlICRjb25uZWN0aW9uX3VwZ3JhZGUgeyBkZWZhdWx0IHVwZ3JhZGU7ICVzIGNsb3NlOyB9XG4nICInJyIgfCBzdWRvIHRlZSAvZXRjL25naW54L2NvbmYuZC93c191cGdyYWRlLmNvbmYgPi9kZXYvbnVsbAogIGVjaG8gIltpdF0gbmdpbng6IGFkZGVkIFwkY29ubmVjdGlvbl91cGdyYWRlIG1hcCIKZmkKaWYgWyAtZiAiJE5HQ09ORiIgXSAmJiAhIHN1ZG8gZ3JlcCAtcSAicHJveHlfc2V0X2hlYWRlciBVcGdyYWRlIiAiJE5HQ09ORiI7IHRoZW4KICBzdWRvIHNlZCAtaSAnL3Byb3h5X2h0dHBfdmVyc2lvbiAxLjE7L2FcICAgICAgICBwcm94eV9zZXRfaGVhZGVyIFVwZ3JhZGUgJGh0dHBfdXBncmFkZTtcbiAgICAgICAgcHJveHlfc2V0X2hlYWRlciBDb25uZWN0aW9uICRjb25uZWN0aW9uX3VwZ3JhZGU7JyAiJE5HQ09ORiIKICBlY2hvICJbaXRdIG5naW54OiBhZGRlZCBVcGdyYWRlL0Nvbm5lY3Rpb24gaGVhZGVycyB0byBhY3RpdmUgbG9jYXRpb24gLyIKZWxzZQogIGVjaG8gIltpdF0gbmdpbng6IFVwZ3JhZGUgaGVhZGVycyBhbHJlYWR5IHByZXNlbnQgKG9yIGNvbmZpZyBtaXNzaW5nKSIKZmkKaWYgc3VkbyBuZ2lueCAtdCA+L2Rldi9udWxsIDI+JjE7IHRoZW4KICBzdWRvIG5naW54IC1zIHJlbG9hZCAmJiBlY2hvICJbaXRdIG5naW54IHJlbG9hZGVkIOKAlCBXZWJTb2NrZXQgdXBncmFkZSBlbmFibGVkIgplbHNlCiAgZWNobyAiW2l0XSBXQVJOIG5naW54IC10IGZhaWxlZDsgTk9UIHJlbG9hZGluZyAoY29uZmlnIGxlZnQgYXMtaXMpIjsgc3VkbyBuZ2lueCAtdCAyPiYxIHwgdGFpbCAtMwpmaQo= | base64 -d > /tmp/it_nginx_ws.sh && . /tmp/it_nginx_ws.sh
-
-    # NOTE: RStudio uses the STOCK quay.io/galaxy/docker-rstudio-notebook image as-is. It works once
-    # the job runs as ROOT. The real fix lives in backend/config/job_conf.yml: a docker_interactive_root
-    # destination with an empty docker_set_user, plus EXACT-id routing of interactive_tool_rstudio to it
-    # because the job_conf tool-id match here is exact, not regex. No custom image or ECR repoint needed.
-
-    echo "[it] enable step complete"
-  '
-  log "[it] Done"
+  local stage helper sha apply_args=""
+  stage="$(ec2_ssh 'umask 077; mktemp -d /tmp/biomate-it-review.XXXXXXXX')"
+  [[ "$stage" =~ ^/tmp/biomate-it-review\.[A-Za-z0-9]+$ ]] || return 1
+  for helper in interactive_runtime_recovery.py interactive_recreate_plan.py interactive_state_migration.py; do
+    sha="$(shasum -a 256 "$REPO_ROOT/scripts/$helper" | awk '{print $1}')"
+    ec2_scp "$REPO_ROOT/scripts/$helper" "${EC2_USER}@${EC2_HOST}:$stage/$helper" || return 1
+    ec2_ssh "chmod 600 '$stage/$helper'; test \$(sha256sum '$stage/$helper' | cut -d' ' -f1) = '$sha'" || return 1
+  done
+  if [[ "${BIOMATE_IT_APPLY:-0}" == "1" ]]; then
+    [[ "${BIOMATE_IT_SOCKET_APPROVED:-}" == "1" && "${BIOMATE_IT_APPROVED_PLAN_SHA:-}" =~ ^[a-f0-9]{64}$ ]] || { log "IT apply requires explicit socket approval and reviewed plan SHA"; return 1; }
+    apply_args="--apply --approved-plan-sha $BIOMATE_IT_APPROVED_PLAN_SHA"
+  fi
+  # Default is review-only: no stop, recreate, CLI installation or socket grant.
+  # Private root-owned journals retain inspect/config and rollback evidence.
+  ec2_ssh "sudo env PYTHONDONTWRITEBYTECODE=1 BIOMATE_IT_SOCKET_APPROVED='${BIOMATE_IT_SOCKET_APPROVED:-0}' python3 '$stage/interactive_runtime_recovery.py' --deploy-lease '$REMOTE_SYNC_LEASE' --cli-sha256 2c0c7085014dab521228f90fc5fc714184cbba3ab1dd8d526840dd000ed478b5 $apply_args"
+  local result=$?
+  ec2_ssh "rm -f '$stage/interactive_runtime_recovery.py' '$stage/interactive_recreate_plan.py' '$stage/interactive_state_migration.py'; rmdir '$stage'" || true
+  return "$result"
 }
 
 push_managed_env() {
@@ -2236,6 +2109,16 @@ fi
 #     the file content has actually changed.
 _PREV_COMMIT_FILE="$REPO_ROOT/.last_dev_sync_commit"
 _DB_MD5_FILE="$REPO_ROOT/.last_dev_sync_db_md5"
+# Remote atomic lease also excludes deployments from other workstations.
+REMOTE_SYNC_LEASE="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
+ec2_ssh "umask 077; mkdir /opt/biomate/.dev-deploy.lock && printf '%s\n' '$REMOTE_SYNC_LEASE' > /opt/biomate/.dev-deploy.lock/owner" || { log "Another deployment holds the remote lease; refusing"; exit 1; }
+REMOTE_SYNC_LEASE_ACQUIRED=1
+if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
+  enable_interactive_tools
+  log "=== IT review/apply path finished (full code and DB sync skipped) ==="
+  exit 0
+fi
+
 _LOCAL_DB="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
 
 # Code layers — git diff
@@ -2280,15 +2163,6 @@ if [[ -n "$_LOCAL_DB_MD5" ]]; then
   fi
 else
   log "WARNING: cannot compute local DB md5 (file missing?) — skipping DB sync"
-fi
-
-# Interactive-tools enablement mode: run ONLY the IT step (docker socket + CLI +
-# gx-it-proxy), skip the full code sync. Uses the lock + ec2 setup already done
-# above, so it can't race a concurrent sync. `BIOMATE_ENABLE_IT=1 bash scripts/sync_to_dev.sh`.
-if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
-  enable_interactive_tools
-  log "=== IT enablement done (full sync skipped) ==="
-  exit 0
 fi
 
 # From here on the run IS a deploy attempt — arm the SNS notification so its

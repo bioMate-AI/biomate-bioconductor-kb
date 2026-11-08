@@ -465,7 +465,9 @@
       "get_key_post": "— free tier available.",
       "anthropic_saved": "Anthropic key saved — chats use your quota",
       "anthropic_key_label": "Anthropic API Key"
-    }
+    },
+    "appearance": "Appearance",
+    "content": "Settings content"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -717,7 +719,8 @@
     "skill_markdown": "Choose a Markdown (.md) skill file.",
     "skill_import_failed": "Could not import this skill. Check its frontmatter and your access.",
     "skill_importing": "Importing skill…",
-    "skill_imported": "Skill imported. It is available in Skills & experts."
+    "skill_imported": "Skill imported. It is available in Skills & experts.",
+    "all_kinds": "Back to connector kinds"
   },
   "citation_reader": {
     "retrieved_excerpt": "Retrieved excerpt",
@@ -792,5 +795,26 @@
     "no_notes": "No notes yet.",
     "delete_note": "Delete note",
     "delete_note_error": "Could not delete note. Your note has been kept."
+  },
+  "active_project": {
+    "label": "Project:",
+    "clear": "Clear active project"
+  },
+  "project_members": {
+    "title": "Members & roles",
+    "your_role": "Your role in this project",
+    "you": "You",
+    "invite_link": "Invite link",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "revoke_link": "Revoke link",
+    "generate_link": "Generate share link",
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "invite": "Invite",
+    "no_members": "No collaborators yet.",
+    "owner": "Owner",
+    "transfer": "Transfer ownership",
+    "leave": "Leave project"
   }
 }

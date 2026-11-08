@@ -202,3 +202,21 @@ describe("Workspace Connections panel", () => {
    expect(scroll).not.toContainElement(screen.getByTestId('connectors-close'));
   });
  });
+
+describe('connector setup navigation', () => {
+  it('returns from a chosen setup to the picker, then cancels back to the original tab', () => {
+    const close = vi.fn();
+    render(<ConnectorsDialog open embedded onOpenChange={close} />);
+    fireEvent.click(screen.getByTestId('connector-tab-ai'));
+    fireEvent.click(screen.getByRole('button', {name: 'Add a connector'}));
+    fireEvent.click(screen.getByTestId('add-kind-setup-database'));
+    expect(screen.getByTestId('connector-setup-back')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('connector-setup-back'));
+    expect(screen.getByTestId('add-connector-flow')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Cancel adding'}));
+    expect(screen.queryByTestId('add-connector-flow')).not.toBeInTheDocument();
+    expect(screen.getByTestId('connector-row-Ollama')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('connectors-close'));
+    expect(close).toHaveBeenCalledWith(false);
+  });
+});

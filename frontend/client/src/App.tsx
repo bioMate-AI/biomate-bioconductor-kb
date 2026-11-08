@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -325,7 +326,7 @@ function ActiveProjectBanner() {
       data-testid="active-project-banner"
     >
       <FolderOpen style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />
-      <span style={{ color: 'var(--bm-text-muted)', userSelect: 'none' }}>Project:</span>
+      <span style={{ color: 'var(--bm-text-muted)', userSelect: 'none' }}>{t('active_project.label')}</span>
       <button
         style={{ fontWeight: 600, color: 'var(--bm-text)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         onClick={() => navigate(`/projects?project=${activeProject.id}`)}
@@ -339,12 +340,12 @@ function ActiveProjectBanner() {
         onClick={() => navigate(`/projects?project=${activeProject.id}`)}
         data-testid="active-project-banner-goto"
       >
-        Go to project
+        {t('panel.go_to_project')}
       </button>
       <button
         style={{ display: 'flex', alignItems: 'center', color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, opacity: 0.7 }}
         onClick={() => setActiveProjectId(null)}
-        aria-label="Clear active project"
+        aria-label={t('active_project.clear')}
         data-testid="active-project-banner-clear"
       >
         <X style={{ width: 13, height: 13 }} />
