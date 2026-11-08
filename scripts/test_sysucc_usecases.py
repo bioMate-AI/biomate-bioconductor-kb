@@ -212,6 +212,151 @@ def evidence_and_pk(work):
                                "reason": "not launched: authenticated project/dataset workflow journey unavailable; local Python is not a substitute for indexed R execution"})
 
 
+# BD brief §5–8: extra cases that exercise real BioMate services.
+# Retrieval is catalogue evidence only (execution_verified stays false).
+
+BD_CATALOG_CASES = [
+    # (check name, query, tokens that must appear in a returned workflow name/filename/desc)
+    ("rnaseq_deseq2", "RNA-seq DESeq2 differential expression", ("deseq", "rnaseq", "rna-seq")),
+    ("single_cell_seurat", "single-cell clustering Seurat cell type annotation", ("seurat", "single-cell", "single_cell", "scrna")),
+    ("proteomics_diff", "proteomics differential abundance", ("proteom", "maxquant", "dia")),
+    ("flow_cytometry", "flow cytometry immunophenotyping", ("flow", "cyto")),
+    ("survival_clinical", "Kaplan-Meier Cox survival analysis clinical cohort", ("surviv", "kaplan", "cox")),
+    ("admet_screen", "ADMET hERG CYP3A4 solubility screening", ("admet", "herg", "cyp")),
+    ("docking", "molecular docking protein ligand", ("dock", "vina", "glide")),
+    ("cryoem", "cryo-EM single particle reconstruction", ("cryo", "relion", "cryosparc")),
+    ("boin_dose", "BOIN dose escalation phase I", ("boin", "dose")),
+    ("antibody_design", "nanobody antibody developability", ("nanobod", "antibod", "scfv")),
+    ("peptide_design", "cyclic peptide design permeability", ("peptide", "cyclic")),
+    ("variant_ctdna", "variant calling ctDNA WGS", ("variant", "sarek", "mutect", "ctdna", "wgs")),
+]
+
+
+def bd_search_and_instruments():
+    from galaxy.ai.local_knowledge_query import query_knowledge
+    db = ROOT / "backend/database/galaxy_ai_tools.db"
+    hits = {}
+    for name, query, tokens in BD_CATALOG_CASES:
+        result = query_knowledge(db, query, limit=8)
+        names = [(w.get("name") or "") + " " + (w.get("filename") or "") + " " + (w.get("description") or "")
+                 for w in result.get("workflows", [])]
+        blob = " ".join(names).lower()
+        matched = any(tok in blob for tok in tokens)
+        hits[name] = {"query": query, "workflows": [w.get("name") for w in result.get("workflows", [])],
+                      "execution_verified": result.get("execution_verified")}
+        check(name, "bd_search_catalog", f"top-8 catalogue hit matching {tokens}",
+              hits[name], matched and result.get("execution_verified") is False)
+    REPORT["observations"]["bd_catalog"] = hits
+
+
+def bd_model_versions(work):
+    from galaxy.ai.drug_discovery.custom_model_registry import (
+        ArtifactIntegrityError, CustomModelRegistry, PromotionBlocked,
+    )
+    db = str(work / "models.db")
+    reg = CustomModelRegistry(db)
+    art1 = work / "art_v1"
+    art1.mkdir()
+    (art1 / "weights.bin").write_bytes(b"version-one")
+    art2 = work / "art_v2"
+    art2.mkdir()
+    (art2 / "weights.bin").write_bytes(b"version-two")
+    gate_ok = {"passed": True, "metric": "auc", "value": 0.82}
+    gate_fail = {"passed": False, "metric": "auc", "value": 0.4, "reason": "below threshold"}
+    v1 = reg.register_trained_version(
+        "camp", "potency", str(art1), metrics={"auc": 0.82}, gate=gate_ok,
+        task_type="classification", higher_is_better=True, actor="trainer",
+        dataset_rows=[("CCO", 1.0), ("CCN", 0.0)])
+    v2_fail = reg.register_trained_version(
+        "camp", "potency", str(art2), metrics={"auc": 0.4}, gate=gate_fail,
+        task_type="classification", higher_is_better=True, actor="trainer")
+    check("failed_gate_not_promotable", "bd_models", "PromotionBlocked",
+          v2_fail.status, v2_fail.status == "rejected")
+    blocked = False
+    try:
+        reg.promote("camp", "potency", v2_fail.version, actor="reviewer")
+    except PromotionBlocked:
+        blocked = True
+    check("promote_requires_passed_gate", "bd_models", True, blocked, blocked)
+    promoted = reg.promote("camp", "potency", v1.version, actor="reviewer:alice")
+    check("promote_requires_named_reviewer_and_activates", "bd_models", "active",
+          promoted.status, promoted.status == "active" and promoted.version == v1.version)
+    art3 = work / "art_v3"
+    art3.mkdir()
+    (art3 / "weights.bin").write_bytes(b"version-three")
+    v3 = reg.register_trained_version(
+        "camp", "potency", str(art3), metrics={"auc": 0.9}, gate=gate_ok,
+        task_type="classification", higher_is_better=True, actor="trainer")
+    reg.promote("camp", "potency", v3.version, actor="reviewer:bob")
+    rolled = reg.rollback("camp", "potency", actor="reviewer:alice")
+    check("rollback_restores_previous_active", "bd_models", v1.version,
+          rolled.version, rolled.version == v1.version and rolled.status == "active")
+    restarted = CustomModelRegistry(db)
+    restarted.verify_artifact("camp", "potency", v1.version)
+    (art1 / "weights.bin").write_bytes(b"tampered")
+    tamper = False
+    try:
+        restarted.verify_artifact("camp", "potency", v1.version)
+    except ArtifactIntegrityError:
+        tamper = True
+    check("restart_hash_check_refuses_tamper", "bd_models", True, tamper, tamper)
+    unnamed = False
+    try:
+        reg.promote("camp", "potency", v3.version, actor="  ")
+    except PromotionBlocked:
+        unnamed = True
+    check("promote_rejects_blank_reviewer", "bd_models", True, unnamed, unnamed)
+
+
+def bd_assay_fidelity(work):
+    from galaxy.ai.drug_discovery.assay_ingestion import AssayIngestionService
+    from galaxy.ai.drug_discovery.assay_schema import structure_identity
+    ident_salt, err_s = structure_identity("CCO.Cl")
+    ident_parent, err_p = structure_identity("CCO")
+    check("salt_shares_parent_with_free_base", "bd_assay_fidelity",
+          "same parent SMILES", {"salt": ident_salt.parent if ident_salt else None,
+                                 "parent": ident_parent.parent if ident_parent else None,
+                                 "err": (err_s, err_p)},
+          ident_salt is not None and ident_parent is not None
+          and ident_salt.parent == ident_parent.parent and not err_s and not err_p)
+    svc = AssayIngestionService(str(work / "censor.db"))
+    rows = [
+        assay_row(compound_id="X", smiles="CCO", assay_type="IC50", value="1", unit="nM", operator="="),
+        assay_row(compound_id="Y", smiles="CCN", assay_type="IC50", value="10", unit="nM", operator="<"),
+        assay_row(compound_id="Z", smiles="CCC", assay_type="IC50", value="100", unit="nM", operator="="),
+    ]
+    ingested = svc.ingest("censor", write_csv(work / "censor.csv", rows))
+    ranked = svc.get_ranked_compounds("censor")
+    by_id = {r["compound_id"]: r for r in ranked}
+    check("censored_bound_is_flagged", "bd_assay_fidelity", "Y marked censored",
+          {cid: r.get("censored_objectives") or r.get("objectives") for cid, r in by_id.items()},
+          bool(by_id.get("Y")) and (
+              by_id["Y"].get("censored_objectives")
+              or any(v.get("censored") for v in (by_id["Y"].get("objectives") or {}).values())
+          ))
+    check("incomplete_not_needed_here", "bd_assay_fidelity", "three compounds ingested",
+          ingested.get("ingested"), ingested.get("ingested") == 3)
+
+
+def bd_learning_reports_confidence(work):
+    from galaxy.ai.drug_discovery.assay_ingestion import AssayIngestionService
+    from galaxy.ai.drug_discovery.auto_retrain import save_virtual_library, refit_and_propose
+    db = str(work / "conf.db")
+    svc = AssayIngestionService(db)
+    svc.ingest("qa-conf", str(FIXTURES / "assays_initial.csv"))
+    save_virtual_library(db, "qa-conf", ["CCCC", "CCCO", "CCCN", "CCCl"], n_propose=2)
+    proposal = refit_and_propose(db, "qa-conf", triggered_by="manual")
+    REPORT["observations"]["proposal_confidence"] = {
+        "can_discriminate": getattr(proposal, "can_discriminate", "missing"),
+        "surrogate_report": getattr(proposal, "surrogate_report", None),
+        "scores": getattr(proposal, "scores", None),
+    }
+    check("proposal_exposes_can_discriminate", "bd_learning",
+          "boolean can_discriminate present (may be False on tiny fixtures)",
+          getattr(proposal, "can_discriminate", "missing"),
+          proposal is not None and getattr(proposal, "can_discriminate", None) in (True, False))
+
+
 def live_probe(base):
     if base != "https://dev-public.biomate.ai":
         raise ValueError("Only the named dev server is allowed")
@@ -288,7 +433,7 @@ cat(toJSON(result, dataframe="rows", auto_unbox=TRUE))
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true")
-    parser.add_argument("--output", default="docs/qa/20261029-sysucc-usecases.json")
+    parser.add_argument("--output", default="docs/qa/20261031-bd-usecases.json")
     args = parser.parse_args()
     REPORT["fixture_hashes"] = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(FIXTURES.iterdir()) if p.is_file()}
     source_paths = ["scripts/test_sysucc_usecases.py", "frontend/server/code-runner.ts",
@@ -297,7 +442,8 @@ def main():
                     "backend/lib/galaxy/ai/drug_discovery/auto_retrain.py",
                     "backend/lib/galaxy/ai/drug_discovery/bayesian_optimizer.py",
                     "backend/lib/galaxy/ai/drug_discovery/wetlab_report_ingester.py",
-                    "backend/lib/galaxy/ai/ml_training/training_job.py"]
+                    "backend/lib/galaxy/ai/ml_training/training_job.py",
+                    "backend/lib/galaxy/ai/drug_discovery/custom_model_registry.py"]
     REPORT["local_source_hashes"] = {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in source_paths}
     with tempfile.TemporaryDirectory(prefix="biomate-sysucc-qa-") as directory:
         work = Path(directory)
@@ -305,6 +451,10 @@ def main():
         run("file_comparison_and_recovery", lambda: comparison_and_recovery(work))
         run("experimental_learning", lambda: learning(work))
         run("evidence_package_and_pk", lambda: evidence_and_pk(work))
+        run("bd_search_and_instruments", bd_search_and_instruments)
+        run("bd_model_versions", lambda: bd_model_versions(work))
+        run("bd_assay_fidelity", lambda: bd_assay_fidelity(work))
+        run("bd_learning_reports_confidence", lambda: bd_learning_reports_confidence(work))
         if args.live:
             run("live_dev_probe", lambda: live_probe("https://dev-public.biomate.ai"))
     REPORT["blocked"].append({"case": "all four", "layer": "authenticated chat/UI journey",

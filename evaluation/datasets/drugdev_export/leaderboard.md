@@ -4,13 +4,13 @@ Only the three adequately-powered, objectively-scored tasks are shown. The 17 de
 
 | Model | pbpk_2fold (n=15) | boin_mtd (n=20) | dd_spearman (n=15) |
 |---|---|---|---|
-| Claude Opus 5 | 0.133 | 0.444 | 0.7 |
-| Gemini 3.1 Pro | 0.0 | 0.278 | 0.7 |
+| Claude Opus 5 | 0.467 | 0.444 | 0.7 |
+| Gemini 3.1 Pro | 0.4 | 0.278 | 0.7 |
 | GPT-5.6 | 0.2 | 0.5 | 0.7 |
-| GPT-5.6-luna | 0.2 | 0.389 | 0.7 |
+| GPT-5.6-luna | 0.333 | 0.389 | 0.7 |
 | Qwen3.8-Max | 0.0 | 0.111 | 0.7 |
 | Qwen3.8-27B | 0.0 | 0.0 | — |
-| GLM-5.2 | 0.0 | 0.111 | 0.7 |
+| GLM-5.2 | 0.267 | 0.111 | 0.7 |
 | DeepSeek V4-pro | 0.067 | 0.167 | 0.667 |
 | Kimi K3 | 0.0 | 0.167 | 0.7 |
 | BioMate 9B (base) | 0.067 | 0.778 | 0.7 |

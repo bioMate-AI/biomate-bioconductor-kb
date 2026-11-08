@@ -43,6 +43,12 @@ fi
 SRC="$REPO_ROOT/reference/claude_design"
 PROBE_ONLY="${1:-}"
 
+# Never publish stale shared links or a failed metadata/navigation regression.
+if [[ "$PROBE_ONLY" != "--probe" ]]; then
+  node "$REPO_ROOT/scripts/prepare_marketing_shell.cjs" --check || exit 1
+  node --test "$REPO_ROOT/reference/claude_design/webpage_design_v2/tests/"*.test.cjs || exit 1
+fi
+
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 inject_key() {
@@ -89,34 +95,35 @@ if [[ "$PROBE_ONLY" == "--probe" ]]; then log "probe-only — no files written";
 
 # --- Build + ship ----------------------------------------------------------
 TAR=/tmp/biomate_marketing_only.tar.gz
-tar -czf "$TAR" -C "$SRC" webpage_design_v2/
+# Publish web assets only; editorial plans and regression tests stay local.
+tar --exclude='*.md' --exclude='*/tests' --exclude='*.cjs' \
+  -czf "$TAR" -C "$SRC" webpage_design_v2/
 log "Archive: $(du -sh "$TAR" | cut -f1), $(tar tzf "$TAR" | grep -c '\.html$') html files"
 ec2_scp "$TAR" "${EC2_USER}@${INSTANCE_ID}:/tmp/marketing_only.tar.gz" || { log "FATAL: scp failed"; exit 1; }
 
-# Deploy into EVERY docroot that nginx serves biomate.ai from (discovered above),
-# falling back to /var/www/biomate-marketing.
+# The probe confirms this dedicated marketing docroot. Do not sync unrelated
+# nginx roots (including app roots or paths mentioned only in backup configs).
 ec2_ssh '
   set -e
   rm -rf /tmp/mkt_only && mkdir -p /tmp/mkt_only
   tar -xzf /tmp/marketing_only.tar.gz -C /tmp/mkt_only
-  ROOTS=$(sudo grep -rhE "root[ \t]+/var/www[^;]*;" /etc/nginx/ 2>/dev/null | \
-            grep -i biomate -A0 | sed -E "s/.*root[ \t]+([^;]+);.*/\1/" | sort -u)
-  [ -z "$ROOTS" ] && ROOTS="/var/www/biomate-marketing"
-  for R in $ROOTS /var/www/biomate-marketing; do
-    R=$(echo "$R" | xargs)
+  for R in /var/www/biomate-marketing; do
     sudo mkdir -p "$R"
+    sudo mkdir -p /var/backups/biomate-marketing
+    BACKUP=$(sudo mktemp /var/backups/biomate-marketing/pre-sync-XXXXXXXX.tar.gz)
+    sudo tar -czf "$BACKUP" -C "$R" .
+    echo "[backup] $BACKUP"
     sudo rsync -a --delete \
       --exclude='blog-llm-comparison.html' \
       --exclude='blog-llm-comparison-supplement.html' \
-      /tmp/mkt_only/webpage_design_v2/ "$R"/ 2>/dev/null \
-      || sudo cp -r /tmp/mkt_only/webpage_design_v2/. "$R"/
+      /tmp/mkt_only/webpage_design_v2/ "$R"/
     sudo chown -R www-data:www-data "$R"/ 2>/dev/null || true
     echo "[deploy] $R -> 14-day now: $(grep -c "14-day\|14 day" "$R/pricing.html" 2>/dev/null || echo NA)"
   done
   rm -rf /tmp/mkt_only
-'
+' || { log "FATAL: marketing sync failed"; exit 1; }
 log "Reloading nginx..."
-ec2_ssh 'sudo nginx -t && sudo systemctl reload nginx && echo "[nginx] reloaded"'
+ec2_ssh 'sudo nginx -t && sudo systemctl reload nginx && echo "[nginx] reloaded"' || { log "FATAL: nginx validation/reload failed"; exit 1; }
 
 log "Verifying live site..."
 sleep 2

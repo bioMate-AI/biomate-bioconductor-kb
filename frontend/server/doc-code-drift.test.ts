@@ -119,7 +119,7 @@ const liveCount = (sql: string): number =>
 // ===========================================================================
 describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
   it.skipIf(db === null)(
-    "live DB holds exactly 4,223 workflows / 42 domains / 69 chains",
+    "live DB holds exactly 4,223 workflows / 42 domains / 70 chains",
     () => {
       // If any of these change, the fix is: update these numbers AND every
       // user/agent-facing string that quotes the catalog size in the same PR.
@@ -135,9 +135,36 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
       // verified catalog change, not permission to relax the equality guard.
       expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4223);
       expect(liveCount("SELECT COUNT(DISTINCT domain) AS c FROM workflows")).toBe(42);
-      expect(liveCount("SELECT COUNT(*) AS c FROM workflow_chains")).toBe(69);
+      // 2026-11-07 reconciliation: the November 1 Vina bench addition
+      // (backend/scripts/add_vina_bench_chain.py, commit 4f7f69544) restored
+      // the chain total to 70. Its deployed inventory is documented in
+      // docs/20261101_OVERNIGHT_STATUS_CHAINS_AND_SYNC.md. The Nov 5
+      // pre-migration backup also has 70; image renaming did not add a row.
+      expect(liveCount("SELECT COUNT(*) AS c FROM workflow_chains")).toBe(70);
     },
   );
+
+  it.skipIf(db === null)("the documented November Vina chain exists and every step resolves by ID and name", () => {
+    const chain = db!.prepare("SELECT steps FROM workflow_chains WHERE name = ?")
+      .get("vina_virtual_screening_bench") as { steps: string } | undefined;
+    expect(chain, "the extra chain must be the documented real addition, not an arbitrary count bump").toBeDefined();
+    const steps = JSON.parse(chain!.steps) as Array<{ order: number; workflow_name: string; workflow_id: number }>;
+    expect(steps.map(({ order, workflow_name, workflow_id }) => [order, workflow_name, workflow_id])).toEqual([
+      [1, "pocket_detection_druggability", 12805],
+      [2, "pharmacophore_filtering", 12804],
+      [3, "predict_admet_properties", 12826],
+      [4, "docking_autodock_vina", 12824],
+    ]);
+    for (const step of steps) {
+      // `name` is a display title (for example Predict ADMET Properties (AI));
+      // the canonical chain slug is the workflow directory, not that title.
+      const workflow = db!.prepare("SELECT filename, executable FROM workflows WHERE id = ?")
+        .get(step.workflow_id) as { filename: string; executable: number } | undefined;
+      expect(workflow, `Vina chain step ${step.order} must resolve by ID`).toBeDefined();
+      expect(path.posix.basename(path.posix.dirname(workflow!.filename))).toBe(step.workflow_name);
+      expect(workflow!.executable).toBe(1);
+    }
+  });
 
   it("documents the reason when the live DB cannot be read", () => {
     // This test exists so a skipped count-suite is never silent: if the DB is

@@ -6769,7 +6769,7 @@ ${paramLines || '(none recorded)'}`;
         }).catch(() => {/* non-fatal */});
 
         // Return the refusal as an SSE event so the frontend renders it in-chat
-        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
         res.flushHeaders?.();
@@ -6799,7 +6799,7 @@ ${paramLines || '(none recorded)'}`;
         return;
       }
 
-      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("X-Accel-Buffering", "no");
@@ -17142,11 +17142,25 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Get real-time workflow logs
    * Proxies to Galaxy backend's log streaming endpoint
    */
-  app.get("/api/workflows/runs/:id/logs", authenticateToken, requireLegacyRunRead, async (req, res) => {
+  app.get("/api/workflows/runs/:id/logs", authenticateToken, requireLegacyRunRead, async (req: any, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
-      if (!run) {
-        return res.status(404).json({ error: "Execution run not found" });
+      const run = await resolveAuthorizedRun(req, res, req.params.id);
+      if (!run) return;
+
+      // Direct Nextflow runs have no Galaxy workflow ID. The old proxy built
+      // /workflows/undefined/invocations/.../logs and failed while parsing HTML.
+      if (run.execution?.executionEngine === 'nextflow' || run.execution?.nextflowRunId) {
+        const id = run.execution.nextflowRunId || run.execution.galaxyInvocationId;
+        if (!id) return res.status(400).json({ error: 'No Nextflow execution associated with this run' });
+        const response = await fetch(
+          `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(id)}`,
+          { headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' }, signal: AbortSignal.timeout(15000) },
+        );
+        if (!response.ok) return res.status(response.status).json({ error: 'Nextflow execution diagnostics unavailable' });
+        const data = await response.json() as any;
+        return res.json({ run_id: id, source: 'nextflow', status: data.status,
+          logs: Array.isArray(data.log_tail) ? data.log_tail : [],
+          error: run.execution.errorMessage || run.execution.error || null });
       }
 
       // Direct Nextflow runs have no Galaxy workflow ID; preserve the existing

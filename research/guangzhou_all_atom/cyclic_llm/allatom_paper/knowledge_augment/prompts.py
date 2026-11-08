@@ -45,7 +45,7 @@ def rule_lines(level, k=8):
     if level.name == "L0":
         return []
     used = set(level.rule_ids)
-    pool = [e for e in _kb() if e["kind"] in ("rule", "fundamental") and e.get("quote_verified") and e.get("tier") in TIER_TAG]
+    pool = [e for e in _kb() if e["kind"] in ("rule", "fundamental") and e.get("quote_verified") and e.get("tier") in TIER_TAG and e["id"] in level.prompt_rule_ids]
     pool.sort(key=lambda e: (e["id"] not in used, TIER_ORDER[e["tier"]], e["id"]))
     return [dict(id=e["id"], tier=e["tier"], text="%s %s: %s" % (TIER_TAG[e["tier"]], e["id"], _one_line(e["statement"])), weight_in_sampler=e["id"] in used) for e in pool[:k]]
 
@@ -54,7 +54,7 @@ def lesson_lines(level, k=4, target=None):
     """prior-work lessons: cautions and method cards, cards applicable to `target` first."""
     if level.name == "L0":
         return []
-    pool = [e for e in _kb() if e["kind"] in ("caution", "card") and e.get("quote_verified") and e.get("tier") in TIER_TAG]
+    pool = [e for e in _kb() if e["kind"] in ("caution", "card") and e.get("quote_verified") and e.get("tier") in TIER_TAG and e["id"] in level.prompt_rule_ids]
 
     def applies(e):
         a = e.get("applicable_target") or []
@@ -117,7 +117,7 @@ def knowledge_block(level, target=None, k_rules=8, k_lessons=4, exclude_tokens=(
     card = target_card(target, exclude_tokens)
     groups = [("card", [card] if card else []), ("rule", rule_lines(level, k_rules)), ("structure", structure_lines(level, exclude_tokens)),
               ("lesson", lesson_lines(level, k_lessons, target)), ("data", group_a_line(level))]
-    head = "Knowledge (level %s, config %s):" % (level.name, level.config_hash)
+    head = "Knowledge (level %s, config %s%s):" % (level.name, level.config_hash, "; " + "; ".join(level.labels) if level.labels else "")
     if count_tokens(head) > max_tokens:
         raise PromptTooLong("knowledge header exceeds budget")
     flat = [(g, x) for g, xs in groups for x in xs]
@@ -126,7 +126,7 @@ def knowledge_block(level, target=None, k_rules=8, k_lessons=4, exclude_tokens=(
     while keep > 0 and count_tokens(render(keep)) > max_tokens:
         keep -= 1
     text = render(keep)
-    meta = dict(level=level.name, config_hash=level.config_hash, lines=[dict(group=g, id=x["id"], tier=x.get("tier")) for g, x in flat[:keep]], dropped=len(flat) - keep,
+    meta = dict(level=level.name, config_hash=level.config_hash, labels=list(level.labels), audit=level.config.get("audit"), lines=[dict(group=g, id=x["id"], tier=x.get("tier")) for g, x in flat[:keep]], dropped=len(flat) - keep,
                 n_tokens_est=count_tokens(text), exclude_tokens=list(exclude_tokens))
     return text, meta
 

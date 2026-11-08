@@ -45,7 +45,7 @@ SG=$(aws ec2 describe-security-groups --region "$REGION" \
 if [ "$SG" = "None" ] || [ -z "$SG" ]; then
   echo "[sg] creating $SG_NAME in $VPC"
   SG=$(aws ec2 create-security-group --region "$REGION" --group-name "$SG_NAME" \
-        --description "vLLM sft_gold endpoint — dev backend ingress only" \
+        --description "vLLM sft_gold endpoint - dev backend ingress only" \
         --vpc-id "$VPC" --query 'GroupId' --output text)
 fi
 # Idempotent: allow PORT from the dev backend SG as source (private, intra-VPC). No public ingress.

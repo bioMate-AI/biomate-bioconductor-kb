@@ -266,6 +266,18 @@ services:
       # LOCAL mode: Nextflow runs tasks in Docker containers on this host.
       # AWS mode: tasks run on AWS Batch (requires AWS credentials below).
       NEXTFLOW_EXECUTOR: ${NEXTFLOW_EXECUTOR:-local}
+      # Cluster settings must be passed into the backend, not merely present
+      # in the host .env. Scheduler clients/shared mounts remain prerequisites.
+      SLURM_PARTITION: ${SLURM_PARTITION:-compute}
+      SLURM_QOS: ${SLURM_QOS:-}
+      SLURM_ACCOUNT: ${SLURM_ACCOUNT:-}
+      SLURM_WORK_DIR: ${SLURM_WORK_DIR:-/scratch/biomate}
+      NXF_K8S_NAMESPACE: ${NXF_K8S_NAMESPACE:-biomate-jobs}
+      NXF_K8S_STORAGE_CLAIM: ${NXF_K8S_STORAGE_CLAIM:-biomate-work-pvc}
+      NXF_K8S_STORAGE_MOUNT: ${NXF_K8S_STORAGE_MOUNT:-/nf-work}
+      NXF_K8S_SERVICE_ACCOUNT: ${NXF_K8S_SERVICE_ACCOUNT:-nextflow}
+      NXF_K8S_PULL_POLICY: ${NXF_K8S_PULL_POLICY:-IfNotPresent}
+      NXF_K8S_GPU_RESOURCE: ${NXF_K8S_GPU_RESOURCE:-nvidia.com/gpu}
       # Explicit disable — prevents the frontend default (executor="awsbatch")
       # from overriding local mode. Set to "true" only when using AWS Batch.
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
@@ -450,6 +462,7 @@ services:
     environment:
       NODE_ENV:    production
       PORT:        "3000"
+      DISABLE_GOOGLE_FONTS: ${DISABLE_GOOGLE_FONTS:-true}
       GALAXY_URL:  http://biomate-engine:8080
       GALAXY_API_KEY: ${GALAXY_API_KEY:-}
 

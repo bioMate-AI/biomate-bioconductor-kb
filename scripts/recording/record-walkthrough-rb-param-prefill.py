@@ -5,7 +5,7 @@ Outputs a webm + a JSON with t_scene0_ms and the page's __timeline."""
 import json, time, pathlib
 from playwright.sync_api import sync_playwright
 
-URL = 'http://localhost:7801/tutorials/rb-param-prefill-walkthrough.html'
+URL = 'http://localhost:7803/tutorials/rb-param-prefill-walkthrough.html'
 OUT = pathlib.Path('/Users/kky/biomate-review/recording/video')
 OUT.mkdir(parents=True, exist_ok=True)
 META = pathlib.Path('/Users/kky/biomate-review/recording/audio/rb-param-prefill-shared')

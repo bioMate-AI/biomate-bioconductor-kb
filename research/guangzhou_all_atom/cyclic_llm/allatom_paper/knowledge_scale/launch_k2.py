@@ -11,14 +11,41 @@ SUBNETS = ["subnet-0254e4c3634b41bfc", "subnet-03b277a7a08d388c1", "subnet-09e4d
 TYPES = ["g5.2xlarge", "g6e.xlarge", "g6e.2xlarge", "g6.2xlarge", "g5.4xlarge"]  # g5.2xlarge first (A10G, 32 GB RAM, ~USD 0.5/h); g6e = L40S 48 GB (bf16 8B + large KV cache); 24 GB GPUs only as fp8 fallback; >= 32 GB RAM needed to load the 15 GB checkpoint
 
 UD = r'''#!/bin/bash
+set -Eeuo pipefail
 P=__P__
 mkdir -p /w/out /w/k2src && cd /w
+finish() {
+  rc=$?
+  trap - EXIT
+  set +e
+  if [ "$rc" -eq 0 ]; then
+    printf '{"status":"success","exit_code":0}\n' > /w/out/terminal_status.json
+    printf DONE > /w/out/done.flag
+  else
+    rm -f /w/out/done.flag
+    printf '{"status":"failed","exit_code":%s}\n' "$rc" > /w/out/terminal_status.json
+  fi
+  aws s3 sync /w/out "$P/" --only-show-errors
+  sync_rc=$?
+  if [ "$sync_rc" -ne 0 ]; then
+    if [ "$rc" -eq 0 ]; then rc=$sync_rc; fi
+    rm -f /w/out/done.flag
+    printf '{"status":"failed","exit_code":%s,"sync_failed":true}\n' "$rc" > /w/out/terminal_status.json
+    aws s3 rm "$P/done.flag" --only-show-errors || true
+    aws s3 sync /w/out "$P/" --only-show-errors || true
+  fi
+  if [ -n "${SYNC:-}" ]; then kill "$SYNC" 2>/dev/null; fi
+  shutdown -h now
+  exit "$rc"
+}
+trap finish EXIT
 shutdown -h +180
 exec > >(tee -a /w/out/boot.log) 2>&1
 echo "boot $(date -u +%FT%TZ) $(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
-( while true; do aws s3 sync /w/out $P/ --only-show-errors; sleep 30; done ) &
+( while true; do aws s3 sync /w/out $P/ --only-show-errors || true; sleep 30; done ) &
 SYNC=$!
-aws s3 cp __CODE__ /w/code.tgz --only-show-errors && tar xzf /w/code.tgz -C /w/k2src
+aws s3 cp __CODE__ /w/code.tgz --only-show-errors
+tar xzf /w/code.tgz -C /w/k2src
 cd /w/k2src
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv | tee /w/out/gpu.txt
 python3 -m pip install -q virtualenv >/w/out/pip00.log 2>&1; python3 -m virtualenv -q /w/venv >/w/out/venv.log 2>&1; echo "venv rc=$?" | tee -a /w/out/stage.log
@@ -41,8 +68,7 @@ python kb_before.py /w/out/kb_before.json > /w/out/kb_before.log 2>&1; echo "kb_
 python merge.py --rules /w/out/extract/rules_verified.jsonl --annotations /w/k2src/annotations.csv.gz --outdir /w/out/kb --before /w/out/kb_before.json > /w/out/merge.log 2>&1; echo "merge rc=$?" | tee -a /w/out/stage.log
 GOLD=""; [ -f /w/k2src/gold.jsonl ] && GOLD="--gold /w/k2src/gold.jsonl"
 python measure.py --rules /w/out/kb/knowledge_kb_scaled_v1.jsonl --corpus-index /w/out/corpus_index.json $GOLD --out /w/out/k2 > /w/out/measure.log 2>&1; echo "measure rc=$?" | tee -a /w/out/stage.log
-echo DONE > /w/out/done.flag; aws s3 sync /w/out $P/ --only-show-errors
-kill $SYNC; shutdown -h now
+exit 0
 '''
 
 

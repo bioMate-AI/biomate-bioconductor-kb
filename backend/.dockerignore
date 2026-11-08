@@ -63,6 +63,17 @@ docker/
 # Logs
 logs/*.log
 
+# Historical workflow/test artifacts are not runtime release inputs. Preserve
+# their original records in Git; do not bake retired image references into the
+# on-prem backend image.
+biomni_workflows/_archived/
+biomni_workflows/archived_workflows_broken_api/
+biomni_workflows/**/test_results/
+biomni_workflows/results/
+results/
+20260117_BIOMATE_BIOMNI_WORKFLOW_TEST_RESULTS.md
+20260119_1538_DOCKER_CONTAINER_ROUTING_APPROACH.md
+
 # Temp files
 tmp/
 temp/

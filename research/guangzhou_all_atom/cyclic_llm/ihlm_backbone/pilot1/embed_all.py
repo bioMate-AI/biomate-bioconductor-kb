@@ -8,9 +8,12 @@ from fetch_weights import fetch
 from pclm_encoder import PClmMLM
 from pclm_tokenizer import PClmTokenizer
 import common as C
-size, out = sys.argv[1], sys.argv[2]
+size, out = sys.argv[1], sys.argv[2]; assay = sys.argv[3] if len(sys.argv) > 3 else "pampa"
 torch.set_num_threads(int(os.environ.get("NT", "4")))
-d = C.load_labelled(); smi = d.SMILES.values; idx = d.index.values
+if assay == "pampa": d = C.load_labelled()
+else:
+    import pandas as pd; ann = pd.read_csv(os.path.join(C.HERE, "data", "annotations.csv.gz"), index_col=0); d = ann[ann[assay].notna()].copy()
+smi = d.SMILES.values; idx = d.index.values
 wd = fetch(size); tk = PClmTokenizer(os.path.join(wd, "tokenizer.json"), max_len=512); m, cfg, res = PClmMLM.from_dir(wd); m.eval()
 enc = [tk.encode(s) for s in smi]; order = np.argsort([len(e) for e in enc]); E = np.zeros((len(smi), cfg["embed_dim"]), np.float32); t0 = time.time(); B = 32
 with torch.no_grad():

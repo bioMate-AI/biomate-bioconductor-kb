@@ -48,7 +48,7 @@ async function overallStatus(page: Page): Promise<string> {
 // before the main workflow. Affects ALL SRA-accession workflows. Fix = run fetchngs on Batch+S3
 // and thread the S3 samplesheet (see docs/20260730_WGS_CRYOEM_ROOTCAUSE_AND_FIXES.md). Reference/
 // requester-pays were red herrings (the main workflow never ran). Un-fixme once fetchngs is fixed.
-test.fixme('WGS variant calling (SRR1518169 -> hg38 -> GATK -> snpEff) completes via the UI', async ({ browser, request }) => {
+test('WGS variant calling (SRR1518169 -> hg38 -> GATK -> snpEff) completes via the UI', async ({ browser, request }) => {
   test.setTimeout(180_000 + EXEC_TIMEOUT_MS);
   const page = await browser.newPage();
   page.on('console', (m) => { if (/SSE|Execution|error/i.test(m.text())) console.log(`[browser] ${m.text().slice(0, 160)}`); });

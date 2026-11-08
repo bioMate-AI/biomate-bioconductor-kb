@@ -1,5 +1,5 @@
 """K2 merge: dedupe equivalent rules, evidence counts, contradiction flags, benchmark-overlap flag, coverage matrix before/after."""
-import argparse, csv, gzip, hashlib, json, os, re
+import argparse, copy, csv, gzip, hashlib, json, os, re
 from collections import defaultdict
 from config import PROPERTIES, SUBSTRUCTURES, TOPICS, TARGETS, STRUCT_FEATURES, LESSON_TYPES
 from verify import benchmark_overlap
@@ -36,10 +36,35 @@ class UF:
         self.p[self.f(a)] = self.f(b)
 
 
+def scope_key(rule):
+    """Conservative exact scope; unknown scope is never evidence of equivalence.
+
+    Case and whitespace normalize only. No guessed scaffold/site/assay synonyms.
+    Topic, target, assay and explicit conditions must also agree for merging.
+    """
+    def canonical(value):
+        if isinstance(value, str):
+            return " ".join(value.split()).casefold()
+        if isinstance(value, list):
+            return sorted((canonical(x) for x in value), key=lambda x: json.dumps(x, sort_keys=True))
+        if isinstance(value, dict):
+            return {k: canonical(v) for k, v in value.items()}
+        return value
+    scope = canonical(rule.get("scope"))
+    if not scope:
+        return json.dumps({"unknown_scope_rule_id": rule["rule_id"]}, sort_keys=True)
+    return json.dumps({"scope": scope, **{k: canonical(rule.get(k)) for k in
+                       ("topic", "assay", "target", "conditions", "structure_feature")}}, sort_keys=True)
+
+
+def paper_key(citation):
+    return (citation.get("doi") or citation["pmcid"]).strip().casefold()
+
+
 def merge(rules, source_names):
     groups = defaultdict(list)
     for i, r in enumerate(rules):
-        groups[(r["property"], r["substructure_class"], r["direction"])].append(i)
+        groups[(r["property"], r["substructure_class"], r["direction"], scope_key(r))].append(i)
     uf = UF(len(rules))
     tk = [toks(r["statement"]) for r in rules]
     for idx in groups.values():
@@ -53,9 +78,14 @@ def merge(rules, source_names):
     merged = []
     for members in clusters.values():
         ms = sorted(members, key=lambda i: (TIER_RANK[rules[i]["evidence_tier"]],
-                                            0 if rules[i].get("proxy_entailment") == "YES" else 1, -rules[i]["confidence"]))
+                                            0 if rules[i].get("proxy_entailment") == "YES" else 1, -rules[i]["confidence"], rules[i]["rule_id"]))
         rep = dict(rules[ms[0]])
-        dois = sorted({rules[i]["citation"].get("doi") or rules[i]["citation"]["pmcid"] for i in members})
+        rep["merge_version"] = "scope-preserving-v2"
+        rep["scope_key"] = scope_key(rep)
+        rep["member_rules"] = [copy.deepcopy(rules[i]) for i in sorted(members, key=lambda i: rules[i]["rule_id"])]
+        rep["member_rule_ids"] = [r["rule_id"] for r in rep["member_rules"]]
+        rep["representative_only"] = True
+        dois = sorted({paper_key(rules[i]["citation"]) for i in members})
         rep["support"] = {"n_rules": len(members), "n_papers": len(dois), "papers": dois,
                           "tiers": sorted({rules[i]["evidence_tier"] for i in members}),
                           "entail_yes": sum(1 for i in members if rules[i].get("proxy_entailment") == "YES")}
@@ -67,13 +97,15 @@ def merge(rules, source_names):
         merged.append(rep)
     cell = defaultdict(lambda: defaultdict(set))
     for m in merged:
-        cell[(m["property"], m["substructure_class"])][m["direction"]].update(m["support"]["papers"])
+        cell[(m["property"], m["substructure_class"], m["scope_key"])][m["direction"]].update(m["support"]["papers"])
     conflicts = {k: {d: sorted(v) for d, v in dd.items()} for k, dd in cell.items()
-                 if dd.get("increases") and dd.get("decreases") and (dd["increases"] != dd["decreases"])}
+                 if dd.get("increases") and dd.get("decreases") and any(a != b for a in dd["increases"] for b in dd["decreases"])}
     for m in merged:
-        k = (m["property"], m["substructure_class"])
-        m["direction_conflict_in_cell"] = k in conflicts and m["direction"] in ("increases", "decreases")
-    return merged, {"|".join(k): v for k, v in conflicts.items()}
+        k = (m["property"], m["substructure_class"], m["scope_key"])
+        m["direction_conflict_in_scope"] = k in conflicts and m["direction"] in ("increases", "decreases")
+        m["direction_conflict_in_cell"] = m["direction_conflict_in_scope"]  # compatibility alias; v2 scope semantics
+        m["within_scope_opposing_evidence"] = bool(cell[k].get("increases") and cell[k].get("decreases"))
+    return sorted(merged, key=lambda m: m["rule_id"]), {json.dumps(k): v for k, v in sorted(conflicts.items())}
 
 
 def coverage(rules_for_cells):

@@ -23,13 +23,15 @@ def num_ok(act, quote, passage):
     cands = {s}
     try:
         f = float(s); cands |= {("%g" % f), str(int(f)) if f == int(f) else s}
-    except ValueError:
+    except (ValueError, OverflowError):
         return False
-    return any(re.search(r"(?<![\d.])" + re.escape(c) + r"(?![\d])", hay) for c in cands if c)
+    return any(re.search(r"(?<![\w.+−-])" + re.escape(c) + r"(?![\w.])", hay) for c in cands if c)
 
 def verify(item, ntext, passage_norm):
     """Return (ok, reason, enrich) ; enrich holds parsed structure data when available."""
-    enrich = {}
+    enrich = dict(verification_schema='k4-verification-v2',
+                  method_prior_eligible=False,source_structure_fidelity='unreviewed',
+                  activity_linkage_status='unreviewed',converter_version=seq2smiles.CONVERTER_VERSION)
     if item.get("kind") not in KINDS:
         return False, "bad_kind", enrich
     st = item.get("statement") or ""
@@ -46,6 +48,9 @@ def verify(item, ntext, passage_norm):
         return False, "bad_activity", enrich
     if act and not num_ok(act, q, passage_norm):
         return False, "value_not_in_text", enrich
+    enrich['activity_numeric_occurrence'] = bool(act and act.get('value') is not None)
+    if not act or act.get('value') is None:
+        enrich['activity_linkage_status'] = 'not_applicable'
     ss = norm(item.get("structure_string") or "")
     fmt = item.get("structure_format") or "none"
     if fmt not in FORMATS:
@@ -69,6 +74,14 @@ def verify(item, ntext, passage_norm):
                 enrich["structure_status"] = "seq_convert_fail:" + str(e)[:60]
         else:
             enrich["structure_status"] = "not_converted_" + fmt
+    if enrich.get('canonical_smiles'):
+        m = Chem.MolFromSmiles(enrich['canonical_smiles'])
+        enrich['graph_parse_ok'] = m is not None
+        enrich['unassigned_tetrahedral_centres'] = sum(
+            label=='?' for _,label in Chem.FindMolChiralCenters(m,includeUnassigned=True)) if m is not None else None
+    else:
+        enrich['graph_parse_ok'] = False
+        enrich['unassigned_tetrahedral_centres'] = None
     return True, "", enrich
 
 def item_id(patent, quote, statement):
