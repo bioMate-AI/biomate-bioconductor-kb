@@ -168,35 +168,9 @@ ec2_scp() {
 # Layer 1: Frontend (full Docker rebuild)
 # ---------------------------------------------------------------------------
 
-apply_postgres_migrations() {
-  # Apply any new frontend/migrations/*.sql to biomate-dev-postgres.
-  # Idempotent (each migration uses IF NOT EXISTS / IF EXISTS).
-  # Runs BEFORE frontend deploy so schema is ready when the new bundle starts.
-  log "[pg] Applying frontend/migrations/*.sql to biomate-dev-postgres..."
-  local migrations_dir="$REPO_ROOT/frontend/migrations"
-  if [[ ! -d "$migrations_dir" ]]; then
-    log "[pg] No migrations dir at $migrations_dir — skipping"
-    return 0
-  fi
-  local tar_file=/tmp/biomate_pg_migrations.tar.gz
-  tar -czf "$tar_file" -C "$REPO_ROOT" frontend/migrations 2>/dev/null
-  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/pg_migrations.tar.gz"
-  ec2_ssh '
-    set -e
-    rm -rf /tmp/pg_migrations && mkdir -p /tmp/pg_migrations
-    tar -xzf /tmp/pg_migrations.tar.gz -C /tmp/pg_migrations
-    docker cp /tmp/pg_migrations/frontend/migrations biomate-dev-postgres:/tmp/migrations
-    docker exec biomate-dev-postgres bash -c "
-      set -e
-      cd /tmp/migrations
-      for f in \$(ls *.sql | sort); do
-        echo \"[pg] applying \$f\"
-        psql -U biomate -d biomate -v ON_ERROR_STOP=1 -f \$f >/dev/null
-      done
-    " 2>&1 | tail -20
-  '
-  log "[pg] Migrations applied"
-}
+# PostgreSQL migrations have one owner: the frontend startup runner applies
+# pending SQL and ledger updates transactionally before routes register. The
+# existing post-start health/rollback gate rejects a failed migration startup.
 
 deploy_frontend() {
   log "[frontend] Building archive..."
@@ -509,19 +483,47 @@ deploy_galaxy_yml() {
 # host copy (additive; nothing in the container is removed). Cheap no-op when all are present.
 NFCORE_PIPELINES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-workflows"
 NFCORE_MODULES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-modules"
+validate_sync_inputs() {
+  # Validate the current checkout before snapshots, container copies or env changes.
+  if $do_backend || $do_workflows; then
+    [[ -d "$REPO_ROOT/infra/nfcore-patches" ]] || { log "[preflight] FATAL: infra/nfcore-patches missing from checkout"; return 1; }
+    [[ -f "$REPO_ROOT/infra/nfcore-patches/dualrnaseq/1.0.0.patch" ]] || { log "[preflight] FATAL: required dualrnaseq patch is missing"; return 1; }
+  fi
+  if $do_workflows; then
+    local required
+    for required in backend/biomni_workflows backend/nf-core-workflows/modules/biomate-ai-tools backend/nf-core-modules; do
+      [[ -d "$REPO_ROOT/$required" ]] || { log "[preflight] FATAL: workflow source directory missing: $required"; return 1; }
+    done
+  fi
+}
+
 ensure_nfcore_pipelines() {
   log "[nfcore] Checking real nf-core pipelines in the Galaxy container..."
   # BioMate patches to pinned nf-core releases (infra/nfcore-patches/<pipeline>/<version>.patch):
   # shipped to the host and applied to the host source below, so the container copy carries them.
-  local patch_tgz="/tmp/biomate_nfcore_patches.tar.gz"
-  tar -czf "$patch_tgz" -C "$REPO_ROOT/infra" nfcore-patches 2>/dev/null \
-    && ec2_scp "$patch_tgz" "${EC2_USER}@${EC2_HOST}:/tmp/nfcore_patches.tar.gz" \
-    || log "[nfcore] ⚠ could not ship infra/nfcore-patches — pipelines run unpatched"
-  ec2_ssh "NFCORE_SRC=${NFCORE_PIPELINES_HOST_DIR} bash -s" <<'REMOTE'
+  local patch_tgz remote_patch_tgz patch_sha
+  patch_tgz=$(mktemp /tmp/biomate_nfcore_patches.XXXXXX) || return 1
+  remote_patch_tgz="/tmp/${patch_tgz##*/}.tar.gz"
+  if ! tar -czf "$patch_tgz" -C "$REPO_ROOT/infra" nfcore-patches; then
+    rm -f "$patch_tgz"; log "[nfcore] FATAL: could not create patch archive"; return 1
+  fi
+  patch_sha=$(shasum -a 256 "$patch_tgz" | cut -d ' ' -f 1)
+  if ! ec2_scp "$patch_tgz" "${EC2_USER}@${EC2_HOST}:$remote_patch_tgz"; then
+    rm -f "$patch_tgz"; log "[nfcore] FATAL: could not upload current patch archive"; return 1
+  fi
+  rm -f "$patch_tgz"
+  ec2_ssh "NFCORE_SRC=${NFCORE_PIPELINES_HOST_DIR} NFCORE_PATCH_TGZ=$remote_patch_tgz NFCORE_PATCH_SHA=$patch_sha bash -s" <<'REMOTE'
 set -e
+# Verify this exact invocation's archive before modifying any pipeline source.
+[ -n "$NFCORE_PATCH_TGZ" ] && [ -f "$NFCORE_PATCH_TGZ" ] || { echo "[nfcore] FATAL: current patch archive missing" >&2; exit 1; }
+[ "$(sha256sum "$NFCORE_PATCH_TGZ" | cut -d ' ' -f 1)" = "$NFCORE_PATCH_SHA" ] || { echo "[nfcore] FATAL: patch archive checksum mismatch" >&2; exit 1; }
+PD=$(mktemp -d /tmp/nfcore_patches.XXXXXX)
+trap 'rm -f "$NFCORE_PATCH_TGZ"; rm -rf "$PD"' EXIT
+tar -xzf "$NFCORE_PATCH_TGZ" -C "$PD"
+[ -f "$PD/nfcore-patches/dualrnaseq/1.0.0.patch" ] || { echo "[nfcore] FATAL: required patch missing from archive" >&2; exit 1; }
 GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
 GC="${GC:-biomate-galaxy-dev}"
-if [ ! -d "$NFCORE_SRC" ]; then echo "[nfcore] WARNING: host copy $NFCORE_SRC missing — cannot restore pipelines"; exit 0; fi
+if [ ! -d "$NFCORE_SRC" ]; then echo "[nfcore] FATAL: host copy $NFCORE_SRC missing — cannot restore pipelines" >&2; exit 1; fi
 # A pipeline is INCOMPLETE when its nextflow.config includes conf/base.config (the unconditional include every
 # nf-core pipeline loads) and that file does not exist. 125 of 137 host copies held only top-level files
 # (main.nf, nextflow.config, README — no conf/, modules/, workflows/), so every run failed at config parse
@@ -579,8 +581,6 @@ done
 # 1b) apply BioMate patches for the pinned version. .biomate_patches in the pipeline dir lists the
 #     sha256 of each applied patch; a fresh re-fetch has none, so its patches are re-applied.
 #     Patches are applied by `patch -p1 -N` to the host source only (the container is replaced below).
-PD=/tmp/nfcore_patches; rm -rf "$PD"; mkdir -p "$PD"
-[ -f /tmp/nfcore_patches.tar.gz ] && tar -xzf /tmp/nfcore_patches.tar.gz -C "$PD" 2>/dev/null
 for pf in "$PD"/nfcore-patches/*/*.patch; do
   [ -f "$pf" ] || continue
   n=$(basename "$(dirname "$pf")"); ver=$(basename "$pf" .patch); d="$NFCORE_SRC/$n"
@@ -938,9 +938,9 @@ deploy_workflows() {
     docker exec "$GC" bash -c "
       rm -rf /home/galaxy/.nextflow/cache /home/galaxy/.nextflow/tmp 2>/dev/null
       rm -rf /root/.nextflow/cache /root/.nextflow/tmp 2>/dev/null
-      # Also wipe completed/orphaned per-run dirs older than 1 hour so the
-      # fallback status path will not latch onto a stale timing.json.
-      find /tmp/nextflow_runs -maxdepth 1 -mindepth 1 -type d -mmin +60 -exec rm -rf {} + 2>/dev/null
+      # Per-run directories contain resume caches, status evidence, logs and
+      # local outputs. Deployment must preserve active and historical runs.
+      # Retention belongs to a separate owner-aware lifecycle policy.
       echo \"  ✓ nextflow caches cleared\"
     " 2>&1 | tail -3
     echo "[workflows] Done"
@@ -1992,16 +1992,13 @@ do_sync() {
     grep -vE '\.(test|spec)\.(ts|tsx|js)$|^frontend/e2e/' || true)"
   [[ -n "$_runtime_frontend" ]] && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/" && do_workflows=true
+  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/|^infra/nfcore-patches/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
   # BIOMATE_SYNC_FORCE=frontend,backend,workflows re-deploys those layers even with no matching
   # change, e.g. to exercise a change to this script itself.
   [[ ",${BIOMATE_SYNC_FORCE:-}," == *",frontend,"* ]] && do_frontend=true
   [[ ",${BIOMATE_SYNC_FORCE:-}," == *",backend,"* ]] && do_backend=true
   [[ ",${BIOMATE_SYNC_FORCE:-}," == *",workflows,"* ]] && do_workflows=true
-
-  # Always sync logo
-  sync_logo 2>/dev/null || true
 
   # DB sync is also time-based (if local DB newer than last sync)
   # stat differs across platforms. GNU/Linux `stat -f %m` returns filesystem
@@ -2049,7 +2046,11 @@ do_sync() {
   # Snapshot the pre-sync state BEFORE any mutation (and before the optional
   # resync_galaxy_env recreates the container) so we can roll back if the sync
   # leaves dev unhealthy.
+  validate_sync_inputs || return 1
   snapshot_for_rollback "$do_frontend"
+
+  # Cosmetic assets are mutations too: ship only after preflight and snapshot.
+  sync_logo 2>/dev/null || true
 
   # Optional (RECOMMENDED): pull runtime env from AWS Secrets Manager into the
   # EC2's /opt/biomate/.env using the instance role. Values live in Secrets
@@ -2076,7 +2077,9 @@ do_sync() {
   # `gunicorn` block — Docker maps host:8081 → container:8080, so 8081-bound
   # gunicorn never gets reached). Cheap to ship (single file) and idempotent.
   deploy_galaxy_yml || true
-  ensure_nfcore_pipelines || log "[nfcore] ⚠ pipeline restore failed — nf-core runs may fail to resolve"
+  if $do_backend || $do_workflows; then
+    ensure_nfcore_pipelines || return 1
+  fi
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
@@ -2128,9 +2131,8 @@ do_sync() {
   # cache), health gate started only ~2 min after the last `docker restart`,
   # but Galaxy needs 3.5 min to boot → all 48 probes timed out.
   ($do_backend || $do_workflows || $do_db) && restart_galaxy
-  # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
-  # storage layer never hits a missing column on the new schema.
-  $do_frontend  && apply_postgres_migrations
+  # The new frontend applies pending PostgreSQL migrations transactionally at
+  # startup, before registering routes. Health/rollback catches startup failure.
   # A failed frontend deploy MUST abort the sync before the health gate and the
   # marker write — otherwise the health gate passes on the still-running OLD
   # container and the sync records a false success (2026-09-13 silent-fail).

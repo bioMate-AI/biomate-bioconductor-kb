@@ -684,31 +684,26 @@ export class GalaxyAPIProxy {
    * Supports HTTP, HTTPS, FTP, and S3 URLs
    */
   async uploadFromUrl(url: string, historyId: string, fileName?: string): Promise<string> {
-    console.log(`[GalaxyAPIProxy] Uploading from URL: ${url} to history ${historyId}`);
-
-    // Galaxy's paste/fetch upload API
-    // Uses the same endpoint as regular uploads but with 'paste' target
-    const response = await this.client.post(
-      `/api/histories/${historyId}/contents`,
-      {
-        type: 'file',
-        source: 'url',
-        url: url,
-        name: fileName || url.split('/').pop() || 'imported-file',
+    // History contents creates/copies existing datasets; it does not import
+    // remote files. Use Galaxy's upload1 URL-paste input, under this same
+    // per-user Axios client (including rejected-key recovery).
+    console.log(`[GalaxyAPIProxy] Importing remote file into history ${historyId}`);
+    const response = await this.client.post('/api/tools', {
+      tool_id: 'upload1',
+      history_id: historyId,
+      inputs: {
         file_type: 'auto',
-        space_to_tab: false,
-        to_posix_lines: true,
-      }
-    );
-
-    // Galaxy may return the dataset ID directly or in a job structure
-    if (response.data.id) {
-      return response.data.id;
-    }
-    if (response.data.outputs && response.data.outputs.length > 0) {
-      return response.data.outputs[0].id;
-    }
-    throw new Error('No dataset ID returned from URL import');
+        dbkey: '?',
+        'files_0|type': 'upload_dataset',
+        'files_0|NAME': fileName || 'imported-file',
+        'files_0|url_paste': url,
+        'files_0|space_to_tab': false,
+        'files_0|to_posix_lines': true,
+      },
+    });
+    const datasetId = response.data.outputs?.[0]?.id;
+    if (datasetId) return datasetId;
+    throw new Error('Galaxy URL import returned no uploaded dataset ID');
   }
 
   /**

@@ -1,0 +1,9 @@
+{
+  "status": "verified",
+  "sourceImageId": "sha256:3611c5a57f2323aa14af7a5c76bd51c3e11177e44c9ca27809846fc6505e007c",
+  "holdTag": "biomate-galaxy-dev:pre-history-recovery-20261108",
+  "preexistingSameTag": false,
+  "imagePruned": false,
+  "ssmStatus": "Success",
+  "ssmCommandId": "237cb745-880d-4799-9f0c-ffa1e71d515f"
+}

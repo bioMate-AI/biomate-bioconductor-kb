@@ -49,3 +49,23 @@ describe("run output/findings route authentication wiring", () => {
     expect(routes).toContain('app.all("/api/datasets/*", authenticateToken, requireDatasetAccess(true), _dlProxyHandler)');
   });
 });
+
+const legacyReads = ['/:id', '/:id/status', '/:id/download_commands', '/:id/iterations', '/:id/reproducibility', '/:id/compare', '/:id/logs'];
+const legacyWrites = ['rerun-from-step', 'save-to-project', 'pause', 'resume', 'cancel', 'interactions', 'ai/analyze', 'ai/autofix', 'ai/query', 'promote'];
+describe('legacy run alias owner boundary wiring', () => {
+ it.each(legacyReads)('authenticates and authorizes read %s', suffix => {
+  expect(routes).toContain(`app.get("/api/workflows/runs${suffix}", authenticateToken, requireLegacyRunRead,`);
+ });
+ it.each(legacyWrites)('authenticates and authorizes mutation %s', action => {
+  expect(routes).toContain(`app.post("/api/workflows/runs/:id/${action}", authenticateToken, requireLegacyRunWrite,`);
+ });
+ it('protects raw rerun aliases and patch/delete handlers', () => {
+  expect(routes).toContain('app.post("/api/workflows/runs/:runId/rerun", authenticateToken, requireLegacyRunIdWrite,');
+  for (const method of ['patch', 'delete']) expect(routes).toContain(`app.${method}("/api/workflows/runs/:id", authenticateToken, requireLegacyRunWrite,`);
+ });
+ it('authorizes both comparison runs and derives export backend identity from the owned record', () => {
+  expect(routes).toContain('const comparisonRun = await resolveAuthorizedRun(req, res, compareWithId);');
+  expect(routes).toContain('run.execution?.nextflowRunId || run.execution?.galaxyInvocationId || run.id');
+  expect(routes).toContain('legacyRunUpdateSchema.safeParse(req.body)');
+ });
+});

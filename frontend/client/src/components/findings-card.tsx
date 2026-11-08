@@ -247,7 +247,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
-        {tOr('panel.findings.analyzing', 'Analyzing outputs…')}
+        {tOr('panel.findings.analyzing', 'Loading the AI summary…')}
       </div>
     )
   }
@@ -272,7 +272,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
-        {tOr('panel.findings.in_progress', 'Analysis in progress…')}
+        {tOr('panel.findings.in_progress', 'AI summary is not available yet.')}
       </div>
     )
   }

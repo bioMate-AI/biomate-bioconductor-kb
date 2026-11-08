@@ -43,6 +43,9 @@ import {
   runUpdatedAtMs,
   type RunBucket,
   type RunListItem,
+  workflowPanelProjectId,
+  workflowPanelProjectName,
+  runManagerListParams,
 } from "./run-manager-utils"
 
 function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cancelled' | null {
@@ -146,8 +149,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [runManagerScope, setRunManagerScope] = useState<RunManagerScope>(() => {
     try {
       const v = localStorage.getItem('biomate-run-manager-scope')
-      return (v === 'all_chats' || v === 'current_chat') ? v : 'current_chat'
-    } catch { return 'current_chat' }
+      return (v === 'all_chats' || v === 'current_chat') ? v : 'all_chats'
+    } catch { return 'all_chats' }
   })
   useEffect(() => { try { localStorage.setItem('biomate-run-manager-scope', runManagerScope) } catch {} }, [runManagerScope])
   const [runSearchQuery, setRunSearchQuery] = useState("")
@@ -635,7 +638,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     cancelRun,
     loadRun,
   } = useUnifiedExecution()
-  const { activeProjectId, activeProject } = useActiveProject()
+  const { activeProjectId, activeProject, projects } = useActiveProject()
   const { isOnline } = useNetworkStatus()
 
   // Update progress based on execution run
@@ -709,10 +712,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     setIsRunListLoading(true)
     setRunListError(null)
     try {
-      const params = new URLSearchParams({ limit: "50" })
-      params.set("offset", "0")
-      if (runManagerScope === "current_chat" && currentChatSession?.id) {
-        params.set("chatSessionId", currentChatSession.id)
+      const params = runManagerListParams(runManagerScope, currentChatSession?.id)
+      if (!params) {
+        setRunList([])
+        return
       }
       const response = await fetch(`/api/workflows/runs?${params.toString()}`)
       if (!response.ok) {
@@ -1755,7 +1758,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       })
     }
     try {
-      await loadRun(runId)
+      const restored = await loadRun(runId)
+      setPanelWorkflow(restored.workflowDefinition || { name: restored.workflowName })
+      setPanelWorkflowMessageId(null)
+      setPanelOpen(true)
+      // The picker must yield its space to the selected workflow panel.
+      setShowRunManager(false)
       emitUxEvent("workflow.run_switched", {
         sessionId: currentChatSession?.id,
         runId,
@@ -2053,7 +2061,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       </div>
 
       {showRunManager && (
-        <div className="border-b bg-muted/20 px-4 py-3" data-testid="run-manager-panel">
+        <div className="border-b bg-muted/20 px-4 py-3 shrink-0 max-h-[40vh] overflow-y-auto" data-testid="run-manager-panel">
           <div
             className="sr-only"
             data-testid="run-manager-focused-run-state"
@@ -2538,7 +2546,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   const panelPath = panelWorkflow?.nextflow_path || panelWorkflow?.nextflowPath
                   const panelName = panelWorkflow?.name || panelWorkflow?.workflow_name
                   const runName = currentRun?.workflowDefinition?.name
-                    || currentRun?.workflowDefinition?.workflow_name
+                    || currentRun?.workflowDefinition?.workflow_name || currentRun?.workflowName
                   const runMatchesPanel = !currentRun || !panelWorkflow
                     || (runPath && panelPath ? runPath === panelPath : runName === panelName)
 
@@ -2565,8 +2573,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       onClose={handleClosePanelWorkflow}
                       onToggleExpand={() => setChatHidden(v => !v)}
                       expanded={chatHidden}
-                      projectId={activeProjectId || undefined}
-                      projectName={activeProject?.name}
+                      projectId={workflowPanelProjectId(currentRun, Boolean(runMatchesPanel), activeProjectId)}
+                      projectName={workflowPanelProjectName(workflowPanelProjectId(currentRun, Boolean(runMatchesPanel), activeProjectId), projects)}
                       invocationId={runMatchesPanel ? (currentRun?.execution?.galaxyInvocationId || currentRun?.id) : undefined}
                       workflowId={panelWorkflow?.id}
                       lastSubmittedParams={runMatchesPanel ? extractSubmittedParams(currentRun) : undefined}

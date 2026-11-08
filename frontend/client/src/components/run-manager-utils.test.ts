@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
   isActiveJob,
+  workflowPanelProjectId,
+  workflowPanelProjectName,
+  runManagerListParams,
   getRunPrimaryCta,
   getOutputReadinessHint,
   isRunNeedsAttention,
@@ -141,3 +144,23 @@ it('keeps terminal history and unstarted drafts out of Running jobs', () => {
   for (const status of ['running', 'queued', 'paused', 'submitted']) expect(isActiveJob(buildRun({ execution: { status } }))).toBe(true)
   for (const status of ['completed', 'failed', 'cancelled', 'configuring', 'unknown']) expect(isActiveJob(buildRun({ execution: { status } }))).toBe(false)
 })
+
+describe('saved run identity and history scope', () => {
+ it('never assigns the composer project to a saved run with another or unknown project', () => {
+  expect(workflowPanelProjectId({ id: 'old', projectId: 'original' }, true, 'qa-current')).toBe('original');
+  expect(workflowPanelProjectId({ id: 'old', projectId: null }, true, 'qa-current')).toBeUndefined();
+  expect(workflowPanelProjectId(null, false, 'qa-current')).toBe('qa-current');
+ });
+ it('does not query all runs under the Current chat label when the chat is unsaved', () => {
+  expect(runManagerListParams('current_chat', null)).toBeNull();
+  expect(runManagerListParams('current_chat', 'chat1')?.get('chatSessionId')).toBe('chat1');
+  expect(runManagerListParams('all_chats', null)?.has('chatSessionId')).toBe(false);
+ });
+});
+
+it('resolves the saved project name only from its actual project ID', () => {
+ const projects = [{ id: 'current', name: 'Current QA' }, { id: 'original', name: 'Original Study' }];
+ expect(workflowPanelProjectName('original', projects)).toBe('Original Study');
+ expect(workflowPanelProjectName(undefined, projects)).toBeUndefined();
+ expect(workflowPanelProjectName('unknown', projects)).toBeUndefined();
+});

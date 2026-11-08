@@ -1,3 +1,4 @@
+import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
@@ -1677,7 +1678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const decision = await decideRunAccess(
       run,
       req.user?.id ? String(req.user.id) : null,
-      (storage as any).getUserProjects?.bind(storage),
+      (uid: string) => memoryService.projects.getUserProjects(uid),
     );
     if (!decision.allowed) {
       res.status(decision.status).json({ error: decision.error });
@@ -1685,6 +1686,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     return run;
   };
+  const legacyRunAccessDependencies = {
+    resolveRun: async (id: string) => (await storage.getExecutionRun(id)) ||
+      (await storage.getExecutionRunByGalaxyId(id)) ||
+      (storage.getExecutionRunByNextflowId ? await storage.getExecutionRunByNextflowId(id) : undefined),
+    getUserProjects: (uid: string) => memoryService.projects.getUserProjects(uid),
+  };
+  const requireLegacyRunRead = createLegacyRunGuard(legacyRunAccessDependencies, 'read');
+  const requireLegacyRunWrite = createLegacyRunGuard(legacyRunAccessDependencies, 'write');
+  const requireLegacyRunIdWrite = createLegacyRunGuard(legacyRunAccessDependencies, 'write', 'runId');
+
   // Dependency bundle for the output/invocation authorization resolver — the
   // same owner/project-member policy as resolveAuthorizedRun, applied to
   // surfaces addressed by output/invocation id. See output-access.ts.
@@ -1693,7 +1704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     getInvocation: (id: string) => storage.getInvocation(id),
     getRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid),
     getInvocationByGalaxyId: (gid: string) => storage.getInvocationByGalaxyId(gid),
-    getUserProjects: (storage as any).getUserProjects?.bind(storage),
+    getUserProjects: (uid: string) => memoryService.projects.getUserProjects(uid),
     // Canonical-id path (L1c): resolve a `${runId}:${s3Key}` output at the RUN
     // level (owner persisted on the ExecutionRun → durable across restarts) and
     // serve the matching output from the canonical resolver.
@@ -4686,7 +4697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // The frontend viewer passes its execution run UUID (frontend storage ID).
   // The Python backend's _runs dict is keyed by the Nextflow-assigned run_id.
   // We resolve the translation here before proxying to the Python backend.
-  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, requireLegacyRunIdWrite, async (req, res) => {
     try {
       const { runId } = req.params;
 
@@ -12665,7 +12676,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get a specific execution run by ID
-  app.get("/api/workflows/runs/:id", authenticateToken, async (req, res) => {
+  app.get("/api/workflows/runs/:id", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       // Fall back to Galaxy invocation ID lookup (session restore may have stored
@@ -12676,12 +12687,6 @@ ${paramLines || '(none recorded)'}`;
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
-      // Ownership check: return 404 (not 403) so run IDs can't be probed for existence
-      const uid = (req as any).user?.id ? String((req as any).user.id) : null;
-      if (uid && run.userId && run.userId !== uid) {
-        return res.status(404).json({ error: "Execution run not found" });
-      }
-
       // Stuck-running guard: if a run has been status='running' for >12h with
       // no terminal signal, the Nextflow JVM is almost certainly dead
       // (container restart, OOM, gunicorn worker recycle). No drug-dev
@@ -12863,7 +12868,7 @@ ${paramLines || '(none recorded)'}`;
   };
 
   // Get execution run status (lightweight polling endpoint)
-  app.get("/api/workflows/runs/:id/status", authenticateToken, async (req, res) => {
+  app.get("/api/workflows/runs/:id/status", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -14069,7 +14074,7 @@ Rules:
       const decision = await decideRunAccess(
         run,
         req.user?.id ? String(req.user.id) : null,
-        (storage as any).getUserProjects?.bind(storage),
+        (uid: string) => memoryService.projects.getUserProjects(uid),
       );
       if (!decision.allowed) return res.status(decision.status).json({ error: decision.error });
 
@@ -14600,7 +14605,7 @@ Rules:
       if (!isOwner && runProjectId && userId) {
         try {
           // Project membership: defer to storage helper. If absent, treat as owner-only.
-          const memberOf = await (storage as any).getUserProjects?.(userId);
+          const memberOf = await memoryService.projects.getUserProjects(userId);
           isProjectMember = Array.isArray(memberOf) && memberOf.some((p: any) => p?.id === runProjectId);
         } catch { /* treat as not-a-member on lookup failure */ }
       }
@@ -15003,7 +15008,7 @@ Rules:
   });
 
   // Download commands for a run (aws s3 sync commands for final + intermediate outputs)
-  app.get("/api/workflows/runs/:id/download_commands", async (req, res) => {
+  app.get("/api/workflows/runs/:id/download_commands", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -15034,7 +15039,7 @@ Rules:
   });
 
   // Rerun a Nextflow workflow from a specific step with parameter overrides
-  app.post("/api/workflows/runs/:id/rerun-from-step", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/rerun-from-step", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) return res.status(404).json({ error: 'Run not found' });
@@ -15140,10 +15145,12 @@ Rules:
   });
 
   // Get iteration runs (all runs linked to a parent)
-  app.get("/api/workflows/runs/:id/iterations", async (req, res) => {
+  app.get("/api/workflows/runs/:id/iterations", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const runs = await storage.getExecutionRunsByParent(req.params.id);
-      res.json(runs);
+      const uid = String(req.user!.id);
+      const readable = await Promise.all(runs.map(async run => ({ run, decision: await decideRunAccess(run, uid, legacyRunAccessDependencies.getUserProjects) })));
+      res.json(readable.filter(item => item.decision.allowed).map(item => item.run));
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching iterations:", error);
       res.status(500).json({ error: error.message });
@@ -15152,10 +15159,12 @@ Rules:
 
   // Track 3C: GET /api/workflows/runs/:id/reproducibility
   // Proxies to the Galaxy/Nextflow backend to generate a reproducibility export bundle.
-  app.get("/api/workflows/runs/:id/reproducibility", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/:id/reproducibility", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
-      const resp = await fetch(`${galaxyBase}/api/nextflow/runs/${req.params.id}/reproducibility`);
+      const run = (req as any).authorizedLegacyRun;
+      const backendRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId || run.id;
+      const resp = await fetch(`${galaxyBase}/api/nextflow/runs/${encodeURIComponent(backendRunId)}/reproducibility`);
       if (!resp.ok) {
         const body = await resp.text().catch(() => resp.statusText);
         return res.status(resp.status).json({ error: `export failed: ${body}` });
@@ -15168,10 +15177,11 @@ Rules:
   });
 
   // Update execution run (for parameter changes, etc.)
-  app.patch("/api/workflows/runs/:id", async (req, res) => {
+  app.patch("/api/workflows/runs/:id", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
-      const updates = req.body;
-      const run = await storage.updateExecutionRun(req.params.id, updates);
+      const parsed = legacyRunUpdateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: 'Only valid parameter and data-scope updates are accepted' });
+      const run = await storage.updateExecutionRun(req.params.id, parsed.data);
 
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
@@ -15285,7 +15295,7 @@ Rules:
   // Reads output files from nextflowStatus.s3_output_files (or triggers a
   // fresh S3 scan via /api/workflows/runs/:id/output_files) and bulk-inserts
   // them into project_files with source='run_output'.
-  app.post("/api/workflows/runs/:id/save-to-project", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/save-to-project", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) return res.status(404).json({ error: "Execution run not found" });
@@ -15293,8 +15303,10 @@ Rules:
       const { projectId } = req.body as { projectId?: string };
       if (!projectId) return res.status(400).json({ error: "projectId required" });
 
-      const uid = (req as any).user?.id ? String((req as any).user.id) : run.userId ?? "system";
-
+      const uid = String(req.user!.id);
+      const destination = await pool.query(`SELECT 1 FROM projects p WHERE p.id = $1 AND
+        (p.user_id::text = $2 OR EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2 AND m.role IN ('owner', 'editor'))) LIMIT 1`, [projectId, uid]);
+      if (!destination.rows.length) return res.status(403).json({ error: 'Project is not writable by this user' });
       const result = await saveRunOutputsToProject(run, projectId, uid);
       if ('skipped' in result) {
         return res.status(422).json({ error: "No output files found for this run yet. Try again after the run completes." });
@@ -15313,7 +15325,7 @@ Rules:
   });
 
   // Pause execution run
-  app.post("/api/workflows/runs/:id/pause", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/pause", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
@@ -15375,7 +15387,7 @@ Rules:
   });
 
   // Resume execution run
-  app.post("/api/workflows/runs/:id/resume", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/resume", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
 
@@ -15443,7 +15455,7 @@ Rules:
   });
 
   // Cancel execution run
-  app.post("/api/workflows/runs/:id/cancel", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/cancel", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
@@ -15497,7 +15509,7 @@ Rules:
   });
 
   // Record user interaction
-  app.post("/api/workflows/runs/:id/interactions", async (req, res) => {
+  app.post("/api/workflows/runs/:id/interactions", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const interaction = req.body;
       const run = await storage.addExecutionRunInteraction(req.params.id, {
@@ -15519,7 +15531,7 @@ Rules:
   });
 
   // Compare two execution runs
-  app.get("/api/workflows/runs/:id/compare", async (req, res) => {
+  app.get("/api/workflows/runs/:id/compare", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const { with: compareWithId } = req.query;
 
@@ -15527,10 +15539,10 @@ Rules:
         return res.status(400).json({ error: "'with' query parameter is required" });
       }
 
-      const comparison = await storage.compareExecutionRuns(
-        req.params.id,
-        compareWithId as string
-      );
+      if (typeof compareWithId !== 'string') return res.status(400).json({ error: 'Invalid comparison run ID' });
+      const comparisonRun = await resolveAuthorizedRun(req, res, compareWithId);
+      if (!comparisonRun) return;
+      const comparison = await storage.compareExecutionRuns(req.params.id, comparisonRun.id);
 
       if (!comparison) {
         return res.status(404).json({ error: "One or both runs not found" });
@@ -15554,7 +15566,7 @@ Rules:
   // ── AI Results Analysis — Nextflow-native (replaces Galaxy proxy) ─────────
   // Reads output files from completed Nextflow runs, calls Claude to generate
   // a structured findings report with scientific interpretation and citations.
-  app.post("/api/workflows/runs/:id/ai/analyze", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/ai/analyze", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     const { question } = req.body as { question?: string };
 
     try {
@@ -16978,7 +16990,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Trigger AutoFix for failed workflow
    * Proxies to Galaxy backend's autofix endpoint
    */
-  app.post("/api/workflows/runs/:id/ai/autofix", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/ai/autofix", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -17034,7 +17046,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Query workflow with natural language
    * Proxies to Galaxy backend's query endpoint
    */
-  app.post("/api/workflows/runs/:id/ai/query", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/ai/query", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -17074,7 +17086,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Get real-time workflow logs
    * Proxies to Galaxy backend's log streaming endpoint
    */
-  app.get("/api/workflows/runs/:id/logs", async (req, res) => {
+  app.get("/api/workflows/runs/:id/logs", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -17168,7 +17180,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   });
 
   // Promote sandbox run to production (create new production run with same config)
-  app.post("/api/workflows/runs/:id/promote", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/promote", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const sandboxRun = await storage.getExecutionRun(req.params.id);
 
@@ -17236,7 +17248,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   });
 
   // Delete execution run
-  app.delete("/api/workflows/runs/:id", async (req, res) => {
+  app.delete("/api/workflows/runs/:id", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const success = await storage.deleteExecutionRun(req.params.id);
       if (!success) {

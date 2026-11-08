@@ -40,6 +40,31 @@ No new expensive scientific workflow will be launched merely to discover a setup
 
 SSE identity repair does not add an offline replay archive: events emitted with no connected clients are not retrospectively reconstructed. Direct executor runs without a saved chat cannot establish old-chat restoration. Training artifact registration does not implement promotion or numeric model inference serving. Complete hospital workflows, GPU sessions, second-user sharing and mainland-China latency require explicit end-to-end evidence; passing source/unit checks alone does not certify hospital pilot readiness.
 
-## Final deployment verification
+## First deployed verification and follow-up findings
 
-Pending completion of the combined checks and supported sync script.
+`6c5a7eddd4cc5c2c6ec43e9699a7f8fa1bb7b082` was pushed to PR #328 and deployed with `scripts/sync_to_dev.sh`. The script completed successfully; public build identity matched that exact commit. All 488 audited runtime Python/skill Markdown files matched the reviewed source. The live workflow database was not replaced. PostgreSQL audit found 29/29 migration ledger hashes matching and all 43 required columns present.
+
+Authenticated post-sync checks: 32 passed, zero failed, including Models boundaries, retained run inventory, private file access, JSON/YAML/CSV profiles and exact hospital demo bytes. The read-only saved-run audit passed 48 checks with four explicit original-chat coverage skips. Two completed records retain 197 and 77 output entries. A saved synthetic Chinese chat retains its two messages. Historical records without `chatSessionId` cannot prove restoration of an original conversation.
+
+Browser checks confirmed the consolidated Settings entries, Nextflow/Galaxy import controls, connector catalogue and Markdown skill import, project format editor and skills, actual YAML preview text, and file-to-chat attachment without auto-send. A cold-start assay example prepared real CSV/README attachments and an editable draft. Models setup carried the selected project/file/task/metric/gate into a review draft without starting training.
+
+These checks also found additional defects; the first deployment is not a complete acceptance pass:
+
+- URL staging for Jupyter still used Galaxy's obsolete history-copy payload. The follow-up uses the supported `upload1` URL-paste contract; a real interactive session must be verified after deployment.
+- The Files workspace squeezed the detail pane at narrow widths. Follow-up layout uses workspace container queries, wrapping tabs and intrinsically sized metadata cards.
+- Skills used a clipped absolute-positioned menu. The follow-up uses a collision-aware portal with bounded scrolling and keyboard dismissal.
+- Research's “Check against our data” action forced a workflow request. The replacement prepares a clearly labelled analysis draft with the original question and evidence; it sends nothing.
+- Run Manager consumed almost the entire available height, and historical panels inherited the composer's project label. Follow-up restores the selected record's identity and gives the workflow panel its space.
+- Chinese switching loaded the same application but left hardcoded Instructions labels in English. Follow-up translates those controls while retaining user-authored content.
+- The Instructions Memory card was backed by human-only notes, with a nonpersistent toggle/removal. It now states that these are Notes not read by the assistant, supports role-checked persistent deletion, and copies a note to a rule only after a successful save. Automatic assistant memory remains a design gap, not a completed feature.
+- Canonical saved-run endpoints rejected anonymous reads, but older proxy aliases did not. Follow-up must enforce authentication and record ownership on every affected alias, including both comparison operands.
+
+The sync audit found a destructive age-based cleanup of local run directories. It was removed. The two directories deleted by the first sync were restored append-only from the pre-sync snapshot: 22 files, 99,930 bytes, all SHA-256 verified. No existing files, database records or S3 objects were overwritten. The snapshot now has a stable preservation tag. See `20261107_LOCAL_RUN_HISTORY_RECOVERY.md`. This does not recover unspecified older missing data or add durable storage across future container replacement.
+
+## Follow-up deployment verification
+
+Final combined suite: **228 suites / 2,434 tests passed**, three suites / 42 tests skipped. TypeScript and production client/server build passed. Shell syntax, backend archive-layout guard and five preflight cases passed. One simultaneous build/test invocation ended without a test summary; it was not counted as a pass. The complete suite was then run alone with four workers and passed. No backend Python/workflow/database files changed after the first deployment's verified source/import checks.
+
+Reviewed smoke prediction: this is a frontend/server/script follow-up; no workflow database replacement, Python reload, nf-core mutation or Galaxy recreation is required. Startup should skip the 29 verified migrations through its canonical runner. The history cleanup is absent and the preserved two run trees must remain. Anonymous legacy read aliases must return 401, owner and invocation-alias exports must still work, and project members must retain authorized reads. Jupyter should stage through upload1 and only succeed when an actual correlated interactive URL exists. Files should stack at the observed 810px viewport, menus fit the viewport, and saved run panels must use recorded identity without relaunching. These predictions require post-sync evidence.
+
+Pending reviewed commit, supported sync and post-deploy API/browser checks. The earlier successful deployment does not establish that these follow-up changes are live.

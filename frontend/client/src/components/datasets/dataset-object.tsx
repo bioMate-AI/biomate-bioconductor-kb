@@ -314,7 +314,7 @@ export function DatasetObject({
 
         {/* Identity row: name · v{N} · quality pill · actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          <CardTitle className="text-lg font-mono font-semibold truncate" data-testid="dataset-object-name">
+          <CardTitle className="text-lg font-mono font-semibold min-w-0 max-w-full [overflow-wrap:anywhere]" title={dataset.name} data-testid="dataset-object-name">
             {dataset.name}
           </CardTitle>
           {/* Type + size badges removed from the header (item 6 H6): they
@@ -388,7 +388,7 @@ export function DatasetObject({
       <CardContent>
         {/* Segmented pill tabs (design i05-2 / t10-1): a gray track with the
             selected tab as a raised white box, not an underline. */}
-        <div className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
           {([
             ["preview", Eye, t('file_tree.preview')],
             ["versions", History, t('dataset_obj.versions')],
@@ -421,7 +421,7 @@ export function DatasetObject({
           {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview">
             {/* Columns and plots use the fetched sample, with a clear fallback
                 for non-tabular content that has no numeric columns. */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {([
                 ["table", TableIcon, t('dataset_obj.view_table')],
                 ["columns", Columns3, t('dataset_obj.view_columns')],
@@ -578,7 +578,7 @@ export function DatasetObject({
             )}
 
             {/* Stat grid (design §4.3): rows · columns · size · current version. */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="dataset-stat-grid">
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
               <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
               <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />
               <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />

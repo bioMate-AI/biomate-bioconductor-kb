@@ -76,3 +76,20 @@ An additional ownership defect was found while tracing the event: the viewer dis
 Four targeted Node/client suites: **116 passed**, `/tmp/sse-producer-tests.log`. Python narrator suite: **21 passed**, `/tmp/narrator-producer-tests.log`. A stale existing test expected a bare exit code despite the canonical cleaner explicitly excluding those codes; the test now verifies meaningful reasons survive while bare exit codes and unproven “auto-fixing” claims do not. Python 3.9 is not installed locally. The module imports on available Python 3.14 and parses with Python 3.9 grammar; that is not a claim of an actual Python 3.9 runtime import.
 
 Scope limit: this change makes delivered/replayed events idempotent; it does not implement a server-side SSE replay archive. `injectRawEvent` still drops raw events when no client is connected. Saved chat entries and execution/status/result records must therefore be checked separately when reopening. No historical records were rewritten or silently deleted.
+
+## Instructions Notes persistence correction
+
+The displayed Memory card was populated from `/api/projects/:id/notes-list`.
+Those records are `user_notes`, explicitly excluded from assistant prompt
+context by `memory-knowledge-filter.ts` / `memory-integration.ts`. They are
+human-only project notes, not automatic assistant memory. The local toggle and
+local Forget action never persisted anything; promoting a note also removed it
+locally before rule persistence succeeded.
+
+The card now identifies these records as Notes, removes the unsupported memory
+toggle, and explains that they are not read by the assistant. Delete uses an
+authenticated owner/editor endpoint, scoped simultaneously to project, note ID,
+and `user_notes` type. Rule promotion waits for successful rule persistence and
+keeps the original note; deletion is separate. Failed mutations keep the saved
+note/rules visible. Automatic assistant-memory behavior from the design remains
+an explicit implementation gap; this patch does not simulate it.

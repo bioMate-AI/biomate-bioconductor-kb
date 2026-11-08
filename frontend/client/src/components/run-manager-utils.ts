@@ -166,3 +166,21 @@ export function runUpdatedAtMs(run: RunListItem): number {
 export function isActiveJob(run: RunListItem): boolean {
   return ['running', 'queued', 'paused', 'submitted', 'pending', 'initializing'].includes(run.execution?.status ?? '')
 }
+
+/** Persisted runs retain their own project; never relabel them with the current
+ * composer's project. A new unsubmitted proposal still uses composer context. */
+export function workflowPanelProjectId(run: { id?: string; projectId?: string | null } | null | undefined, matchesPanel: boolean, activeProjectId?: string | null): string | undefined {
+  return run?.id && matchesPanel ? run.projectId || undefined : activeProjectId || undefined;
+}
+
+/** A new unsaved chat has no run history; current-chat never falls back to all. */
+export function runManagerListParams(scope: 'current_chat' | 'all_chats', chatSessionId?: string | null): URLSearchParams | null {
+  if (scope === 'current_chat' && !chatSessionId) return null;
+  const params = new URLSearchParams({ limit: '50', offset: '0' });
+  if (scope === 'current_chat') params.set('chatSessionId', chatSessionId!);
+  return params;
+}
+
+export function workflowPanelProjectName(projectId: string | undefined, projects: Array<{ id: string; name: string }>): string | undefined {
+  return projectId ? projects.find(project => project.id === projectId)?.name : undefined;
+}

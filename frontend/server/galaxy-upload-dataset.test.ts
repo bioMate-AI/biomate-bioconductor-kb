@@ -14,14 +14,14 @@ import { GalaxyAPIProxy } from './galaxy-api-proxy';
 // this lineage — no test pinned it. Node environment: real fetch/FormData/http.
 let server: http.Server;
 let base = '';
-const calls: Array<{ url: string; body: string }> = [];
+const calls: Array<{ url: string; body: string; apiKey?: string }> = [];
 
 beforeAll(async () => {
   server = http.createServer((req, res) => {
     const chunks: Buffer[] = [];
     req.on('data', c => chunks.push(c));
     req.on('end', () => {
-      calls.push({ url: req.url || '', body: Buffer.concat(chunks).toString('latin1') });
+      calls.push({ url: req.url || '', body: Buffer.concat(chunks).toString('latin1'), apiKey: req.headers['x-api-key'] as string | undefined });
       res.setHeader('content-type', 'application/json');
       if (req.url === '/api/tools') return res.end(JSON.stringify({ outputs: [{ id: 'hda-123' }] }));
       res.statusCode = 400;
@@ -72,5 +72,19 @@ describe('ESM server bundle: no dynamic require()', () => {
     };
     walk(root);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('GalaxyAPIProxy.uploadFromUrl', () => {
+  it('stages remote files via upload1 URL paste, not the history copy endpoint', async () => {
+    const proxy = new GalaxyAPIProxy(base, 'test-user-key');
+    const remote = 'https://files.example/qa.csv?signature=private-test-value';
+    expect(await proxy.uploadFromUrl(remote, 'owned-history', 'qa_counts.csv')).toBe('hda-123');
+    const call = calls.find(item => item.url === '/api/tools' && item.body.includes('url_paste'));
+    expect(call).toBeDefined();
+    expect(call!.apiKey).toBe('test-user-key');
+    const body = JSON.parse(call!.body);
+    expect(body).toMatchObject({ tool_id: 'upload1', history_id: 'owned-history', inputs: { 'files_0|url_paste': remote, 'files_0|NAME': 'qa_counts.csv', file_type: 'auto' } });
+    expect(calls.filter(item => item.url.includes('/api/histories/'))).toHaveLength(0);
   });
 });

@@ -1,0 +1,29 @@
+/* Respond to workspace space, not the browser viewport: navigation and artifact
+   panels can leave a narrow Files surface inside a wide browser window. */
+.data-hub-container {
+  container-name: data-hub;
+  container-type: inline-size;
+}
+
+.data-hub-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.data-hub-file-list {
+  height: clamp(12rem, 35vh, 20rem);
+  min-width: 0;
+}
+
+@container data-hub (min-width: 52rem) {
+  .data-hub-panes {
+    grid-template-columns: 17.5rem minmax(0, 1fr);
+  }
+
+  .data-hub-file-list {
+    height: 72vh;
+    min-height: 26.25rem;
+  }
+}

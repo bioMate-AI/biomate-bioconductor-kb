@@ -330,14 +330,14 @@ export function AppSidebar({
                     {/* Project-child rows render in the design's accent blue (UI
                         refinement 1b) rather than muted gray. Active chat keeps its
                         background highlight. */}
-                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />Instructions</button>
+                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />{t("project_instructions.instructions")}</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.7 }} />
-                      Files
+                      {t("project_instructions.files")}
                     </button>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
                     {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 12, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
-                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />New chat</button>
+                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
                   </div>
                 )}
               </div>
