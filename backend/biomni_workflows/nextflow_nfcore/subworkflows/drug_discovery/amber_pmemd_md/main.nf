@@ -838,18 +838,24 @@ GBSEOF
 import json, os, re, sys
 delta_g = None; std_dg = None; components = {}
 try:
+    # AmberTools MMPBSA.py -o output is COLUMNAR ("KEY  average  stddev  stderr", no '='), and the
+    # binding energy is the 'Differences (Complex - Receptor - Ligand)' section — the per-system
+    # sections above it carry the same KEY names, so scope parsing to the Differences block.
+    _comp_keys = {'VDWAALS': 'vdw_kcal_mol', 'EEL': 'electrostatic_kcal_mol',
+                  'EGB': 'polar_solvation_kcal_mol', 'ESURF': 'nonpolar_solv_kcal_mol'}
+    _in_diff = False
     with open('mmgbsa_raw.dat') as fh:
         for line in fh:
-            m = re.search(r'VDWAALS\\s*=\\s*([-\\d.]+)', line)
-            if m: components['vdw_kcal_mol'] = float(m.group(1))
-            m = re.search(r'EEL\\s*=\\s*([-\\d.]+)', line)
-            if m: components['electrostatic_kcal_mol'] = float(m.group(1))
-            m = re.search(r'EGB\\s*=\\s*([-\\d.]+)', line)
-            if m: components['polar_solvation_kcal_mol'] = float(m.group(1))
-            m = re.search(r'ESURF\\s*=\\s*([-\\d.]+)', line)
-            if m: components['nonpolar_solv_kcal_mol'] = float(m.group(1))
-            m = re.search(r'DELTA TOTAL\\s*=\\s*([-\\d.]+)\\s*\\+/-\\s*([\\d.]+)', line)
-            if m: delta_g = float(m.group(1)); std_dg = float(m.group(2))
+            if 'Differences' in line and 'Complex' in line:
+                _in_diff = True; continue
+            if not _in_diff:
+                continue
+            for _k, _dest in _comp_keys.items():
+                m = re.match(r'\\s*' + _k + r'\\s+(-?\\d+\\.\\d+)', line)
+                if m: components[_dest] = float(m.group(1))
+            m = re.match(r'\\s*(?:DELTA\\s+TOTAL|\\u0394TOTAL)\\s+(-?\\d+\\.\\d+)(?:\\s+(\\d+\\.\\d+))?', line)
+            if m:
+                delta_g = float(m.group(1)); std_dg = float(m.group(2)) if m.group(2) else 0.0
 except Exception as e:
     print(f'Warning: mmgbsa_raw.dat: {e}', file=sys.stderr)
 res_data = []
@@ -906,11 +912,15 @@ summary = {
 with open('binding_summary.json', 'w') as fh:
     json.dump(summary, fh, indent=2)
 if delta_g is None:
+    # Print the actual binding section of the results file so any remaining format mismatch is
+    # diagnosable from the log (not the run-wide mmpbsa.log, which is mostly progress noise).
     try:
-        tail = open('mmpbsa.log').read().splitlines()[-25:]
+        _raw = open('mmgbsa_raw.dat').read().splitlines()
+        _start = next((i for i, l in enumerate(_raw) if 'Differences' in l), max(0, len(_raw) - 30))
+        tail = _raw[_start:_start + 30]
     except OSError:
-        tail = ['(no mmpbsa.log)']
-    sys.exit('ERROR: MMPBSA.py produced no DELTA TOTAL; last log lines:\\n' + '\\n'.join(tail))
+        tail = ['(no mmgbsa_raw.dat)']
+    sys.exit('ERROR: could not parse DELTA TOTAL from mmgbsa_raw.dat; binding section:\\n' + '\\n'.join(tail))
 print(f'MM_GBSA complete -- DeltaG_bind = {delta_g:.2f} kcal/mol (GB igb=2, {n_analysed} frames)')
 PYEOF
         """
