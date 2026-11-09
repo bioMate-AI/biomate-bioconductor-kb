@@ -1076,13 +1076,15 @@ deploy_databases() {
     # Call _build_workflow_embeddings() directly — bypasses the runtime
     # staleness gate (which now refuses to rebuild in the request path).
     # No apostrophes in this block (see sync 9 root cause in CLAUDE.md).
-    # timeout 660: kills the SSH+docker-exec if embedding hangs (no-timeout bug caused
-    # a 30+ min hang when the container stalled; 660s = 11 min is 50% over the observed
-    # worst-case 424s so it won't false-positive on slow-but-working runs).
+    # timeout 1200: kills the SSH+docker-exec if embedding hangs (no-timeout bug caused
+    # a 30+ min hang when the container stalled). Raised from 660s on 2026-11-09: the catalog
+    # grew to ~4226 workflows and BGE encoding on dev CPU now exceeds 660s, so the 660 cap
+    # false-positived (sync f1b390df: embeddings left stale, server fell back to FTS-only).
+    # 1200s = 20 min covers the grown catalog with margin; still well under the old hang.
     ec2_ssh '
       GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
       GC="${GC:-biomate-galaxy-dev}"
-      timeout 660 docker exec -u galaxy "$GC" python3.9 -c "
+      timeout 1200 docker exec -u galaxy "$GC" python3.9 -c "
 import sys, time
 sys.path.insert(0, \"/app/lib\")
 t0 = time.time()
