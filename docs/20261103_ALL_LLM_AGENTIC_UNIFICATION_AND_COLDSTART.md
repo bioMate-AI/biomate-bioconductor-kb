@@ -779,3 +779,26 @@ The image took five builds. Each failure was a real defect:
 - `process_gpu` sizing (§17.5).
 - deploy-test's stale CPU build can still overwrite `mlip-md:x86`, which is unused.
 
+### 17.8 AMBER OpenMM engine + MM-GBSA: end-to-end validated (2026-11-09)
+
+The AMBER workflow now runs its full chain licence-free (run 85aefa68, 181L+benzene):
+LIGAND_PREP → SYSTEM_SETUP → ENERGY_MINIMIZATION → EQUILIBRATION (OpenMM) → PRODUCTION_MD (OpenMM,
+GPU) → TRAJECTORY_ANALYSIS → MM_GBSA. `md_engine=auto` → OpenMM (no pmemd). Result:
+`delta_g_bind −13.8 kcal/mol` (vdw −15.79, elec −1.67, polar_solv +6.07, nonpolar −2.41), 1 frame →
+`classification: insufficient_sampling` (correct guard; a production frame count converges it).
+
+Each MM-GBSA failure was a distinct real bug, diagnosed from the task log, never guessed:
+1. `velocities not found` — AmberInpcrdFile.getVelocities() raises on a sander-minimized rst7; guard try/except.
+2. `AMBERHOME is not set` — conda AmberTools image has no /opt/amber24/amber.sh; derive AMBERHOME from cpptraj's location.
+3. silent exit after the AMBERHOME echo — `/opt/conda/amber.sh` references unset vars; under `set -u` the source aborted the script (|| true can't catch a nounset abort in a sourced file); wrap in set +u/set -u.
+4. `SelectionError: Invalid selection! Integers expected` — `print_res='within 6.0'` is gmx_MMPBSA syntax; AmberTools MMPBSA.py needs integer residues; drop the &decomp block (total ΔG doesn't need it).
+5. MMPBSA.py Finished but process failed — the parser used `KEY = value` regexes against AmberTools' COLUMNAR output and scanned all sections; parse columnar values scoped to the 'Differences (Complex - Receptor - Ligand)' block.
+
+`params.equil_steps` (default 50000) added so a pipeline smoke passes a small value and cuts the
+OpenMM equilibration ~100×. BYOL pmemd: Settings→Credentials→AMBER (license_image) → the executor
+injects AMBER_PMEMD_CONTAINER → md_engine picks pmemd (§17 credential wiring).
+
+**All three new capabilities validated correct on dev:** antibody_antigen_complex (Boltz-2,
+interface_iptm 0.964), mhc_binding_prediction (MHCflurry 2, A*02:01 binders flagged), AMBER OpenMM
+(ΔG −13.8). See docs/20261109_SYSUCC_MODALITY_CAPABILITY_AND_ANTIBODY_COMPLEX.md.
+
