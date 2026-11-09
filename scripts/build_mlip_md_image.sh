@@ -44,7 +44,7 @@ if [ "${BUILD_MODE:-spot}" = spot ]; then
     echo 'shutdown -h +120   # hard stop: the instance terminates on shutdown'
     echo 'exec > /var/log/mlip-build.log 2>&1; set -x'
     echo "trap 'tail -60 /var/log/mlip-build.log | sed s/^/MLIPLOG:/ > /dev/console; shutdown -h now' EXIT"
-    echo 'apt-get update -qq && apt-get install -y -qq docker.io unzip curl'
+    echo 'apt-get update -qq && apt-get install -y -qq docker.io docker-buildx unzip curl'
     echo 'curl -sSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && unzip -q /tmp/a.zip -d /tmp && /tmp/aws/install'
     echo 'mkdir -p /build && cd /build && base64 -d > Dockerfile <<"B64"'
     base64 < "$REPO_ROOT/infra/docker/mlip-md/Dockerfile"
@@ -54,7 +54,7 @@ if [ "${BUILD_MODE:-spot}" = spot ]; then
     # it carries the same digest (the serial console is not a reliable channel for the log).
     echo "TOKEN=\$(curl -s -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 300')"
     echo "BT=build-\$(curl -s -H \"X-aws-ec2-metadata-token: \$TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)"
-    echo "docker build -t $REGISTRY/$REPO_NAME:$TAG . && docker tag $REGISTRY/$REPO_NAME:$TAG $REGISTRY/$REPO_NAME:\$BT \\"
+    echo "DOCKER_BUILDKIT=1 docker build -t $REGISTRY/$REPO_NAME:$TAG . && docker tag $REGISTRY/$REPO_NAME:$TAG $REGISTRY/$REPO_NAME:\$BT \\"
     echo "  && docker push $REGISTRY/$REPO_NAME:\$BT && docker push $REGISTRY/$REPO_NAME:$TAG && echo BUILD_PUSH_OK"
   } > "$UD"
   BUILDER=$(aws ec2 run-instances --region "$REGION" --image-id "$AMI" --instance-type c6i.2xlarge \
@@ -72,7 +72,7 @@ else
   ssh_ "mkdir -p /tmp/mlip-md"
   scp_ "$REPO_ROOT/infra/docker/mlip-md/Dockerfile" "${EC2_USER}@${INSTANCE_ID}:/tmp/mlip-md/Dockerfile"
   ssh_ "cd /tmp/mlip-md && nohup bash -c 'aws ecr get-login-password --region $REGION | sudo docker login --username AWS --password-stdin $REGISTRY >/dev/null \
-    && sudo docker build -t $REGISTRY/$REPO_NAME:$TAG . && sudo docker push $REGISTRY/$REPO_NAME:$TAG && echo BUILD_PUSH_OK' > build.log 2>&1 &"
+    && sudo DOCKER_BUILDKIT=1 docker build -t $REGISTRY/$REPO_NAME:$TAG . && sudo docker push $REGISTRY/$REPO_NAME:$TAG && echo BUILD_PUSH_OK' > build.log 2>&1 &"
   echo "[mlip] build started on $INSTANCE_ID (log: /tmp/mlip-md/build.log); polling ECR"
   builder_gone() { false; }
 fi

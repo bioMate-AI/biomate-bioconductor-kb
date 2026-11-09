@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # biomate/mlip-md — OpenMM 8 + openmm-ml machine-learned-potential MD (AIMNet2, MACE-OFF23).
 # Used by nextflow_nfcore/subworkflows/molecular_dynamics/mlip_md_simulation, whose process carries
 # label process_gpu (GPU queue: g6 L4 / g4dn T4 on the ECS NVIDIA AMI, CUDA 12 drivers). PyTorch is
@@ -13,10 +14,17 @@ RUN conda install -y -n base -c conda-forge \
         python=3.11 "openmm>=8.1" openmm-ml openmm-torch "pytorch=*=cuda*" "cuda-version=12.4" \
         numpy mdtraj rdkit procps-ng \
  && conda clean -afy
-RUN pip install --no-cache-dir mace-torch "git+https://github.com/isayevlab/aimnetcentral.git"
+# Pin numpy to the version conda solved: openmm's compiled extensions (xtc_utils) are built against
+# it, and an unconstrained pip pulled numpy 2.2.6 under a numpy-1.x openmm ("numpy.core.multiarray
+# failed to import" at `import openmm.app`, run 90a2f0dc, 2026-11-08).
+RUN NP="$(python -c 'import numpy; print(numpy.__version__)')" \
+ && pip install --no-cache-dir "numpy==${NP}" mace-torch "git+https://github.com/isayevlab/aimnetcentral.git" \
+ && python -c "import numpy, sys; assert numpy.__version__ == '${NP}', numpy.__version__"
 ENV PATH=/opt/conda/bin:$PATH
 # Smoke (CPU platform — the build host has no GPU): both potentials build an OpenMM System for
 # water and return a finite energy. CUDA is exercised by the workflow's first real GPU run.
+# Needs BuildKit (heredoc RUN); the legacy builder runs `python -` on empty input and passes
+# vacuously, so the smoke writes a marker that the last RUN requires.
 RUN python - <<'PY'
 from openmm.app import Topology, Element
 from openmm import Vec3, VerletIntegrator, Context, Platform
@@ -34,4 +42,9 @@ for name in ("mace-off23-small", "aimnet2"):
     e = ctx.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
     assert math.isfinite(e), name
     print("smoke", name, round(e, 3), "kJ/mol")
+import torch, openmm.app  # openmm.app imports the compiled xtc extension
+assert torch.version.cuda, "PyTorch is not the CUDA build"
+print("smoke torch", torch.__version__, "cuda", torch.version.cuda)
+open("/opt/mlip_smoke_ok", "w").write("ok\n")
 PY
+RUN test -f /opt/mlip_smoke_ok
