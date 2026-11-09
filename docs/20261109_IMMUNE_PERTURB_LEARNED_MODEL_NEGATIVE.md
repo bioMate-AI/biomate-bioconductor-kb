@@ -44,3 +44,17 @@ at this sample size. Averaging the right neighbors beats learning a global linea
 Caveats: top-50 DE metric is oracle-gene-selected (fair across methods, inflates absolute r); the
 random-projection feature is a simple knowledge embedding (a learned node2vec/graph embedding might do
 better, untested); single aggregated readout. Data `perturb_full/GWCD4i.DE_stats.h5ad`, local, public.
+
+---
+
+## Addendum — adaptive stim classifier (model selection also doesn't cleanly dominate)
+
+Separately tested whether a model that SELECTS the representation per label-budget (inner-validation
+pick among raw / knowledge / raw+know) can be best across the whole stim label curve. Result
+(`adaptive_stim.json`, `run_adaptive_stim.py`): it defaults to raw correctly at abundant labels
+(~1000/500: adaptive=raw=best) and exceeds both base learners at the extreme (~60: adaptive 0.858 >
+raw 0.800, know 0.828), but **mispicks in the crossover region** (~250: picks raw 0.743 when know
+0.784 was better; ~125 slight miss) because inner-validation is too noisy at scarce budgets. Verdict:
+`ADAPTIVE IS BEST-ACROSS-CURVE = False`. A **fixed label-count threshold** (knowledge if n≲250, raw
+otherwise) is more robust than the learned selector. Consistent with the program pattern: simple rules
+≥ learned selection on this data.
