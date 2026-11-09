@@ -12,7 +12,7 @@ export function modelSetupUrl(projectId: string, fileId: string, draft: string, 
 
 /** Setup produces a reviewable chat draft using the existing attachment bridge.
  * Sending the draft still requires the ordinary workflow proposal/confirmation. */
-export function ModelSetup({ rounds = false, onContinue }: { rounds?: boolean; onContinue?: (url: string) => void }) {
+export function ModelSetup({ rounds = false, onContinue, initialType = 'sklearn_tabular' }: { rounds?: boolean; onContinue?: (url: string) => void; initialType?: string }) {
   const context = useActiveProjectSafe();
   const [project, setProject] = useState(context?.activeProjectId ?? '');
   const [files, setFiles] = useState<ProjectFile[]>([]);
@@ -21,7 +21,7 @@ export function ModelSetup({ rounds = false, onContinue }: { rounds?: boolean; o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [target, setTarget] = useState('');
-  const [type, setType] = useState('sklearn_tabular');
+  const [type, setType] = useState(initialType);
   const [task, setTask] = useState('classification');
   const [modelName, setModelName] = useState('');
   const [metric, setMetric] = useState('accuracy');
