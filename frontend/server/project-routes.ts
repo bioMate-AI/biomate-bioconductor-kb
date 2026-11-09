@@ -24,6 +24,7 @@ import { canonicalTier, canCollaborate, FREE_PROJECT_LIMIT, tierEnforcementEnabl
 import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import { validateRemoteFileUrl } from "./remote-source-validation";
+import { emailService } from "./email-service";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
 import path from "path";
@@ -277,6 +278,7 @@ ensureProjectActivityTable().catch(e => console.error("[project_activity] table 
 // event_type or payload — both are rendered server-side from known entities.
 export type ProjectActivityEvent =
   | "member_added"
+  | "member_invited"
   | "member_removed"
   | "role_changed"
   | "ownership_transferred"
@@ -990,8 +992,28 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const existing = await memoryService.projects.getProject(id);
       if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
-      const invitee = await pool.query(`SELECT id, email, full_name AS "fullName" FROM users WHERE email = $1`, [email.toLowerCase().trim()]);
-      if (!invitee.rows.length) return res.status(404).json({ error: "No user found with that email" });
+      const normEmail = email.toLowerCase().trim();
+      const invitee = await pool.query(`SELECT id, email, full_name AS "fullName" FROM users WHERE email = $1`, [normEmail]);
+      if (!invitee.rows.length) {
+        // New (not-yet-registered) email: auto-create/reuse the project share
+        // link and email it, instead of failing with 404. One invite box serves
+        // both existing members and new people — no separate "generate link" step.
+        const tokRes = await pool.query(`SELECT token FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]);
+        let token: string = tokRes.rows[0]?.token;
+        if (!token) {
+          token = randomBytes(18).toString('base64url');
+          await pool.query(
+            `INSERT INTO project_share_tokens (project_id, token, role, created_by) VALUES ($1, $2, $3, $4)`,
+            [id, token, role, uid]
+          );
+        }
+        const inviter = await pool.query(`SELECT full_name AS "fullName", email FROM users WHERE id::text = $1`, [String(uid)]);
+        const inviterName = inviter.rows[0]?.fullName || inviter.rows[0]?.email || "A BioMate user";
+        const projectName = (existing as any)?.name || "a project";
+        const emailed = await emailService.sendProjectInviteEmail(normEmail, token, projectName, inviterName, role).catch(() => false);
+        await recordProjectActivity(id, uid, "member_invited", { email: normEmail, role, emailed });
+        return res.status(200).json({ invited: true, pending: true, email: normEmail, emailed });
+      }
       const inviteeId = invitee.rows[0].id;
       if (inviteeId === uid) return res.status(400).json({ error: "Cannot invite yourself" });
       await pool.query(

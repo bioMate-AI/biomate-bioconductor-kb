@@ -1339,6 +1339,8 @@
     "viewer": "查看者",
     "editor": "编辑者",
     "invite": "邀请",
+    "invite_sent": "邀请已发送至 {{email}} —— 对方打开链接后即可加入。",
+    "invite_help": "已注册的 BioMate 用户会直接加入；新邮箱将自动收到邀请链接。",
     "no_members": "暂无协作者。",
     "owner": "所有者",
     "transfer": "转移所有权",

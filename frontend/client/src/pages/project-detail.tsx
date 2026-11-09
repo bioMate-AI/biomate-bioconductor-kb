@@ -198,14 +198,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null)
   // Ownership transfer — the member we're about to promote to owner (null = dialog closed).
   const [transferTarget, setTransferTarget] = useState<{ user_id: string; email: string; fullName?: string } | null>(null)
   const [transferring, setTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
-  // Share link
-  const [shareToken, setShareToken] = useState<string | null>(null)
-  const [shareLinkLoading, setShareLinkLoading] = useState(false)
-  const [shareLinkCopied, setShareLinkCopied] = useState(false)
 
   // Project lifecycle dialogs
   const [renameOpen, setRenameOpen] = useState(false)
@@ -261,61 +258,32 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
   useEffect(() => { loadMembers() }, [loadMembers])
 
-  // Load existing share token (owner only — 404 is fine for non-owners)
-  useEffect(() => {
-    if (!isOwner) return
-    fetch(`/api/projects/${projectId}/share-link`, { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.token) setShareToken(data.token) })
-      .catch(() => {})
-  }, [projectId, isOwner])
-
-  const handleGenerateShareLink = async () => {
-    setShareLinkLoading(true)
-    try {
-      const r = await fetch(`/api/projects/${projectId}/share-link`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ role: "viewer" }),
-      })
-      const data = await r.json()
-      if (r.ok) setShareToken(data.token)
-    } catch { /* ignore */ }
-    finally { setShareLinkLoading(false) }
-  }
-
-  const handleRevokeShareLink = async () => {
-    try {
-      await fetch(`/api/projects/${projectId}/share-link`, { method: "DELETE", credentials: "include" })
-      setShareToken(null)
-    } catch { /* ignore */ }
-  }
-
-  const handleCopyShareLink = () => {
-    if (!shareToken) return
-    const link = `${window.location.origin}/join/${shareToken}`
-    navigator.clipboard.writeText(link).then(() => {
-      setShareLinkCopied(true)
-      setTimeout(() => setShareLinkCopied(false), 2000)
-    })
-  }
+  // Share links are now created+emailed server-side on invite of a new address
+  // (POST /api/projects/:id/members), so the separate generate/copy/revoke UI
+  // and its mount-time fetch were removed.
 
   const handleInvite = async () => {
     if (!shareEmail.trim()) return
     setInviting(true)
     setInviteError(null)
+    setInviteNotice(null)
     try {
+      const invitedEmail = shareEmail.trim()
       const r = await fetch(`/api/projects/${projectId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email: shareEmail.trim(), role: shareRole }),
+        body: JSON.stringify({ email: invitedEmail, role: shareRole }),
       })
       const data = await r.json()
       if (!r.ok) { setInviteError(data.error ?? "Failed to invite"); return }
       setShareEmail("")
-      loadMembers()
+      if (data.pending) {
+        // New (unregistered) email: the server emailed them the join link.
+        setInviteNotice(t('project_members.invite_sent', { email: invitedEmail }))
+      } else {
+        loadMembers()
+      }
     } catch { setInviteError("Failed to invite") }
     finally { setInviting(false) }
   }
@@ -1020,50 +988,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </span>
             </div>
 
-            {/* Share link — owner only */}
-            {isOwner && (
-              <div className="mb-3 p-2.5 rounded-md bg-muted/40 border border-border">
-                <p className="text-xs font-medium mb-1.5">{t('project_members.invite_link')}</p>
-                {shareToken ? (
-                  <div className="space-y-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        readOnly
-                        value={`${window.location.origin}/join/${shareToken}`}
-                        className="flex-1 h-7 text-xs rounded border border-border bg-background px-2 font-mono truncate focus:outline-none"
-                        data-testid="input-share-link"
-                        onClick={e => (e.target as HTMLInputElement).select()}
-                      />
-                      <Button
-                        size="sm" variant="outline" className="h-7 text-xs px-2 shrink-0"
-                        onClick={handleCopyShareLink}
-                        data-testid="button-copy-share-link"
-                      >
-                        {shareLinkCopied ? t('project_members.copied') : t('project_members.copy')}
-                      </Button>
-                    </div>
-                    <button
-                      className="text-xs text-muted-foreground hover:text-destructive"
-                      onClick={handleRevokeShareLink}
-                      data-testid="button-revoke-share-link"
-                    >
-                      {t('project_members.revoke_link')}
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm" variant="outline" className="h-7 text-xs w-full gap-1.5"
-                    onClick={handleGenerateShareLink}
-                    disabled={shareLinkLoading}
-                    data-testid="button-generate-share-link"
-                  >
-                    {shareLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
-                    {t('project_members.generate_link')}
-                  </Button>
-                )}
-              </div>
-            )}
-
             {isOwner && (
               <div className="space-y-2 mb-3">
                 <div className="flex gap-1.5">
@@ -1095,6 +1019,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   {t('project_members.invite')}
                 </Button>
                 {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+                {inviteNotice && <p className="text-xs text-emerald-600 dark:text-emerald-400">{inviteNotice}</p>}
+                <p className="text-[11px] text-muted-foreground leading-snug">{t('project_members.invite_help')}</p>
               </div>
             )}
 
