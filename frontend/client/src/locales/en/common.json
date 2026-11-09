@@ -214,7 +214,21 @@
     "last_updated": "Last updated",
     "members": "Members",
     "category": "Category",
-    "select_category": "Select a category"
+    "select_category": "Select a category",
+    "all_projects": "All projects",
+    "new_chat_title": "Start a new chat about this project",
+    "new_chat_desc": "BioMate tracks project files, workflow runs, and research context automatically.",
+    "new_chat": "New Chat",
+    "loading_sessions": "Loading sessions…",
+    "recent_chats": "Recent chats ({{count}})",
+    "standing_instructions": "Standing instructions",
+    "standing_instructions_hint": "Read by the assistant on every chat in this project.",
+    "promote_tooltip_text": "Append this text to Standing instructions",
+    "promote_tooltip_note": "Append this note to Standing instructions",
+    "status_active": "Active",
+    "status_completed": "Completed",
+    "status_archived": "Archived",
+    "status_paused": "Paused"
   },
   "file_tree": {
     "files": "Files",
@@ -580,7 +594,12 @@
       "start_over": "Start over",
       "start_over_tip": "Discards cached work and re-runs the whole pipeline from the beginning",
       "reset_defaults": "Reset to defaults",
-      "reset_defaults_tip": "Showing params from your last run. Click to reset to workflow defaults."
+      "reset_defaults_tip": "Showing params from your last run. Click to reset to workflow defaults.",
+      "license_required": "License required — see <strong>Tool Credentials</strong> in Workflow settings",
+      "fill_required_params": "Fill in {{n}} required parameter{{s}} above before running",
+      "input_files_required_prefix": "Input files required:",
+      "input_files_required_suffix": "— upload via the file button in chat or paste an S3 path in the parameter field above",
+      "prereqs_not_met": "Prerequisites not met — see checklist above"
     },
     "phase": {
       "not_started": "Not started"
@@ -592,7 +611,12 @@
     },
     "ai_findings_analysis": "Findings analysis",
     "inputs_linked_review": "Input references are set. Review the mapping below.",
-    "run_stopped": "The run stopped before completing."
+    "run_stopped": "The run stopped before completing.",
+    "skip": {
+      "why_skippable": "{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped without affecting downstream phases.",
+      "why_skippable_reduced": "{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped. Downstream phases still run but with reduced input.",
+      "why_blocked": "{{phase}} — this workflow does not declare a skip parameter for this phase, and its output feeds downstream phases, so it always runs."
+    }
   },
   "preview": {
     "loading": "Loading preview…",
@@ -952,5 +976,46 @@
     "findings_empty": "No structured findings summary was recorded.",
     "incomplete_record_available": "Run incomplete — partial outputs and the run record remain available.",
     "source_unavailable": "The cited output could not be uniquely located in this run: {{file}}"
+  },
+  "datasets_dialog": {
+    "title": "Select dataset",
+    "tab_session": "This session",
+    "tab_project": "Project files",
+    "tab_history": "BioMate history",
+    "tab_url": "From URL",
+    "use": "Use",
+    "use_selected": "Use selected ({{count}})",
+    "import": "Import",
+    "all_histories": "All histories",
+    "retry": "Retry",
+    "uploading": "Uploading…",
+    "drop_active": "Drop files or folders here",
+    "drop_hint": "Drop files or folders here, or click to browse",
+    "files_folders_supported": "Files and folders supported",
+    "session_help_prefix": "Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use ",
+    "no_datasets_yet": "No datasets yet",
+    "no_datasets_hint": "Upload a file above or import from URL",
+    "no_match_search": "No datasets match “{{search}}”",
+    "no_datasets_in_history": "No datasets in this history",
+    "no_histories": "No analysis histories found",
+    "no_histories_match": "No histories match “{{search}}”",
+    "run_workflow_hint": "Run a workflow to see your histories here",
+    "run_outputs": "Run outputs",
+    "no_project_files_match": "No project files match “{{search}}”",
+    "no_files_in_project": "No files in this project",
+    "select_dataset_aria": "Select {{name}}",
+    "url_no_limit": "No size limit — BioMate downloads server-side. Works for files of any size.",
+    "url_http_label": "Public HTTP/HTTPS:",
+    "url_sra_label": "NCBI SRA / EBI ENA (public):",
+    "url_ftp_label": "Public FTP:",
+    "url_no_credentials": "Do not place credentials in a URL. Authenticated storage requires a managed connection.",
+    "url_s3_label": "AWS S3 single file (uses your Account Settings credentials):",
+    "url_s3_folder_label": "S3 folder:",
+    "url_s3_folder_help": "Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.",
+    "url_placeholder": "https://… or ftp://… or s3://…",
+    "upload_failed": "Upload failed",
+    "import_failed": "Import failed",
+    "load_histories_failed": "Could not load histories",
+    "load_datasets_failed": "Could not load datasets"
   }
 }
