@@ -1,6 +1,6 @@
 import { integrationFindings, integrationFindingsMarkdown } from "./integration-findings";
 import { stepFileDisposition } from "./step-file-disposition";
-import { waitForInteractiveSession } from "./interactive-session-readiness";
+import { waitForInteractiveSession, waitForDatasetReady } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
@@ -7124,6 +7124,53 @@ ${paramLines || '(none recorded)'}`;
             sourceSessionId: r.sourceSessionId,
           }));
         const combined = [...direct, ...recovered];
+
+        // Awareness listing of the project's EXISTING files. Without this the
+        // chat only ever "saw" this-session uploads + explicitly-selected
+        // files, so the model called already-uploaded project files "missing"
+        // and asked the user to re-upload (missing_file_context). We list all
+        // files for the already-ownership-gated project (_resolvedProjectId is
+        // resolved through _isOwnerOrMember at ~6959), tagged as project files,
+        // deduped by id and name against what's already attached/recovered.
+        // These are merged into the fallback projection only (NOT into
+        // `combined` before selection), so the explicit-selection → Batch
+        // staging path above is untouched.
+        const _projectFileAwareness: Array<any> = [];
+        if (_resolvedProjectId) {
+          try {
+            const _seen = new Set<string>();
+            for (const d of combined) {
+              if (d?.id) _seen.add(`id:${String(d.id)}`);
+              if (d?.name) _seen.add(`name:${String(d.name).toLowerCase()}`);
+            }
+            const _pfRows = (await pool.query(
+              `SELECT id, name, s3_key FROM project_files WHERE project_id = $1`,
+              [_resolvedProjectId],
+            )).rows;
+            for (const r of _pfRows) {
+              if (!r?.id || !r?.name) continue;
+              if (_seen.has(`id:${String(r.id)}`)) continue;
+              if (_seen.has(`name:${String(r.name).toLowerCase()}`)) continue;
+              _seen.add(`id:${String(r.id)}`);
+              _seen.add(`name:${String(r.name).toLowerCase()}`);
+              _projectFileAwareness.push({
+                id: r.id,
+                projectFileId: r.id,
+                name: r.name,
+                type: 'project file',
+                file_path: null,
+                param_name: null,
+                s3_key: r.s3_key || undefined,
+              });
+            }
+            if (_projectFileAwareness.length) {
+              console.log(`[chat-stream] listed ${_projectFileAwareness.length} existing project file(s) for chat awareness`);
+            }
+          } catch (e: any) {
+            console.warn('[chat-stream] project-file awareness listing failed:', e?.message ?? e);
+          }
+        }
+
         const requestedReferences = Array.isArray(context?.datasetReferences)
           ? context.datasetReferences
               .filter((reference: any): reference is DatasetReference =>
@@ -7194,9 +7241,14 @@ ${paramLines || '(none recorded)'}`;
           (context as any).datasetReferenceUnresolvedIds = (selection.missingIds ?? [])
             .filter((id) => !projectFileResolved.has(id));
         }
+        // Fallback projection (no explicit reference selection): attached +
+        // recovered + the project's existing files, so the model never treats
+        // an already-uploaded file as missing. The explicit-selection branch
+        // is left exactly as resolved/staged above.
+        const _fallback = [...combined, ..._projectFileAwareness];
         return exactSelection?.length
           ? exactSelection
-          : (combined.length > 0 ? combined : undefined);
+          : (_fallback.length > 0 ? _fallback : undefined);
       })();
 
       const enrichedContext = {
@@ -7249,6 +7301,13 @@ ${paramLines || '(none recorded)'}`;
         galaxyAPIOverride: req.user ? userProxy(req) : undefined,
         // Never expose the shared admin's private skill namespace via proxy fallback.
         skillPrivateAccess: hasPersonalSkillAccess(req.user as any),
+        // Auth headers for authenticated self-calls from tool handlers (e.g.
+        // edit_report reconstructing a run's report from its findings endpoint).
+        // Same pattern as the /output_files self-fetch in this file.
+        selfRequestAuth: {
+          authorization: (req.headers as any)?.authorization || undefined,
+          cookie: (req.headers as any)?.cookie || undefined,
+        },
       };
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
@@ -11137,8 +11196,8 @@ ${paramLines || '(none recorded)'}`;
   // we stage it into the user's history (the uploadFromUrl pattern that
   // /api/datasets/import-url uses) and launch the IT against the staged HDA.
   // Tool by file type (R/rds → RStudio, else Jupyter) or an explicit body.tool.
-  // NOTE: the HDA is staged async by Galaxy; the IT job queues until its input is
-  // ready, so we launch immediately (polling-to-ok is a documented refinement).
+  // NOTE: the HDA is staged async by Galaxy; we poll it to `ok` (bounded) before
+  // launching so the notebook never opens against a still-uploading input.
   app.post("/api/projects/:id/files/:fileId/open-in", authenticateToken, async (req, res) => {
     try {
       const uid = (req.user as any)?.id;
@@ -11166,6 +11225,13 @@ ${paramLines || '(none recorded)'}`;
         if (req.session) (req.session as any).galaxyHistoryId = targetHistoryId;
       }
       const hdaId = await userProxy(req).uploadFromUrl(fileUrl, targetHistoryId!, name);
+      // Wait for the staged HDA to reach `ok` before launching.
+      const _hdaReady = await waitForDatasetReady(hdaId, {
+        getState: async (did) => String((await userProxy(req).getDatasetMetadata(did))?.state || ''),
+      });
+      if (!_hdaReady.ready && _hdaReady.reason === 'failed') {
+        return res.status(503).json({ success: false, retriable: true, error: "We couldn't finish preparing this file for the notebook. Please try opening it again in a moment." });
+      }
       const result = await userProxy(req).launchInteractiveTool(toolId, targetHistoryId!, {
         input: { src: "hda", id: hdaId },
       });
@@ -11173,14 +11239,26 @@ ${paramLines || '(none recorded)'}`;
         getJob: id => userProxy(req).getJob(id), tokenForJob, targetForToken,
       });
       if (!readiness.ready) return res.status(503).json({
-        success: false, jobId: result.job_id,
-        error: readiness.reason === 'failed' ? "The notebook job stopped before the session became available." : "The file was staged, but the notebook session is not ready. This launch may still be active; check its status before launching another session.",
+        success: false, jobId: result.job_id, retriable: readiness.reason !== 'failed',
+        error: readiness.reason === 'failed' ? "The notebook job stopped before the session became available." : "Starting your notebook… the session is not ready yet. Give it a few seconds and try again; this launch may still be coming up.",
       });
       const entryPointUrl = readiness.url;
       res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
     } catch (error: any) {
-      console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
-      res.status(500).json({ success: false, error: error?.message || "Open-in failed" });
+      const _raw = String(error?.message ?? error ?? '');
+      console.error("[open-in] project file → interactive tool failed:", _raw);
+      // Never surface a raw internal connection error or backend IP to the user.
+      // A Galaxy connectivity blip (ECONNREFUSED/reset/timeout to the internal
+      // backend, e.g. "ECONNREFUSED 172.19.0.2:8080") is transient and retriable.
+      const _transient = /ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|fetch failed|ENOTFOUND|network|timed?\s*out|\b\d{1,3}(?:\.\d{1,3}){3}\b/i.test(_raw);
+      if (_transient) {
+        return res.status(503).json({
+          success: false,
+          error: "Starting your notebook environment… please try again in a few seconds.",
+          retriable: true,
+        });
+      }
+      res.status(500).json({ success: false, error: "We couldn't open this file in a notebook. Please try again." });
     }
   });
 

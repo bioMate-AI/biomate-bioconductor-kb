@@ -759,6 +759,12 @@ export interface ChatContext {
    *  precisely what the user sees, rather than a server-reconstructed approximation. */
   openReportRunId?: string;
   openReportMarkdown?: string;
+  /** Auth headers (Authorization + cookie) copied from the originating chat
+   *  request by routes.ts, so a tool handler can make an AUTHENTICATED self-call
+   *  back to the Node API. Used by edit_report to reconstruct a run's report
+   *  from /api/workflows/runs/:runId/findings/report when the client did not
+   *  pass the open markdown and no version is saved yet. Never logged. */
+  selfRequestAuth?: { authorization?: string; cookie?: string };
   enableThinking?: boolean;
   /** Accumulated facts from prior turns, passed so the LLM can decide supersession */
   accumulatedFacts?: Array<{ id: string; category: string; value: string }>;
@@ -5352,6 +5358,31 @@ Rules:
         log('Paper-question guard: PDF attached + question about paper — routing to research_response, not workflow');
         actions.needsWorkflowGeneration = false;
         intent.type = 'research_question';
+      }
+    }
+
+    // Data-attach guard:
+    // A pure "add/attach these files" action is dataset management, NOT an
+    // analysis request — but a bare "also add the other two files" was being
+    // misrouted into workflow-card generation (un_expected_workflow_otherintent).
+    // Suppress generation only when the message reads as an attach/add-files
+    // action AND carries no genuine analysis/workflow verb. Real requests like
+    // "run rnaseq on the other two files" keep their analysis verb and are
+    // unaffected, so this stays narrow. Runs on the ORIGINAL user query so
+    // injected context (paper text, dataset blocks) can't dilute the match.
+    if (actions.needsWorkflowGeneration) {
+      const _attachQuery = originalUserQuery || message;
+      const _isAttachAction =
+        // attach verb followed (within a short span) by a files noun or pronoun
+        /\b(?:also\s+)?(?:add|attach|include|upload)\b[^.?!\n]{0,40}\b(?:files?|datasets?|samples?|attachments?|docs?|documents?|pdfs?|csvs?|them|these|those|it)\b/i.test(_attachQuery)
+        // strong signal: "the other/remaining/rest/both ... files"
+        || /\b(?:the\s+)?(?:other|remaining|rest|both|two|three|four|additional|more)\s+(?:two|three|four|\d+\s+)?(?:files?|datasets?|samples?|attachments?|documents?)\b/i.test(_attachQuery);
+      const _hasAnalysisVerb =
+        /\b(run|execute|process|analy[sz]e|align|map|call|quantify|trim|filter|normali[sz]e|cluster|assemble|annotate|predict|screen|dock|simulate|differential\s+expression|variant|genotyp\w*|workflow|pipeline|rna-?seq|atac|chip-?seq|admet|docking|align\w*|deseq|enrich\w*)\b/i.test(_attachQuery);
+      if (_isAttachAction && !_hasAnalysisVerb) {
+        log('Data-attach guard: add/attach-files action with no analysis verb — suppressing workflow generation, routing to plain/dataset response');
+        actions.needsWorkflowGeneration = false;
+        actions.needsWorkflowModification = false;
       }
     }
 
@@ -11250,7 +11281,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // latest saved version. Never reconstruct an approximation and pass it off as the report.
       // Priority: explicit tool arg → the report the client has open this turn → latest saved version.
       let baseMarkdown: string | undefined = clientMarkdown;
-      let baseSource: 'client' | 'saved_version' | 'none' = clientMarkdown !== undefined ? 'client' : 'none';
+      let baseSource: 'client' | 'saved_version' | 'run_original' | 'none' = clientMarkdown !== undefined ? 'client' : 'none';
       if (
         baseMarkdown === undefined &&
         typeof context?.openReportMarkdown === 'string' &&
@@ -11267,6 +11298,22 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const latest = versions.reduce((a, b) => (a.version >= b.version ? a : b));
         baseMarkdown = latest.content ?? '';
         baseSource = 'saved_version';
+      }
+
+      // Still nothing to fork from? The run has produced a report (shown in the
+      // after-run panel) but it was never opened client-side nor saved as a
+      // version. Reconstruct it server-side from the structured report endpoint
+      // so edit_report forks from what the run actually produced instead of
+      // telling the user to paste text they can already see (ID_everywhere).
+      if (baseMarkdown === undefined) {
+        const reconstructed = await this._reconstructRunReportMarkdown(runId, context).catch(() => undefined);
+        if (reconstructed && reconstructed.trim()) {
+          baseMarkdown = reconstructed;
+          baseSource = 'run_original';
+          // Seed the immutable v0 so a later edit forks from this real report,
+          // not from a client blob. Best-effort — never block the edit on it.
+          try { await reportVersionStore.ensureOriginal(runId, reconstructed); } catch { /* non-fatal */ }
+        }
       }
 
       // Phase 1: hand back the base so the model can compose the edit.
@@ -11323,6 +11370,41 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), run_id: runId };
+    }
+  }
+
+  /** Reconstruct a run's report markdown from the structured server endpoint so
+   *  edit_report can fork from what the run produced when the client did not
+   *  pass the open markdown and no version is saved yet. Uses the findings
+   *  report (resolves + authorizes the run server-side) via an authenticated
+   *  self-call — same pattern as the /output_files self-fetch in routes.ts.
+   *  Returns undefined when nothing can be reconstructed (not-ready / 401 / 404),
+   *  letting the caller fall back to the honest no_report_text. */
+  private async _reconstructRunReportMarkdown(runId: string, context: ChatContext): Promise<string | undefined> {
+    if (!runId) return undefined;
+    const port = process.env.PORT || '5000';
+    const base = `http://localhost:${port}`;
+    const headers: Record<string, string> = {
+      // Without X-Forwarded-Proto this self-fetch is 301'd to https on a
+      // plain-HTTP port by forceHTTPS (only /internal/ is exempt) and fails.
+      'X-Forwarded-Proto': 'https',
+    };
+    const auth = context?.selfRequestAuth;
+    if (auth?.authorization) headers['Authorization'] = auth.authorization;
+    if (auth?.cookie) headers['cookie'] = auth.cookie;
+    try {
+      const r = await fetch(
+        `${base}/api/workflows/runs/${encodeURIComponent(runId)}/findings/report`,
+        { headers: headers as any, signal: AbortSignal.timeout(15000) },
+      );
+      if (!r.ok) return undefined; // 409 not-ready / 404 unavailable / 401
+      const ct = (r.headers.get('content-type') || '').toLowerCase();
+      // The endpoint sends findings markdown as text/markdown (JSON only on error).
+      if (!ct.includes('markdown') && !ct.includes('text/plain')) return undefined;
+      const md = await r.text();
+      return md && md.trim() ? md : undefined;
+    } catch {
+      return undefined;
     }
   }
 
