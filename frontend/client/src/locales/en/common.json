@@ -134,9 +134,9 @@
     "describe_goal": "Describe the goal",
     "seed_composer": "Seed the composer with this goal",
     "modality": "Modality",
-    "caption_internal": "Prepares your MG PBMC demo project with three input files, then fills a draft for review.",
-    "caption_sample_data": "Prepared public datasets. Click to fill a draft; review it before sending.",
-    "caption_default": "Demo inputs are provided for every example. Click to prepare a draft and its data; review before sending.",
+    "caption_internal": "Loads the sample MG PBMC project (three input files), then fills a draft to review.",
+    "caption_sample_data": "Public sample datasets. Click to fill a draft and attach the data; review before sending.",
+    "caption_default": "Each example comes with sample data. Click to prepare a draft; review before sending.",
     "modality_sm": "Small molecule",
     "modality_pep": "Peptide",
     "modality_bio": "Protein / biologic",
@@ -149,8 +149,8 @@
     "mod_design_desc": "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
     "mod_models_name": "Models",
     "mod_models_desc": "Train, adapt or optimise a model on your data",
-    "hospital_integration": "Try hospital demo: synthetic multi-omics integration",
-    "hospital_prediction": "Try hospital demo: synthetic subtype prediction"
+    "hospital_integration": "Integrate a multi-omics cohort (RNA, protein, methylation) with SNF",
+    "hospital_prediction": "Train a subtype classifier on a multi-omics feature matrix"
   },
   "chat_msg": {
     "figure": "Figure",

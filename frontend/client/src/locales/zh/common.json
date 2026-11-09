@@ -169,9 +169,9 @@
     "describe_goal": "描述目标",
     "seed_composer": "用此目标填充输入框",
     "modality": "类型",
-    "caption_internal": "为您准备 MG PBMC 演示项目及三个输入文件，然后填充草稿以供审阅。",
-    "caption_sample_data": "已准备的公开数据集。点击以填充草稿；发送前请先审阅。",
-    "caption_default": "每个示例均提供演示输入。点击以准备草稿及其数据；发送前请审阅。",
+    "caption_internal": "加载示例 MG PBMC 项目（三个输入文件），然后填充草稿以供审阅。",
+    "caption_sample_data": "公开示例数据集。点击以填充草稿并附加数据；发送前请先审阅。",
+    "caption_default": "每个示例均附带示例数据。点击以准备草稿；发送前请先审阅。",
     "modality_sm": "小分子",
     "modality_pep": "多肽",
     "modality_bio": "蛋白质 / 生物制剂",
@@ -184,8 +184,8 @@
     "mod_design_desc": "设计候选物 — 小分子、多肽、蛋白质 — 并进行优化与排序",
     "mod_models_name": "模型",
     "mod_models_desc": "在您的数据上训练、适配或优化模型",
-    "hospital_integration": "试用医院示例：合成多组学整合",
-    "hospital_prediction": "试用医院示例：合成亚型预测"
+    "hospital_integration": "用 SNF 整合多组学队列（RNA、蛋白、甲基化）",
+    "hospital_prediction": "在多组学特征矩阵上训练亚型分类器"
   },
   "chat_msg": {
     "figure": "图",
