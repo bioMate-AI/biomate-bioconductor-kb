@@ -20,7 +20,7 @@ baseline/null per task**, with group-disjoint split discipline.
 | Task | Metric | raw | PCA | know | **fm_z (model)** | null | Who wins |
 |---|---|---:|---:|---:|---:|---:|---|
 | **Stim-state classification** | AUPRC, pooled OOF /3 seeds, cell-type-holdout | **0.882** | 0.744 | 0.846 | 0.835 | 0.142 | **raw** (model < raw) |
-| **Cell-type annotation** (18-class) | macro-F1, stratified 3-fold | 0.490 | 0.514 | 0.395 | **0.536** | 0.017 | **fm_z ✅** (model best) |
+| **Cell-type annotation** (18-class) | macro-F1, stratified 3-fold | 0.490 | 0.514 | 0.395 | 0.536 | 0.017 | ⚠️ **fm_z ≈ PCA** at proper convergence (see audit, Task 2) |
 | **Unseen-perturbation effect prediction** | Pearson top-50 residual-DE, leave-KO-out | — | — | **+0.078 Rest / +0.035–0.039 Stim** (full); −0.028 (subset) | — | rand −0.10 / deg −0.08 | **know ✅** |
 | **Target-ID / virtual-KO screen** | — | — | — | — | — | degree-null | **EXCLUDED** |
 
@@ -31,12 +31,21 @@ all") and our session finding that knowledge/encoder help is concentrated in low
 → "best" on this task today = raw head; wire knowledge as an auto-on low-label augmentation (separately
 measured +0.14 over raw at ~60 labels).
 
-### Task 2 — Cell-type annotation: the FM encoder is BEST (its genuine edge)
-**fm_z 0.536 > pca 0.514 > raw 0.490 > know 0.395**, majority-null 0.017. The frozen encoder beats raw
-by **+0.045** and beats PCA by **+0.022** — this is where the trained model earns its place (matches the
-session's "annotation +0.039" result). Knowledge-means alone are worst here (mean-pooling discards the
-fine cell-type resolution). **Caveat baked into the card:** single donor D534 → not donor-disjoint, so
-this is *in-donor* annotation, not cross-donor generalization.
+### Task 2 — Cell-type annotation: the win SHRINKS to a PCA tie under audit
+Original run (loose solver `max_iter=200, tol=1e-2`, random split): fm_z 0.536 > pca 0.514 > raw 0.490
+> know 0.395. Reported as "fm_z best, +0.045 vs raw / +0.022 vs PCA."
+
+> **⚠️ AUDIT CORRECTION (2026-11-09).** The loose tolerance under-trained the high-dim baselines
+> unequally. Re-run at **proper convergence** (`saga max_iter=2000, tol=1e-3`, same random split, 8k
+> cells, all solvers converged well below the cap): **fm_z 0.472 ≈ pca 0.466** (+0.005) > raw 0.436
+> (+0.036) > know 0.391. **The fm_z-over-PCA margin collapses from +0.022 to +0.005** — the "model is
+> best on annotation" claim is NOT supported; at proper convergence fm_z essentially **ties the PCA
+> baseline** on this easy in-donor split. A single group-disjoint **leave-tissue-out** fold
+> (bone_marrow held out) was *suggestive* of an fm_z edge under shift (fm_z 0.414 > raw 0.379 > pca
+> 0.355), but the other 3 tissue folds did not finish (full-fold saga too slow), so **no
+> generalization claim is made**. Knowledge-means remain worst here (mean-pooling discards fine
+> cell-type resolution). Honest verdict: **fm_z ≈ PCA on easy annotation; a real generalization edge
+> is unconfirmed.** (`annot_fix_results.json` partial; `run_annot_fix.py`.)
 
 ### Task 3 — Unseen-perturbation effect prediction: knowledge wins vs nulls
 Knowledge-weighted neighbor-mean beats random-neighbor (−0.028 vs −0.102) and the **degree-matched
