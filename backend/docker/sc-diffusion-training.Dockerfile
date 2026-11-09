@@ -45,10 +45,15 @@ RUN pip install --upgrade pip \
     && pip install --extra-index-url https://download.pytorch.org/whl/cu121 \
          torch==2.5.1 \
     && pip install --prefer-binary scanpy anndata numpy scipy mlflow
-# scDiffusion / CFGen are installed from GitHub at CI/ops time (no PyPI wheels):
-#   pip install "git+https://github.com/EperLuo/scDiffusion.git"
-#   pip install "git+https://github.com/theislab/CFGen.git"
-# Pinned to a reviewed commit in the CI workflow.
+# scDiffusion (default) + CFGen (alt) frameworks — no PyPI wheels, installed from
+# GitHub. TODO(ops): pin each to a reviewed commit (append @<sha>) and verify the
+# build resolves against torch 2.5.1 / scanpy before a real run. scrna_diffusion
+# lazy-imports the framework, so a build without these still passes the import
+# smoke, but a real run needs them present.
+RUN pip install --no-build-isolation "git+https://github.com/EperLuo/scDiffusion.git" || \
+      echo "WARN: scDiffusion install failed — pin a reviewed commit and resolve deps" \
+    && pip install --no-build-isolation "git+https://github.com/theislab/CFGen.git" || \
+      echo "WARN: CFGen install failed — pin a reviewed commit and resolve deps"
 
 # The ml_training package at top-level → `python -m ml_training.cli`.
 COPY backend/lib/galaxy/ai/ml_training /app/ml_training
