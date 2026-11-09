@@ -13,13 +13,17 @@ ENV CONDA_OVERRIDE_CUDA=12.4
 RUN conda install -y -n base -c conda-forge \
         python=3.11 "openmm>=8.1" openmm-ml openmm-torch "pytorch=*=cuda*" "cuda-version=12.4" \
         numpy mdtraj rdkit procps-ng \
- && conda clean -afy
-# Pin numpy to the version conda solved: openmm's compiled extensions (xtc_utils) are built against
-# it, and an unconstrained pip pulled numpy 2.2.6 under a numpy-1.x openmm ("numpy.core.multiarray
-# failed to import" at `import openmm.app`, run 90a2f0dc, 2026-11-08).
+ && conda clean -afy \
+ && python -c "import torch, numpy, openmm.app; print('conda env ok: torch', torch.__version__, 'cuda', torch.version.cuda, 'numpy', numpy.__version__)"
+# pip must not replace conda's ABI-critical packages. Unconstrained, it pulled numpy 2.2.6 under a
+# numpy-1.x openmm (run 90a2f0dc: "numpy.core.multiarray failed to import") and a torch wheel over
+# conda's torch (smoke: libshm.so undefined symbol c10::utils::str_error). Constrain both to conda's
+# exact versions, so a real requirement conflict fails here instead of producing a mixed install.
 RUN NP="$(python -c 'import numpy; print(numpy.__version__)')" \
- && pip install --no-cache-dir "numpy==${NP}" mace-torch "git+https://github.com/isayevlab/aimnetcentral.git" \
- && python -c "import numpy, sys; assert numpy.__version__ == '${NP}', numpy.__version__"
+ && TV="$(python -c 'import torch; print(torch.__version__)')" \
+ && printf 'numpy==%s\ntorch==%s\n' "$NP" "$TV" > /tmp/conda-pins.txt \
+ && pip install --no-cache-dir -c /tmp/conda-pins.txt mace-torch "git+https://github.com/isayevlab/aimnetcentral.git" \
+ && python -c "import numpy, torch; assert (numpy.__version__, torch.__version__) == ('${NP}', '${TV}'), (numpy.__version__, torch.__version__)"
 ENV PATH=/opt/conda/bin:$PATH
 # Smoke (CPU platform — the build host has no GPU): both potentials build an OpenMM System for
 # water and return a finite energy. CUDA is exercised by the workflow's first real GPU run.
