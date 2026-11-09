@@ -32,11 +32,12 @@ import { modelSetupUrl } from './model-setup';
 
 interface ProjectFile { id: string; name: string }
 
-type Family = 'llm' | 'protein' | 'scrna';
+type Family = 'llm' | 'protein' | 'scrna' | 'tabular';
 const LLM_TYPES = ['ludwig_llm', 'trl_dpo', 'trl_grpo'];
 function familyOf(type: string): Family {
   if (type === 'protein_diffusion') return 'protein';
   if (type === 'scrna_diffusion') return 'scrna';
+  if (type === 'tabular_diffusion') return 'tabular';
   return 'llm';
 }
 
@@ -59,6 +60,13 @@ function defaultsFor(type: string): Record<string, string | number | boolean> {
         guidance_scale: 1.0, diffusion_steps: 1000, noise_schedule: 'cosine',
         epochs: 50, learning_rate: 0.0001,
       };
+    case 'tabular_diffusion':
+      return {
+        framework: 'tabddpm', finetune: true, base_checkpoint: '',
+        target_column: '', n_rows_to_generate: 1000,
+        guidance_scale: 1.0, diffusion_steps: 1000, noise_schedule: 'cosine',
+        epochs: 50, learning_rate: 0.0001,
+      };
     default: // ludwig_llm | trl_dpo | trl_grpo
       return {
         base_model: 'HuggingFaceTB/SmolLM2-135M-Instruct', adapter: 'lora',
@@ -76,6 +84,8 @@ function datasetLabel(type: string): string {
       return tOr('models.dl_spec_dataset_pdb', 'Structure set (PDB/mmCIF backbones)');
     case 'scrna_diffusion':
       return tOr('models.dl_spec_dataset_h5ad', 'Single-cell data (h5ad AnnData)');
+    case 'tabular_diffusion':
+      return tOr('models.dl_spec_dataset_tabular', 'Tabular data (CSV/parquet feature matrix)');
     case 'trl_dpo':
       return tOr('models.dl_spec_dataset_dpo', 'Preference data (JSONL/CSV: prompt, chosen, rejected)');
     case 'trl_grpo':
@@ -137,6 +147,13 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
       if (!(num('guidance_scale') > 0) || !(num('diffusion_steps') > 0)) return false;
       return true;
     }
+    if (family === 'tabular') {
+      // finetune=True requires a base_checkpoint (TabularDiffusionSpec.validate).
+      if (vals.finetune && !str('base_checkpoint')) return false;
+      if (!(num('n_rows_to_generate') > 0)) return false;
+      if (!(num('guidance_scale') > 0) || !(num('diffusion_steps') > 0)) return false;
+      return true;
+    }
     // llm
     if (!str('base_model')) return false;
     if (!(num('max_sequence_length') > 0)) return false;
@@ -180,6 +197,16 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
         `base_checkpoint=${str('base_checkpoint')}`, `base_model=${str('base_model')}`,
         `cell_type=${str('cell_type')}`, `condition_label=${str('condition_label')}`,
         `n_cells_to_generate=${num('n_cells_to_generate')}`, `n_genes=${num('n_genes')}`,
+        `guidance_scale=${num('guidance_scale')}`, `diffusion_steps=${num('diffusion_steps')}`,
+        `noise_schedule=${vals.noise_schedule}`, `epochs=${num('epochs')}`, `learning_rate=${num('learning_rate')}`,
+      );
+    } else if (family === 'tabular') {
+      taskType = 'tabular_generation';
+      framing = 'Do not fabricate synthetic rows or data; do not claim training has started.';
+      parts.push(
+        `task_type=tabular_generation`, `framework=${vals.framework}`, `finetune=${!!vals.finetune}`,
+        `base_checkpoint=${str('base_checkpoint')}`, `target_column=${str('target_column')}`,
+        `n_rows_to_generate=${num('n_rows_to_generate')}`,
         `guidance_scale=${num('guidance_scale')}`, `diffusion_steps=${num('diffusion_steps')}`,
         `noise_schedule=${vals.noise_schedule}`, `epochs=${num('epochs')}`, `learning_rate=${num('learning_rate')}`,
       );
@@ -381,6 +408,44 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
           <input className={field} type="number" min="1" step="1" value={String(vals.diffusion_steps)} onChange={setNum('diffusion_steps')} required />
         </label>
       </div>
+      <label className="block text-xs">{tOr('models.dl_spec_noise_schedule', 'Noise schedule')}
+        <select className={field} value={String(vals.noise_schedule)} onChange={setStr('noise_schedule')}>
+          {noiseOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </label>
+    </>}
+
+    {/* ── Tabular diffusion ──────────────────────────────────────────────── */}
+    {family === 'tabular' && <>
+      <label className="block text-xs">{tOr('models.dl_spec_framework', 'Framework')}
+        <select className={field} value={String(vals.framework)} onChange={setStr('framework')}>
+          <option value="tabddpm">TabDDPM</option>
+          <option value="tabsyn" disabled>TabSyn — {tOr('models.dl_spec_not_runnable', 'not yet available')}</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={!!vals.finetune} onChange={setBool('finetune')} />
+        {tOr('models.dl_spec_finetune_tab', 'Fine-tune a pretrained checkpoint (vs. train from scratch)')}
+      </label>
+      <label className="block text-xs">{tOr('models.dl_spec_base_checkpoint_tab', 'Pretrained diffusion checkpoint (warm-start)')}
+        <input className={field} value={String(vals.base_checkpoint)} onChange={setStr('base_checkpoint')} required={!!vals.finetune} />
+      </label>
+      {vals.finetune && !str('base_checkpoint') &&
+        <p role="alert" className="text-[11px] text-destructive">{tOr('models.dl_spec_tab_warmstart', 'Fine-tuning requires a checkpoint — or uncheck fine-tune to train from scratch.')}</p>}
+      <label className="block text-xs">{tOr('models.dl_spec_target_column', 'Condition on column (categorical; blank = unconditional)')}
+        <input className={field} value={String(vals.target_column)} onChange={setStr('target_column')} />
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-xs">{tOr('models.dl_spec_n_rows', 'Rows to generate')}
+          <input className={field} type="number" min="1" step="1" value={String(vals.n_rows_to_generate)} onChange={setNum('n_rows_to_generate')} required />
+        </label>
+        <label className="block text-xs">{tOr('models.dl_spec_guidance_scale', 'Guidance scale')}
+          <input className={field} type="number" min="0" step="any" value={String(vals.guidance_scale)} onChange={setNum('guidance_scale')} required />
+        </label>
+      </div>
+      <label className="block text-xs">{tOr('models.dl_spec_diffusion_steps', 'Diffusion steps (T)')}
+        <input className={field} type="number" min="1" step="1" value={String(vals.diffusion_steps)} onChange={setNum('diffusion_steps')} required />
+      </label>
       <label className="block text-xs">{tOr('models.dl_spec_noise_schedule', 'Noise schedule')}
         <select className={field} value={String(vals.noise_schedule)} onChange={setStr('noise_schedule')}>
           {noiseOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}

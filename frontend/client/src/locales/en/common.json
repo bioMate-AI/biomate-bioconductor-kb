@@ -830,7 +830,15 @@
     "dl_spec_n_genes": "Number of genes (0 = infer)",
     "dl_spec_guidance_scale": "Guidance scale",
     "dl_spec_epochs": "Epochs",
-    "dl_spec_learning_rate": "Learning rate"
+    "dl_spec_learning_rate": "Learning rate",
+    "dl_m_tabular_diffusion": "TabDDPM / TabSyn (tabular generation)",
+    "dl_d_tabular_diffusion": "Generative synthetic rows over a numeric/categorical feature matrix (CSV/parquet).",
+    "dl_spec_dataset_tabular": "Tabular data (CSV/parquet feature matrix)",
+    "dl_spec_finetune_tab": "Fine-tune a pretrained checkpoint (vs. train from scratch)",
+    "dl_spec_base_checkpoint_tab": "Pretrained diffusion checkpoint (warm-start)",
+    "dl_spec_tab_warmstart": "Fine-tuning requires a checkpoint — or uncheck fine-tune to train from scratch.",
+    "dl_spec_target_column": "Condition on column (categorical; blank = unconditional)",
+    "dl_spec_n_rows": "Rows to generate"
   },
   "instructions_formats": {
     "edit_title": "Edit output format",

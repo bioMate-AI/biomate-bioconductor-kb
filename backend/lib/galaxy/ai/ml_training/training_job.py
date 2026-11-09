@@ -208,6 +208,11 @@ def _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker) -> Jo
                                 source="structure/pdb (loaded in trainer)")
     elif cfg.model_type == "scrna_diffusion":
         dataset = LoadedDataset([], "gene", "expr", source="scrna/h5ad (loaded in trainer)")
+    elif cfg.model_type == "tabular_diffusion":
+        # Generic tabular diffusion loads its own CSV/parquet feature matrix inside
+        # its trainer (not the molecular smiles/label loader) — pass a placeholder.
+        dataset = LoadedDataset([], "features", "none",
+                                source="tabular/csv (loaded in trainer)")
     elif cfg.model_type == "sklearn_tabular":
         # Generic feature-matrix trainer loads its own CSV (not the SMILES loader).
         dataset = LoadedDataset([], "features", cfg.dataset.target_col,

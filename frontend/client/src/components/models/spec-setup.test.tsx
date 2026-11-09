@@ -53,6 +53,26 @@ it('scrna-diffusion panel submits an expression_generation request (train-from-s
   expect(draft).toContain('finetune=false');
 });
 
+it('tabular-diffusion panel submits a tabular_generation request (train-from-scratch avoids the warm-start gate)', async () => {
+  stubFiles('features.csv');
+  const next = vi.fn();
+  render(<SpecSetup initialType="tabular_diffusion" onContinue={next} />);
+  await waitFor(() => expect(screen.getByText('features.csv')).toBeInTheDocument());
+  expect(screen.getByLabelText('Rows to generate')).toHaveValue(1000);
+  fireEvent.change(screen.getByLabelText('Tabular data (CSV/parquet feature matrix)'), { target: { value: 'f1' } });
+  // Default finetune=true with an empty checkpoint is invalid (mirrors TabularDiffusionSpec.validate),
+  // so the submit is gated until we uncheck fine-tune (train from scratch).
+  expect(screen.getByText('Review in chat').closest('button')).toBeDisabled();
+  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByText('Review in chat'));
+  expect(next).toHaveBeenCalledOnce();
+  const draft = new URL(next.mock.calls[0][0], 'https://example.test').searchParams.get('draft') ?? '';
+  expect(draft).toContain('model_type=tabular_diffusion');
+  expect(draft).toContain('task_type=tabular_generation');
+  expect(draft).toContain('framework=tabddpm');
+  expect(draft).toContain('finetune=false');
+});
+
 it('LLM (ludwig_llm) panel submits a text_generation request with a random split', async () => {
   stubFiles('instructions.jsonl');
   const next = vi.fn();

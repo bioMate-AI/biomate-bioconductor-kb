@@ -49,6 +49,7 @@ def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
     llm = None
     diffusion = None
     sc = None
+    tabular = None
     from .config import LLM_MODEL_TYPES
     if args.model_type in LLM_MODEL_TYPES:
         from .config import LLMSpec
@@ -88,12 +89,26 @@ def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
         if args.task_type == "classification":
             args.task_type = "expression_generation"
         ds.split = "random"
+    elif args.model_type == "tabular_diffusion":
+        from .config import TabularDiffusionSpec
+        tabular = TabularDiffusionSpec(
+            framework=args.tab_framework, base_checkpoint=args.tab_base_checkpoint,
+            finetune=args.tab_finetune, target_column=args.tab_target_column,
+            n_rows_to_generate=args.tab_n_rows_to_generate,
+            guidance_scale=args.tab_guidance_scale,
+            diffusion_steps=args.tab_diffusion_steps,
+            noise_schedule=args.tab_noise_schedule,
+        )
+        # tabular_diffusion always uses tabular_generation + random split.
+        if args.task_type == "classification":
+            args.task_type = "tabular_generation"
+        ds.split = "random"
     return TrainingConfig(
         name=args.model_name, task_type=args.task_type, model_type=args.model_type,
         featurizer=args.featurizer, dataset=ds, hyperparams=hp,
         mlflow_experiment=args.mlflow_experiment, campaign_id=args.campaign_id,
         metric=args.metric, gate_threshold=args.gate_threshold, llm=llm,
-        diffusion=diffusion, sc=sc,
+        diffusion=diffusion, sc=sc, tabular=tabular,
     ).validate()
 
 
@@ -175,6 +190,21 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sc-guidance-scale", type=float, default=1.0, dest="sc_guidance_scale")
     p.add_argument("--sc-diffusion-steps", type=int, default=1000, dest="sc_diffusion_steps")
     p.add_argument("--sc-noise-schedule", default="cosine", dest="sc_noise_schedule",
+                   help="cosine|linear|sqrt")
+    # Generic tabular diffusion (model-type=tabular_diffusion)
+    p.add_argument("--tab-framework", default="tabddpm", dest="tab_framework",
+                   help="tabddpm|tabsyn")
+    p.add_argument("--tab-base-checkpoint", default="", dest="tab_base_checkpoint",
+                   help="pretrained diffusion checkpoint for fine-tune warm-start")
+    p.add_argument("--tab-finetune", action=argparse.BooleanOptionalAction, default=True,
+                   dest="tab_finetune", help="fine-tune a pretrained checkpoint vs. train-from-scratch")
+    p.add_argument("--tab-target-column", default="", dest="tab_target_column",
+                   help="categorical column to condition synthesis on ('' = unconditional)")
+    p.add_argument("--tab-n-rows-to-generate", type=int, default=1000,
+                   dest="tab_n_rows_to_generate")
+    p.add_argument("--tab-guidance-scale", type=float, default=1.0, dest="tab_guidance_scale")
+    p.add_argument("--tab-diffusion-steps", type=int, default=1000, dest="tab_diffusion_steps")
+    p.add_argument("--tab-noise-schedule", default="cosine", dest="tab_noise_schedule",
                    help="cosine|linear|sqrt")
     p.add_argument("--mlflow-experiment", default="biomate-ml-training", dest="mlflow_experiment")
     p.add_argument("--campaign-id", default="default", dest="campaign_id")

@@ -154,6 +154,18 @@ const METHODS: Method[] = [
     badgeKey: "models.dl_badge_generative_tag",
     badgeFallback: "generative",
   },
+  {
+    type: "tabular_diffusion",
+    panel: "spec",
+    familyKey: "models.dl_family_diffusion",
+    familyFallback: "Generative / Diffusion",
+    nameKey: "models.dl_m_tabular_diffusion",
+    nameFallback: "TabDDPM / TabSyn (tabular generation)",
+    descKey: "models.dl_d_tabular_diffusion",
+    descFallback: "Generative synthetic rows over a numeric/categorical feature matrix (CSV/parquet).",
+    badgeKey: "models.dl_badge_generative_tag",
+    badgeFallback: "generative",
+  },
 ]
 
 /** Catalog hit returned by /api/workflows/search candidate_workflows[]. */

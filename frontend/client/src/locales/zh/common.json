@@ -1341,7 +1341,15 @@
     "dl_spec_n_genes": "基因数量（0 = 自动推断）",
     "dl_spec_guidance_scale": "引导强度",
     "dl_spec_epochs": "训练轮数",
-    "dl_spec_learning_rate": "学习率"
+    "dl_spec_learning_rate": "学习率",
+    "dl_m_tabular_diffusion": "TabDDPM / TabSyn（表格数据生成）",
+    "dl_d_tabular_diffusion": "在数值/类别特征矩阵（CSV/parquet）上生成合成样本行。",
+    "dl_spec_dataset_tabular": "表格数据（CSV/parquet 特征矩阵）",
+    "dl_spec_finetune_tab": "微调预训练检查点（相对于从零训练）",
+    "dl_spec_base_checkpoint_tab": "预训练扩散检查点（热启动）",
+    "dl_spec_tab_warmstart": "微调需要一个检查点——或取消勾选微调以从零训练。",
+    "dl_spec_target_column": "以列为条件（类别列；留空为无条件）",
+    "dl_spec_n_rows": "生成的行数"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",

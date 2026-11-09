@@ -38,6 +38,9 @@ _DEFAULT_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate
 # scrna_diffusion ships in its own GPU image (torch-cuda + scDiffusion/CFGen +
 # scanpy/anndata), separate from the protein diffusion (SE(3)) image.
 _DEFAULT_SC_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sc-diffusion-training:latest"
+# tabular_diffusion ships in its own GPU image (torch-cuda + TabDDPM/TabSyn +
+# pandas), separate from the single-cell and protein diffusion images.
+_DEFAULT_TABULAR_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/tabular-diffusion-training:latest"
 
 
 def _resolve_container(cfg: TrainingConfig) -> str:
@@ -46,6 +49,8 @@ def _resolve_container(cfg: TrainingConfig) -> str:
         return os.environ.get("DIFFUSION_TRAINING_IMAGE", _DEFAULT_DIFFUSION_IMAGE)
     if cfg.model_type == "scrna_diffusion":
         return os.environ.get("SC_DIFFUSION_TRAINING_IMAGE", _DEFAULT_SC_DIFFUSION_IMAGE)
+    if cfg.model_type == "tabular_diffusion":
+        return os.environ.get("TABULAR_DIFFUSION_TRAINING_IMAGE", _DEFAULT_TABULAR_DIFFUSION_IMAGE)
     if cfg.model_type in TRL_MODEL_TYPES:
         return os.environ.get("TRL_TRAINING_IMAGE", _DEFAULT_TRL_IMAGE)
     if cfg.model_type == "chemprop_gnn":
@@ -149,6 +154,21 @@ def training_launch_parameters(cfg: TrainingConfig, s3_dataset_uri: Optional[str
         "sc_guidance_scale": sc.guidance_scale if sc else 1.0,
         "sc_diffusion_steps": sc.diffusion_steps if sc else 1000,
         "sc_noise_schedule": sc.noise_schedule if sc else "cosine",
+    })
+    # Generic tabular diffusion params (tabular_diffusion) — passed to the CLI with
+    # a `tab_` prefix so they never collide with the sc_/protein framework,
+    # diffusion_steps/noise_schedule above; ignored by other model types. Flat
+    # scalars only (executor JSON-serializes lists/dicts — CLAUDE.md).
+    tab = cfg.tabular
+    parameters.update({
+        "tab_framework": tab.framework if tab else "tabddpm",
+        "tab_base_checkpoint": tab.base_checkpoint if tab else "",
+        "tab_finetune": tab.finetune if tab else True,
+        "tab_target_column": tab.target_column if tab else "",
+        "tab_n_rows_to_generate": tab.n_rows_to_generate if tab else 1000,
+        "tab_guidance_scale": tab.guidance_scale if tab else 1.0,
+        "tab_diffusion_steps": tab.diffusion_steps if tab else 1000,
+        "tab_noise_schedule": tab.noise_schedule if tab else "cosine",
     })
 
     return parameters

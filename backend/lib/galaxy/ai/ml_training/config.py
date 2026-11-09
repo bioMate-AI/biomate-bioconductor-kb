@@ -27,7 +27,10 @@ from typing import Any, Optional
 TASK_TYPES = ("classification", "regression", "text_generation",
               "structure_generation",
               # scrna_diffusion: generate/augment single-cell expression profiles.
-              "expression_generation")
+              "expression_generation",
+              # tabular_diffusion: generate/augment synthetic rows of a generic
+              # numeric/categorical feature matrix (TabDDPM / TabSyn).
+              "tabular_generation")
 # ludwig_tabular = low-code DL (Ludwig NN over RDKit descriptors, CPU-runnable);
 # chemprop_gnn = molecular graph DL (GPU); sklearn_gbr = cheap non-DL baseline;
 # ludwig_llm = low-code LLM fine-tuning (Ludwig LoRA/QLoRA over a base model).
@@ -45,15 +48,20 @@ TASK_TYPES = ("classification", "regression", "text_generation",
 # fine-tune a pretrained checkpoint OR train from scratch to generate/augment
 # scRNA-seq cells. Runs in the separate sc-diffusion-training image (torch-cuda +
 # scanpy/anndata), GPU-only for real runs.
+# tabular_diffusion = GENERIC tabular-data diffusion (TabDDPM/TabSyn): fine-tune a
+# pretrained checkpoint OR train from scratch to synthesize/augment rows of a
+# numeric+categorical feature matrix (CSV/parquet). The domain-agnostic sibling of
+# scrna_diffusion (h5ad) and protein_diffusion (PDB). Runs in the separate
+# tabular-diffusion-training image (torch-cuda), GPU-only for real runs.
 MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "sklearn_tabular",
                "ludwig_llm", "trl_dpo", "trl_grpo",
-               "protein_diffusion", "scrna_diffusion")
+               "protein_diffusion", "scrna_diffusion", "tabular_diffusion")
 LLM_MODEL_TYPES = ("ludwig_llm", "trl_dpo", "trl_grpo")   # text-generation family
 TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training image
 # Diffusion family runs in a dedicated GPU image (dispatch is per model_type in
 # executor_payload._resolve_container). protein_diffusion → diffusion-training;
-# scrna_diffusion → sc-diffusion-training.
-DIFFUSION_MODEL_TYPES = ("protein_diffusion", "scrna_diffusion")
+# scrna_diffusion → sc-diffusion-training; tabular_diffusion → tabular-diffusion-training.
+DIFFUSION_MODEL_TYPES = ("protein_diffusion", "scrna_diffusion", "tabular_diffusion")
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
 ADAPTERS = ("lora", "qlora", "none")
 # Built-in reward functions for GRPO (a real reward fn or a named built-in).
@@ -358,6 +366,62 @@ class SCDiffusionSpec:
             raise ConfigError(f"sc.noise_schedule must be one of {NOISE_SCHEDULES}")
 
 
+# Supported generic tabular-diffusion frameworks. tabddpm (rotot0/tab-ddpm) is the
+# default: a genuine denoising-diffusion model over a mixed numeric/categorical
+# feature matrix with class-conditional synthesis. tabsyn (amazon-science/tabsyn)
+# is a latent-diffusion alternative kept as a supported value.
+TABULAR_DIFFUSION_FRAMEWORKS = ("tabddpm", "tabsyn")
+
+
+@dataclass
+class TabularDiffusionSpec:
+    """Generic tabular-data diffusion knobs (model_type == 'tabular_diffusion').
+
+    The dataset for tabular diffusion is a **CSV/parquet numeric+categorical
+    feature matrix** (rows = samples, columns = features), NOT molecules, text,
+    structures or h5ad — so it ignores DatasetSpec.smiles_col/target_col and reads
+    cfg.dataset.path/s3_uri directly as the feature table (parsed in the trainer).
+
+    Two modes, both supported:
+      * finetune=True  → warm-start from `base_checkpoint` (a pretrained
+        TabDDPM/TabSyn weight) and adapt to the user's feature matrix.
+      * finetune=False → train the diffusion backbone from scratch on the matrix.
+
+    `target_column` (a categorical column) drives class-conditional synthesis;
+    "" = unconditional generation of `n_rows_to_generate` new rows, with
+    classifier-free guidance strength `guidance_scale`.
+    """
+    framework: str = "tabddpm"                     # tabddpm | tabsyn
+    # Pretrained warm-start checkpoint (framework-native id/path). Empty default
+    # + finetune=False means "train from scratch".
+    base_checkpoint: str = ""
+    finetune: bool = True                          # fine-tune vs. train-from-scratch
+    # --- conditioning / generation ---
+    target_column: str = ""                        # categorical column to condition on ("" = unconditional)
+    n_rows_to_generate: int = 1000
+    guidance_scale: float = 1.0                    # classifier-free guidance strength
+    # --- diffusion backbone ---
+    diffusion_steps: int = 1000
+    noise_schedule: str = "cosine"                 # cosine | linear | sqrt
+
+    def validate(self) -> None:
+        if self.framework not in TABULAR_DIFFUSION_FRAMEWORKS:
+            raise ConfigError(f"tabular.framework must be one of {TABULAR_DIFFUSION_FRAMEWORKS}")
+        if self.finetune and not (self.base_checkpoint or "").strip():
+            raise ConfigError(
+                "tabular.finetune=True requires a base_checkpoint to warm-start from "
+                "(set finetune=False to train the diffusion backbone from scratch)."
+            )
+        if self.n_rows_to_generate <= 0:
+            raise ConfigError("tabular.n_rows_to_generate must be > 0")
+        if self.guidance_scale <= 0:
+            raise ConfigError("tabular.guidance_scale must be > 0")
+        if self.diffusion_steps <= 0:
+            raise ConfigError("tabular.diffusion_steps must be > 0")
+        if self.noise_schedule not in NOISE_SCHEDULES:
+            raise ConfigError(f"tabular.noise_schedule must be one of {NOISE_SCHEDULES}")
+
+
 @dataclass
 class TrainingConfig:
     """The full declarative spec for one training run."""
@@ -376,6 +440,7 @@ class TrainingConfig:
     llm: Optional[LLMSpec] = None               # required when model_type=ludwig_llm
     diffusion: Optional[DiffusionSpec] = None   # required when model_type=protein_diffusion
     sc: Optional[SCDiffusionSpec] = None        # required when model_type=scrna_diffusion
+    tabular: Optional[TabularDiffusionSpec] = None  # required when model_type=tabular_diffusion
 
     # -- validation -----------------------------------------------------------
     def validate(self) -> "TrainingConfig":
@@ -418,6 +483,12 @@ class TrainingConfig:
             self.sc.validate()
             if self.task_type != "expression_generation":
                 raise ConfigError(f"{self.model_type} requires task_type=expression_generation")
+        if self.model_type == "tabular_diffusion":
+            if self.tabular is None:
+                raise ConfigError(f"model_type={self.model_type} requires a `tabular` spec")
+            self.tabular.validate()
+            if self.task_type != "tabular_generation":
+                raise ConfigError(f"{self.model_type} requires task_type=tabular_generation")
         return self
 
     # -- (de)serialization ----------------------------------------------------
@@ -432,12 +503,14 @@ class TrainingConfig:
         llm = d.pop("llm", None)
         diff = d.pop("diffusion", None)
         sc = d.pop("sc", None)
+        tabular = d.pop("tabular", None)
         cfg = cls(
             dataset=DatasetSpec(**ds) if isinstance(ds, dict) else ds,
             hyperparams=Hyperparams(**hp) if isinstance(hp, dict) else hp,
             llm=LLMSpec(**llm) if isinstance(llm, dict) else llm,
             diffusion=DiffusionSpec(**diff) if isinstance(diff, dict) else diff,
             sc=SCDiffusionSpec(**sc) if isinstance(sc, dict) else sc,
+            tabular=TabularDiffusionSpec(**tabular) if isinstance(tabular, dict) else tabular,
             **d,
         )
         return cfg
@@ -455,6 +528,42 @@ class TrainingConfig:
             {"name": "metric", "type": "string", "label": "Evaluation metric", "value": self.metric},
             {"name": "gate_threshold", "type": "number", "label": "Quality gate threshold", "value": self.gate_threshold},
         ]
+        if self.model_type == "tabular_diffusion":
+            tab = self.tabular or TabularDiffusionSpec()
+            required = [
+                {"name": "dataset", "type": "file",
+                 "label": "Tabular data (CSV/parquet numeric+categorical feature matrix)",
+                 "value": self.dataset.name or self.dataset.path or self.dataset.s3_uri or "",
+                 "required": True},
+            ]
+            optional = [
+                {"name": "framework", "type": "select", "label": "Diffusion framework",
+                 "allowed_values": list(TABULAR_DIFFUSION_FRAMEWORKS), "value": tab.framework,
+                 "default": "tabddpm"},
+                {"name": "finetune", "type": "boolean", "label": "Fine-tune pretrained checkpoint",
+                 "value": tab.finetune, "default": True},
+                {"name": "base_checkpoint", "type": "string",
+                 "label": "Pretrained diffusion checkpoint (fine-tune warm-start)",
+                 "value": tab.base_checkpoint, "default": ""},
+                {"name": "target_column", "type": "string",
+                 "label": "Condition on column (categorical; blank = unconditional)",
+                 "value": tab.target_column, "default": ""},
+                {"name": "n_rows_to_generate", "type": "number", "label": "Rows to generate",
+                 "value": tab.n_rows_to_generate, "default": 1000},
+                {"name": "guidance_scale", "type": "number", "label": "Guidance scale",
+                 "value": tab.guidance_scale, "default": 1.0},
+                {"name": "diffusion_steps", "type": "number", "label": "Diffusion steps",
+                 "value": tab.diffusion_steps, "default": 1000},
+                {"name": "noise_schedule", "type": "select", "label": "Noise schedule",
+                 "allowed_values": list(NOISE_SCHEDULES), "value": tab.noise_schedule,
+                 "default": "cosine"},
+                {"name": "epochs", "type": "number", "label": "Epochs",
+                 "value": self.hyperparams.epochs, "default": 50},
+                {"name": "learning_rate", "type": "number", "label": "Learning rate",
+                 "value": self.hyperparams.learning_rate, "default": 1e-4},
+            ]
+            return {"required_params": required, "optional_params": common + optional}
+
         if self.model_type == "scrna_diffusion":
             sc = self.sc or SCDiffusionSpec()
             required = [
