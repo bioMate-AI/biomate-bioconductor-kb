@@ -45,8 +45,8 @@
  * honest failure, so the fabrication has been removed.
  *
  * A real implementation is blocked on two hard gaps:
- *   1. CONTAINER — the declared image `biomate/biomni-tools` (built from
- *      backend/docker/biomni-tools/Dockerfile) is a cheminformatics /
+ *   1. CONTAINER — the declared image `biomate/workflow-tools` (built from
+ *      backend/docker/workflow-tools/Dockerfile) is a cheminformatics /
  *      pharmacology + basic sci-python stack (numpy, scipy, pandas,
  *      scikit-learn, biopython, rdkit, ViennaRNA, Vina, statsmodels). It
  *      contains NONE of the multiome integration stack required for real
@@ -86,8 +86,8 @@ process MULTIOME_RNA_ATAC {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -109,7 +109,7 @@ process MULTIOME_RNA_ATAC {
     # peak-gene links, TF-activity scores and cell annotations with Python's
     # `random` module and reported success. That fake output has been removed.
     # There is no real WNN / joint-embedding integration stack in the declared
-    # container (biomni-tools: no scanpy/anndata/muon/episcanpy/Signac/ArchR/
+    # container (workflow-tools: no scanpy/anndata/muon/episcanpy/Signac/ArchR/
     # chromVAR) and no real RNA/ATAC input data plumbed into this process, so a
     # genuine result cannot be produced here. Failing loudly (non-zero exit) is
     # correct; emitting fabricated "successful" output is not.
@@ -117,7 +117,7 @@ process MULTIOME_RNA_ATAC {
     # See the header comment of this file for what a real implementation needs.
     # ─────────────────────────────────────────────────────────────────────────
     echo "ERROR: single_cell/multiome_rna_atac — joint RNA+ATAC (WNN) integration not yet implemented." >&2
-    echo "       The declared container (biomni-tools) lacks the multiome integration stack" >&2
+    echo "       The declared container (workflow-tools) lacks the multiome integration stack" >&2
     echo "       (scanpy/anndata, muon/muData, episcanpy, Seurat/Signac, ArchR, chromVAR) and" >&2
     echo "       no real RNA/ATAC input data is provided to this process." >&2
     echo "       Refusing to emit fabricated output. See main.nf header for implementation notes." >&2

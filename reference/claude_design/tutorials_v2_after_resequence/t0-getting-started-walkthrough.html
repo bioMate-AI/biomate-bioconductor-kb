@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T0 — Getting started: your first question</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t11{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:46px 70px 54px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:38px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 14px; max-width:18ch}
+.scene.title h2{font-size:54px; max-width:20ch; margin-bottom:20px}
+.caption{font-size:19px; line-height:1.55; color:var(--ink2); max-width:64ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:68ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:26px; min-height:0}
+
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+.tag.ship{background:var(--green-bg); color:var(--green)}
+.tag.open{background:var(--amber-bg); color:var(--amber)}
+.tag.gap{background:var(--red-bg); color:var(--red)}
+
+/* screenshot figures */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:52ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:22px 26px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:16px 18px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:17px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13.5px; line-height:1.5; color:var(--ink2); margin:0}
+.tile.lane-i{border-left:3px solid var(--green)}
+.tile.lane-c{border-left:3px solid var(--blue)}
+.flowline{display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.15fr .85fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:22px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t11">Tutorial 0 · Getting started — your first question</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">9</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="20.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Getting Started</b></div>
+    <div class="kicker">One doorway · one loop</div>
+    <h2>Describe your goal in plain English. BioMate takes it from there.</h2>
+    <p class="caption">No software to install and no code to write. Type a goal, see which kind of work it is, review the message, send it yourself, and read the result. Nothing runs until you confirm.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Type a goal</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>See how it's handled</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Review</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Send</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Read the result</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — WHAT BIOMATE IS -->
+  <section class="scene" data-seconds="26.4">
+    <div class="kicker"><span class="st">The idea</span> · what BioMate is</div>
+    <h2>A cloud workbench you talk to in plain language.</h2>
+    <p class="caption">Instead of installing software and assembling tools yourself, you describe what you want. BioMate either <b>answers from the scientific literature and databases</b>, or <b>runs a tested analysis in the cloud</b> — and hands back the results with a record of how they were produced.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">YOU</div><h4>Describe a goal</h4><p>In everyday words — no coding or bioinformatics background needed.</p></div>
+            <div class="tile"><div class="n">BIOMATE</div><h4>Answers or runs</h4><p>Reads the literature for a cited answer, or runs a validated workflow in the cloud.</p></div>
+            <div class="tile"><div class="n">ALWAYS</div><h4>Shows you first</h4><p>It shows how it will handle your request, and asks before any cloud run.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Finding evidence · analysing your own data · designing molecules · learning from lab results — four kinds of work, one shared doorway.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs, and nothing is billed, until you have seen it and confirmed</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE COLD START (screenshot) -->
+  <section class="scene" data-seconds="18.4">
+    <div class="kicker"><span class="st">The doorway</span> · the cold start</div>
+    <h2>Every new conversation opens on the cold start.</h2>
+    <p class="caption">A single <b>intent bar</b> where you type your goal, four <b>module cards</b> in the middle, and the <b>composer</b> — the message box — at the foot. Think of it as a reception desk: you say what you need, and it points you in the right direction.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/s1-1-sidebar.png" alt="BioMate cold start — sidebar, intent bar, module cards, composer"/></div>
+          <figcaption><span class="lbl">Live product</span>The sidebar on the left (New Chat returns you here anytime), the intent bar at the top, the four module cards, and the composer at the foot.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — THE FOUR MODULES -->
+  <section class="scene" data-seconds="26.4">
+    <div class="kicker"><span class="st">The four modules</span> · the kinds of work</div>
+    <h2>Four kinds of work — and you never have to pick one.</h2>
+    <p class="caption">The cards simply help you recognise which kind of work your goal belongs to. Type your goal in the intent bar and BioMate routes it to the right one.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">SEARCH &amp; EVIDENCE</div><h4>"What is known?"</h4><p>A short, cited answer drawn from literature and databases. The example in this tutorial.</p></div>
+            <div class="tile"><div class="n">DATA ANALYSIS</div><h4>"Run this on my data"</h4><p>RNA-seq, variant calling, and more, using a validated pipeline. (Tutorial 3)</p></div>
+            <div class="tile"><div class="n">DESIGN &amp; GENERATE</div><h4>"Propose candidates"</h4><p>New candidate molecules for a drug program. (Tutorial 1)</p></div>
+            <div class="tile"><div class="n">MODELS</div><h4>"Learn &amp; improve"</h4><p>Learn from your lab results to improve the next round. (Tutorial 2)</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">You do <b>not</b> pick a module first — the intent bar routes your plain-English goal to the right kind of work.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — TWO KINDS OF REQUEST -->
+  <section class="scene" data-seconds="29.9">
+    <div class="kicker"><span class="st">Two kinds of request</span> · a sourced answer or a full analysis</div>
+    <h2>A cited answer, or an analysis you confirm.</h2>
+    <p class="caption">BioMate handles every request in one of two ways, and shows which one it will use before you send — a cloud run never starts until you confirm.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile lane-i"><div class="n">A SOURCED ANSWER</div><h4>A cited answer in seconds</h4><p>Reads the literature and databases and replies in the chat. No large computation is involved. "What is known about X" is answered here.</p></div>
+            <div class="tile lane-c"><div class="n">A FULL ANALYSIS RUN</div><h4>A validated workflow</h4><p>Runs in the cloud on paid compute. Running an analysis on your own data takes this path.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">A run in the cloud never starts paid computation until you confirm.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>The routing is shown before you send, and a cloud run never starts until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — NOTHING RUNS UNTIL YOU SEND (screenshot) -->
+  <section class="scene" data-seconds="17.6">
+    <div class="kicker"><span class="st">The safety rule</span> · nothing runs until you send</div>
+    <h2>You stay in control: nothing is sent until you press Send.</h2>
+    <p class="caption">A card or the intent bar <b>pre-fills</b> the composer at the foot of the chat. You read what was filled in, adjust it, attach any data, and press <b>Send</b> yourself. <b>Only then does anything happen.</b></p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t0-composer.png" alt="The composer at the foot of the chat, with attach-file and point-at-data controls" style="object-fit:contain;object-position:center"/></div>
+          <figcaption><span class="lbl">The composer</span>Besides typing, you can attach your own files (paperclip) and point at data BioMate already holds (database icon).</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — ASKING YOUR FIRST QUESTION (screenshot) -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">Step by step</span> · asking your first question</div>
+    <h2>Type a real goal and see how it's handled before you send.</h2>
+    <p class="caption">We'll ask an evidence question, because it returns in seconds: <i>"What is the evidence linking JAK1 to rheumatoid arthritis, and how strong is it?"</i> As you type, BioMate shows a short restatement — how it will handle your request (shown as "Answer here · with sources") and a plain reading of the subject ("a question about what is known").</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t0-lane.png" alt="The composer with a knowledge question and the request preview" style="object-fit:contain;object-position:center"/></div>
+          <figcaption><span class="lbl">Type → see how it's handled → review → send</span>Your goal lands in the composer, where you can edit it. When it says what you mean, press Send (Shift+Enter for a new line).</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — HOW TO READ IT + HONEST LIMITS -->
+  <section class="scene" data-seconds="34.7">
+    <div class="kicker"><span class="st">Reading it</span> · the answer</div>
+    <h2>A concise, sourced report you can trace.</h2>
+    <p class="caption">An evidence answer carries numbered markers tying each claim to a source, citations that open to the publisher, and a <b>boundary block</b> that states what the answer is <i>not</i> evidence for.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">How to read it</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0">Numbered markers <code>[1] [2]</code> point to the sources the answer used. Each citation opens to the publisher. The boundary block tells you how far the answer can be relied on.</p>
+          </div>
+        </div>
+        <div class="lead-col">
+          <div class="card" style="border-left:3px solid var(--amber)">
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">WHAT THE ANSWER IS</div>
+            <p style="font-size:13.5px;line-height:1.55;margin:0;color:var(--ink2)">An evidence answer summarises the published literature; it is <b>not</b> a verdict on your own data. For your own data, a validated analysis runs in the cloud and returns results with a record of how they were produced.</p>
+          </div>
+          <div class="tags" style="margin-top:16px">
+            <span class="verdict ok"><span class="mk"></span>Every claim linked to a source</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — CLOSING -->
+  <section class="scene title" data-seconds="25.4">
+    <div class="kicker">The loop at a glance</div>
+    <h2 style="font-size:44px">Type a goal → see how it's handled → review → send → read the result.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">That is the whole doorway. Everything else in BioMate is a richer version of this one loop, with its sources or its reproducibility record attached.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Type a goal in plain words</li>
+            <li><span class="k">2</span>See how it's handled — a sourced answer or a full analysis</li>
+            <li><span class="k">3–4</span>Review the seeded message, then send it yourself</li>
+            <li><span class="k">5</span>Read the result — sources, or a record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Ask what's known</td><td>Search &amp; evidence · <span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Answered here · this tutorial</span></td></tr>
+            <tr><td>Design molecules</td><td>Design &amp; generate · <span class="tag" style="font-size:10.5px">Tutorial 1</span></td></tr>
+            <tr><td>Learn from lab results</td><td>Models · <span class="tag" style="font-size:10.5px">Tutorial 2</span></td></tr>
+            <tr><td>Run a full analysis</td><td>Data analysis · <span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">In the cloud · Tutorial 3</span></td></tr>
+          </table>
+          <p class="footnote">BioMate shows you what it is about to do before anything runs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

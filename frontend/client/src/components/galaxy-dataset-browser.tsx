@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { uploadFile as uploadFileShared } from '@/lib/upload';
-import { t } from "@/lib/i18n";
+import { t, tOr } from "@/lib/i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +68,42 @@ function formatDate(iso: string): string {
   }
 }
 
+// A single resolved selection: the value handed to onSelect + its display name.
+interface PickedDataset {
+  value: string;
+  name: string;
+}
+
+// A history dataset is selectable only when Galaxy reports it as 'ok'. Error /
+// discarded / in-progress states (e.g. a failed "Executed Notebook" ipynb shown
+// greyed with its raw state) are NOT usable datasets, so they are hidden and the
+// picker shows only real, selectable datasets. 'ok' is the only Galaxy state a
+// dataset is readable in — this matches the existing per-row "disabled" gate.
+function isUsableDataset(state: string | undefined): boolean {
+  return (state || '').toLowerCase() === 'ok';
+}
+
+// Galaxy auto-creates one internal history per chat session, named like
+// "GalaxyChat-2026-10-10" (or with a trailing session id). That raw identifier
+// is an implementation detail — a user never named it and shouldn't see it. We
+// render a friendly label instead, keeping the embedded date (the only
+// user-meaningful part) when present. Conservative: only names that clearly
+// start with the "GalaxyChat" auto prefix are rewritten; everything a user
+// actually named passes through untouched.
+const AUTO_HISTORY_DATE_RE = /^GalaxyChat[-_ ]?(\d{4}[-_]\d{2}[-_]\d{2})/i;
+const AUTO_HISTORY_RE = /^GalaxyChat[-_ ]/i;
+function friendlyHistoryName(name: string | undefined): string {
+  const raw = (name || '').trim();
+  const dated = AUTO_HISTORY_DATE_RE.exec(raw);
+  if (dated) {
+    return tOr('datasets_dialog.history_auto_label_dated', 'Chat session · {{date}}', { date: dated[1].replace(/_/g, '-') });
+  }
+  if (AUTO_HISTORY_RE.test(raw)) {
+    return tOr('datasets_dialog.history_auto_label', 'Chat session');
+  }
+  return raw;
+}
+
 // Tab: "This session" — shows sessionDatasets prop + inline upload button with drag-drop
 function SessionTab({
   datasets,
@@ -114,7 +151,7 @@ function SessionTab({
         await uploadFile(file);
       }
     } catch (err: any) {
-      setUploadError(err.message || 'Upload failed');
+      setUploadError(err.message || tOr('datasets_dialog.upload_failed', 'Upload failed'));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -209,10 +246,14 @@ function SessionTab({
             : <Upload className="h-4 w-4 text-muted-foreground" />
           }
           <span className="text-xs text-muted-foreground">
-            {uploading ? 'Uploading…' : isDragging ? 'Drop files or folders here' : 'Drop files or folders here, or click to browse'}
+            {uploading
+              ? tOr('datasets_dialog.uploading', 'Uploading…')
+              : isDragging
+                ? tOr('datasets_dialog.drop_active', 'Drop files or folders here')
+                : tOr('datasets_dialog.drop_hint', 'Drop files or folders here, or click to browse')}
           </span>
           {!uploading && (
-            <span className="text-[11px] text-muted-foreground/60">Files and folders supported</span>
+            <span className="text-[11px] text-muted-foreground/60">{tOr('datasets_dialog.files_folders_supported', 'Files and folders supported')}</span>
           )}
         </div>
       </div>
@@ -221,18 +262,18 @@ function SessionTab({
       {/* One-line hint — full limits/formats live in docs, not this dialog */}
       <p className="flex items-start gap-2 text-[11px] text-muted-foreground px-1 mb-3">
         <Info className="h-3 w-3 mt-0.5 shrink-0" />
-        <span>Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use <span className="font-medium text-foreground">From URL</span>.</span>
+        <span>{tOr('datasets_dialog.session_help_prefix', 'Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use ')}<span className="font-medium text-foreground">{tOr('datasets_dialog.tab_url', 'From URL')}</span>.</span>
       </p>
 
       {datasets.length === 0 && !uploading && (
         <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-          <p className="text-sm font-medium">No datasets yet</p>
-          <p className="text-xs mt-1">Upload a file above or import from URL</p>
+          <p className="text-sm font-medium">{tOr('datasets_dialog.no_datasets_yet', 'No datasets yet')}</p>
+          <p className="text-xs mt-1">{tOr('datasets_dialog.no_datasets_hint', 'Upload a file above or import from URL')}</p>
         </div>
       )}
 
       {filtered.length === 0 && datasets.length > 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">No datasets match &ldquo;{search}&rdquo;</p>
+        <p className="text-sm text-muted-foreground text-center py-8">{tOr('datasets_dialog.no_match_search', 'No datasets match “{{search}}”', { search })}</p>
       )}
 
       {filtered.map(ds => {
@@ -257,7 +298,7 @@ function SessionTab({
               className="h-7 text-xs shrink-0"
               onClick={() => onSelect(value, name)}
             >
-              Use
+              {tOr('datasets_dialog.use', 'Use')}
             </Button>
           </div>
         );
@@ -270,9 +311,12 @@ function SessionTab({
 function HistoryTab({
   search,
   onSelect,
+  onSelectMany,
 }: {
   search: string;
   onSelect: (value: string, name: string) => void;
+  // Return several datasets at once (multi-select); closes the dialog once.
+  onSelectMany: (items: PickedDataset[]) => void;
 }) {
   const [histories, setHistories] = useState<GalaxyHistory[]>([]);
   const [selectedHistory, setSelectedHistory] = useState<GalaxyHistory | null>(null);
@@ -282,6 +326,16 @@ function HistoryTab({
   const [error, setError] = useState<string | null>(null);
   const [datasetsError, setDatasetsError] = useState<string | null>(null);
   const [loadTick, setLoadTick] = useState(0);
+  // Checked rows in the current history view, keyed by dataset id.
+  const [checked, setChecked] = useState<Record<string, PickedDataset>>({});
+  const toggleChecked = useCallback((id: string, item: PickedDataset) => {
+    setChecked(prev => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = item;
+      return next;
+    });
+  }, []);
 
   // Load histories on mount (or on retry)
   useEffect(() => {
@@ -300,7 +354,7 @@ function HistoryTab({
       .then(data => {
         setHistories(data.histories || []);
       })
-      .catch((e: any) => setError(e?.message || 'Could not load histories'))
+      .catch((e: any) => setError(e?.message || tOr('datasets_dialog.load_histories_failed', 'Could not load histories')))
       .finally(() => setLoading(false));
   }, [loadTick]);
 
@@ -320,12 +374,13 @@ function HistoryTab({
         return r.json();
       })
       .then(data => setDatasets(data.datasets || []))
-      .catch((e: any) => setDatasetsError(e?.message || 'Could not load datasets'))
+      .catch((e: any) => setDatasetsError(e?.message || tOr('datasets_dialog.load_datasets_failed', 'Could not load datasets')))
       .finally(() => setDatasetsLoading(false));
   }, []);
 
   const openHistory = useCallback((history: GalaxyHistory) => {
     setSelectedHistory(history);
+    setChecked({}); // fresh selection per history
     loadDatasets(history);
   }, [loadDatasets]);
 
@@ -342,7 +397,7 @@ function HistoryTab({
       <div className="text-center py-10 text-sm text-muted-foreground">
         <p>{error}</p>
         <Button variant="ghost" size="sm" className="mt-2" onClick={() => setLoadTick(t => t + 1)}>
-          Retry
+          {tOr('datasets_dialog.retry', 'Retry')}
         </Button>
       </div>
     );
@@ -351,22 +406,27 @@ function HistoryTab({
   // Dataset list view (inside a history)
   if (selectedHistory) {
     const filteredDs = datasets.filter(d =>
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.extension?.toLowerCase().includes(search.toLowerCase())
+      // Only usable ('ok') datasets are shown — errored "Executed Notebook"
+      // items and other non-selectable states are hidden (issue 3).
+      isUsableDataset(d.state) && (
+        d.name.toLowerCase().includes(search.toLowerCase()) ||
+        d.extension?.toLowerCase().includes(search.toLowerCase())
+      )
     );
+    const checkedItems = Object.values(checked);
 
     return (
       <div className="space-y-2">
         <button
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => setSelectedHistory(null)}
+          onClick={() => { setChecked({}); setSelectedHistory(null); }}
         >
           <ChevronLeft className="h-3 w-3" />
-          All histories
+          {tOr('datasets_dialog.all_histories', 'All histories')}
         </button>
         <div className="flex items-center gap-2 pb-1 border-b">
           <Database className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium truncate">{selectedHistory.name}</span>
+          <span className="text-sm font-medium truncate">{friendlyHistoryName(selectedHistory.name)}</span>
         </div>
 
         {datasetsLoading ? (
@@ -382,52 +442,79 @@ function HistoryTab({
               className="mt-2"
               onClick={() => selectedHistory && loadDatasets(selectedHistory)}
             >
-              Retry
+              {tOr('datasets_dialog.retry', 'Retry')}
             </Button>
           </div>
         ) : filteredDs.length === 0 ? (
           <p className="text-sm text-center text-muted-foreground py-6">
-            {search ? `No datasets match "${search}"` : 'No datasets in this history'}
+            {search
+              ? tOr('datasets_dialog.no_match_search', 'No datasets match “{{search}}”', { search })
+              : tOr('datasets_dialog.no_datasets_in_history', 'No datasets in this history')}
           </p>
         ) : (
-          <div className="space-y-1">
-            {filteredDs.map(ds => (
-              <div
-                key={ds.id}
-                className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{ds.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {ds.extension && (
-                      <Badge variant="secondary" className="text-xs h-4 px-1">{ds.extension}</Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground">{formatBytes(ds.file_size)}</span>
-                    {ds.create_time && (
-                      <span className="text-xs text-muted-foreground">{formatDate(ds.create_time)}</span>
-                    )}
+          <>
+            <div className="space-y-1">
+              {filteredDs.map(ds => {
+                const value = ds.s3_uri || ds.id;
+                const isChecked = !!checked[ds.id];
+                return (
+                  <div
+                    key={ds.id}
+                    className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60 transition-colors"
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={() => toggleChecked(ds.id, { value, name: ds.name })}
+                      aria-label={tOr('datasets_dialog.select_dataset_aria', 'Select {{name}}', { name: ds.name })}
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{ds.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {ds.extension && (
+                          <Badge variant="secondary" className="text-xs h-4 px-1">{ds.extension}</Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">{formatBytes(ds.file_size)}</span>
+                        {ds.create_time && (
+                          <span className="text-xs text-muted-foreground">{formatDate(ds.create_time)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => onSelect(value, ds.name)}
+                    >
+                      {tOr('datasets_dialog.use', 'Use')}
+                    </Button>
                   </div>
-                </div>
+                );
+              })}
+            </div>
+            {checkedItems.length > 0 && (
+              <div className="sticky bottom-0 flex justify-end bg-background/95 backdrop-blur-sm pt-2 pb-1 border-t">
                 <Button
                   size="sm"
-                  variant="secondary"
-                  className="h-7 text-xs shrink-0"
-                  disabled={ds.state !== 'ok'}
-                  onClick={() => onSelect(ds.s3_uri || ds.id, ds.name)}
+                  className="h-7 text-xs"
+                  data-testid="datasets-use-selected"
+                  onClick={() => onSelectMany(checkedItems)}
                 >
-                  {ds.state === 'ok' ? 'Use' : ds.state}
+                  {tOr('datasets_dialog.use_selected', 'Use selected ({{count}})', { count: checkedItems.length })}
                 </Button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     );
   }
 
-  // History list view
+  // History list view. Match against both the raw name and the friendly label so
+  // a search for "chat" still finds the de-identified auto histories.
+  const q = search.toLowerCase();
   const filteredHistories = histories.filter(h =>
-    h.name.toLowerCase().includes(search.toLowerCase())
+    h.name.toLowerCase().includes(q) || friendlyHistoryName(h.name).toLowerCase().includes(q)
   );
 
   if (filteredHistories.length === 0) {
@@ -435,10 +522,12 @@ function HistoryTab({
       <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
         <Database className="h-8 w-8 mb-3 opacity-40" />
         <p className="text-sm font-medium">
-          {search ? `No histories match "${search}"` : 'No analysis histories found'}
+          {search
+            ? tOr('datasets_dialog.no_histories_match', 'No histories match “{{search}}”', { search })
+            : tOr('datasets_dialog.no_histories', 'No analysis histories found')}
         </p>
         {!search && (
-          <p className="text-xs mt-1">Run a workflow to see your histories here</p>
+          <p className="text-xs mt-1">{tOr('datasets_dialog.run_workflow_hint', 'Run a workflow to see your histories here')}</p>
         )}
       </div>
     );
@@ -454,10 +543,10 @@ function HistoryTab({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium truncate">{h.name}</p>
+              <p className="text-sm font-medium truncate">{friendlyHistoryName(h.name)}</p>
               {h.source === 'run' && (
                 <Badge variant="outline" className="text-xs h-4 px-1 shrink-0 border-blue-300 text-blue-600">
-                  Run outputs
+                  {tOr('datasets_dialog.run_outputs', 'Run outputs')}
                 </Badge>
               )}
             </div>
@@ -486,6 +575,9 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   const [url, setUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Examples are secondary — collapsed by default so the input is the focus and
+  // the tab isn't a wall of example URIs. Each source keeps its (localized) label.
+  const [showExamples, setShowExamples] = useState(false);
 
   const handleImport = async () => {
     if (!url.trim()) return;
@@ -507,59 +599,30 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
       onImported(id, name);
       setUrl('');
     } catch (e: any) {
-      setError(e.message || 'Import failed');
+      setError(e.message || tOr('datasets_dialog.import_failed', 'Import failed'));
     } finally {
       setImporting(false);
     }
   };
 
+  // Compact "source → one example" row for the collapsible examples list.
+  const ExampleRow = ({ label, code, icon }: { label: string; code: string; icon?: React.ReactNode }) => (
+    <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
+      <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-1">
+        {icon}{label}
+      </span>
+      <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all break-all">
+        {code}
+      </code>
+    </div>
+  );
+
   return (
     <div className="space-y-3 px-1 pb-2">
-      <div className="rounded-md bg-muted/50 p-3 text-xs space-y-2">
-        <div className="flex items-center gap-1.5">
-          <Info className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-          <p className="font-medium text-foreground">
-            No size limit — BioMate downloads server-side. Works for files of any size.
-          </p>
-        </div>
-        <div className="space-y-1.5 text-muted-foreground border-t pt-2">
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">Public HTTP/HTTPS:</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_genomic.fna.gz
-            </code>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">NCBI SRA / EBI ENA (public):</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR1518169/SRR1518169
-            </code>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">Public FTP:</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              ftp://ftp.ncbi.nlm.nih.gov/path/to/file.fastq.gz
-            </code>
-            <p className="mt-1">Do not place credentials in a URL. Authenticated storage requires a managed connection.</p>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">AWS S3 single file (uses your Account Settings credentials):</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              s3://my-bucket/project/sample.bam
-            </code>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5 flex items-center gap-1">
-              <FolderArchive className="h-3 w-3 text-amber-500" />
-              S3 folder:
-            </p>
-            <p>Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.</p>
-          </div>
-        </div>
-      </div>
+      {/* Primary action — input + Import kept at the top, the focus of the tab */}
       <div className="flex gap-2">
         <Input
-          placeholder="https://… or ftp://… or s3://…"
+          placeholder={tOr('datasets_dialog.url_placeholder', 'https://… or ftp://… or s3://…')}
           value={url}
           onChange={e => setUrl(e.target.value)}
           className="h-8 text-sm font-mono"
@@ -571,17 +634,75 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
           disabled={!url.trim() || importing}
           onClick={handleImport}
         >
-          {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Import'}
+          {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : tOr('datasets_dialog.import', 'Import')}
         </Button>
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {/* One-line reassurance — always visible, secondary to the input */}
+      <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground px-0.5">
+        <Info className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-px" />
+        <span>{tOr('datasets_dialog.url_no_limit', 'No size limit — BioMate downloads server-side. Works for files of any size.')}</span>
+      </p>
+
+      {/* Examples + help — collapsed disclosure so the tab isn't a wall of URIs */}
+      <div className="rounded-md bg-muted/50 text-xs">
+        <button
+          type="button"
+          aria-expanded={showExamples}
+          onClick={() => setShowExamples(v => !v)}
+          className="w-full flex items-center gap-1.5 px-3 py-2 font-medium text-foreground/80 hover:text-foreground transition-colors"
+        >
+          <ChevronRight className={cn('h-3 w-3 transition-transform', showExamples && 'rotate-90')} />
+          {tOr('datasets_dialog.url_examples_toggle', 'Examples & accepted sources')}
+        </button>
+        {showExamples && (
+          <div className="px-3 pb-3 space-y-2 text-muted-foreground border-t pt-2">
+            <ExampleRow
+              label={tOr('datasets_dialog.url_http_label', 'Public HTTP/HTTPS:')}
+              code="https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_genomic.fna.gz"
+            />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_sra_label', 'NCBI SRA / EBI ENA (public):')}
+              code="https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR1518169/SRR1518169"
+            />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_ftp_label', 'Public FTP:')}
+              code="ftp://ftp.ncbi.nlm.nih.gov/path/to/file.fastq.gz"
+            />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_s3_label', 'AWS S3 single file (uses your Account Settings credentials):')}
+              code="s3://my-bucket/project/sample.bam"
+            />
+            <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
+              <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-px">
+                <FolderArchive className="h-3 w-3 text-amber-500 shrink-0" />
+                {tOr('datasets_dialog.url_s3_folder_label', 'S3 folder:')}
+              </span>
+              <p className="text-[11px]">{tOr('datasets_dialog.url_s3_folder_help', 'Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.')}</p>
+            </div>
+            <p className="text-[11px] border-t pt-2">{tOr('datasets_dialog.url_no_credentials', 'Do not place credentials in a URL. Authenticated storage requires a managed connection.')}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function ProjectFilesTab({ projectId, search, onSelect }: { projectId: string; search: string; onSelect: (value: string, name: string) => void }) {
+function ProjectFilesTab({ projectId, search, onSelect, onSelectMany }: { projectId: string; search: string; onSelect: (value: string, name: string) => void; onSelectMany: (items: PickedDataset[]) => void }) {
   const [files, setFiles] = useState<Array<{ id: string; name: string; size?: number }>>([]);
   const [loading, setLoading] = useState(true);
+  // Checked rows keyed by file id. The value is the project_files.id (same
+  // contract as single "Use" — the server resolves it to the authorized s3_key).
+  const [checked, setChecked] = useState<Record<string, PickedDataset>>({});
+  const toggleChecked = useCallback((id: string, item: PickedDataset) => {
+    setChecked(prev => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = item;
+      return next;
+    });
+  }, []);
   useEffect(() => {
     setLoading(true);
     fetch(`/api/projects/${projectId}/files`, { credentials: 'include' })
@@ -591,17 +712,38 @@ function ProjectFilesTab({ projectId, search, onSelect }: { projectId: string; s
       .finally(() => setLoading(false));
   }, [projectId]);
   const filtered = files.filter(file => file.name.toLowerCase().includes(search.toLowerCase()));
+  const checkedItems = Object.values(checked);
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>;
-  if (!filtered.length) return <p className="text-sm text-center text-muted-foreground py-6">{search ? `No project files match "${search}"` : 'No files in this project'}</p>;
-  return <div className="space-y-1">{filtered.map(file => (
-    <div key={file.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60">
-      <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{file.name}</p><span className="text-xs text-muted-foreground">{formatBytes(Number(file.size || 0))}</span></div>
-      {/* Always send the project_files.id — the server authoritatively resolves
-          it to the exact, authorized s3_key at chat time. Never send a URI the
-          server would have to trust. */}
-      <Button size="sm" variant="secondary" className="h-7 text-xs shrink-0" onClick={() => onSelect(file.id, file.name)}>Use</Button>
-    </div>
-  ))}</div>;
+  if (!filtered.length) return <p className="text-sm text-center text-muted-foreground py-6">{search ? tOr('datasets_dialog.no_project_files_match', 'No project files match “{{search}}”', { search }) : tOr('datasets_dialog.no_files_in_project', 'No files in this project')}</p>;
+  return <>
+    <div className="space-y-1">{filtered.map(file => (
+      <div key={file.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60">
+        <Checkbox
+          checked={!!checked[file.id]}
+          onCheckedChange={() => toggleChecked(file.id, { value: file.id, name: file.name })}
+          aria-label={tOr('datasets_dialog.select_dataset_aria', 'Select {{name}}', { name: file.name })}
+          className="shrink-0"
+        />
+        <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{file.name}</p><span className="text-xs text-muted-foreground">{formatBytes(Number(file.size || 0))}</span></div>
+        {/* Always send the project_files.id — the server authoritatively resolves
+            it to the exact, authorized s3_key at chat time. Never send a URI the
+            server would have to trust. */}
+        <Button size="sm" variant="secondary" className="h-7 text-xs shrink-0" onClick={() => onSelect(file.id, file.name)}>{tOr('datasets_dialog.use', 'Use')}</Button>
+      </div>
+    ))}</div>
+    {checkedItems.length > 0 && (
+      <div className="sticky bottom-0 flex justify-end bg-background/95 backdrop-blur-sm pt-2 pb-1 border-t">
+        <Button
+          size="sm"
+          className="h-7 text-xs"
+          data-testid="datasets-use-selected"
+          onClick={() => onSelectMany(checkedItems)}
+        >
+          {tOr('datasets_dialog.use_selected', 'Use selected ({{count}})', { count: checkedItems.length })}
+        </Button>
+      </div>
+    )}
+  </>;
 }
 
 export function GalaxyDatasetBrowser({
@@ -633,11 +775,19 @@ export function GalaxyDatasetBrowser({
     onClose();
   };
 
+  // Multi-select: hand each checked dataset to the existing single-select
+  // handler (preserving its contract), then close the dialog exactly once.
+  const handleSelectMany = (items: PickedDataset[]) => {
+    if (!items.length) return;
+    items.forEach(it => onSelect(it.value, it.name));
+    onClose();
+  };
+
   const tabs = [
-    { id: 'session' as const, label: 'This session' },
-    ...(projectId ? [{ id: 'project' as const, label: 'Project files', icon: <Folder className="h-3 w-3 mr-1" /> }] : []),
-    { id: 'history' as const, label: 'BioMate history' },
-    { id: 'url' as const, label: 'From URL', icon: <Link2 className="h-3 w-3 mr-1" /> },
+    { id: 'session' as const, label: tOr('datasets_dialog.tab_session', 'This session') },
+    ...(projectId ? [{ id: 'project' as const, label: tOr('datasets_dialog.tab_project', 'Project files'), icon: <Folder className="h-3 w-3 mr-1" /> }] : []),
+    { id: 'history' as const, label: tOr('datasets_dialog.tab_history', 'BioMate history') },
+    { id: 'url' as const, label: tOr('datasets_dialog.tab_url', 'From URL'), icon: <Link2 className="h-3 w-3 mr-1" /> },
   ];
 
   return (
@@ -645,7 +795,7 @@ export function GalaxyDatasetBrowser({
       <DialogContent className="max-w-lg max-h-[80vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-4 pt-4 pb-0">
           <DialogTitle className="text-base">
-            Select dataset{paramLabel ? ` — ${paramLabel}` : ''}
+            {tOr('datasets_dialog.title', 'Select dataset')}{paramLabel ? ` — ${paramLabel}` : ''}
           </DialogTitle>
         </DialogHeader>
 
@@ -693,10 +843,10 @@ export function GalaxyDatasetBrowser({
             />
           )}
           {activeTab === 'history' && (
-            <HistoryTab search={search} onSelect={handleSelect} />
+            <HistoryTab search={search} onSelect={handleSelect} onSelectMany={handleSelectMany} />
           )}
           {activeTab === 'project' && projectId && (
-            <ProjectFilesTab projectId={projectId} search={search} onSelect={handleSelect} />
+            <ProjectFilesTab projectId={projectId} search={search} onSelect={handleSelect} onSelectMany={handleSelectMany} />
           )}
           {activeTab === 'url' && (
             <UrlImportForm onImported={(id, name) => { handleSelect(id, name); }} />

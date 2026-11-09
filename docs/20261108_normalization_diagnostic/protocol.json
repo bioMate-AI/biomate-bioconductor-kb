@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-08",
+  "status": "completed",
+  "change": "normalization fit on all outer-training feature rows instead of labelled subset only",
+  "heldout_features_used": false,
+  "additional_training_labels_used": false,
+  "label_fraction": 0.1,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "folds": 3,
+  "arms": [
+    "pretrained",
+    "scratch"
+  ],
+  "updates": [
+    48,
+    "468 or 480 depending on fold"
+  ],
+  "inputs": "rna",
+  "checkpoint_sha256": "04da405dcdd8f4a2cf3ffca3058a3dd03804caae4e50a9c14db19f272ea637a7",
+  "baseline": "../20261107_spark_immune_status/update_count_diagnostic",
+  "script_sha256": "6e7e37216b80f425ece2bf0df58435218af2ac03c7d13daee24f778720044ff0",
+  "interpretation": "exploratory; outer folds previously inspected, no hyperparameter or best-endpoint selection"
+}

@@ -1,0 +1,30 @@
+{
+  "name": "MolWt clf (real GBR)",
+  "model_type": "sklearn_gbr",
+  "task_type": "classification",
+  "metrics": {
+    "test_auc": 1.0
+  },
+  "framework_version": "sklearn==1.9.0",
+  "extra": {
+    "featurizer": "rdkit_2d_6desc",
+    "model_path": "/Users/kky/biomate-review/data/ml_training/camp1/molwt-clf--real-gbr-/model.pkl",
+    "split": {
+      "requested": "scaffold",
+      "method": "bemis_murcko_scaffold",
+      "seed": 1,
+      "n_train": 15,
+      "n_val": 3,
+      "n_test": 12,
+      "n_scaffold_groups": 12,
+      "target_sizes": [
+        15,
+        3,
+        12
+      ]
+    },
+    "metrics_unavailable": {
+      "val_auc": "val partition contains a single class"
+    }
+  }
+}

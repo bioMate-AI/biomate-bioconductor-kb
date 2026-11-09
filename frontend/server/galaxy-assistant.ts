@@ -408,7 +408,225 @@ write the overview of the top target's biology.)`,
       required: ['query'],
     },
   },
+  {
+    name: 'search_chat_history',
+    description: `Search the user's OWN past conversations (their earlier chat sessions) for text they
+mentioned before. Use this — do NOT guess from memory — whenever the user refers to something from a
+prior chat: "what did we conclude last week", "find the chat where we discussed GRCh38", "which
+session had the ADMET run", "remind me what we decided about X". It AND-matches your query words
+(case-insensitive) against the raw transcripts of this user's other sessions and returns the most
+recently-active matches first, each with a short snippet and the session_id. It does NOT search the
+CURRENT conversation (you already have that above) and only ever sees this user's own chats. An empty
+result is a REAL answer: if nothing matches, tell the user you found no prior chat mentioning it and
+ask them to paste the detail — never fabricate a recollection.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'The words to look for across past chats (e.g. "GRCh38 variant calling", "hERG threshold", "the campaign we named Falcon"). Keep it to the distinctive terms.',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'edit_report',
+    description: `Edit the written FINDINGS REPORT of one of the user's runs, through chat, and save it as a
+new report version. Use this when the user asks to change their report in words: "tighten the abstract
+of my last run's report", "add a limitations paragraph", "rewrite the summary for a clinical audience".
+This edits the REAL, durable, versioned report (the same object the report panel shows) — version 0 (the
+run original) is always preserved; your edit is appended as a new version.
+
+THREE-STEP, NEVER-SILENT flow — follow it in order:
+  1. Call with just {run_id} (and optionally the user's instruction). The tool returns base_markdown —
+     the current report text. If it returns status "no_report_text", the report has not been opened or
+     saved yet: ask the user to open it in the report panel once, or paste the text. NEVER invent a
+     report body.
+  2. Compose the FULL edited report yourself and call again with {run_id, new_content}. The tool returns
+     a diff preview (added/removed lines). Show that change to the user. Do NOT save yet.
+  3. Only after the user agrees, call with {run_id, new_content, confirm: true} to SAVE it as a new
+     version. Saving modifies the user's report, so it requires their explicit OK first.
+If the client provided the exact text the user is viewing, pass it as current_markdown so the edit forks
+from precisely what they see.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        run_id: {
+          type: 'string',
+          description: "The run whose report to edit (run id, or the Galaxy invocation id). Get it from the recent-runs context or list_history if unsure.",
+        },
+        instruction: {
+          type: 'string',
+          description: 'Optional: what the user asked to change, for your own reference on step 1 (e.g. "tighten the abstract").',
+        },
+        new_content: {
+          type: 'string',
+          description: 'The FULL edited report markdown you composed. Required for the preview (step 2) and the save (step 3). Omit on step 1 to fetch the current text first.',
+        },
+        confirm: {
+          type: 'boolean',
+          description: 'Set true ONLY to save, and ONLY after the user has agreed to the previewed change. Without it the tool previews and does not write.',
+        },
+        current_markdown: {
+          type: 'string',
+          description: 'Optional: the exact report text the user is currently viewing, if the client supplied it. Used as the edit base so the fork matches what they see.',
+        },
+        note: {
+          type: 'string',
+          description: 'Optional short label stored with the saved version (e.g. "tightened abstract via chat").',
+        },
+      },
+      required: ['run_id'],
+    },
+  },
 ];
+
+/** Line-level diff summary produced by summarizeReportEdit, used by the edit_report
+ *  tool to show the user WHAT an edit changes before it is saved. */
+export interface ReportEditSummary {
+  added: number;
+  removed: number;
+  baseLines: number;
+  nextLines: number;
+  unchanged: boolean;
+  /** A short unified-diff-style preview (±/context lines), truncated. */
+  preview: string;
+}
+
+/** Minimal LCS line diff. O(m*n) memory — guarded by the caller for large inputs.
+ *  Returns a tagged sequence: ' ' context, '-' removed (in base only), '+' added
+ *  (in next only). */
+function lcsLineDiff(a: string[], b: string[]): Array<{ type: ' ' | '-' | '+'; line: string }> {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out: Array<{ type: ' ' | '-' | '+'; line: string }> = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (a[i] === b[j]) {
+      out.push({ type: ' ', line: a[i] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      out.push({ type: '-', line: a[i] });
+      i++;
+    } else {
+      out.push({ type: '+', line: b[j] });
+      j++;
+    }
+  }
+  while (i < m) out.push({ type: '-', line: a[i++] });
+  while (j < n) out.push({ type: '+', line: b[j++] });
+  return out;
+}
+
+/** Summarize the change from `base` report markdown to `next`. Counts added/removed
+ *  lines and builds a short preview of only the changed lines (with a little context),
+ *  truncated to `maxPreviewLines`. For very large reports it falls back to a
+ *  multiset line-count so it never allocates an O(m*n) table. Pure + testable. */
+export function summarizeReportEdit(base: string, next: string, maxPreviewLines = 40): ReportEditSummary {
+  const a = (base ?? '').split('\n');
+  const b = (next ?? '').split('\n');
+  if (base === next) {
+    return { added: 0, removed: 0, baseLines: a.length, nextLines: b.length, unchanged: true, preview: '' };
+  }
+  // Guard the O(m*n) table on large inputs: fall back to a frequency-based count.
+  if (a.length > 2000 || b.length > 2000) {
+    const freq = new Map<string, number>();
+    for (const l of a) freq.set(l, (freq.get(l) ?? 0) + 1);
+    for (const l of b) freq.set(l, (freq.get(l) ?? 0) - 1);
+    let added = 0;
+    let removed = 0;
+    for (const v of freq.values()) {
+      if (v < 0) added += -v;
+      else if (v > 0) removed += v;
+    }
+    return {
+      added,
+      removed,
+      baseLines: a.length,
+      nextLines: b.length,
+      unchanged: added === 0 && removed === 0,
+      preview: '(report too large to show a line-by-line preview; ' + added + ' line(s) added, ' + removed + ' removed)',
+    };
+  }
+  const diff = lcsLineDiff(a, b);
+  let added = 0;
+  let removed = 0;
+  for (const d of diff) {
+    if (d.type === '+') added++;
+    else if (d.type === '-') removed++;
+  }
+  const previewLines: string[] = [];
+  for (const d of diff) {
+    if (d.type === ' ') continue;
+    previewLines.push((d.type === '+' ? '+ ' : '- ') + d.line);
+    if (previewLines.length >= maxPreviewLines) {
+      previewLines.push('… (preview truncated)');
+      break;
+    }
+  }
+  return {
+    added,
+    removed,
+    baseLines: a.length,
+    nextLines: b.length,
+    unchanged: added === 0 && removed === 0,
+    preview: previewLines.join('\n'),
+  };
+}
+
+/** Pull a short, readable snippet from a chat_sessions.messages JSONB value around
+ *  the first matching token. Defensive about message shape (array of {role,content},
+ *  content as string | array-of-parts, or an arbitrary object). Used by the
+ *  search_chat_history tool handler. */
+export function extractChatSnippet(messages: any, lowerTokens: string[]): string {
+  let flat = '';
+  try {
+    if (typeof messages === 'string') {
+      flat = messages;
+    } else if (Array.isArray(messages)) {
+      flat = messages
+        .map((m: any) => {
+          if (typeof m === 'string') return m;
+          const c = m?.content ?? m?.text ?? '';
+          if (typeof c === 'string') return c;
+          if (Array.isArray(c)) {
+            return c.map((p: any) => (typeof p === 'string' ? p : p?.text ?? '')).join(' ');
+          }
+          return '';
+        })
+        .join('\n');
+    } else if (messages && typeof messages === 'object') {
+      flat = JSON.stringify(messages);
+    }
+  } catch {
+    flat = '';
+  }
+  flat = flat.trim();
+  if (!flat) return '';
+  const hay = flat.toLowerCase();
+  let idx = -1;
+  for (const tok of lowerTokens) {
+    if (!tok) continue;
+    const i = hay.indexOf(tok);
+    if (i >= 0 && (idx < 0 || i < idx)) idx = i;
+  }
+  if (idx < 0) idx = 0;
+  const start = Math.max(0, idx - 80);
+  const end = Math.min(flat.length, idx + 180);
+  let snip = flat.slice(start, end).replace(/\s+/g, ' ').trim();
+  if (start > 0) snip = '…' + snip;
+  if (end < flat.length) snip = snip + '…';
+  return snip;
+}
 
 /**
  * Model configuration for different AI tasks
@@ -535,6 +753,18 @@ export interface ChatContext {
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
+  /** When the user has a run's report open in the panel, the client may pass the
+   *  exact markdown it is showing (buildFullReportMarkdown) + that run's id. The
+   *  edit_report tool uses this as the faithful base so a chat edit forks from
+   *  precisely what the user sees, rather than a server-reconstructed approximation. */
+  openReportRunId?: string;
+  openReportMarkdown?: string;
+  /** Auth headers (Authorization + cookie) copied from the originating chat
+   *  request by routes.ts, so a tool handler can make an AUTHENTICATED self-call
+   *  back to the Node API. Used by edit_report to reconstruct a run's report
+   *  from /api/workflows/runs/:runId/findings/report when the client did not
+   *  pass the open markdown and no version is saved yet. Never logged. */
+  selfRequestAuth?: { authorization?: string; cookie?: string };
   enableThinking?: boolean;
   /** Accumulated facts from prior turns, passed so the LLM can decide supersession */
   accumulatedFacts?: Array<{ id: string; category: string; value: string }>;
@@ -3413,6 +3643,8 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
             case 'query_database': output = await this._toolQueryDatabase(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
+            case 'search_chat_history': output = await this._toolSearchChatHistory(args, toolContext.context); break;
+            case 'edit_report': output = await this._toolEditReport(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
             case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
             case 'request_new_tool': output = await this._toolRequestNewTool(args, toolContext.context); break;
@@ -5126,6 +5358,31 @@ Rules:
         log('Paper-question guard: PDF attached + question about paper — routing to research_response, not workflow');
         actions.needsWorkflowGeneration = false;
         intent.type = 'research_question';
+      }
+    }
+
+    // Data-attach guard:
+    // A pure "add/attach these files" action is dataset management, NOT an
+    // analysis request — but a bare "also add the other two files" was being
+    // misrouted into workflow-card generation (un_expected_workflow_otherintent).
+    // Suppress generation only when the message reads as an attach/add-files
+    // action AND carries no genuine analysis/workflow verb. Real requests like
+    // "run rnaseq on the other two files" keep their analysis verb and are
+    // unaffected, so this stays narrow. Runs on the ORIGINAL user query so
+    // injected context (paper text, dataset blocks) can't dilute the match.
+    if (actions.needsWorkflowGeneration) {
+      const _attachQuery = originalUserQuery || message;
+      const _isAttachAction =
+        // attach verb followed (within a short span) by a files noun or pronoun
+        /\b(?:also\s+)?(?:add|attach|include|upload)\b[^.?!\n]{0,40}\b(?:files?|datasets?|samples?|attachments?|docs?|documents?|pdfs?|csvs?|them|these|those|it)\b/i.test(_attachQuery)
+        // strong signal: "the other/remaining/rest/both ... files"
+        || /\b(?:the\s+)?(?:other|remaining|rest|both|two|three|four|additional|more)\s+(?:two|three|four|\d+\s+)?(?:files?|datasets?|samples?|attachments?|documents?)\b/i.test(_attachQuery);
+      const _hasAnalysisVerb =
+        /\b(run|execute|process|analy[sz]e|align|map|call|quantify|trim|filter|normali[sz]e|cluster|assemble|annotate|predict|screen|dock|simulate|differential\s+expression|variant|genotyp\w*|workflow|pipeline|rna-?seq|atac|chip-?seq|admet|docking|align\w*|deseq|enrich\w*)\b/i.test(_attachQuery);
+      if (_isAttachAction && !_hasAnalysisVerb) {
+        log('Data-attach guard: add/attach-files action with no analysis verb — suppressing workflow generation, routing to plain/dataset response');
+        actions.needsWorkflowGeneration = false;
+        actions.needsWorkflowModification = false;
       }
     }
 
@@ -9435,7 +9692,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
       }
-      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id with read_file to preview it, OR with run_code's input_datasets to load the FULL file for computation (it is staged into the sandbox like any input; a file over the sandbox cap will not be staged and run_code will report that — run a workflow on very large files). Use its s3_uri for Nextflow workflow parameters. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed or read in run_code, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id with read_file to preview it, OR with run_code's input_datasets to load the FULL file for computation (it is staged into the sandbox like any input; a file over the sandbox cap will not be staged and run_code will report that — run a workflow on very large files). Use its s3_uri for Nextflow workflow parameters. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed or read in run_code, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn. When you MENTION a dataset to the user in your reply, refer to it by its NAME only (e.g. "counts_matrix.csv") — never print its id/UUID or s3_uri in prose; those are for your tool calls, not for the user to read.\n</session_datasets>\n`;
       return body;
     })();
 
@@ -10446,6 +10703,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_my_data':
             output = await this._toolSearchMyData(block.input, context);
             break;
+          case 'search_chat_history':
+            output = await this._toolSearchChatHistory(block.input, context);
+            break;
+          case 'edit_report':
+            output = await this._toolEditReport(block.input, context);
+            break;
           case 'list_data_sources':
             output = await this._toolListDataSources(block.input);
             break;
@@ -10936,6 +11199,212 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** search_chat_history tool handler — cross-conversation search over the user's
+   *  OWN past chat sessions (chat_sessions.messages JSONB). This is the honest
+   *  answer to "what did we conclude last week / in an earlier chat": it actually
+   *  searches prior transcripts instead of fabricating a recollection. Scoped to
+   *  context.userId; EXCLUDES the current session (that transcript is already in
+   *  context). AND-matches whitespace tokens (case-insensitive) over the raw
+   *  message text, most-recently-active first, with a short snippet around the
+   *  first hit. An empty result is a real answer — say nothing was found. */
+  private async _toolSearchChatHistory(input: any, context: ChatContext): Promise<unknown> {
+    const query = (input?.query ?? '').toString().trim();
+    if (!query) return { error: 'query is required' };
+    const uid = context?.userId ? String(context.userId) : undefined;
+    if (!uid) return { error: 'no authenticated user in context' };
+    const currentSessionId = context?.sessionId ? String(context.sessionId) : undefined;
+    const tokens = query.split(/\s+/).filter(Boolean).slice(0, 6);
+    try {
+      const { pool } = await import('./db');
+      const params: any[] = [uid];
+      const clauses: string[] = ['user_id = $1'];
+      if (currentSessionId) {
+        params.push(currentSessionId);
+        clauses.push(`session_id <> $${params.length}`);
+      }
+      for (const tok of tokens) {
+        params.push(`%${tok}%`);
+        clauses.push(`messages::text ILIKE $${params.length}`);
+      }
+      const sql =
+        `SELECT session_id, title, status, last_activity, messages FROM chat_sessions ` +
+        `WHERE ${clauses.join(' AND ')} ORDER BY last_activity DESC NULLS LAST LIMIT 8`;
+      const result = await pool.query(sql, params);
+      const lowerTokens = tokens.map((t: string) => t.toLowerCase());
+      const sessions = result.rows.map((r: any) => ({
+        session_id: r.session_id,
+        title: r.title || '(untitled chat)',
+        status: r.status ?? undefined,
+        last_activity: r.last_activity,
+        snippet: extractChatSnippet(r.messages, lowerTokens),
+      }));
+      return {
+        query,
+        total: sessions.length,
+        sessions,
+        note: sessions.length
+          ? 'These are the user\'s own past conversations that mention the query. Quote the snippet or point to the session; do not fabricate detail beyond what the snippet shows.'
+          : 'No past conversation of this user mentions the query. Tell them nothing was found — do not invent a recollection; ask them to paste the detail or point you to the run/project.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** edit_report tool handler — chat-driven editing of a run's findings report,
+   *  saved as a new version of the DURABLE, versioned report (reportVersionStore,
+   *  DB-backed). Three-phase + never-silent:
+   *    - no new_content  → return the current base text (from client current_markdown
+   *      or the latest saved version) so the model can compose the edit; honest
+   *      "no_report_text" when there is nothing stored to edit (never fabricate one).
+   *    - new_content, no confirm → return a diff preview; DO NOT write.
+   *    - new_content + confirm:true → append the new version (v0 run original is
+   *      preserved by the store's fork protection) and return the saved version.
+   *  Scoped by the store's run resolution; the run must belong to the user's data. */
+  private async _toolEditReport(input: any, context: ChatContext): Promise<unknown> {
+    const runId = (input?.run_id ?? input?.runId ?? '').toString().trim();
+    if (!runId) {
+      return { error: 'run_id is required — tell me which run\'s report to edit (a run id or name).' };
+    }
+    const instruction = typeof input?.instruction === 'string' ? input.instruction : undefined;
+    const newContent = typeof input?.new_content === 'string' ? input.new_content : undefined;
+    const clientMarkdown = typeof input?.current_markdown === 'string' ? input.current_markdown : undefined;
+    const confirm = input?.confirm === true;
+    const note = typeof input?.note === 'string' && input.note.trim() ? input.note.trim() : 'Edited via chat';
+    try {
+      const { reportVersionStore } = await import('./report-version-store');
+
+      // Resolve the current base text: what the client shows (most faithful) else the
+      // latest saved version. Never reconstruct an approximation and pass it off as the report.
+      // Priority: explicit tool arg → the report the client has open this turn → latest saved version.
+      let baseMarkdown: string | undefined = clientMarkdown;
+      let baseSource: 'client' | 'saved_version' | 'run_original' | 'none' = clientMarkdown !== undefined ? 'client' : 'none';
+      if (
+        baseMarkdown === undefined &&
+        typeof context?.openReportMarkdown === 'string' &&
+        (!context.openReportRunId || context.openReportRunId === runId)
+      ) {
+        baseMarkdown = context.openReportMarkdown;
+        baseSource = 'client';
+      }
+      const versions = await reportVersionStore.list(runId);
+      if (versions === null) {
+        return { run_id: runId, status: 'run_not_found', note: 'No run with that id for this user. Check the run id (list_history can find it).' };
+      }
+      if (baseMarkdown === undefined && versions.length > 0) {
+        const latest = versions.reduce((a, b) => (a.version >= b.version ? a : b));
+        baseMarkdown = latest.content ?? '';
+        baseSource = 'saved_version';
+      }
+
+      // Still nothing to fork from? The run has produced a report (shown in the
+      // after-run panel) but it was never opened client-side nor saved as a
+      // version. Reconstruct it server-side from the structured report endpoint
+      // so edit_report forks from what the run actually produced instead of
+      // telling the user to paste text they can already see (ID_everywhere).
+      if (baseMarkdown === undefined) {
+        const reconstructed = await this._reconstructRunReportMarkdown(runId, context).catch(() => undefined);
+        if (reconstructed && reconstructed.trim()) {
+          baseMarkdown = reconstructed;
+          baseSource = 'run_original';
+          // Seed the immutable v0 so a later edit forks from this real report,
+          // not from a client blob. Best-effort — never block the edit on it.
+          try { await reportVersionStore.ensureOriginal(runId, reconstructed); } catch { /* non-fatal */ }
+        }
+      }
+
+      // Phase 1: hand back the base so the model can compose the edit.
+      if (newContent === undefined) {
+        if (baseMarkdown === undefined) {
+          return {
+            run_id: runId,
+            status: 'no_report_text',
+            note: 'This run has no stored report text yet, and the client did not provide the text currently shown. Ask the user to open the report in the report panel once (or paste its text); then call edit_report again. Do NOT invent a report body.',
+          };
+        }
+        return {
+          run_id: runId,
+          status: 'base_ready',
+          base_source: baseSource,
+          instruction: instruction ?? null,
+          base_markdown: baseMarkdown,
+          note: 'This is the current report. Compose the FULL edited report and call edit_report again with it as new_content to preview the change. Do not save until the user agrees.',
+        };
+      }
+
+      // Phases 2/3: we have the edited content. Compute the diff for the user.
+      const base = baseMarkdown ?? '';
+      const summary = summarizeReportEdit(base, newContent);
+      if (summary.unchanged) {
+        return { run_id: runId, status: 'no_change', note: 'The edited content is identical to the current report — nothing to save.' };
+      }
+
+      // Phase 2: preview only (no confirm) — never writes.
+      if (!confirm) {
+        return {
+          run_id: runId,
+          status: 'preview',
+          base_source: baseSource,
+          added_lines: summary.added,
+          removed_lines: summary.removed,
+          diff_preview: summary.preview,
+          note: 'Show the user this change (added/removed lines). To SAVE it as a new report version, call edit_report again with the same new_content and confirm:true — only after the user agrees.',
+        };
+      }
+
+      // Phase 3: confirmed save. Seed v0 (run original) from the base so the fork is faithful.
+      const saved = await reportVersionStore.append(runId, newContent, { note, currentMarkdown: base });
+      if (!saved) {
+        return { run_id: runId, status: 'run_not_found', note: 'The run could not be found when saving. Nothing was written.' };
+      }
+      return {
+        run_id: runId,
+        status: 'saved',
+        version: saved.version,
+        added_lines: summary.added,
+        removed_lines: summary.removed,
+        note: 'Saved as report version ' + saved.version + '. The report panel will show it; version 0 (the run original) is preserved. Tell the user it is saved.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), run_id: runId };
+    }
+  }
+
+  /** Reconstruct a run's report markdown from the structured server endpoint so
+   *  edit_report can fork from what the run produced when the client did not
+   *  pass the open markdown and no version is saved yet. Uses the findings
+   *  report (resolves + authorizes the run server-side) via an authenticated
+   *  self-call — same pattern as the /output_files self-fetch in routes.ts.
+   *  Returns undefined when nothing can be reconstructed (not-ready / 401 / 404),
+   *  letting the caller fall back to the honest no_report_text. */
+  private async _reconstructRunReportMarkdown(runId: string, context: ChatContext): Promise<string | undefined> {
+    if (!runId) return undefined;
+    const port = process.env.PORT || '5000';
+    const base = `http://localhost:${port}`;
+    const headers: Record<string, string> = {
+      // Without X-Forwarded-Proto this self-fetch is 301'd to https on a
+      // plain-HTTP port by forceHTTPS (only /internal/ is exempt) and fails.
+      'X-Forwarded-Proto': 'https',
+    };
+    const auth = context?.selfRequestAuth;
+    if (auth?.authorization) headers['Authorization'] = auth.authorization;
+    if (auth?.cookie) headers['cookie'] = auth.cookie;
+    try {
+      const r = await fetch(
+        `${base}/api/workflows/runs/${encodeURIComponent(runId)}/findings/report`,
+        { headers: headers as any, signal: AbortSignal.timeout(15000) },
+      );
+      if (!r.ok) return undefined; // 409 not-ready / 404 unavailable / 401
+      const ct = (r.headers.get('content-type') || '').toLowerCase();
+      // The endpoint sends findings markdown as text/markdown (JSON only on error).
+      if (!ct.includes('markdown') && !ct.includes('text/plain')) return undefined;
+      const md = await r.text();
+      return md && md.trim() ? md : undefined;
+    } catch {
+      return undefined;
     }
   }
 

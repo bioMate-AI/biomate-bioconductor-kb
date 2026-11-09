@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "function": "get_fda_drug_label_info",
+  "domain": "pharmacology",
+  "error": "Error retrieving FDA drug label for aspirin: name 'OpenFDAClient' is not defined"
+}

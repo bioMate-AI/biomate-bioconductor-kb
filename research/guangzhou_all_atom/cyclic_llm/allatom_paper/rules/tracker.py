@@ -219,9 +219,35 @@ class Tracker:
         if self.just_open: lb += 1
         return lb
 
-    def feasible(self, mw_hi, nme_hi, remaining):
-        """False only if NO completion within `remaining` more tokens can satisfy C."""
+    def _nonfinal(self):
+        nf = {self.prev} | set(self.stack) | {a for a, _ in self.rings.values()}
+        nf.discard(-1)
+        return nf
+
+    def nme_possible_extra(self, counted_lb):
+        """upper bound on how many MORE N-methyl amides the existing partial structure can still yield: aliphatic N atoms that are themselves non-final or adjacent to a non-final atom
+        (their N-methyl amide match may complete later). Conservative (an over-count only weakens the prune)."""
+        nf = self._nonfinal(); cand = 0
+        for i, sym in enumerate(self.sym):
+            if sym != "N" or self.arom[i]: continue
+            if i in nf or any(j in nf for j, _ in self.nbr[i]): cand += 1
+        return cand
+
+    MIN_ADD_MASS = 26.0    # a NEW N-methyl amide needs at least one new N (14.007) and one new methyl C (12.011)
+    MIN_ADD_TOKENS = 2     # 'N','C' (chain) is the cheapest way to write them
+
+    def nme_missing_new(self, nme_lo):
+        """lower bound on N-methyl amides that must be built from scratch (not obtainable from the existing partial structure)."""
+        lb = self.nme_lower_bound(); return max(0, nme_lo - lb - self.nme_possible_extra(lb))
+
+    def feasible(self, mw_hi, nme_hi, remaining, nme_lo=0):
+        """False only if NO completion within `remaining` more tokens can satisfy C. nme_lo > 0 enables the weight/token look-ahead for the required minimum N-methyl count."""
         if self.mass > mw_hi: return False
         if self.nme_lower_bound() > nme_hi: return False
-        if self.tokens_to_finish_lb() > remaining: return False
+        need = self.tokens_to_finish_lb()
+        miss = self.nme_missing_new(nme_lo) if nme_lo else 0
+        if miss:
+            if self.mass + self.MIN_ADD_MASS * miss > mw_hi: return False
+            need += self.MIN_ADD_TOKENS * miss
+        if need > remaining: return False
         return True

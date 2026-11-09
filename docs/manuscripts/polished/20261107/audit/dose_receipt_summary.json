@@ -1,0 +1,156 @@
+[
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/anthropic_claude-opus-5_gen_r1.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/anthropic_claude-opus-5_hand_r1.json",
+    "n": 20,
+    "outcome": 0.25,
+    "fidelity": 0.601,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/anthropic_claude-opus-5_hand_r2.json",
+    "n": 20,
+    "outcome": 0.3,
+    "fidelity": 0.6769999999999999,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/google_gemini-3.1-pro-preview_gen_r1.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/openai_gpt-6.1-sol-pro_gen_r1.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/openai_gpt-6.1-sol-pro_hand_r1.json",
+    "n": 20,
+    "outcome": 0.1,
+    "fidelity": 0.0085,
+    "empties": 4
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_fixed/openai_gpt-6.1-sol-pro_hand_r2.json",
+    "n": 20,
+    "outcome": 0.1,
+    "fidelity": 0.0085,
+    "empties": 4
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_direct/google_gemini-3.1-pro-preview_gen_r1.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_direct/google_gemini-3.1-pro-preview_hand_r1.json",
+    "n": 20,
+    "outcome": 0.4,
+    "fidelity": 0.717,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_direct/google_gemini-3.1-pro-preview_hand_r2.json",
+    "n": 20,
+    "outcome": 0.3,
+    "fidelity": 0.6595,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_direct/openai_gpt-6.1-sol_gen_r1.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_direct/openai_gpt-6.1-sol_hand_r1.json",
+    "n": 20,
+    "outcome": 0.1,
+    "fidelity": 0.0085,
+    "empties": 4
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_direct/openai_gpt-6.1-sol_hand_r2.json",
+    "n": 20,
+    "outcome": 0.1,
+    "fidelity": 0.0085,
+    "empties": 1
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_gen/anthropic_claude-opus-5_gen_r1.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_gen/anthropic_claude-opus-5_gen_r2.json",
+    "n": 20,
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/results_gen/anthropic_claude-opus-5_gen_r3.json",
+    "n": 20,
+    "outcome": 0.95,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/onprem_spark/original_generated.json",
+    "n": 20,
+    "outcome": 0.3,
+    "fidelity": 0.13,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/onprem_spark/original_hand.json",
+    "n": 20,
+    "outcome": 0.3,
+    "fidelity": 0.5825,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/onprem_spark/ours_cpt_generated.json",
+    "n": 20,
+    "outcome": 0.05,
+    "fidelity": 0.1867,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/onprem_spark/ours_cpt_hand.json",
+    "n": 20,
+    "outcome": 0.5,
+    "fidelity": 0.735,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/onprem_spark/ours_sft_generated.json",
+    "n": 20,
+    "outcome": 0.1,
+    "fidelity": 0.045,
+    "empties": 0
+  },
+  {
+    "file": "evaluation/datasets/public_export/boin_benchmark/onprem_spark/ours_sft_hand.json",
+    "n": 20,
+    "outcome": 0.3,
+    "fidelity": 0.30835,
+    "empties": 0
+  }
+]

@@ -2,7 +2,7 @@
 <tool id="biomni_synthetic_biology_create_biochemical_network_sbml_model" name="Biomni: Create Biochemical Network Sbml Model" version="1.0.0">
     <description>Generate a mathematical model of a biochemical network in SBML format.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/create_biochemical_network_sbml_model_wrapper.py' --output '$output'

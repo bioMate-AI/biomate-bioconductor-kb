@@ -12,10 +12,10 @@
 #
 # Topology (depth-first rebuild):
 #   biomate/nextflow-base               (level 0, root)
-#   ├── biomni-tools                    (level 1)
-#   │   └── biomni-pharma               (level 2)
-#   ├── biomni-admet                    (level 1, BASE_IMAGE param)
-#   ├── biomni-structure-to-drug        (level 1)
+#   ├── workflow-tools                    (level 1)
+#   │   └── pharmacology-tools               (level 2)
+#   ├── admet                    (level 1, BASE_IMAGE param)
+#   ├── structure-to-drug        (level 1)
 #   ├── genomics-germline               (level 1)
 #   ├── openfe-rbfe                     (level 1)
 #   └── sra-tools                       (level 1)
@@ -92,11 +92,11 @@ build_l1() {
     --push "backend/docker/$name/"
 }
 
-log "=== [1/8] biomni-tools (critical — most workflows depend on this) ==="
-build_l1 biomni-tools
+log "=== [1/8] workflow-tools (critical — most workflows depend on this) ==="
+build_l1 workflow-tools
 
-log "=== [2/8] biomni-structure-to-drug ==="
-build_l1 biomni-structure-to-drug
+log "=== [2/8] structure-to-drug ==="
+build_l1 structure-to-drug
 
 log "=== [3/8] genomics-germline ==="
 build_l1 genomics-germline
@@ -107,23 +107,23 @@ build_l1 openfe-rbfe
 log "=== [5/8] sra-tools ==="
 build_l1 sra-tools
 
-# ── Level 1b: biomni-admet (uses BASE_IMAGE arg, defaults to nextflow-base) ─
-log "=== [6/8] biomni-admet ==="
-track "biomni-admet" docker buildx build --platform "$PLATFORM" \
+# ── Level 1b: admet (uses BASE_IMAGE arg, defaults to nextflow-base) ─
+log "=== [6/8] admet ==="
+track "admet" docker buildx build --platform "$PLATFORM" \
   --build-arg "BASE_IMAGE=$ECR/biomate/nextflow-base:latest" \
-  -f backend/docker/biomni-admet/Dockerfile \
-  -t "$ECR/biomate/biomni-admet:x86" \
-  --push backend/docker/biomni-admet/
+  -f backend/docker/admet/Dockerfile \
+  -t "$ECR/biomate/admet:x86" \
+  --push backend/docker/admet/
 
-# ── Level 2: biomni-pharma (FROM biomni-tools, must build AFTER biomni-tools) ─
-log "=== [7/8] biomni-pharma (depends on biomni-tools) ==="
-# Only attempt if biomni-tools succeeded — else biomni-pharma's FROM would pull
+# ── Level 2: pharmacology-tools (FROM workflow-tools, must build AFTER workflow-tools) ─
+log "=== [7/8] pharmacology-tools (depends on workflow-tools) ==="
+# Only attempt if workflow-tools succeeded — else pharmacology-tools's FROM would pull
 # the still-broken cached layers.
-if [[ " ${SUCCEEDED_IMAGES[*]:-} " =~ " biomni-tools " ]]; then
-  build_l1 biomni-pharma
+if [[ " ${SUCCEEDED_IMAGES[*]:-} " =~ " workflow-tools " ]]; then
+  build_l1 pharmacology-tools
 else
-  log "  SKIP: biomni-tools failed; biomni-pharma cannot inherit a fixed base"
-  FAILED_IMAGES+=("biomni-pharma (skipped: biomni-tools missing)")
+  log "  SKIP: workflow-tools failed; pharmacology-tools cannot inherit a fixed base"
+  FAILED_IMAGES+=("pharmacology-tools (skipped: workflow-tools missing)")
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────

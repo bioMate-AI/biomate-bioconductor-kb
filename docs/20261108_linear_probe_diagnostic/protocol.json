@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-08",
+  "status": "completed",
+  "inputs": "RNA",
+  "label_fraction": 0.1,
+  "folds": 3,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "features": [
+    "raw",
+    "pretrained_z",
+    "random_z"
+  ],
+  "C_grid": [
+    0.01,
+    0.1,
+    1,
+    10
+  ],
+  "reference_C": 1,
+  "selection": "none; report entire prespecified grid",
+  "normalization": "encoder input scaled using outer-training features; logistic feature scaling fit on labelled rows only in all arms",
+  "class_weight": "balanced",
+  "solver": "lbfgs",
+  "max_iter": 2000,
+  "tol": 1e-06,
+  "convergence_gate": "reject ConvergenceWarning or reaching iteration cap",
+  "split_source": "prior normalization diagnostic exact saved indices",
+  "caveat": "exploratory held-out-cell-type evaluation, not donor or independent cohort validation",
+  "validation": "108 converged fits; 36 finite OOF arrays; labels/groups match prior diagnostic"
+}

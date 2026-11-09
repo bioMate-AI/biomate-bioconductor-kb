@@ -1,0 +1,7 @@
+3.11.17 (main, Oct  9 2026, 00:00:00) [GCC 11.5.0 20240719 (Red Hat 11.5.0-5)]
+torch 2.6.0+cpu
+transformers 4.51.3
+peft 0.15.2
+rdkit 2025.03.2
+scipy 1.15.3
+numpy 2.2.6

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T1 — Designing new drug molecules (Design &amp; Generate)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t1">Tutorial 1 · Designing new drug molecules (Design &amp; Generate)</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">11</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">The first step of drug discovery — before you make anything</div>
+    <h2>Design new drug candidates from a single seed molecule.</h2>
+    <p class="caption lead">Propose brand-new molecules, score them, set the unsafe ones aside — a ranked shortlist in minutes.</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:18px">
+        <span class="chip"><span class="i"></span>Seed a molecule</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Generate candidates</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Score each goal</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Rank the shortlist</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Closed loop</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE PROBLEM -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">Why this is hard</span> · the problem it solves <span class="badge concept">Concept</span></div>
+    <h2>Too many possible molecules, and four demands at once.</h2>
+    <p class="caption lead">Astronomically many candidates — and a drug must satisfy four demands together.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="statline">
+          <span class="statbig">10<sup>60</sup></span>
+          <span class="statcap">possible drug-like molecules — more than the stars in the sky</span>
+        </div>
+        <div class="criteria">
+          <div class="crit"><span class="cn">01 · POTENCY</span><span class="ct">Bind the target</span><span class="cd">Stick to the disease protein</span></div>
+          <div class="crit"><span class="cn">02 · SAFETY</span><span class="ct">Do no harm</span><span class="cd">Spare the heart, the liver</span></div>
+          <div class="crit"><span class="cn">03 · MAKEABILITY</span><span class="ct">Can be built</span><span class="cd">Synthesizable at sane cost</span></div>
+          <div class="crit"><span class="cn">04 · BEHAVIOUR</span><span class="ct">Works in the body</span><span class="cd">Absorbed, not cleared too fast</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — GENERATE VS SCREEN + SEED -->
+  <section class="scene" data-seconds="52.0">
+    <div class="kicker"><span class="st">The ideas you need first</span> · generate, seed, SMILES <span class="badge concept">Concept</span></div>
+    <h2>BioMate generates novel molecules — steer with an optional seed.</h2>
+    <p class="caption lead">Screening tests molecules you already have; generating proposes brand-new ones.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="flowstage">
+          <div class="fstage opt"><span class="fs-i"></span><span class="fs-t">Seed</span><span class="fs-s">a known SMILES — optional</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage accent"><span class="fs-i"></span><span class="fs-t">Generate</span><span class="fs-s">novel, sensible candidates</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Screen &amp; rank</span><span class="fs-s">against your goals</span></div>
+        </div>
+        <div class="vlabel">Seed from <b>PubChem</b> or <b>ChEMBL</b> to steer the search — or leave it blank to generate from scratch.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — SCAFFOLD STAY/HOP/GROW -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">How adventurous to be</span> · the scaffold policy <span class="badge concept">Concept</span></div>
+    <h2>Keep the core, jump to a new one, or grow one up.</h2>
+    <p class="caption lead">One setting controls how far from your seed the search roams.</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">STAY</div>
+          <svg width="150" height="120" viewBox="0 0 150 120"><g class="mol" transform="translate(20,5)">
+            <path d="M55,12 L92,33 L92,77 L55,98 L18,77 L18,33 Z"/><circle class="ar" cx="55" cy="55" r="20"/>
+            <line x1="92" y1="33" x2="118" y2="20"/><circle class="r" cx="122" cy="18" r="7"/>
+            <line x1="92" y1="77" x2="118" y2="90"/><circle class="r2" cx="122" cy="92" r="7"/>
+            <line x1="18" y1="33" x2="-4" y2="20"/><circle class="r" cx="-8" cy="18" r="7"/>
+          </g></svg>
+          <div class="gl-lbl">Same core — new decorations</div></div>
+        <div class="glyph"><div class="n">HOP</div>
+          <svg width="150" height="120" viewBox="0 0 150 120"><g class="mol" transform="translate(28,10)">
+            <path d="M48,8 L84,34 L70,76 L26,76 L12,34 Z"/>
+            <line x1="84" y1="34" x2="110" y2="24"/><circle class="r" cx="114" cy="22" r="7"/>
+            <line x1="26" y1="76" x2="26" y2="102"/><circle class="r2" cx="26" cy="106" r="7"/>
+          </g></svg>
+          <div class="gl-lbl">Swap to a new core</div></div>
+        <div class="glyph"><div class="n">GROW</div>
+          <svg width="180" height="120" viewBox="0 0 180 120"><g class="mol" transform="translate(6,30)">
+            <circle cx="16" cy="28" r="13"/>
+            <path class="gl-arrow" d="M40,28 L72,28" marker-end=""/><path class="gl-arrow" d="M64,21 L74,28 L64,35"/>
+            <g transform="translate(92,-18)"><path d="M55,12 L92,33 L92,77 L55,98 L18,77 L18,33 Z"/><line x1="92" y1="55" x2="118" y2="55"/><circle class="r" cx="122" cy="55" r="7"/></g>
+          </g></svg>
+          <div class="gl-lbl">Grow a fragment into a drug</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — PROPERTY WINDOW -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">The property window</span> · a preference, not a rule <span class="badge concept">Concept</span></div>
+    <h2>Three numbers that predict whether it can be a pill.</h2>
+    <p class="caption lead">Set a target window on three measurable properties — a soft ranking preference, never a hard cut-off.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="ranges">
+        <div class="rg">
+          <div class="rg-name">MW<span>size of the molecule</span></div>
+          <div>
+            <div class="rg-track"><div class="rg-band" style="left:29%; width:43%"></div><span class="rg-tag" style="left:50%">200–500 Da</span></div>
+            <div class="rg-ends"><span>0</span><span>700 Da</span></div>
+          </div>
+        </div>
+        <div class="rg">
+          <div class="rg-name">logP<span>oily vs water-loving</span></div>
+          <div>
+            <div class="rg-track"><div class="rg-band" style="left:37%; width:38%"></div><span class="rg-tag" style="left:56%">1–4</span></div>
+            <div class="rg-ends"><span>&minus;2</span><span>6</span></div>
+          </div>
+        </div>
+        <div class="rg">
+          <div class="rg-name">TPSA<span>polar surface area</span></div>
+          <div>
+            <div class="rg-track"><div class="rg-band g" style="left:14%; width:50%"></div><span class="rg-tag" style="left:39%">20–90 &#8491;&sup2;</span></div>
+            <div class="rg-ends"><span>0</span><span>140 &#8491;&sup2;</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-note" style="margin-top:34px"><span class="flag" style="color:var(--green); background:var(--green-bg); border-color:var(--green)">&#10003; Soft window</span> a promising molecule just outside is ranked lower, never deleted.</div>
+    </div>
+  </section>
+
+  <!-- 6 — MULTI-OBJECTIVE + SAFETY GATE -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker"><span class="st">Multi-objective scoring</span> · goals kept separate, safety visible <span class="badge concept">Concept</span></div>
+    <h2>No single magic score — safety never hides.</h2>
+    <p class="caption lead">Each goal in its own units. Never blended into one number. Risky structures are flagged, not deleted.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="scorecard">
+        <div class="sc-col"><div class="sc-name">Potency</div><div class="sc-bar"><i style="width:82%"></i></div><div class="sc-val">pIC50 7.4</div></div>
+        <div class="sc-col"><div class="sc-name">Safety</div><div class="sc-bar warn"><i style="width:38%"></i></div><div class="sc-val">hERG — flagged</div></div>
+        <div class="sc-col"><div class="sc-name">Makeability</div><div class="sc-bar ok"><i style="width:68%"></i></div><div class="sc-val">SA 3.1</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">&#9873; Safety gate</span> known-risky structures are flagged with the reason and set aside — still shown, never a hidden filter.</div>
+    </div>
+  </section>
+
+  <!-- 7 — LIVE: THE FORM -->
+  <section class="scene live split" data-kind="flow" data-seconds="29.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Step by step</span> · the Design &amp; Generate form <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>You fill in a few constraints — before anything is generated.</h2><p class="caption lead">Pick a modality, seed, scaffold policy and property window — then generate and rank.</p><div class="tags" style="justify-content:center"><span class="verdict ok"><span class="mk"></span>Small molecule</span><span class="verdict plain"><span class="mk"></span>Seed optional</span><span class="verdict plain"><span class="mk"></span>Review before run</span></div></div><div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t1-form.png" alt="The Design and Generate form — modality, seed SMILES, scaffold policy, and the MW/logP/TPSA window"></div>
+          <figcaption><span class="lbl">Design &amp; Generate · live</span>A form of constraints, not a chat box — you review every setting before anything is generated.</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 8 — LIVE: RANKED RESULTS -->
+  <section class="scene live split" data-kind="flow" data-seconds="32.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Reading the results</span> · the multi-objective view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>Every candidate is one row; every goal keeps its own column.</h2><p class="caption lead">One molecule per row, each goal in its own column — nothing blended into a single number.</p><div class="tags" style="justify-content:center"><span class="verdict ok"><span class="mk"></span>Goals separate</span><span class="verdict plain"><span class="mk"></span>Rejections stay visible</span><span class="verdict plain"><span class="mk"></span>"why?" per row</span></div></div><div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t1-results.png" alt="Ranked candidates — one row per molecule, each goal in its own column, with Accepted/Rejected verdicts and a why link"></div>
+          <figcaption><span class="lbl">Ranked candidates · live</span>You weigh potency, safety and makeability yourself — the trade-off is shown side by side.</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 9 — LIVE: PARETO + REJECTIONS -->
+  <section class="scene live split" data-kind="flow" data-seconds="36.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">The trade-off chart</span> · Pareto front &amp; rejection summary <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>The best available compromises — and why some were set aside.</h2><p class="caption lead">Pick from the front curve; the rejection summary names why candidates were dropped.</p><div class="tags" style="justify-content:center"><span class="verdict ok"><span class="mk"></span>Front = best compromises</span><span class="verdict plain"><span class="mk"></span>Rejections explained</span><span class="verdict plain"><span class="mk"></span>Actionable signal</span></div></div><div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <div class="shots" style="gap:30px; align-items:stretch">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t1-pareto.png" alt="The Pareto trade-off chart" style="object-fit:contain; max-width:44vw; max-height:48vh"></div>
+          <figcaption><span class="lbl">Trade-off front · live</span>Dots on the front are the non-dominated choices — better on one goal means worse on another.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t1-rejection.png" alt="The rejection summary — candidates set aside by the safety gate, with the cause" style="object-fit:contain; max-width:44vw; max-height:48vh"></div>
+          <figcaption><span class="lbl">Rejection profile · live</span>Each rejection is counted by cause and stays visible by ID — a diagnostic, not a dead end.</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 10 — CLOSED LOOP -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">What happens next</span> · the closed loop <span class="badge concept">Concept</span></div>
+    <h2>A shortlist is a start — real lab results make the next round better.</h2>
+    <p class="caption lead">Export an order sheet; real measurements feed BioMate's Models and sharpen the next round.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="flowstage">
+          <div class="fstage accent"><span class="fs-i"></span><span class="fs-t">Design</span><span class="fs-s">rank a shortlist</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Make</span><span class="fs-s">order sheet to the lab</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Test</span><span class="fs-s">real measurements</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Learn</span><span class="fs-s">Models retrains</span></div>
+          <span class="farrow">&#8630;</span>
+          <div class="fstage opt"><span class="fs-i"></span><span class="fs-t">Design again</span><span class="fs-s">a smarter round</span></div>
+        </div>
+        <div class="vlabel">Each cycle feeds the <b>Models</b> module — BioMate gets more accurate every round.</div>
+      </div>
+      <div class="tags" style="justify-content:center; margin-top:28px">
+        <span class="verdict ok"><span class="mk"></span>Runs end-to-end into an order sheet</span>
+        <span class="verdict ok"><span class="mk"></span>Real lab data trains the next round</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 — CLOSING -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="kicker">The habit at a glance</div>
+    <h2>Seed → generate → read each goal → pick from the front.</h2>
+    <p class="caption lead" style="text-align:center; margin:0 auto 10px">A blank page becomes a filtered, ranked shortlist — ready to hand to the lab.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px; margin-bottom:40px">
+        <span class="chip"><span class="i"></span>Seed <span style="color:var(--mut); font-weight:400">(optional)</span></span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Generate</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Read each goal</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Pick from the front</span>
+      </div>
+      <div class="recap">
+        <div class="rchip"><span class="rk">ENGINE</span><span class="rv">Generative models — e.g. REINVENT4</span></div>
+        <div class="rchip"><span class="rk">RANKING</span><span class="rv">Goals kept separate</span></div>
+        <div class="rchip"><span class="rk">SAFETY</span><span class="rv">Visible gate, never hidden</span></div>
+        <div class="rchip"><span class="rk">OUTPUT</span><span class="rv">Order sheet to the lab</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

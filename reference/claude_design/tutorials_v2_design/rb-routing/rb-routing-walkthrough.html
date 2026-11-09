@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Cross-domain routing — intent to the one correct workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">Cross-domain routing — one request, the one correct pipeline</span>
+  <span class="spacer"></span>
+  <span class="counter">Scene <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE · THE TASK -->
+  <section class="scene title" data-seconds="38.0">
+    <div class="kicker">Capability advantage · intent → correct workflow</div>
+    <h2>A plain-English request has to find the one right pipeline out of thousands.</h2>
+    <p class="caption">A scientist asks in their own words — "call somatic variants on these tumour-normal pairs," "quantify this bulk RNA-seq and run differential expression." The system has to map that intent to the single correct pipeline across many domains — genomics, transcriptomics, proteomics, cryo-EM, drug discovery. <b>Pick the wrong one and the whole run is wasted.</b> This is <b>cross-domain routing</b>, and it is where orchestration either earns its keep or fails quietly.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A request in plain language</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Thousands of candidate workflows</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Many domains</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Exactly one correct pipeline</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker">BioMate doing it</div>
+    <h2>It matches intent against an indexed catalog by meaning, not keywords.</h2>
+    <p class="caption">BioMate does not guess a pipeline name from memory. It holds <b>4,210 indexed workflows across 42 domains</b> and scores your request against every one of them by dense-cosine resonance — comparing what you <i>mean</i> to what each workflow <i>does</i> — then returns the best-matching pipeline, with its domain and steps attached.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>Your request</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Resonance over 4,210 workflows</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Ranked candidates</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>The one correct pipeline</span>
+          </div>
+          <div class="row3" style="margin-top:28px">
+            <div class="tile"><div class="n">INDEXED CATALOG</div><h4>4,210 real workflows</h4><p>Curated and validated pipelines across 42 domains — each described by what it actually does.</p></div>
+            <div class="tile"><div class="n">RESONANCE</div><h4>Match by meaning</h4><p>Dense-cosine similarity ranks every candidate against the request — synonyms and paraphrase included, no brittle keyword list.</p></div>
+            <div class="tile"><div class="n">CROSS-DOMAIN</div><h4>All domains at once</h4><p>Genomics, transcriptomics, proteomics, cryo-EM, drug discovery — one selector spans them all.</p></div>
+          </div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Retrieval over a real catalog — not a name recalled from training</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT · SCORE VS LLMs -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The result</span> · score vs LLMs-direct</div>
+    <h2>On cross-domain routing, BioMate scores 0.965. A bare model averages 0.46.</h2>
+    <p class="caption">The metric is <b>intent → correct-workflow accuracy</b>: given a plain-English request, did the system select the right pipeline? Higher is better. BioMate's catalog-grounded routing clears it almost every time; asking a frontier LLM to name the pipeline directly does not.</p>
+    <div class="scene-body">
+      <figure class="shotcol" style="flex:1.35">
+        <span class="lbl">Benchmark · intent → correct-workflow accuracy (0–1, higher is better)</span>
+        <div class="frame" style="box-shadow:none; background:var(--panel)">
+          <div style="width:100%; height:100%; display:flex; flex-direction:column; padding:26px 30px 20px">
+            <!-- plot area -->
+            <div style="flex:1; display:flex; align-items:flex-end; gap:48px; padding:0 24px; border-left:1px solid var(--line2); border-bottom:2px solid var(--line2); position:relative; min-height:0">
+              <!-- gridline + axis labels -->
+              <div style="position:absolute; left:-30px; top:-2px; color:var(--mut)">1.0</div>
+              <div style="position:absolute; left:-30px; top:50%; transform:translateY(-50%); color:var(--mut)">0.5</div>
+              <div style="position:absolute; left:-30px; bottom:-8px; color:var(--mut)">0.0</div>
+              <div style="position:absolute; left:0; right:0; top:50%; border-top:1px dashed var(--line2)"></div>
+
+              <!-- BioMate bar: 0.965 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-weight:600; color:var(--green); margin-bottom:8px">0.965</div>
+                <div style="width:100%; height:96.5%; background:#1f6e43; border-radius:6px 6px 0 0; box-shadow:0 4px 14px rgba(28,107,58,.28)"></div>
+              </div>
+
+              <!-- LLM best bar: 0.615 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-weight:600; color:var(--mut); margin-bottom:8px">0.615</div>
+                <div style="width:100%; height:61.5%; background:#9aa6b8; border-radius:6px 6px 0 0"></div>
+              </div>
+
+              <!-- LLM mean bar: 0.46 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-weight:600; color:var(--mut); margin-bottom:8px">0.46</div>
+                <div style="width:100%; height:46%; background:#c2cad6; border-radius:6px 6px 0 0"></div>
+              </div>
+            </div>
+            <!-- x labels -->
+            <div style="display:flex; gap:48px; padding:12px 24px 0">
+              <div style="flex:1; max-width:140px; text-align:center; font-weight:600; color:var(--ink)">BioMate</div>
+              <div style="flex:1; max-width:140px; text-align:center; color:var(--mut)">LLM-direct<br/>best</div>
+              <div style="flex:1; max-width:140px; text-align:center; color:var(--mut)">LLM-direct<br/>mean</div>
+            </div>
+          </div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b gr"></span><span><b>BioMate 0.965.</b> 95% confidence interval <code>[0.930, 0.983]</code> — it picks the right pipeline almost every time.</span></li>
+          <li><span class="b"></span><span><b>LLM-direct, best model 0.615.</b> The strongest frontier model asked to name the pipeline directly.</span></li>
+          <li><span class="b"></span><span><b>LLM-direct, mean 0.46.</b> Across the model sweep — roughly a coin-flip on which pipeline to run.</span></li>
+          <li><span class="b am"></span><span>A wrong pick is a wasted run. The gap is the difference between a defensible result and an expensive mistake.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>+0.35 over the best bare model; roughly double the mean</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TITLE · TAKEAWAY -->
+  <section class="scene title" data-seconds="26.0">
+    <div class="kicker">The takeaway</div>
+    <h2>Routing is where orchestration beats a bare model.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">Naming the one correct pipeline from a plain-English request is a <b>retrieval problem over a real catalog</b>, not a feat of recall. BioMate's indexed workflows and dense-cosine resonance are the moat: they turn "which pipeline?" from a coin-flip into a near-certainty — <b>0.965 versus 0.46</b> — and every routing answer is reproducible and effectively free to serve.</p>
+          <div style="margin-top:18px"><span class="verdict ok"><span class="mk"></span>The catalog + resonance is the moat</span></div>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Task</td><td>Cross-domain routing (intent → correct workflow)</td></tr>
+            <tr><td>Metric</td><td>Correct-workflow accuracy (0–1)</td></tr>
+            <tr><td>BioMate</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">0.965&nbsp;·&nbsp;[.930,.983]</span></td></tr>
+            <tr><td>LLM-direct</td><td><span class="verdict plain" style="margin:0; padding:3px 8px">0.46 mean · 0.615 best</span></td></tr>
+            <tr><td>Why</td><td>4,210 indexed workflows + dense-cosine resonance</td></tr>
+          </table>
+          <p class="footnote">Catalog-grounded retrieval, not recall. One request → the one correct pipeline, reproducibly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

@@ -85,7 +85,7 @@ PYEOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         fpsim2: \$(python3 -c "import FPSim2; print(getattr(FPSim2,'__version__','unknown'))" 2>/dev/null)
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

@@ -5,8 +5,8 @@ process ESMFOLD {
     tag "$meta.id"
     label 'process_low'
 
-    // API-based, use biomni-lite which has curl and bash
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
+    // API-based, use workflow-lite which has curl and bash
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/workflow-lite:latest'
 
     input:
     tuple val(meta), path(fasta)

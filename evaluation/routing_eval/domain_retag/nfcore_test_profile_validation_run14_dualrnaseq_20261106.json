@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/dualrnaseq",
+  "runId": "a345a4ad-3de8-460f-93c2-a0cbdd37a99f",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 195,
+  "error": "",
+  "minutes": 10.2
+ }
+]

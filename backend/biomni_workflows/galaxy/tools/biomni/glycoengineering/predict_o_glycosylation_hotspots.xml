@@ -2,7 +2,7 @@
 <tool id="biomni_glycoengineering_predict_o_glycosylation_hotspots" name="Biomni: Predict O Glycosylation Hotspots" version="1.0.0">
     <description>Heuristic O-glycosylation hotspot scoring.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/predict_o_glycosylation_hotspots_wrapper.py' --output '$output'

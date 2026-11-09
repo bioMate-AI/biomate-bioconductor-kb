@@ -1,0 +1,32 @@
+# Method-work takeover: evidence and remaining gates
+
+Read-only cloud audit at 2026-10-29 20:15 UTC. Source handoff: the October 29 Claude transcript attached to this task. The method work takes priority; public release preparation remains paused. No cloud resources were launched, terminated or modified for this audit. No tests, fitting, sampling or statistical aggregation were run on the laptop.
+
+## Verified current state
+
+- Track E worker `i-098cc97fa8999f24d` is running on **Spot c5.9xlarge**, launched 19:48:20 UTC. Its exact prefix is `s3://biomate-nextflow-work/cyclic_peptide/allatom/E/r10/eval/`. The launch script has a 300-minute shutdown cap. Saved `out/eval.log` ends `eval rc=0`; `out/controls.log` is still active and has no final return code. No `out/done.flag` was present at audit. Scikit-learn's nested-worker warnings are not an evaluation failure. Numerical artifacts still require completeness, configuration and aggregation checks before manuscript use.
+- Amendment A5 was committed as `108cc3dcf` at 19:48:00 UTC, twenty seconds before the evaluation launch. It freezes the tuned configuration and margin fraction 0.10. A6 must still freeze **evaluation-seed** margins, variance, MDE and pass-probability results before any hybrid run. Tuning-derived values cannot substitute for these.
+- U1 tests6 worker `i-0430822d721c62507` is terminated, with EC2 reason `User initiated`. Its saved `allatom/u1/dev6/result/pytest.txt` reports **19 passed, 1 skipped in 768.35 s**. Measured false-pruning is 0/900 satisfying strings at 126,195 prefixes; guided walks completed 37/150 with eight novel strings; mask overhead is 2.33 ms fast versus 3.52 ms reference on 110 steps. These guided walks are not the 5,000 model samples required by the U1 completion criterion.
+- The downloaded S3 `allatom/u1/dev6/code.tgz` is byte-identical to the local staged archive. Its `constraint.py`, `tracker.py`, `test_rules.py` and `masked_sampling.py` are byte-identical to the current **dirty** worktree versions. The test evidence therefore supports those WIP source files, but they were not committed before their run. Preserve this ordering disclosure; do not retroactively imply a source-freeze commitment. The terse test log does not identify the skipped test. The job environment omits transformers, so tokenizer comparison is a likely explanation, not a verified skip reason.
+- No U1 worker is currently running. `allatom/u1/cpu_lora/` contains staged code and training/evaluation arrays only, with no execution or completion artifact. The six-step CPU LoRA smoke in the existing notes is not the pending 200-step run. Generated `/tmp/ud_lora2.sh` requests 200 steps followed by three sampling seeds; existence of this script is not execution evidence.
+- `orchestrator/loop.py` and its toy smoke exist. The inspected `allatom_paper` tree contains `ToyGenerator`, standalone masked sampling and standalone LoRA/preference smoke components, but no real ChemFM implementation of the Generator contract or stage-1 hybrid entry point. The interrupted I-C work did not leave a runnable complete hybrid here.
+
+## Scientific and operational gates
+
+The registered F1 physics replacement remains **VOID** (528/1,116 peptides, five of nine sources). The original physics verifier failed its floor. The primary two-family gate consequently cannot support GO: **INCONCLUSIVE** remains its ceiling, even if train-objective optimization improves. No additional replacement is permitted by the registration. This is an admissibility limit, not evidence that the generator fails.
+
+M1 integrated smoke must precede a GPU hybrid. M3 requires B=1,000, at least five seeds, a real masked ChemFM generator, retrieval, preference updates and stopping, with no-rules and no-feedback comparisons. Stop if the hybrid point estimate does not exceed the best baseline on train and held-out quantities; report the registered interval/margin result without relabeling a pilot as a positive study. The wall-clock cap must remain identical across compared arms.
+
+All further cloud spend is **Spot only**. Stage 2 and audit-stage spending remain unapproved. The original stages 0–1 cap is USD 14, including U1 USD 2 and M3 reserve USD 3.5. U1's file named `u1_cost_log.csv` contains launch-only whitespace rows, not termination timestamps, prices or reconciled costs; Track E's existing cost account is approximate. Remaining authorization cannot be inferred from those incomplete rows.
+
+## Concrete completion order
+
+1. Recover Track E evaluation and final controls, check all expected seed/method files and return codes, preserve source/config hashes, then aggregate on EC2 Spot. Freeze A6 margins and power results before hybrid execution.
+2. Preserve and review the tested U1 WIP. Recover the skipped-test reason or rerun that specific gate on Spot; record changed mask overhead. Complete a small three-seed masked/unmasked sampling diagnostic before authorizing a long LoRA job, because the existing model-free guided completion is only 37/150.
+3. Implement the missing ChemFM Generator adapter and real preference-updater wiring to `run_loop`; run M1 interface/control tests on Spot before M3. The generator must respect the same oracle budget and expose completion failures instead of silently resampling without accounting.
+4. Reconcile actual Spot costs and available stage-1 reserve. Use measured samples/second and update time to quote a bounded stage-1 continuation. Do not claim a numeric remaining-budget guarantee from launch timestamps alone.
+5. Populate method figures and manuscript cells only from verified results. Keep 200-step, 5,000-sample, hybrid-comparison, ablation and audit cells unmeasured until the corresponding artifacts exist. A same-day deadline does not change the registered verdict or authorize stage 2.
+
+## Subsequent evidence at 20:18 UTC
+
+Track E controls finished with `controls rc=0`; `out/done.flag` was uploaded at 20:18:29 UTC. Both evaluation and controls have clean recorded exit statuses. Numerical aggregation and seed coverage remain separate checks. A new real-model integration implementation is now staged under `allatom_paper/hybrid/`, with a bounded orchestrator-loop extension; it is uncommitted and has not yet run on EC2. Its README records the required prospective integration amendment and M1 checks. This supersedes the earlier absence of an entry point, without creating a measured hybrid result.

@@ -77,6 +77,23 @@ describe("project-routes — contract", () => {
     expect(/restore[\s\S]{0,900}project_file_versions WHERE file_id/.test(SRC)).toBe(true); // reads the target version's bytes
   });
 
+  it("version Compare/diff (§4.4) — authed endpoint reads both versions, column + cell diff", () => {
+    expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/diff",\s*authenticateToken/.test(SRC)).toBe(true);
+    expect((SRC.match(/readTextPrefix\(/g) ?? []).length).toBeGreaterThanOrEqual(2);  // both versions read
+    expect(SRC.includes("_parseTabular(")).toBe(true);
+    expect(SRC.includes("changedCells")).toBe(true);
+    expect(/columns:\s*\{\s*added,\s*removed\s*\}/.test(SRC)).toBe(true);
+  });
+
+  it("edit-in-place → new version (§4.3/§4.4) — authed, tabular-only, size-capped, applies to FULL file, versions", () => {
+    expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/edit",\s*authenticateToken/.test(SRC)).toBe(true);
+    expect(/edit[\s\S]{0,700}_isOwnerOrEditor/.test(SRC)).toBe(true);                 // editor gate
+    expect(SRC.includes("Only tabular files (csv/tsv) can be edited")).toBe(true);     // tabular-only
+    expect(SRC.includes("10 * 1024 * 1024")).toBe(true);                              // 10 MiB cap
+    expect(/edit[\s\S]{0,1400}readTextPrefix/.test(SRC)).toBe(true);                   // reads the FULL file (not just the sample)
+    expect(/edit[\s\S]{0,2600}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true); // append-only new version
+  });
+
   it("every endpoint goes through authenticateToken", () => {
     // The regex only matches handlers whose path is immediately followed by
     // authenticateToken, so this count IS the authed-endpoint count. It must
@@ -84,7 +101,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(30); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST)
+    expect(authed.length).toBe(32); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

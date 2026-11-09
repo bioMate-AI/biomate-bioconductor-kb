@@ -86,9 +86,9 @@ process AIZYNTHFINDER_PREDICT {
     label 'process_medium'
     publishDir "${params.outdir}/${compound_id}/01_predict", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(compound_id), val(smiles)
@@ -114,7 +114,7 @@ process AIZYNTHFINDER_PREDICT {
         # still observe an empty-routes outcome.
         if ! grep -q "^expansion:" "${config}" 2>/dev/null; then
             echo "[aizynth-predict] FATAL: ${config} has no expansion policy." >&2
-            echo "[aizynth-predict] The container biomate/biomni-drug-discovery-nf:x86 was" >&2
+            echo "[aizynth-predict] The container biomate/drug-discovery-nf:x86 was" >&2
             echo "[aizynth-predict] built without USPTO models. Rebuild the container with the" >&2
             echo "[aizynth-predict] models baked in (backend/docker/drug-discovery-nf/Dockerfile)." >&2
             echo "[aizynth-predict] Writing honest zero-routes result so QC can observe the failure." >&2
@@ -252,9 +252,9 @@ process RETROSYNTHESIS_FILTER {
     label 'process_single'
     publishDir "${params.outdir}/${compound_id}/02_filter", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(compound_id), path(routes_json)
@@ -396,9 +396,9 @@ process RETROSYNTHESIS_REPORT {
     label 'process_low'
     publishDir "${params.outdir}/03_report", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path(filtered_jsons)   // collected list of *_filtered.json from RETROSYNTHESIS_FILTER

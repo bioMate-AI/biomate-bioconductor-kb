@@ -2,7 +2,7 @@
 <tool id="biomni_cell_biology_analyze_mitochondrial_morphology_and_potential" name="Biomni: Analyze Mitochondrial Morphology And Potential" version="1.0.0">
     <description>Quantifies metrics of mitochondrial morphology and membrane potential from fluorescence microscopy images.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_mitochondrial_morphology_and_potential_wrapper.py' --output '$output'

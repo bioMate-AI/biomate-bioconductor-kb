@@ -112,7 +112,7 @@ docker {
 }
 
 process {
-    container = 'biomate/biomni-tools:latest'
+    container = 'biomate/workflow-tools:latest'
 }
 ''')
 

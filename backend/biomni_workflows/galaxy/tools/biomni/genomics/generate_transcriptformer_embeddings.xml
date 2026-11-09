@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_generate_transcriptformer_embeddings" name="Biomni: Generate Transcriptformer Embeddings" version="1.0.0">
     <description>Generate Transcriptformer embeddings for single-cell RNA-seq data.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/generate_transcriptformer_embeddings_wrapper.py' --output '$output'

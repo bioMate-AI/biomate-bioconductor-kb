@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · From an accession number to a running pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">Accession → dataset → workflow — paste an ID, get a running pipeline</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="33.0">
+    <div class="kicker">For the biologist who starts from a published dataset</div>
+    <h2>You have an accession number. BioMate turns it into a running pipeline.</h2>
+    <p class="caption">A paper cites a dataset — a GEO <code>GSE…</code>, an SRA <code>SRR…</code>. Normally that's the start of a day of work: find it, figure out what kind of data it is, pick the right pipeline, wire up the parameters. <b>BioMate does that from the ID.</b> You paste the accession, say what you want to learn, and it fetches the data and routes it to the correct, correctly-parameterized workflow.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>An accession number</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>BioMate recognizes it</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Fetches the data</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Routes to the right workflow</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>A run you can defend</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>An accession is not a dataset — it's four manual steps before you can even start.</h2>
+    <p class="caption">Reusing public data looks easy and rarely is. The same ID can be microarray, bulk RNA-seq, or single-cell — and each needs a different pipeline. Get the archive, the modality, the workflow, or the parameters wrong, and you've either wasted a run or quietly produced the wrong answer.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">FIND IT</div><h4>Which archive?</h4><p>GEO, SRA, ENA — different repositories, different download tools, different file shapes.</p></div>
+          <div class="tile"><div class="n">IDENTIFY IT</div><h4>What kind of data?</h4><p>Array or sequencing? Bulk or single-cell? The ID alone doesn't tell you — but it decides the method.</p></div>
+          <div class="tile"><div class="n">PICK IT</div><h4>Which workflow?</h4><p>DESeq2, limma, Seurat, GSEA… the right choice depends on the data type and your actual question.</p></div>
+          <div class="tile"><div class="n">WIRE IT</div><h4>Which parameters?</h4><p>Organism, assay type, reference genome. One wrong field and the run fails — or worse, it doesn't.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: turn an ID into the correct, parameterized run — without the manual archaeology</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four plain language describe the whole journey.</h2>
+    <p class="caption">You don't need to know the download tools — just these four, and the rest follows.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · ACCESSION</div><h4>The ID in the paper</h4><p>A stable identifier for a public dataset — a GEO <code>GSE…</code>, an SRA <code>SRR…</code> or <code>SRP…</code>. Your starting point.</p></div>
+            <div class="tile"><div class="n">2 · ARCHIVE</div><h4>Where it lives</h4><p>The repository that holds it — GEO for curated series, SRA/ENA/DDBJ for raw sequencing reads. Each needs its own fetcher.</p></div>
+            <div class="tile"><div class="n">3 · MODALITY</div><h4>What kind of data</h4><p>Microarray, bulk RNA-seq, or single-cell. The modality decides which analysis is even valid.</p></div>
+            <div class="tile"><div class="n">4 · ROUTING</div><h4>The right workflow</h4><p>Matching modality + your goal to the correct pipeline, with its parameters filled in.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The whole trick is turning <b>ID → archive → modality → routing</b> from four careful manual steps into one paste-and-confirm.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — STAGE 1 CONCEPT -->
+  <section class="scene" data-seconds="27.0">
+    <div class="kicker"><span class="st">Stage 1</span> · ID → fetch</div>
+    <h2>Paste the ID; BioMate names the archive and picks the fetcher.</h2>
+    <p class="caption">The first stage is fast and deterministic. BioMate reads the shape of the accession — a <code>GSE…</code> is GEO, an <code>SRR…</code> or <code>SRP…</code> is SRA — and hands back the matching fetch workflow with the ID already filled in, ready to run. No network guesswork, no wrong tool.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"GSE52778" or "SRR1039508"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Archive + ID type recognized</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Fetch workflow + prefilled ID</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Ready to run</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">GEO series route to the <b>GEO data connector</b>; raw-read archives (SRA / ENA / DDBJ) route to <b>fetchngs</b>, which pulls the FASTQ files and a sample sheet.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Accession recognized → the correct fetcher, pre-filled</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — LIVE: RESOLVE TABLE -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">Stage 1, live</span> · what resolve returns</div>
+    <h2>One rule, every ID: the archive and the fetcher, named for you.</h2>
+    <p class="caption">This is the real output. GEO identifiers all resolve to the GEO connector; sequencing identifiers all resolve to fetchngs — each with the accession already placed in the right parameter.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · resolve_accession</span>
+        <div class="frame"><img src="../assets/live/accession-resolve.png" alt="Accession resolution table: GEO series to GEO Data Connector, SRA runs to nf-core/fetchngs"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>GEO series → GEO connector.</b> <code>GSE…</code>, <code>GSM…</code>, <code>GDS…</code> all map to the GEOquery connector.</span></li>
+          <li><span class="b"></span><span><b>Sequencing → fetchngs.</b> <code>SRR/SRP</code>, <code>ERR/ERP</code>, <code>DRR</code>, project IDs — all pull raw FASTQ + metadata.</span></li>
+          <li><span class="b gr"></span><span><b>Pre-filled and ready.</b> The accession is placed in the correct parameter; the next step is one confirm.</span></li>
+          <li><span class="b"></span><span>An unrecognized ID is rejected honestly, not quietly mis-handled.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Deterministic ID-type recognition</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — STAGE 2 CONCEPT: READS THE STUDY -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">Stage 2</span> · it reads the study</div>
+    <h2>Before choosing an analysis, BioMate checks what the data actually is.</h2>
+    <p class="caption">The ID doesn't say whether a GEO series is a microarray or RNA-seq — but the study's own record does. BioMate reads GEO's metadata directly and infers the <b>modality</b> from the authoritative series type and the design description, so the analysis fits the data rather than a guess.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">DATA-FIRST</div><h4>Reads the record</h4><p>A direct lookup of the GEO series metadata — the series type (array vs sequencing) and the design keywords.</p></div>
+          <div class="tile"><div class="n">MODALITY</div><h4>Array · bulk · single-cell</h4><p>From that record, BioMate infers microarray, bulk RNA-seq, or single-cell — each implying a different valid method.</p></div>
+          <div class="tile"><div class="n">NO GUESSING</div><h4>Honest when unsure</h4><p>It won't assume single-cell without explicit single-cell signals; an unclear study defers to you rather than mis-routing.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Modality inference here is GEO-specific — it uses GEO's own machine-readable record. Raw-read archives go straight to fetching the reads.</p>
+        <div><span class="verdict ok"><span class="mk"></span>The data decides the method — not the filename</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — LIVE: ROUTING TABLE (HEADLINE) -->
+  <section class="scene" data-seconds="37.0">
+    <div class="kicker"><span class="st">Stage 2, live</span> · same ID, your goal picks the pipeline</div>
+    <h2>One GEO ID, three questions, three correct pipelines.</h2>
+    <p class="caption">Here is the intelligence in one view. The same family of GEO data, three different stated goals — and BioMate routes each to the right workflow <i>and</i> fills in the modality parameters automatically.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · context-aware routing</span>
+        <div class="frame"><img src="../assets/live/accession-routing.png" alt="Routing table: microarray goal to Affymetrix DE, bulk RNA-seq goal to the DESeq2 chain, enrichment goal to GSEA, with auto-filled parameters"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Microarray goal → Affymetrix DE.</b> It sets <code>study_type = affy</code> for you.</span></li>
+          <li><span class="b"></span><span><b>Bulk RNA-seq goal → the DESeq2 chain.</b> rnaseq → differential expression → enrichment, with <code>genome = GRCh38</code>.</span></li>
+          <li><span class="b gr"></span><span><b>Enrichment goal → GSEA.</b> fgsea + pathway databases, with <code>species</code> and <code>organism</code> set.</span></li>
+          <li><span class="b"></span><span>Every routed workflow and every filled parameter is the real system's own output.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The same ID, routed by what you want to learn</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — FETCH & RUN -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">Step</span> · fetch, then run</div>
+    <h2>From the chosen workflow, it fetches and runs — on cloud compute.</h2>
+    <p class="caption">Once the workflow is chosen, BioMate retrieves the data and runs the pipeline for you. GEO series come through the connector; raw-read studies are fetched as FASTQ and flow into the sequencing pipeline. You confirm once; the work runs in the cloud while you carry on.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>Accession</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Fetch (connector / fetchngs)</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Analysis workflow</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Results + a record</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">Beyond sequencing, the same accession-aware fetch handles structures (PDB, EMDB), protein and reference sequences (UniProt, Ensembl), and chemical IDs (ChEMBL, PubChem) — pulled automatically when a workflow needs them.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Fetch and analysis, chained — one confirmation</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">Built for publication · precise and auditable</div>
+    <h2>Deterministic recognition you can defend in a methods section.</h2>
+    <p class="caption">The precision is real, and it is specific — that precision is what makes it trustworthy for work you'll publish.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">GEO RNA-SEQ COUNTS</div><h4>Need reads or a matrix</h4><p>A GEO RNA-seq series carries no count table in its record. Counts come from fetching the raw reads, or from a matrix you provide — always traced to a real source.</p></div>
+          <div class="tile"><div class="n">MODALITY = GEO</div><h4>Sequencing archives</h4><p>Modality inference reads GEO's record. Raw-read archives (SRA/ENA) go straight to fetching the reads, without modality inference.</p></div>
+          <div class="tile"><div class="n">SCOPE</div><h4>Where it's strongest</h4><p>Strongest on GEO and the SRA/ENA/DDBJ sequencing archives, and it fetches many file types on demand.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Specific and honest — not a black box that pretends to do everything</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="30.0">
+    <div class="kicker">The value at a glance</div>
+    <h2>Paste an ID. Say your goal. Get a correctly-routed run.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">The whole point is one sentence: <b>an accession number should become a correct, running analysis — without a day of setup.</b> BioMate recognizes the archive, reads what the data is, routes your question to the right pipeline with the parameters filled in, fetches the data, and runs it in the cloud — with a record you can defend.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Paste the accession — GEO <code>GSE…</code> or SRA <code>SRR…</code></li>
+            <li><span class="k">2</span>Say what you want to learn — DE, enrichment, clustering</li>
+            <li><span class="k">3</span>Confirm the routed workflow and its pre-filled parameters</li>
+            <li><span class="k">4</span>It fetches and runs; you get results and a reproducible record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Recognize the ID</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">GEO + SRA/ENA</span></td></tr>
+            <tr><td>Read the modality</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">From GEO's record</span></td></tr>
+            <tr><td>Route by your goal</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Right workflow, auto-params</span></td></tr>
+            <tr><td>Fetch + run</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">On cloud compute</span></td></tr>
+            <tr><td>Coverage</td><td><span class="verdict open" style="margin:0; padding:3px 8px">GEO + SRA/ENA, more on demand</span></td></tr>
+          </table>
+          <p class="footnote">From a published accession to a running, parameterized, reproducible analysis — the manual archaeology, done for you. Public data, reused correctly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

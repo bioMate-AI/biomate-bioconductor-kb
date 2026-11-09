@@ -45,7 +45,7 @@ RUN set -eux; \
 # 2.x and any later import of RDKit's C extensions (Standardizer, GraphDescriptors,
 # rdMolStandardize.rdMolStandardize) fails with:
 #   AttributeError: _ARRAY_API not found
-# This broke every cheminformatics workflow downstream of biomni-tools
+# This broke every cheminformatics workflow downstream of workflow-tools
 # (caught on dev via cyp_ddi_panel runtime). Pin numpy<2 here so EVERY image
 # `FROM biomate/nextflow-base` inherits a consistent numpy + RDKit ABI.
 # When rdkit ships numpy-2-compatible wheels broadly (track via

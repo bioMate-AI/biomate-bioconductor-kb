@@ -1,0 +1,7 @@
+[
+  {
+    "before_path": "backend/docker/biomni-structure-to-drug/__pycache__",
+    "after_path": "backend/docker/structure-to-drug/__pycache__",
+    "reason": "preserve untracked build-cache remnant; no deletion"
+  }
+]

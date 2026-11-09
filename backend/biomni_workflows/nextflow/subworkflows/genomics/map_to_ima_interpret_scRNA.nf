@@ -3,7 +3,7 @@
  * biomni_genomics_map_to_ima_interpret_scRNA
  * Map cell embeddings from the input dataset to the Integrated Megascale Atlas reference dataset using UCE embeddings.
  * Generated from Galaxy tool definition
- * Docker: biomate/biomni-tools:latest
+ * Docker: biomate/workflow-tools:latest
  */
 
 nextflow.enable.dsl = 2
@@ -20,7 +20,7 @@ process MAP_TO_IMA_INTERPRET_SCRNA {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     // No file inputs

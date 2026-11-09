@@ -2,7 +2,7 @@
 <tool id="biomni_synthetic_biology_analyze_barcode_sequencing_data" name="Biomni: Analyze Barcode Sequencing Data" version="1.0.0">
     <description>Analyze sequencing data to extract, quantify and determine lineage relationships of barcodes.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_barcode_sequencing_data_wrapper.py' --output '$output'

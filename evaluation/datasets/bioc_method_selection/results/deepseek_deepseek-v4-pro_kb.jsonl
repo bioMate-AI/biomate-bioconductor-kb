@@ -34,3 +34,7 @@
 {"id": "h_msnb_1", "prediction": "msnbase_label_free_quantitation"}
 {"id": "h_msnb_2", "prediction": "msnbase_chromatographic_srm_import"}
 {"id": "h_scran_1", "prediction": "scran_automated_pc_selection"}
+{"id": "h_scran_2", "prediction": "scran_gene_correlation_analysis"}
+{"id": "sc_01", "prediction": "scran"}
+{"id": "sc_02", "prediction": "nf-core/scdownstream"}
+{"id": "sc_03", "prediction": "ucell_seurat_workflow"}

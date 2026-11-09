@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_analyze_fatty_acid_composition_by_gc" name="Biomni: Analyze Fatty Acid Composition By Gc" version="1.0.0">
     <description>Analyzes fatty acid composition in tissue samples using gas chromatography data.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_fatty_acid_composition_by_gc_wrapper.py' --output '$output'

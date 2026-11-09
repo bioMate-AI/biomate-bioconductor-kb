@@ -1,0 +1,50 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "files": [
+    {
+      "id": "1fde730b-753f-44f8-baf5-2856ad819ea3",
+      "name": "assay-A.csv",
+      "sha256": "029f6287fa4d04a226af0be03bf8cf6a072c80306cf1c611024c5910ce3b1ce0"
+    },
+    {
+      "id": "6f8a45ac-8670-423a-8563-33588cf71fab",
+      "name": "assay-B.csv",
+      "sha256": "737aad44d3b1fd95c303645d33a027586702d7d04c861a2fcdb6a4cc9ba2aa51"
+    },
+    {
+      "id": "bede47c7-9ef5-491d-8ab4-886f8c45f2bd",
+      "name": "do-not-select.csv",
+      "sha256": "a74e59377a17d91b6d2841aacf32985b6d41d6786d5e42e0d96311c2a2b363c3"
+    }
+  ],
+  "checks": [],
+  "cleanup": [
+    {
+      "resource": "assay-A.csv",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "resource": "assay-B.csv",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "resource": "do-not-select.csv",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "resource": "project",
+      "status": 200,
+      "passed": true
+    }
+  ],
+  "buildBefore": {
+    "commit": "e06ade54e1bc8cae058fcd52c8895cc946e1b45c"
+  },
+  "projectId": "8a5193bd-56c0-4c1c-90e3-6cbaa3f382d0",
+  "passed": false,
+  "failure": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('composer-dataset-ref')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  30000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('composer-dataset-ref')\u001b[22m\n\u001b[2m    33 × locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n",
+  "finishedAt": "2026-11-08T07:11:52.729Z"
+}

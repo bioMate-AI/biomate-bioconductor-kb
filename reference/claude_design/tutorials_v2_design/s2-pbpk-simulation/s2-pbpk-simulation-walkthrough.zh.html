@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · S2 — PBPK 模拟，一个机理统计模型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-s2">统计系列 · S2 — PBPK 模拟</span>
+  <span class="kind concept" id="kind">概念</span>
+  <span class="spacer"></span>
+  <span class="counter">幻灯片 <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="kicker">一个关于身体对药物做了什么的机理统计模型</div>
+    <h2>预测药物随时间变化的浓度——逐个器官。</h2>
+    <p class="caption lead">一次剂量能升到多高、停留多久、又聚在哪里——来自一个真实的求解器，而非猜测。</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>剂量</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>身体房室</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>ODE 求解器</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>浓度-时间曲线</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Cmax · AUC · t½</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPT: the task, PK over time -->
+  <section class="scene" data-kind="concept" data-seconds="37.0">
+    <div class="kicker"><span class="st">1 · 概念</span> · 任务——一条浓度-时间曲线 <span class="badge concept">概念</span></div>
+    <h2>药代动力学，就是身体随时间对药物做了什么。</h2>
+    <p class="caption lead">一条曲线——上升、达峰、下降——承载着每一个给药决策所依赖的数字。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 760 320" style="width:100%; max-width:860px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <line x1="78" y1="28" x2="78" y2="270" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="78" y1="270" x2="722" y2="270" stroke="#d3d8df" stroke-width="2"/>
+          <text x="34" y="162" fill="#5c6573" font-family="IBM Plex Mono" font-size="15" transform="rotate(-90 34 162)">血浆浓度</text>
+          <text x="600" y="302" fill="#5c6573" font-family="IBM Plex Mono" font-size="15">时间 (h) →</text>
+          <path d="M78 270 C150 72 212 48 272 94 C372 170 548 250 722 262 L722 270 L78 270 Z" fill="#1d5fa6" opacity=".09"/>
+          <path d="M78 270 C150 72 212 48 272 94 C372 170 548 250 722 262" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+          <circle cx="250" cy="58" r="7.5" fill="#1d5fa6"/>
+          <line x1="250" y1="58" x2="250" y2="270" stroke="#1d5fa6" stroke-width="1.4" stroke-dasharray="4 5" opacity=".5"/>
+          <text x="250" y="42" text-anchor="middle" fill="#1d5fa6" font-family="IBM Plex Mono" font-size="17" font-weight="600">Cmax</text>
+          <text x="250" y="290" text-anchor="middle" fill="#5c6573" font-family="IBM Plex Mono" font-size="14">Tmax</text>
+          <text x="440" y="226" text-anchor="middle" fill="#5c6573" font-family="IBM Plex Mono" font-size="16">AUC — 总暴露量</text>
+          <path d="M452 198 C560 240 650 258 722 263" fill="none" stroke="#94600f" stroke-width="2.2" stroke-dasharray="5 5"/>
+          <text x="744" y="186" text-anchor="end" fill="#94600f" font-family="IBM Plex Mono" font-size="14">t½ — 末端斜率</text>
+        </svg>
+        <div class="statrow" style="margin-top:30px">
+          <div class="stat"><div class="si tag">Cmax · Tmax</div><div class="sh">峰值</div><div class="sp">药物升到多高，以及何时达到。</div></div>
+          <div class="stat"><div class="si tag">AUC</div><div class="sh">总暴露量</div><div class="sp">曲线随时间下的面积。</div></div>
+          <div class="stat"><div class="si tag">t½</div><div class="sh">半衰期</div><div class="sp">身体清除它有多快。</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — CONCEPT: why it's hard -->
+  <section class="scene" data-kind="concept" data-seconds="46.0">
+    <div class="kicker"><span class="st">2 · 概念</span> · 现状——PBPK 为什么难 <span class="badge concept">概念</span></div>
+    <h2>难的是输入和方程——而不是画那条曲线。</h2>
+    <p class="caption lead">耦合的微分方程，每个器官一个——好坏全看你喂给它的输入。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 760 190" style="width:100%; max-width:840px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <g font-family="IBM Plex Mono" font-size="14" fill="#1a1f2b">
+            <rect x="20" y="36" width="160" height="40" rx="8" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.5"/><text x="100" y="61" text-anchor="middle">理化性质</text>
+            <rect x="20" y="104" width="160" height="40" rx="8" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.5"/><text x="100" y="129" text-anchor="middle">ADME</text>
+          </g>
+          <g stroke="#9aa4b2" stroke-width="2.2" fill="none"><path d="M180 56 L300 84"/><path d="M180 124 L300 96"/></g>
+          <rect x="300" y="52" width="196" height="76" rx="12" fill="#fdf1e0" stroke="#94600f" stroke-width="1.8"/>
+          <text x="398" y="84" text-anchor="middle" font-family="IBM Plex Sans" font-size="17" font-weight="600" fill="#1a1f2b">耦合 ODE</text>
+          <text x="398" y="106" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#94600f">每器官一个 · 刚性</text>
+          <line x1="496" y1="90" x2="582" y2="90" stroke="#5c6573" stroke-width="2.2"/><polygon points="582,90 571,84 571,96" fill="#5c6573"/>
+          <line x1="606" y1="30" x2="606" y2="150" stroke="#d3d8df" stroke-width="1.6"/><line x1="606" y1="150" x2="742" y2="150" stroke="#d3d8df" stroke-width="1.6"/>
+          <path d="M606 150 C640 52 662 46 686 70 C714 102 742 140 742 144" fill="none" stroke="#1d5fa6" stroke-width="2.8"/>
+        </svg>
+        <div class="statrow">
+          <div class="stat"><div class="si tag">理化性质</div><div class="sh">分子性质</div><div class="sp">MW、logP、pKa——决定药物如何进入组织。</div></div>
+          <div class="stat"><div class="si tag">ADME</div><div class="sh">清除率与结合</div><div class="sp">CLint、fu、肾 CL——通常是估计值，很少精确。</div></div>
+          <div class="stat" style="border-color:var(--amber); background:var(--amber-bg)"><div class="si tag" style="color:var(--amber)">风险</div><div class="sh">误差会累积</div><div class="sp">一个错误的输入会挪动整条曲线。</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — CONCEPT: NCA baseline -->
+  <section class="scene" data-kind="concept" data-seconds="44.0">
+    <div class="kicker"><span class="st">3 · 概念</span> · 基线——非房室分析（NCA） <span class="badge concept">概念</span></div>
+    <h2>如果你已经测到了浓度，就不需要模型。</h2>
+    <p class="caption lead">NCA 直接从观测数据上读出数字；PBPK 则预测你没有数据的地方。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 760 240" style="width:100%; max-width:820px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <line x1="72" y1="20" x2="72" y2="206" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="72" y1="206" x2="710" y2="206" stroke="#d3d8df" stroke-width="2"/>
+          <text x="32" y="118" fill="#5c6573" font-family="IBM Plex Mono" font-size="14" transform="rotate(-90 32 118)">观测浓度</text>
+          <path d="M72 206 L148 96 L230 54 L330 86 L452 128 L566 168 L676 190" fill="none" stroke="#1f6e43" stroke-width="2" stroke-dasharray="4 5" opacity=".75"/>
+          <path d="M230 54 L330 86 L452 128 L566 168 L676 190 L676 206 L230 206 Z" fill="#1f6e43" opacity=".09"/>
+          <g fill="#1f6e43"><circle cx="148" cy="96" r="7"/><circle cx="230" cy="54" r="7"/><circle cx="330" cy="86" r="7"/><circle cx="452" cy="128" r="7"/><circle cx="566" cy="168" r="7"/><circle cx="676" cy="190" r="7"/></g>
+          <text x="230" y="40" text-anchor="middle" fill="#1f6e43" font-family="IBM Plex Mono" font-size="15" font-weight="600">实测采样点</text>
+          <text x="440" y="182" text-anchor="middle" fill="#5c6573" font-family="IBM Plex Mono" font-size="15">梯形法 AUC——直接从数据读出</text>
+        </svg>
+        <div class="statrow">
+          <div class="stat" style="border-color:var(--green); background:var(--green-bg)"><div class="si tag" style="color:var(--green)">NCA</div><div class="sh">归纳你已有的数据</div><div class="sp">AUC、Cmax、t½ 直接从观测曲线读出——无需模型。</div></div>
+          <div class="stat" style="border-color:var(--blue); background:var(--blue-bg)"><div class="si tag">PBPK</div><div class="sh">向前预测</div><div class="sp">一个新剂量、一个儿童、一个肾功能受损的病人——无需数据。</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — CONCEPT: mechanistic PBPK, the compartment model -->
+  <section class="scene" data-kind="concept" data-seconds="51.0">
+    <div class="kicker"><span class="st">4 · 概念</span> · 机理式 PBPK——器官房室即 ODE <span class="badge concept">概念</span></div>
+    <h2>把身体建模成相连的房室，每个器官一个方程。</h2>
+    <p class="caption lead">肠道、肝脏、肺、肾脏和血浆——血流把它们连起来，一个 ODE 系统一并求解。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 780 372" style="width:100%; max-width:900px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="bf" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7b8698"/></marker>
+            <marker id="bfr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#aeb6c2"/></marker>
+          </defs>
+          <!-- blood flows (under boxes) -->
+          <g stroke="#7b8698" stroke-width="2.4" fill="none">
+            <path d="M110 92 L110 112" marker-end="url(#bf)"/>
+            <path d="M110 164 L110 250" marker-end="url(#bf)"/>
+            <path d="M176 272 C246 244 286 214 316 196" marker-end="url(#bf)"/>
+            <path d="M472 174 C542 150 582 112 610 90" marker-end="url(#bf)"/>
+            <path d="M472 192 L606 192" marker-end="url(#bf)"/>
+            <path d="M396 214 L396 282" marker-end="url(#bf)"/>
+          </g>
+          <g stroke="#aeb6c2" stroke-width="2" fill="none">
+            <path d="M612 72 C560 126 520 158 474 178" marker-end="url(#bfr)"/>
+            <path d="M414 282 L470 214" marker-end="url(#bfr)"/>
+          </g>
+          <!-- central blood -->
+          <rect x="320" y="156" width="152" height="60" rx="11" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.8"/>
+          <text x="396" y="182" text-anchor="middle" font-family="IBM Plex Sans" font-size="17" font-weight="600" fill="#1a1f2b">血液 / 血浆</text>
+          <text x="396" y="202" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#1d5fa6">中央池</text>
+          <!-- organs -->
+          <g font-family="IBM Plex Sans" font-size="14" font-weight="600" fill="#1a1f2b">
+            <rect x="40" y="46" width="140" height="46" rx="8" fill="#f7f8fa" stroke="#d3d8df"/><text x="110" y="74" text-anchor="middle">肠腔</text>
+            <rect x="40" y="118" width="140" height="46" rx="8" fill="#f7f8fa" stroke="#d3d8df"/><text x="110" y="146" text-anchor="middle">肠壁</text>
+            <rect x="40" y="250" width="140" height="52" rx="8" fill="#fdf1e0" stroke="#94600f" stroke-width="1.5"/><text x="110" y="272" text-anchor="middle">肝脏</text><text x="110" y="290" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#94600f">首过 CL</text>
+            <rect x="320" y="282" width="152" height="46" rx="8" fill="#f7f8fa" stroke="#d3d8df"/><text x="396" y="310" text-anchor="middle">外周组织</text>
+            <rect x="610" y="44" width="140" height="46" rx="8" fill="#f7f8fa" stroke="#d3d8df"/><text x="680" y="72" text-anchor="middle">肺</text>
+            <rect x="610" y="166" width="140" height="52" rx="8" fill="#e8f5ec" stroke="#1f6e43" stroke-width="1.5"/><text x="680" y="188" text-anchor="middle">肾脏</text><text x="680" y="206" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#1f6e43">肾 CL</text>
+          </g>
+          <text x="396" y="356" text-anchor="middle" fill="#1d5fa6" font-family="IBM Plex Mono" font-size="14">多房室（约 8 个状态变量）· Q 血流 · Kp 分配 · 作为一个 ODE 系统求解（SciPy LSODA）</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — CONCEPT: special populations -->
+  <section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">5 · 概念</span> · 特殊人群——选择机理方式的真正理由 <span class="badge concept">概念</span></div>
+    <h2>改变生理学，再跑同一组方程。</h2>
+    <p class="caption lead">一个儿童、一次妊娠、一个受损的器官，不是新模型——只是不同的生理参数。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 820 300" style="width:100%; max-width:900px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="sp" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7b8698"/></marker>
+          </defs>
+          <!-- core -->
+          <rect x="24" y="108" width="196" height="88" rx="14" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.8"/>
+          <text x="122" y="146" text-anchor="middle" font-family="IBM Plex Sans" font-size="18" font-weight="650" fill="#1a1f2b">同一组 ODE 系统</text>
+          <text x="122" y="170" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#1d5fa6">一个模型，多种身体</text>
+          <!-- branches -->
+          <g stroke="#7b8698" stroke-width="2.4" fill="none">
+            <path d="M220 140 C270 100 290 62 316 54" marker-end="url(#sp)"/>
+            <path d="M220 152 L314 152" marker-end="url(#sp)"/>
+            <path d="M220 164 C270 204 290 242 316 250" marker-end="url(#sp)"/>
+          </g>
+          <text x="268" y="108" fill="#5c6573" font-family="IBM Plex Mono" font-size="11">替换生理参数</text>
+          <!-- population cards -->
+          <g font-family="IBM Plex Sans" fill="#1a1f2b">
+            <rect x="320" y="22" width="476" height="62" rx="10" fill="#fff" stroke="#d3d8df"/>
+            <text x="340" y="48" font-size="17" font-weight="650">儿科</text>
+            <text x="340" y="70" font-family="IBM Plex Mono" font-size="12.5" fill="#5c6573">酶成熟（CYP）· 按年龄缩放的器官体积</text>
+            <rect x="320" y="118" width="476" height="62" rx="10" fill="#fff" stroke="#d3d8df"/>
+            <text x="340" y="144" font-size="17" font-weight="650">妊娠</text>
+            <text x="340" y="166" font-family="IBM Plex Mono" font-size="12.5" fill="#5c6573">+50% GFR · CYP3A4 诱导 · 胎儿房室</text>
+            <rect x="320" y="214" width="476" height="62" rx="10" fill="#fff" stroke="#d3d8df"/>
+            <text x="340" y="240" font-size="17" font-weight="650">肾 / 肝功能受损</text>
+            <text x="340" y="262" font-family="IBM Plex Mono" font-size="12.5" fill="#5c6573">按 eGFR 分级的肾 CL · 按 Child-Pugh A/B/C 缩放</text>
+          </g>
+        </svg>
+        <div class="vlabel">扎根于监管指南——给出剂量调整比值和标签草稿文本，<b>由药理学家审阅，绝不自动提交</b>。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — FLOW-ish CONCEPT: how BioMate does it -->
+  <section class="scene" data-kind="concept" data-seconds="46.0">
+    <div class="kicker"><span class="st">6 · 在 BioMate 中</span> · 对话 → 路由 → 运行真实的求解器 <span class="badge concept">概念</span></div>
+    <h2>你描述场景；BioMate 运行经过验证的求解器，而不是一个猜测。</h2>
+    <p class="caption lead">描述场景；BioMate 路由到真实的求解器，并从它的文件里读出结果。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · 对话</div><div class="pc">自然语言</div><div class="pt"><span class="eg">"口服阿司匹林 500 mg"</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">路由</span></div>
+        <div class="pstep"><div class="pn">2 · 路由</div><div class="pc">pbpk_simulation</div><div class="pt"><span>参数先可编辑</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">确认</span></div>
+        <div class="pstep"><div class="pn">3 · 运行求解器</div><div class="pc">LSODA ODE</div><div class="pt"><span class="eg">托管算力</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">读取文件</span></div>
+        <div class="pstep"><div class="pn">4 · 读取</div><div class="pc">PK 参数</div><div class="pt"><span>pk_profile.csv</span><span>nca_parameters.json</span></div></div>
+      </div>
+      <div class="vlabel" style="margin-top:30px">数字从求解器的<b>输出文件</b>里读出——模型负责路由和解释，绝不凭空造出一个 Cmax。</div>
+    </div>
+  </section>
+
+  <!-- 7 — CONCEPT: reading the output + QC gates -->
+  <section class="scene" data-kind="concept" data-seconds="52.0">
+    <div class="kicker"><span class="st">7 · 在 BioMate 中</span> · 读懂结果——对物理设门 <span class="badge concept">概念</span></div>
+    <h2>PK 参数附带自动的合理性检查。</h2>
+    <p class="caption lead">四道自动闸门检查物理——一条不合理的曲线会被标出，而不是被当作事实报告。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="scorecard">
+        <div class="sc-col"><div class="sc-name">质量平衡</div><div class="sc-bar ok"><i style="width:98%"></i></div><div class="sc-val">0.95–1.05 · 通过</div></div>
+        <div class="sc-col"><div class="sc-name">Tmax 落在窗内</div><div class="sc-bar ok"><i style="width:70%"></i></div><div class="sc-val">≤ 时长的 0.8</div></div>
+        <div class="sc-col"><div class="sc-name">CL 下限</div><div class="sc-bar"><i style="width:45%"></i></div><div class="sc-val">≥ 0.01 L/h</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--blue); background:var(--blue-bg); border-color:var(--blue)">对比实测</span> 提供一个实测 AUC，运行就会报告倍数误差——是否落在两倍之内（FDA 2018）。</div>
+      <div class="sc-note" style="margin-top:16px"><span class="flag" style="color:var(--amber); background:var(--amber-bg); border-color:var(--amber)">自洽 ≠ 真值</span> 闸门确认数学成立——只要你有体内数据，就把它锚定上去。</div>
+    </div>
+  </section>
+
+  <!-- 8 — CONCEPT: honest caveats + benchmark -->
+  <section class="scene" data-kind="concept" data-seconds="54.0">
+    <div class="kicker"><span class="st">8 · 经过验证</span> · 对照临床真值，带出处 <span class="badge concept">概念</span></div>
+    <h2>BioMate 运行真实的求解器——每一个数字都有出处可循。</h2>
+    <p class="caption lead">RealBio pbpk_benchmark 把预测对照临床 PK 评分——每一个数字都经核验，而不是靠猜。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 560 280" style="width:100%; max-width:600px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <text x="280" y="22" text-anchor="middle" fill="#5c6573" font-family="IBM Plex Mono" font-size="14">预测对实测——两倍区间</text>
+          <line x1="70" y1="44" x2="70" y2="238" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="70" y1="238" x2="520" y2="238" stroke="#d3d8df" stroke-width="2"/>
+          <text x="32" y="150" fill="#5c6573" font-family="IBM Plex Mono" font-size="13" transform="rotate(-90 32 150)">预测值</text>
+          <text x="420" y="264" fill="#5c6573" font-family="IBM Plex Mono" font-size="13">实测值 →</text>
+          <!-- 2-fold band shading -->
+          <path d="M70 238 L500 66 L500 152 L70 238 Z" fill="#1f6e43" opacity=".06"/>
+          <path d="M70 238 L70 152 L384 66 L500 66 Z" fill="#1f6e43" opacity=".06"/>
+          <line x1="70" y1="238" x2="500" y2="52" stroke="#1d5fa6" stroke-width="1.8"/>
+          <line x1="70" y1="238" x2="500" y2="152" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="5 5"/>
+          <line x1="70" y1="152" x2="384" y2="52" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="5 5"/>
+          <text x="246" y="224" fill="#1f6e43" font-family="IBM Plex Mono" font-size="13" font-weight="600">两倍以内 = 通过</text>
+          <g fill="#1f6e43"><circle cx="150" cy="196" r="6.5"/><circle cx="210" cy="160" r="6.5"/><circle cx="286" cy="128" r="6.5"/><circle cx="356" cy="104" r="6.5"/><circle cx="430" cy="96" r="6.5"/></g>
+          <g fill="#a8312f"><circle cx="196" cy="96" r="6.5"/><circle cx="388" cy="200" r="6.5"/></g>
+          <text x="196" y="82" fill="#a8312f" font-family="IBM Plex Mono" font-size="12">未达标 (&gt;2倍)</text>
+        </svg>
+        <div class="statrow">
+          <div class="stat"><div class="si tag">15 个化合物</div><div class="sh">临床真值</div><div class="sp">有已发表人体 PK 的参考药物。</div></div>
+          <div class="stat" style="border-color:var(--green); background:var(--green-bg)"><div class="si tag" style="color:var(--green)">两倍以内</div><div class="sh">公认的区间</div><div class="sp">预测的 Cmax/AUC 对照临床值评分。</div></div>
+          <div class="stat"><div class="si tag">客观</div><div class="sh">无 LLM 裁判</div><div class="sp">按数字评分——真实求解器，完整溯源。</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="42.0">
+    <div class="kicker">PBPK 一眼看懂</div>
+    <h2>描述场景 → 运行真实的 ODE 模型 → 读出一份站得住脚的预测。</h2>
+    <p class="caption lead">NCA 描述你已有的数据；PBPK 预测你没有的场景——儿童、妊娠、功能受损。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">读出</div><div class="pc">Cmax · AUC · t½</div></div>
+        <div class="parrow"><span class="ag">&rarr;</span></div>
+        <div class="pstep"><div class="pn">模型</div><div class="pc">多房室 ODE</div></div>
+        <div class="parrow"><span class="ag">&rarr;</span></div>
+        <div class="pstep"><div class="pn">人群</div><div class="pc">替换生理参数</div></div>
+        <div class="parrow"><span class="ag">&rarr;</span></div>
+        <div class="pstep"><div class="pn">在 BioMate 中</div><div class="pc">真实求解器 + 闸门</div></div>
+      </div>
+      <div class="recap" style="margin-top:36px">
+        <div class="rchip"><div class="rk">输出</div><div class="rv">逐组织浓度-时间曲线 + PK 参数</div></div>
+        <div class="rchip"><div class="rk">特殊人群</div><div class="rv">儿科 · 妊娠 · 肾 / 肝</div></div>
+        <div class="rchip"><div class="rk">站得住脚</div><div class="rv">QC 闸门 + 完整溯源记录</div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

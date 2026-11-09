@@ -1,0 +1,36 @@
+[
+ {
+  "name": "GROMACS Protein-Ligand MD + MM-GBSA",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"GROMACS Protein-Ligand MD + MM-GBSA\\\" needs 2 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"box_center\",\"label\":\"JSON '[cx,cy,cz]' from pocket / Vina box\",\"description\":\"JSON '[cx,cy,cz]' from pocket / Vina box\",\"type\":\"string\"},{\"name\":\"box_size\",\"label\":\"JSON '[sx,sy,sz]' docking box edges (\u00c5)\",\"description\":\"JSON '[sx,sy,sz]' docking box edges (\u00c5)\",\"type\":\"string\"}],\"guidance\":\"Provide values for the listed parameters (fill them in the workflow params panel, or pass them in the request `params` map) and retry.\"}"
+  }
+ },
+ {
+  "name": "AMBER pmemd GPU Molecular Dynamics",
+  "runId": "e3bd688f-e7cc-480c-8497-886b7865d0b6",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "Process LIGAND_PREP (ligand_prep) failed: Essential container in task exited \u2014 Weird atomic valence (3) for atom (ID: 1, Name: C1). | Possible open valence.",
+  "minutes": 2.0
+ },
+ {
+  "name": "Mlip Md Simulation",
+  "runId": "ea1b427e-c6ff-45fb-8d1d-3b222ce65dcd",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "Process MLIP_MD_SIMULATION (receptor_181l) failed: Task failed to start - CannotPullImageManifestError: Error response from daemon: name unknown: The repository with name 'biomate/mlip-md' does not exist in the registry with id '399683337364'",
+  "minutes": 3.0
+ },
+ {
+  "name": "gromacs_pmx_fep",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"gromacs_pmx_fep\\\" needs 1 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"control_edge_expected\",\"label\":\"known \u0394\u0394G (kcal/mol) for a control edge\",\"description\":\"known \u0394\u0394G (kcal/mol) for a control edge\",\"type\":\"string\"}],\"guidance\":\"Provide values for the listed parameters (fill them in the workflow params panel, or pass them in the request `params` map) and retry.\"}"
+  }
+ }
+]

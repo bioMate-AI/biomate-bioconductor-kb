@@ -25,7 +25,7 @@ This document captures lessons learned, common pitfalls, and best practices from
 <tool id="biomni_domain_function_name" name="Biomni: Function Name" version="1.0.0">
     <description>Brief description of what the tool does.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/function_name_wrapper.py' --output '$output'
@@ -238,7 +238,7 @@ def parse_json_param(value):
 
 ```xml
 <requirements>
-    <container type="docker">biomate/biomni-tools:latest</container>
+    <container type="docker">biomate/workflow-tools:latest</container>
 </requirements>
 ```
 
@@ -246,8 +246,8 @@ def parse_json_param(value):
 
 ```xml
 <requirements>
-    <container type="docker">biomate/biomni-tools:latest</container>
-    <container type="singularity">docker://biomate/biomni-tools:latest</container>
+    <container type="docker">biomate/workflow-tools:latest</container>
+    <container type="singularity">docker://biomate/workflow-tools:latest</container>
 </requirements>
 ```
 
@@ -257,7 +257,7 @@ For tools needing specific packages:
 
 ```xml
 <requirements>
-    <container type="docker">biomate/biomni-docking:latest</container>
+    <container type="docker">biomate/docking-tools:latest</container>
 </requirements>
 ```
 

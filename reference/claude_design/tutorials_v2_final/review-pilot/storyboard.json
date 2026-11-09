@@ -1,0 +1,267 @@
+{
+  "id": "admet-evidence-pilot",
+  "status": "INTERNAL_REVIEW_NOT_RELEASED",
+  "runId": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc",
+  "checkedAt": "2026-10-03",
+  "sources": [
+    "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/e14-and-s7b-clinical-and-nonclinical-evaluation-qtqtc-interval-prolongation-and-proarrhythmic",
+    "https://tdcommons.ai/single_pred_tasks/tox/",
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC11226862/"
+  ],
+  "scenes": [
+    {
+      "id": 1,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "A result you can inspect",
+        "subtitle": "From three molecular structures to a reviewable ADMET report.",
+        "items": [
+          "Define the question",
+          "Inspect the outputs",
+          "Interpret with care"
+        ],
+        "narration": "In this lesson, follow a real BioMate ADMET run from its inputs to its report. Learn what the predictions mean, where the underlying files live, and how to preserve the record. The demonstration uses three familiar small molecules. It demonstrates a prediction workflow; it does not establish that a new drug works."
+      },
+      "zh": {
+        "title": "看得懂，也查得到的结果",
+        "subtitle": "从三个分子结构，走到一份可核查的 ADMET 报告。",
+        "items": [
+          "明确问题",
+          "核查输出",
+          "审慎解读"
+        ],
+        "narration": "这一节，我们结合 BioMate 中一次真实的 ADMET 运行，学习如何核对输入、查看输出和保存记录。示例包含三个常见小分子。重点不是把一个预测分数当成结论，而是看清楚它回答了什么问题，以及下一步还需要哪些证据。"
+      }
+    },
+    {
+      "id": 2,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Begin with a precise question",
+        "subtitle": "Input: three SMILES strings. Output: per-molecule predictions and a run record.",
+        "items": [
+          "Aspirin · compound 1",
+          "Caffeine · compound 2",
+          "Ibuprofen · compound 3"
+        ],
+        "narration": "A SMILES string is a compact way to describe a molecular structure. This example submitted aspirin, caffeine and ibuprofen. Keep that input order, because the report refers to compound one, two and three. This is an ADMET demonstration with known molecules. No target-binding experiment or JAK1 activity measurement is included."
+      },
+      "zh": {
+        "title": "先把问题说清楚",
+        "subtitle": "输入：三个 SMILES 字符串。输出：各分子的预测结果和运行记录。",
+        "items": [
+          "阿司匹林 · 分子 1",
+          "咖啡因 · 分子 2",
+          "布洛芬 · 分子 3"
+        ],
+        "narration": "SMILES 是用文本表示分子结构的一种方式。这个示例的输入顺序是阿司匹林、咖啡因和布洛芬。请保留这份对应关系，后面看到分子一、分子二、分子三时，才能准确追溯。这里演示的是 ADMET 预测，不包含靶点结合实验，也没有测量 JAK1 活性。"
+      }
+    },
+    {
+      "id": 3,
+      "kind": "diagram",
+      "image": null,
+      "en": {
+        "title": "Five questions beyond binding",
+        "subtitle": "ADMET describes how a compound may behave in the body.",
+        "items": [
+          "Absorption",
+          "Distribution",
+          "Metabolism",
+          "Excretion",
+          "Toxicity"
+        ],
+        "narration": "ADMET stands for absorption, distribution, metabolism, excretion and toxicity. These are different questions: whether a compound enters circulation, where it goes, how it changes, how it leaves, and what harm it might cause. No single endpoint answers all five. Use predictions to identify questions for follow-up testing, not as a certificate of safety."
+      },
+      "zh": {
+        "title": "结合能力之外，还有五类问题",
+        "subtitle": "ADMET 关注分子进入体内后可能经历的过程。",
+        "items": [
+          "吸收",
+          "分布",
+          "代谢",
+          "排泄",
+          "毒性"
+        ],
+        "narration": "ADMET 分别指吸收、分布、代谢、排泄和毒性。它们回答不同的问题：分子能否被吸收，会分布到哪里，如何被代谢，怎样排出，以及可能产生什么不良作用。单个指标不能概括这五个方面。预测的作用，是帮助确定下一步该验证什么，而不是签发一张安全证明。"
+      }
+    },
+    {
+      "id": 4,
+      "kind": "product",
+      "image": "panel-summary.png",
+      "en": {
+        "title": "Open the completed run",
+        "subtitle": "BioMate → the example conversation → After run → Summary.",
+        "items": [
+          "Check the workflow name",
+          "Confirm completion",
+          "Read the limitations"
+        ],
+        "narration": "Open the example conversation and select the ADMET workflow. In After run, Summary presents the findings. The completed label confirms execution finished. It does not certify biological validity. Here the report describes predictions for three compounds and explicitly asks for experimental confirmation. Keep that distinction in mind throughout the review."
+      },
+      "zh": {
+        "title": "打开已完成的运行",
+        "subtitle": "BioMate → 示例对话 → 运行结果 → 摘要。",
+        "items": [
+          "核对工作流名称",
+          "确认运行状态",
+          "阅读结果的适用范围"
+        ],
+        "narration": "打开示例对话，进入 ADMET 工作流，在“运行结果”中查看“摘要”。“已完成”表示计算流程已经结束，并不等于生物学结论已经得到验证。这里的摘要说明分析了三个分子，同时提醒需要实验确认。解读结果时，请始终区分计算完成和结论成立。"
+      }
+    },
+    {
+      "id": 5,
+      "kind": "product",
+      "image": "panel-outputs.png",
+      "en": {
+        "title": "Inspect the source files",
+        "subtitle": "After run → Outputs → open or download the relevant file.",
+        "items": [
+          "Prediction results",
+          "Toxicity report",
+          "QC metrics"
+        ],
+        "narration": "Now choose Outputs. This run contains six downloadable files. The prediction results and toxicity report contain the molecular predictions; the quality-control file records checks and thresholds. A filename in the list is not enough. Open the file and confirm that it is readable and belongs to the current run. These six downloads were checked through BioMate for this review."
+      },
+      "zh": {
+        "title": "先看摘要，再查源文件",
+        "subtitle": "运行结果 → 输出文件 → 查看或下载对应文件。",
+        "items": [
+          "预测结果文件",
+          "毒性报告",
+          "质控指标"
+        ],
+        "narration": "接着切换到“输出文件”标签。这个运行包含六个可下载文件。预测结果和毒性报告中保存了分子预测，质控文件中记录了检查项及阈值。看到文件名还不够，还要确认文件可以打开，内容确实属于这次运行。本次复核已经通过 BioMate 检查了这六个文件的下载。"
+      }
+    },
+    {
+      "id": 6,
+      "kind": "numbers",
+      "image": null,
+      "en": {
+        "title": "Read one endpoint across molecules",
+        "subtitle": "hERG: a cardiac potassium channel. These unitless model scores are not measurements.",
+        "items": [
+          "Aspirin|0.0034",
+          "Caffeine|0.1149",
+          "Ibuprofen|0.0084"
+        ],
+        "narration": "hERG is a potassium channel important for cardiac electrical activity. The displayed model scores predict channel-blocking classification, in the order aspirin, caffeine and ibuprofen. Higher scores favor the blocker class within this model. These are unitless predictions, not measured concentrations or probabilities of arrhythmia in a patient. Calibration and applicability to a new chemical series require separate evaluation."
+      },
+      "zh": {
+        "title": "同一个指标，逐个分子比较",
+        "subtitle": "hERG 是一种心脏钾离子通道。这里展示无量纲模型分数，并非实验测量值。",
+        "items": [
+          "阿司匹林|0.0034",
+          "咖啡因|0.1149",
+          "布洛芬|0.0084"
+        ],
+        "narration": "hERG 是参与心脏电活动的一种钾离子通道。图中按阿司匹林、咖啡因和布洛芬的顺序，展示模型对通道阻断这一分类终点的预测分数。在这个模型中，分数越高，越倾向于阻断类别。这些分数没有单位，不是实验测得的浓度，也不是患者发生心律失常的概率。模型是否经过校准、能否适用于新的分子系列，都需要单独评估。"
+      }
+    },
+    {
+      "id": 7,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Keep the endpoints separate",
+        "subtitle": "A classification score, an IC50 and clinical risk are different quantities.",
+        "items": [
+          "Score: classification output",
+          "IC50: concentration endpoint",
+          "Risk: integrated assessment"
+        ],
+        "narration": "A classification score has no concentration unit. An IC50 describes the concentration associated with fifty percent inhibition in a defined assay or model. You cannot turn one into the other without a justified and validated relationship. Cardiac risk assessment also considers exposure and additional evidence. Read the raw classification output separately from heuristic estimates in this report."
+      },
+      "zh": {
+        "title": "不同指标，要分开解读",
+        "subtitle": "分类分数、半数抑制浓度和临床风险，含义各不相同。",
+        "items": [
+          "分类分数：模型输出",
+          "IC50：浓度相关指标",
+          "风险：综合证据评估"
+        ],
+        "narration": "分类分数没有浓度单位。IC50 指在特定实验或模型条件下，产生百分之五十抑制作用所对应的浓度。没有经过论证和验证的关系式，就不能把两者直接换算。心脏风险的判断还需要结合暴露水平和其他证据。因此，这份报告中的分类预测与启发式估算，应分别查看和解释。"
+      }
+    },
+    {
+      "id": 8,
+      "kind": "numbers",
+      "image": null,
+      "en": {
+        "title": "A QC check needs a defined rule",
+        "subtitle": "DILI means drug-induced liver injury. This panel value is the highest compound score.",
+        "items": [
+          "Highest DILI score|0.875",
+          "Configured threshold|0.500",
+          "Recorded check|Not passed"
+        ],
+        "narration": "DILI means drug-induced liver injury. This run uses the highest per-compound DILI score as its panel value: caffeine’s score, rounded to zero point eight seven five. It exceeds the configured zero point five threshold, so the recorded check does not pass. This is a model screening flag, not a diagnosis or an estimated patient incidence. A failed check also does not prove the workflow stopped or reran; those actions need their own evidence."
+      },
+      "zh": {
+        "title": "质控检查，必须有明确规则",
+        "subtitle": "DILI 指药物性肝损伤。这里的汇总值取三个分子中的最高预测分数。",
+        "items": [
+          "最高 DILI 分数|0.875",
+          "本次配置阈值|0.500",
+          "记录中的检查结果|未通过"
+        ],
+        "narration": "DILI 指药物性肝损伤。这次运行以三个分子中最高的 DILI 预测分数作为汇总值，对应咖啡因的分数，四舍五入后是零点八七五。它高于本次配置的零点五阈值，所以记录中的检查未通过。这是模型筛选提示，不是临床诊断，也不是患者的发病概率。检查未通过同样不能证明工作流已经自动停止或重跑，这些行为需要各自的证据。"
+      }
+    },
+    {
+      "id": 9,
+      "kind": "product",
+      "image": "panel-record.png",
+      "en": {
+        "title": "Preserve the result and its context",
+        "subtitle": "After run → Reproducibility record. Check completeness before sharing.",
+        "items": [
+          "Run identity",
+          "Inputs and settings",
+          "Outputs and checksums"
+        ],
+        "narration": "Open Reproducibility record. It links the result to a run and lists the outputs. Before sharing, check that the actual input list, relevant settings and software details are available. A blank field is missing evidence. In this example, input bindings and tool parameters were empty in the default record, and checksums were not included by default. Preserve the submitted input list alongside the downloaded outputs."
+      },
+      "zh": {
+        "title": "保存结果，也保存上下文",
+        "subtitle": "运行结果 → 可复现性记录。分享之前，先核对记录是否完整。",
+        "items": [
+          "运行标识",
+          "输入与设置",
+          "输出与校验值"
+        ],
+        "narration": "打开“可复现性记录”。它将结果关联到具体运行，并列出输出文件。分享之前，要核查实际输入、关键设置和软件信息是否齐全。空白字段意味着证据尚不完整。本例默认记录中的输入绑定和工具参数为空，校验值也没有默认返回，因此需要把提交的分子清单与下载结果一并保存。"
+      }
+    },
+    {
+      "id": 10,
+      "kind": "diagram",
+      "image": null,
+      "en": {
+        "title": "Turn a prediction into a testable next step",
+        "subtitle": "Review → prioritize follow-up → measure → compare → refine.",
+        "items": [
+          "Review the evidence",
+          "Choose the next experiment",
+          "Return measured results"
+        ],
+        "narration": "The useful next step is a better research decision. Confirm the inputs, inspect the per-compound values, and choose follow-up measurements appropriate to the question. Keep experimental measurements separate from predictions when comparing them. This is how a computational workflow contributes to a design, test and learn cycle: by producing inspectable evidence, with its limits visible."
+      },
+      "zh": {
+        "title": "把预测，变成下一步可验证的问题",
+        "subtitle": "复核 → 确定验证重点 → 实验测量 → 比较结果 → 调整方案。",
+        "items": [
+          "复核现有证据",
+          "选择下一步实验",
+          "补充真实测量结果"
+        ],
+        "narration": "有价值的下一步，是做出更有依据的研究决策。先确认输入，再逐个查看分子结果，随后根据研究问题选择合适的验证实验。比较结果时，要明确区分实验测量与模型预测。计算工作流对设计、测试和学习循环的贡献，正是提供可以核查、也清楚标明适用范围的证据。"
+      }
+    }
+  ]
+}

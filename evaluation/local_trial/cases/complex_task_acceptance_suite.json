@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "complex_task_request_to_report",
+  "status": "acceptance_specification_with_offline_boundary_probes",
+  "shared_gates": [
+    "interpreted_scope_matches_request_and_context",
+    "required_inputs_recovered_or_explicitly_requested",
+    "complete_expected_case_set_frozen_before_execution",
+    "tool_availability_and_input_compatibility_validated",
+    "plan_dependencies_and_case_ids_survive_transport",
+    "actual_child_receipts_and_artifacts_account_for_all_cases",
+    "metrics_reproducible_from_artifacts",
+    "report_answers_original_question_with_readable_comparison",
+    "failures_and_missing_evidence_visible",
+    "supported_local_model_path_verified_in_client_environment"
+  ],
+  "cases": [
+    {
+      "case_id": "compare_all_applicable_tools",
+      "request": "Compare all tools for this analysis using my dataset.",
+      "context_to_supply": ["analysis_task", "dataset", "comparison_mode", "evaluation_criteria", "catalog_snapshot"],
+      "patterns": ["category_to_tool_set", "shared_preparation", "parallel_fanout", "join", "metric_comparison"],
+      "coverage_unit": "eligible_tool_version",
+      "response_sections": ["scope_and_dataset", "included_and_excluded_tools", "comparable_metrics_table", "differences_and_recommendation", "complete_artifacts_and_limitations"],
+      "must_not": ["treat_retrieval_top_k_as_all", "rank_invalid_metrics", "call_agreement_accuracy", "omit_failed_tools"]
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "request": "For inhibitor A and inhibitor B, how do targets A, B and C fit?",
+      "context_to_supply": ["compound_identities", "target_identities_and_species", "meaning_of_fit", "available_evidence_or_structures"],
+      "patterns": ["entity_resolution", "cartesian_case_expansion", "shared_preparation", "parallel_fanout", "evidence_join"],
+      "coverage_unit": "compound_target_pair",
+      "expected_case_count": 6,
+      "response_sections": ["resolved_entities_and_question", "methods_and_evidence", "two_by_three_comparison_matrix", "interpretation_and_recommendations", "artifacts_and_uncertainty"],
+      "must_not": ["collapse_same_workflow_different_pairs", "interpret_unknown_as_inactive", "conflate_predictions_with_measurements", "report_five_of_six_as_complete"]
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "specification": "peptide_shortlist_from_prior_run.json",
+      "reference_role": "user_endorsed_positive_example_from_another_platform",
+      "response_quality_required": true
+    }
+  ],
+  "evidence_bundle": ["request_and_context", "plan_version_and_expected_cases", "catalog_and_evidence_snapshot", "child_run_receipts", "artifacts_and_metric_provenance", "final_report", "ui_capture", "failure_and_recovery_log"],
+  "evaluation_layers": {
+    "offline_boundaries": "Executable production-helper probes; no full-product claims.",
+    "product_integration": "Normal browser/API plan and status round trip with recorded execution.",
+    "scientific_acceptance": "Real applicable tools, validated inputs and evidence-linked report.",
+    "response_review": "Human review of completeness, readability, comparisons and actionable conclusions."
+  },
+  "overall_pass_rule": "All shared gates and case-specific requirements must have evidence; unexecuted layers remain not_evaluated, never pass."
+}

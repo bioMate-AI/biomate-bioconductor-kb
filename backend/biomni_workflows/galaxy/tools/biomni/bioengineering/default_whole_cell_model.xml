@@ -2,7 +2,7 @@
 <tool id="biomni_bioengineering_default_whole_cell_model" name="Biomni: Default Whole Cell Model" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/default_whole_cell_model_wrapper.py' --output '$output'

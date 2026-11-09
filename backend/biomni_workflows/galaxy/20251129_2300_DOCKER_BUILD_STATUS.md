@@ -5,11 +5,11 @@
 
 ---
 
-## Docker Image: `biomate/biomni-tools:latest`
+## Docker Image: `biomate/workflow-tools:latest`
 
 ### Build Command
 ```bash
-docker build -t biomate/biomni-tools:latest -f biomni_galaxy/docker/Dockerfile .
+docker build -t biomate/workflow-tools:latest -f biomni_galaxy/docker/Dockerfile .
 ```
 
 ### Image Structure
@@ -64,16 +64,16 @@ docker build -t biomate/biomni-tools:latest -f biomni_galaxy/docker/Dockerfile .
 
 ```bash
 # Run container interactively
-docker run -it biomate/biomni-tools:latest bash
+docker run -it biomate/workflow-tools:latest bash
 
 # List available domains
-docker run biomate/biomni-tools:latest biomni-tool --list-domains
+docker run biomate/workflow-tools:latest biomni-tool --list-domains
 
 # List functions in a domain
-docker run biomate/biomni-tools:latest biomni-tool molecular_biology --list-functions
+docker run biomate/workflow-tools:latest biomni-tool molecular_biology --list-functions
 
 # Execute a specific function
-docker run -v $(pwd)/data:/data biomate/biomni-tools:latest \
+docker run -v $(pwd)/data:/data biomate/workflow-tools:latest \
     biomni-tool molecular_biology annotate_open_reading_frames \
     --sequence "ATGATGATGATGATG" --min_length 9 --output /data/results.json
 ```
@@ -134,7 +134,7 @@ To integrate with Galaxy:
 ### Tool Execution Test: PASSED
 
 ```bash
-$ docker run --rm biomate/biomni-tools:latest biomni-tool molecular_biology annotate_open_reading_frames \
+$ docker run --rm biomate/workflow-tools:latest biomni-tool molecular_biology annotate_open_reading_frames \
     --sequence "ATGATGATGATGATG..." --min_length 9
 # Returns valid JSON with ORF analysis
 ```

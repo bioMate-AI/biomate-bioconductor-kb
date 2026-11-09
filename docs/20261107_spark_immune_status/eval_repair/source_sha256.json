@@ -1,0 +1,7 @@
+{
+  "eval_protocols.py": "41b478b9592678fe623f96600a683aeae400011c26cec81cb417b7a2dd5b5973",
+  "test_eval_protocols.py": "67a7303eb0573d73d3e6d119cb87d6866b7ead56915228c57a6c230d2d471cb5",
+  "calibrated_metrics.py": "ac97c5a3e54086e9eff5d1632701740777a045ccf64184f8cf6209a6db236450",
+  "finetune_pretrained_vs_scratch.py": "051ba78fc964e4ff6091766768fe1bed8fa6d854a52c123d14fa2ca3a20385db",
+  "fewshot_baselines_capped.py": "42abd1db72004faee8e4e103d7c60ba21030b000c56d3110ce0ba9827d39fccd"
+}

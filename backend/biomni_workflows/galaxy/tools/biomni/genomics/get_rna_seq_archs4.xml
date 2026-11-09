@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_get_rna_seq_archs4" name="Biomni: Get Rna Seq Archs4" version="1.0.0">
     <description>Given a gene name, this function returns the steps it performs and the max K transcripts-per-million (TPM)</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_rna_seq_archs4_wrapper.py' --output '$output'

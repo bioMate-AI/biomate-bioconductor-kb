@@ -49,3 +49,39 @@ export async function waitForInteractiveSession(jobId: string | undefined, depen
   }
   return { ready: false, reason: 'timeout' };
 }
+
+/** Readiness of a staged Galaxy dataset (HDA) that an interactive tool will
+ *  consume as input. Launching a notebook against an input that is still
+ *  uploading is the "session not ready" class, so callers poll to `ok` first. */
+export type DatasetReadiness = { ready: true } | { ready: false; reason: 'failed' | 'timeout' };
+
+/**
+ * Poll a staged HDA to a terminal-ready state before an interactive tool is
+ * launched against it. Resolves `ready` once the dataset is `ok`, `failed`
+ * when it reaches an error/deleted state, and `timeout` if neither happens in
+ * the budget (the caller may still launch — Galaxy queues the IT job until the
+ * input is ready). `getState` is wrapped so a transient backend blip is a
+ * retry, never a hard failure.
+ */
+export async function waitForDatasetReady(
+  datasetId: string | undefined,
+  dependencies: { getState: (id: string) => Promise<string>; sleep?: (ms: number) => Promise<void>; now?: () => number },
+  options: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<DatasetReadiness> {
+  if (!datasetId) return { ready: false, reason: 'failed' };
+  const now = dependencies.now ?? Date.now;
+  const sleep = dependencies.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
+  const deadline = now() + (options.timeoutMs ?? 45000);
+  const interval = options.intervalMs ?? 1500;
+  const failedStates = new Set(['error', 'failed', 'discarded', 'deleted']);
+  while (now() < deadline) {
+    let state = '';
+    try { state = String((await dependencies.getState(datasetId)) || ''); } catch { /* transient — retry within budget */ }
+    if (state === 'ok') return { ready: true };
+    if (failedStates.has(state)) return { ready: false, reason: 'failed' };
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    await sleep(Math.min(interval, remaining));
+  }
+  return { ready: false, reason: 'timeout' };
+}

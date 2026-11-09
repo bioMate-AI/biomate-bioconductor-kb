@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 跨域路由——从意图到唯一正确的工作流</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">跨域路由——一个请求，唯一正确的流水线</span>
+  <span class="spacer"></span>
+  <span class="counter">场景 <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE · THE TASK -->
+  <section class="scene title" data-seconds="38.0">
+    <div class="kicker">能力优势 · 意图 → 正确的工作流</div>
+    <h2>一句自然语言的请求，必须从成千上万条流水线里找出唯一正确的那条。</h2>
+    <p class="caption">研究者用自己的话提出请求——"给这些肿瘤-正常配对样本做体细胞变异检测""定量这批 bulk RNA-seq 并做差异表达分析"。系统必须把这个意图映射到唯一正确的流水线，而候选横跨众多领域——基因组学、转录组学、蛋白质组学、冷冻电镜、药物发现。<b>一旦挑错，整次运行就白费了。</b>这就是<b>跨域路由</b>，也正是编排要么证明自身价值、要么悄无声息失手的地方。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一句自然语言的请求</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>成千上万条候选工作流</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>众多领域</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>唯一正确的流水线</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker">BioMate 的做法</div>
+    <h2>它在已索引的目录上按语义匹配意图，而不是靠关键词。</h2>
+    <p class="caption">BioMate 不会凭记忆去猜一个流水线的名字。它握有<b>横跨 42 个领域的 4,210 条已索引工作流</b>，并用稠密余弦共振把你的请求与其中每一条逐一打分——把你<i>想要的</i>，和每条工作流<i>实际做的</i>相比对——再返回最佳匹配的流水线，连同它的领域和步骤一并附上。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>你的请求</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>在 4,210 条工作流上共振</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>排序后的候选项</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>唯一正确的流水线</span>
+          </div>
+          <div class="row3" style="margin-top:28px">
+            <div class="tile"><div class="n">已索引目录</div><h4>4,210 条真实工作流</h4><p>横跨 42 个领域、经过精选与验证的流水线——每一条都按它实际做的事来描述。</p></div>
+            <div class="tile"><div class="n">共振</div><h4>按语义匹配</h4><p>稠密余弦相似度把每个候选项与请求逐一排序——同义词和改述都能应对，无需一份脆弱的关键词清单。</p></div>
+            <div class="tile"><div class="n">跨域</div><h4>一次覆盖所有领域</h4><p>基因组学、转录组学、蛋白质组学、冷冻电镜、药物发现——一个选择器全部覆盖。</p></div>
+          </div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>在真实目录上检索——而不是从训练里回忆出一个名字</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT · SCORE VS LLMs -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">结果</span> · 与 LLM 直答的分数对比</div>
+    <h2>在跨域路由上，BioMate 得分 0.965。裸模型平均只有 0.46。</h2>
+    <p class="caption">衡量指标是<b>意图 → 正确工作流的准确率</b>：给定一句自然语言请求，系统有没有选对流水线？越高越好。BioMate 基于目录的路由几乎每次都能过关；而让前沿 LLM 直接说出流水线的名字，则做不到。</p>
+    <div class="scene-body">
+      <figure class="shotcol" style="flex:1.35">
+        <span class="lbl">基准测试 · 意图 → 正确工作流的准确率（0–1，越高越好）</span>
+        <div class="frame" style="box-shadow:none; background:var(--panel)">
+          <div style="width:100%; height:100%; display:flex; flex-direction:column; padding:26px 30px 20px">
+            <!-- plot area -->
+            <div style="flex:1; display:flex; align-items:flex-end; gap:48px; padding:0 24px; border-left:1px solid var(--line2); border-bottom:2px solid var(--line2); position:relative; min-height:0">
+              <!-- gridline + axis labels -->
+              <div style="position:absolute; left:-30px; top:-2px; color:var(--mut)">1.0</div>
+              <div style="position:absolute; left:-30px; top:50%; transform:translateY(-50%); color:var(--mut)">0.5</div>
+              <div style="position:absolute; left:-30px; bottom:-8px; color:var(--mut)">0.0</div>
+              <div style="position:absolute; left:0; right:0; top:50%; border-top:1px dashed var(--line2)"></div>
+
+              <!-- BioMate bar: 0.965 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-weight:600; color:var(--green); margin-bottom:8px">0.965</div>
+                <div style="width:100%; height:96.5%; background:#1f6e43; border-radius:6px 6px 0 0; box-shadow:0 4px 14px rgba(28,107,58,.28)"></div>
+              </div>
+
+              <!-- LLM best bar: 0.615 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-weight:600; color:var(--mut); margin-bottom:8px">0.615</div>
+                <div style="width:100%; height:61.5%; background:#9aa6b8; border-radius:6px 6px 0 0"></div>
+              </div>
+
+              <!-- LLM mean bar: 0.46 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-weight:600; color:var(--mut); margin-bottom:8px">0.46</div>
+                <div style="width:100%; height:46%; background:#c2cad6; border-radius:6px 6px 0 0"></div>
+              </div>
+            </div>
+            <!-- x labels -->
+            <div style="display:flex; gap:48px; padding:12px 24px 0">
+              <div style="flex:1; max-width:140px; text-align:center; font-weight:600; color:var(--ink)">BioMate</div>
+              <div style="flex:1; max-width:140px; text-align:center; color:var(--mut)">LLM 直答<br/>最佳</div>
+              <div style="flex:1; max-width:140px; text-align:center; color:var(--mut)">LLM 直答<br/>平均</div>
+            </div>
+          </div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b gr"></span><span><b>BioMate 0.965。</b>95% 置信区间 <code>[0.930, 0.983]</code>——它几乎每次都能挑对流水线。</span></li>
+          <li><span class="b"></span><span><b>LLM 直答，最佳模型 0.615。</b>让最强的前沿模型直接说出流水线的名字。</span></li>
+          <li><span class="b"></span><span><b>LLM 直答，平均 0.46。</b>在整轮模型测试中——选哪条流水线来跑，几乎跟抛硬币差不多。</span></li>
+          <li><span class="b am"></span><span>挑错一次，就是白跑一次。这道差距，正是一个站得住脚的结果与一次代价高昂的失误之间的分野。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>比最好的裸模型高出 0.35；差不多是其平均值的两倍</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TITLE · TAKEAWAY -->
+  <section class="scene title" data-seconds="26.0">
+    <div class="kicker">要点</div>
+    <h2>路由，正是编排胜过裸模型的地方。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">从一句自然语言请求里点出那条唯一正确的流水线，是一个<b>在真实目录上做检索的问题</b>，而不是一门死记硬背的本事。BioMate 的已索引工作流和稠密余弦共振就是护城河：它们把"该用哪条流水线？"从抛硬币变成近乎笃定——<b>0.965 对 0.46</b>——而且每一个路由答案都可复现，几乎零成本就能提供。</p>
+          <div style="margin-top:18px"><span class="verdict ok"><span class="mk"></span>目录加共振，就是护城河</span></div>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>任务</td><td>跨域路由（意图 → 正确工作流）</td></tr>
+            <tr><td>指标</td><td>正确工作流准确率（0–1）</td></tr>
+            <tr><td>BioMate</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">0.965&nbsp;·&nbsp;[.930,.983]</span></td></tr>
+            <tr><td>LLM 直答</td><td><span class="verdict plain" style="margin:0; padding:3px 8px">平均 0.46 · 最佳 0.615</span></td></tr>
+            <tr><td>原因</td><td>4,210 条已索引工作流 + 稠密余弦共振</td></tr>
+          </table>
+          <p class="footnote">基于目录的检索，而非回忆。一个请求 → 唯一正确的流水线，且可复现。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

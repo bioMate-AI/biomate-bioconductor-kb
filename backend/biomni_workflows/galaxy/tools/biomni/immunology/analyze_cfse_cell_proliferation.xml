@@ -2,7 +2,7 @@
 <tool id="biomni_immunology_analyze_cfse_cell_proliferation" name="Biomni: Analyze Cfse Cell Proliferation" version="1.0.0">
     <description>Analyze CFSE-labeled cell samples to quantify cell division and proliferation.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_cfse_cell_proliferation_wrapper.py' --output '$output'

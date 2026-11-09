@@ -14,7 +14,7 @@ This directory contains 237 Nextflow workflows generated from Galaxy Biomni tool
 
 - Nextflow 21.10+ (tested with 25.10.0)
 - Docker
-- biomate/biomni-tools:latest Docker image
+- biomate/workflow-tools:latest Docker image
 
 ### Running a Workflow
 
@@ -25,7 +25,7 @@ cd /home/yzhang/biomate/backend/biomni_workflows/nextflow
 nextflow run subworkflows/molecular_biology/design_primer.nf \
   --sequence "ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG" \
   --start_pos 10 \
-  -with-docker biomate/biomni-tools:latest
+  -with-docker biomate/workflow-tools:latest
 ```
 
 ### Output
@@ -74,7 +74,7 @@ Design PCR primers for a given sequence.
 nextflow run subworkflows/molecular_biology/design_primer.nf \
   --sequence "ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG" \
   --start_pos 10 \
-  -with-docker biomate/biomni-tools:latest
+  -with-docker biomate/workflow-tools:latest
 ```
 
 **Parameters:**
@@ -105,7 +105,7 @@ Annotate features on a plasmid sequence.
 nextflow run subworkflows/molecular_biology/annotate_plasmid.nf \
   --sequence "ATGAAACGCATTAGCACCACCATTACCACCACCATCACC..." \
   --plasmid_name "my_plasmid" \
-  -with-docker biomate/biomni-tools:latest
+  -with-docker biomate/workflow-tools:latest
 ```
 
 ## Available Functions by Domain
@@ -168,7 +168,7 @@ params.param2 = 'default_value'
 
 // Main process
 process FUNCTION_NAME {
-    container 'biomate/biomni-tools:latest'
+    container 'biomate/workflow-tools:latest'
     publishDir "${params.outdir}", mode: 'copy'
 
     output:
@@ -200,7 +200,7 @@ workflow {
 
 ## Docker Container
 
-The workflows use the `biomate/biomni-tools:latest` Docker image which includes:
+The workflows use the `biomate/workflow-tools:latest` Docker image which includes:
 - Python 3.11+
 - Biomni tool library at `/opt/biomni/src/biomni/`
 - All required dependencies (BioPython, NumPy, SciPy, etc.)
@@ -239,7 +239,7 @@ workflow {
 
 1. **Function not found**: The biomni function may not exist in the container. Check available functions with:
    ```bash
-   docker run --rm biomate/biomni-tools:latest \
+   docker run --rm biomate/workflow-tools:latest \
      python3 -c "from biomni.tool.domain import *; print(dir())"
    ```
 

@@ -154,7 +154,7 @@ docker {
 }
 
 process {
-    container = 'biomate/biomni-tools:latest'
+    container = 'biomate/workflow-tools:latest'
 }
 '''
     (tests_dir / 'nextflow.config').write_text(config_content)

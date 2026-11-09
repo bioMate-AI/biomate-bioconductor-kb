@@ -1,6 +1,6 @@
 # BioMate Drug Discovery Nextflow Container
 #
-# Extends biomate/biomni-structure-to-drug (rdkit + scipy already present)
+# Extends biomate/structure-to-drug (rdkit + scipy already present)
 # and adds the gap-filling tools:
 #   - aizynthfinder   : retrosynthesis (Gap 4)
 #   - pydeseq2        : Python DESeq2 for drug MoA pipeline (Gap 9)
@@ -9,13 +9,13 @@
 #   - BioMate drug discovery Python modules (Gaps 1,5,6,7,10)
 #
 # Build:
-#   docker build -t biomate/biomni-drug-discovery-nf:latest \
+#   docker build -t biomate/drug-discovery-nf:latest \
 #     -f backend/docker/drug-discovery-nf/Dockerfile .
 #
 # The image is used by Nextflow workflows in:
 #   backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86
 
 LABEL maintainer="BioMate Team"
 LABEL description="Drug discovery Nextflow tools: aizynthfinder, AutoDock Vina, ViennaRNA, pydeseq2, gseapy + BioMate modules"

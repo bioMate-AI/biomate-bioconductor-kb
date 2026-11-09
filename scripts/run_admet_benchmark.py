@@ -6,7 +6,7 @@ Evaluates BioMate's ADMET predictions against published benchmark datasets
 with bootstrap confidence intervals, for inclusion in the CRO comparison
 tech report (Option A).
 
-Run inside the biomni-tools Docker container, which provides RDKit.
+Run inside the workflow-tools Docker container, which provides RDKit.
 
 Datasets evaluated
 ------------------
@@ -33,7 +33,7 @@ BioMate prediction functions
 
 Usage
 -----
-    # Inside biomni-tools Docker container:
+    # Inside workflow-tools Docker container:
     python scripts/run_admet_benchmark.py \\
         --datasets herg,dili,ames,clintox,tox21 \\
         --output results/admet_benchmark/ \\
@@ -85,8 +85,8 @@ try:
 except ImportError:
     sys.exit(
         "ERROR: RDKit is required but not installed.\n"
-        "Run this script inside the biomni-tools Docker container:\n"
-        "  docker run --rm -v $PWD:/work biomni-tools python /work/scripts/run_admet_benchmark.py ...\n"
+        "Run this script inside the workflow-tools Docker container:\n"
+        "  docker run --rm -v $PWD:/work workflow-tools python /work/scripts/run_admet_benchmark.py ...\n"
         "Or install RDKit: conda install -c conda-forge rdkit"
     )
 
@@ -678,7 +678,7 @@ _DATASET_LOADERS = {
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description=(
-            "BioMate ADMET benchmark — run inside biomni-tools Docker container.\n"
+            "BioMate ADMET benchmark — run inside workflow-tools Docker container.\n"
             "Requires RDKit and network access to download datasets."
         )
     )

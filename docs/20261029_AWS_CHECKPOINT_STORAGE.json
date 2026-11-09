@@ -1,0 +1,141 @@
+{
+  "status": "pinned_upstream_files_verified",
+  "local_cache_removed": true,
+  "verified_at": "2026-10-29T22:29:07.964043+00:00",
+  "files": [
+    {
+      "relative_path": "chemfm1b/FILES.txt",
+      "bytes": 283,
+      "sha256": "774c3a6f1eaa403d38f855aad1c88c7e21367b5f8a8a28a7f7246bfe433d5f9b",
+      "source": "s3://biomate-nextflow-work/cyclic_peptide/allatom/model_checkpoints/migration_20261029/chemfm1b/FILES.txt",
+      "upstream_revision": null
+    },
+    {
+      "relative_path": "chemfm1b/PIN_COMMIT.txt",
+      "bytes": 41,
+      "sha256": "1cc6ae1db59b41475d7ceb8cbee9d686d015c8270949925d348a8ed5b8839a95",
+      "source": "s3://biomate-nextflow-work/cyclic_peptide/allatom/model_checkpoints/migration_20261029/chemfm1b/PIN_COMMIT.txt",
+      "upstream_revision": null
+    },
+    {
+      "relative_path": "chemfm1b/README.md",
+      "bytes": 116,
+      "sha256": "bdec1280940079baa45656e86e22b596320d49729f0ea21014600070b9795ef9",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/README.md",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "chemfm1b/config.json",
+      "bytes": 703,
+      "sha256": "38aec41a6d14dbefe669ef0eec373949bf594f1586a9d9e9b8fdac8c06fcb841",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/config.json",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "chemfm1b/generation_config.json",
+      "bytes": 111,
+      "sha256": "f769ce0b018b0d689d27146688e2cfd6008040cc15bd51acb5b6bdf755a123e7",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/generation_config.json",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "chemfm1b/model.safetensors",
+      "bytes": 3881171344,
+      "sha256": "24686705d779db6876acc09c81d64d432262ef8b5dbfccc385212587079ce419",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/model.safetensors",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "chemfm1b/special_tokens_map.json",
+      "bytes": 140,
+      "sha256": "43cc5ce29cc74651d6862021186be5c45473d5c1868cd2007282707d3e598a4a",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/special_tokens_map.json",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "chemfm1b/tokenizer.json",
+      "bytes": 47096,
+      "sha256": "bfee8848589807ae8a360461a0f717e29928ff76d18c21c0f869bd7fdd79c7df",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/tokenizer.json",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "chemfm1b/tokenizer_config.json",
+      "bytes": 44194,
+      "sha256": "2f84d5c11a28e0df54cbd85c39e1a1c6e277ecb70d0236f4f2a96f1e1478b7cd",
+      "source": "https://huggingface.co/ChemFM/ChemFM-1B/resolve/f99dc2e89726539bb9cf31b2e2b4360650bac6a8/tokenizer_config.json",
+      "upstream_revision": "f99dc2e89726539bb9cf31b2e2b4360650bac6a8"
+    },
+    {
+      "relative_path": "pclm2/base/config.json",
+      "bytes": 370,
+      "sha256": "17e60343faa531824c3ef19d1035fd3e878f0564db3a18e32b9bf9a84ddc669f",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-base/resolve/d4e8bafa378b8670d178029d6f97af5a5ee209fc/config.json",
+      "upstream_revision": "d4e8bafa378b8670d178029d6f97af5a5ee209fc"
+    },
+    {
+      "relative_path": "pclm2/base/model.safetensors",
+      "bytes": 456074420,
+      "sha256": "2ee9244b84ff636080bbb7ef874d4a2d5159f70a8518f67a5065ff13fcab54e3",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-base/resolve/d4e8bafa378b8670d178029d6f97af5a5ee209fc/model.safetensors",
+      "upstream_revision": "d4e8bafa378b8670d178029d6f97af5a5ee209fc"
+    },
+    {
+      "relative_path": "pclm2/base/special_tokens_map.json",
+      "bytes": 695,
+      "sha256": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-base/resolve/d4e8bafa378b8670d178029d6f97af5a5ee209fc/special_tokens_map.json",
+      "upstream_revision": "d4e8bafa378b8670d178029d6f97af5a5ee209fc"
+    },
+    {
+      "relative_path": "pclm2/base/tokenizer.json",
+      "bytes": 11304,
+      "sha256": "d7cfeefb9290fb094430641a53dcfeba580efc60b64bb4a84225366d7dc75d98",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-base/resolve/d4e8bafa378b8670d178029d6f97af5a5ee209fc/tokenizer.json",
+      "upstream_revision": "d4e8bafa378b8670d178029d6f97af5a5ee209fc"
+    },
+    {
+      "relative_path": "pclm2/base/tokenizer_config.json",
+      "bytes": 1135,
+      "sha256": "09a7db7532214b31a8b6ceacd30e26aad089c2c0364b3b5387b3a3681bd23f63",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-base/resolve/d4e8bafa378b8670d178029d6f97af5a5ee209fc/tokenizer_config.json",
+      "upstream_revision": "d4e8bafa378b8670d178029d6f97af5a5ee209fc"
+    },
+    {
+      "relative_path": "pclm2/small/config.json",
+      "bytes": 369,
+      "sha256": "1aed699cdfb7e5c4ef06666a48f185f4b1bc5711dbccdbd6da2412abd2bf2295",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-small/resolve/7fe899df4d9753224aefa955ed0cf859d181e693/config.json",
+      "upstream_revision": "7fe899df4d9753224aefa955ed0cf859d181e693"
+    },
+    {
+      "relative_path": "pclm2/small/model.safetensors",
+      "bytes": 126690964,
+      "sha256": "713fb214c51d42bd038b4dd71928ea5f5e0c3c2cf58be1fce8345cc395ef5f4a",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-small/resolve/7fe899df4d9753224aefa955ed0cf859d181e693/model.safetensors",
+      "upstream_revision": "7fe899df4d9753224aefa955ed0cf859d181e693"
+    },
+    {
+      "relative_path": "pclm2/small/special_tokens_map.json",
+      "bytes": 695,
+      "sha256": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-small/resolve/7fe899df4d9753224aefa955ed0cf859d181e693/special_tokens_map.json",
+      "upstream_revision": "7fe899df4d9753224aefa955ed0cf859d181e693"
+    },
+    {
+      "relative_path": "pclm2/small/tokenizer.json",
+      "bytes": 11304,
+      "sha256": "d7cfeefb9290fb094430641a53dcfeba580efc60b64bb4a84225366d7dc75d98",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-small/resolve/7fe899df4d9753224aefa955ed0cf859d181e693/tokenizer.json",
+      "upstream_revision": "7fe899df4d9753224aefa955ed0cf859d181e693"
+    },
+    {
+      "relative_path": "pclm2/small/tokenizer_config.json",
+      "bytes": 1135,
+      "sha256": "09a7db7532214b31a8b6ceacd30e26aad089c2c0364b3b5387b3a3681bd23f63",
+      "source": "https://huggingface.co/aaronfeller/peptideclm-2-mlm-small/resolve/7fe899df4d9753224aefa955ed0cf859d181e693/tokenizer_config.json",
+      "upstream_revision": "7fe899df4d9753224aefa955ed0cf859d181e693"
+    }
+  ],
+  "local_cache_removed_at": "2026-10-29T22:36:16.034153+00:00"
+}

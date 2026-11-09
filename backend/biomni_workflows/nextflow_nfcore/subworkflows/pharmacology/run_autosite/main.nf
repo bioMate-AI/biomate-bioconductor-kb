@@ -20,7 +20,7 @@ process RUN_AUTOSITE {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(pdb_file, stageAs: 'staged_receptor.pdb')
@@ -132,7 +132,7 @@ def run_autosite(pdb_file, output_dir='./autosite_results', spacing=1.0):
             if box_size_match:
                 research_log += f"Box Size: {box_size_match.group(1)}\\n"
     except FileNotFoundError:
-        research_log += "AutoSite/ADFR suite not installed. Requires biomate/biomni-docking Docker image.\\n"
+        research_log += "AutoSite/ADFR suite not installed. Requires biomate/docking-tools Docker image.\\n"
         research_log += "Install ADFR suite from: https://ccsb.scripps.edu/adfr/downloads/\\n"
     except subprocess.CalledProcessError as e:
         research_log += f"AutoSite execution error: {e}\\n"

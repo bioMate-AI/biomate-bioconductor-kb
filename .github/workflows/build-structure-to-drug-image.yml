@@ -1,0 +1,29 @@
+name: Build structure-to-drug image
+
+# The image used by pocket detection, pharmacophore filtering and AutoDock Vina docking on AWS Batch.
+# Rebuilds whenever its Dockerfile or smoke script changes, so the deployed image cannot silently lag the
+# Dockerfile again (the 2026-04-07 image lacked fpocket, added to the Dockerfile on 2026-04-15).
+# build -> backend/docker/structure-to-drug/smoke.py inside the image -> push :x86 only if it passes.
+# Rollback: the previous image is tagged x86-pre-fpocket-20260407 in ECR.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - integration/next-phase
+      - cursor/tutorial-live-recording-and-report-editing-4ea7
+    paths:
+      - backend/docker/structure-to-drug/**
+      - .github/workflows/build-structure-to-drug-image.yml
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  structure_to_drug:
+    uses: ./.github/workflows/build-workflow-image.yml
+    with:
+      image_repo: biomate/structure-to-drug
+      dockerfile: backend/docker/structure-to-drug/Dockerfile
+      smoke_script: backend/docker/structure-to-drug/smoke.py

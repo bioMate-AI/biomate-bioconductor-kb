@@ -1,0 +1,40 @@
+{
+  "status": "completed",
+  "endpoint": "stimulation status",
+  "dataset": "GSE261278_D534.paired.h5ad",
+  "observed_columns": [
+    "study",
+    "dataset",
+    "cell_type",
+    "tissue",
+    "stim"
+  ],
+  "stim_counts": {
+    "unstimulated": 12859,
+    "flu": 1142,
+    "sars": 999
+  },
+  "donor_columns_found": [],
+  "label_budget": 0.1,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "outer_folds": 3,
+  "arms": [
+    "pretrained",
+    "scratch"
+  ],
+  "inputs": "rna",
+  "learning_rate": 0.0003,
+  "batch_size": 256,
+  "normalization": "labelled training subset only",
+  "comparisons": [
+    "12 epochs on the labelled subset",
+    "same number of optimizer updates as 12 epochs on all outer-training labels, while still using only the fixed 10% subset"
+  ],
+  "test_use": "exploratory, fixed endpoints; no best-checkpoint selection",
+  "script_sha256": "44413b56795634ca06c958bc36611c276c40c45fd7b9fb5deef492ae49ba14e9",
+  "validation": "12 finite OOF arrays, 36 fold records, exact reproduction of six prior short-endpoint arrays, matched disjoint split indices"
+}

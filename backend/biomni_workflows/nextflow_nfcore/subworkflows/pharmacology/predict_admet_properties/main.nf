@@ -31,7 +31,7 @@ process ADMET_INFER_SHARD {
     tag "$meta.id"
     label 'process_medium'
 
-    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest')
+    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86' : 'biomate/admet:latest')
 
     input:
     tuple val(meta), val(smiles_json)
@@ -97,10 +97,10 @@ process PREDICT_ADMET_PROPERTIES {
     // so outputs attribute to the real step instead of a phantom "run" step.
     publishDir path: "${params.outdir}/02_predict_admet_properties", mode: 'copy'
 
-    // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
-    // Starts from biomate-nextflow-base directly — lean, not biomni-tools
+    // admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
+    // Starts from biomate-nextflow-base directly — lean, not workflow-tools
     // On-prem (S3_ENDPOINT_URL set = MinIO) and AWS both use ECR image; pure local dev uses Docker Hub.
-    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest')
+    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86' : 'biomate/admet:latest')
 
     input:
     path shard_admets
@@ -534,7 +534,7 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
     except ImportError:
         research_log = (
             "ADMET-AI not available — using RDKit structural safety estimates (Phase 1 only).\\n"
-            "Container: ensure biomni-admet:x86 is used for Chemprop-backed predictions.\\n"
+            "Container: ensure admet:x86 is used for Chemprop-backed predictions.\\n"
         )
     except Exception as _admet_err:
         research_log = f"ADMET-AI error: {_admet_err}\\nFalling back to RDKit structural estimates.\\n"
@@ -830,7 +830,7 @@ PYEOF
     "${task.process}":
         python: \$(python3 --version | cut -d' ' -f2)
         biomni_function: "predict_admet_properties"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

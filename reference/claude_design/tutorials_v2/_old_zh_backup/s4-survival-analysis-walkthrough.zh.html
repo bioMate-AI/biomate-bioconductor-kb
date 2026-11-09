@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 生存分析——把 Kaplan–Meier 与 Cox 做对</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">生存分析——用 Kaplan–Meier 与 Cox 处理事件发生时间，跑在云端</span>
+  <span class="spacer"></span>
+  <span class="counter">阶段 <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>生存分析</b></div>
+    <div class="kicker">献给每一位在问"离事件发生还有多久——又是什么改变了它"的人</div>
+    <h2>事件发生时间的数据需要它自己的统计。BioMate 把它们跑起来。</h2>
+    <p class="caption">"离复发还有多久？""这个标志物会缩短生存期吗？"这些是事件发生时间的问题，而普通的检验会把它们算错，因为真实的随访是<b>不完整的</b>——病人在最后一次就诊时还活着，或在研究结束前就失访了。BioMate 把这些问题路由到恰当的方法——<b>Kaplan–Meier</b> 曲线和 <b>Cox</b> 回归——只需从一个目标和一张生存表出发，就在云端算力上把它们跑起来，并留下一份你能捍卫的记录。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一张生存表 + 一个目标</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Kaplan–Meier 曲线</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>组间 log-rank 检验</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Cox 风险比</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一个你能捍卫的结果</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">这个功能要解决的问题</div>
+    <h2>删失会破坏普通的统计——而它几乎存在于每一项研究中。</h2>
+    <p class="caption">在事件发生时间的数据里，你很少能在每个人身上都看到那个事件。研究结束了；一个病人搬走了；还有些人只是还活着。这些观测是被<b>删失</b>的——你知道他们<i>至少</i>活了这么久，却不知道他们完整的时间。你若把数据当作数字完整的来处理，就会把那些信息丢掉，或悄无声息地让答案产生偏倚。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">错误的工具 · A</div><h4>对"时间"做 t 检验</h4><p>对生存时间求平均，暗自假设了每个人的事件都被观察到了。被删失的病人根本没有一个最终时间可供平均——于是均值是错的。</p></div>
+          <div class="tile"><div class="n">错误的工具 · B</div><h4>逻辑斯蒂"到现在死了没？"</h4><p>把一切折叠成某一刻的是/否结局，丢掉了事情<i>何时</i>发生，而且完全取决于一个武断的切点。</p></div>
+          <div class="tile"><div class="n">正确的工具</div><h4>生存分析方法</h4><p>Kaplan–Meier 和 Cox 就是为删失而生的：一个病人一直贡献信息，直到他最后已知的时间为止，再不多一分。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>所需：诚实地用上每一个病人的随访——包括那些没有观察到事件的人</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">开始前要懂的几个概念</div>
+    <h2>四个大白话概念，撑起整套分析。</h2>
+    <p class="caption">你不需要那些数学——只需要这四个，后面的一切就都读得清楚。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 时间与删失</div><h4>两列</h4><p>每个受试者都有一个 <code>time</code>（被观察了多久）和一个 <code>status</code>——事件发生了就是 <code>1</code>，被删失就是 <code>0</code>。这一对，就是全部输入。</p></div>
+            <div class="tile"><div class="n">2 · KAPLAN–MEIER</div><h4>生存曲线</h4><p>一条阶梯曲线，估计活过每个时间点的概率，并把被删失的受试者一直用到他最后一次就诊、用得恰到好处。</p></div>
+            <div class="tile"><div class="n">3 · LOG-RANK 检验</div><h4>各组有差异吗？</h4><p>一个正式的检验，看两条或更多条生存曲线——比如治疗组对对照组——之间的差异是否超出了偶然所能解释的。</p></div>
+            <div class="tile"><div class="n">4 · 风险比</div><h4>差多少？</h4><p>来自一个 Cox 模型：某个协变量每变化一个单位时，事件发生的相对速率。HR &lt; 1 是保护性的，HR &gt; 1 是有害的。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">这条脉络是：<b>描述</b>生存（Kaplan–Meier）→ <b>比较</b>分组（log-rank）→ 针对协变量<b>量化并调整</b>（Cox 风险比）。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲后续会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker"><span class="st">阶段 1</span> · 目标 → 工作流</div>
+    <h2>说出目标并递上一张生存表；BioMate 来挑工作流。</h2>
+    <p class="caption">你不用去搭一个 R 环境。你描述问题、递上一张生存表，BioMate 就把它路由到一条真实的、已索引的生存分析工作流，并在云端算力上跑起来。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的生存分析工作流</span>
+        <div class="frame"><img src="assets/live/survival-live-panel.png" alt="BioMate 中 survival_analysis_km 工作流面板——药物发现工作流，4 个阶段，输入已映射，无可配置参数，确认并运行"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话进去，工作流出来。</b>你说出目标，BioMate 就把它路由到真实的 <b>survival_analysis_km</b> 工作流——不用自己装 R 环境。</span></li>
+          <li><span class="b gr"></span><span><b>输入已替你映射好。</b>生存表——<code>time</code> 加事件 <code>status</code>（1/0）——已经接好线，面板显示"无需绑定数据输入"。</span></li>
+          <li><span class="b"></span><span><b>4 个阶段，都是标准方法。</b>Kaplan–Meier、log-rank、Cox 与 Lasso-Cox——就是 Phases 标签下列出的 <b>4 个阶段</b>。</span></li>
+          <li><span class="b"></span><span><b>没什么要配置的。</b>没有参数要调——点一下 <b>确认并运行</b>，就在云端算力上跑起来。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的生存分析工作流，已替你设好</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">阶段 1，输入</span> · 一张生存表需要什么</div>
+    <h2>三类列：时间、事件，以及你据以比较的东西。</h2>
+    <p class="caption">输入是一张普通的表——一行一个受试者。让它成为一张生存表的，是一个时间列、一个事件状态列，以及一个分组或协变量列。BioMate 把你的表头映射到这些角色，并把状态标准化为所需的 <code>1</code>/<code>0</code> 编码。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">时间</div><h4>被观察了多久</h4><p>到事件发生或最后一次联系为止的月、日或年数——比如一个 <code>time</code> 列。每个受试者被随访的时长。</p></div>
+          <div class="tile"><div class="n">状态</div><h4>事件或删失</h4><p>一个 <code>status</code> 列，编码为 <code>1</code> = 事件（死亡、复发），<code>0</code> = 删失。BioMate 会把"dead"/"alive"这类常见标签映射到这套编码上。</p></div>
+          <div class="tile"><div class="n">分组 / 协变量</div><h4>你据以比较的东西</h4><p>给 Kaplan–Meier 用的一个治疗臂或亚组；给 Cox 用的任意一组临床协变量——年龄、分期、各种标志物。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">扎根于那条真实工作流：KM 这一步拟合 <code>survfit(Surv(time, status) ~ group)</code>；Cox 这一步在协变量列上拟合 <code>coxph(Surv(time, status) ~ .)</code>。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一张普通的表变成一个有效的生存分析输入</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — KAPLAN–MEIER -->
+  <section class="scene" data-seconds="37.0">
+    <div class="kicker"><span class="st">阶段 2</span> · Kaplan–Meier + log-rank</div>
+    <h2>描述生存，再检验各组是否真的有差异。</h2>
+    <p class="caption">Kaplan–Meier 工作流为每一组估计生存曲线，并报告其背后的那些数字。这是一个<b>描述性</b>步骤：它展示生存随时间的形态，以及每组的中位生存期——它单凭自己，并不证明一个因果。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">曲线</div><h4>生存随时间</h4><p><code>survfit()</code> 产出每组的阶梯曲线并保存下来——Kaplan–Meier 图，外加一张汇总表，列出时间、仍处于风险中的人数，以及带置信界的生存概率。</p></div>
+          <div class="tile"><div class="n">中位生存期</div><h4>那个头条数字</h4><p>这一组有一半已经发生事件的那个时间——直接从每条曲线上读出，并可跨组比较。</p></div>
+          <div class="tile"><div class="n">LOG-RANK</div><h4>是差异，还是偶然？</h4><p>log-rank 检验问的是：曲线之间的分离是否超出了采样噪声。一个很小的 p 值说明各组的生存确实有差异。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">真实输出：一个 Kaplan–Meier 曲线 PDF、一张逐时间的生存汇总表，以及保存下来的拟合对象——全部来自 R 语言的 <code>survival</code> 包。</p>
+        <div><span class="verdict ok"><span class="mk"></span>每组的曲线和中位生存期——一个比较，还不是一个机制</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — COX & LASSO-COX -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">阶段 3</span> · Cox 回归与 Lasso-Cox</div>
+    <h2>量化这个效应——而当协变量很多时，还要选出哪些要紧。</h2>
+    <p class="caption">Kaplan–Meier 比较各组；Cox 回归则给它安上一个数字。Cox 比例风险模型在调整其余协变量的同时，为每一个协变量估计一个<b>风险比</b>。当协变量很多时——一个带着数百个特征的基因表达特征——一个正则化的 Lasso-Cox 会选出一个稀疏的、有预后价值的子集。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">COX 模型</div><h4>coxph(Surv ~ covariates)</h4><p>把所有协变量联合拟合，并为每一个报告一个带置信区间和显著性的风险比——在把其余固定住时，某一个因素经过调整后的效应。</p></div>
+          <div class="tile"><div class="n">LASSO-COX</div><h4>很多协变量 → 几个</h4><p><code>rlassocox</code> 工作流施加一个 L1 惩罚，用交叉验证挑出最优的 <code>lambda</code>，再抽取出那些非零（活跃）的预后特征及其系数。</p></div>
+          <div class="tile"><div class="n">验证</div><h4>留出，而不只是拟合</h4><p>它把数据切成训练集和测试集，在训练集上拟合，再在留出的那一份上预测风险——因为在高维数据上做特征选择，极其容易过拟合。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">扎根于真实工作流：<code>rlassocox</code> 接受一个基因表达矩阵 + 一张生存表（time、status）+ 一个基因网络，交叉验证 <code>lambda</code>，再写出一份被选中基因及其系数的 <code>prognostic_features.csv</code>。</p>
+        <div><span class="verdict ok"><span class="mk"></span>给效应一个风险比；当协变量很多时，给一个经过验证的稀疏特征签名</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — READING IT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker">解读结果</div>
+    <h2>一个风险比说了什么——以及"显著"意味着、又不意味着什么。</h2>
+    <p class="caption">输出的价值，不会超过你对它的解读。有两个数字承载了大部分含义：风险比及其置信区间，连同这个检验的 p 值。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">方向</div><h4>在 1 之上还是之下</h4><p>HR = 1 意味着对事件发生率没有影响。HR &lt; 1 意味着更低的风险（保护性）；HR &gt; 1 意味着更高的风险（有害）。一个 0.70 的 HR，大致是低了 30% 的发生率。</p></div>
+          <div class="tile"><div class="n">不确定性</div><h4>置信区间</h4><p>一个跨过了 1 的 95% CI，意味着在这个样本量下，这个效应无法和"没有影响"区分开——单凭点估计值会误导人。</p></div>
+          <div class="tile"><div class="n">显著性</div><h4>p 实际意味着什么</h4><p>一个很小的 p 值，说明在"没有差异"之下，这个差异是不大可能出现的。它<i>不</i>衡量效应大小、不证明因果，也不保证结果能被重复。</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>把 HR、它的区间和 p 值放在一起读——永远不要只看一个</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="53.0">
+    <div class="kicker">读懂结果，让它经得起审阅</div>
+    <h2>让生存分析结果站得住脚的那些检查。</h2>
+    <p class="caption">这些方法既标准又可信，而 BioMate 会把维持这份可信的诊断一并跑出来。读懂这些检查、以及它们背后的假设，正是让一个生存分析结果经得起审阅的原因。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">假设</div><h4>比例风险</h4><p>Cox 假定一个协变量的效应随时间保持恒定。工作流会跑 <code>cox.zph()</code> 检验和诊断图——去看它们；一旦这个假设不成立，风险比就很难解读。</p></div>
+          <div class="tile"><div class="n">数据质量</div><h4>删失必须公平</h4><p>结果假定删失与预后无关（非信息性）。如果病得更重的病人系统性地退出，估计值就是有偏的——没有任何方法能修复这一点。</p></div>
+          <div class="tile"><div class="n">选择</div><h4>Lasso 的选择是暂定的</h4><p>Lasso-Cox 的特征选择依赖于数据：换一个样本可能选出不同的基因。把这个特征签名当作一个待验证的假设，而不是一纸定论。</p></div>
+          <div class="tile"><div class="n">推断</div><h4>关联 ≠ 因果</h4><p>一个风险比描述的是关联，且只针对你纳入的那些协变量作了调整。未被测量的混杂因素依然存在；观察性生存不是一个因果论断。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>具体而诚实——把标准方法连同它们的假设摆出来，而不是藏起来</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">递上一张生存表。得到曲线、一个检验，和风险比。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>事件发生时间的问题，理应用事件发生时间的方法——而 BioMate 把它们做得恰当，还把假设摆在桌面上。</b>你提供一张生存表和一个目标；BioMate 就估计 Kaplan–Meier 曲线，用 log-rank 检验比较各组，拟合 Cox 风险比，而当协变量是高维时，还会选出一个经过验证的 Lasso-Cox 特征签名——这一切都在云端算力上，带着一份可复现的记录。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>提供一张带 <code>time</code> 和事件 <code>status</code>（1/0）的表</li>
+            <li><span class="k">2</span>说出目标——比较分组，或对协变量建模</li>
+            <li><span class="k">3</span>BioMate 运行 Kaplan–Meier、log-rank 和 Cox</li>
+            <li><span class="k">4</span>诚实地读风险比、区间，以及 PH 诊断</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>处理删失</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">内建</span></td></tr>
+            <tr><td>描述生存</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Kaplan–Meier + 中位数</span></td></tr>
+            <tr><td>比较分组</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">log-rank 检验</span></td></tr>
+            <tr><td>量化 / 选择</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Cox HR + Lasso-Cox</span></td></tr>
+            <tr><td>诚实的边界</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">PH、删失、因果</span></td></tr>
+          </table>
+          <p class="footnote">从一张生存表，到曲线、一个 log-rank 检验，和可解读的风险比——给事件发生时间数据用上恰当的统计方法，在云端跑起来并经过核验，而不是想当然地假定。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

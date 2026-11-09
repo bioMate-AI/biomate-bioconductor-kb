@@ -1,0 +1,102 @@
+{
+  "scope": "first 12 rows of the pre-existing raw audit CSV; diagnostic subset, not a new random sample or full precision estimate",
+  "reviewer": "Codex source-context review; not independent human adjudication",
+  "judgments": [
+    {
+      "rule_id": "K2-8640f057b834",
+      "source_pmcid": "PMC12643943",
+      "statement_fidelity": "supported",
+      "entry_issue": "endpoint_mismatch",
+      "method_disposition": "context_only",
+      "rationale": "The paper demonstrates site-directed RFpeptides designs for named targets. This is a method capability, not a no-effect binding-affinity relation."
+    },
+    {
+      "rule_id": "K2-9e2f8b56ee4e",
+      "source_pmcid": "PMC13492385",
+      "statement_fidelity": "supported",
+      "entry_issue": "endpoint_mismatch",
+      "method_disposition": "context_only",
+      "rationale": "Review describes generative scaffold methods, not measured synthesis or macrocyclization yield."
+    },
+    {
+      "rule_id": "K2-4c761c0659ae",
+      "source_pmcid": "PMC13140135",
+      "statement_fidelity": "supported",
+      "entry_issue": "endpoint_mismatch",
+      "method_disposition": "candidate_after_reannotation",
+      "rationale": "Source contrasts nitrile-to-thiazoline cyclization of C-terminal Ile versus Ala and heating versus room temperature. Proteolytic stability is the wrong endpoint; the conditional reaction observation could be useful."
+    },
+    {
+      "rule_id": "K2-b16108b3d0b3",
+      "source_pmcid": "PMC13705407",
+      "statement_fidelity": "supported",
+      "entry_issue": "endpoint_mismatch",
+      "method_disposition": "context_only",
+      "rationale": "Review discusses albumin association and systemic exposure, including CNS trade-offs. Exposure does not establish metabolic stability."
+    },
+    {
+      "rule_id": "K2-2744d6edcc49",
+      "source_pmcid": "PMC13575866",
+      "statement_fidelity": "partly_supported",
+      "entry_issue": "scope_overgeneralization",
+      "method_disposition": "candidate_after_reannotation",
+      "rationale": "Local passage supports IgG1-Fc enrichment relative to avidin-coated beads. The record generalises to target proteins and its scope includes TROP2 without support in this passage; preserve the tested comparison."
+    },
+    {
+      "rule_id": "K2-d17baf9aa858",
+      "source_pmcid": "PMC13603375",
+      "statement_fidelity": "unsupported",
+      "entry_issue": "endpoint_and_intervention_mismatch",
+      "method_disposition": "reject",
+      "rationale": "Passage attributes antimicrobial modulation to irradiation of metallohelices, not merely metal coordination, and reports MIC rather than binding affinity."
+    },
+    {
+      "rule_id": "K2-a4a0fd3e8390",
+      "source_pmcid": "PMC7913925",
+      "statement_fidelity": "supported",
+      "entry_issue": "evidence_modality_incomplete",
+      "method_disposition": "context_only",
+      "rationale": "Source reports in-silico affinity scores for integrin-derived blocking polypeptides; do not treat as measured affinity or cyclic-peptide SAR."
+    },
+    {
+      "rule_id": "K2-933af153bc52",
+      "source_pmcid": "PMC10887150",
+      "statement_fidelity": "supported",
+      "entry_issue": "entity_mismatch",
+      "method_disposition": "context_only",
+      "rationale": "Statement concerns integrin receptor conformational rearrangement, not ligand chameleonicity."
+    },
+    {
+      "rule_id": "K2-6dde35922ebc",
+      "source_pmcid": "PMC13385886",
+      "statement_fidelity": "unsupported",
+      "entry_issue": "unsupported_comparative_direction",
+      "method_disposition": "reject",
+      "rationale": "Source reports a designed symmetric macrocycle-homodimer complex and its affinity but no contrast isolating symmetry as an affinity-enhancing intervention."
+    },
+    {
+      "rule_id": "K2-37fd90d3e44b",
+      "source_pmcid": "PMC13060724",
+      "statement_fidelity": "unsupported",
+      "entry_issue": "aspiration_as_measured_effect",
+      "method_disposition": "reject",
+      "rationale": "Review describes design objectives and exploration relevant to oral bioavailability; passage does not demonstrate improved bioavailability caused by macrocyclic design."
+    },
+    {
+      "rule_id": "K2-3776fc3b71b8",
+      "source_pmcid": "PMC12961469",
+      "statement_fidelity": "partly_supported",
+      "entry_issue": "entity_and_endpoint_mismatch",
+      "method_disposition": "reject",
+      "rationale": "Source discusses receptor/complex solvent-accessible surface trajectories, not peptide solubility."
+    },
+    {
+      "rule_id": "K2-520a09d9b62b",
+      "source_pmcid": "PMC13194151",
+      "statement_fidelity": "supported",
+      "entry_issue": "endpoint_mismatch",
+      "method_disposition": "candidate_after_primary_source_review",
+      "rationale": "Review attributes limited antibacterial changes from chlorination edits to earlier SAR work. Antibacterial activity is not binding affinity; underlying primary experiment needs review."
+    }
+  ]
+}

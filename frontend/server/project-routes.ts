@@ -203,6 +203,16 @@ async function _findProjectFileByName(projectId: string, name: string): Promise<
  *  row (design §4.4 — nothing a finished run read can change underneath it). The
  *  current bytes stay at their existing s3_key; this just records them as a past
  *  version so the new content can take over the project_files row. */
+/** Parse tabular text into headers + rows (capped). Delimiter from the extension,
+ *  else sniffed. Used by the version Compare/diff (design §4.4). */
+function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
+  const e = (ext || "").toLowerCase();
+  const delim = (e === "tsv" || e === "tab") ? "\t" : (e === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
+  const lines = text.split(/\r?\n/).filter((l) => l.length > 0).slice(0, 500);
+  const rows = lines.map((l) => l.split(delim));
+  return { headers: rows[0] || [], rows: rows.slice(1) };
+}
+
 async function _archiveCurrentAsVersion(cur: any, projectId: string, note: string, author: string): Promise<void> {
   await pool.query(
     `INSERT INTO project_file_versions
@@ -886,6 +896,139 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] restore failed:", e?.message ?? e);
       res.status(500).json({ error: "Restore failed" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/versions/:versionNo/diff ─────
+  // Compare a past version against the CURRENT one (design §4.4 — "cell-level and
+  // column-level diff against the current version, side by side"). Reads both
+  // versions' bytes (readTextPrefix, capped), parses tabular, and returns the
+  // column set diff + position-aligned changed cells (capped). Non-tabular files
+  // report a metadata-only diff (size/hash differ) honestly.
+  app.get("/api/projects/:id/files/:fileId/versions/:versionNo/diff", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId, versionNo } = req.params;
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const cur = await pool.query(
+        `SELECT name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
+      const tgt = await pool.query(
+        `SELECT s3_key, size, content_hash FROM project_file_versions WHERE file_id = $1 AND version_no = $2`,
+        [fileId, Number(versionNo)]
+      );
+      if (!tgt.rows[0]) return res.status(404).json({ error: "Version not found" });
+      const c = cur.rows[0], t = tgt.rows[0];
+      const identical = Boolean(c.content_hash && t.content_hash && c.content_hash === t.content_hash);
+      const ext = (String(c.name).split(".").pop() || "").toLowerCase();
+      const tabular = ["csv", "tsv", "tab", "txt"].includes(ext);
+      const base = {
+        current: { version: c.version_no, size: Number(c.size) },
+        target: { version: Number(versionNo), size: Number(t.size) },
+        identical,
+        tabular,
+      };
+      if (identical || !tabular) return res.json(base);
+      const CAP = 256 * 1024;
+      const [curText, tgtText] = await Promise.all([
+        s3Service.readTextPrefix(c.s3_key, CAP).catch(() => ""),
+        s3Service.readTextPrefix(t.s3_key, CAP).catch(() => ""),
+      ]);
+      const A = _parseTabular(curText, ext);  // current
+      const B = _parseTabular(tgtText, ext);  // target (older)
+      const added = A.headers.filter((h) => !B.headers.includes(h));
+      const removed = B.headers.filter((h) => !A.headers.includes(h));
+      const changedCells: Array<{ row: number; col: string; from: string; to: string }> = [];
+      const nRows = Math.min(A.rows.length, B.rows.length);
+      const nCols = Math.min(A.headers.length, B.headers.length);
+      for (let i = 0; i < nRows && changedCells.length < 100; i++) {
+        for (let j = 0; j < nCols; j++) {
+          const av = A.rows[i]?.[j] ?? "", bv = B.rows[i]?.[j] ?? "";
+          if (av !== bv) changedCells.push({ row: i, col: A.headers[j] ?? String(j), from: bv, to: av });
+        }
+      }
+      res.json({
+        ...base,
+        columns: { added, removed },
+        rowsCompared: nRows,
+        changedCells,
+        truncated: (A.rows.length >= 500 || B.rows.length >= 500),
+      });
+    } catch (e: any) {
+      console.error("[project_files] diff failed:", e?.message ?? e);
+      res.status(500).json({ error: "Diff failed" });
+    }
+  });
+
+  // ─── POST /api/projects/:id/files/:fileId/edit ────────────────────────
+  // Edit-in-place → write a new version (design §4.3/§4.4 — "saving an edit writes
+  // a new version; it never overwrites"). The preview is only a SAMPLE, so the
+  // client sends cell EDITS {row,col,value} (row = index among the first rows the
+  // user saw); we apply them to the FULL file server-side and version it. Tabular
+  // only, size-capped (10 MiB) — larger files edit in Jupyter/RStudio.
+  app.post("/api/projects/:id/files/:fileId/edit", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    const edits = Array.isArray(req.body?.edits) ? req.body.edits : null;
+    if (!edits || edits.length === 0) return res.status(400).json({ error: "No edits provided" });
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const row = await pool.query(
+        `SELECT name, s3_key, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!row.rows[0]) return res.status(404).json({ error: "File not found" });
+      const cur = row.rows[0];
+      const ext = (String(cur.name).split(".").pop() || "").toLowerCase();
+      if (!["csv", "tsv", "tab", "txt"].includes(ext)) {
+        return res.status(400).json({ error: "Only tabular files (csv/tsv) can be edited in place. Open it in Jupyter/RStudio for other formats." });
+      }
+      const CAP = 10 * 1024 * 1024;
+      const size = await s3Service.getFileSize(cur.s3_key).catch(() => 0);
+      if (size > CAP) return res.status(413).json({ error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
+      const text = await s3Service.readTextPrefix(cur.s3_key, CAP);
+      const delim = (ext === "tsv" || ext === "tab") ? "\t" : (ext === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
+      const keepTrailingNL = /\n$/.test(text);
+      const lines = text.replace(/\n$/, "").split(/\r?\n/);
+      const header = (lines[0] || "").split(delim);
+      let applied = 0;
+      for (const e of edits) {
+        const r = Number(e?.row);               // 0-based DATA row (header excluded)
+        const colName = String(e?.col ?? "");
+        const value = String(e?.value ?? "");
+        const lineIdx = r + 1;                   // +1 for the header line
+        if (!Number.isInteger(r) || r < 0 || lineIdx >= lines.length) continue;
+        const cols = lines[lineIdx].split(delim);
+        let j = header.indexOf(colName);
+        if (j < 0) { const n = Number(colName); j = Number.isInteger(n) ? n : -1; }
+        if (j < 0 || j >= Math.max(cols.length, header.length)) continue;
+        while (cols.length <= j) cols.push("");
+        cols[j] = value;
+        lines[lineIdx] = cols.join(delim);
+        applied++;
+      }
+      if (applied === 0) return res.status(400).json({ error: "None of the edits matched a cell." });
+      const newText = lines.join("\n") + (keepTrailingNL ? "\n" : "");
+      const buf = Buffer.from(newText, "utf-8");
+      const contentHash = createHash("sha256").update(buf).digest("hex");
+      const safeName = String(cur.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+      const vkey = `projects/${id}/inputs/${safeName}.v${cur.version_no + 1}`;
+      await s3Service.putObject(vkey, buf, cur.content_type, uid);
+      await _archiveCurrentAsVersion({ ...cur, id: fileId, size }, id, `v${cur.version_no}`, uid);
+      const upd = await pool.query(
+        `UPDATE project_files SET s3_key = $1, size = $2, content_hash = $3, version_no = version_no + 1 WHERE id = $4
+         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
+        [vkey, buf.length, contentHash, fileId]
+      );
+      await recordProjectActivity(id, uid, "file_versioned", { fileId, name: cur.name, version: cur.version_no + 1, editedCells: applied });
+      res.json({ file: upd.rows[0], versioned: true, editedCells: applied });
+    } catch (e: any) {
+      console.error("[project_files] edit failed:", e?.message ?? e);
+      res.status(500).json({ error: "Edit failed" });
     }
   });
 

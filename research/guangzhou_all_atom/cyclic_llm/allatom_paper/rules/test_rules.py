@@ -271,3 +271,20 @@ def test_language_restriction_loses_no_real_peptide(voc, rows):
             if m is None: continue
             n += 1; bad += (not {a.GetSymbol() for a in m.GetAtoms()} <= allowed) or any(a.GetIsotope() for a in m.GetAtoms())
         print(f"CycPeptMPDB structures outside the restricted language: {bad}/{n}"); assert bad == 0
+
+
+def test_lookahead_nme_sound_and_effective(voc, rows):
+    """(a) the tightened look-ahead never prunes the true next token of a satisfying string (false-prune 0 on the whole golden set; the main false-prune test already runs with it);
+    (b) it prunes states that provably cannot reach N-Me >= 2 within the weight budget: a string at mass ~1385 with no N-methyl amide and no extendable N."""
+    c = ChemFMConstraint(voc, max_len=MAXLEN); c0 = ChemFMConstraint(voc, max_len=MAXLEN, lookahead_nme=False)
+    st = T.Tracker()
+    for t in voc.encode("C" * 115): st.advance(voc.id2tok[t])          # mass ~1381, nothing built, no N at all
+    assert st.mass > 1380 and st.nme_missing_new(2) == 2
+    assert not st.feasible(1400.0, 6, 500 - st.n, 2)                    # 2 missing N-Me amides need >= 52 more weight units
+    assert st.feasible(1400.0, 6, 500 - st.n, 0)                        # the old rule still allows it
+    sat = [r for r in rows if r["kind"] == "sat"][:120]
+    for r in sat:
+        st = c.init_state()
+        for tid in _ids(voc, r["smiles"]):
+            assert c.mask(st)[tid], r["smiles"]; c.advance(st, tid)
+        assert c.mask(st)[c.eos]

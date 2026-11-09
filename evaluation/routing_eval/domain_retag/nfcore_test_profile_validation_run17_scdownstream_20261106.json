@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/scdownstream",
+  "runId": "cb7a1b63-28a0-41ea-9074-9a3f33fd64f2",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 197,
+  "error": "",
+  "minutes": 38.9
+ }
+]

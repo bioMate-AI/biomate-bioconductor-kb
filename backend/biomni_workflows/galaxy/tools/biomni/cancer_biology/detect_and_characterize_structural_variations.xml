@@ -2,7 +2,7 @@
 <tool id="biomni_cancer_biology_detect_and_characterize_structural_variations" name="Biomni: Detect And Characterize Structural Variations" version="1.0.0">
     <description>Detects and characterizes structural variations (SVs) in genomic sequencing data.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/detect_and_characterize_structural_variations_wrapper.py' --output '$output'

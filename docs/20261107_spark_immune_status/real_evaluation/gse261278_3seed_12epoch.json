@@ -1,0 +1,299 @@
+{
+ "protocol": "labelled-train-only-scaling-v2",
+ "device": "cuda",
+ "dataset": "gse261278",
+ "ckpt": "/workspace/fs_long/work/hybrid_model.pt",
+ "n_cells": 15000,
+ "epochs": 12,
+ "lr": 0.0003,
+ "results": [
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.9395,
+   "auprc": 0.7822
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 1,
+   "auroc": 0.8528,
+   "auprc": 0.6041
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 2,
+   "auroc": 0.9449,
+   "auprc": 0.8595
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9703,
+   "auprc": 0.922
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 1,
+   "auroc": 0.9716,
+   "auprc": 0.9167
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 2,
+   "auroc": 0.9702,
+   "auprc": 0.9257
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.9526,
+   "auprc": 0.8435
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 1,
+   "auroc": 0.9364,
+   "auprc": 0.8194
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 2,
+   "auroc": 0.9453,
+   "auprc": 0.8277
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9658,
+   "auprc": 0.9085
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 1,
+   "auroc": 0.9649,
+   "auprc": 0.9041
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 2,
+   "auroc": 0.9594,
+   "auprc": 0.9021
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.6968,
+   "auprc": 0.2146
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 1,
+   "auroc": 0.6413,
+   "auprc": 0.4948
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 2,
+   "auroc": 0.814,
+   "auprc": 0.3606
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9521,
+   "auprc": 0.8705
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 1,
+   "auroc": 0.9507,
+   "auprc": 0.8566
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 2,
+   "auroc": 0.9533,
+   "auprc": 0.8792
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.9352,
+   "auprc": 0.7498
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 1,
+   "auroc": 0.8998,
+   "auprc": 0.6797
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 2,
+   "auroc": 0.9487,
+   "auprc": 0.8593
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9726,
+   "auprc": 0.9232
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 1,
+   "auroc": 0.97,
+   "auprc": 0.9138
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 2,
+   "auroc": 0.9718,
+   "auprc": 0.9247
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.9589,
+   "auprc": 0.8781
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 1,
+   "auroc": 0.9421,
+   "auprc": 0.8516
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 2,
+   "auroc": 0.9508,
+   "auprc": 0.84
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.975,
+   "auprc": 0.9293
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 1,
+   "auroc": 0.955,
+   "auprc": 0.9081
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 2,
+   "auroc": 0.9719,
+   "auprc": 0.926
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.7071,
+   "auprc": 0.2424
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 1,
+   "auroc": 0.6496,
+   "auprc": 0.4694
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 2,
+   "auroc": 0.8175,
+   "auprc": 0.423
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9439,
+   "auprc": 0.862
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 1,
+   "auroc": 0.9429,
+   "auprc": 0.8549
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 2,
+   "auroc": 0.944,
+   "auprc": 0.8681
+  }
+ ]
+}

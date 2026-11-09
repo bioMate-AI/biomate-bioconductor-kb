@@ -30,6 +30,36 @@ function createdProjectId(response) {
   assert.ok(typeof id==='string' && id.length,'project id missing from API project wrapper');
   return id;
 }
+function assertTargetReply(result, finalText) {
+  const expectedGenes=['BRAF','NRAS','TP53'];
+  assert.deepEqual(result.targets.map(t=>t.target).sort(),expectedGenes.slice().sort(),
+    'known target fixture must return exactly BRAF, NRAS and TP53');
+  const rows=finalText.split('\n').filter(line=>/^\s*\|\s*\d+\s*\|/.test(line))
+    .map(line=>line.trim().replace(/^\||\|$/g,'').split('|').map(cell=>cell.trim()));
+  assert.equal(rows.length,result.targets.length,'user-facing target table must contain every ranked target exactly once');
+  for (const target of result.targets) {
+    const matching=rows.filter(row=>row[1]===target.target);
+    assert.equal(matching.length,1,`user-facing reply must contain one table row for ${target.target}`);
+    const row=matching[0];
+    assert.equal(row.length,5,`unexpected target table columns for ${target.target}`);
+    assert.equal(row[0],String(target.rank),`incorrect rank for ${target.target}`);
+    assert.equal(row[2],String(target.score),`incorrect score for ${target.target}`);
+    assert.equal(row[3],target.tier,`incorrect evidence tier for ${target.target}`);
+    assert.equal(row[4],target.conflict ? 'Yes' : 'No',`incorrect channel conflict for ${target.target}`);
+  }
+  assert.ok(!/\b(?:not|never)\s+(?:(?:actually|successfully|yet|been|be)\s+)*(?:execut(?:e|ed)|run|perform(?:ed)?|complet(?:e|ed))\b|\b(?:could|can|did|does|was|is|has|have)\s+not\s+(?:actually\s+)?(?:execut\w*|run|perform\w*|complet\w*)\b|\b(?:couldn['’]t|cannot|can['’]t|didn['’]t|wasn['’]t|hasn['’]t|haven['’]t|unable\s+to)\s+(?:actually\s+)?(?:be\s+)?(?:execut\w*|run|perform\w*|complet\w*)\b|without (?:running|executing) (?:the )?(?:live )?target/i.test(finalText),
+    'user-facing reply denied a target tool execution that succeeded');
+}
+function assertFinalReply(events, streamedText) {
+  const final=events.filter(e=>e.event==='final').at(-1)?.data;
+  // The captured /api/chat/stream contract uses response; other callers may use message.
+  for (const field of ['response','message']) {
+    if (final && Object.prototype.hasOwnProperty.call(final,field)) {
+      assert.equal(typeof final[field],'string',`final.${field} must be reply text`);
+      assert.equal(streamedText,final[field],`streamed reply differs from final.${field}`);
+    }
+  }
+}
 function reviewResult(events) {
   if(events.some(e=>e.event==='tool_event' && e.data.name==='write_review')) {
     return {...toolResult(events,'write_review'),executionPath:'write_review_tool'};
@@ -85,6 +115,7 @@ async function main() {
       // Capture evidence BEFORE assertions, including a failed/uncalled tool.
       const trace={name,durationMs:Date.now()-started,status:'received',finalText,rawEvents:events};
       report.turns.push(trace);
+      assertFinalReply(events,finalText);
       const result=name==='write_review' ? reviewResult(events) : toolResult(events,name);
       trace.result=result;
       assert.ok(finalText.trim(),'chat produced no user-facing answer');
@@ -95,6 +126,7 @@ async function main() {
         assert.equal(result.ranking.primary_channel,'genetics_ot');
         assert.ok(result.channels_run?.includes('genetics_ot'),'OpenTargets did not run successfully');
         assert.ok(result.channel_provenance?.genetics_ot,'OpenTargets provenance missing');
+        assertTargetReply(result, finalText);
       } else {
         assert.equal(result.status,'ok','review was uncited or unsuccessful');
         assert.equal(result.source,'research_agent','a fallback is not the review demo');
@@ -123,4 +155,4 @@ async function main() {
   }
 }
 if (require.main===module) main().catch(e=>{console.error(e.message);process.exitCode=2;});
-module.exports={parseEvents,toolResult,createdProjectId,reviewResult};
+module.exports={parseEvents,toolResult,createdProjectId,reviewResult,assertTargetReply,assertFinalReply};

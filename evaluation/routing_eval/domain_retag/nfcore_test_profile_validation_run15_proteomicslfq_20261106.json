@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/proteomicslfq",
+  "runId": "ab2b753e-7279-44e9-a780-3558928f4abc",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 77,
+  "error": "",
+  "minutes": 14.2
+ }
+]

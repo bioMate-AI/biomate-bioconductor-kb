@@ -107,16 +107,24 @@ LICENSE_REGISTRY: Dict[str, Dict[str, Any]] = {
     # Phase 3: licensed MD / drug-discovery tools
     # ------------------------------------------------------------------
     "amber": {
-        "display_name": "AMBER",
+        "display_name": "AMBER (pmemd.cuda)",
         "vendor": "University of California San Diego",
-        "type": "license_agreement",    # no runtime key -- free academic since Amber24
+        # BYOL container image: pmemd / pmemd.cuda is the LICENSED AMBER engine and is NOT part of
+        # free AmberTools, so BioMate's image does not contain it. A user who holds an AMBER licence
+        # supplies their own image with pmemd.cuda; the executor passes it to the workflow as
+        # AMBER_PMEMD_CONTAINER (-> params.pmemd_container). Credential shape: {container_image}.
+        "type": "license_image",
         "registration_url": "https://ambermd.org/GetAmber.php",
-        "approval_time": "instant (web form)",
-        "cost": "free (academic/non-profit); $500–$2,000/yr commercial",
+        "approval_time": "instant (web form) for the licence; you build/push the pmemd image",
+        "cost": "free (academic/non-profit) licence; $500–$2,000/yr commercial",
         "container_patterns": ["pmemd", "amber24", "ambertools", "amber-cuda"],
-        # No env_key: BioMate ships pmemd in its ECR image; no user action needed
+        "env_key_image": "AMBER_PMEMD_CONTAINER",
+        # No image provided -> the AMBER workflows run EQUILIBRATION/PRODUCTION_MD in OpenMM 8 on the
+        # GPU from the same AMBER prmtop/rst7 (md_engine=auto). So this is advisory, never blocking
+        # (see has_fallback for 'amber' in credentials_api.get_license_requirements).
+        "user_must_provide": True,
         "open_alternatives": [
-            {"id": "openmm", "label": "OpenMM", "note": "Python API, GPU, free, slightly slower"},
+            {"id": "openmm", "label": "OpenMM 8 (default)", "note": "GPU, free; runs the AMBER-prepared system natively (ff19SB/GAFF2/TIP3P, PME, Langevin, MC barostat). Used automatically when no pmemd image is supplied."},
             {"id": "gromacs", "label": "GROMACS", "note": "Free, HPC-optimized, wide FF support"},
         ],
     },

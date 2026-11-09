@@ -1,0 +1,80 @@
+{
+  "protocol": "unseen_gene_external_knowledge_bridge_leave_tissue_out",
+  "mask_frac": 0.3,
+  "interpreter": "3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]",
+  "platform": "Linux-6.11.0-1016-nvidia-aarch64-with-glibc2.39",
+  "rows": [
+    {
+      "tissue": "lung",
+      "mask_seed": 0,
+      "n_unseen": 600,
+      "n_bridged": 599,
+      "raw_full": 0.8434946644245324,
+      "raw_masked": 0.8304126072660302,
+      "know_bridge": 0.8289494755599424,
+      "bridge_minus_masked": -0.0014631317060878057,
+      "lost_to_masking": 0.013082057158502192,
+      "recovery_frac": -0.11184263211515616
+    },
+    {
+      "tissue": "lung",
+      "mask_seed": 1,
+      "n_unseen": 600,
+      "n_bridged": 598,
+      "raw_full": 0.8434946644245324,
+      "raw_masked": 0.830619183173046,
+      "know_bridge": 0.8284067095457873,
+      "bridge_minus_masked": -0.0022124736272586265,
+      "lost_to_masking": 0.01287548125148641,
+      "recovery_frac": -0.17183618880290066
+    },
+    {
+      "tissue": "lung",
+      "mask_seed": 2,
+      "n_unseen": 600,
+      "n_bridged": 596,
+      "raw_full": 0.8434946644245324,
+      "raw_masked": 0.8499338141835047,
+      "know_bridge": 0.8467155576558453,
+      "bridge_minus_masked": -0.003218256527659391,
+      "lost_to_masking": -0.006439149758972307,
+      "recovery_frac": 0.49979525995261637
+    },
+    {
+      "tissue": "spleen",
+      "mask_seed": 0,
+      "n_unseen": 600,
+      "n_bridged": 599,
+      "raw_full": 0.6987830724405174,
+      "raw_masked": 0.675653007095442,
+      "know_bridge": 0.6799554374913283,
+      "bridge_minus_masked": 0.004302430395886292,
+      "lost_to_masking": 0.023130065345075446,
+      "recovery_frac": 0.18601030008773017
+    },
+    {
+      "tissue": "spleen",
+      "mask_seed": 1,
+      "n_unseen": 600,
+      "n_bridged": 598,
+      "raw_full": 0.6987830724405174,
+      "raw_masked": 0.6624686581163642,
+      "know_bridge": 0.6612457516784722,
+      "bridge_minus_masked": -0.001222906437892024,
+      "lost_to_masking": 0.036314414324153166,
+      "recovery_frac": -0.03367551041787431
+    },
+    {
+      "tissue": "spleen",
+      "mask_seed": 2,
+      "n_unseen": 600,
+      "n_bridged": 596,
+      "raw_full": 0.6987830724405174,
+      "raw_masked": 0.6611918583017637,
+      "know_bridge": 0.6595555415609706,
+      "bridge_minus_masked": -0.00163631674079312,
+      "lost_to_masking": 0.03759121413875366,
+      "recovery_frac": -0.04352923357977424
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "message": "Prepare an executable comparison plan, but do not launch jobs yet. Compare SNF and MFA on the same CLL cohort: omics inputs s3://biomate-nextflow-work/cll_test/mrna.csv and s3://biomate-nextflow-work/cll_test/methylation.csv. Use n_clusters=2 for both methods. Ground-truth IGHV labels: s3://biomate-nextflow-work/cll_test/ighv_labels.csv. Both methods must execute independently on the same inputs. Compare ARI and NMI on exactly the same shared labeled samples and retain failed methods in the report. Return an executable plan for both methods, not merely a literature comparison."
+}

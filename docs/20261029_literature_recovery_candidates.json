@@ -1,0 +1,156 @@
+{
+  "schema": "literature_source_review_candidates_v1",
+  "created": "2026-10-29",
+  "review_status": "AI_ASSISTED_CANDIDATE",
+  "method_prior_eligible": false,
+  "numerical_prior_eligible": false,
+  "purpose": "Reviewer packet for scoped evidence qualification; not executable approved corrections",
+  "original_records_modified": false,
+  "provenance": {
+    "records": "s3://biomate-nextflow-work/cyclic_peptide/allatom/k2/k2pilot7_20261029/knowledge_kb_scaled_v1.jsonl",
+    "local_records": "/tmp/literature-audit/knowledge_kb_scaled_v1.jsonl",
+    "local_corpus": "/tmp/literature-audit/corpus.jsonl.gz",
+    "hash_verification": "Each selected stored text UTF-8 SHA-256 was recomputed and matched the original record source_text_sha256 on 2026-10-29",
+    "offset_convention": "Zero-based Unicode character indexes into the retained corpus text string; end exclusive. Full original quote spans were found by exact string matching, not approximate normalization. They are not web-page offsets.",
+    "work_performed": "Targeted source reading, provenance hashes and exact quotation locations only; no chemistry, models, tests or statistical aggregation"
+  },
+  "candidates": [
+    {
+      "rule_id": "K2-d590a3f68dcd",
+      "source": {
+        "pmcid": "PMC12557407",
+        "doi": "10.1039/d5sc06993a",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12557407/",
+        "passage_id": "PMC12557407:2:sar_rule",
+        "source_text_sha256": "15d4ab04213f30a432e9a82fd940a15f6cb54a76022b14939aa7632d1a266158",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "original_quote_character_offset": 11949,
+        "original_quote_character_end": 12099,
+        "original_quote_exact_match": true,
+        "quote_excerpt": "The chemoselectivity of the SuFEx-mediated cyclization method for tyrosine",
+        "anchors": ["4FSB-GXGY", "Figure 4b", "Figure S9"],
+        "online_check": "Primary-source access attempted: PMC browser challenge, RSC 403, Europe PMC unavailable. No independent online corroboration claimed; retained primary text was inspected."
+      },
+      "original": {
+        "statement": "SuFEx-mediated cyclization occurs chemoselectively at tyrosine residues.",
+        "property": "synthesis_macrocyclization",
+        "direction": "increases",
+        "scope": "peptides with tyrosine and other reactive residues",
+        "assay": "cyclization in PBS buffer",
+        "effect_size": null
+      },
+      "proposed": {
+        "statement": "In the tested 4FSB-GXGY precursors with X=K, T, R or N, incubation in PBS at pH 7.8 produced Tyr-cyclized products 6a–d despite the alternative reactive side chains.",
+        "endpoint": "reaction chemoselectivity and isolated macrocyclization yield",
+        "direction": "Tyr-selective product formation in this substrate series; no general increase relative to an untreated or alternative-route comparator established",
+        "comparator": {"type": "competing side-chain sites within each tested precursor", "sites": ["Lys amine", "Thr alcohol", "Arg guanidinium", "Asn amide"], "external_matched_control": null},
+        "scope": "4FSB-functionalized GXGY precursors, C-terminal Tyr, PBS pH 7.8; no extension to arbitrary Tyr-containing peptides",
+        "reported_observations": [
+          {"endpoint": "isolated yield", "source_reported_range": [75, 89], "unit": "%", "applies_to": "products 6a–d collectively; per-product values not reconstructed", "use_as_reward": false},
+          {"endpoint": "site selectivity", "evidence": "Crude HPLC for the series and additional NMR support for Tyr versus Lys in 6a", "use_as_reward": false}
+        ],
+        "required_applicability": ["Exact 4FSB precursor connectivity", "Tested GXGY sequence and competing side chain", "Matching buffer conditions"],
+        "unresolved": ["Exact monomer/linker structures and atom mapping from precursor to product", "Per-substrate conditions, time and yield from supporting information", "Independent primary-source and scientific review", "Compound/scaffold/source leakage clearance"],
+        "parent_structure": null,
+        "product_structure": null,
+        "executable_action": null,
+        "numerical_prior": null
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "numerical_prior_eligible": false
+    },
+    {
+      "rule_id": "K2-124d856a78cc",
+      "source": {
+        "pmcid": "PMC13370866",
+        "doi": "10.1021/acs.jmedchem.6c00830",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13370866/",
+        "passage_id": "PMC13370866:7:structure_property",
+        "source_text_sha256": "63c56bac1f6ed520e1fd4d7fc16286776e6b98a1e18fad90d6c2803c856a8db8",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "original_quote_character_offset": 31777,
+        "original_quote_character_end": 31914,
+        "original_quote_exact_match": true,
+        "quote_excerpt": "All linear analogues have higher log D 7.4 values",
+        "anchors": ["Linear Versus Macrocyclic Compounds", "Figure 5A–B", "Supporting Information molecular formula strings CSV"],
+        "online_check": "Primary PMC full text independently corroborates paired-series scope, coupled ring opening/O-methylation, endpoints and Figure 5 assay definitions on 2026-10-29",
+        "supporting_csv_url": "https://pubs.acs.org/doi/suppl/10.1021/acs.jmedchem.6c00830/suppl_file/jm6c00830_si_001.csv",
+        "supporting_csv_status": "Primary article explicitly lists SMILES, logD, permeability and solubility in this supplement; retrieval returned 403, contents not inspected"
+      },
+      "original": {
+        "statement": "Macrocyclization decreases passive cell permeability",
+        "property": "permeability",
+        "direction": "decreases",
+        "scope": "Series 1 and 5 matched molecular pairs",
+        "assay": "Caco-2 cell permeability",
+        "effect_size": {"comparison": "increase", "unit": "logarithmic units", "value": 0.5}
+      },
+      "proposed": {
+        "statement": "Linear compounds 5a–5g show greater passive Caco-2 permeability and logD7.4 than corresponding 18-membered macrocycles 1a–1g after bisaryl-ether disconnection plus phenolic O-methylation.",
+        "endpoint": "efflux-inhibited Caco-2 passive permeability, with lipophilicity recorded separately",
+        "direction": "linear series greater than matched macrocyclic series for these coupled edits; not a universal cyclization penalty",
+        "comparator": {"parent_series": "1a–1g", "product_series": "5a–5g", "pairing": "matching letter within the two named series", "coupled_interventions": ["bisaryl-ether ring opening", "phenolic O-methylation"]},
+        "scope": "The seven named 18-membered macrocycle/linear pairs; preserved peptidic backbone, but changed topology and methyl substitution",
+        "reported_observations": [
+          {"endpoint": "logD7.4 by shake-flask", "source_reported_average_difference": 0.5, "unit": "log units", "direction": "linear minus macrocyclic", "use_as_reward": false},
+          {"endpoint": "efflux-inhibited Caco-2 permeability", "direction": "higher for linear analogues", "pair_specific_effect_sizes": null, "use_as_reward": false}
+        ],
+        "effect_size_correction": "Remove the original 0.5 permeability effect; the quoted average belongs to logD7.4 under the combined structural change",
+        "unresolved": ["Inspect supplementary CSV and match exact stereochemical SMILES to each compound ID", "Qualify per-pair measured permeability, uncertainty and assay conditions", "Do not isolate topology causality from the coupled methylation", "Independent human review and source/compound/scaffold leakage clearance"],
+        "parent_structure": null,
+        "product_structure": null,
+        "executable_action": null,
+        "numerical_prior": null
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "numerical_prior_eligible": false
+    },
+    {
+      "rule_id": "K2-4c761c0659ae",
+      "source": {
+        "pmcid": "PMC13140135",
+        "doi": "10.1021/acs.orglett.6c01073",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13140135/",
+        "passage_id": "PMC13140135:1:sar_rule",
+        "source_text_sha256": "0a6728a97bde0adc6ffdf3f284bac61f75f7d0a9e12324ecd33707804a8afd11",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "original_quote_character_offset": 10790,
+        "original_quote_character_end": 10883,
+        "original_quote_exact_match": true,
+        "quote_excerpt": "the sterically hindered isoleucine derivative 2b required heating (70 °C) for full conversion",
+        "anchors": ["Substrate Scope and Diversification to Varying Cyclic Peptides", "Figure 3", "Figures S10 and S11"],
+        "online_check": "Primary PMC full text independently corroborates Ile 2b versus Ala 3b temperature dependence and reaction context on 2026-10-29"
+      },
+      "original": {
+        "statement": "Cyclization efficiency is influenced by the steric hindrance of the C-terminal residue.",
+        "property": "proteolytic_stability",
+        "direction": "decreases",
+        "scope": "peptides with isoleucine at the C-terminus",
+        "assay": "cyclization in IPA:PBS (pH 7.4)",
+        "effect_size": {"comparison": "requires heating", "unit": "unit", "value": 1}
+      },
+      "proposed": {
+        "statement": "In the tested nitrile precursors, C-terminal Ile analogue 2b needed 70 °C for full cyclization, whereas the Ala replacement 3b reacted at room temperature.",
+        "endpoint": "temperature-dependent nitrile-to-thiazoline macrocyclization reactivity",
+        "direction": "Ile analogue required heating relative to the Ala analogue; no proteolytic stability direction established",
+        "comparator": {"compound_ids": ["2b", "3b"], "change": "C-terminal Ile versus Ala as described in the source", "exact_structure_equivalence_verified": false},
+        "scope": "N-terminal Cys/C-terminal nitrile peptides in IPA:PBS pH 7.4 after palladium scavenging and solvent evaporation; specific 2b/3b comparison",
+        "reported_observations": [
+          {"compound_id": "2b", "condition": "70 °C heating for full conversion", "endpoint": "cyclization", "use_as_reward": false},
+          {"compound_id": "3b", "condition": "room-temperature reactivity", "endpoint": "cyclization", "use_as_reward": false}
+        ],
+        "effect_size_correction": "Discard numeric value 1 with unit 'unit'; this is a reaction-condition observation, not a quantitative stability effect",
+        "unresolved": ["Inspect structures and Figures S10/S11 for exact sequences, stereochemistry, time and conversion traces", "Confirm complete reaction conditions and precursor/product atom mapping", "Independent human review and source/compound/scaffold leakage clearance"],
+        "parent_structure": null,
+        "product_structure": null,
+        "executable_action": null,
+        "numerical_prior": null
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "numerical_prior_eligible": false
+    }
+  ]
+}

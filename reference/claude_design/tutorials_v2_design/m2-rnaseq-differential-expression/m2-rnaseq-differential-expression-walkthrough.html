@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · RNA-seq — Which genes change between your conditions?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">RNA-seq · Differential expression — which genes change between your groups</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE / VALUE -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="kicker">RNA-seq, for the biologist who runs the experiment</div>
+    <h2>Which genes change between my conditions?</h2>
+    <p class="caption">You ran the experiment — treated versus control, disease versus healthy. BioMate answers the question that follows: <b>which genes went up, which went down, and which you can trust</b>. You describe the comparison in plain language and get back a results table and a volcano plot you can put in a figure.</p>
+    <p class="caption sub">We'll follow a real public example end to end: <b>GSE52778</b> — airway smooth-muscle cells treated with dexamethasone versus untreated controls — the kind of two-group comparison you run all the time.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Your counts + groups</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Validated DESeq2 analysis</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Results table</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Volcano plot</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>A record you can defend</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Comparing thousands of genes by hand doesn't scale — and isn't safe.</h2>
+    <p class="caption">A single RNA-seq run measures <b>tens of thousands of genes</b> across every sample. Eyeballing a spreadsheet to find what changed is slow, and it quietly invites mistakes — the wrong comparison, forgetting that testing twenty thousand genes throws up false hits by chance.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">BY HAND</div><h4>Too many genes</h4><p>Twenty-thousand-plus rows per sample. No spreadsheet sort tells you which differences are real.</p></div>
+          <div class="tile"><div class="n">ERROR-PRONE</div><h4>Easy to get wrong</h4><p>Which group is the control? Did you correct for testing every gene at once? One slip changes the answer.</p></div>
+          <div class="tile"><div class="n">HARD TO DEFEND</div><h4>No trail</h4><p>A reviewer asks how you got the list. A one-off script leaves nothing to point to.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: the right statistics, run correctly, with a record you can defend</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four plain ideas make the whole result readable.</h2>
+    <p class="caption">You don't need the maths — just these four words, and the result tells its own story.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · COUNT MATRIX</div><h4>How much, per gene</h4><p>A table: one row per gene, one column per sample, each cell how many reads landed on that gene. The measured expression.</p></div>
+            <div class="tile"><div class="n">2 · GROUPS / DESIGN</div><h4>What to compare</h4><p>The labels that say which samples are treated and which are control. This is the comparison you want tested.</p></div>
+            <div class="tile"><div class="n">3 · DIFFERENTIAL EXPRESSION</div><h4>Which genes differ</h4><p>For every gene, how much it changed between groups — the <b>log2 fold-change</b> — and whether that change is real.</p></div>
+            <div class="tile"><div class="n">4 · MULTIPLE-TESTING</div><h4>Guarding against luck</h4><p>Test 20,000 genes and some look "significant" by chance. The <b>adjusted p-value</b> corrects for that, so the hits hold up.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">log2 fold-change: +1 means doubled, −1 means halved. Adjusted p-value (FDR): smaller is stronger; a common cut is 0.05. A big change <b>and</b> a small adjusted p-value is a solid hit.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the result is written in</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker"><span class="st">Step 1</span> · What you bring</div>
+    <h2>Two things: your measurements, and which group each sample is in.</h2>
+    <p class="caption">You start from whatever you already have. BioMate meets your data where it is.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">OPTION A</div><h4>A count matrix</h4><p>Already have a gene-count table (from a core facility, a collaborator, or a public dataset like GSE52778)? Bring it straight in — the analysis starts here.</p></div>
+          <div class="tile"><div class="n">OPTION B</div><h4>Raw reads (FASTQ)</h4><p>Only have sequencing reads? The <b>nf-core/rnaseq</b> pipeline turns them into a clean count matrix first — QC, alignment, and quantification, chained correctly.</p></div>
+          <div class="tile"><div class="n">ALWAYS</div><h4>Your group labels</h4><p>Say which samples are treated and which are control. That one piece of context defines the comparison.</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Counts or reads — plus which group is which</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Describe it in plain language; confirm; it runs in the cloud.</h2>
+    <p class="caption">There's no pipeline to assemble and nothing to install. You state the goal, BioMate picks the validated analysis and shows you the set-up, you confirm, and the work runs on cloud computers while you carry on.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"Differential expression, dexamethasone vs control"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Validated DESeq2 analysis chosen</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Review &amp; Confirm</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Runs on cloud compute</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">You see the chosen analysis and its settings <b>before</b> anything runs — nothing is spent until you confirm. The statistics use <b>DESeq2</b>, the established, published method for differential expression, so the result rests on a standard other scientists already trust.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Plain-English goal → validated method → your confirmation → cloud run</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — LIVE: RESULTS TABLE -->
+  <section class="scene" data-seconds="31.0">
+    <div class="kicker"><span class="st">Step 3</span> · The results — which genes changed</div>
+    <h2>Every gene, ranked by how it changed and whether to believe it.</h2>
+    <p class="caption">The run returns a <b>results table</b>: one row per gene, with its <b>log2 fold-change</b> and its <b>adjusted p-value</b>. Sort it, and your strongest, most trustworthy hits rise to the top.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · Differential-expression results table</span>
+        <div class="frame"><img src="../assets/live/de-results.png" alt="Differential-expression results table with gene names, log2 fold-change, and adjusted p-value"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>One row per gene.</b> Gene name, <b>log2 fold-change</b> (direction and size), and <b>adjusted p-value</b> (confidence) — side by side.</span></li>
+          <li><span class="b"></span><span><b>Sortable.</b> Order by fold-change to see the biggest movers, or by adjusted p-value to see the surest ones.</span></li>
+          <li><span class="b gr"></span><span><b>Up and down, both.</b> Positive fold-change = up in the treated group; negative = down. The sign is the biology.</span></li>
+          <li><span class="b"></span><span>Every number here comes straight from the run — nothing typed by hand.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Your gene list, ranked and ready</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — LIVE: VOLCANO PLOT -->
+  <section class="scene" data-seconds="27.0">
+    <div class="kicker"><span class="st">Step 4</span> · The volcano plot — the whole result at a glance</div>
+    <h2>One picture: what moved, how far, and how sure.</h2>
+    <p class="caption">The <b>volcano plot</b> puts every gene in one view — fold-change left to right, confidence bottom to top. The genes that matter are pushed to the upper corners.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · Volcano plot</span>
+        <div class="frame"><img src="../assets/live/de-volcano.png" alt="Volcano plot showing up- and down-regulated genes by fold-change and significance"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Left–right is fold-change.</b> Far right = strongly up in the treated group; far left = strongly down.</span></li>
+          <li><span class="b"></span><span><b>Up the page is confidence.</b> Higher means a smaller adjusted p-value — a result less likely to be luck.</span></li>
+          <li><span class="b gr"></span><span><b>The top corners are your hits.</b> Big change <i>and</i> high confidence — up-regulated on the right, down-regulated on the left.</span></li>
+          <li><span class="b"></span><span>A figure-ready image, drawn from the same results — download it for your paper.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The headline figure, in one glance</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — READING IT -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">Step 5</span> · Reading it with confidence</div>
+    <h2>A strong hit is a big change <i>and</i> a small adjusted p-value.</h2>
+    <p class="caption">Two numbers, read together. Fold-change tells you <i>how much</i> a gene moved; the adjusted p-value tells you <i>how sure</i> you can be. One without the other can mislead.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">FOLD-CHANGE</div><h4>How much it moved</h4><p>log2 fold-change: +1 is doubled, −1 is halved. A large change is biologically interesting — but only if it's real.</p></div>
+          <div class="tile"><div class="n">ADJUSTED p-VALUE</div><h4>How sure you are</h4><p>Already corrected for testing every gene. Below 0.05 is the usual bar; smaller is stronger evidence.</p></div>
+          <div class="tile"><div class="n">TOGETHER</div><h4>What to trust</h4><p>Big change <b>and</b> small adjusted p-value = a solid hit. A big change with a weak p-value may just be noise.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Worth knowing: a volcano with almost nothing in the top corners can be a genuine "no change" — or a study with too few replicates to detect one. The statistics are honest; they won't invent a hit that isn't there.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Read the two numbers together — the result won't over-claim</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — FROM RESULT TO REPORT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">Step 6</span> · From result to a result you can defend</div>
+    <h2>Every output kept, with a record that proves how you got it.</h2>
+    <p class="caption">The table and the plot are the answer; the <b>outputs</b> and the <b>reproducibility record</b> are what make it defensible when a reviewer, a patent examiner, or a collaborator asks how.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">OUTPUTS</div><h4>Every file, yours</h4><p>The full results table, the volcano plot, the count matrix, and the run-quality report — download any one, or all of them together.</p></div>
+          <div class="tile"><div class="n">REPRODUCIBILITY RECORD</div><h4>The audit trail</h4><p>The exact comparison, the parameters, the tool versions, and the outputs with verifiable checksums — the whole run, pinned down.</p></div>
+          <div class="tile"><div class="n">WHY IT MATTERS</div><h4>Ready to publish</h4><p>Attach it to a manuscript or a submission. "How did you get this list?" has a complete, reproducible answer.</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A gene list you can stand behind</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="kicker">The value at a glance</div>
+    <h2>Your question, answered — with a record you can defend.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">The whole point of a differential-expression run is one sentence: <b>which genes change between my conditions, and which can I trust?</b> You bring your counts and your group labels; BioMate runs the validated DESeq2 analysis on cloud compute and hands back a ranked table, a volcano plot, and a complete record — all without writing a line of code.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Bring a count matrix (or raw reads) and say which group is which</li>
+            <li><span class="k">2</span>Describe the comparison; confirm; it runs in the cloud</li>
+            <li><span class="k">3</span>Read the results table and the volcano plot — change and confidence together</li>
+            <li><span class="k">4</span>Download the outputs and the reproducibility record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Your input</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Counts or reads + groups</span></td></tr>
+            <tr><td>The method</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Validated DESeq2, in the cloud</span></td></tr>
+            <tr><td>Results table</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">log2 FC + adjusted p-value</span></td></tr>
+            <tr><td>Volcano plot</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Figure-ready</span></td></tr>
+            <tr><td>Reproducibility record</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Full audit trail</span></td></tr>
+          </table>
+          <p class="footnote">A non-computational biologist's question, answered the same day — the right statistics, run correctly, with figures and a defensible record, and no software to license. Differential expression is a measurement, not a conclusion: confirm the key genes at the bench.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

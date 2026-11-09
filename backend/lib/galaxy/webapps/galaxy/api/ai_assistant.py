@@ -371,7 +371,8 @@ def _build_parameter_metadata_from_tools(
     except Exception:
         pass
 
-    _REQUIRED_KW = ('input', 'output', 'reference', 'sample', 'file', 'genome', 'fasta', 'fastq', 'bam')
+    _REQUIRED_KW = ('input', 'output', 'reference', 'sample', 'file', 'genome', 'fasta', 'fastq', 'bam',
+                    'matrix', 'contrast', 'counts', 'reads', 'vcf', 'h5ad')
     _INT_KW = ('threads', 'cpus', 'cores', 'jobs', 'count', 'num_', 'max_', 'min_', 'k_mer', 'length')
     _FLOAT_KW = ('pvalue', 'p_value', 'fdr', 'threshold', 'ratio', 'fraction', 'rate', 'score')
     _BOOL_KW = ('enable', 'disable', 'use_', 'skip_', 'paired', 'strand')
@@ -1234,10 +1235,26 @@ def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
                 val = raw_val
                 ptype = "string"
 
-            # Level — any param with null value is required (user must supply it)
+            # Level — a null param is required unless the workflow's own code handles its
+            # absence (galaxy.ai.nf_param_requirement; e.g. GROMACS MD box_center `?: ''`).
             _RECOMMENDED_PARAMS = {"spherical_aberration", "total_dose", "symmetry"}
+            # A primary DATA INPUT (a file the analysis cannot produce a real result
+            # without) is required even when the .nf ternary-guards it with a useless
+            # empty default — e.g. nf-core/differentialabundance's `params.matrix ?: ''`
+            # / `params.contrasts ?: ''`. Those guards avoid a null crash but leave the
+            # run with nothing to analyse, so the run "starts" and then fails (the MG
+            # PBMC start-failure). Only NON-data params defer to the
+            # "workflow handles absence" rule (box_center/box_size/etc.).
+            _DATA_INPUT_KW = ("input", "samplesheet", "sample_sheet", "matrix",
+                              "contrast", "counts", "reads", "design", "h5ad",
+                              "fastq", "fasta", "bam", "vcf")
             if val is None:
-                level = "required"
+                _nlow = name.lower()
+                if any(kw in _nlow for kw in _DATA_INPUT_KW):
+                    level = "required"
+                else:
+                    from galaxy.ai.nf_param_requirement import null_param_is_required  # noqa: PLC0415
+                    level = "required" if null_param_is_required(content, name) else "optional"
             elif name in _RECOMMENDED_PARAMS:
                 level = "recommended"
             else:

@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 用你自己的数据训练一个定制模型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">你自己的带标签数据 → 一个预测模型——无需编码，在 BioMate 中运行</span>
+  <span class="spacer"></span>
+  <span class="counter">阶段 <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="30.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>训练自定义模型</b></div>
+    <div class="kicker">献给手握一张电子表格和一个问题的科学家</div>
+    <h2>你有一张带标签的表。BioMate 在上面训练一个模型。</h2>
+    <p class="caption">你在一张电子表格里有一堆测量值，还有一列是你想预测的——有活性还是没有、一个浓度、一个产率。通常，这意味着得去找一个会写机器学习代码的人。而在 BioMate 里，你描述目标、上传那张表；它就在你的数据上运行标准的 Python 机器学习——<b>scikit-learn</b>，以及任务需要时的梯度提升库或深度学习库——然后交回一个训练好的模型，附带诚实的、留出的性能。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一份带标签的 CSV</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>描述那个预测</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>BioMate 运行 ML 代码</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一个模型 + 留出指标</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>是什么在驱动它</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker">这个功能要解决的问题</div>
+    <h2>你有一份 CSV 和一个问题——却没人来写这个模型。</h2>
+    <p class="caption">"我能不能从其余各列预测这一列？"是实验室里最常见的问题之一，也是没有一个专职分析师就最难动手的问题之一。缺口不在想法上，而在那些管道活上：载入表、正确地切分、挑一个模型、交叉验证、在它从没见过的数据上打分，再读出哪些特征要紧——而这每一步，都是很容易在不知不觉中写错的代码。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">这张表</div><h4>行与列</h4><p>每一行是一个样本；大多数列是测量值，有一列是你想预测的那个答案。</p></div>
+          <div class="tile"><div class="n">这门手艺</div><h4>没有 ML 工程师</h4><p>训练/测试切分、交叉验证、对的指标——做起来容易，没有懂行的人也容易做错。</p></div>
+          <div class="tile"><div class="n">这个陷阱</div><h4>自欺欺人</h4><p>在你用来训练它的同一批数据上打分，任何模型看起来都光彩夺目。诚实的数字，需要模型从没见过的数据。</p></div>
+          <div class="tile"><div class="n">所求</div><h4>一个站得住脚的答案</h4><p>不只是一个数字——一个你敢信的模型，带着你能拿给审稿人看的性能与驱动因素。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>所需：把一张带标签的表变成一个经过诚实评估的模型——而不用写代码</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="37.0">
+    <div class="kicker">开始前要懂的几个概念</div>
+    <h2>四个大白话词，就能说清整个任务。</h2>
+    <p class="caption">你不需要懂那些库——只需要这四个，其余的一切都顺理成章。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 特征与标签</div><h4>输入与答案</h4><p><b>特征</b>是你测量的那些列；<b>标签</b>是你想预测的那一列。模型学的就是两者之间的联系。</p></div>
+            <div class="tile"><div class="n">2 · 训练 / 测试切分</div><h4>先学，再查</h4><p>留出一部分数据。模型在一部分上学习，再在它从没见过的那一部分上打分——那才是唯一诚实的检验。</p></div>
+            <div class="tile"><div class="n">3 · 模型族</div><h4>哪一种模型</h4><p>一个随机森林、梯度提升，或一个小型神经网络。答案是一个类别就做分类；是一个数值就做回归。</p></div>
+            <div class="tile"><div class="n">4 · 指标</div><h4>它有多好</h4><p>类别用 accuracy 或 AUC；数值用 RMSE 或 R²。一个你报得出口的清晰分数。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整个任务，就是把 <b>特征 + 标签 → 切分 → 模型 → 指标</b>，从一个编码项目，变成一个被描述出来的目标和一个上传的文件。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲后续会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">它是怎么跑的</span> · 描述 + 上传 → 运行</div>
+    <h2>你描述那个预测；BioMate 替你运行 ML 代码。</h2>
+    <p class="caption">这不是一条带着固定按钮的固定流水线。它是 BioMate 的 <code>run_code</code> 路径：你说出想预测什么、附上你的表，BioMate 就在一个沙箱化的后端里为它写出并执行标准的 Python 机器学习代码——然后报告它找到了什么。那条用来过滤一个文件、或跑一次统计检验的同一条路径，在这里就用来训练并评估一个模型。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"从其余各列预测 Y 列"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>上传你的 CSV</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>run_code: scikit-learn / XGBoost / PyTorch</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>模型 + 指标 + 图</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">后端预装了标准的科学 Python 库——<b>pandas、NumPy、scikit-learn、statsmodels</b>——并在相应的环境里运行更重的梯度提升库或深度学习库。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>一个被描述出来的目标，作为真实的 Python 执行——不是黑箱，也不是模拟</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker"><span class="st">输入</span> · 一张带标签的表</div>
+    <h2>你要带来的：一份带特征列和一个目标列的 CSV。</h2>
+    <p class="caption">你唯一需要准备的，是一张干净的表。每一行是一个样本；特征列装着那些测量值；有一列装着你想预测的那个值。你说清哪一列是目标、你想要一个类别还是一个数值——其余的 BioMate 来办。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">行 = 样本</div><h4>一行一个例子</h4><p>化合物、病人、批次、细胞——你测的无论是什么。行越多，模型就越可信。</p></div>
+          <div class="tile"><div class="n">列 = 特征</div><h4>那些测量值</h4><p>数值或类别：实验读数、描述符、条件。这些是模型从中学习的输入。</p></div>
+          <div class="tile"><div class="n">一个目标</div><h4>答案列</h4><p>一个类别标签（有活性 / 无活性，有毒 / 安全）用于<b>分类</b>，或一个数值（IC50、产率）用于<b>回归</b>。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">文件为这次运行私密地暂存；BioMate 用 pandas 读入它，并在训练之前先报告形状、各列类型，以及任何缺失值。</p>
+        <div><span class="verdict ok"><span class="mk"></span>只要你能导出一张带标签的电子表格，你就能训练一个模型</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — TRAINING -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">步骤</span> · 切分、交叉验证、拟合</div>
+    <h2>它切分数据、交叉验证，再拟合模型。</h2>
+    <p class="caption">表一载入，BioMate 就自动把那些讲规矩的部分做掉。它留出一个测试集，在其余的上面训练，并在训练数据上用交叉验证来衡量稳定性，而不是指望某一次运气好的切分。一个标准模型——对大多数表格数据用随机森林或梯度提升树，在合适的地方用一个小型神经网络——只在训练那一部分上拟合。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">留出切分</div><h4>把测试集留在一旁</h4><p>一部分行一开始就被单独留出、永不用于训练——纯粹留着给成品模型打分。</p></div>
+          <div class="tile"><div class="n">交叉验证</div><h4>分折，别赌运气</h4><p>训练数据被切成若干折、反复打分，于是性能反映的是数据本身，而不是某一次运气好的洗牌。</p></div>
+          <div class="tile"><div class="n">拟合</div><h4>学会那个模式</h4><p>选定的模型在训练那些行上拟合——学会特征如何映射到标签。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">对于一张小的或不平衡的表，分层折和简单的类别平衡让切分保持代表性——恰恰是那种手工做时容易忘掉的细节。</p>
+        <div><span class="verdict ok"><span class="mk"></span>方法学是内建的——在一部分上训练，在另一部分上评判</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — EVALUATION -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">步骤</span> · 在它从没见过的数据上打分</div>
+    <h2>你得到的数字，是在留出集上测得的。</h2>
+    <p class="caption">这才是真正要紧的那个数字，而且它报得诚实——在模型从没训练过的那些测试行上，而不是在它背下来的那批数据上。对一个类别，你得到 accuracy 和 AUC，连同一个混淆矩阵；对一个数值，你得到 RMSE、MAE 和 R²。训练分数和留出分数之间的差距会被摆出来，而不是藏起来，因为它是过拟合最清楚的信号。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">分类</div><h4>Accuracy · AUC</h4><p>它判对的频率，以及它把正例排在负例之上的本事——外加一个记录错误的混淆矩阵。</p></div>
+          <div class="tile"><div class="n">回归</div><h4>RMSE · MAE · R²</h4><p>以目标自身单位计的典型预测误差，以及模型解释了多少变异。</p></div>
+          <div class="tile"><div class="n">差距</div><h4>训练对留出</h4><p>并排摆出。差距大，意味着模型是背下来而非学会了——诚实的数字胜过好看的数字。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">一个在训练上得分高、却在留出集上得分差的模型，会被明明白白地告诉你——这正是把那个测试集单独留在一旁的全部意义。</p>
+        <div><span class="verdict ok"><span class="mk"></span>性能报告在要紧之处——在未见过的数据上</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — FEATURE IMPORTANCE -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">步骤</span> · 是什么在驱动这个预测</div>
+    <h2>它展示模型实际倚重哪些特征。</h2>
+    <p class="caption">单有一个分数，仍然是一个黑箱。BioMate 还会报告特征重要性——模型最倚重哪些测量值——于是这个结果变成一个你能从科学上讲清所以然的东西。真正的洞见往往就藏在那里：模型印证了一个已知的驱动因素，或标出一个你原本没怎么看重的。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>训练好的模型</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>给特征排序</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>头部驱动因素，带一张图</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>一个你能讲清的结果</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">重要性是对模型用了什么的一个指引，而不是生物学因果的证据——一个靠前的排名是一个待检验的假设，而不是一个被确认的机制。把它当作方向来读，再到实验室里去验证它。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>不只是它预测得多好——还有它是从什么在预测</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — BEST PRACTICE -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">得到一个可信的模型 · 最佳实践</div>
+    <h2>三个让这个数字可信的习惯。</h2>
+    <p class="caption">一个训练好的模型，用得好就真有用处。下面三个习惯能让你把它用到最好——因为一个模型始终是一个由你给它的数据所塑造的估计，懂得这一点，正是你出于正确的理由去信那个数字的方式。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">先把数据备好</div><h4>质量决定结果</h4><p>质量与数量决定一切。表越干净、越大，模型就越能泛化——所以先在数据上下功夫。</p></div>
+          <div class="tile"><div class="n">小数据要交叉验证</div><h4>分折，别赌运气</h4><p>行数一少，单独一次切分就可能把你带偏。交叉验证在若干折上打分，让数字反映数据本身，而不是一次运气好的洗牌。</p></div>
+          <div class="tile"><div class="n">依赖前先验证</div><h4>先确认，再信任</h4><p>把留出分数当作一个估计来读，在新鲜数据上确认之后再动手——那个数字正是这样赢得你的信任的。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>一个模型是从你的数据得来的一个估计——在你依赖它之前先验证它</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">带来一张带标签的表。得到一个经过诚实检验的模型。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>一个你本可以用自己的数据回答的问题，不该非得去雇一个机器学习工程师。</b>你描述那个预测、上传你的 CSV；BioMate 就在后端运行标准的 Python ML，切分并交叉验证，在留出数据上报告性能，并把是什么在驱动它展示给你——而且把注意事项明明白白地说出来。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>准备一份带标签的 CSV——若干特征列加上一个目标列</li>
+            <li><span class="k">2</span>描述那个预测——分一个类别，或估一个数值</li>
+            <li><span class="k">3</span>BioMate 切分、交叉验证，并拟合一个标准模型</li>
+            <li><span class="k">4</span>你得到留出指标、特征重要性，以及那些诚实的注意事项</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>带来你的数据</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">一份带标签的 CSV</span></td></tr>
+            <tr><td>无需编码</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">描述目标</span></td></tr>
+            <tr><td>真实的 ML</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">run_code 里的 sklearn</span></td></tr>
+            <tr><td>诚实的分数</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">留出 + CV</span></td></tr>
+            <tr><td>最佳实践</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">交叉验证 + 留出</span></td></tr>
+          </table>
+          <p class="footnote">从一张电子表格和一个问题，到一个训练好、经过诚实评估、可解释的模型——在 BioMate 内部、用你自己的数据跑出来。一个你能讲清所以然的估计，而不是一个黑箱。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

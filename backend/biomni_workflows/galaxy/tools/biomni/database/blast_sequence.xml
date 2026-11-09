@@ -2,7 +2,7 @@
 <tool id="biomni_database_blast_sequence" name="Biomni: Blast Sequence" version="1.0.0">
     <description>Identifies a DNA sequence using NCBI BLAST with improved error handling, timeout management, and debugging.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/blast_sequence_wrapper.py' --output '$output'

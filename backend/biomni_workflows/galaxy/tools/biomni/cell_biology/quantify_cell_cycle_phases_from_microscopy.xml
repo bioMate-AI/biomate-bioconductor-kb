@@ -2,7 +2,7 @@
 <tool id="biomni_cell_biology_quantify_cell_cycle_phases_from_microscopy" name="Biomni: Quantify Cell Cycle Phases From Microscopy" version="1.0.0">
     <description>Quantify the percentage of cells in each cell cycle phase using Calcofluor white stained microscopy images.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/quantify_cell_cycle_phases_from_microscopy_wrapper.py' --output '$output'

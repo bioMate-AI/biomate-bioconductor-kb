@@ -1,0 +1,849 @@
+{
+  "completion": {
+    "status": "copied_and_digest_verified",
+    "records": 166,
+    "images": 160,
+    "client_image": "ghcr.io/regclient/regctl@sha256:45b57933c2b67bb1e280b4baaa220ef1ab212c81268ab19589fa1e83719c7c82"
+  },
+  "verification": {
+    "exact_frozen_plan_reference_set": true,
+    "references": 166,
+    "images": 160,
+    "repositories": 14,
+    "command_id": "4466e69e-3134-4146-b443-7e498b0c1633",
+    "source_images_preserved": true,
+    "payload_name_scan_complete": false
+  },
+  "records": [
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:9882715371fb4b59f34d8cdd23b9c20159c054bb54c4cd495da75833fa2f1dc3",
+      "exit_code": 0,
+      "verified_digest": "sha256:9882715371fb4b59f34d8cdd23b9c20159c054bb54c4cd495da75833fa2f1dc3"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:8ce0854e1987610b5a243d61549bb49c939394e93ca46a18a64c74b19f3ac8ba",
+      "exit_code": 0,
+      "verified_digest": "sha256:8ce0854e1987610b5a243d61549bb49c939394e93ca46a18a64c74b19f3ac8ba"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:3269d53aa22364c91836f127011920dbf1b1a643bbc0060988f010cf5489d77f",
+      "exit_code": 0,
+      "verified_digest": "sha256:3269d53aa22364c91836f127011920dbf1b1a643bbc0060988f010cf5489d77f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:f24f590ec35d767d7ddf63e26e600ec3b2e162e2583e66639f9e4d2836881f9a",
+      "exit_code": 0,
+      "verified_digest": "sha256:f24f590ec35d767d7ddf63e26e600ec3b2e162e2583e66639f9e4d2836881f9a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:9222773db274582d2baa441679c3646097b23c2471005603c40af35bb008a8e6",
+      "exit_code": 0,
+      "verified_digest": "sha256:9222773db274582d2baa441679c3646097b23c2471005603c40af35bb008a8e6"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:7564c13ea9e0300330d48aca172d0fd3354d98dc4783bd4644db638ad412a136",
+      "exit_code": 0,
+      "verified_digest": "sha256:7564c13ea9e0300330d48aca172d0fd3354d98dc4783bd4644db638ad412a136"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:439361001d9a90f49d04caab629402cd9cffc3f6b5745368f29631fbfd13ea68",
+      "exit_code": 0,
+      "verified_digest": "sha256:439361001d9a90f49d04caab629402cd9cffc3f6b5745368f29631fbfd13ea68"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet@sha256:645138b1b39487c87974e7e658adfc10c6aa79bdbdb98f62bc7a23c326bfbd73",
+      "exit_code": 0,
+      "verified_digest": "sha256:645138b1b39487c87974e7e658adfc10c6aa79bdbdb98f62bc7a23c326bfbd73"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-77e0de074eea",
+      "exit_code": 0,
+      "verified_digest": "sha256:dc8804003d4e3a80112fe6ba1fc497dbc7299f8bb55e4cef70f14449e21e45a5"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-87862d671b7a",
+      "exit_code": 0,
+      "verified_digest": "sha256:c8574628f672b325ac13e810405bf205cad43b863cdabb72d1cc6e9aab185297"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-c155893b670b",
+      "exit_code": 0,
+      "verified_digest": "sha256:2797f74c5df24fcf248850b9aefe777a059f8bd52b4179a8b8d6292970416f58"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-d5e73fe311fa",
+      "exit_code": 0,
+      "verified_digest": "sha256:aa33f171f700d3f27c97bb208fabf71642dfca63486e99c8b66448ee1605c11a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-9026e4750dbc",
+      "exit_code": 0,
+      "verified_digest": "sha256:41721b5e7884fb40b304bdab0158bd414c45c32a11ea6927b4e6c08ef9988076"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-9024d7ece990",
+      "exit_code": 0,
+      "verified_digest": "sha256:63a009da43d853ad01e9dcf71e8122afa2fbe2ef67fdfe0de0673da15efa89b0"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-102fc516e54b",
+      "exit_code": 0,
+      "verified_digest": "sha256:8a096cc1bf838f0c7c5ac4383ef67dbcd2901a0833a2fb63cb6acb597bfaa0e2"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:arm64-b753455b1e70",
+      "exit_code": 0,
+      "verified_digest": "sha256:1ea6e1fb677c7f5d0f5ad8e70c36cd33c98e9cb9f823866d15b08f9d779f23aa"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-775fc3b32823",
+      "exit_code": 0,
+      "verified_digest": "sha256:97fc5c93d4c6c4ebf86bb78ef4caef02175f7f4556a9a0d69dbc000d0eb3130a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-4ae077e836f4",
+      "exit_code": 0,
+      "verified_digest": "sha256:891296a7ff0167ea038f6906773396473e4b280ddf81b5081b5be9e265c51579"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-e41757e2dfad",
+      "exit_code": 0,
+      "verified_digest": "sha256:c16952c493c7382207f28c1dd1f61ea77ec291f1fcf2a1fc3d44bddc6c1800ab"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:arm64-92acaa93b63f",
+      "exit_code": 0,
+      "verified_digest": "sha256:a357d8133a36fad0112c25be11debba69fe697eca9acdecdee92f83f71149a66"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-fa160eb6194b",
+      "exit_code": 0,
+      "verified_digest": "sha256:5a8e2819323956854e3f583a72cc2d30f15e02d2a0b5aae7b8d5f1a23be1935a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-a23a4793368e",
+      "exit_code": 0,
+      "verified_digest": "sha256:95cdcf5aff768e942deaeb0cfb60eaa7b2a643dc81e9e78b2dfb18907dea89f8"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-417063c98e6c",
+      "exit_code": 0,
+      "verified_digest": "sha256:ae0d37386c68578dc1e7653060c3054a483c0337f6a0afc0856b0e176cf233c3"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-58f5542575cb",
+      "exit_code": 0,
+      "verified_digest": "sha256:f830e2942aab8195f85c0e61ea2a4a81ad50d6912236326db198be929f2333ba"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-3c36a3e703f0",
+      "exit_code": 0,
+      "verified_digest": "sha256:e043523c302c3af36f40e2002ac5c446f50bdb77911b73f28831ea9968ca02fa"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-833f258c1d1e",
+      "exit_code": 0,
+      "verified_digest": "sha256:0dbceec050ffaabca550efedc0b336f3c56411c758d3dd179292a8cc60feee0e"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-9e69607792c1",
+      "exit_code": 0,
+      "verified_digest": "sha256:2a53fe3217d7d87dd0d013f987476e9e2500fbe05c892eca97a00905baf416d4"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-35f23140dcbf",
+      "exit_code": 0,
+      "verified_digest": "sha256:87870a40e32f7b97a84e862287f2bf7f8c52f5b75d14535af2ecd0ca26d9c489"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-be742fab00cb",
+      "exit_code": 0,
+      "verified_digest": "sha256:1d6d2e96fdfed2e46004ae06700422f8accf46463cb7a8e196a116aa02e10316"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-9dd864818816",
+      "exit_code": 0,
+      "verified_digest": "sha256:522172631d671ad3c9f9a2fec95b37b9f0cb6f6cca9a87906690d346daebb41d"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:arm64-9d5bfb24f540",
+      "exit_code": 0,
+      "verified_digest": "sha256:2aa9b1cd96d6a444438634e22b8c14cc0740564bdf0ff8c811efd9081808d99b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-5a87f416b5bc",
+      "exit_code": 0,
+      "verified_digest": "sha256:29996879982228c16731911f8b3012b397735c8c9bd43b101e36275cce9bd808"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-8f596031383d",
+      "exit_code": 0,
+      "verified_digest": "sha256:01135bdea715d60a322458d7847bdb2ba7e6405b7a588b7f7322dd4772ecc4bb"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-8e10e9b3b33e",
+      "exit_code": 0,
+      "verified_digest": "sha256:28be5e99734ec01fa0b9cf88f8c5d7113e9790bbfc306d7c836a6cae202c3552"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-92acaa93b63f",
+      "exit_code": 0,
+      "verified_digest": "sha256:cfe14772c91f2ca4361d5b16a14e8f68823d9542bb703deed3a6f841b506179f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-e268dd6bc7c8",
+      "exit_code": 0,
+      "verified_digest": "sha256:19ad5d1dfa832c5f80c539576999b0c63c1d2127920847898d417f2af62cdf7b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-c7f5ee5eb806",
+      "exit_code": 0,
+      "verified_digest": "sha256:79066a50fe25f13a0972e73d76b622c9d9bdf32b5dfe8f6190c6241f398a5c4a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:arm64-e0209774ee99",
+      "exit_code": 0,
+      "verified_digest": "sha256:80f7c886f426623940884a3331199f1d274a7e9e71afe1247990d6336741a85a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:80f7c886f426623940884a3331199f1d274a7e9e71afe1247990d6336741a85a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-2c42bc9e6c0b",
+      "exit_code": 0,
+      "verified_digest": "sha256:408f529dbfa09e6b3968bd076c44a5fd590eeb6e6d58d4a73f803a08627d3304"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-8deeb734eb0a",
+      "exit_code": 0,
+      "verified_digest": "sha256:73a6d1ca10f5be95409fd08bfec89a79b8f6dba0213570a6b76b75f863dc7e91"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-1280bb05df3d",
+      "exit_code": 0,
+      "verified_digest": "sha256:5d8489146371fba04e0def6837c3a0c98d8570dd381263eaf76348308ca2c53f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-52fd31a680e0",
+      "exit_code": 0,
+      "verified_digest": "sha256:8f47a8f4279154d40b213d46f7773d341bb9a217b83effeccb91265822810db8"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-cb8ba2e08764",
+      "exit_code": 0,
+      "verified_digest": "sha256:33714e9445457f014dde0b177766b078223931dbc53731548e79d3515e7f7383"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-97f38f24b169",
+      "exit_code": 0,
+      "verified_digest": "sha256:87ba53cf8a09f559bae01023c457e9229ebf020573d15ba0e01e226a221e0e17"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-8c48c1aff547",
+      "exit_code": 0,
+      "verified_digest": "sha256:d0ca8d772227d13a0cb4f8d3818e15cd76bea5cde19bbc8742f22609c8ced403"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:67c65ecfbe76bbc7b1567b2485ffbbfa4d9c21133795440f967ad8278bfc905a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-e0209774ee99",
+      "exit_code": 0,
+      "verified_digest": "sha256:67c65ecfbe76bbc7b1567b2485ffbbfa4d9c21133795440f967ad8278bfc905a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-d86e7c7cc9d7",
+      "exit_code": 0,
+      "verified_digest": "sha256:bd6ab337ca930ffa54c17ca6b51a95c78384682254287cd4176aaf89f978a841"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-abe49a26272c",
+      "exit_code": 0,
+      "verified_digest": "sha256:77ed4c17591499e0f593197084c4747a9493dccedb7c905bb01926a8b8e39f5b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-e057b0f71c26",
+      "exit_code": 0,
+      "verified_digest": "sha256:69757214407b58b6dba769a939f6507658ffb54dc5e783227835e00026fb2671"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-8a923cdab2d7",
+      "exit_code": 0,
+      "verified_digest": "sha256:abfcc8f7b3093b4adc8b634b65e5bd246a9a16d13bf6f91b092e94e42710890e"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-2557bf75821d",
+      "exit_code": 0,
+      "verified_digest": "sha256:9394133b3eada09a4e8ff03f4f8db79f435351a170167a7315e23d3f36984fb9"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-4f93b8370aed",
+      "exit_code": 0,
+      "verified_digest": "sha256:d96e3c3aeeabe07fa8e2baa6b960b090ea141440459f33887ea48d7fea312e3f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-fe2d4ddfd5dc",
+      "exit_code": 0,
+      "verified_digest": "sha256:35ce13ba4f3c067b0030c8ad00a9c9d2b09073b2762a9a5402faa8ad63ec7016"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-7d4963549cee",
+      "exit_code": 0,
+      "verified_digest": "sha256:fd5d8f2cb21040d901d6741aa9722ec35db2b439e383ca618be964f2cfb2b437"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-efe44ad6bed2",
+      "exit_code": 0,
+      "verified_digest": "sha256:ac6c4c35a1b4b55c8554f9913da3b2551a515f9f602808d0282fc88602f018a7"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-4417422c92eb",
+      "exit_code": 0,
+      "verified_digest": "sha256:ed7edb114beacdfbdb893d0a471f059c2477dfab3b2fb9dd7df5628ec6637620"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:arm64-5d318cb38cfc",
+      "exit_code": 0,
+      "verified_digest": "sha256:e94e77e565d9223201cf583744ba049da04a735482332ec670d5b48dc5ff7fb6"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-85728dc568b3",
+      "exit_code": 0,
+      "verified_digest": "sha256:190b4d5c84ae70305d184c8765e2cb018caab566601d86db1f0a3ada70c913cb"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-157203c1fa8c",
+      "exit_code": 0,
+      "verified_digest": "sha256:2865d9d35450d2ce4f53b642a378082937649f53208fd1552c07dddb386ad2dd"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-cba8ba1683ea",
+      "exit_code": 0,
+      "verified_digest": "sha256:7080d227e279b1083c65e6aa3ede2484e9409be51a61131f03b24cd6730b5b90"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-37f11b99e26d",
+      "exit_code": 0,
+      "verified_digest": "sha256:b8d29e7cedb6214eb37005429256e735e9ba193ae1e72b19cb95bdfe3b7a215d"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-8c64b864e9d4",
+      "exit_code": 0,
+      "verified_digest": "sha256:f3318769db07392a9c65adc24dc4bab87be20c57f75dce6c5347513c0063098b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-5d318cb38cfc",
+      "exit_code": 0,
+      "verified_digest": "sha256:fb4e3a829ce8b2ccb4a849c219755d435ae6f0ce5bffe1e66fa91158d044b239"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-64765fb44098",
+      "exit_code": 0,
+      "verified_digest": "sha256:2b77de58d0ff40d8234b3e5a4d05e00958035178c30a5bac4e2de142618910b2"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-815cb0569f8a",
+      "exit_code": 0,
+      "verified_digest": "sha256:68053bfa7cec4deea9fd851832e1ceaf5deb16bd1411cef6bd997ac882490b55"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-70324a0d969e",
+      "exit_code": 0,
+      "verified_digest": "sha256:e462f5666e6bc93620329118217c80ab68a5f3ee2a0cb4df2a86337c285ef923"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-0cd80b632499",
+      "exit_code": 0,
+      "verified_digest": "sha256:646976dfc795588f1283af12bc2a65c7efb75901d437e5d8342f6db9ee0cb3f5"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-dbd7827f12ac",
+      "exit_code": 0,
+      "verified_digest": "sha256:90156e0a1c08d77d8fcafc1c551b405a1eaa3d6a0cd78b0a803ef4bf7898bbc0"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-cef14d0abd0f",
+      "exit_code": 0,
+      "verified_digest": "sha256:67ee12f8d5f873a80bc5614de12f09b37a8e273311eb9d429a359cd7574ca034"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-e8d548138df0",
+      "exit_code": 0,
+      "verified_digest": "sha256:ca103c8b4c981eaab407bb42a39478f4b4beaaf0a2e380ebc2dbbf6ddade518b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-b753455b1e70",
+      "exit_code": 0,
+      "verified_digest": "sha256:0c88e1c8ea9fc8038aaac18a7b717455786c0825f679b7c4c33d6ee99486a63f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-9d5bfb24f540",
+      "exit_code": 0,
+      "verified_digest": "sha256:63f02d09a54a969538454dcad5e26315f24021ffa02629cdf2d1222aed865f5f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-0d96e71e3810",
+      "exit_code": 0,
+      "verified_digest": "sha256:adb84e3acff341105de3fa3430e2d10d88ab731f0f6b27d4c5b1bbb3ebc3e978"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86-9e150e480cc5",
+      "exit_code": 0,
+      "verified_digest": "sha256:b31f1c3157b867beffb6031cdbe94558c53dd08088b61ea4c0aa7d66750b82ab"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:eaceef3bb68d77edfd742b84ae3ebec8c48714543b08a2cfe14001da8db224c9"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cloning-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:a22cadb8fb1816122961f2252807aa3ead484463a01f298bb4d70ec332fa1ec5"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cloning-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:1c905957c507feb06fa7988bc962ddb5c6ef8090c84e5ab52544e4d1e3f4897f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cloning-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:27fa71af7a218af7cd10f65bf290e2dcadb4b4e8040d31553504e220e32d46fb"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/crispr-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:efa831c15dd08c2e1dfbc7b5e6883a166e29203dcd20762ded0a7c7de86c04e4"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/crispr-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:69e93748eac27caa0a982b440ca3fcc7716988f937c117cd427c49610fc57eee"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/crispr-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:e78d8a5161afd8156d41eaa73698ac2577918e14a305b1934ab854bd551468a8"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:f85c9ee718a49de1c35a82e38e597a6d21fb46b73b582efb753ee58c17b180eb",
+      "exit_code": 0,
+      "verified_digest": "sha256:f85c9ee718a49de1c35a82e38e597a6d21fb46b73b582efb753ee58c17b180eb"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:fbb9bfd899ae781261214019ec7bfffe9f081154996caf8c3838ed71bb863fe7",
+      "exit_code": 0,
+      "verified_digest": "sha256:fbb9bfd899ae781261214019ec7bfffe9f081154996caf8c3838ed71bb863fe7"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:accc0d0614662dfd788957d8a886b095280a6a4be4eb1b1e1f79506ec6dcc3e7",
+      "exit_code": 0,
+      "verified_digest": "sha256:accc0d0614662dfd788957d8a886b095280a6a4be4eb1b1e1f79506ec6dcc3e7"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:b52d399b312e2011a877da3605d74f9ad94ef705ccca7659993ae4b81c542c69",
+      "exit_code": 0,
+      "verified_digest": "sha256:b52d399b312e2011a877da3605d74f9ad94ef705ccca7659993ae4b81c542c69"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:3f76dcdf981d6318180d566937211b2ed7a4af7677107e6de519b7b07d3b60de",
+      "exit_code": 0,
+      "verified_digest": "sha256:3f76dcdf981d6318180d566937211b2ed7a4af7677107e6de519b7b07d3b60de"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:c79e0aafe5674bab595ab5ae79655d87465635f2f7f664e95943f6ae5b3d730c",
+      "exit_code": 0,
+      "verified_digest": "sha256:c79e0aafe5674bab595ab5ae79655d87465635f2f7f664e95943f6ae5b3d730c"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:5f995b1604f0dddb54755d2eb481b2125ef96073d9c26d2108a8f7f3498fd5cc",
+      "exit_code": 0,
+      "verified_digest": "sha256:5f995b1604f0dddb54755d2eb481b2125ef96073d9c26d2108a8f7f3498fd5cc"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:1d542b11cbdf6d24c7c94e0f468aaba70c4fa3de0569cc762ac2c110eb43c23a",
+      "exit_code": 0,
+      "verified_digest": "sha256:1d542b11cbdf6d24c7c94e0f468aaba70c4fa3de0569cc762ac2c110eb43c23a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf@sha256:21392c691a96f5ab4f5f282b4176415a76bc772bea5ea68402ba348a0b13ac92",
+      "exit_code": 0,
+      "verified_digest": "sha256:21392c691a96f5ab4f5f282b4176415a76bc772bea5ea68402ba348a0b13ac92"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:2f30058f968338519ee0070f6e41fa561d522a065e968301c148d81caa736898"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools@sha256:677001241adf5af1578df26959df2e4f1edd7cc28660fefa466a4eeb6b476463",
+      "exit_code": 0,
+      "verified_digest": "sha256:677001241adf5af1578df26959df2e4f1edd7cc28660fefa466a4eeb6b476463"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools@sha256:f0228845368173e47e034c28a09412289a99607d110127cff2d584732909c26b",
+      "exit_code": 0,
+      "verified_digest": "sha256:f0228845368173e47e034c28a09412289a99607d110127cff2d584732909c26b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools@sha256:428d835a6eb7983107a9b62b8d587d9bdf13f1fb348ba2c4a74cbbd6688da0dd",
+      "exit_code": 0,
+      "verified_digest": "sha256:428d835a6eb7983107a9b62b8d587d9bdf13f1fb348ba2c4a74cbbd6688da0dd"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools@sha256:eed27756746cb339bbc5bb72f4407a8e75c2b64ee407dcda08b0f139d1add353",
+      "exit_code": 0,
+      "verified_digest": "sha256:eed27756746cb339bbc5bb72f4407a8e75c2b64ee407dcda08b0f139d1add353"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools@sha256:afda9f48aa6934cdbf6fce3c728d9275c7f302ccfd98622474972a4b41f96960",
+      "exit_code": 0,
+      "verified_digest": "sha256:afda9f48aa6934cdbf6fce3c728d9275c7f302ccfd98622474972a4b41f96960"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools@sha256:d6a98460001bc9eab6f4f43498b163d714385d7400d01bbfad07466147434759",
+      "exit_code": 0,
+      "verified_digest": "sha256:d6a98460001bc9eab6f4f43498b163d714385d7400d01bbfad07466147434759"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:ecd35f4ef986e68882a18eba65dce57d7e0dd8adfd6edb791c77f0d5e16af593"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:4ec5f34ea1b9d651dc7e60e1fe7b522ecd7cfc3c0843c8b3654bad1d9cd00be6"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:3440967cadfcbc50861da333c3aa9527ea2236dff2d5ba43c87ccb610a3d8039"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:d6a98460001bc9eab6f4f43498b163d714385d7400d01bbfad07466147434759",
+      "exit_code": 0,
+      "verified_digest": "sha256:d6a98460001bc9eab6f4f43498b163d714385d7400d01bbfad07466147434759"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:677001241adf5af1578df26959df2e4f1edd7cc28660fefa466a4eeb6b476463",
+      "exit_code": 0,
+      "verified_digest": "sha256:677001241adf5af1578df26959df2e4f1edd7cc28660fefa466a4eeb6b476463"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:eed27756746cb339bbc5bb72f4407a8e75c2b64ee407dcda08b0f139d1add353",
+      "exit_code": 0,
+      "verified_digest": "sha256:eed27756746cb339bbc5bb72f4407a8e75c2b64ee407dcda08b0f139d1add353"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:afda9f48aa6934cdbf6fce3c728d9275c7f302ccfd98622474972a4b41f96960",
+      "exit_code": 0,
+      "verified_digest": "sha256:afda9f48aa6934cdbf6fce3c728d9275c7f302ccfd98622474972a4b41f96960"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:f0228845368173e47e034c28a09412289a99607d110127cff2d584732909c26b",
+      "exit_code": 0,
+      "verified_digest": "sha256:f0228845368173e47e034c28a09412289a99607d110127cff2d584732909c26b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:f33c71e8ead39a5067b35ab7026971bed7f81398303292262c2776b7f6d8f93e",
+      "exit_code": 0,
+      "verified_digest": "sha256:f33c71e8ead39a5067b35ab7026971bed7f81398303292262c2776b7f6d8f93e"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools@sha256:4467e2048b316848a0629e138b588b9885221dbf2ce37c1a31ea17f70cb1f199",
+      "exit_code": 0,
+      "verified_digest": "sha256:4467e2048b316848a0629e138b588b9885221dbf2ce37c1a31ea17f70cb1f199"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:c6bb1e2fced4a09a844213a2fe2c90d51ade08723474e3dbf314d221f7598ae5"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:3440967cadfcbc50861da333c3aa9527ea2236dff2d5ba43c87ccb610a3d8039"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:3440967cadfcbc50861da333c3aa9527ea2236dff2d5ba43c87ccb610a3d8039"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structural-biology-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:10820e612cde6259557a7ef695fd7ca784170cbdbd12496775f543856b51b02d"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structural-biology-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:e9b067ac1ae830fcf64a6f147b91a133462641293bed50a72c27da5fa638dc71"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structural-biology-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:03598a4032f37d3312ec851707fd0765ef315279109adc4b0be1fa068e040d6b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:dd27617e7b4c2b7513bedc1987b5d02b435d857c0dcbe2b33cbb7202034f3d3d",
+      "exit_code": 0,
+      "verified_digest": "sha256:dd27617e7b4c2b7513bedc1987b5d02b435d857c0dcbe2b33cbb7202034f3d3d"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:9091bbae6846cc317f322c41401951abe311c83542e33fe4f534849312149d8d",
+      "exit_code": 0,
+      "verified_digest": "sha256:9091bbae6846cc317f322c41401951abe311c83542e33fe4f534849312149d8d"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:b2ef19377a87a75599e135e3060793c0e484bd1e195e73259cadaffdf7298813",
+      "exit_code": 0,
+      "verified_digest": "sha256:b2ef19377a87a75599e135e3060793c0e484bd1e195e73259cadaffdf7298813"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:06a3c8d60f4605e4921eb39727fe43059dd63dd955e5a280f04dfd8d9589b2c5",
+      "exit_code": 0,
+      "verified_digest": "sha256:06a3c8d60f4605e4921eb39727fe43059dd63dd955e5a280f04dfd8d9589b2c5"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:200fa71e8fa06ceb515424ce443005413c182f5ad671305678be921072621c48",
+      "exit_code": 0,
+      "verified_digest": "sha256:200fa71e8fa06ceb515424ce443005413c182f5ad671305678be921072621c48"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:749b9513c284786ffdd62b3a5cc11a888fcfbb7c848b937c0f9d69d9ac3e8153",
+      "exit_code": 0,
+      "verified_digest": "sha256:749b9513c284786ffdd62b3a5cc11a888fcfbb7c848b937c0f9d69d9ac3e8153"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:ca779b54bfeff0101c837bbf576ea1f3eda2a5c662d12aeb64e4dca53df642dc",
+      "exit_code": 0,
+      "verified_digest": "sha256:ca779b54bfeff0101c837bbf576ea1f3eda2a5c662d12aeb64e4dca53df642dc"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug@sha256:3c6ac941ba3e22b9ba49854111d68d456aa90f3c0eb54367be8a9c767394710c",
+      "exit_code": 0,
+      "verified_digest": "sha256:3c6ac941ba3e22b9ba49854111d68d456aa90f3c0eb54367be8a9c767394710c"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:4e8816e9eb736ef821d19b73ba3bc91045d3d69c93309cb0a0756cb8f51b99dc"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86-a90eb23ae58e",
+      "exit_code": 0,
+      "verified_digest": "sha256:4e8816e9eb736ef821d19b73ba3bc91045d3d69c93309cb0a0756cb8f51b99dc"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:34d78c04919351d72e8a6216977d031c4eb6d2615f07ea7d3f414fcbb17cddb7"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86-pre-fpocket-20260407",
+      "exit_code": 0,
+      "verified_digest": "sha256:bf9d7a539863512cfc261ad53a58f979cb535c8de4f700503a1a0fba9b7dd15f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86-e0209774ee99",
+      "exit_code": 0,
+      "verified_digest": "sha256:aeca4fbc31ddcf8bf9c1a347289fe9c30d2a95c41d107ae38979b6e9778ba16f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:1de4530cd27e515e20c6e8a37f1edf3f5c5c0a8a883add71d61dd98953d97716"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86-bcd0c311201f",
+      "exit_code": 0,
+      "verified_digest": "sha256:73b09c90e13d0e2a11f1c3b304770c39baa525ac9362357e6b5736037e921a6f"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug-gpu:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:4f17afef8c888077725be6371d180a7d9f7e498c2dc9a48eb36905b67ab61453"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/synthetic-biology-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:4cf5af8957c34f9918018c184b36c9c3fe33070323bca9afcdda98cb23bb3d0b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/synthetic-biology-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:5f53e3242023e88a35ad14d5d5f898dacaf4966bfe5e017dfa777e0d3d1cd2cf"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/synthetic-biology-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:fbfbf4f20005e0c6a833db600f5467b13bea0eb2e8c12142a0a3caba19f971be"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/systems-biology-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:f8731fad38daab2318389f9ccaec8d3d3ffb906b08bb88ee90274457ce076603"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/systems-biology-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:a6618a61c9b9edbbad33e3011692beaf4847e7395c1311c0313c9368eb0300fd"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/systems-biology-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:20de6e92df7cc81a18a7ff4c2f455580d8f6b68964533f9ee3a0b203ec5fbb69"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:d8324e3aa117d592031fa4b8689a788321becf878c15a4f9155b11695a2c1fe5",
+      "exit_code": 0,
+      "verified_digest": "sha256:d8324e3aa117d592031fa4b8689a788321becf878c15a4f9155b11695a2c1fe5"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:afda9f48aa6934cdbf6fce3c728d9275c7f302ccfd98622474972a4b41f96960",
+      "exit_code": 0,
+      "verified_digest": "sha256:afda9f48aa6934cdbf6fce3c728d9275c7f302ccfd98622474972a4b41f96960"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:d6a98460001bc9eab6f4f43498b163d714385d7400d01bbfad07466147434759",
+      "exit_code": 0,
+      "verified_digest": "sha256:d6a98460001bc9eab6f4f43498b163d714385d7400d01bbfad07466147434759"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:376dbdf091c742805c8f9be9e91de594cf73e43074a50983593e6c915bbd5206",
+      "exit_code": 0,
+      "verified_digest": "sha256:376dbdf091c742805c8f9be9e91de594cf73e43074a50983593e6c915bbd5206"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:faecf2722755a039efea34bf27a2a224b923bf03960f23b71e63895b84cd6e2c",
+      "exit_code": 0,
+      "verified_digest": "sha256:faecf2722755a039efea34bf27a2a224b923bf03960f23b71e63895b84cd6e2c"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:677001241adf5af1578df26959df2e4f1edd7cc28660fefa466a4eeb6b476463",
+      "exit_code": 0,
+      "verified_digest": "sha256:677001241adf5af1578df26959df2e4f1edd7cc28660fefa466a4eeb6b476463"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:f0228845368173e47e034c28a09412289a99607d110127cff2d584732909c26b",
+      "exit_code": 0,
+      "verified_digest": "sha256:f0228845368173e47e034c28a09412289a99607d110127cff2d584732909c26b"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:f0efb92cf06e0319733bee9ddc8572e057a77faef0b9f9b408af5482e7b729cd",
+      "exit_code": 0,
+      "verified_digest": "sha256:f0efb92cf06e0319733bee9ddc8572e057a77faef0b9f9b408af5482e7b729cd"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:eed27756746cb339bbc5bb72f4407a8e75c2b64ee407dcda08b0f139d1add353",
+      "exit_code": 0,
+      "verified_digest": "sha256:eed27756746cb339bbc5bb72f4407a8e75c2b64ee407dcda08b0f139d1add353"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:cf42b1a04b894c733fcbb5d9a722d9823837633e51fe91ffa72653c907dc6fef",
+      "exit_code": 0,
+      "verified_digest": "sha256:cf42b1a04b894c733fcbb5d9a722d9823837633e51fe91ffa72653c907dc6fef"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:3d1e8a231b4e9ec7495f3c62f0b4dd0ee64cb7345177f7a1a1ad78843f569137",
+      "exit_code": 0,
+      "verified_digest": "sha256:3d1e8a231b4e9ec7495f3c62f0b4dd0ee64cb7345177f7a1a1ad78843f569137"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:1d4cd4ef050ae22abbd1da40fc8d8eca84b15558018738fc4a43b8eb72b82da2",
+      "exit_code": 0,
+      "verified_digest": "sha256:1d4cd4ef050ae22abbd1da40fc8d8eca84b15558018738fc4a43b8eb72b82da2"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:4878e504d0c5f9b2369c23262f5c7079e04d0eb9235ec6749dfca38eb1861626",
+      "exit_code": 0,
+      "verified_digest": "sha256:4878e504d0c5f9b2369c23262f5c7079e04d0eb9235ec6749dfca38eb1861626"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:e75903bd1cd69cc195fb6c4ea479e4ba0bd9312bf8be572e25aafcf5eac4c373",
+      "exit_code": 0,
+      "verified_digest": "sha256:e75903bd1cd69cc195fb6c4ea479e4ba0bd9312bf8be572e25aafcf5eac4c373"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools@sha256:56dcb1338a5eb9ed0ebf697139d1b06c342461cd2d6f228c121cd7e4aac39dc6",
+      "exit_code": 0,
+      "verified_digest": "sha256:56dcb1338a5eb9ed0ebf697139d1b06c342461cd2d6f228c121cd7e4aac39dc6"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86",
+      "exit_code": 0,
+      "verified_digest": "sha256:b68d6f5bfcfec7c0fe0b5f6fdd6464863ec420d6fd952e0e1cd809aee49b8af4"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86-bb17dc16b887",
+      "exit_code": 0,
+      "verified_digest": "sha256:b68d6f5bfcfec7c0fe0b5f6fdd6464863ec420d6fd952e0e1cd809aee49b8af4"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86-84544221742f",
+      "exit_code": 0,
+      "verified_digest": "sha256:5de4a1ca66db1c87018031589e3a26a2813897ed36f87b104274088ecb4971b3"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:full-optimized",
+      "exit_code": 0,
+      "verified_digest": "sha256:157e9371937b0fc6599e4f38e4016840cc8c6bb7060b83756a953daf9a0247ca"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86-77d4dc916e5d",
+      "exit_code": 0,
+      "verified_digest": "sha256:8ad14648b5fc82ef4249df036681fa04bb4841b08b84d92b2bcf9f6e8bfe0abd"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:rna",
+      "exit_code": 0,
+      "verified_digest": "sha256:0fa859ee6b30a734a441d5ac0d3208139bc2c41fe04f42d009a73918fe6f4461"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:3440967cadfcbc50861da333c3aa9527ea2236dff2d5ba43c87ccb610a3d8039"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:arm64",
+      "exit_code": 0,
+      "verified_digest": "sha256:791790aa855c1a4d16c0829baff0278b1303e5a0cf711814e88466f7bec4ffef"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:arm64-bb17dc16b887",
+      "exit_code": 0,
+      "verified_digest": "sha256:791790aa855c1a4d16c0829baff0278b1303e5a0cf711814e88466f7bec4ffef"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:molecular",
+      "exit_code": 0,
+      "verified_digest": "sha256:72f2ee436c0b9693652f858eda40fcb973dd02deb8489c85eb4c15b3cf1de4c1"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools-base@sha256:8734df38f9445656b4d4b8bb468519d50546730091b674894e95798f9664232a",
+      "exit_code": 0,
+      "verified_digest": "sha256:8734df38f9445656b4d4b8bb468519d50546730091b674894e95798f9664232a"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools-base@sha256:d40186f5e45ece9ff8ddef7d2eea8564cf7068bf44f1f79b92a71b43667f42fd",
+      "exit_code": 0,
+      "verified_digest": "sha256:d40186f5e45ece9ff8ddef7d2eea8564cf7068bf44f1f79b92a71b43667f42fd"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools-base:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:fc1927eba129579f48fb9b3fadba716fef27b9a7bf97953d0ee133ec972cd2fb"
+    },
+    {
+      "target": "399683337364.dkr.ecr.us-west-2.amazonaws.com/workflow-lite:latest",
+      "exit_code": 0,
+      "verified_digest": "sha256:6c6d345120f2c7bc2b2702da9cb9af5a692e01fad13ea2a0410586f38143d741"
+    }
+  ]
+}

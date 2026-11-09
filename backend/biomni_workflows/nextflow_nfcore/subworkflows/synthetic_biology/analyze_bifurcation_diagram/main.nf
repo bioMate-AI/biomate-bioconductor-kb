@@ -22,7 +22,7 @@ process ANALYZE_BIFURCATION_DIAGRAM {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/workflow-lite:latest'
 
     input:
     val(meta)  // Meta information for this run

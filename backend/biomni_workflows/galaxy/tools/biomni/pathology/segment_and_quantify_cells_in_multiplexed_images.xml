@@ -2,7 +2,7 @@
 <tool id="biomni_pathology_segment_and_quantify_cells_in_multiplexed_images" name="Biomni: Segment And Quantify Cells In Multiplexed Images" version="1.0.0">
     <description>Segment cells and quantify protein expression levels from multichannel tissue images.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/segment_and_quantify_cells_in_multiplexed_images_wrapper.py' --output '$output'

@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_interspecies_gene_conversion" name="Biomni: Interspecies Gene Conversion" version="1.0.0">
     <description>Convert ENSEMBL gene IDs between different species using BioMart homology mapping.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/interspecies_gene_conversion_wrapper.py' --output '$output'

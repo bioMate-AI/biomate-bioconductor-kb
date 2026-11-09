@@ -1,0 +1,13 @@
+{
+  "methods": [
+    "snf",
+    "mfa"
+  ],
+  "omics": [
+    "s3://biomate-nextflow-work/cll_test/mrna.csv",
+    "s3://biomate-nextflow-work/cll_test/methylation.csv"
+  ],
+  "labels": "s3://biomate-nextflow-work/cll_test/ighv_labels.csv",
+  "n_clusters": 2,
+  "name": "BioMate real comparison acceptance 20261010"
+}

@@ -1,38 +1,50 @@
 {
-  "z-ai_glm-5.3-prime": {
+  "anthropic/claude-opus-5": {
     "B_acc": 0.95,
-    "mean_recall": 0.799
+    "mean_recall": 0.8166666666666667
   },
-  "openai_gpt-6.1-sol-pro": {
+  "google/gemini-3.1-pro-preview": {
+    "B_acc": 0.8,
+    "mean_recall": 0.6625
+  },
+  "moonshotai/kimi-k3": {
+    "B_acc": 0.95,
+    "mean_recall": 0.7766666666666666
+  },
+  "deepseek/deepseek-v4-pro": {
+    "B_acc": 0.8,
+    "mean_recall": 0.6725
+  },
+  "z-ai/glm-5.2": {
+    "B_acc": 0.8,
+    "mean_recall": 0.6925
+  },
+  "z-ai/glm-5.3-prime": {
+    "B_acc": 0.95,
+    "mean_recall": 0.7991666666666667
+  },
+  "openai/gpt-6.1-sol-pro": {
     "B_acc": 0.8,
     "mean_recall": 0.655
   },
-  "moonshotai_kimi-k3": {
-    "B_acc": 0.95,
-    "mean_recall": 0.777
-  },
-  "deepseek_deepseek-v4-pro": {
-    "B_acc": 0.8,
-    "mean_recall": 0.672
-  },
-  "qwen_qwen-2.5-7b-instruct": {
-    "B_acc": 0.35,
-    "mean_recall": 0.366
-  },
-  "openai_gpt-5.6-luna": {
+  "openai/gpt-5.6-luna": {
     "B_acc": 0.85,
-    "mean_recall": 0.733
+    "mean_recall": 0.7325
   },
-  "google_gemini-3.1-pro-preview": {
+  "qwen/qwen3.8-max-prime": {
+    "B_acc": 0.65,
+    "mean_recall": 0.5283333333333333
+  },
+  "qwen/qwen3.5-27b": {
     "B_acc": 0.8,
-    "mean_recall": 0.662
+    "mean_recall": 0.6316666666666666
   },
-  "z-ai_glm-5.2": {
-    "B_acc": 0.8,
-    "mean_recall": 0.693
+  "qwen/qwen3.5-9b": {
+    "B_acc": 0.25,
+    "mean_recall": 0.19666666666666666
   },
-  "anthropic_claude-opus-5": {
-    "B_acc": 0.95,
-    "mean_recall": 0.817
+  "qwen/qwen-2.5-7b-instruct": {
+    "B_acc": 0.35,
+    "mean_recall": 0.36583333333333334
   }
 }

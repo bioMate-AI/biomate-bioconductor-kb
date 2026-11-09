@@ -9,7 +9,7 @@ export interface LicenseRequirement {
   tool_id: string;
   display_name: string;
   vendor: string;
-  type: 'docker_auth' | 'license_key' | 'license_server' | 'license_agreement' | 'api_key' | 'none';
+  type: 'docker_auth' | 'license_key' | 'license_server' | 'license_agreement' | 'license_image' | 'api_key' | 'none';
   registration_url: string;
   approval_time: string;
   cost: string;
@@ -29,6 +29,7 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
   const [token, setToken] = useState('');
   const [licenseKey, setLicenseKey] = useState('');
   const [licenseServer, setLicenseServer] = useState('');
+  const [containerImage, setContainerImage] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -45,6 +46,8 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
       data = { license_key: licenseKey.trim() };
     } else if (tool.type === 'license_server') {
       data = { license_server: licenseServer.trim() };
+    } else if (tool.type === 'license_image') {
+      data = { container_image: containerImage.trim() };
     } else if (tool.type === 'license_agreement') {
       data = { agreed: 'true' };
     }
@@ -146,6 +149,23 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
               />
               <p className="text-xs text-muted-foreground">
                 Format: <code>port@hostname</code> — the FlexLM/FlexNet server address provided by your IT department.
+              </p>
+            </div>
+          )}
+
+          {tool.type === 'license_image' && (
+            <div className="space-y-1.5">
+              <Label htmlFor="cred-container-image">Licensed container image</Label>
+              <Input
+                id="cred-container-image"
+                value={containerImage}
+                onChange={e => setContainerImage(e.target.value)}
+                placeholder="123456789012.dkr.ecr.us-west-2.amazonaws.com/your-amber/pmemd:latest"
+                autoComplete="off"
+              />
+              <p className="text-xs text-muted-foreground">
+                A container image you own that includes the licensed {tool.display_name} binary (e.g. pmemd.cuda).
+                The run uses it for the dynamics steps. Leave this unset to run on the free OpenMM engine instead.
               </p>
             </div>
           )}

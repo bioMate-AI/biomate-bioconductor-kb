@@ -2,7 +2,7 @@
 <tool id="biomni_cancer_biology_perform_gene_expression_nmf_analysis" name="Biomni: Perform Gene Expression Nmf Analysis" version="1.0.0">
     <description>Performs Non-negative Matrix Factorization (NMF) on gene expression data to extract</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/perform_gene_expression_nmf_analysis_wrapper.py' --output '$output'

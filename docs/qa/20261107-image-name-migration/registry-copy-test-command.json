@@ -1,0 +1,8 @@
+{
+  "command_id": "4466e69e-3134-4146-b443-7e498b0c1633",
+  "instance": "i-0482a6fa98c6f301a",
+  "directory": "/tmp/biomate-image-publish-20261107-test1",
+  "images": 160,
+  "source_images_preserved": true,
+  "iam_or_firewall_changed": false
+}

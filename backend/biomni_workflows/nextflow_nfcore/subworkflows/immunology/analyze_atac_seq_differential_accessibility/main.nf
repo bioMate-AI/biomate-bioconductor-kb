@@ -25,7 +25,7 @@ process ANALYZE_ATAC_SEQ_DIFFERENTIAL_ACCESSIBILITY {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
-    // Peak-calling engine = MACS3 (maintained, CLI-compatible successor to MACS2). biomni-tools:x86
+    // Peak-calling engine = MACS3 (maintained, CLI-compatible successor to MACS2). workflow-tools:x86
     // ships no macs2, and the bioconda macs2 biocontainers fail at runtime with
     // `undefined symbol: __log_finite` (glibc math alias dropped in glibc >=2.28; verified on real
     // Batch probes 2026-10-04). macs3 imports clean; `macs3 callpeak`/`bdgdiff` take the same args.

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 流程 QC——由编码化的质量门判定 PASS 或 FAIL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">流程 QC——编码化的质量门判定 PASS 或 FAIL</span>
+  <span class="spacer"></span>
+  <span class="counter">场景 <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE · THE TASK -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">RealBio 能力 · 流程 QC</div>
+    <h2>这次运行通得过质控吗？是一个分数，而不是一次猜测。</h2>
+    <p class="caption">给定一份实验方案及其产出，任务就是给出一个结论：对照正确的质量门，判定它<b>通过还是没通过</b>——一条 ADMET <code>hERG</code> 安全上限、一个最低测序覆盖深度、一个模型被允许外推的限度。它之所以难，是因为判得对靠的是<i>领域阈值</i>和<i>判断</i>，而不是一段通顺的文字。让一个语言模型扫一眼，它只能靠猜。BioMate 则拿它去对照一条编码化的质量门来检查。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一份方案及其产出</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>实测值</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>对照领域阈值</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>PASS / FAIL——站得住脚</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT · THE GATES -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">BioMate 的做法</span> · 实测值对比阈值</div>
+    <h2>每道门展示两个数字，然后中止、提醒或放行。</h2>
+    <p class="caption">BioMate 把每一道质量门都当作一次比较来评估：<b>实测值</b>对比<b>编码化的阈值</b>。要紧的越界会<b>中止</b>运行；轻微的未达标给出一条<b>提醒</b>；指标干净则<b>放行</b>。每次的逻辑都一样——所以这个结论是可复现的，而不是一家之见。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big" style="gap:18px">
+          <!-- gate table, drawn with divs -->
+          <div style="display:grid; grid-template-columns:1.6fr .9fr .9fr 1fr; gap:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden">
+            <!-- header -->
+            <div style="letter-spacing:.06em; text-transform:uppercase; color:var(--mut); background:var(--panel2); padding:11px 16px">质量门</div>
+            <div style="letter-spacing:.06em; text-transform:uppercase; color:var(--mut); background:var(--panel2); padding:11px 16px">实测值</div>
+            <div style="letter-spacing:.06em; text-transform:uppercase; color:var(--mut); background:var(--panel2); padding:11px 16px">阈值</div>
+            <div style="letter-spacing:.06em; text-transform:uppercase; color:var(--mut); background:var(--panel2); padding:11px 16px">判定</div>
+            <!-- row 1: HALT -->
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--ink); font-weight:600"><code>hERG</code> 抑制率（ADMET）</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--red); font-weight:600">0.68</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--mut)">&le; 0.50</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line)"><span class="verdict" style="margin:0; padding:4px 9px; background:var(--red-bg); color:var(--red)"><span class="mk"></span>中止</span></div>
+            <!-- row 2: ADVISORY -->
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--ink); font-weight:600">覆盖深度</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--amber); font-weight:600">24&times;</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--mut)">&ge; 30&times;</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line)"><span class="verdict" style="margin:0; padding:4px 9px; background:var(--amber-bg); color:var(--amber)"><span class="mk"></span>提醒</span></div>
+            <!-- row 3: PASS -->
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--ink); font-weight:600">口服生物利用度</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--green); font-weight:600">0.41</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line); color:var(--mut)">&ge; 0.30</div>
+            <div style="padding:13px 16px; border-top:1px solid var(--line)"><span class="verdict" style="margin:0; padding:4px 9px; background:var(--green-bg); color:var(--green)"><span class="mk"></span>通过</span></div>
+          </div>
+          <p class="footnote" style="margin-top:0">示意性的质量门逻辑。一旦中止，BioMate 的<b>自动循环</b>还能加以补救——调整那个出问题的参数（<span style="color:var(--red)">原值</span> &rarr; <span style="color:var(--green)">现值</span>）并重跑——而不只是报告这次失败。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>两个数字，一条规则——中止、提醒或放行</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT · SCORE VS LLMs -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker"><span class="st">结果</span> · PASS/FAIL 准确率与 LLM 对比</div>
+    <h2>0.925 对比模型的 0.33–0.63。</h2>
+    <p class="caption">在 RealBio 的流程 QC 任务上，BioMate 有 <b>0.925</b> 的比例能正确判出 PASS 或 FAIL。而一个语言模型直接回答同样的问题，成绩落在 <b>0.33 到 0.63</b> 之间——最差时几乎只是抛硬币，即便最好也相差甚远。编码化的质量门不靠猜。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big" style="gap:26px">
+          <!-- CSS bar chart (divs + inline styles, no library) -->
+          <div style="display:flex; flex-direction:column; gap:22px">
+            <!-- BioMate bar -->
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:150px; text-align:right; font-weight:600; color:var(--ink)">BioMate</div>
+              <div style="flex:1; height:42px; background:var(--panel2); border-radius:6px; position:relative; border:1px solid var(--line)">
+                <div style="position:absolute; top:0; left:0; bottom:0; width:92.5%; background:var(--green); border-radius:6px 0 0 6px"></div>
+                <div style="position:absolute; top:0; bottom:0; left:calc(92.5% + 12px); display:flex; align-items:center; font-weight:600; color:var(--green)">0.925</div>
+              </div>
+            </div>
+            <!-- LLM-direct bar (range band 0.33 → 0.63) -->
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:150px; text-align:right; font-weight:600; color:var(--ink)">LLM 直答</div>
+              <div style="flex:1; height:42px; background:var(--panel2); border-radius:6px; position:relative; border:1px solid var(--line)">
+                <div style="position:absolute; top:0; bottom:0; left:33%; width:30%; background:var(--red); opacity:.80; border-radius:4px"></div>
+                <div style="position:absolute; top:0; bottom:0; left:calc(63% + 12px); display:flex; align-items:center; font-weight:600; color:var(--red)">0.33&ndash;0.63</div>
+              </div>
+            </div>
+            <!-- axis -->
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:150px"></div>
+              <div style="flex:1; display:flex; justify-content:space-between; color:var(--mut)">
+                <span>0.0</span><span>0.25</span><span>0.50</span><span>0.75</span><span>1.0</span>
+              </div>
+            </div>
+          </div>
+          <p class="footnote" style="margin-top:0">RealBio 流程 QC 任务上的 PASS/FAIL 准确率。LLM 直答以其观测到的区间呈现；即便是它最好的一次（0.63），也远低于 BioMate 由编码化质量门得出的判定。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>比 LLM 最好的一次高 0.30，比最差的一次高 0.59</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TITLE · TAKEAWAY -->
+  <section class="scene title" data-seconds="29.0">
+    <div class="kicker">要点</div>
+    <h2>编码化、可验证的质量门，胜过模型去猜 PASS 还是 FAIL。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">质控不是一项写作任务——它是一次<b>对照已知阈值的比较</b>。BioMate 把领域质量门编码一次，并在每次运行中都以同样的方式应用，于是这个 PASS/FAIL 的结论是可复现、站得住脚的。而让一个模型来判同一次运行，它没有一条固定的阈值来约束自己——分数也说明了这一点。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>实测值对照编码化的领域阈值</li>
+            <li><span class="k">2</span>中止 / 提醒 / 通过——每次运行都是同一条规则</li>
+            <li><span class="k">3</span>自动循环能补救一次中止，而不只是报告它</li>
+            <li><span class="k">4</span>0.925 的准确率——不是对一个结论的猜测</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>BioMate</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">0.925 PASS/FAIL</span></td></tr>
+            <tr><td>LLM 直答</td><td><span class="verdict open" style="margin:0; padding:3px 8px">0.33–0.63</span></td></tr>
+            <tr><td>怎么做到</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">实测值对比阈值</span></td></tr>
+            <tr><td>失败时</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">自动循环补救</span></td></tr>
+            <tr><td>可重复</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">同一道门，每次运行</span></td></tr>
+          </table>
+          <p class="footnote">一个你能写进报告的判定——因为它是由一道门决定的，而不是一句听着顺耳的话。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

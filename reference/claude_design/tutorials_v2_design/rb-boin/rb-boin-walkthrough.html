@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · BOIN dose-escalation — a validated clinical design vs an LLM's reasoning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">BOIN dose-escalation — a validated clinical design vs an LLM reasoning it out</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — THE TASK (title) -->
+  <section class="scene title" data-seconds="31.0">
+    <div class="kicker">The task · phase-I dose escalation</div>
+    <h2>Which dose next — and which is the maximum tolerated dose?</h2>
+    <p class="caption">In a phase-I trial, patients are dosed a few at a time, and each cohort's toxicities decide what happens next: escalate, hold, or step down — and, in the end, which dose is declared the <b>maximum tolerated dose</b>. This is not a judgement call. It is a pre-specified, sequential statistical decision rule, and getting it wrong has a direct cost in patient safety.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Observed toxicities per cohort</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>A pre-specified decision rule</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Escalate / stay / de-escalate</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>The maximum tolerated dose</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker">BioMate doing it · the published BOIN design</div>
+    <h2>BioMate runs the Bayesian Optimal Interval design, not a guess.</h2>
+    <p class="caption">The Bayesian Optimal Interval (BOIN) design derives its escalation and de-escalation boundaries in advance, from the model and the target toxicity rate. BioMate applies those boundaries to the observed data the same way every time — a codified rule, executed, rather than a model talking itself toward an answer.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · BOUNDARIES</div><h4>Set before the trial</h4><p>From the target toxicity rate, BOIN fixes the escalate-below and de-escalate-above boundaries in advance — the rule is defined before any patient is dosed.</p></div>
+          <div class="tile"><div class="n">2 · APPLY</div><h4>To the observed data</h4><p>At each cohort, the observed toxicity rate is compared to those boundaries to decide the next dose — deterministically, with no re-interpretation.</p></div>
+          <div class="tile"><div class="n">3 · SELECT MTD</div><h4>In milligrams</h4><p>When enrolment ends, the design selects the maximum tolerated dose — reported as a concrete dose level in milligrams, the clinically actionable answer.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Concept view of the published BOIN rule — pre-specified boundaries applied to the trial data. This is decision-support for trial design, not medical advice.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A validated, auditable clinical design — run, not reasoned</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT: SCORE vs LLM (bar chart) -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker">The result · correct MTD selection</div>
+    <h2>On our dose-escalation benchmark: 0.80 versus 0.24.</h2>
+    <p class="caption">The metric is the fraction of trials where the correct maximum tolerated dose — in milligrams — is selected. BioMate running the BOIN design against a large language model answering the same clinical question directly.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div style="display:flex; flex-direction:column; gap:26px">
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px; color:var(--ink); font-weight:600; text-align:right">BioMate</div>
+              <div style="flex:1; height:46px; background:var(--panel2); border:1px solid var(--line2); border-radius:6px; position:relative; overflow:hidden">
+                <div style="width:80%; height:100%; background:var(--green); display:flex; align-items:center; justify-content:flex-end; padding-right:16px; border-radius:5px 0 0 5px">
+                  <span style="color:#fff; font-weight:600">0.80</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px; color:var(--ink); font-weight:600; text-align:right">LLM-direct</div>
+              <div style="flex:1; height:46px; background:var(--panel2); border:1px solid var(--line2); border-radius:6px; position:relative; overflow:hidden">
+                <div style="width:24%; height:100%; background:var(--mut); display:flex; align-items:center; justify-content:flex-end; padding-right:14px; border-radius:5px 0 0 5px">
+                  <span style="color:#fff; font-weight:600">0.24</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px"></div>
+              <div style="flex:1; display:flex; justify-content:space-between; color:var(--mut)">
+                <span>0.0</span><span>0.5</span><span>1.0 — correct MTD-in-mg</span>
+              </div>
+            </div>
+
+          </div>
+          <p class="footnote" style="margin-top:24px">Correct MTD-in-mg selection · n = 60, cross-harness (BioMate's BOIN benchmark vs the RealBio LLM sweep — not a same-item comparison). Real ledger figures; no other numbers added.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>0.80 vs 0.24 on correct maximum-tolerated-dose selection</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TAKEAWAY (title) -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">The takeaway</div>
+    <h2>Run a validated clinical design; don't ask a model to reason it out.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">For a sequential safety decision, executing the published BOIN design beats a language model reasoning its way to a dose — <b>0.80 against 0.24</b> on correct maximum-tolerated-dose selection. A codified statistical rule is auditable, where a model's chain of reasoning is not.</p>
+          <p class="caption sub" style="margin-top:14px">BioMate is a trial-design decision-support tool — not medical advice.</p>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>BioMate (BOIN)</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">0.80 correct MTD-in-mg</span></td></tr>
+            <tr><td>LLM-direct</td><td><span class="verdict plain" style="margin:0; padding:3px 8px">0.24</span></td></tr>
+            <tr><td>Evidence</td><td><span class="verdict open" style="margin:0; padding:3px 8px">n = 60, cross-harness</span></td></tr>
+            <tr><td>Why it wins</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Validated + auditable rule</span></td></tr>
+          </table>
+          <p class="footnote">A pre-specified design, executed the same way every run — reproducible, inspectable, and defensible where a model's reasoning cannot be.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

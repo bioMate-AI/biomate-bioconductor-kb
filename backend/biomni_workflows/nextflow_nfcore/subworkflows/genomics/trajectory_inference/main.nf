@@ -159,8 +159,8 @@ process SCVELO_DYNAMICS {
     label 'process_high'
     publishDir { "${params.outdir}/${meta.id}/scvelo" }, mode: 'copy'
 
-    // biomate/biomni-tools has Python, scanpy, and scvelo installed
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // biomate/workflow-tools has Python, scanpy, and scvelo installed
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(adata_h5ad)

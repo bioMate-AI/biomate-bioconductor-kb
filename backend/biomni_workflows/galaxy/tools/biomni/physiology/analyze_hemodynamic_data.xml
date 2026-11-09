@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_analyze_hemodynamic_data" name="Biomni: Analyze Hemodynamic Data" version="1.0.0">
     <description>Analyzes raw blood pressure data to calculate key hemodynamic parameters.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_hemodynamic_data_wrapper.py' --output '$output'

@@ -34,6 +34,7 @@ import {
   Columns3,
   BarChart3,
   SquareTerminal,
+  Pencil,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import { t } from "@/lib/i18n"
@@ -121,7 +122,7 @@ const HEADER_QUALITY: Record<PerceptionQuality, { dot: string; label: string }> 
   blocked: { dot: "bg-red-500", label: "Blocked" },
 }
 
-type PreviewView = "table" | "columns" | "plot"
+type PreviewView = "table" | "columns" | "plot" | "edit"
 
 export function DatasetObject({
   dataset,
@@ -148,7 +149,7 @@ export function DatasetObject({
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
-  const { data: profile, isLoading, isError } = usePerceptionProfile(
+  const { data: profile, isLoading, isError, refetch: refetchProfile } = usePerceptionProfile(
     dataset.ref,
     dataset.name,
   )
@@ -264,6 +265,59 @@ export function DatasetObject({
     }
   }
   const effectiveVersions = versionable ? (projectVersions ?? []) : versions
+
+  // Compare a past version against current (design §4.4 — column + cell diff).
+  const [diffFor, setDiffFor] = useState<string | null>(null)
+  const [diffData, setDiffData] = useState<any | null>(null)
+  const [diffLoading, setDiffLoading] = useState(false)
+  const handleCompare = async (versionNo: string) => {
+    if (!projectId) return
+    if (diffFor === versionNo) { setDiffFor(null); setDiffData(null); return }  // toggle off
+    setDiffFor(versionNo); setDiffData(null); setDiffLoading(true); setVersionError(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/diff`, { credentials: "include" })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `Compare failed (${r.status})`)
+      setDiffData(await r.json())
+    } catch (e: any) {
+      setVersionError(e?.message ?? t('dataset_obj.compare_failed')); setDiffFor(null)
+    } finally {
+      setDiffLoading(false)
+    }
+  }
+
+  // Edit-in-place → save as a new version (design §4.3/§4.4). Only tabular files in
+  // a project. The sample table is editable; edits are applied to the FULL file
+  // server-side (no truncation) and written as a new version.
+  const editable = versionable && ["csv", "tsv", "tab", "txt"].includes(fileExt)
+  const [cellEdits, setCellEdits] = useState<Record<string, string>>({})  // key `${row}:${colName}`
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editSaved, setEditSaved] = useState<number | null>(null)
+  const handleSaveEdit = async () => {
+    if (!projectId) return
+    const edits = Object.entries(cellEdits).map(([k, value]) => {
+      const i = k.indexOf(":")
+      return { row: Number(k.slice(0, i)), col: k.slice(i + 1), value }
+    })
+    if (edits.length === 0) return
+    setSavingEdit(true); setEditError(null); setEditSaved(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/edit`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ edits }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error((j as any)?.error || `Save failed (${r.status})`)
+      setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
+      await loadProjectVersions()
+      refetchProfile?.()
+    } catch (e: any) {
+      setEditError(e?.message ?? t('dataset_obj.edit_failed'))
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
   // Current version label for the header chip + stat grid. Falls back to the
   // caller's list, else v1 (every file has at least an implicit v1).
@@ -443,6 +497,20 @@ export function DatasetObject({
                   <Icon className="h-3 w-3" />{label}
                 </button>
               ))}
+              {editable && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewView("edit")}
+                  data-testid="dataset-preview-toggle-edit"
+                  aria-pressed={previewView === "edit"}
+                  className={
+                    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm " +
+                    (previewView === "edit" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted/50")
+                  }
+                >
+                  <Pencil className="h-3 w-3" />{t('dataset_obj.view_edit')}
+                </button>
+              )}
             </div>
 
             {previewView === "table" && (
@@ -577,6 +645,69 @@ export function DatasetObject({
               )
             )}
 
+            {previewView === "edit" && (
+              profile?.columns?.length && profile.sampleRows?.length ? (
+                <div className="space-y-2" data-testid="dataset-preview-edit">
+                  <p className="text-xs text-muted-foreground">
+                    {t('dataset_obj.edit_hint', { n: profile.sampleRows.length })}
+                  </p>
+                  <div className="overflow-x-auto rounded border">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr style={{ background: 'var(--bm-accent-soft)' }}>
+                          {profile.columns.map((c, i) => (
+                            <th key={i} className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b" style={{ color: 'var(--bm-accent-ink)' }}>{c}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profile.sampleRows.map((r, ri) => (
+                          <tr key={ri} className="odd:bg-muted/20">
+                            {profile.columns!.map((c, ci) => {
+                              const key = `${ri}:${c}`
+                              const edited = key in cellEdits
+                              return (
+                                <td key={ci} className="px-1 py-0.5 border-b">
+                                  <input
+                                    className={`w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${edited ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`}
+                                    value={edited ? cellEdits[key] : (r[ci] ?? "")}
+                                    data-testid={`dataset-edit-cell-${ri}-${ci}`}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      setCellEdits((prev) => {
+                                        const next = { ...prev }
+                                        if (val === (r[ci] ?? "")) delete next[key]
+                                        else next[key] = val
+                                        return next
+                                      })
+                                    }}
+                                  />
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {editError && <p className="text-xs text-destructive" data-testid="dataset-edit-error">{editError}</p>}
+                  {editSaved != null && <p className="text-xs text-emerald-600 dark:text-emerald-400" data-testid="dataset-edit-saved">{t('dataset_obj.edit_saved', { v: editSaved })}</p>}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleSaveEdit}
+                      disabled={savingEdit || Object.keys(cellEdits).length === 0}
+                      data-testid="dataset-edit-save"
+                    >{savingEdit ? t('dataset_obj.edit_saving') : t('dataset_obj.edit_save', { n: Object.keys(cellEdits).length })}</Button>
+                    <span className="text-xs text-muted-foreground">{t('dataset_obj.edit_appendonly')}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground" data-testid="dataset-preview-edit-none">{t('dataset_obj.no_preview')}</p>
+              )
+            )}
+
             {/* Stat grid (design §4.3): rows · columns · size · current version. */}
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
               <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
@@ -615,6 +746,15 @@ export function DatasetObject({
                         {t('dataset_obj.used_by_runs', { n: consumers.length })}
                       </span>
                     )}
+                    {/* Compare this version against current (column + cell diff). */}
+                    {versionable && !v.current && (
+                      <button
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                        data-testid={`dataset-version-compare-${v.version}`}
+                        disabled={diffLoading && diffFor === v.version}
+                        onClick={() => handleCompare(v.version)}
+                      >{diffFor === v.version ? t('dataset_obj.compare_hide') : t('dataset_obj.compare')}</button>
+                    )}
                     {/* Restore a past version (append-only — writes a new version). */}
                     {versionable && !v.current && (
                       <button
@@ -637,6 +777,38 @@ export function DatasetObject({
                       {v.note}
                       {v.author && <span className="text-muted-foreground"> — {v.author}</span>}
                     </p>
+                  )}
+                  {diffFor === v.version && (
+                    <div className="mt-1.5 rounded border bg-muted/20 p-2 text-xs space-y-1" data-testid={`dataset-version-diff-${v.version}`}>
+                      {diffLoading ? (
+                        <p className="text-muted-foreground">{t('dataset_obj.comparing')}</p>
+                      ) : diffData?.identical ? (
+                        <p className="text-muted-foreground">{t('dataset_obj.diff_identical')}</p>
+                      ) : diffData?.tabular === false ? (
+                        <p className="text-muted-foreground">{t('dataset_obj.diff_nontabular', { a: diffData?.target?.size ?? "?", b: diffData?.current?.size ?? "?" })}</p>
+                      ) : diffData ? (
+                        <>
+                          {(diffData.columns?.added?.length || diffData.columns?.removed?.length) ? (
+                            <p>
+                              {diffData.columns.added?.length ? <span className="text-emerald-600 dark:text-emerald-400">+{diffData.columns.added.join(", ")} </span> : null}
+                              {diffData.columns.removed?.length ? <span className="text-red-600 dark:text-red-400 line-through">−{diffData.columns.removed.join(", ")}</span> : null}
+                            </p>
+                          ) : null}
+                          <p className="text-muted-foreground" data-testid="dataset-diff-cellcount">
+                            {t('dataset_obj.diff_changed_cells', { n: diffData.changedCells?.length ?? 0 })}
+                            {diffData.truncated ? ` ${t('dataset_obj.diff_sampled')}` : ""}
+                          </p>
+                          {(diffData.changedCells ?? []).slice(0, 5).map((c: any, ci: number) => (
+                            <p key={ci} className="font-mono text-[11px]">
+                              <span className="text-muted-foreground">r{c.row} · {c.col}: </span>
+                              <span className="text-red-600 dark:text-red-400 line-through">{String(c.from) || "∅"}</span>
+                              {" → "}
+                              <span className="text-emerald-600 dark:text-emerald-400">{String(c.to) || "∅"}</span>
+                            </p>
+                          ))}
+                        </>
+                      ) : null}
+                    </div>
                   )}
                 </div>
               ))}

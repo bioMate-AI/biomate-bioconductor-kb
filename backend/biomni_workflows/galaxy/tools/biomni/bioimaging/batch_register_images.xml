@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_batch_register_images" name="Biomni: Batch Register Images" version="1.0.0">
     <description>Batch registration of multiple images to a single reference.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/batch_register_images_wrapper.py' --output '$output'

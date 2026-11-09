@@ -1,0 +1,47 @@
+{
+  "started_at": "2026-11-07T21:19:11.846432+00:00",
+  "finished_at": "2026-11-07T21:21:02.405461+00:00",
+  "root": "/Users/kky/biomate-review",
+  "files_in_inventory": 170164,
+  "matching_path_entries": 43616,
+  "matching_files": 10272,
+  "text": {
+    "matching_lines": 119939,
+    "occurrences": 234985,
+    "category:application_and_operations": 7998,
+    "category:nested_worktrees": 46189,
+    "category:documentation_and_reference": 122040,
+    "category:research_and_evaluation": 35118,
+    "category:upstream_source": 8411,
+    "category:workflow_tree": 15229
+  },
+  "path_categories": {
+    "documentation_and_reference": 14,
+    "nested_worktrees": 21729,
+    "application_and_operations": 217,
+    "dependencies_and_caches": 19,
+    "research_and_evaluation": 16,
+    "upstream_source": 4245,
+    "workflow_tree": 17376
+  },
+  "database_files": 3,
+  "database_matching_cells": 8208,
+  "database_matching_rows": 2200,
+  "databases_with_matches": 1,
+  "binary_archive_candidates": 3483,
+  "errors": [],
+  "exclusions": [
+    "!**/.git/**",
+    "!.git",
+    "!scripts/audit_upstream_mentions.py",
+    "!docs/qa/20261107-upstream-name-audit/**",
+    "!docs/20261107_UPSTREAM_NAME_RELEASE_AUDIT.md"
+  ],
+  "limitations": [
+    "Git object history not scanned",
+    "No symlink targets followed",
+    "Archive/PDF/Office/model-binary internals not exhaustively decoded",
+    "Remote databases not queried",
+    "SQLite views, virtual tables and FTS binary shadow tables not queried; primary tables scanned"
+  ]
+}

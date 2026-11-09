@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T2 — 模型与闭环</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px)}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t2{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 70px 48px; opacity:0; transform:translateY(8px); transition:none; pointer-events:none}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.tile.safe{border-color:var(--green); background:var(--green-bg)}
+.tile.safe .n{color:var(--green)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink)}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:44ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:98ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:52vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px; justify-content:center}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t2">教程 2 · 模型与闭环</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">11</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>模型与闭环</b></div>
+    <div class="kicker">BioMate 如何越用越聪明——每一轮背后的那个循环</div>
+    <h2>真实的实验结果教会 BioMate 每一轮都设计出更好的分子。</h2>
+    <p class="caption"><b>模型</b>就是负责做预测的那部分——"它会结合得有多强？""是否可能有毒？"——让你不必每次都去做一次又慢的实验。<b>模型</b>板块保存这些可复用的预测器，也是<b>闭环</b>的所在地：把你真实的实验室结果回灌进来的那个循环，让下一轮设计更好。</p>
+    <p class="caption sub">教程 1 讲了候选分子从哪来。这一集讲的是，接下来 BioMate 如何从它们的遭遇中<i>学习</i>。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>设计</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>合成</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>测试</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>学习</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>再设计</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — WHY MODELS MATTER -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">模型为什么重要</span> · 可信，以及与时俱进 <span class="badge concept">概念</span></div>
+    <h2>一个预测，只有当你知道该信任它到什么程度时才有用。</h2>
+    <p class="caption">用预测代替实验，会带来两个问题。BioMate 的模型板块就是为同时解决这两者而建——既把每个模型当作可检视的对象，又把你真实的结果回灌进来。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile"><div class="n">1 · 信任</div><h4>有多好，又好在哪里？</h4><p>一个从没被检验过的模型，可能一边给出错误答案、一边显得很自信——你的分子离它学过的东西越远，这个风险越大。</p></div>
+            <div class="tile"><div class="n">2 · 与时俱进</div><h4>你的结果才是真相</h4><p>一个从不用你的新测量来更新的模型，会慢慢偏离现实。闭环让它保持与时俱进。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">你的模型和测量数据<b>只保留在你自己的工作区里</b>——绝不会被用来训练共享模型。闭环从你自己真实的实验室测量中学习，并把它们直接回灌进下一轮设计。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>信任与时效——你的私有数据让每一个预测都更可靠</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — MODEL = REUSABLE EXPERTISE -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">核心概念</span> · 模型是可复用的"学到的经验" <span class="badge concept">概念</span></div>
+    <h2>学一次，处处复用——用一个预测代替一次实验。</h2>
+    <p class="caption">模型接受一个输入（一个分子、一段蛋白质序列），返回一个预测（一个分数、一个三维结构）。有些是研究社区在大型公开数据集上<b>预训练</b>好的；另一些是<b>定制</b>的，在<i>你的</i>数据上训练，用来给<i>你这一类</i>分子打分。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">ALPHAFOLD2 / OPENFOLD2</div><h4>蛋白质三维形状</h4><p>从序列预测蛋白质的结构。</p></div>
+            <div class="tile"><div class="n">BOLTZ-2</div><h4>形状 + 契合</h4><p>蛋白质结构，以及蛋白质和小分子如何契合。</p></div>
+            <div class="tile"><div class="n">EVO2</div><h4>基因组序列</h4><p>一个关于 DNA／基因组序列的模型。</p></div>
+            <div class="tile"><div class="n">推理</div><h4>使用，不改动</h4><p>用一个已训练好的模型做预测，不训练你自己的任何东西。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">这四个预训练模型都是开放、社区构建的；BioMate 把它们托管好，你可以直接用。<b>定制</b>模型则是你在自己的数据上训练出来的。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——预训练供复用，定制供你自己的分子</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — MODEL AS OBJECT, NOT SCOREBOARD -->
+  <section class="scene" data-seconds="54.0">
+    <div class="kicker"><span class="st">BioMate 的指导思想</span> · 模型是一个对象，不是排行榜 <span class="badge concept">概念</span></div>
+    <h2>以有据可查的事实呈现——对照底线而非名次来评判。</h2>
+    <p class="caption">与其把模型放到排行榜上比高低（那只会诱使人去钻空子），BioMate 把每个模型都展示成一个你可以在信任之前检视的、有据可查的对象。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">证据</div><h4>它表现如何——对照底线</h4><p>一个对照所需质量<b>底线</b>的实测分数，在<b>留出测试集</b>上测得——那是它没训练过的数据，所以分数无法靠死记硬背来注水。</p></div>
+            <div class="tile"><div class="n">血缘</div><h4>是什么造出了它</h4><p>造出这个模型的数据，以及那一次运行。</p></div>
+            <div class="tile"><div class="n">被谁用</div><h4>什么依赖它</h4><p>哪些分析依赖它——这样你就能看清改动它会带来什么影响。</p></div>
+            <div class="tile"><div class="n">版本</div><h4>任何版本都不被覆盖</h4><p>每一个版本都被保留，不被替换。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">超出底线再多，也不会换来更高的名次——这里没有排行榜可爬。对于还没被打过分的模型，它会显示<b>"未评估"</b>，而不是编一个数字——这样你就不会拿一个看似自信的猜测去押上一整个湿实验项目。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>默认给出诚实的证据——模型会说明它证明了什么，又还没证明什么</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — APPLICABILITY DOMAIN -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">过了底线还不算完</span> · 适用域 <span class="badge concept">概念</span></div>
+    <h2>能否为<i>你的</i>分子信任它，取决于这个模型见过什么。</h2>
+    <p class="caption">一个好的底线分数，说明模型在<b>与它学过的数据相似</b>的测试数据上是准的。但你能不能为<i>你那个具体的</i>分子信任它，还取决于<b>适用域</b>——也就是它学过的输入是哪一类。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile safe"><div class="n">域内</div><h4>接近训练数据</h4><p>问它一个它学过的那类分子，它的预测就站得住脚。</p></div>
+            <div class="tile hot"><div class="n">域外</div><h4>低置信度——视为尚未证实</h4><p>让一个激酶抑制剂模型去给一个多肽打分，它应该<b>降低自己的置信度</b>，而不是假装自己懂。把一个域外预测当成可靠，是很多本就不可能成功的湿实验的常见根源。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">就像超说明书用药：一个低置信度的预测，意味着你的输入与模型的训练数据不像——落在它被检验过的范围之外。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>域外 → 低置信度，而非虚假的笃定</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE FOUR TRACKS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">模型界面</span> · 让模型发挥作用的四种方式 <span class="badge concept">概念</span></div>
+    <h2>运行它、训练你自己的、贴合你的团队风格，并合上闭环。</h2>
+    <p class="caption">模型界面给了你四种使用模型的方式——从一次性的预测，到在你自己数据上训练的定制打分器，再到一轮接一轮累积准确度的闭环。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">运行模型</div><h4>立刻做一次预测</h4><p>用一个社区模型立刻做一次预测。这是推理——不训练你的任何东西。</p></div>
+            <div class="tile"><div class="n">训练</div><h4>你自己的打分器</h4><p>在你自己的数据上构建一个定制模型——一个针对你的靶点、你的化学调好的打分器。</p></div>
+            <div class="tile"><div class="n">适配 · 团队风格</div><h4>你团队的口吻</h4><p>贴合你团队写报告的习惯；每一条学到的规则都会展示出来，也可以关掉。（是文字风格，不是科学。）</p></div>
+            <div class="tile"><div class="n">优化 · 轮次</div><h4>闭环</h4><p>以轮次呈现的 设计→合成→测试→学习 循环——真实的实验室结果在这里累积成更好的设计。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">一次预测、一个在你数据上训练的定制打分器、你的团队风格，还是完整的闭环——背后都是同一批可检视、带版本的模型。</p>
+        </div>
+        <div class="tags">
+          <span class="verdict ok"><span class="mk"></span>使用模型的四种方式——从一次预测到完整闭环</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — LIVE: REGISTRY -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">一步步来</span> · 模型注册表 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>你账户能用的每一个模型，汇成一份清单。</h2>
+    <p class="caption"><b>注册表</b>就是这份实时清单：每一行是一个模型——它的名字、家族、来源，以及有多少分析在用它。社区模型（AlphaFold2、Boltz-2、Evo2）与你团队注册的任何定制模型并排在一起。一个项目里训练的模型，可以在任何其他项目里使用；点开一行，就进入它的对象视图。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-registry.png" alt="模型注册表——每一行是一个模型，带名字、家族、来源，以及有多少分析在用它"/></div>
+          <figcaption><span class="lbl">注册表 · 实时</span>一个找到并复用模型的地方——无论是社区构建的还是你自己的。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>注册表——实时；浏览并复用任意模型</span></div>
+  </section>
+
+  <!-- 8 — LIVE: MODEL OBJECT -->
+  <section class="scene live" data-kind="flow" data-seconds="32.0">
+    <div class="kicker"><span class="st">读懂一个模型</span> · 对象视图 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>打开一个模型，读清楚你将要信任的东西。</h2>
+    <p class="caption">打开一个模型，会把它展示成一个<b>对象</b>：<b>证据</b>（质量底线——实测分数、要求的底线、结论）、<b>血缘</b>（造出它的数据和运行）、<b>被谁用</b>（什么依赖它），以及<b>版本</b>（任何版本都不被覆盖）。这里证据显示为<b>"未评估"</b>——模型在如实地说，它还没被打过分，而不是摆出一个自己撑不起来、却看着很自信的数字。你在信任一个预测<i>之前</i>，就读完它完整的证据、血缘和版本历史。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-model-object.png" alt="以对象形式展示的模型——证据、血缘、被谁用、版本——证据显示为未评估"/></div>
+          <figcaption><span class="lbl">模型对象 · 实时</span>在决定信任一个模型之前，检视它的证据、血缘，以及什么依赖它。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>每个模型都是一个可检视、带版本、附有证据的对象</span></div>
+  </section>
+
+  <!-- 9 — LIVE: RUN A MODEL -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">立刻做一次预测</span> · 运行模型（推理） <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>选一个领域，粘进一个输入，然后运行——无需训练。</h2>
+    <p class="caption">要立刻做一次预测，用<b>运行模型</b>：选一个领域（结构、基因组或化学），粘进一个输入——对于结构，就是蛋白质的单字母序列——然后运行。这是推理：模型不会被改动，而且结果会标明是由哪一个模型、哪一个版本产生的。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-run.png" alt="运行模型推理表单——选择一个领域并粘进一个输入"/></div>
+          <figcaption><span class="lbl">运行模型 · 实时</span>一步之内选领域、粘输入、得到预测——每个结果都带有产生它的模型和版本。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>推理——在你的输入上即刻运行任意社区模型</span></div>
+  </section>
+
+  <!-- 10 — LIVE: ROUNDS + CLOSED LOOP IN PRACTICE -->
+  <section class="scene live" data-kind="flow" data-seconds="57.0">
+    <div class="kicker"><span class="st">闭环</span> · 轮次视图，以及它如何运转 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>设计 → 合成 → 测试 → 学习——一轮接一轮地记录下来。</h2>
+    <p class="caption"><b>轮次</b>视图是闭环的所在地，下面就是它背后真正在跑的机制。一轮跑起来时，一个<b>安全／质控（QC）门会对照各自的阈值逐一检查每个候选</b>——一旦某个候选越线（比如预测的 hERG 风险超过了心脏安全上限），这个门就会拦下它，并<b>给出一条建议性的修正方案</b>由你确认，而不是自己重跑。接着，你<b>真实的台架结果会回灌进下一轮</b>：模型在合并后的数据上重新训练，再在它没训练过的数据上重新检验，所以每一轮都建立在实测的真值之上。这个视图会把每一个提案都交代清楚，把极限值仍然当作极限值（">30 µM" 绝不会被悄悄换成 30），被拒的候选也会连同原因一起保留可见。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-rounds.png" alt="轮次闭环视图的空状态，陈述闭环的诚实规则"/></div>
+          <figcaption><span class="lbl">轮次 · 实时</span>每一轮都记录在这里：提案、安全／质控门在其阈值处的结论、建议性的修正方案，以及教会下一轮的真实台架结果。通用示例：一个被预测带有 hERG 风险的候选在门处被标出，系统建议收紧上限，到后面某一轮，它在保持选择性的同时通过了心脏安全检查。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>安全／质控门在其阈值处触发，并给出一条你来确认的修正</span><span class="verdict ok"><span class="mk"></span>极限值仍作极限值 · 被拒候选保留可见</span></div>
+  </section>
+
+  <!-- 11 — CLOSING -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">一眼看懂这个习惯</div>
+    <h2 style="font-size:40px">检视模型 → 在它的域内信任它 → 合上闭环。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">模型板块是 BioMate 保存可复用预测器、并从你真实结果中学习的地方。把模型当作对象打开，在信任之前先读它的证据；尊重适用域；用一个社区模型做一次即时预测；再让闭环把每一轮真实的实验数据变成更好的下一轮。价值会累加——闭环的设计目标，就是让每一轮都比上一轮更准。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>打开模型对象——读证据、血缘、被谁用、版本</li>
+            <li><span class="k">2</span>在信任一个预测之前，先核查适用域</li>
+            <li><span class="k">3</span>用一个社区模型做一次即时预测——无需训练</li>
+            <li><span class="k">4</span>把真实的实验结果回灌进来——安全门为每一轮把关，准确度不断累加</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>你的模型与数据</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">只保留在你自己的工作区</span></td></tr>
+            <tr><td>每一个模型</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">可检视、带版本、附证据的对象</span></td></tr>
+            <tr><td>尚未打分之处</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">显示"未评估"——绝不编造数字</span></td></tr>
+            <tr><td>安全／质控门</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">在其阈值处触发，给出修正建议</span></td></tr>
+            <tr><td>闭环</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">每一轮真实轮次都累积准确度</span></td></tr>
+          </table>
+          <p class="footnote">闭环从你真实的实验室测量中学习；你的模型和数据只保留在你自己的工作区。上面的 hERG 示例，是对闭环如何运转的一个通用说明。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

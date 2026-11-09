@@ -82,9 +82,9 @@ process PHARMACOPHORE_GENERATE {
     label 'process_medium'
     publishDir "${params.outdir}/01_pharmacophore_model", mode: params.publish_dir_mode
 
-    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path reference_actives   // one SMILES per line
@@ -229,9 +229,9 @@ process PHARMACOPHORE_SCREEN {
     label 'process_medium'
     publishDir "${params.outdir}/02_screening", mode: params.publish_dir_mode
 
-    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path model_json    // pharmacophore_model.json from PHARMACOPHORE_GENERATE
@@ -375,9 +375,9 @@ process PHARMACOPHORE_REPORT {
     label 'process_low'
     publishDir "${params.outdir}/03_report", mode: params.publish_dir_mode
 
-    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path model_json      // pharmacophore_model.json

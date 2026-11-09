@@ -1,0 +1,6 @@
+{
+  "elapsed_seconds": 22.584428071975708,
+  "process_maxrss_kib": 2560976,
+  "cuda_peak_allocated_bytes": 141365760,
+  "cuda_peak_reserved_bytes": 171966464
+}

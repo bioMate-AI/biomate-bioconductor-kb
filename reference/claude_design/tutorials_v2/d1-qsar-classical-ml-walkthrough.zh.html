@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · D1 — QSAR 经典机器学习</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-ep{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.rail .kind{font-family:var(--ff-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px}
+.rail .kind.concept{background:var(--blue-bg); color:var(--blue)}
+.rail .kind.flow{background:var(--panel2); color:var(--mut)}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* edu framing strip: task -> hard -> classical -> BioMate -> read */
+.frame-strip{display:flex; gap:0; margin:4px 0 0; flex-wrap:wrap}
+.frame-strip .fs{display:flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.04em; color:var(--mut); padding:4px 0}
+.frame-strip .fs b{color:var(--blue); font-weight:500; text-transform:uppercase; letter-spacing:.08em}
+.frame-strip .sep{color:var(--line2); margin:0 12px}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+.metricrow{display:flex; gap:34px; margin-top:4px}
+.metric{display:flex; flex-direction:column}
+.metric .v{font-family:var(--ff-mono); font-size:26px; color:var(--ink); font-weight:600}
+.metric .k{font-size:12px; color:var(--mut); margin-top:2px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.card.big .row2, .card.big .row3, .card.big .row4, .card.big .row5{flex:1 1 auto; grid-template-rows:minmax(0,1fr)}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px; display:flex; flex-direction:column; justify-content:center}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.tile.good{border-color:var(--green); background:var(--green-bg)}
+.tile.good .n{color:var(--green)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:8px 15px; font-size:14px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:12px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:44px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+
+/* teaching bullet list */
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+
+/* side-by-side verdict columns (RF vs GNN) */
+.vs{display:grid; grid-template-columns:1fr 1fr; gap:22px; flex:1; min-height:0}
+.vs .col{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 22px; display:flex; flex-direction:column; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.vs .col.rf{border-top:3px solid var(--green)}
+.vs .col.gnn{border-top:3px solid var(--blue)}
+.vs .col h3{font-family:var(--ff-ui); font-size:19px; margin:0 0 4px; color:var(--ink); font-weight:650}
+.vs .col .sub{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); margin:0 0 12px}
+.vs .col .sub.g{color:var(--green)} .vs .col .sub.b{color:var(--blue)}
+
+.deliver{list-style:none; padding:0; margin:0}
+.deliver li{display:flex; align-items:baseline; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.deliver li:last-child{border-bottom:none}
+.deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
+.deliver li b{color:var(--ink); font-weight:600}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:40px}
+code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:52px 104px 58px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; justify-content:center; margin-top:30px; min-height:0}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+
+/* ---- d1 v2 additions ---- */
+/* scene 1 — molecule → number hero */
+.mol2num{display:flex; align-items:center; justify-content:center; gap:46px; flex-wrap:wrap; margin:0 auto}
+.mol2num .molbox{background:#fff; border:1px solid var(--line2); border-radius:18px; padding:18px 26px; box-shadow:0 6px 22px rgba(16,24,40,.06)}
+.m2n-arrow{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:46px; color:var(--line2); line-height:1}
+.m2n-arrow span{font-family:var(--ff-mono); font-size:13px; letter-spacing:.08em; color:var(--mut); text-transform:uppercase}
+.bignum .bu{display:block; font-family:var(--ff-ui); font-weight:500; font-size:21px; color:var(--mut); margin-top:10px; letter-spacing:0}
+/* stat tag icon reused as a crisp mono label */
+.stat .si.tag{font-family:var(--ff-mono); font-size:15px; letter-spacing:.12em; color:var(--blue); font-weight:600}
+/* scene 2 glyph internals */
+.glyph svg .bar{fill:var(--blue)}
+.glyph svg .bit{fill:var(--panel2); stroke:var(--line2); stroke-width:1}
+.glyph svg .bit.on{fill:var(--blue); stroke:var(--blue)}
+.glyph svg .band{fill:var(--blue-bg); stroke:var(--blue); stroke-width:2; stroke-dasharray:6 5}
+.glyph svg .din{fill:var(--blue)}
+.glyph svg .dout{fill:var(--red)}
+/* scene 6 — live screenshot + teaching column */
+.scene-body.shotwrap{align-items:stretch; gap:52px}
+.shotcol{flex:1.4; display:flex; flex-direction:column; min-height:0; justify-content:center}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:12px}
+.shotcol .frame{border:1px solid var(--line2); border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 20px 56px rgba(16,24,40,.16)}
+.shotcol .frame img{display:block; width:100%; height:auto}
+.teachcol{flex:1; display:flex; flex-direction:column; justify-content:center; gap:16px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:9px; font-family:var(--ff-mono); font-size:14px; letter-spacing:.05em; text-transform:uppercase; padding:8px 14px; border-radius:6px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+/* scene 7 — second scorecard flag colour */
+.sc-note .flag.amber{color:var(--amber); background:var(--amber-bg); border-color:var(--amber)}
+/* vs columns: tighter v2 bullets */
+.vs .col .points li{font-size:18px; padding:11px 0}
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-ep">QSAR — 经典机器学习</span>
+  <span class="kind concept" id="kind">概念</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 页</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>QSAR · 经典机器学习</b></div>
+    <div class="kicker">QSAR — 从分子结构预测活性与毒性</div>
+    <h2>仅凭结构，就预测一个分子会做什么——在你动手合成它之前。</h2>
+    <p class="caption lead">把化学结构变成一个预测出来的数字——它结合得有多强，有多大可能有毒。</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>结构（SMILES）</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>指纹</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>随机森林</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>活性 · 毒性</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>适用域检查</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE TASK -->
+  <section class="scene" data-kind="concept" data-seconds="40.0">
+    <div class="kicker"><span class="st">理念</span> · 这件事要解决什么——QSAR 为何存在 <span class="badge concept">概念</span></div>
+    <h2>结构相似的分子，行为也往往相似——所以结构能预测一个数字。</h2>
+    <p class="caption lead">从测量过的分子里学出一个函数，把结构直接映射成一个预测。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <div class="mol2num">
+          <div class="molbox">
+            <svg width="190" height="150" viewBox="0 0 190 150"><g class="mol" transform="translate(42,22)">
+              <path d="M55,10 L92,31 L92,75 L55,96 L18,75 L18,31 Z"/>
+              <circle class="ar" cx="55" cy="53" r="20"/>
+              <line x1="92" y1="31" x2="118" y2="18"/><circle class="r" cx="122" cy="16" r="7"/>
+              <line x1="92" y1="75" x2="118" y2="88"/><circle class="r2" cx="122" cy="90" r="7"/>
+              <line x1="18" y1="75" x2="-6" y2="88"/><circle class="r" cx="-10" cy="90" r="7"/>
+            </g></svg>
+          </div>
+          <div class="m2n-arrow">&rarr;<span>QSAR model</span></div>
+          <div class="bignum">7.4<span class="bu">predicted pIC50</span></div>
+        </div>
+      </div>
+      <div class="statrow" style="margin-top:40px">
+        <div class="stat"><div class="si tag">输入</div><div class="sh">一个结构，什么都还没合成</div><div class="sp">SMILES 文本——还没有样品、没有检测，也没花实验时间。</div></div>
+        <div class="stat"><div class="si tag">输出</div><div class="sh">一个预测出来的数字</div><div class="sp">效力（pIC50）或一个毒性风险等级，并带一条提醒。</div></div>
+        <div class="stat"><div class="si tag">为什么</div><div class="sh">在合成之前先分流</div><div class="sp">几分钟给上千个打分；留下最好的，淘汰其余的。</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — SOTA + WHY: turning a molecule into numbers -->
+  <section class="scene" data-kind="concept" data-seconds="48.0">
+    <div class="kicker"><span class="st">理念</span> · 把分子变成数字——特征与适用域 <span class="badge concept">概念</span></div>
+    <h2>模型读不懂一个分子——你得先把它变成特征。</h2>
+    <p class="caption lead">两大类特征——而一个预测，只有在它训练过的化学空间之内才值得信赖。</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">描述符</div>
+          <svg width="190" height="120" viewBox="0 0 190 120">
+            <line x1="12" y1="104" x2="178" y2="104" stroke="#d5dae2" stroke-width="2"/>
+            <rect class="bar" x="20" y="46" width="20" height="58" rx="3"/>
+            <rect class="bar" x="52" y="26" width="20" height="78" rx="3"/>
+            <rect class="bar" x="84" y="62" width="20" height="42" rx="3"/>
+            <rect class="bar" x="116" y="38" width="20" height="66" rx="3"/>
+            <rect class="bar" x="148" y="70" width="20" height="34" rx="3"/>
+          </svg>
+          <div class="gl-lbl">分子量、logP、氢键——一个简短而有含义的向量</div></div>
+        <div class="glyph"><div class="n">指纹</div>
+          <svg width="190" height="120" viewBox="0 0 190 120"><g>
+            <!-- 8x4 sparse bit grid -->
+            <g>
+              <rect class="bit" x="10" y="14" width="18" height="18" rx="3"/><rect class="bit on" x="32" y="14" width="18" height="18" rx="3"/><rect class="bit" x="54" y="14" width="18" height="18" rx="3"/><rect class="bit" x="76" y="14" width="18" height="18" rx="3"/><rect class="bit on" x="98" y="14" width="18" height="18" rx="3"/><rect class="bit" x="120" y="14" width="18" height="18" rx="3"/><rect class="bit" x="142" y="14" width="18" height="18" rx="3"/><rect class="bit" x="164" y="14" width="18" height="18" rx="3"/>
+              <rect class="bit" x="10" y="36" width="18" height="18" rx="3"/><rect class="bit" x="32" y="36" width="18" height="18" rx="3"/><rect class="bit" x="54" y="36" width="18" height="18" rx="3"/><rect class="bit on" x="76" y="36" width="18" height="18" rx="3"/><rect class="bit" x="98" y="36" width="18" height="18" rx="3"/><rect class="bit" x="120" y="36" width="18" height="18" rx="3"/><rect class="bit on" x="142" y="36" width="18" height="18" rx="3"/><rect class="bit" x="164" y="36" width="18" height="18" rx="3"/>
+              <rect class="bit on" x="10" y="58" width="18" height="18" rx="3"/><rect class="bit" x="32" y="58" width="18" height="18" rx="3"/><rect class="bit" x="54" y="58" width="18" height="18" rx="3"/><rect class="bit" x="76" y="58" width="18" height="18" rx="3"/><rect class="bit" x="98" y="58" width="18" height="18" rx="3"/><rect class="bit on" x="120" y="58" width="18" height="18" rx="3"/><rect class="bit" x="142" y="58" width="18" height="18" rx="3"/><rect class="bit" x="164" y="58" width="18" height="18" rx="3"/>
+              <rect class="bit" x="10" y="80" width="18" height="18" rx="3"/><rect class="bit" x="32" y="80" width="18" height="18" rx="3"/><rect class="bit on" x="54" y="80" width="18" height="18" rx="3"/><rect class="bit" x="76" y="80" width="18" height="18" rx="3"/><rect class="bit" x="98" y="80" width="18" height="18" rx="3"/><rect class="bit" x="120" y="80" width="18" height="18" rx="3"/><rect class="bit" x="142" y="80" width="18" height="18" rx="3"/><rect class="bit on" x="164" y="80" width="18" height="18" rx="3"/>
+            </g>
+          </g></svg>
+          <div class="gl-lbl">1024 位 Morgan——高维而稀疏</div></div>
+        <div class="glyph"><div class="n">适用域</div>
+          <svg width="190" height="120" viewBox="0 0 190 120">
+            <ellipse class="band" cx="82" cy="62" rx="62" ry="40"/>
+            <circle class="din" cx="60" cy="50" r="5"/><circle class="din" cx="92" cy="44" r="5"/><circle class="din" cx="74" cy="72" r="5"/><circle class="din" cx="104" cy="70" r="5"/><circle class="din" cx="52" cy="74" r="5"/>
+            <circle class="dout" cx="166" cy="26" r="6"/>
+            <text x="166" y="48" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#9c1a2e">?</text>
+          </svg>
+          <div class="gl-lbl">只在训练过的范围之内才相信它</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — CLASSICAL ML IN DEPTH 1: random forest -->
+  <section class="scene" data-kind="concept" data-seconds="45.0">
+    <div class="kicker"><span class="st">理念</span> · 深入经典机器学习——随机森林 <span class="badge concept">概念</span></div>
+    <h2>许多各不相同的浅层决策树，平均成一个稳定的预测。</h2>
+    <p class="caption lead">成百上千棵树在重采样数据上训练；它们的分歧相互抵消，信号得以保留。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 560 250" style="width:100%; max-width:760px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- trees -->
+          <g stroke="#5a6474" stroke-width="2" fill="none">
+            <line x1="90" y1="30" x2="58" y2="86"/><line x1="90" y1="30" x2="122" y2="86"/><line x1="58" y1="86" x2="40" y2="140"/><line x1="58" y1="86" x2="76" y2="140"/><line x1="122" y1="86" x2="140" y2="140"/>
+            <line x1="280" y1="30" x2="248" y2="86"/><line x1="280" y1="30" x2="312" y2="86"/><line x1="312" y1="86" x2="296" y2="140"/><line x1="312" y1="86" x2="330" y2="140"/><line x1="248" y1="86" x2="248" y2="140"/>
+            <line x1="470" y1="30" x2="438" y2="86"/><line x1="470" y1="30" x2="502" y2="86"/><line x1="438" y1="86" x2="420" y2="140"/><line x1="438" y1="86" x2="456" y2="140"/><line x1="502" y1="86" x2="520" y2="140"/>
+          </g>
+          <g fill="#1a4a9c"><circle cx="90" cy="30" r="9"/><circle cx="280" cy="30" r="9"/><circle cx="470" cy="30" r="9"/></g>
+          <g fill="#aeb6c2"><circle cx="40" cy="143" r="6"/><circle cx="76" cy="143" r="6"/><circle cx="140" cy="143" r="6"/><circle cx="296" cy="143" r="6"/><circle cx="330" cy="143" r="6"/><circle cx="248" cy="143" r="6"/><circle cx="420" cy="143" r="6"/><circle cx="456" cy="143" r="6"/><circle cx="520" cy="143" r="6"/></g>
+          <g font-family="IBM Plex Mono" font-size="13" fill="#5a6474"><text x="90" y="170" text-anchor="middle">第 1 棵树</text><text x="280" y="170" text-anchor="middle">第 2 棵树</text><text x="470" y="170" text-anchor="middle">… 第 200 棵树</text></g>
+          <g stroke="#d5dae2" stroke-width="1.6" fill="none" stroke-dasharray="4 5"><path d="M90 182 L280 198"/><path d="M280 182 L280 198"/><path d="M470 182 L280 198"/></g>
+          <rect x="178" y="198" width="204" height="44" rx="10" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="2"/>
+          <text x="280" y="226" text-anchor="middle" font-family="IBM Plex Sans" font-size="17" font-weight="600" fill="#1c6b3a">平均 = 预测</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:30px">
+        <div class="stat"><div class="si tag">稀疏</div><div class="sh">1024 个二值位，开箱即用</div><div class="sp">无需特征缩放或特征选择。</div></div>
+        <div class="stat"><div class="si tag">非线性</div><div class="sh">线性模型会错过的构效关系</div><div class="sp">捕捉线性模型捕捉不到的交互作用。</div></div>
+        <div class="stat"><div class="si tag">BAGGING</div><div class="sh">抵抗过拟合</div><div class="sp">200 棵树、固定种子——化合物少也稳健。</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — CLASSICAL ML IN DEPTH 2: train, validate, interpret -->
+  <section class="scene" data-kind="concept" data-seconds="50.0">
+    <div class="kicker"><span class="st">理念</span> · 训练、验证并读懂模型 <span class="badge concept">概念</span></div>
+    <h2>一个你没验证过的模型，只是一个一厢情愿的意见。</h2>
+    <p class="caption lead">轮换留出一折，共五次；在模型从未训练过的数据上打分。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 560 190" style="width:100%; max-width:760px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <g font-family="IBM Plex Mono" font-size="15" fill="#5a6474">
+            <g><rect x="90" y="14" width="88" height="26" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><rect x="178" y="14" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="266" y="14" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="354" y="14" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="442" y="14" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><text x="78" y="33" text-anchor="end">第 1 折</text></g>
+            <g><rect x="90" y="44" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="178" y="44" width="88" height="26" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><rect x="266" y="44" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="354" y="44" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="442" y="44" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><text x="78" y="63" text-anchor="end">第 2 折</text></g>
+            <g><rect x="90" y="74" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="178" y="74" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="266" y="74" width="88" height="26" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><rect x="354" y="74" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="442" y="74" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><text x="78" y="93" text-anchor="end">第 3 折</text></g>
+            <g><rect x="90" y="104" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="178" y="104" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="266" y="104" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="354" y="104" width="88" height="26" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><rect x="442" y="104" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><text x="78" y="123" text-anchor="end">第 4 折</text></g>
+            <g><rect x="90" y="134" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="178" y="134" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="266" y="134" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="354" y="134" width="88" height="26" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><rect x="442" y="134" width="88" height="26" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><text x="78" y="153" text-anchor="end">第 5 折</text></g>
+          </g>
+          <text x="134" y="180" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="#8a5a12">留出（测试）</text>
+          <text x="354" y="180" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="#1a4a9c">用于训练</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:28px">
+        <div class="stat"><div class="si tag">5 折</div><div class="sh">轮换并取平均</div><div class="sp">每个化合物都被测一次，在一个从没见过它的模型上。</div></div>
+        <div class="stat"><div class="si tag">CV R² / RMSE</div><div class="sh">它贴合实际的程度</div><div class="sp">诚实的分数——基于留出数据，而非训练拟合。</div></div>
+        <div class="stat"><div class="si tag">预测值</div><div class="sh">逐分子的 pIC50</div><div class="sp">连同一份易读的模型报告一并给出。</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — CONTRAST WITH DEEP LEARNING (point to D2) -->
+  <section class="scene" data-kind="concept" data-seconds="47.0">
+    <div class="kicker"><span class="st">理念</span> · 经典 RF 与深度学习 ADMET——各自何时取胜 <span class="badge concept">概念</span></div>
+    <h2>随机森林往往就是正确答案——只有当确实值得时，才动用图网络。</h2>
+    <p class="caption lead">深度学习并不天然更好；在小规模、指纹形状的数据上，随机森林更胜一筹。</p>
+    <div class="scene-body">
+      <div class="vs">
+        <div class="col rf">
+          <h3>随机森林（本集）</h3>
+          <p class="sub g">在这些情形下选它……</p>
+          <ul class="points">
+            <li><span class="b gr"></span><span><b>数据量属中小规模</b>——几十到几千个化合物。</span></li>
+            <li><span class="b gr"></span><span><b>特征是表格式 / 指纹</b>，本身已有信息量。</span></li>
+            <li><span class="b gr"></span><span><b>你需要可解释性</b>——且只需 CPU 上几分钟。</span></li>
+          </ul>
+        </div>
+        <div class="col gnn">
+          <h3>图神经网络（ADMET 深度学习那一讲）</h3>
+          <p class="sub b">在这些情形下选它……</p>
+          <ul class="points">
+            <li><span class="b"></span><span><b>带标签的数据量很大</b>——数千乃至更多。</span></li>
+            <li><span class="b"></span><span><b>分子图才是合适的表示</b>，而非固定的位。</span></li>
+            <li><span class="b"></span><span><b>端到端学习特征</b>——额外算力可以接受。</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — HOW BIOMATE DOES IT 1: chat -> route -> run -->
+  <section class="scene" data-kind="concept" data-seconds="51.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 对话 → 路由 → 运行 <span class="badge flow">产品</span></div>
+    <h2>用大白话描述任务；BioMate 把它路由并托管运行。</h2>
+    <p class="caption lead">不用安装 RDKit 或 scikit-learn——核对真实的参数面板，确认，然后运行。</p>
+    <div class="scene-body shotwrap">
+      <figure class="shotcol">
+        <span class="lbl">真实产品 · BioMate 中的 Qsar Rf Model</span>
+        <div class="frame"><img src="assets/live/qsar-zh-panel.png" alt="Qsar Rf Model 的 BioMate 对话与工作流面板——必填参数、输入 CSV、输出位置，以及 Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话进，工作流出</b>——BioMate 把它路由，并摆出真实的参数。</span></li>
+          <li><span class="b gr"></span><span><b>活性 · Qsar Rf Model</b>——在 1024 位 Morgan 指纹上的随机森林，200 棵树，5 折 CV。</span></li>
+          <li><span class="b rd"></span><span><b>毒性 · herg_cardiac_safety_qsar</b>——用于心脏风险的理化模型。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 QSAR 工作流，已为你配置好</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — HOW BIOMATE DOES IT 2: interpret + QC gate -->
+  <section class="scene" data-kind="concept" data-seconds="50.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 读懂输出——以及质量门 <span class="badge flow">产品</span></div>
+    <h2>来自运行的真实数字——配上一道绝不悄悄放过弱模型的门。</h2>
+    <p class="caption lead">在信任它之前，把经交叉验证的分数对照一个已发表的阈值来读。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="scorecard">
+        <div class="sc-col"><div class="sc-name">CV R²</div><div class="sc-bar ok"><i style="width:72%"></i></div><div class="sc-val">0.72 · 通过</div></div>
+        <div class="sc-col"><div class="sc-name">CV RMSE</div><div class="sc-bar"><i style="width:40%"></i></div><div class="sc-val">0.61 对数单位</div></div>
+        <div class="sc-col"><div class="sc-name">hERG 风险</div><div class="sc-bar warn"><i style="width:55%"></i></div><div class="sc-val">MEDIUM 等级</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">R² &lt; 0.5</span> SILVER · 阻断——弱模型会被拦下，而不是放过。</div>
+      <div class="sc-note" style="margin-top:16px"><span class="flag amber">n &lt; 50</span> BRONZE · 提醒——化合物太少；hERG 给出的是一个等级，而非精确的 IC50。</div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST CAVEATS -->
+    <!-- ADDED PRODUCT SCENE -->
+  <section class="scene" data-kind="live" data-seconds="30.0" data-added="1">
+    <div class="kicker"><span class="st">真实产品</span> · 参数与输入 <span class="badge flow">产品</span></div>
+    <h2>运行前，核对真实的参数与输入</h2>
+    <p class="caption lead">必填项、输入文件、输出位置与权限，都集中在同一个面板里。</p>
+    <div class="scene-body shotwrap">
+      <figure class="shotcol">
+        <span class="lbl">真实产品 · BioMate 中的 QSAR 随机森林模型 · 工作流设置</span>
+        <div class="frame"><img src="assets/live/qsar-settings-zh.png" alt="真实产品 · BioMate 中的 QSAR 随机森林模型 · 工作流设置"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>用大白话描述任务，BioMate 摆出真实参数</span></li>
+          <li><span class="b gr"></span><span>必填项清晰标注，可一键覆盖默认值</span></li>
+          <li><span class="b rd"></span><span>确认后在云端运行，无需本地安装</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <!-- ADDED PRODUCT SCENE -->
+  <section class="scene" data-kind="live" data-seconds="30.0" data-added="1">
+    <div class="kicker"><span class="st">真实产品</span> · 运行中 <span class="badge flow">产品</span></div>
+    <h2>实时跟踪每一步的执行</h2>
+    <p class="caption lead">运行状态通过 SSE 实时更新，无需刷新。</p>
+    <div class="scene-body shotwrap">
+      <figure class="shotcol">
+        <span class="lbl">真实产品 · BioMate 中的 QSAR 随机森林模型 · 运行中</span>
+        <div class="frame"><img src="assets/live/qsar-running-zh.png" alt="真实产品 · BioMate 中的 QSAR 随机森林模型 · 运行中"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>阶段与步骤状态实时变化</span></li>
+          <li><span class="b gr"></span><span>质控闸门在流程中就位</span></li>
+          <li><span class="b rd"></span><span>进度自动推进</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+<section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">理念</span> · 有把握地读一个 QSAR · 适用域 <span class="badge concept">概念</span></div>
+    <h2>每一个预测，都要在它的适用域之内去读。</h2>
+    <p class="caption lead">对与训练集不同的化学做出的数字就是外推——无论它看起来多有把握。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 560 210" style="width:100%; max-width:640px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <line x1="48" y1="176" x2="540" y2="176" stroke="#d5dae2" stroke-width="2"/>
+          <line x1="48" y1="20" x2="48" y2="176" stroke="#d5dae2" stroke-width="2"/>
+          <ellipse cx="220" cy="100" rx="150" ry="74" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="2" stroke-dasharray="7 6"/>
+          <g fill="#1a4a9c"><circle cx="150" cy="80" r="7"/><circle cx="210" cy="64" r="7"/><circle cx="260" cy="108" r="7"/><circle cx="188" cy="124" r="7"/><circle cx="246" cy="72" r="7"/><circle cx="296" cy="120" r="7"/><circle cx="170" cy="112" r="7"/></g>
+          <circle cx="470" cy="56" r="9" fill="#9c1a2e"/>
+          <text x="470" y="84" text-anchor="middle" font-family="IBM Plex Mono" font-size="14" fill="#9c1a2e">域外</text>
+          <text x="220" y="100" text-anchor="middle" font-family="IBM Plex Mono" font-size="15" fill="#1a4a9c" font-weight="600" dy="4">域内 · 可信</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:28px">
+        <div class="stat"><div class="si tag">适用域</div><div class="sh">仅限域内</div><div class="sp">在训练范围之外，预测只是猜测。</div></div>
+        <div class="stat"><div class="si tag">小样本</div><div class="sh">过拟合风险</div><div class="sp">化合物很少时，连交叉验证都可能显得乐观。</div></div>
+        <div class="stat"><div class="si tag">特征化</div><div class="sh">核实来源</div><div class="sp">核实它读出的是 <code>morgan_fp_r2_1024</code>，而非模拟特征。</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="43.0">
+    <div class="kicker">QSAR 一览</div>
+    <h2 style="font-size:38px">结构 → 特征化 → 随机森林 → 交叉验证 → 带着它的提醒来读。</h2>
+    <p class="caption lead">可解释、数据高效的默认选择——一条流水线，端到端（图示为示例工具）。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · 结构</div><div class="pc">测量过的化合物</div><div class="pt"><span>SMILES + 目标</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">解析</span></div>
+        <div class="pstep"><div class="pn">2 · 特征化</div><div class="pc">数字，而非图</div><div class="pt"><span class="eg">Morgan r2</span><span>描述符</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">特征</span></div>
+        <div class="pstep"><div class="pn">3 · 模型</div><div class="pc">随机森林</div><div class="pt"><span class="eg">200 棵树</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">拟合</span></div>
+        <div class="pstep"><div class="pn">4 · 验证</div><div class="pc">5 折 CV</div><div class="pt"><span class="eg">CV R² / RMSE</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">门控</span></div>
+        <div class="pstep"><div class="pn">5 · 读懂</div><div class="pc">在适用域之内</div><div class="pt"><span class="eg">风险等级</span></div></div>
+      </div>
+      <div class="ploop">&#8634; 一道筛子，而非一纸判决——让正确的分子更早进入检测</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

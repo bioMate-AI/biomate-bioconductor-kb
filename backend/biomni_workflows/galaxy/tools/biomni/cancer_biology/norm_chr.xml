@@ -2,7 +2,7 @@
 <tool id="biomni_cancer_biology_norm_chr" name="Biomni: Norm Chr" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/norm_chr_wrapper.py' --output '$output'

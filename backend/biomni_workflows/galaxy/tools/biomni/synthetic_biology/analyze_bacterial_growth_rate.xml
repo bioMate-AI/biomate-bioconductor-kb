@@ -2,7 +2,7 @@
 <tool id="biomni_synthetic_biology_analyze_bacterial_growth_rate" name="Biomni: Analyze Bacterial Growth Rate" version="1.0.0">
     <description>Analyze bacterial growth data and extract growth parameters from OD600 measurements.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_bacterial_growth_rate_wrapper.py' --output '$output'

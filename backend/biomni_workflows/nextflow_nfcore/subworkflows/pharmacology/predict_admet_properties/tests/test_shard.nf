@@ -4,7 +4,7 @@
  *
  * Reuses the REAL reduce process (PREDICT_ADMET_PROPERTIES) from ../main.nf so
  * the QC-critical global worst-case aggregation is exercised for real, and
- * mocks only the expensive ADMET-AI inference (which needs the biomni-admet
+ * mocks only the expensive ADMET-AI inference (which needs the admet
  * container). The mock is deterministic: the SMILES literal "CWORST" gets a
  * dominating hERG_prob so we can assert the global worst surfaces across shards.
  *

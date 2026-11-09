@@ -1,0 +1,4180 @@
+{
+  "status": "PROPOSED_A6_REVIEW_REQUIRED",
+  "scope": "baseline/control measurements only; no hybrid study result",
+  "primary_gate_ceiling": "INCONCLUSIVE",
+  "margin_fraction": 0.1,
+  "budget": 1000,
+  "source_hashes": {
+    "eval/F1/gp_bo__s6.json": "427f05396adeb8d896cb3980a98eff62e192e3dd833f272a4a3c60ea18d9ff68",
+    "eval/F1/random_lib__s1.json": "6bd8060493459e15872d450fac9f17f32c981deb5162f4de38eb61a639c1eb2d",
+    "eval/F1/selfies_ga__s4.json": "ba6e9ae50b2f95ea45b4543e3418dcf1b46c60275043395926d59d315cdc0fe1",
+    "eval/F1/edit_ga__s4.json": "1d1567408f75faca4ca7706824c3082584866f486c319cd1045ffd219cd1f6af",
+    "eval/F1/gp_bo__s0.json": "977bf844eff379c7549d11772f7df2bdf9229f50a563e7463ceff32159bb6515",
+    "eval/F1/random_lib__s4.json": "9fef2482514270ddb097b49ec1eeb1629403010612dfb046c73b676cb07aaadc",
+    "eval/F1/lib_surrogate__s3.json": "c431e4c257339f26fcdc133fbe3c69aece3272eaaac87774279d67fa05372150",
+    "eval/F1/gp_bo__s9.json": "a22f1127cb3f660cfc8246b8db7fa03f26cbce8a33149a6e7b5a08cc8f210821",
+    "eval/F1/lib_surrogate__s2.json": "55b183f38690530c78af83ffb3b0ae2a1989d1b6397e0e83fae90cbb7d7ef646",
+    "eval/F1/edit_ga__s1.json": "9a3a02a214e6a20cb6b4d111dafc70b3c640233162f52f445dca66ef1506b1c3",
+    "eval/F1/edit_ga__s9.json": "ef22660234f122e0b3e0453a89e2a269e0431b19bb214f47fe77b0a90df0b803",
+    "eval/F1/edit_ga__s5.json": "569581b641376c513f6feddfc78531ca66d0c31205ba8e23b55cac98bd3e1516",
+    "eval/F1/selfies_ga__s3.json": "9518c218b5ba2010e6dd9d460253df64f7898c5778eb46848fe8ad0dcbd1af70",
+    "eval/F1/edit_ga__s6.json": "9a0e2e347b93fe35a43f71d3f9ce549e4328b561bc75565b8f06b6c5470a6e6f",
+    "eval/F1/random_lib__s5.json": "b0563c478d8ef3a0d734a10ab85f18902b4fadbb73cf440c0ab5172f2643b47b",
+    "eval/F1/lib_surrogate__s8.json": "e8c523c461cb1d76ee12a0c86c5ca9dedfde8a985a7e5dd0d9fe20ac226e9703",
+    "eval/F1/edit_ga__s7.json": "6cd947ba4d34ad5721cad755464b692b18467afa13e70faa612e21436de26d6e",
+    "eval/F1/random_lib__s6.json": "286a2c03779f1b1660654ec99eb28ea5060efe2ca6c434a59fb22e34a8374cb4",
+    "eval/F1/random_lib__s3.json": "fd0f700496287d8ca9081ca3b5e3a8bf56ad10ea2d78fb71f09d76efa91eb03f",
+    "eval/F1/selfies_ga__s7.json": "e0958ce608327b70f8400004f7c13f3fd6568480c08ebf74e7333259ee0424ed",
+    "eval/F1/edit_ga__s2.json": "9f798eab89422a41e18209aaaf68147d5c0dd31a7a955d52c533e0b98beac03e",
+    "eval/F1/gp_bo__s2.json": "4715b74a8ec49e552a1b4dcea5b39c15b9919dddfcb3c45c27a68d6a10927e51",
+    "eval/F1/selfies_ga__s1.json": "411260e42ca4109956ce21951275f3b4810252e57072dd918c293a2d2693fd88",
+    "eval/F1/gp_bo__s8.json": "9284eb3758d8ebc422b982fa9beb89df4eb3897b0da354eacf87c19d6d540ec5",
+    "eval/F1/random_lib__s0.json": "bb645cf9bb23d395bb80a435e02d133ec14d0cb179e7058a6323f8ba4d5a9a81",
+    "eval/F1/lib_surrogate__s9.json": "aef77077752d15263453706441a4c9f1d8f0b844f7a31b441410161bdac24480",
+    "eval/F1/selfies_ga__s6.json": "1d6235e6ba5e6a1008ababb625bd5dcdbb8f6155ee877e2b0442b0c96918330e",
+    "eval/F1/edit_ga__s8.json": "f909222cc0665abcaf971148c8e2af4481ed7dd7449ef49a5e125fcc07ce7248",
+    "eval/F1/selfies_ga__s5.json": "b10bbf87147d2224648b115dbb99e5d9d36929dc3e8c9e5272a0dd433f2f23c3",
+    "eval/F1/random_lib__s2.json": "5eba6938f017685df14aad5f057a9c2495ed0f305f46d87420248e68b8d2d441",
+    "eval/F1/edit_ga__s0.json": "aee1a1534e4efcf9a249acb5b50b61cb668c54cc2789c180900f846d75599c40",
+    "eval/F1/gp_bo__s3.json": "8596cb7a71183412cc2f51baef04efca90bc1ffbd4521687a33773e716244465",
+    "eval/F1/random_lib__s8.json": "09d7fb5d8a0853141bfa65cce7ed3174e6c6e638a374e3929606859b6fe39cc2",
+    "eval/F1/random_lib__s7.json": "e5fde24ac320d837d551298172e4da944ab532dd76cc1be0f140b76d5e6ae142",
+    "eval/F1/selfies_ga__s2.json": "ec957a9444aefaaf2548a1bfd2e842fc5371f79b3bf1abc54ff28c578a44354e",
+    "eval/F1/selfies_ga__s0.json": "2297722cf09dc509b8245ab03766532af138f15feb147f706cea24a05224c895",
+    "eval/F1/gp_bo__s1.json": "085b481f94de9a63605e8bbeff3595de9dfc61353fd5eac38e4317167e374e4f",
+    "eval/F1/lib_surrogate__s4.json": "bf314149349a6da450dec649293a752d51ef46a55ebae2998b2f5e22d5c779d6",
+    "eval/F1/lib_surrogate__s6.json": "439309c2d1694808b23d8b2d6eb7965fe944913c1b410c572b1d0987290c51de",
+    "eval/F1/gp_bo__s4.json": "f23e64751a04861ef093912a124b79a5d902cdc197cdbe7e70659319be18cc19",
+    "eval/F1/lib_surrogate__s1.json": "893a6a883104830bff20465708cbfe7f57b3e24e45690e2aa76dc5eb32ae0bd4",
+    "eval/F1/gp_bo__s5.json": "8ed54bc29c7364dd9ed501e0f5576f96d4fdc6858028dc29af1abac3827af9a1",
+    "eval/F1/edit_ga__s3.json": "859118c0023e7941923e6bcb23a3321f40adb249c01ed00746eeba3e2b963275",
+    "eval/F1/lib_surrogate__s7.json": "8c9f8b4b899b9a80b3707bb493f86d7589d3b0f1d34a6b2b0fdb09455e10a824",
+    "eval/F1/selfies_ga__s8.json": "c9aebc081f7b32b2b26ce68a63f30dc159849ecb8b1d0b8a3c81223903f64ceb",
+    "eval/F1/lib_surrogate__s5.json": "db6f4c15b02dba93a3d13c8d9de2c3f1cc834052e91b61f715cb34735d220f1b",
+    "eval/F1/lib_surrogate__s0.json": "a4f05934dcb206a4d84b9836c9e571af40dd308e1dad3788a90320a9a568295a",
+    "eval/F1/random_lib__s9.json": "2aae988ec49c11e0478195bbe795c843cf081e2c67a3e3d2ed388d026948e11b",
+    "eval/F1/selfies_ga__s9.json": "2b1b419ed26d641b9a4acac06eaef85309ef62ba9fa844bf3cb772c6bfdfcbfb",
+    "eval/F1/gp_bo__s7.json": "10ef9990311808d3537279eafae72b2a506995b14501fe07cca4b214a50416f9",
+    "eval/F2/gp_bo__s6.json": "25f6a91e629574ef76fc8f96d68fba5c68b498ee86ca70604d6e6d9dd3fc2a6c",
+    "eval/F2/random_lib__s1.json": "b531f6f45f1f4b9f63947ccba1dc5fc8ba15dfe59cd44f40c1fa82cbbb9b5d1a",
+    "eval/F2/selfies_ga__s4.json": "2d7ff1efe56ac384b7a212ad2df01accb5248d3aba23dd32dc2bb11c6e06117a",
+    "eval/F2/edit_ga__s4.json": "41b84c207e014f5a5a5a756b7612fb1f6f7df340cbb7cd6cec53b6792429104c",
+    "eval/F2/gp_bo__s0.json": "37c73f415fffd5aea2c72da8030539fbc2916a4299f6cb2951ae98923f17067d",
+    "eval/F2/random_lib__s4.json": "2e520228c7a15d0b7b3873f8ef6a6bc855b2677a63ea294bc3f4dc81996326c3",
+    "eval/F2/lib_surrogate__s3.json": "62a5dbef8cae3350b3e75187e255357952325ab454f80f12b09353defb287095",
+    "eval/F2/gp_bo__s9.json": "0211a9ea150b09c0f7d04c6016c129c341cc7e69ad40a70b56e34699b6ec8f4c",
+    "eval/F2/lib_surrogate__s2.json": "b109e7b448f751f1d74054a2083deac2702e0a3228e3489ceb04a875223ea465",
+    "eval/F2/edit_ga__s1.json": "921980216cecb63034d49b1027a6fbec3ec81b2a6cfef0e5f33108ae74b45f88",
+    "eval/F2/edit_ga__s9.json": "18b3cf4ad6cdd2468bc2626e08e128221484f9a2b5f923b67c666de25ba5df11",
+    "eval/F2/edit_ga__s5.json": "d3bc44007b11cbf4f5c6bd9896b0c3328fad92e74799879878140f1c3420c0d3",
+    "eval/F2/selfies_ga__s3.json": "a874e0c86d7b743bae6258a30f028272520b2a768a778a05547ce35285d1cdb5",
+    "eval/F2/edit_ga__s6.json": "0a681001626da3feeface8556545c37367ca2add8ba5df10fcffa7ff9835c584",
+    "eval/F2/random_lib__s5.json": "c6416f02ebfcd483880d6e6d72a6a1b26ecd99640fb95cedb70b4faaadac2c13",
+    "eval/F2/lib_surrogate__s8.json": "7b0db7bdf7608185f2ed7a40c15171578ff872255030c4bbfdf98d5c8181e9af",
+    "eval/F2/edit_ga__s7.json": "a3fcebccbb967b58a72fc483a920cb544f0a9d25138990b044f154c73407a839",
+    "eval/F2/random_lib__s6.json": "c8ef2caa9ab9b7256d832ec0da874f61d4c5e0cf64baeca0f8f3bbe662cd7c5d",
+    "eval/F2/random_lib__s3.json": "aebc8707583e970001a1c3b6fe0651cd6117a8da4bc54780f34366909c422663",
+    "eval/F2/selfies_ga__s7.json": "71d884978d2fdf297590a36833edc5c81ba18a61e9bac85a3400022798fc26e8",
+    "eval/F2/edit_ga__s2.json": "a8dc9da71784efd5fded4c3e9ab80697bd91b4fb985e09a7065b8cb55da8ec10",
+    "eval/F2/gp_bo__s2.json": "11cd28e058ce42203a803e1f64f07461823019bfee46180f3ec49fc380f751be",
+    "eval/F2/selfies_ga__s1.json": "c0e22d75a819c5b15c5d452a12b947308462a193c008dde2cf619c1d730c9a1e",
+    "eval/F2/gp_bo__s8.json": "8ab085a7437ab6f1ebcddf67428e844bbcca167435d016362bdc6065ad45a010",
+    "eval/F2/random_lib__s0.json": "be4a6a7a7b3100f2256b18abb9548be8d2bbe4d8f94ed1c82afcd73ce06f23c7",
+    "eval/F2/lib_surrogate__s9.json": "d70295017c5b3f117deba1ec73df323691550146714e440249fe8cfe56ec37e5",
+    "eval/F2/selfies_ga__s6.json": "6faed7e2b860a46d4d867b2d4c07bbdbfcede94258b547195648b3562a401399",
+    "eval/F2/edit_ga__s8.json": "15947a9b67d807605aa68c314525af3a7974b760561dac6ef128e5233f6cc524",
+    "eval/F2/selfies_ga__s5.json": "9f86e352be9140f22277c1cc2921e40fb695015731ec2eb09ee63204741d7dc8",
+    "eval/F2/random_lib__s2.json": "032ab9d6b76c2f7f7b37938f41818d5f3ae468a3f36c63857be0a976ad0b0b37",
+    "eval/F2/edit_ga__s0.json": "4c912c24de1991b916defedea2697859dda1e0edacc5dccd770797388571e556",
+    "eval/F2/gp_bo__s3.json": "74a579f1a9d9e7720264d02d1c10090e2a42b9a37801510ef8a5c7c2b3b17edc",
+    "eval/F2/random_lib__s8.json": "ae05eaad0aa96d5c6df26a3a83e1518171ef11cf563b4c8c96e9f909b5802489",
+    "eval/F2/random_lib__s7.json": "a34ea6b699d90116f7ad15ca38a68e59eb59397fadd879ed8e74b252b136c0f8",
+    "eval/F2/selfies_ga__s2.json": "d86c78221e970af97c64e7d04da05b93b9f4c39dabd6e1e605b863fc666d727c",
+    "eval/F2/selfies_ga__s0.json": "8a7792170781fc49e61e10934ddb7e9218cb2decf4f2ce9bf234adafbc7ebab2",
+    "eval/F2/gp_bo__s1.json": "ac7042838cedf1204c53a62938609fcded67d4528c14738097a66d4c2d8b655b",
+    "eval/F2/lib_surrogate__s4.json": "f148950ea023ebe7cb50f8b503840d1a12828bf309410db08cb2d9060d9adeac",
+    "eval/F2/lib_surrogate__s6.json": "a60443d2a4bf04db810d39249716b143b420b8cce517192b41e0cb8d183c19fc",
+    "eval/F2/gp_bo__s4.json": "96a1a2190780cff69fb212d6405db466687a5b73e1c058e7af7f48891ebcfba6",
+    "eval/F2/lib_surrogate__s1.json": "811039849052096a66eaddd04d9fd510ff742e816d412f5c9493a9bb961ddf1e",
+    "eval/F2/gp_bo__s5.json": "829442213f663e8ea80b942a5ae8232c15049cf0c551168ed0480665153dfdcc",
+    "eval/F2/edit_ga__s3.json": "7a4b032fe437d97cc0fd0826ab8a580ecc8eacfa68f915b36be329bc670e541b",
+    "eval/F2/lib_surrogate__s7.json": "92a110fd7d2ec7d6a7387ed9a81733d785c3df52b00f720d6d2b81d6a4aa7228",
+    "eval/F2/selfies_ga__s8.json": "187732b75fdb7a6680a8ca3dda4b88a6ba19612e2bc3927a631162406cc19cdd",
+    "eval/F2/lib_surrogate__s5.json": "8bdf65ff280a998ae5af1a4a459ea6e0f84005c9126dce17d7f7d276485c11fa",
+    "eval/F2/lib_surrogate__s0.json": "89a1223f8bd2e1970c30fe953680cd572dc159bafd3cf5e16ee416ff9dec40bd",
+    "eval/F2/random_lib__s9.json": "5d0c4f12f6786c19270829e604241ef8d104a35758421bd0ac509009abfebdbc",
+    "eval/F2/selfies_ga__s9.json": "593449789d3dac9299ba98449bb8985bea8ab7b5cac2a5d95552963930c187cf",
+    "eval/F2/gp_bo__s7.json": "450d5b540c217390526d9193b43928474c0a23d2aa702d4cf66353c0222a81ad",
+    "controls/F2/lib_surrogate@planted__s0.json": "6ca2231a699a1c6f7f97fb16caeb886ee3557c31552269ebbea1b563964ef78f",
+    "controls/F2/copy_seed@shuffled__s0.json": "00db35bed22b1ced68187e2d005e0e99c59400970a34d459849a440235c0cb83",
+    "controls/F2/gp_bo@shuffled__s1.json": "3989876fc7ac4f81e477dd4b18bc28de3c53f49d72a8289e60e2f57d66fdc527",
+    "controls/F2/selfies_ga@planted__s3.json": "198ae980e06ba4474907f75991f18ae4a4ae0b766d33608d69c198fbe82c1008",
+    "controls/F2/edit_ga@shuffled__s2.json": "888459bc684ba4c82020157cde6503dedea0d6cddd879aee978bf32812623e55",
+    "controls/F2/copy_seed@planted__s1.json": "57f2b0c09a6be67b5af15123f8aa36b859a9f37e8c588f423e881d592a009991",
+    "controls/F2/edit_ga@shuffled__s0.json": "5ba4d4e8a35e7bea62a47c1f8d763cfd20681c84927903b1d0580be5e4179879",
+    "controls/F2/gp_bo@shuffled__s2.json": "25197f9b92eea2afb4485f5abbcccedc72a5fdaaaac795e9afd10a8c30931bd4",
+    "controls/F2/gp_bo@shuffled__s4.json": "a783aff1ea22f3369aeace82f85db7c478dbf23f8c1f3771c16ce763e575d88c",
+    "controls/F2/edit_ga@shuffled__s3.json": "66f9d1f717c1b72f5e8b15011bdfbb75319c9a8ae4ee6520217aa02b3a418208",
+    "controls/F2/copy_seed@planted__s2.json": "60467c2201031316e20e56e289f7035eb4149df35932829d8d7f2908ae8debf2",
+    "controls/F2/copy_seed@shuffled__s2.json": "0b28b1aab4c7b1ba511ec784268bb275d4cc9166c81f84224d5e963e3bf27958",
+    "controls/F2/edit_ga@planted__s2.json": "e90ec5b1561df65ae2511bc68c6ecfd6eb3d459373c3e44a77ad2f3f49ff2abc",
+    "controls/F2/lib_surrogate@shuffled__s2.json": "62a400bdaca498986d51fed70418f6b4afdb0cbc0912ff84e969b0f0dc02d819",
+    "controls/F2/gp_bo@planted__s3.json": "24223d7df2cacf2b63bd39d28f79ea89623be813c7c30793533ed752d308f091",
+    "controls/F2/lib_surrogate@shuffled__s1.json": "f411ad7a4b655055f9dcbfd313a80a1b76c84994ac8296b6e4a337c25ce85f70",
+    "controls/F2/selfies_ga@planted__s2.json": "27a74c919ffccd3005e795d83f78667aeecfb1f5cb7e39d265fd016525c0d333",
+    "controls/F2/lib_surrogate@shuffled__s3.json": "d028c61780066298d998cab1e5ab310daec49144f1eed9b80074cac8d823aef6",
+    "controls/F2/edit_ga@planted__s4.json": "bc1f8ae6e768a30ebfd50774514bc7553298ed1b3a54b27150158fcd903aec69",
+    "controls/F2/gp_bo@planted__s2.json": "b86330824b64431d26ef79a75df49aea3f1697feb3a0f1a3aac90c4d2b512fa5",
+    "controls/F2/copy_seed@planted__s0.json": "e9de5393d779b23e2a344777b3907186a870a3f57dde9a6e3a0342a72a1b1561",
+    "controls/F2/edit_ga@shuffled__s4.json": "764f3367288a6b220b18684b801ce27db5f897ae7201daa8543192e02730a285",
+    "controls/F2/gp_bo@planted__s0.json": "e10079662c118ed065f3a8090cb793aa379e58d15e41e11eab06b3c8ba8cec80",
+    "controls/F2/edit_ga@shuffled__s1.json": "ce40f0d0bc051c83ac3a32ecdb8600664269b79da0ba6ccd7b031dc6b639e30c",
+    "controls/F2/gp_bo@planted__s1.json": "6d7bab1284f8c0639d5749a5064a462e898f1cb43296de0782eda0156413cede",
+    "controls/F2/copy_seed@shuffled__s4.json": "6a7cd78d9bc72a19162fd97f2008c019fd4ecc25022ec9c37aff3bb3b0fd4fef",
+    "controls/F2/edit_ga@planted__s3.json": "7d96db8e6ad075c92d1a52728c57103cd13a8074df4908afda4da75c3ad243d3",
+    "controls/F2/random_lib@planted__s2.json": "26f993c55dfc8d538bca985c2803e71c0001e135367c8903c005bcf51bf98ffd",
+    "controls/F2/selfies_ga@shuffled__s1.json": "dce3550b518a92547c8c289788574292a1c79c9f700b3ad9e102a2e3a0999c6e",
+    "controls/F2/random_lib@planted__s0.json": "e47902d368070248c47389791ff50bab0fda142bb705f827d536ddae93137e9b",
+    "controls/F2/selfies_ga@shuffled__s3.json": "eb1fd4a5251eb5583b193ff23de9deec512d484eb08efd3ad9fe9c01fd90d2e7",
+    "controls/F2/random_lib@shuffled__s0.json": "f0ab0d40cd8c47bdc88d441d397f498987f535bc0e06a2abccdd0e479b0c4a69",
+    "controls/F2/copy_seed@shuffled__s3.json": "be099a7198d2afc08d178e6523d11eb0e4fc2f6dfa6fa9b7cb58354a96e63014",
+    "controls/F2/copy_seed@planted__s3.json": "b515d4c553da84d9d2336cb73fc9c43b9cee11e7b2c2f543fd0df92b3027bcdb",
+    "controls/F2/edit_ga@planted__s0.json": "0a0f73ed4bbc04dc8f98b2f4b41b7145f9158bbe3a8e94c6b927ee013d25d40b",
+    "controls/F2/copy_seed@shuffled__s1.json": "5fcdc05e2e096d2d19ff208f8283ca7d7864a676b15d6988b4c632fade6fcebf",
+    "controls/F2/selfies_ga@planted__s1.json": "3d3fe50c97f976bb22c6a99c0f2c6fa486674f105d6af25b160b68f9dac0e820",
+    "controls/F2/copy_seed@planted__s4.json": "e551643caa8f56fff886d578ccf2e9c8ab2e43ca89136e3ca0929bdb633dd90d",
+    "controls/F2/selfies_ga@planted__s0.json": "496fcbba0e84c8c5f3739ff33bce92ed43856ee975472b5a768d713a73bbb92c",
+    "controls/F2/random_lib@planted__s3.json": "ba9930b4dc50590333a4a1a8411c9d86d9e0fa352a55cfec0ffc6e63568e2274",
+    "controls/F2/lib_surrogate@planted__s3.json": "2313fb6b2e0b1732ad7633e90d6ffea9f9f9a2d1d3ff05440ceabf78fcd76f14",
+    "controls/F2/gp_bo@shuffled__s3.json": "eac5f9b779d82556b1ab61adbc88bb025f1ef41216d95ec9e8881c3aff6b2f2f",
+    "controls/F2/selfies_ga@shuffled__s2.json": "08b3eebbefe6843043129434ca3b0776f81ff41dd25034efcb9e0d78319b6781",
+    "controls/F2/random_lib@planted__s1.json": "77ed087e8b5122475c90c243f8de0824af17469b470e9607271606ce49298736",
+    "controls/F2/lib_surrogate@planted__s4.json": "61d0e3e700e57a6113dc98ba52e0270205472e8d9e351cb58358ead5d29194da",
+    "controls/F2/random_lib@shuffled__s2.json": "b0f89748fd2f9b31fb0c329b1e5a46e85531112a652a47cd63908cf859631b02",
+    "controls/F2/gp_bo@shuffled__s0.json": "bebab59a6cb9a75fafad0c342523edcff1d9d9c32db2744e3d9950b032d96081",
+    "controls/F2/lib_surrogate@shuffled__s0.json": "cb6c80282c3afe8ad0ed7649b94757f7a32249ae70aa6fddb1ce9155c0efa0fc",
+    "controls/F2/random_lib@shuffled__s4.json": "5ac5d921bb8a7a78a12ffc82affc7e4a7b6b114d242c2f6d00d50bf0b992f0a2",
+    "controls/F2/selfies_ga@planted__s4.json": "31eae1de076b49aa45fb20eb7dbd6ed67ab68acfbe7c9a45e60f4309aa6f2e1e",
+    "controls/F2/selfies_ga@shuffled__s0.json": "22ed345439ce2680f5bead9cf6b876c9b829ae9fe1f58820a5d10603c9fb84d1",
+    "controls/F2/random_lib@shuffled__s1.json": "f2af322447e536b1856119b61a57deb2b0ae6f63e950ff0d889aea651aa9677b",
+    "controls/F2/edit_ga@planted__s1.json": "b3de06d9fa18d598a6561ec9ee98efe1a77d2e363f22add2051b130428232931",
+    "controls/F2/selfies_ga@shuffled__s4.json": "3b09f73d74594483ed6043ba7775b76b48e6cfc554e92d6b158e70e5c6a59511",
+    "controls/F2/random_lib@planted__s4.json": "0cfda6b27cacde5db35ccac72b6b631f98523f73917407c8d8fb65a5cf233864",
+    "controls/F2/gp_bo@planted__s4.json": "0c6a5fba2625444a7abbd060180d9f49667e03288a4aea337a22083d90bf9fc2",
+    "controls/F2/lib_surrogate@shuffled__s4.json": "4bdc33ed234974ace79f11ab587c461425d57fdb7692ae2c7a67257d3d7bd29e",
+    "controls/F2/random_lib@shuffled__s3.json": "ce8c69c4f89eacc5cc03dceecba747c8106d0c33a778b2dc32ede2fdd5dfe9a1",
+    "controls/F2/lib_surrogate@planted__s1.json": "0b212677190c5fe7ff7ead5abd6725f7adc49f946f22af0bc6a022ff603df6e9",
+    "controls/F2/lib_surrogate@planted__s2.json": "98e58dfd76f4c3cf0c7c348c7abb842038a02e3debd3323b8eb3c54b9e056cd8"
+  },
+  "families": {
+    "F1": {
+      "methods": {
+        "edit_ga": {
+          "train_sd_auc_mean": 2.9761574916342726,
+          "seed_sd": 0.05409819666351809,
+          "per_seed_sd_auc": [
+            2.9632924163315972,
+            2.920873956318165,
+            2.890236152077948,
+            3.013125693862401,
+            3.0367110772852977,
+            2.902562393186985,
+            2.9808500700823064,
+            3.020704779188184,
+            3.014807256489325,
+            3.018411121520515
+          ],
+          "wall_seconds": [
+            449.1,
+            322.6,
+            390.3,
+            802.5,
+            777.2,
+            476.8,
+            361.2,
+            757.3,
+            877.9,
+            773.8
+          ],
+          "wall_seconds_sum": 5988.7,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            649,
+            686,
+            1000,
+            1000,
+            740,
+            695,
+            719
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "optimizer_stalled",
+            "optimizer_stalled",
+            "budget_spent",
+            "budget_spent",
+            "optimizer_stalled",
+            "optimizer_stalled",
+            "optimizer_stalled"
+          ],
+          "heldout_final": {
+            "etkdg_min_polar_sasa": {
+              "values": [
+                1.0,
+                1.0,
+                0.7699999999999999,
+                1.0,
+                1.0,
+                0.765,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 2.9761574916342726
+        },
+        "gp_bo": {
+          "train_sd_auc_mean": 2.850179205889573,
+          "seed_sd": 0.03954071868992407,
+          "per_seed_sd_auc": [
+            2.880060776693395,
+            2.8268445224513896,
+            2.823108158693314,
+            2.9019517751800885,
+            2.7975932358098627,
+            2.891386101276641,
+            2.8576683138790537,
+            2.836424808367093,
+            2.796369407485794,
+            2.8903849590591033
+          ],
+          "wall_seconds": [
+            495.1,
+            494.3,
+            490.9,
+            484.1,
+            488.2,
+            487.0,
+            491.0,
+            488.2,
+            493.5,
+            498.7
+          ],
+          "wall_seconds_sum": 4910.999999999999,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "etkdg_min_polar_sasa": {
+              "values": [
+                0.9650000000000001,
+                0.975,
+                0.975,
+                0.975,
+                0.975,
+                0.97,
+                0.975,
+                1.0,
+                0.9949999999999999,
+                0.95
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 2.850179205889573
+        },
+        "lib_surrogate": {
+          "train_sd_auc_mean": 2.657247358304133,
+          "seed_sd": 0.06823246736721872,
+          "per_seed_sd_auc": [
+            2.8101088719752543,
+            2.645098253133432,
+            2.654713053818671,
+            2.5980663631293472,
+            2.702716227093412,
+            2.6512089852055256,
+            2.5909221877841153,
+            2.6953589798422137,
+            2.649911209464859,
+            2.574369451594498
+          ],
+          "wall_seconds": [
+            177.9,
+            175.0,
+            181.0,
+            183.7,
+            176.7,
+            168.3,
+            174.5,
+            190.9,
+            170.8,
+            175.3
+          ],
+          "wall_seconds_sum": 1774.1,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "etkdg_min_polar_sasa": {
+              "values": [
+                0.9349999999999999,
+                0.99,
+                0.9650000000000001,
+                0.9349999999999999,
+                1.0,
+                0.96,
+                0.99,
+                0.95,
+                0.9199999999999999,
+                0.95
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 2.657247358304133
+        },
+        "random_lib": {
+          "train_sd_auc_mean": 2.246263177715423,
+          "seed_sd": 0.05926551899487051,
+          "per_seed_sd_auc": [
+            2.1700685298374065,
+            2.2535560743858634,
+            2.2261159772505716,
+            2.264455025840369,
+            2.2363741836626505,
+            2.2171503038464255,
+            2.2627931652771345,
+            2.3929177552356413,
+            2.2404328705817727,
+            2.1987678912363955
+          ],
+          "wall_seconds": [
+            60.6,
+            54.2,
+            60.7,
+            56.9,
+            57.2,
+            54.6,
+            53.4,
+            82.6,
+            61.0,
+            67.2
+          ],
+          "wall_seconds_sum": 608.4000000000001,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "etkdg_min_polar_sasa": {
+              "values": [
+                0.885,
+                0.8899999999999999,
+                0.8999999999999998,
+                0.9,
+                0.9199999999999999,
+                0.86,
+                0.915,
+                0.875,
+                0.8550000000000001,
+                0.7849999999999999
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 2.246263177715423
+        },
+        "selfies_ga": {
+          "train_sd_auc_mean": 3.546173287137845,
+          "seed_sd": 0.058992221871318765,
+          "per_seed_sd_auc": [
+            3.657193481357914,
+            3.58101181450962,
+            3.5465707009581,
+            3.444660327721774,
+            3.4931898781648916,
+            3.545587057493758,
+            3.5675182436839217,
+            3.4893375249178247,
+            3.5676289535244194,
+            3.5690348890462316
+          ],
+          "wall_seconds": [
+            200.6,
+            167.6,
+            92.4,
+            98.9,
+            147.3,
+            175.8,
+            233.4,
+            113.0,
+            462.3,
+            95.7
+          ],
+          "wall_seconds_sum": 1787.0,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "etkdg_min_polar_sasa": {
+              "values": [
+                1.0,
+                0.945,
+                1.0,
+                1.0,
+                0.95,
+                0.97,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 3.546173287137845
+        }
+      },
+      "best_untruncated_baseline": "selfies_ga",
+      "gap_G": 1.299910109422422,
+      "margin_sd_auc": 0.1299910109422422,
+      "baseline_paired_contrasts": {
+        "edit_ga minus gp_bo": {
+          "mean": 0.12597828574469888,
+          "paired_sd": 0.07029340070276086,
+          "t_ci95": [
+            0.07569341610657326,
+            0.1762631553828245
+          ],
+          "n": 10
+        },
+        "edit_ga minus lib_surrogate": {
+          "mean": 0.3189101333301395,
+          "paired_sd": 0.09016833093555414,
+          "t_ci95": [
+            0.2544075950939488,
+            0.38341267156633024
+          ],
+          "n": 10
+        },
+        "edit_ga minus random_lib": {
+          "mean": 0.7298943139188495,
+          "paired_sd": 0.0667877454659185,
+          "t_ci95": [
+            0.6821172389644132,
+            0.7776713888732858
+          ],
+          "n": 10
+        },
+        "edit_ga minus selfies_ga": {
+          "mean": -0.5700157955035731,
+          "paired_sd": 0.09401297890530562,
+          "t_ci95": [
+            -0.6372686292160196,
+            -0.5027629617911266
+          ],
+          "n": 10
+        },
+        "gp_bo minus lib_surrogate": {
+          "mean": 0.19293184758544063,
+          "paired_sd": 0.08528176476787173,
+          "t_ci95": [
+            0.1319249482038705,
+            0.2539387469670108
+          ],
+          "n": 10
+        },
+        "gp_bo minus random_lib": {
+          "mean": 0.6039160281741506,
+          "paired_sd": 0.078838794558154,
+          "t_ci95": [
+            0.5475181520271791,
+            0.660313904321122
+          ],
+          "n": 10
+        },
+        "gp_bo minus selfies_ga": {
+          "mean": -0.695994081248272,
+          "paired_sd": 0.06990397372375562,
+          "t_ci95": [
+            -0.746000371607588,
+            -0.645987790888956
+          ],
+          "n": 10
+        },
+        "lib_surrogate minus random_lib": {
+          "mean": 0.4109841805887099,
+          "paired_sd": 0.09582342616398246,
+          "t_ci95": [
+            0.3424362309268413,
+            0.4795321302505785
+          ],
+          "n": 10
+        },
+        "lib_surrogate minus selfies_ga": {
+          "mean": -0.8889259288337126,
+          "paired_sd": 0.07007342960383695,
+          "t_ci95": [
+            -0.9390534406271052,
+            -0.83879841704032
+          ],
+          "n": 10
+        },
+        "random_lib minus selfies_ga": {
+          "mean": -1.2999101094224224,
+          "paired_sd": 0.10559697881493263,
+          "t_ci95": [
+            -1.375449637469189,
+            -1.2243705813756558
+          ],
+          "n": 10
+        }
+      },
+      "power_proxy_by_contrast": {
+        "edit_ga minus gp_bo": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.06899303665225892,
+          "positive_lower_bound_threshold": 0.05028486963812561,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.012086784468462041
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.05650854719039615
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.004249844148121602
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.009663740294576504
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0017281450456885798
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0017281450456885798
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.261015059804752e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0007633673830171461
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 7.08248551829869e-08
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.446263504558411e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.4893241248007474e-09
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.4893241248007474e-09
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.62700963715942e-20
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.1555071793600567e-10
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.2714133642065867e-26
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 4.116615863521863e-21
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 6.698447885187896e-32
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 6.698447885187896e-32
+            }
+          ]
+        },
+        "edit_ga minus lib_surrogate": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.08850029873238673,
+          "positive_lower_bound_threshold": 0.06450253823619073,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03942032914533417
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.1083297341260393
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.020109074783667167
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.03410955554906901
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01132028533727817
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.01132028533727817
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00021995514623067644
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.006738309686069203
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.039112672537405e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00013260140502782894
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.571212027183055e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.571212027183055e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.0340655964158041e-12
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.8694600299388677e-07
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.1433461807755806e-16
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.501893404416362e-13
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.83381249505461e-20
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.83381249505461e-20
+            }
+          ]
+        },
+        "edit_ga minus random_lib": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.06555223285236325,
+          "positive_lower_bound_threshold": 0.04777707495443624,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.008829549437651256
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.04766175853607701
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0028055993582275355
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.006909491234476192
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0010440100818793687
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0010440100818793687
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.0405807878212212e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00042508580731821327
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.517955153214476e-08
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 4.242473860076284e-07
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.757743634556266e-10
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.757743634556266e-10
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.146798646349434e-21
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.2630534039630422e-11
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 7.95779196085107e-29
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.505168774076507e-23
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 4.017378764460114e-35
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 4.017378764460114e-35
+            }
+          ]
+        },
+        "edit_ga minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.09227382420761215,
+          "positive_lower_bound_threshold": 0.0672528337124465,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.039075986377434965
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.10367881680849705
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.020499786137285366
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.034007192532118265
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0003742563690623095
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.008897134815243202
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 4.156182825331852e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00023441108179695123
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 6.142812304935261e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 6.142812304935261e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 7.793431590189006e-12
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.069947566722757e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.7672366230500707e-15
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.3175201863897063e-12
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.1159358071333426e-18
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.1159358071333426e-18
+            }
+          ]
+        },
+        "gp_bo minus lib_surrogate": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.08370412959929542,
+          "positive_lower_bound_threshold": 0.06100689938157015,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.031573628698509125
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0957337107962064
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.015039426427207701
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.02692477345655369
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00797503448897846
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00797503448897846
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00010107818004701892
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00449412434146975
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 7.185957861792768e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 5.760760912621592e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 7.173877282964876e-07
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 7.173877282964876e-07
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 5.323656748818664e-14
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 8.707681929393333e-08
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.0460279169063237e-18
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 6.184353367752248e-15
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.7034854247000122e-22
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.7034854247000122e-22
+            }
+          ]
+        },
+        "gp_bo minus random_lib": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.07738034848493244,
+          "positive_lower_bound_threshold": 0.05639787614697142,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.022215185185444675
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.07882763485111055
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.009480100847507542
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0185069308462254
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.004566782338706424
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.004566782338706424
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.9097160364001903e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.002356640462594385
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.348607758508877e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.5148507640581606e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.239185727430812e-08
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 9.239185727430812e-08
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 4.490789781152626e-16
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 7.929294308875136e-09
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.1383644382276886e-21
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.6385147363311615e-17
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.231373793203871e-26
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 9.231373793203871e-26
+            }
+          ]
+        },
+        "gp_bo minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.06861081371856564,
+          "positive_lower_bound_threshold": 0.050006290359316044,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011697613142795304
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.05551224049495852
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.004069987903991568
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00933174874852678
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0016398378611799647
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0016398378611799647
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.896096315864933e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0007182609951860886
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 6.035548850978629e-08
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.2732571893177225e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.0456130857690235e-09
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.0456130857690235e-09
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 6.079313495048366e-20
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 9.182775996349283e-11
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.7520471256556628e-26
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.5106133785673343e-21
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.1025640193348916e-32
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.1025640193348916e-32
+            }
+          ]
+        },
+        "lib_surrogate minus random_lib": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.09405077983681913,
+          "positive_lower_bound_threshold": 0.06854794966186864,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03828285517305354
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.1003108025488822
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.020296422670849208
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.033388450839706374
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00047071281350341765
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.01003341033937541
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 5.649414802971953e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0002997105573249879
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 8.939882855829006e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 8.939882855829006e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.8584950234926913e-11
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.6581287243430704e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 5.7384492428790655e-15
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.353742325011045e-12
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 4.7564372852630734e-18
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 4.7564372852630734e-18
+            }
+          ]
+        },
+        "lib_surrogate minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.0687771348188184,
+          "positive_lower_bound_threshold": 0.05012751179339255,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011866131217003438
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.055945417096620875
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.004147641430930143
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.009475418229086617
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0016778664077458099
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0016778664077458099
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.050302529505007e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0007376393040940741
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 6.47269326376333e-08
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.3461815293587008e-06
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.2289201409471007e-09
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.2289201409471007e-09
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 7.43242942641564e-20
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.015317862666052e-10
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 2.3019941501608492e-26
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.1165062266510557e-21
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 4.3436024919247433e-32
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 4.3436024919247433e-32
+            }
+          ]
+        },
+        "random_lib minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.10364353064313064,
+          "positive_lower_bound_threshold": 0.07553952804676649,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03465207788275137
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.08523323336212085
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0193427187842684
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.030542658411869192
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.0649955054711211,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0013439404653925488
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.017433643617317255
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0002295779181698696
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0009221029666512674
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 4.9547403927554516e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.1299910109422422,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 4.9547403927554516e-05
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.703510495087736e-10
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.2226356186094143e-05
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.2171004099176158e-12
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 2.3549677407433777e-10
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 3.469286517674482e-15
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.2599820218844844,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.469286517674482e-15
+            }
+          ]
+        }
+      },
+      "heldout_final_paired_contrasts": {
+        "edit_ga minus gp_bo | etkdg_min_polar_sasa": {
+          "mean": -0.021999999999999985,
+          "paired_sd": 0.09744514126192007,
+          "t_ci95": [
+            -0.09170805475672386,
+            0.047708054756723885
+          ],
+          "n": 10,
+          "mde80_approx": 0.09564249467879486
+        },
+        "edit_ga minus lib_surrogate | etkdg_min_polar_sasa": {
+          "mean": -0.005999999999999983,
+          "paired_sd": 0.10313960334312804,
+          "t_ci95": [
+            -0.0797816275324047,
+            0.06778162753240474
+          ],
+          "n": 10,
+          "mde80_approx": 0.1012316143849958
+        },
+        "edit_ga minus random_lib | etkdg_min_polar_sasa": {
+          "mean": 0.07500000000000002,
+          "paired_sd": 0.10619688214715992,
+          "t_ci95": [
+            -0.0009686730384006748,
+            0.15096867303840072
+          ],
+          "n": 10,
+          "mde80_approx": 0.10423233630873197
+        },
+        "edit_ga minus selfies_ga | etkdg_min_polar_sasa": {
+          "mean": -0.032999999999999995,
+          "paired_sd": 0.0997552560575688,
+          "t_ci95": [
+            -0.10436061132941701,
+            0.03836061132941703
+          ],
+          "n": 10,
+          "mde80_approx": 0.09790987444949442
+        },
+        "gp_bo minus lib_surrogate | etkdg_min_polar_sasa": {
+          "mean": 0.016000000000000004,
+          "paired_sd": 0.03221455847559886,
+          "t_ci95": [
+            -0.007044906878884854,
+            0.03904490687888486
+          ],
+          "n": 10,
+          "mde80_approx": 0.03161861841115956
+        },
+        "gp_bo minus random_lib | etkdg_min_polar_sasa": {
+          "mean": 0.097,
+          "paired_sd": 0.036453928305312806,
+          "t_ci95": [
+            0.07092243063639067,
+            0.12307756936360933
+          ],
+          "n": 10,
+          "mde80_approx": 0.035779563750548256
+        },
+        "gp_bo minus selfies_ga | etkdg_min_polar_sasa": {
+          "mean": -0.01100000000000001,
+          "paired_sd": 0.025690465157330266,
+          "t_ci95": [
+            -0.029377851668349043,
+            0.007377851668349023
+          ],
+          "n": 10,
+          "mde80_approx": 0.02521521489205248
+        },
+        "lib_surrogate minus random_lib | etkdg_min_polar_sasa": {
+          "mean": 0.081,
+          "paired_sd": 0.03565264521898919,
+          "t_ci95": [
+            0.05549563402584391,
+            0.10650436597415609
+          ],
+          "n": 10,
+          "mde80_approx": 0.034993103673345176
+        },
+        "lib_surrogate minus selfies_ga | etkdg_min_polar_sasa": {
+          "mean": -0.027000000000000014,
+          "paired_sd": 0.04535048695071168,
+          "t_ci95": [
+            -0.059441784030125705,
+            0.005441784030125681
+          ],
+          "n": 10,
+          "mde80_approx": 0.04451154414365033
+        },
+        "random_lib minus selfies_ga | etkdg_min_polar_sasa": {
+          "mean": -0.10800000000000001,
+          "paired_sd": 0.0502327914149048,
+          "t_ci95": [
+            -0.14393437424572397,
+            -0.07206562575427607
+          ],
+          "n": 10,
+          "mde80_approx": 0.049303530410895094
+        }
+      }
+    },
+    "F2": {
+      "methods": {
+        "edit_ga": {
+          "train_sd_auc_mean": 5.192951353540609,
+          "seed_sd": 0.6190712427533662,
+          "per_seed_sd_auc": [
+            4.726465734618152,
+            5.344716005012753,
+            5.531788402561245,
+            5.639206166946058,
+            5.460904838712128,
+            5.333413050542676,
+            5.416675675790069,
+            3.5747605448092856,
+            5.47873631987926,
+            5.422846796534462
+          ],
+          "wall_seconds": [
+            237.6,
+            294.1,
+            330.4,
+            375.6,
+            340.0,
+            292.7,
+            306.5,
+            264.1,
+            292.4,
+            309.3
+          ],
+          "wall_seconds_sum": 3042.7000000000003,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "perm_B_krr": {
+              "values": [
+                2.274080516128805,
+                2.274080516128805,
+                2.274080516128805,
+                2.274080516128805,
+                2.274080516128805,
+                2.274080516128805,
+                2.274080516128805,
+                0.7448682189404414,
+                2.4038992628528284,
+                2.274080516128805
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 5.192951353540609
+        },
+        "gp_bo": {
+          "train_sd_auc_mean": 5.294452724528577,
+          "seed_sd": 0.4244814440900655,
+          "per_seed_sd_auc": [
+            5.39988895479859,
+            5.226452376744654,
+            5.731163937206762,
+            5.776940408222001,
+            5.575865910869681,
+            5.410786024371173,
+            4.40724792065785,
+            5.416025374352233,
+            5.239302670389905,
+            4.760853667672921
+          ],
+          "wall_seconds": [
+            396.3,
+            393.6,
+            391.8,
+            366.0,
+            373.9,
+            361.1,
+            325.5,
+            338.9,
+            310.9,
+            318.6
+          ],
+          "wall_seconds_sum": 3576.6,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "perm_B_krr": {
+              "values": [
+                1.8715853751361249,
+                1.9229089467384708,
+                2.2203387106837846,
+                1.7812564935748239,
+                1.6244738987567238,
+                2.108112232601523,
+                2.1006966004618675,
+                2.1069691382852396,
+                1.99140685218229,
+                1.91884588281279
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 5.294452724528577
+        },
+        "lib_surrogate": {
+          "train_sd_auc_mean": 3.1676283845442943,
+          "seed_sd": 0.14982305432890763,
+          "per_seed_sd_auc": [
+            3.240947529843598,
+            2.9134100455370957,
+            3.2472291447968913,
+            3.0601673905932523,
+            3.20006926246703,
+            3.058732925652965,
+            3.0181273904855,
+            3.382558780238271,
+            3.3428155224804943,
+            3.212225853347842
+          ],
+          "wall_seconds": [
+            130.1,
+            136.8,
+            136.0,
+            128.7,
+            137.0,
+            127.6,
+            131.8,
+            126.3,
+            132.8,
+            128.7
+          ],
+          "wall_seconds_sum": 1315.8,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "perm_B_krr": {
+              "values": [
+                1.284587769347952,
+                0.6497718949393361,
+                1.5534993935984287,
+                1.2057641306060207,
+                0.9606984576032307,
+                1.3238179013312628,
+                1.4240053988215609,
+                0.8336287183280587,
+                1.0904649474640156,
+                0.7397106693535187
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 3.1676283845442943
+        },
+        "random_lib": {
+          "train_sd_auc_mean": 2.471545161405299,
+          "seed_sd": 0.21483298248156868,
+          "per_seed_sd_auc": [
+            2.3975673817315966,
+            2.3532495940905664,
+            2.653031497314315,
+            2.3566639845375854,
+            2.4028838247934035,
+            2.2958235175504367,
+            2.5774151782404626,
+            2.28087972549368,
+            2.984608448804318,
+            2.4133284614966244
+          ],
+          "wall_seconds": [
+            19.7,
+            19.7,
+            20.4,
+            19.9,
+            19.8,
+            21.1,
+            19.6,
+            19.9,
+            19.9,
+            19.9
+          ],
+          "wall_seconds_sum": 199.9,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "perm_B_krr": {
+              "values": [
+                0.876244961090513,
+                0.8006074258797741,
+                1.6504296812774037,
+                1.0565716718390652,
+                1.3144643561471887,
+                0.7582033411641949,
+                0.8739592661875812,
+                1.0284330471358047,
+                0.2639255581427695,
+                0.6333189966572303
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 2.471545161405299
+        },
+        "selfies_ga": {
+          "train_sd_auc_mean": 3.824071815994027,
+          "seed_sd": 0.4673004660517921,
+          "per_seed_sd_auc": [
+            3.0107507678945504,
+            3.461286021594941,
+            3.814386760482531,
+            4.2736753813050345,
+            3.6279288885466467,
+            3.7559357292422186,
+            4.423043957391475,
+            3.4659292397960626,
+            4.478947627276631,
+            3.928833786410178
+          ],
+          "wall_seconds": [
+            34.5,
+            33.8,
+            35.6,
+            36.1,
+            34.3,
+            35.8,
+            36.1,
+            32.7,
+            37.4,
+            34.6
+          ],
+          "wall_seconds_sum": 350.90000000000003,
+          "calls": [
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "stop_reasons": [
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent",
+            "budget_spent"
+          ],
+          "heldout_final": {
+            "perm_B_krr": {
+              "values": [
+                -0.13391830506410746,
+                -0.40601241295793855,
+                0.24591381499444465,
+                0.27414951830627066,
+                0.21765147177848845,
+                -0.2643348638615505,
+                -0.005883676138546156,
+                0.1893219006361676,
+                -0.1135811466854767,
+                0.4092581870468959
+              ],
+              "all_finite": true
+            }
+          },
+          "untruncated_n": 10,
+          "untruncated_mean": 3.824071815994027
+        }
+      },
+      "best_untruncated_baseline": "gp_bo",
+      "gap_G": 2.8229075631232785,
+      "margin_sd_auc": 0.28229075631232786,
+      "baseline_paired_contrasts": {
+        "edit_ga minus gp_bo": {
+          "mean": -0.10150137098796833,
+          "paired_sd": 0.7707966821457057,
+          "t_ci95": [
+            -0.6528961006737983,
+            0.44989335869786173
+          ],
+          "n": 10
+        },
+        "edit_ga minus lib_surrogate": {
+          "mean": 2.0253229689963144,
+          "paired_sd": 0.7066241265393527,
+          "t_ci95": [
+            1.5198345201384096,
+            2.530811417854219
+          ],
+          "n": 10
+        },
+        "edit_ga minus random_lib": {
+          "mean": 2.72140619213531,
+          "paired_sd": 0.5740975125146789,
+          "t_ci95": [
+            2.310721571847207,
+            3.132090812423413
+          ],
+          "n": 10
+        },
+        "edit_ga minus selfies_ga": {
+          "mean": 1.3688795375465819,
+          "paired_sd": 0.5422026348582276,
+          "t_ci95": [
+            0.9810111382556745,
+            1.7567479368374892
+          ],
+          "n": 10
+        },
+        "gp_bo minus lib_surrogate": {
+          "mean": 2.1268243399842834,
+          "paired_sd": 0.4169039581740412,
+          "t_ci95": [
+            1.828589214370609,
+            2.425059465597958
+          ],
+          "n": 10
+        },
+        "gp_bo minus random_lib": {
+          "mean": 2.8229075631232785,
+          "paired_sd": 0.505206400023478,
+          "t_ci95": [
+            2.4615046759169754,
+            3.1843104503295816
+          ],
+          "n": 10
+        },
+        "gp_bo minus selfies_ga": {
+          "mean": 1.47038090853455,
+          "paired_sd": 0.7260198441905412,
+          "t_ci95": [
+            0.9510175991082679,
+            1.9897442179608322
+          ],
+          "n": 10
+        },
+        "lib_surrogate minus random_lib": {
+          "mean": 0.6960832231389952,
+          "paired_sd": 0.21595984397250345,
+          "t_ci95": [
+            0.5415948573371004,
+            0.8505715889408899
+          ],
+          "n": 10
+        },
+        "lib_surrogate minus selfies_ga": {
+          "mean": -0.6564434314497329,
+          "paired_sd": 0.5046966243531911,
+          "t_ci95": [
+            -1.0174816471097912,
+            -0.2954052157896747
+          ],
+          "n": 10
+        },
+        "random_lib minus selfies_ga": {
+          "mean": -1.3525266545887278,
+          "paired_sd": 0.3811227287797971,
+          "t_ci95": [
+            -1.6251654306504766,
+            -1.079887878526979
+          ],
+          "n": 10
+        }
+      },
+      "power_proxy_by_contrast": {
+        "edit_ga minus gp_bo": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.756537643805154,
+          "positive_lower_bound_threshold": 0.55139472968583,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01660433238333104
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.02291554139345956
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01375335799283958
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.015922760087693794
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.02291554139345956
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.04166044721550032
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.015922760087693794
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.021151275130886556
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03706303420183858
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.10466470824075591
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.018551374928960827
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.031940756124742585
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01027210990803207
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.01027210990803207
+            }
+          ]
+        },
+        "edit_ga minus lib_surrogate": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.6935522221758893,
+          "positive_lower_bound_threshold": 0.5054884488579046,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.017108346875316656
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.024255738644621813
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.013939248573402379
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.016346772273897595
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.024255738644621813
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.04613302897628057
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.016346772273897595
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.022242270009312504
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.02570651100399076
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.08543361330451221
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011484529588271364
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.02162498498714109
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.005758467637668728
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.005758467637668728
+            }
+          ]
+        },
+        "edit_ga minus random_lib": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.5634772301084622,
+          "positive_lower_bound_threshold": 0.410684620288103,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01857473499976848
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.028320038714837206
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.014466043681719085
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.017573352676053932
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.028320038714837206
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.06057088068030492
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.017573352676053932
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.025518350432561822
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00824912075136408
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.04594176410389816
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00256404954326156
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.006425194276597871
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0009358767970554543
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0009358767970554543
+            }
+          ]
+        },
+        "edit_ga minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.5321723787117303,
+          "positive_lower_bound_threshold": 0.3878683992909074,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.019056169417067857
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.029706019861945616
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01463476478987063
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.01797390431618106
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.029706019861945616
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.06576363273131876
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01797390431618106
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.026625650761248978
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.005562513567383291
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.037155298214976026
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0015207224034756285
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.004216317351895394
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0004959793764918766
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0004959793764918766
+            }
+          ]
+        },
+        "gp_bo minus lib_surrogate": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.40919161371066975,
+          "positive_lower_bound_threshold": 0.2982351256136744,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.021848391096803796
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0382123436824674
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.015577148676014903
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.020278261291574274
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0382123436824674
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.10001258197317586
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.020278261291574274
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.03333339492114334
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0004804075802604753
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.010141290453269851
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 5.80566504117433e-05
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0003063301236266683
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.243016657582822e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 9.243016657582822e-06
+            }
+          ]
+        },
+        "gp_bo minus random_lib": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.49586054060984713,
+          "positive_lower_bound_threshold": 0.3614028872063029,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.019706932391866123
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.03161844061640157
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01485974343216172
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.018513750187478993
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03161844061640157
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.07312750418616873
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.018513750187478993
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.028146253915187686
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0032183945697742532
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.02772142641765552
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00073501430739569
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0023482665334902727
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00020471558978656375
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00020471558978656375
+            }
+          ]
+        },
+        "gp_bo minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.7125891366718009,
+          "positive_lower_bound_threshold": 0.5193633094262823,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.016945210730873916
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.023818695438131643
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01387936465613555
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.01620967214925013
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.023818695438131643
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.04465764113821608
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01620967214925013
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.021887126817855034
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.028981694501470857
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.09129244496587735
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01344192838937701
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.02457495516510654
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.006964074149287318
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.006964074149287318
+            }
+          ]
+        },
+        "lib_surrogate minus random_lib": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.21196478306143246,
+          "positive_lower_bound_threshold": 0.15448836580189473,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03681826455026924
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.09415866396955586
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01991635949584166
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.03224322388748579
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.000718857429678749
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.012532922354482286
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.95329656130838e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0004717679822968862
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.785978891775635e-05
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.785978891775635e-05
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 9.211586044836529e-11
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 3.718660530899629e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 5.019126525931661e-14
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.874320155888556e-11
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 6.862340849405033e-17
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 6.862340849405033e-17
+            }
+          ]
+        },
+        "lib_surrogate minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.49536019532632236,
+          "positive_lower_bound_threshold": 0.3610382156600582,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.019716705682665328
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.03164749719299116
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.014863096028765817
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.01852184417004896
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03164749719299116
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.07324106741736264
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.01852184417004896
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.028169295608226654
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0031916711227275144
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.027598382701826043
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.0007269061642472994
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0023274094767249676
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00020196831117140455
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.00020196831117140455
+            }
+          ]
+        },
+        "random_lib minus selfies_ga": {
+          "proxy": "baseline paired differences, not observed hybrid variance",
+          "mde80_approx": 0.37407230455249146,
+          "positive_lower_bound_threshold": 0.2726387760617489,
+          "sensitivity": [
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.02307764323553367
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.042193167491629505
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.015974622575424466
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.021283546381464832
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.05,
+              "margin": 0.14114537815616393,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.011843847448777188
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.03546942063646622
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.10213223435678098
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.017514715713575563
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.03047942643034577
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.009584134740817749
+            },
+            {
+              "fraction": 0.1,
+              "margin": 0.28229075631232786,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.009584134740817749
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 0.00015207616187515706
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.229,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 0.0055586407717813004
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.2431702967460562e-05
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.1,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 8.927175341035761e-05
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 1,
+              "pass_probability_normal_approx": 1.4033272164125055e-06
+            },
+            {
+              "fraction": 0.2,
+              "margin": 0.5645815126246557,
+              "lambda_H": 0.0,
+              "true_gain_multiple": 2,
+              "pass_probability_normal_approx": 1.4033272164125055e-06
+            }
+          ]
+        }
+      },
+      "heldout_final_paired_contrasts": {
+        "edit_ga minus gp_bo | perm_B_krr": {
+          "mean": 0.16948174795900728,
+          "paired_sd": 0.5652043522624411,
+          "t_ci95": [
+            -0.23484108872659648,
+            0.573804584644611
+          ],
+          "n": 10,
+          "mde80_approx": 0.5547485852413352
+        },
+        "edit_ga minus lib_surrogate | perm_B_krr": {
+          "mean": 1.0275462329430325,
+          "paired_sd": 0.489600400072581,
+          "t_ci95": [
+            0.6773072055764575,
+            1.3777852603096075
+          ],
+          "n": 10,
+          "mde80_approx": 0.480543237479781
+        },
+        "edit_ga minus random_lib | perm_B_krr": {
+          "mean": 1.2085253305302186,
+          "paired_sd": 0.6601415439175184,
+          "t_ci95": [
+            0.7362885181590166,
+            1.6807621429014206
+          ],
+          "n": 10,
+          "mde80_approx": 0.647929525102508
+        },
+        "edit_ga minus selfies_ga | perm_B_krr": {
+          "mean": 2.0928847122769065,
+          "paired_sd": 0.6043791877527918,
+          "t_ci95": [
+            1.6605378864823233,
+            2.52523153807149
+          ],
+          "n": 10,
+          "mde80_approx": 0.5931987218659789
+        },
+        "gp_bo minus lib_surrogate | perm_B_krr": {
+          "mean": 0.8580644849840254,
+          "paired_sd": 0.28198543731398973,
+          "t_ci95": [
+            0.6563442550133207,
+            1.0597847149547301
+          ],
+          "n": 10,
+          "mde80_approx": 0.27676896291124004
+        },
+        "gp_bo minus random_lib | perm_B_krr": {
+          "mean": 1.0390435825712114,
+          "paired_sd": 0.41195569969128815,
+          "t_ci95": [
+            0.7443482278357898,
+            1.333738937306633
+          ],
+          "n": 10,
+          "mde80_approx": 0.40433489351428836
+        },
+        "gp_bo minus selfies_ga | perm_B_krr": {
+          "mean": 1.9234029643178991,
+          "paired_sd": 0.34211606641186104,
+          "t_ci95": [
+            1.6786678735606086,
+            2.1681380550751896
+          ],
+          "n": 10,
+          "mde80_approx": 0.3357872300002853
+        },
+        "lib_surrogate minus random_lib | perm_B_krr": {
+          "mean": 0.18097909758718594,
+          "paired_sd": 0.390679025053315,
+          "t_ci95": [
+            -0.0984958410094946,
+            0.4604540361838665
+          ],
+          "n": 10,
+          "mde80_approx": 0.3834518180269729
+        },
+        "lib_surrogate minus selfies_ga | perm_B_krr": {
+          "mean": 1.0653384793338736,
+          "paired_sd": 0.40111690929786653,
+          "t_ci95": [
+            0.7783967281589461,
+            1.352280230508801
+          ],
+          "n": 10,
+          "mde80_approx": 0.39369661089595837
+        },
+        "random_lib minus selfies_ga | perm_B_krr": {
+          "mean": 0.8843593817466877,
+          "paired_sd": 0.35898373623010954,
+          "t_ci95": [
+            0.6275578868969822,
+            1.1411608765963932
+          ],
+          "n": 10,
+          "mde80_approx": 0.3523428632514009
+        }
+      }
+    }
+  },
+  "controls": {
+    "edit_ga": {
+      "shuffled_vs_floor": {
+        "mean": -0.0074389242962962674,
+        "paired_sd": 0.006319601688976374,
+        "t_ci95": [
+          -0.015285746196485948,
+          0.0004078976038934144
+        ],
+        "n": 5
+      },
+      "shuffled_pass": true,
+      "planted_final_topk": [
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375
+      ],
+      "planted_all_seeds_ge_09": true,
+      "calls_planted": [
+        1000,
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "stop_reasons_planted": [
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent"
+      ]
+    },
+    "gp_bo": {
+      "shuffled_vs_floor": {
+        "mean": -0.004213105157150565,
+        "paired_sd": 0.004601489843074166,
+        "t_ci95": [
+          -0.009926609433396056,
+          0.0015003991190949261
+        ],
+        "n": 5
+      },
+      "shuffled_pass": true,
+      "planted_final_topk": [
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375
+      ],
+      "planted_all_seeds_ge_09": true,
+      "calls_planted": [
+        1000,
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "stop_reasons_planted": [
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent"
+      ]
+    },
+    "lib_surrogate": {
+      "shuffled_vs_floor": {
+        "mean": -0.007861507686183256,
+        "paired_sd": 0.008046585725063884,
+        "t_ci95": [
+          -0.017852663489455432,
+          0.002129648117088918
+        ],
+        "n": 5
+      },
+      "shuffled_pass": true,
+      "planted_final_topk": [
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375
+      ],
+      "planted_all_seeds_ge_09": true,
+      "calls_planted": [
+        1000,
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "stop_reasons_planted": [
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent"
+      ]
+    },
+    "random_lib": {
+      "shuffled_vs_floor": {
+        "mean": 0.0,
+        "paired_sd": 0.0,
+        "t_ci95": [
+          0.0,
+          0.0
+        ],
+        "n": 5
+      },
+      "shuffled_pass": true,
+      "planted_final_topk": [
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375
+      ],
+      "planted_all_seeds_ge_09": true,
+      "calls_planted": [
+        1000,
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "stop_reasons_planted": [
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent"
+      ]
+    },
+    "selfies_ga": {
+      "shuffled_vs_floor": {
+        "mean": -0.006467611047827537,
+        "paired_sd": 0.007408347248076454,
+        "t_ci95": [
+          -0.015666289111956017,
+          0.0027310670163009435
+        ],
+        "n": 5
+      },
+      "shuffled_pass": true,
+      "planted_final_topk": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "planted_all_seeds_ge_09": true,
+      "calls_planted": [
+        1000,
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "stop_reasons_planted": [
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent",
+        "budget_spent"
+      ]
+    },
+    "copy_seed": {
+      "shuffled_vs_floor": {
+        "mean": -0.01854717158018935,
+        "paired_sd": 0.003975640657651161,
+        "t_ci95": [
+          -0.023483581454589942,
+          -0.013610761705788756
+        ],
+        "n": 5
+      },
+      "shuffled_pass": false,
+      "planted_final_topk": [
+        0.91875,
+        0.91875,
+        0.91875,
+        0.91875,
+        0.91875
+      ],
+      "planted_all_seeds_ge_09": true,
+      "calls_planted": [
+        300,
+        300,
+        300,
+        300,
+        300
+      ],
+      "stop_reasons_planted": [
+        "proposal_cap",
+        "proposal_cap",
+        "proposal_cap",
+        "proposal_cap",
+        "proposal_cap"
+      ]
+    }
+  },
+  "tuned_used_sha256": "32ec89b0113e4523071419bfa7a5d6642ac7ea866c1d44e7ec9fb3d8f1b7e22f",
+  "cost_limits": {
+    "stage01_original_usd": 14,
+    "track_E_original_usd": 4,
+    "U1_original_usd": 2,
+    "M3_original_reserve_usd": 3.5,
+    "remaining_authorized_budget_verified": false,
+    "reason": "launch-only cost rows omit actual billed duration and spot price; run wall_seconds are parallel per-run timings, not instance bills"
+  },
+  "limitations": [
+    "F1 heldout floor failed; replacement VOID; no GO available",
+    "SD-AUC optimization margin does not certify heldout verifier validity",
+    "MDE/pass approximations depend on each shown baseline variance proxy; no hybrid variance measured",
+    "copy-seed plateau requires seed-set size/trajectory audit, not inferred from threshold alone",
+    "heldout final scores are not heldout AUC curves",
+    "review and commit A6 before any hybrid result; proposed JSON is not a preregistration by itself"
+  ]
+}

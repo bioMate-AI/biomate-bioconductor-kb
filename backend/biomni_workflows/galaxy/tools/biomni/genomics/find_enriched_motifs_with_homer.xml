@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_find_enriched_motifs_with_homer" name="Biomni: Find Enriched Motifs With Homer" version="1.0.0">
     <description>Find DNA sequence motifs enriched in genomic regions using the HOMER motif discovery software.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/find_enriched_motifs_with_homer_wrapper.py' --output '$output'

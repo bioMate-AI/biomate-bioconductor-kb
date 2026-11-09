@@ -31,20 +31,26 @@ async function captureFlow(page: any, lang: "en" | "zh", log: string[]) {
   const suffix = lang === "en" ? "" : "-zh";
   const sidebarName = lang === "en" ? "assets/s1-1-sidebar.png" : "assets/s1-1-sidebar-zh.png";
 
-  // Set locale BEFORE the app reads it (i18n resolves from localStorage at module load).
+  await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await settle(page, 4500);
+
+  // Switch the whole UI to Chinese: write the settings key the app uses
+  // (biomate-user-settings.language = "chinese", the enum SETTINGS_LANG_MAP
+  // expects), then reload so i18n re-resolves at module load. Doing this AFTER
+  // the first load (not addInitScript) avoids the race with the app writing its
+  // own settings on login, which left the chrome in English.
   if (lang === "zh") {
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       try {
         const raw = localStorage.getItem("biomate-user-settings");
         const s = raw ? JSON.parse(raw) : {};
-        s.language = "zh";
+        s.language = "chinese";
         localStorage.setItem("biomate-user-settings", JSON.stringify(s));
       } catch { /* ignore */ }
     });
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 45_000 });
+    await settle(page, 4500);
   }
-
-  await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 45_000 });
-  await settle(page, 4500);
 
   // 1. Fresh new-conversation screen. Crop to the content column (heading + cards +
   //    composer) — the fixture's left sidebar is polluted with E2E projects, so it

@@ -72,7 +72,9 @@ def sample_group(model, dev, con, items, temp, masked, gen, stats):
                     done[i] = True; dead[i] = True; why[i] = "dead_end"
                     if len(stats.setdefault("dead_info", [])) < 40: stats["dead_info"].append(dead_info(states[i], con))
                     continue
-                z = float(p[m].sum()); logz[i] += float(np.log(max(z, 1e-30))); q = np.where(m, p, 0.0); q /= q.sum()
+                z = float(p[m].sum()); logz[i] += float(np.log(max(z, 1e-30))); q = np.where(m, p, 0.0)
+                if con.lam: q = q * np.exp(con.soft_logits(states[i]))
+                q /= q.sum()
             else: q = p
             t = int(gen.choice(len(q), p=q)); nxt[i] = t
             if t == con.eos: done[i] = True; fin[i] = True; why[i] = "ok"
@@ -85,9 +87,25 @@ def sample_group(model, dev, con, items, temp, masked, gen, stats):
     return {items[i][0]: (gen_ids[i], fin[i], logz[i], items[i][1], why[i]) for i in range(B)}
 
 
+def make_soft(name, lam):
+    from rules.soft import SoftSource
+    AP = os.path.join(HERE, "..")
+    if name == "none": return None
+    if name == "literature_uniform": return SoftSource.literature_uniform()
+    if name == "literature_kb": return SoftSource.from_knowledge(os.path.join(AP, "knowledge", "knowledge_kb_v1.json"))
+    if name == "groupA": return SoftSource.groupA_descriptive(os.path.join(AP, "rules_mining", "groupA_sensitivity.json"))
+    raise ValueError(name)
+
+
 def run(args):
     ctx = gen_pilot.context(); tok, model, dev = load_model(os.environ["CHEMFM_DIR"], args.lora)
-    voc = V.load(os.path.join(os.environ["CHEMFM_DIR"], "tokenizer.json")); con = ChemFMConstraint(voc, max_len=MAXLEN)
+    voc = V.load(os.path.join(os.environ["CHEMFM_DIR"], "tokenizer.json"))
+    soft = make_soft(args.soft, args.lam); con = ChemFMConstraint(voc, max_len=MAXLEN, lam_soft=args.lam, soft=soft, lookahead_nme=not args.no_lookahead)
+    for seed in [int(x) for x in str(args.seeds).split(",")]:
+        args.seed = seed; run_seed(args, ctx, tok, model, dev, voc, con)
+
+
+def run_seed(args, ctx, tok, model, dev, voc, con):
     res = {}
     for mode in args.modes.split(","):
         masked = mode == "masked"; rng = random.Random(args.seed * 7919 + 13); gen = np.random.default_rng(args.seed); torch.manual_seed(args.seed)
@@ -104,16 +122,17 @@ def run(args):
                     else: fins += int(fin)
         met, cons = gen_pilot.evaluate(raw, ctx["seeds_set"], ctx["cpm_set"], ctx["ref_ring"], ctx["ref_nme"], random.Random(args.seed))
         comp = [s for s in raw if s]; sat = [spec.satisfies_smiles(s) for s in comp]
-        met.update(mode=mode, frac=args.frac, temp=args.temp, seed=args.seed, completion_rate=round(fins / args.n, 4), frac_satisfying_of_completed=round(float(np.mean(sat)), 4) if sat else None,
+        met.update(mode=mode, soft=args.soft, lam=args.lam, lookahead_nme=not args.no_lookahead, tag=args.tag, frac=args.frac, temp=args.temp, seed=args.seed, completion_rate=round(fins / args.n, 4), frac_satisfying_of_completed=round(float(np.mean(sat)), 4) if sat else None,
                    n_completed=len(comp), seconds=round(time.time() - t_all, 1), mask_ms_per_row_step=round(1000 * stats["mask_seconds"] / max(1, stats["row_steps"]), 3))
         if masked and logzs: met["kl_seq_nats_mean"] = round(-float(np.mean(logzs)), 4); met["kl_seq_nats_median"] = round(-float(np.median(logzs)), 4)
         met["row_outcomes"] = dict(reasons); met["dead_info"] = stats.get("dead_info", []); res[mode] = met; print(json.dumps(met), flush=True)
         os.makedirs(args.out, exist_ok=True)
-        with gzip.open(os.path.join(args.out, f"raw_{mode}_f{args.frac}_s{args.seed}.smi.gz"), "wt") as f: f.write("\n".join(raw))
-    json.dump(res, open(os.path.join(args.out, f"masked_sampling_f{args.frac}_s{args.seed}.json"), "w"), indent=1)
+        with gzip.open(os.path.join(args.out, f"raw_{mode}{args.tag}_f{args.frac}_s{args.seed}.smi.gz"), "wt") as f: f.write("\n".join(raw))
+    json.dump(res, open(os.path.join(args.out, f"masked_sampling{args.tag}_f{args.frac}_s{args.seed}.json"), "w"), indent=1)
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--frac", type=float, default=0.85); ap.add_argument("--n", type=int, default=5000)
     ap.add_argument("--temp", type=float, default=1.0); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--batch", type=int, default=64)
-    ap.add_argument("--lora", default=None); ap.add_argument("--modes", default="masked,unmasked"); run(ap.parse_args())
+    ap.add_argument("--lora", default=None); ap.add_argument("--modes", default="masked,unmasked"); ap.add_argument("--seeds", default="0")
+    ap.add_argument("--soft", default="none"); ap.add_argument("--lam", type=float, default=0.0); ap.add_argument("--tag", default=""); ap.add_argument("--no-lookahead", action="store_true"); run(ap.parse_args())

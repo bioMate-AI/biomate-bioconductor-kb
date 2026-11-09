@@ -498,7 +498,7 @@ class NextflowComposer:
 
             2. **GENERATE tools**: write a minimal `process PROCESS_NAME {{ ... }}` block that runs
                the tool via `script:` using its description as guidance.  Use:
-                 - `container 'biomate/biomni-tools:latest'` as a safe default
+                 - `container 'biomate/workflow-tools:latest'` as a safe default
                  - `label 'process_medium'`
                  - Proper `input:` / `output:` / `script:` sections
 
@@ -762,7 +762,7 @@ class NextflowComposer:
                     "The following `include{}` paths you generated do NOT exist on disk:\n"
                     + "\n".join(correction_lines)
                     + "\n\nFor each of these broken includes, replace the `include{}` directive with an "
-                    "inline `process` block (GENERATE style) using `container 'biomate/biomni-tools:latest'` "
+                    "inline `process` block (GENERATE style) using `container 'biomate/workflow-tools:latest'` "
                     "and `label 'process_medium'`. Do NOT use those include{} paths again."
                 )
             else:

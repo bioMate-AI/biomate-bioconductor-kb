@@ -1,0 +1,91 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "files": [
+    {
+      "id": "5ce20527-8fb2-4694-8c4c-b103bdbaede1",
+      "name": "assay-A.csv",
+      "sha256": "029f6287fa4d04a226af0be03bf8cf6a072c80306cf1c611024c5910ce3b1ce0"
+    },
+    {
+      "id": "b563ebb3-6e16-4228-9253-048ae267e682",
+      "name": "assay-B.csv",
+      "sha256": "737aad44d3b1fd95c303645d33a027586702d7d04c861a2fcdb6a4cc9ba2aa51"
+    },
+    {
+      "id": "795fb9f7-d097-42a8-ab38-6c946daeef6c",
+      "name": "do-not-select.csv",
+      "sha256": "a74e59377a17d91b6d2841aacf32985b6d41d6786d5e42e0d96311c2a2b363c3"
+    }
+  ],
+  "checks": [],
+  "cleanup": [
+    {
+      "resource": "session",
+      "status": 204,
+      "passed": true
+    },
+    {
+      "resource": "assay-A.csv",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "resource": "assay-B.csv",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "resource": "do-not-select.csv",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "resource": "project",
+      "status": 200,
+      "passed": true
+    }
+  ],
+  "buildBefore": {
+    "commit": "e06ade54e1bc8cae058fcd52c8895cc946e1b45c"
+  },
+  "projectId": "51f240db-e128-4481-92a6-abd8cbb8138f",
+  "selectedReferences": [
+    {
+      "id": "5ce20527-8fb2-4694-8c4c-b103bdbaede1",
+      "name": "assay-A.csv"
+    },
+    {
+      "id": "b563ebb3-6e16-4228-9253-048ae267e682",
+      "name": "assay-B.csv"
+    }
+  ],
+  "response": "## Results\n\n**Comparison Summary:**\n\nTwo compounds appear in both assays (CMP_A and CMP_C). CMP_A shows a decrease of 8 ÂµM from assay A to assay B (12 â†’ 4 ÂµM), while CMP_C shows a decrease of 1 ÂµM (7 â†’ 6 ÂµM). CMP_B appears only in assay A (3 ÂµM), and CMP_D appears only in assay B (8 ÂµM).\n\n**JSON Output:**\n```json\n{\n  \"common\": [\n    {\n      \"compound_id\": \"CMP_A\",\n      \"file_a_uM\": 12,\n      \"file_b_uM\": 4,\n      \"delta_B_minus_A_uM\": -8\n    },\n    {\n      \"compound_id\": \"CMP_C\",\n      \"file_a_uM\": 7,\n      \"file_b_uM\": 6,\n      \"delta_B_minus_A_uM\": -1\n    }\n  ],\n  \"only_in_a\": [\n    \"CMP_B\"\n  ],\n  \"only_in_b\": [\n    \"CMP_D\"\n  ]\n}\n```",
+  "comparison": {
+    "actual": {
+      "common": [
+        {
+          "compound_id": "CMP_A",
+          "file_a_uM": 12,
+          "file_b_uM": 4,
+          "delta_B_minus_A_uM": -8
+        },
+        {
+          "compound_id": "CMP_C",
+          "file_a_uM": 7,
+          "file_b_uM": 6,
+          "delta_B_minus_A_uM": -1
+        }
+      ],
+      "only_in_a": [
+        "CMP_B"
+      ],
+      "only_in_b": [
+        "CMP_D"
+      ]
+    },
+    "stagedNames": []
+  },
+  "passed": false,
+  "failure": "\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 4\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[32m- Array [\u001b[39m\n\u001b[32m-   \"assay-A.csv\",\u001b[39m\n\u001b[32m-   \"assay-B.csv\",\u001b[39m\n\u001b[32m- ]\u001b[39m\n\u001b[31m+ Array []\u001b[39m",
+  "finishedAt": "2026-11-08T07:13:33.974Z"
+}

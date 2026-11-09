@@ -27,7 +27,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import { GraduationCap, Wand2, Repeat, Rocket, Library, ChevronRight } from "lucide-react"
+import { GraduationCap, Wand2, Repeat, Rocket, Library, ChevronRight, BrainCircuit } from "lucide-react"
+import { DeepLearningModelsTab } from "./deep-learning-models"
 import {
   useModels,
   useTrainTrack,
@@ -818,6 +819,16 @@ export function ModelsPanel({
                   </TabsTrigger>
                 )
               })}
+              {/* Deep Learning & Foundation Models — appended as an i18n-labelled
+                  trigger (MODELS_TRACKS stays the 5 core, non-i18n tracks). */}
+              <TabsTrigger
+                value="5"
+                className="text-xs"
+                data-testid="models-track-5"
+              >
+                <BrainCircuit className="h-3 w-3 mr-1" />
+                {t("models.dl_tab_label")}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="0">
@@ -854,6 +865,10 @@ export function ModelsPanel({
             <TabsContent value="4">
               <OwnedTrainingRegistry project={projectArg} />
               <RegistryTrack onOpenModel={setOpenModelId} />
+            </TabsContent>
+
+            <TabsContent value="5">
+              <DeepLearningModelsTab />
             </TabsContent>
           </Tabs>
         </CardContent>

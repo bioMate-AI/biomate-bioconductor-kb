@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_calculate_physicochemical_properties" name="Biomni: Calculate Physicochemical Properties" version="1.0.0">
     <description>Calculate key physicochemical properties of a drug candidate molecule.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/calculate_physicochemical_properties_wrapper.py' --output '$output'

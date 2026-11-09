@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Survival analysis — Kaplan–Meier and Cox, done correctly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">Survival analysis — time-to-event with Kaplan–Meier and Cox, run on the cloud</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="kicker">Time-to-event, done correctly</div>
+    <h2>How long until the event — and what changes it.</h2>
+    <p class="caption lead">Kaplan–Meier curves, log-rank, and Cox hazard ratios — from a table and a goal.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="vis wide">
+        <svg viewBox="0 0 1000 440" style="width:100%; max-width:1060px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- axes -->
+          <line x1="120" y1="40" x2="120" y2="380" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="120" y1="380" x2="920" y2="380" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="120" y1="210" x2="900" y2="210" stroke="#d3d8df" stroke-width="1.6" stroke-dasharray="5 6"/>
+          <g font-family="IBM Plex Mono" font-size="15" fill="#5c6573">
+            <text x="106" y="46" text-anchor="end">1.0</text>
+            <text x="106" y="215" text-anchor="end">0.5</text>
+            <text x="106" y="384" text-anchor="end">0</text>
+            <text x="120" y="406" text-anchor="middle">0</text>
+            <text x="380" y="406" text-anchor="middle">20</text>
+            <text x="640" y="406" text-anchor="middle">40</text>
+            <text x="900" y="406" text-anchor="middle">60</text>
+            <text x="520" y="432" text-anchor="middle" fill="#5c6573">time (months)</text>
+          </g>
+          <!-- control curve (worse) -->
+          <path d="M120,40 H198 V81 H276 V115 H354 V149 H432 V183 H510 V217 H588 V244 H666 V268 H744 V285 H822 V298 H900 V309" fill="none" stroke="#1d5fa6" stroke-width="3.4"/>
+          <line x1="432" y1="175" x2="432" y2="191" stroke="#1d5fa6" stroke-width="3"/>
+          <line x1="666" y1="260" x2="666" y2="276" stroke="#1d5fa6" stroke-width="3"/>
+          <!-- treated curve (better) -->
+          <path d="M120,40 H198 V57 H276 V67 H354 V81 H432 V91 H510 V108 H588 V115 H666 V128 H744 V135 H822 V142 H900 V149" fill="none" stroke="#1f6e43" stroke-width="3.4"/>
+          <line x1="510" y1="100" x2="510" y2="116" stroke="#1f6e43" stroke-width="3"/>
+          <line x1="744" y1="127" x2="744" y2="143" stroke="#1f6e43" stroke-width="3"/>
+          <!-- end labels -->
+          <text x="912" y="153" font-family="IBM Plex Sans" font-size="18" font-weight="600" fill="#1f6e43">Treated</text>
+          <text x="912" y="313" font-family="IBM Plex Sans" font-size="18" font-weight="600" fill="#1d5fa6">Control</text>
+        </svg>
+        <div class="vlabel"><b>Treated</b> survives longer than <b>Control</b> &nbsp;·&nbsp; ticks mark censored patients</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Censoring is everywhere — and it breaks ordinary statistics.</h2>
+    <p class="caption lead">Many patients are still alive, or lost to follow-up — censored, not missing.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="vis">
+        <svg viewBox="0 0 1000 420" style="width:100%; max-width:1080px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- enrollment axis + study end -->
+          <line x1="150" y1="50" x2="150" y2="372" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="840" y1="50" x2="840" y2="372" stroke="#94600f" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="840" y="40" text-anchor="middle" font-family="IBM Plex Mono" font-size="15" fill="#94600f">study ends</text>
+          <text x="150" y="40" text-anchor="middle" font-family="IBM Plex Mono" font-size="15" fill="#5c6573">enrol</text>
+          <!-- patient rows -->
+          <g stroke="#c9d0da" stroke-width="5" stroke-linecap="round">
+            <line x1="150" y1="78"  x2="540" y2="78"/>
+            <line x1="150" y1="133" x2="840" y2="133"/>
+            <line x1="150" y1="188" x2="400" y2="188"/>
+            <line x1="150" y1="243" x2="660" y2="243"/>
+            <line x1="150" y1="298" x2="760" y2="298"/>
+            <line x1="150" y1="353" x2="840" y2="353"/>
+          </g>
+          <!-- events (filled red dot) -->
+          <g fill="#a8312f"><circle cx="540" cy="78" r="9"/><circle cx="400" cy="188" r="9"/><circle cx="760" cy="298" r="9"/></g>
+          <!-- censored (blue + tick) -->
+          <g stroke="#1d5fa6" stroke-width="3.4">
+            <line x1="840" y1="121" x2="840" y2="145"/>
+            <line x1="660" y1="231" x2="660" y2="255"/><line x1="648" y1="243" x2="672" y2="243"/>
+            <line x1="840" y1="341" x2="840" y2="365"/>
+          </g>
+          <!-- legend -->
+          <g font-family="IBM Plex Sans" font-size="17" fill="#323846">
+            <circle cx="620" cy="398" r="8" fill="#a8312f"/><text x="638" y="404">event observed</text>
+            <line x1="792" y1="389" x2="792" y2="407" stroke="#1d5fa6" stroke-width="3.4"/><text x="804" y="404" fill="#1d5fa6">censored · alive or lost</text>
+          </g>
+        </svg>
+        <div class="vlabel">A t-test on "time" has nothing to average for these patients — so it throws them away</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four plain ideas carry the whole analysis.</h2>
+    <p class="caption lead">No mathematics — just the vocabulary everything that follows is built from.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="statrow" style="max-width:1260px">
+        <div class="stat">
+          <div class="si">
+            <svg width="92" height="40" viewBox="0 0 92 40"><line x1="10" y1="20" x2="60" y2="20" stroke="#c9d0da" stroke-width="5" stroke-linecap="round"/><circle cx="60" cy="20" r="7" fill="#a8312f"/><line x1="78" y1="10" x2="78" y2="30" stroke="#1d5fa6" stroke-width="3.4"/></svg>
+          </div>
+          <div class="sh">Time + status</div>
+          <div class="sp"><code>time</code> observed · <code>1</code> event / <code>0</code> censored</div>
+        </div>
+        <div class="stat">
+          <div class="si">
+            <svg width="92" height="40" viewBox="0 0 92 40"><path d="M6,8 H28 V16 H50 V26 H72 V34 H86" fill="none" stroke="#1f6e43" stroke-width="3.4"/></svg>
+          </div>
+          <div class="sh">Kaplan–Meier</div>
+          <div class="sp">probability of surviving past each time</div>
+        </div>
+        <div class="stat">
+          <div class="si">
+            <svg width="92" height="40" viewBox="0 0 92 40"><path d="M6,8 H34 V16 H64 V22 H86" fill="none" stroke="#1f6e43" stroke-width="3.2"/><path d="M6,12 H28 V24 H52 V32 H86" fill="none" stroke="#1d5fa6" stroke-width="3.2"/></svg>
+          </div>
+          <div class="sh">Log-rank</div>
+          <div class="sp">do the groups differ beyond chance?</div>
+        </div>
+        <div class="stat">
+          <div class="si">
+            <svg width="92" height="40" viewBox="0 0 92 40"><line x1="10" y1="20" x2="82" y2="20" stroke="#d3d8df" stroke-width="2"/><line x1="46" y1="8" x2="46" y2="32" stroke="#94600f" stroke-width="2" stroke-dasharray="4 4"/><circle cx="30" cy="20" r="7" fill="#1f6e43"/></svg>
+          </div>
+          <div class="sh">Hazard ratio</div>
+          <div class="sp">HR &lt; 1 protective · HR &gt; 1 harmful</div>
+        </div>
+      </div>
+      <div class="vlabel" style="margin-top:34px"><b>describe</b> (Kaplan–Meier) → <b>compare</b> (log-rank) → <b>quantify</b> (Cox)</div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker"><span class="st">Stage 1</span> · goal → workflow</div>
+    <h2>State the goal, hand over a table — BioMate picks the workflow.</h2>
+    <p class="caption lead">No R to install: describe the question, get the real survival workflow.</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <figure class="shotcol" style="flex:1.9">
+        <span class="lbl">Live product · the survival workflow in BioMate</span>
+        <div class="frame"><img src="../assets/live/survival-live-panel.png" alt="BioMate workflow panel for survival_analysis_km — drug-discovery workflow, 4 phases, inputs mapped, no configurable parameters, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>Routes to the real <b>survival_analysis_km</b> workflow — nothing to set up.</span></li>
+          <li><span class="b gr"></span><span>Inputs mapped: <code>time</code> + event <code>status</code> (1/0) already wired.</span></li>
+          <li><span class="b"></span><span>Four phases — KM, log-rank, Cox, Lasso-Cox — one <b>Confirm &amp; Run</b>.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real survival workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">Stage 1, the input</span> · the survival table</div>
+    <h2>Three columns: the time, the event, and what you compare by.</h2>
+    <p class="caption lead">One row per subject — a time, a 1/0 status, and a group.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="vis">
+        <svg viewBox="0 0 900 340" style="width:100%; max-width:960px; margin:0 auto" preserveAspectRatio="xMidYMid meet" font-family="IBM Plex Mono">
+          <!-- header -->
+          <g>
+            <rect x="60"  y="30" width="240" height="56" rx="10" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.6"/>
+            <rect x="320" y="30" width="240" height="56" rx="10" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.6"/>
+            <rect x="580" y="30" width="260" height="56" rx="10" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.6"/>
+            <text x="180" y="65" text-anchor="middle" font-size="19" font-weight="600" fill="#1d5fa6">time (months)</text>
+            <text x="440" y="65" text-anchor="middle" font-size="19" font-weight="600" fill="#1d5fa6">status</text>
+            <text x="710" y="65" text-anchor="middle" font-size="19" font-weight="600" fill="#1d5fa6">group</text>
+          </g>
+          <!-- data rows -->
+          <g font-size="20" fill="#323846">
+            <text x="180" y="124" text-anchor="middle">24.5</text><text x="440" y="124" text-anchor="middle" fill="#a8312f" font-weight="600">1</text><text x="710" y="124" text-anchor="middle">treated</text>
+            <rect x="52" y="146" width="796" height="40" rx="8" fill="#fdf1e0"/>
+            <text x="180" y="174" text-anchor="middle">36.0</text><text x="440" y="174" text-anchor="middle" fill="#94600f" font-weight="600">0</text><text x="710" y="174" text-anchor="middle">treated</text>
+            <text x="180" y="222" text-anchor="middle">11.2</text><text x="440" y="222" text-anchor="middle" fill="#a8312f" font-weight="600">1</text><text x="710" y="222" text-anchor="middle">control</text>
+            <rect x="52" y="244" width="796" height="40" rx="8" fill="#fdf1e0"/>
+            <text x="180" y="272" text-anchor="middle">48.0</text><text x="440" y="272" text-anchor="middle" fill="#94600f" font-weight="600">0</text><text x="710" y="272" text-anchor="middle">control</text>
+          </g>
+          <g stroke="#e3e7ec" stroke-width="1.4"><line x1="300" y1="100" x2="300" y2="296"/><line x1="560" y1="100" x2="560" y2="296"/></g>
+          <line x1="52" y1="320" x2="848" y2="320" stroke="#e3e7ec" stroke-width="1.4"/>
+          <g font-size="16"><text x="300" y="318" text-anchor="middle" fill="#a8312f" font-weight="600">1 = event</text><text x="560" y="318" text-anchor="middle" fill="#94600f" font-weight="600">0 = censored</text></g>
+        </svg>
+        <div class="vlabel">BioMate maps "dead/alive" onto <code>1</code>/<code>0</code> &nbsp;·&nbsp; fits <code>Surv(time, status) ~ group</code></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — KAPLAN–MEIER -->
+  <section class="scene" data-seconds="37.0">
+    <div class="kicker"><span class="st">Stage 2</span> · Kaplan–Meier + log-rank</div>
+    <h2>Describe survival, then test whether the groups truly differ.</h2>
+    <p class="caption lead">Median survival per group — and whether the gap beats chance.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="vis wide">
+        <svg viewBox="0 0 1000 440" style="width:100%; max-width:1060px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <line x1="120" y1="40" x2="120" y2="380" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="120" y1="380" x2="920" y2="380" stroke="#d3d8df" stroke-width="2"/>
+          <!-- median gridline at S=0.5 -->
+          <line x1="120" y1="210" x2="900" y2="210" stroke="#94600f" stroke-width="1.8" stroke-dasharray="6 6"/>
+          <text x="128" y="202" font-family="IBM Plex Mono" font-size="14" fill="#94600f">S = 0.5  (median)</text>
+          <g font-family="IBM Plex Mono" font-size="15" fill="#5c6573">
+            <text x="106" y="46" text-anchor="end">1.0</text>
+            <text x="106" y="384" text-anchor="end">0</text>
+            <text x="520" y="406" text-anchor="middle">time (months)</text>
+          </g>
+          <!-- control curve -->
+          <path d="M120,40 H198 V81 H276 V115 H354 V149 H432 V183 H510 V217 H588 V244 H666 V268 H744 V285 H822 V298 H900 V309" fill="none" stroke="#1d5fa6" stroke-width="3.4"/>
+          <!-- control median marker: crosses 0.5 at ~30 mo (x≈510) -->
+          <line x1="510" y1="210" x2="510" y2="380" stroke="#1d5fa6" stroke-width="2" stroke-dasharray="4 5"/>
+          <circle cx="510" cy="210" r="6" fill="#1d5fa6"/>
+          <!-- treated curve (never reaches 0.5) -->
+          <path d="M120,40 H198 V57 H276 V67 H354 V81 H432 V91 H510 V108 H588 V115 H666 V128 H744 V135 H822 V142 H900 V149" fill="none" stroke="#1f6e43" stroke-width="3.4"/>
+          <text x="912" y="153" font-family="IBM Plex Sans" font-size="18" font-weight="600" fill="#1f6e43">Treated</text>
+          <text x="912" y="313" font-family="IBM Plex Sans" font-size="18" font-weight="600" fill="#1d5fa6">Control</text>
+          <!-- log-rank badge -->
+          <g><rect x="620" y="56" width="268" height="48" rx="10" fill="#e8f5ec" stroke="#1f6e43" stroke-width="1.6"/><text x="754" y="86" text-anchor="middle" font-family="IBM Plex Mono" font-size="18" fill="#1f6e43" font-weight="600">log-rank  p = 0.004</text></g>
+        </svg>
+        <div class="vlabel"><b>Control</b> median ≈ 30 months &nbsp;·&nbsp; <b>Treated</b> median not reached &nbsp;·&nbsp; curves differ beyond chance</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — COX & LASSO-COX -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">Stage 3</span> · Cox regression &amp; Lasso-Cox</div>
+    <h2>Put a number on the effect — and select which covariates matter.</h2>
+    <p class="caption lead">Cox gives a hazard ratio; Lasso-Cox trims many covariates to a few.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · DESCRIBE</div><div class="pc">Kaplan–Meier</div><div class="pt"><span>survfit()</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">curves</span></div>
+        <div class="pstep"><div class="pn">2 · COMPARE</div><div class="pc">Log-rank</div><div class="pt"><span>survdiff()</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">p-value</span></div>
+        <div class="pstep" style="border-color:#1d5fa6; background:#e9f2fd"><div class="pn">3 · QUANTIFY</div><div class="pc">Cox PH</div><div class="pt"><span class="eg">coxph()</span><span>HR + 95% CI</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">if many</span></div>
+        <div class="pstep" style="border-color:#1d5fa6; background:#e9f2fd"><div class="pn">4 · SELECT</div><div class="pc">Lasso-Cox</div><div class="pt"><span class="eg">rlassocox</span><span>sparse signature</span></div></div>
+      </div>
+      <div class="ploop">cross-validate <code>lambda</code> · split train / test — feature selection overfits easily</div>
+    </div>
+  </section>
+
+  <!-- 7 — READING IT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker">Reading the result</div>
+    <h2>What a hazard ratio says — and what "significant" doesn't.</h2>
+    <p class="caption lead">Read the HR, its confidence interval, and the p-value together — never one alone.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="vis wide">
+        <svg viewBox="0 0 1000 370" style="width:100%; max-width:1060px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- axis -->
+          <line x1="140" y1="300" x2="900" y2="300" stroke="#d3d8df" stroke-width="2"/>
+          <!-- HR = 1 reference -->
+          <line x1="520" y1="60" x2="520" y2="300" stroke="#94600f" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="520" y="46" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" fill="#94600f" font-weight="600">HR = 1 · no effect</text>
+          <g font-family="IBM Plex Mono" font-size="15" fill="#5c6573">
+            <text x="140" y="326" text-anchor="middle">0.25</text>
+            <text x="330" y="326" text-anchor="middle">0.5</text>
+            <text x="520" y="326" text-anchor="middle">1</text>
+            <text x="710" y="326" text-anchor="middle">2</text>
+            <text x="900" y="326" text-anchor="middle">4</text>
+            <text x="310" y="352" text-anchor="middle" fill="#1f6e43">&larr; protective</text>
+            <text x="730" y="352" text-anchor="middle" fill="#a8312f">harmful &rarr;</text>
+          </g>
+          <!-- row 1: significant (does not cross 1) HR 0.62 [0.44,0.88] -->
+          <text x="130" y="120" text-anchor="end" font-family="IBM Plex Sans" font-size="19" font-weight="600" fill="#323846">Treatment arm</text>
+          <line x1="295" y1="115" x2="485" y2="115" stroke="#1f6e43" stroke-width="3.4"/>
+          <line x1="295" y1="104" x2="295" y2="126" stroke="#1f6e43" stroke-width="3.4"/>
+          <line x1="485" y1="104" x2="485" y2="126" stroke="#1f6e43" stroke-width="3.4"/>
+          <rect x="376" y="101" width="26" height="26" rx="4" transform="rotate(45 389 114)" fill="#1f6e43"/>
+          <text x="915" y="121" font-family="IBM Plex Mono" font-size="17" fill="#1f6e43">HR 0.62</text>
+          <!-- row 2: not significant (crosses 1) HR 0.89 [0.66,1.28] -->
+          <text x="130" y="220" text-anchor="end" font-family="IBM Plex Sans" font-size="19" font-weight="600" fill="#323846">Biomarker</text>
+          <line x1="406" y1="215" x2="588" y2="215" stroke="#5c6573" stroke-width="3.4"/>
+          <line x1="406" y1="204" x2="406" y2="226" stroke="#5c6573" stroke-width="3.4"/>
+          <line x1="588" y1="204" x2="588" y2="226" stroke="#5c6573" stroke-width="3.4"/>
+          <rect x="475" y="201" width="26" height="26" rx="4" transform="rotate(45 488 214)" fill="#5c6573"/>
+          <text x="915" y="221" font-family="IBM Plex Mono" font-size="17" fill="#5c6573">HR 0.89</text>
+        </svg>
+        <div class="vlabel"><b style="color:#1f6e43">Does not cross 1</b> → significant &nbsp;·&nbsp; <b style="color:#5c6573">crosses 1</b> → not distinguishable from no effect</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="53.0">
+    <div class="kicker">What makes it defensible</div>
+    <h2>Three checks keep a survival result honest.</h2>
+    <p class="caption lead">Standard methods, with their assumptions on the table — not hidden.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="statrow">
+        <div class="stat">
+          <div class="si">
+            <svg width="70" height="48" viewBox="0 0 70 48"><line x1="8" y1="40" x2="62" y2="40" stroke="#d3d8df" stroke-width="2"/><path d="M8,30 L26,22 L44,16 L62,10" fill="none" stroke="#1d5fa6" stroke-width="3.2"/><path d="M8,38 L26,34 L44,32 L62,30" fill="none" stroke="#1f6e43" stroke-width="3.2"/></svg>
+          </div>
+          <div class="sh">Proportional hazards</div>
+          <div class="sp">Effect constant over time — <code>cox.zph()</code> checks it.</div>
+        </div>
+        <div class="stat">
+          <div class="si">
+            <svg width="70" height="48" viewBox="0 0 70 48"><line x1="12" y1="18" x2="44" y2="18" stroke="#c9d0da" stroke-width="4" stroke-linecap="round"/><line x1="56" y1="10" x2="56" y2="26" stroke="#1d5fa6" stroke-width="3"/><line x1="12" y1="34" x2="34" y2="34" stroke="#c9d0da" stroke-width="4" stroke-linecap="round"/><line x1="46" y1="26" x2="46" y2="42" stroke="#a8312f" stroke-width="3"/></svg>
+          </div>
+          <div class="sh">Fair censoring</div>
+          <div class="sp">Dropout unrelated to prognosis — no method repairs bias.</div>
+        </div>
+        <div class="stat">
+          <div class="si">
+            <svg width="70" height="48" viewBox="0 0 70 48"><circle cx="20" cy="24" r="10" fill="none" stroke="#1d5fa6" stroke-width="3"/><circle cx="50" cy="24" r="10" fill="none" stroke="#5c6573" stroke-width="3"/><path d="M34,24 h2" stroke="#a8312f" stroke-width="3"/><line x1="26" y1="12" x2="44" y2="36" stroke="#a8312f" stroke-width="3"/></svg>
+          </div>
+          <div class="sh">Association ≠ causation</div>
+          <div class="sp">Adjusted, still observational — confounders remain.</div>
+        </div>
+      </div>
+      <div><span class="verdict open" style="margin-top:30px"><span class="mk"></span>Assumptions stated, not hidden</span></div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="kicker">The value at a glance</div>
+    <h2>Hand over a survival table. Get curves, a test, and hazard ratios.</h2>
+    <p class="caption lead">Time-to-event questions deserve time-to-event methods — run properly on the cloud.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:center; justify-content:center">
+      <div class="recap">
+        <div class="rchip"><span class="rk">CENSORING</span><span class="rv">Handled, not dropped</span></div>
+        <div class="rchip"><span class="rk">DESCRIBE</span><span class="rv">Kaplan–Meier + median</span></div>
+        <div class="rchip"><span class="rk">COMPARE</span><span class="rv">Log-rank test</span></div>
+        <div class="rchip"><span class="rk">QUANTIFY</span><span class="rv">Cox HR + Lasso-Cox</span></div>
+        <div class="rchip" style="border-color:#94600f; background:#fdf1e0"><span class="rk" style="color:#94600f">HONEST</span><span class="rv">PH · censoring · causation</span></div>
+      </div>
+      <div class="vlabel" style="margin-top:36px">A reproducible record you can defend — the proper statistics for time-to-event data</div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

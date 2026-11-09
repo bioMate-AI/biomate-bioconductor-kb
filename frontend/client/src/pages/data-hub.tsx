@@ -302,10 +302,12 @@ export default function DataHubPage() {
                 }}
               />
             ) : (
-              // No file picked yet — an honest prompt, not a blank pane.
-              <Card className="h-full" data-testid="data-hub-detail-empty">
-                <CardContent className="flex h-full flex-col items-center justify-center gap-2 py-16 text-center">
-                  <Database className="h-8 w-8 text-muted-foreground/40" />
+              // No file picked yet — a compact honest prompt, not a full-height
+              // blank pane (the right pane no longer stretches to match the file
+              // list's 72vh; it sits at a tidy, self-sized height).
+              <Card data-testid="data-hub-detail-empty">
+                <CardContent className="flex flex-col items-center justify-center gap-1.5 py-8 text-center">
+                  <Database className="h-7 w-7 text-muted-foreground/40" />
                   <p className="text-sm font-medium">{t('data_hub.select_dataset')}</p>
                   <p className="text-xs text-muted-foreground max-w-xs">
                     {t('data_hub.select_dataset_hint')}

@@ -31,8 +31,8 @@ process GLP1_RECEPTOR_ATLAS {
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -138,8 +138,8 @@ process GLP1_MODALITY_SCORING {
     label 'process_low'
     publishDir "${params.outdir}/phaseB_scoring", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(atlas_json)
@@ -251,8 +251,8 @@ process GLP1_INDICATION_WEIGHTING {
     label 'process_low'
     publishDir "${params.outdir}/phaseC_weighting", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(scores_json), path(atlas_json)
@@ -345,8 +345,8 @@ process GLP1_TOP_RECOMMENDATION {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(ranking_json), path(ranking_csv)

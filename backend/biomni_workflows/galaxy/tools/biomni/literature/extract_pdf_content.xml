@@ -2,7 +2,7 @@
 <tool id="biomni_literature_extract_pdf_content" name="Biomni: Extract Pdf Content" version="1.0.0">
     <description>Extract the text content of a PDF file given its URL.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/extract_pdf_content_wrapper.py' --output '$output'

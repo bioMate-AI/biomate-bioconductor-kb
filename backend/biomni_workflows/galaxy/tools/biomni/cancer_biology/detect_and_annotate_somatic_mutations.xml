@@ -2,7 +2,7 @@
 <tool id="biomni_cancer_biology_detect_and_annotate_somatic_mutations" name="Biomni: Detect And Annotate Somatic Mutations" version="1.0.0">
     <description>Detects and annotates somatic mutations in tumor samples compared to matched normal samples.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/detect_and_annotate_somatic_mutations_wrapper.py' --output '$output'

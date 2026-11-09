@@ -1,0 +1,1558 @@
+{
+  "scope": "real local BioMate services and optional live dev execution; not chat/UI E2E",
+  "fixture_kind": "synthetic software fixtures, not experimental evidence",
+  "started_at": "2026-10-31T18:21:17Z",
+  "python": "3.14.7",
+  "checks": [
+    {
+      "name": "normalization",
+      "case": "file_comparison",
+      "expected": {
+        "A": 0.001,
+        "B": 0.01,
+        "C": 0.1
+      },
+      "actual": {
+        "A": 0.001,
+        "B": 0.01,
+        "C": 0.1
+      },
+      "status": "passed"
+    },
+    {
+      "name": "two_files_change_decision",
+      "case": "file_comparison",
+      "expected": "A initially; B after measured safety",
+      "actual": [
+        "A",
+        "B"
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "compound_identity_and_persistence",
+      "case": "file_comparison",
+      "expected": "six rows; exact A/B/C IDs after reload",
+      "actual": {
+        "rows": 6,
+        "ids": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "campaign_isolation",
+      "case": "file_comparison",
+      "expected": [],
+      "actual": [],
+      "status": "passed"
+    },
+    {
+      "name": "incomplete_safety_not_unqualified_best",
+      "case": "file_comparison",
+      "expected": "D must not become an unqualified best candidate with no safety measurement",
+      "actual": {
+        "top": {
+          "compound_id": "B",
+          "combined_score": 0.9504504504504505,
+          "combined_score_upper": 0.9504504504504505,
+          "rank": 1,
+          "coverage_status": "complete",
+          "measured_objectives": [
+            "potency",
+            "safety"
+          ],
+          "missing_objectives": [],
+          "objectives": {
+            "potency": {
+              "censored": false,
+              "censored_measurements": []
+            },
+            "safety": {
+              "censored": false,
+              "censored_measurements": []
+            }
+          },
+          "censored_objectives": []
+        },
+        "warning_fields": {
+          "ingested": 1,
+          "updated": 0,
+          "unchanged": 0,
+          "errors": [],
+          "notes": [],
+          "warnings": [
+            "Compound D is incompletely evaluated: missing safety (measured: potency). It is ranked after fully evaluated compounds and its combined_score covers measured objectives only, so it is not an overall lead candidate."
+          ],
+          "newly_failed": [],
+          "newly_passed": []
+        }
+      },
+      "status": "passed"
+    },
+    {
+      "name": "unsupported_unit",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: unsupported unit 'mg/mL' for IC50. Supported: 'nM', 'mM', 'uM'"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "nonfinite",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: value must be finite."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "negative_potency",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: IC50 must be > 0 uM (half-maximal inhibitory concentration); got -0.01."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "negative_Kd",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: Kd must be > 0 uM (dissociation constant); got -0.01."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "bad_date",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: assay_date '2026-99-01' must be YYYY-MM-DD."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "correct_and_resume",
+      "case": "failure_recovery",
+      "expected": "bad row not persisted; corrected row ingested once",
+      "actual": {
+        "bad": {
+          "ingested": 0,
+          "updated": 0,
+          "unchanged": 0,
+          "errors": [
+            "Row 2: unsupported unit 'mg/mL' for IC50. Supported: 'nM', 'mM', 'uM'"
+          ],
+          "notes": [],
+          "warnings": [],
+          "updated_ranks": [],
+          "newly_failed": [],
+          "newly_passed": []
+        },
+        "fixed": {
+          "ingested": 1,
+          "updated": 0,
+          "unchanged": 0,
+          "errors": [],
+          "notes": [],
+          "warnings": [],
+          "updated_ranks": [
+            {
+              "compound_id": "A",
+              "combined_score": 0.5,
+              "combined_score_upper": 0.5,
+              "rank": 1,
+              "coverage_status": "complete",
+              "measured_objectives": [
+                "potency"
+              ],
+              "missing_objectives": [],
+              "objectives": {
+                "potency": {
+                  "censored": false,
+                  "censored_measurements": []
+                }
+              },
+              "censored_objectives": []
+            }
+          ],
+          "newly_failed": [],
+          "newly_passed": []
+        }
+      },
+      "status": "passed"
+    },
+    {
+      "name": "conflicting_structure_identity",
+      "case": "failure_recovery",
+      "expected": "reject or flag one compound ID mapped to distinct structures",
+      "actual": {
+        "ingested": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "errors": [
+          "Row 2: compound_id 'A' is given conflicting structures in this file (CCO, c1ccccc1; this row: CCO), so its identity is ambiguous. Row rejected.",
+          "Row 3: compound_id 'A' is given conflicting structures in this file (CCO, c1ccccc1; this row: c1ccccc1), so its identity is ambiguous. Row rejected."
+        ],
+        "notes": [],
+        "warnings": [],
+        "updated_ranks": [],
+        "newly_failed": [],
+        "newly_passed": []
+      },
+      "status": "passed"
+    },
+    {
+      "name": "real_chemical_features",
+      "case": "experimental_learning",
+      "expected": "RDKit available, no random-vector fallback",
+      "actual": true,
+      "status": "passed"
+    },
+    {
+      "name": "campaign_proposals_created",
+      "case": "experimental_learning",
+      "expected": "two nonempty persisted proposals",
+      "actual": 2,
+      "status": "passed"
+    },
+    {
+      "name": "campaign_uses_measured_labels",
+      "case": "experimental_learning",
+      "expected": "predictions respond to this changed-label fixture, rather than constant fallback labels",
+      "actual": {
+        "observed_ranks": [
+          {
+            "compound_id": "B",
+            "combined_score": 0.9545454545454546,
+            "combined_score_upper": 0.9545454545454546,
+            "rank": 1,
+            "smiles": "CCN",
+            "parent_smiles": "CCN",
+            "structure_flags": [],
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency",
+              "safety"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              },
+              "safety": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          },
+          {
+            "compound_id": "C",
+            "combined_score": 0.24489795918367346,
+            "combined_score_upper": 0.24489795918367346,
+            "rank": 2,
+            "smiles": "CCC",
+            "parent_smiles": "CCC",
+            "structure_flags": [],
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency",
+              "safety"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              },
+              "safety": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          },
+          {
+            "compound_id": "A",
+            "combined_score": 0.2,
+            "combined_score_upper": 0.2,
+            "rank": 3,
+            "smiles": "CCO",
+            "parent_smiles": "CCO",
+            "structure_flags": [],
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency",
+              "safety"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              },
+              "safety": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          }
+        ],
+        "before_scores": [
+          0.6945225747710184,
+          0.6758069743117991
+        ],
+        "after_scores": [
+          0.497758657010261,
+          0.33113359285674476
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "campaign_round_identity",
+      "case": "experimental_learning",
+      "expected": "round increments after refit",
+      "actual": [
+        1,
+        2
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "direct_gp_responds_to_labels",
+      "case": "experimental_learning",
+      "expected": "different predictions on unchanged unseen SMILES",
+      "actual": [
+        [
+          0.48354404803069884,
+          0.35805457943355334
+        ],
+        [
+          0.57785117501301,
+          0.6922099676200276
+        ]
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "missing_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": false
+      },
+      "actual": {
+        "passed": false,
+        "value": "None"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "infinite_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": false
+      },
+      "actual": {
+        "passed": false,
+        "value": "inf"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "valid_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": true
+      },
+      "actual": {
+        "passed": true,
+        "value": "0.8"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "poor_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": false
+      },
+      "actual": {
+        "passed": false,
+        "value": "0.6"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "extracted_half_life",
+      "case": "evidence_package",
+      "expected": 8,
+      "actual": 8.0,
+      "status": "passed"
+    },
+    {
+      "name": "herg_unit_conversion",
+      "case": "evidence_package",
+      "expected": 5,
+      "actual": 5.0,
+      "status": "passed"
+    },
+    {
+      "name": "source_reference",
+      "case": "evidence_package",
+      "expected": "SYNTHETIC:QA-RAT-001",
+      "actual": "SYNTHETIC:QA-RAT-001",
+      "status": "passed"
+    },
+    {
+      "name": "study_species_fidelity",
+      "case": "evidence_package",
+      "expected": "rat, not default human",
+      "actual": "rat",
+      "status": "passed"
+    },
+    {
+      "name": "cmax_auc_not_dropped",
+      "case": "evidence_package",
+      "expected": {
+        "cmax": 250,
+        "auc_inf": 1500
+      },
+      "actual": {
+        "cmax": 250.0,
+        "auc_inf": 1500.0
+      },
+      "status": "passed"
+    },
+    {
+      "name": "predicted_not_relabelled_measured",
+      "case": "evidence_package",
+      "expected": "no measured half-life",
+      "actual": {
+        "drug_name": "",
+        "smiles": "",
+        "nda_number": "",
+        "source_document": "SYNTHETIC:PREDICTED-ONLY",
+        "ingested_at": "2026-10-31T18:21:30.861326+00:00",
+        "t_half_h": null,
+        "auc_inf_ngmlh": null,
+        "cmax_ngml": null,
+        "vd_lkg": null,
+        "cl_mlminkg": null,
+        "fu_plasma": null,
+        "bioavailability_pct": null,
+        "tmax_h": null,
+        "t_half_h_preclinical": null,
+        "vd_lkg_preclinical": null,
+        "herg_ic50_uM_measured": null,
+        "ames_in_vitro": null,
+        "chromosomal_aberration": null,
+        "micronucleus": null,
+        "noael_mg_kg_day": null,
+        "noael_species": "",
+        "noael_study_duration": "",
+        "repeat_dose_tox_summary": "",
+        "genotox_battery_result": "incomplete",
+        "glp_certified": null,
+        "study_sponsor": "",
+        "ctd_sections_covered": [],
+        "predicted_values": {
+          "t_half_h": {
+            "value": 8.0,
+            "unit": "h",
+            "source": "predicted_computational",
+            "reference": "SYNTHETIC:PREDICTED-ONLY",
+            "species": "unspecified",
+            "study_type": "",
+            "confidence": "LOW"
+          }
+        },
+        "provenance_warnings": [
+          "Source states it contains computational predictions only; no value was recorded as a measurement."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "unknown_glp_not_certified",
+      "case": "evidence_package",
+      "expected": "no affirmative GLP claim without evidence",
+      "actual": null,
+      "status": "passed"
+    },
+    {
+      "name": "pk_method_retrieval",
+      "case": "pk_analysis",
+      "expected": "PKNCA/NCA workflow in top five, explicitly not execution-verified",
+      "actual": {
+        "names": [
+          "Nca Pknca",
+          "nlmixr2_population_pk"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "rnaseq_deseq2",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('deseq', 'rnaseq', 'rna-seq')",
+      "actual": {
+        "query": "RNA-seq DESeq2 differential expression",
+        "workflows": [
+          "vidger_deseq2_dge_visualization",
+          "nf-core/differentialabundance",
+          "saser_differential_usage_deseq2_edger",
+          "deseq2_de_from_transcript_abundance",
+          "zinbwave_differential_expression_with_weights",
+          "deseq2_multi_factor_analysis",
+          "vidger",
+          "isomiRs"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "single_cell_seurat",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('seurat', 'single-cell', 'single_cell', 'scrna')",
+      "actual": {
+        "query": "single-cell clustering Seurat cell type annotation",
+        "workflows": [
+          "nf-core/scrnaseq",
+          "nf-core/scdownstream",
+          "piuma_seurat_integrated_tda",
+          "scannotatr",
+          "simbu",
+          "retrofit_one_step_deconvolution_and_annotation",
+          "spatial_deconvolution_rctd",
+          "scthi_tme_classification"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "proteomics_diff",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('proteom', 'maxquant', 'dia')",
+      "actual": {
+        "query": "proteomics differential abundance",
+        "workflows": [
+          "nf-core/abundance_differential_filter",
+          "Lc Ms Proteomics Metabolomics",
+          "Abundance Differential Filter",
+          "sdams",
+          "mmuphin_differential_abundance_testing",
+          "reconsi_phyloseq_differential_abundance",
+          "phyloseq_differential_abundance_deseq2",
+          "msstatstmt"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "flow_cytometry",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('flow', 'cyto')",
+      "actual": {
+        "query": "flow cytometry immunophenotyping",
+        "workflows": [
+          "Analyze Flow Cytometry Immunophenotyping",
+          "flowPloidy",
+          "flowviz",
+          "optimalFlow",
+          "flowtrans",
+          "flowfp",
+          "ncdfFlow",
+          "flowclean"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "survival_clinical",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('surviv', 'kaplan', 'cox')",
+      "actual": {
+        "query": "Kaplan-Meier Cox survival analysis clinical cohort",
+        "workflows": [
+          "Survival Analysis Km",
+          "survival_analysis_km",
+          "survcomp_survival_curve_visualization",
+          "survival_cox_proportional_hazards_regression",
+          "survival",
+          "rlassocox",
+          "findips_survival_outcome_ip_detection",
+          "top"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "admet_screen",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('admet', 'herg', 'cyp')",
+      "actual": {
+        "query": "ADMET hERG CYP3A4 solubility screening",
+        "workflows": [
+          "Predict ADMET Properties (AI)",
+          "Predict Admet Properties",
+          "Admet Pred",
+          "Herg Cardiac Safety Qsar",
+          "cyclic_peptide_design",
+          "herg_cardiac_safety_qsar",
+          "protac_design",
+          "Drugclip Virtual Screening"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "docking",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('dock', 'vina', 'glide')",
+      "actual": {
+        "query": "molecular docking protein ligand",
+        "workflows": [
+          "fda_protein_ligand_affinity",
+          "Docking Autodock Vina",
+          "Run Diffdock With Smiles",
+          "Run Autosite",
+          "Run Autosite",
+          "GROMACS Protein-Ligand MD + MM-GBSA",
+          "AMBER pmemd GPU Molecular Dynamics",
+          "boltz"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "cryoem",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('cryo', 'relion', 'cryosparc')",
+      "actual": {
+        "query": "cryo-EM single particle reconstruction",
+        "workflows": [
+          "CryoSPARC Standard Single-Particle Analysis",
+          "Helical SPA Pipeline",
+          "Symmetry Expansion",
+          "Particle Subtraction",
+          "Local Refinement",
+          "3D Variability Analysis",
+          "Topaz Extract",
+          "Global Ctf Refinement"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "boin_dose",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('boin', 'dose')",
+      "actual": {
+        "query": "BOIN dose escalation phase I",
+        "workflows": [
+          "clinical_trial_simulation",
+          "Clinical Trial Simulation",
+          "phase2_dose_justification",
+          "Phase2 Dose Justification",
+          "Exposure Response Modelling",
+          "Adaptive Trial Design",
+          "Exposure Response Modeling",
+          "virtual_patient_cohort"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "antibody_design",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('nanobod', 'antibod', 'scfv')",
+      "actual": {
+        "query": "nanobody antibody developability",
+        "workflows": [
+          "bispecific_antibody_design",
+          "Antibody Developability",
+          "antibody_developability",
+          "fcrn_antibody_pk",
+          "Scfv Antibody Design",
+          "Fcrn Antibody Pk",
+          "Analyze Ebv Antibody Titers",
+          "scfv_antibody_design"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "peptide_design",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('peptide', 'cyclic')",
+      "actual": {
+        "query": "cyclic peptide design permeability",
+        "workflows": [
+          "cyclic_peptide_design",
+          "Cyclic Peptide Cofold",
+          "Amber Peptide Mmgbsa",
+          "gromacs_pmx_fep",
+          "Membrane Permeability Prediction",
+          "membrane_permeability_prediction",
+          "mrna_therapeutic_design",
+          "Peptide Mmgbsa"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "variant_ctdna",
+      "case": "bd_search_catalog",
+      "expected": "top-8 catalogue hit matching ('variant', 'sarek', 'mutect', 'ctdna', 'wgs')",
+      "actual": {
+        "query": "variant calling ctDNA WGS",
+        "workflows": [
+          "nf-core/sarek",
+          "icnv_ngs_only_cnv_detection",
+          "nf-core/raredisease",
+          "icnv",
+          "Wgs Germline Gatk",
+          "Detect And Annotate Somatic Mutations",
+          "nf-core/vcf_impute_glimpse",
+          "cfdnakit"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    },
+    {
+      "name": "failed_gate_not_promotable",
+      "case": "bd_models",
+      "expected": "PromotionBlocked",
+      "actual": "rejected",
+      "status": "passed"
+    },
+    {
+      "name": "promote_requires_passed_gate",
+      "case": "bd_models",
+      "expected": true,
+      "actual": true,
+      "status": "passed"
+    },
+    {
+      "name": "promote_requires_named_reviewer_and_activates",
+      "case": "bd_models",
+      "expected": "active",
+      "actual": "active",
+      "status": "passed"
+    },
+    {
+      "name": "rollback_restores_previous_active",
+      "case": "bd_models",
+      "expected": 1,
+      "actual": 1,
+      "status": "passed"
+    },
+    {
+      "name": "restart_hash_check_refuses_tamper",
+      "case": "bd_models",
+      "expected": true,
+      "actual": true,
+      "status": "passed"
+    },
+    {
+      "name": "promote_rejects_blank_reviewer",
+      "case": "bd_models",
+      "expected": true,
+      "actual": true,
+      "status": "passed"
+    },
+    {
+      "name": "salt_shares_parent_with_free_base",
+      "case": "bd_assay_fidelity",
+      "expected": "same parent SMILES",
+      "actual": {
+        "salt": "CCO",
+        "parent": "CCO",
+        "err": [
+          null,
+          null
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "censored_bound_is_flagged",
+      "case": "bd_assay_fidelity",
+      "expected": "Y marked censored",
+      "actual": {
+        "X": {
+          "potency": {
+            "censored": false,
+            "censored_measurements": []
+          }
+        },
+        "Y": [
+          "potency"
+        ],
+        "Z": {
+          "potency": {
+            "censored": false,
+            "censored_measurements": []
+          }
+        }
+      },
+      "status": "passed"
+    },
+    {
+      "name": "incomplete_not_needed_here",
+      "case": "bd_assay_fidelity",
+      "expected": "three compounds ingested",
+      "actual": 3,
+      "status": "passed"
+    },
+    {
+      "name": "proposal_exposes_can_discriminate",
+      "case": "bd_learning",
+      "expected": "boolean can_discriminate present (may be False on tiny fixtures)",
+      "actual": false,
+      "status": "passed"
+    }
+  ],
+  "observations": {
+    "two_file_comparison": {
+      "initial": {
+        "ingested": 3,
+        "updated": 0,
+        "unchanged": 0,
+        "errors": [],
+        "notes": [],
+        "warnings": [],
+        "updated_ranks": [
+          {
+            "compound_id": "A",
+            "combined_score": 1.0,
+            "combined_score_upper": 1.0,
+            "rank": 1,
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          },
+          {
+            "compound_id": "B",
+            "combined_score": 0.9090909090909091,
+            "combined_score_upper": 0.9090909090909091,
+            "rank": 2,
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          },
+          {
+            "compound_id": "C",
+            "combined_score": 0.0,
+            "combined_score_upper": 0.0,
+            "rank": 3,
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          }
+        ],
+        "newly_failed": [],
+        "newly_passed": []
+      },
+      "with_safety": {
+        "ingested": 3,
+        "updated": 0,
+        "unchanged": 0,
+        "errors": [],
+        "notes": [],
+        "warnings": [],
+        "updated_ranks": [
+          {
+            "compound_id": "B",
+            "combined_score": 0.9545454545454546,
+            "combined_score_upper": 0.9545454545454546,
+            "rank": 1,
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency",
+              "safety"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              },
+              "safety": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          },
+          {
+            "compound_id": "C",
+            "combined_score": 0.24489795918367346,
+            "combined_score_upper": 0.24489795918367346,
+            "rank": 2,
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency",
+              "safety"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              },
+              "safety": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          },
+          {
+            "compound_id": "A",
+            "combined_score": 0.2,
+            "combined_score_upper": 0.2,
+            "rank": 3,
+            "coverage_status": "complete",
+            "measured_objectives": [
+              "potency",
+              "safety"
+            ],
+            "missing_objectives": [],
+            "objectives": {
+              "potency": {
+                "censored": false,
+                "censored_measurements": []
+              },
+              "safety": {
+                "censored": false,
+                "censored_measurements": []
+              }
+            },
+            "censored_objectives": []
+          }
+        ],
+        "newly_failed": [
+          "A"
+        ],
+        "newly_passed": [
+          "B"
+        ]
+      }
+    },
+    "campaign_refit": {
+      "before": {
+        "id": 1,
+        "campaign_id": "qa-learn",
+        "round_number": 1,
+        "proposed_smiles": [
+          "CCCO",
+          "CCCN"
+        ],
+        "scores": {
+          "composite_score": [
+            0.6945225747710184,
+            0.6758069743117991
+          ]
+        },
+        "confidence_intervals": {
+          "composite_score": [
+            [
+              -0.0901,
+              1.4792
+            ],
+            [
+              -0.1088,
+              1.4604
+            ]
+          ]
+        },
+        "ad_statuses": [
+          "in_domain",
+          "in_domain"
+        ],
+        "triggered_by": "manual",
+        "created_at": "2026-10-31T18:21:27.668945+00:00",
+        "training_report": {
+          "score_field": "combined_score",
+          "objective": "composite_score",
+          "n_ranked": 3,
+          "n_used": 3,
+          "skipped": [],
+          "warnings": []
+        },
+        "gp_stds": {
+          "composite_score": [
+            0.400326,
+            0.400326
+          ]
+        },
+        "surrogate_report": {
+          "model": "gaussian_process",
+          "kernel": "1.0 * Tanimoto + White(noise)",
+          "featurizer": {
+            "type": "morgan_bits",
+            "radius": 2,
+            "n_bits": 2048
+          },
+          "score_scale": "observed range min-max normalised, higher = better",
+          "acquisition": "expected_improvement",
+          "selection_scores": [
+            1.0,
+            0.870384
+          ],
+          "n_train": 3,
+          "n_requested": 2,
+          "n_proposed": 2,
+          "n_candidates_scored": 4,
+          "can_discriminate": false,
+          "objectives": {
+            "composite_score": {
+              "noise_level": 0.707142,
+              "log_marginal_likelihood": -4.686967,
+              "discrimination": {
+                "can_discriminate": false,
+                "max_pairwise_order_probability": 0.5968,
+                "threshold": 0.95,
+                "n_candidates_compared": 4,
+                "reason": "no candidate pair is ordered with P >= 0.95 (best P = 0.597); predicted differences are within posterior uncertainty"
+              }
+            }
+          },
+          "excluded_candidates": [],
+          "warnings": [
+            "composite_score: cannot_discriminate \u2014 no candidate pair is ordered with P >= 0.95 (best P = 0.597); predicted differences are within posterior uncertainty",
+            "small_training_set: 3 compounds (< 10); the fitted noise level and all uncertainties are rough"
+          ]
+        },
+        "can_discriminate": false
+      },
+      "after": {
+        "id": 2,
+        "campaign_id": "qa-learn",
+        "round_number": 2,
+        "proposed_smiles": [
+          "CCCN",
+          "CCCl"
+        ],
+        "scores": {
+          "composite_score": [
+            0.497758657010261,
+            0.33113359285674476
+          ]
+        },
+        "confidence_intervals": {
+          "composite_score": [
+            [
+              -0.2886,
+              1.2841
+            ],
+            [
+              -0.4838,
+              1.146
+            ]
+          ]
+        },
+        "ad_statuses": [
+          "in_domain",
+          "in_domain"
+        ],
+        "triggered_by": "manual",
+        "created_at": "2026-10-31T18:21:30.828138+00:00",
+        "training_report": {
+          "score_field": "combined_score",
+          "objective": "composite_score",
+          "n_ranked": 3,
+          "n_used": 3,
+          "skipped": [],
+          "warnings": []
+        },
+        "gp_stds": {
+          "composite_score": [
+            0.401213,
+            0.415767
+          ]
+        },
+        "surrogate_report": {
+          "model": "gaussian_process",
+          "kernel": "1.0 * Tanimoto + White(noise)",
+          "featurizer": {
+            "type": "morgan_bits",
+            "radius": 2,
+            "n_bits": 2048
+          },
+          "score_scale": "observed range min-max normalised, higher = better",
+          "acquisition": "expected_improvement",
+          "selection_scores": [
+            1.0,
+            0.519963
+          ],
+          "n_train": 3,
+          "n_requested": 2,
+          "n_proposed": 2,
+          "n_candidates_scored": 4,
+          "can_discriminate": false,
+          "objectives": {
+            "composite_score": {
+              "noise_level": 0.531161,
+              "log_marginal_likelihood": -4.585731,
+              "discrimination": {
+                "can_discriminate": false,
+                "max_pairwise_order_probability": 0.6811,
+                "threshold": 0.95,
+                "n_candidates_compared": 4,
+                "reason": "no candidate pair is ordered with P >= 0.95 (best P = 0.681); predicted differences are within posterior uncertainty"
+              }
+            }
+          },
+          "excluded_candidates": [],
+          "warnings": [
+            "composite_score: cannot_discriminate \u2014 no candidate pair is ordered with P >= 0.95 (best P = 0.681); predicted differences are within posterior uncertainty",
+            "small_training_set: 3 compounds (< 10); the fitted noise level and all uncertainties are rough"
+          ]
+        },
+        "can_discriminate": false
+      }
+    },
+    "holdout_scope": "synthetic feature sensitivity only; no biological accuracy improvement claim",
+    "study_extraction": {
+      "drug_name": "",
+      "smiles": "",
+      "nda_number": "",
+      "source_document": "SYNTHETIC:QA-RAT-001",
+      "ingested_at": "2026-10-31T18:21:30.859367+00:00",
+      "t_half_h": {
+        "value": 8.0,
+        "unit": "h",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "rat",
+        "study_type": "",
+        "confidence": "HIGH"
+      },
+      "auc_inf_ngmlh": {
+        "value": 1500.0,
+        "unit": "ng\u00b7h/mL",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "rat",
+        "study_type": "",
+        "confidence": "MEDIUM"
+      },
+      "cmax_ngml": {
+        "value": 250.0,
+        "unit": "ng/mL",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "rat",
+        "study_type": "",
+        "confidence": "MEDIUM"
+      },
+      "vd_lkg": null,
+      "cl_mlminkg": null,
+      "fu_plasma": {
+        "value": 0.035,
+        "unit": "dimensionless",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "rat",
+        "study_type": "plasma_protein_binding",
+        "confidence": "MEDIUM"
+      },
+      "bioavailability_pct": null,
+      "tmax_h": null,
+      "t_half_h_preclinical": null,
+      "vd_lkg_preclinical": null,
+      "herg_ic50_uM_measured": {
+        "value": 5.0,
+        "unit": "\u00b5M",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "unspecified",
+        "study_type": "herg_patch_clamp",
+        "confidence": "MEDIUM"
+      },
+      "ames_in_vitro": "negative",
+      "chromosomal_aberration": "negative",
+      "micronucleus": "negative",
+      "noael_mg_kg_day": {
+        "value": 25.0,
+        "unit": "mg/kg/day",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "rat",
+        "study_type": "repeat_dose_tox",
+        "confidence": "MEDIUM"
+      },
+      "noael_species": "rat",
+      "noael_study_duration": "",
+      "repeat_dose_tox_summary": "",
+      "genotox_battery_result": "complete_negative",
+      "glp_certified": false,
+      "study_sponsor": "",
+      "ctd_sections_covered": [],
+      "predicted_values": {},
+      "provenance_warnings": []
+    },
+    "pk_method_retrieval": {
+      "tools": [],
+      "workflows": [
+        {
+          "id": 10642,
+          "name": "Nca Pknca",
+          "filename": "nextflow_nfcore/subworkflows/drug_discovery/nca_pknca/main.nf",
+          "description": "drug_discovery/nca_pknca Non-Compartmental Analysis (NCA) pharmacokinetics pipeline using the PKNCA R package. Pipeline Steps: 1. NCA_INPUT_VALIDATION  \u2014 Validate concentration-time CSV format and required columns (time, conc, subject_id, dose, route); emit a validated, normalised CSV for downstream steps. 2. NCA_PKNCA_ANALYSIS    \u2014 R/PKNCA: compute standard NCA parameters per subject: AUClast, AUCinf, Cmax, Tmax, t\u00bd, CL/F, Vd/F.  Emits nca_results.csv (per-subject) and nca_summary.json (populat",
+          "domain": "drug_discovery",
+          "input_types": "[\"mock_mode\", \"input_csv\", \"dose\", \"route\", \"time_unit\", \"conc_unit\"]",
+          "output_types": "[\"csv\", \"json\", \"html\"]",
+          "params_schema": null,
+          "executable": 1,
+          "real_exec_status": null,
+          "truncated_fields": []
+        },
+        {
+          "id": 12892,
+          "name": "nlmixr2_population_pk",
+          "filename": "pharmacology/nlmixr2_population_pk/main.nf",
+          "description": "Population pharmacokinetic / pharmacodynamic (PopPK/PD) analysis using nlmixr2 (SAEM + FOCE+, equivalent to Monolix/NONMEM). Validated against NONMEM (Fidler et al. 2019 CPT:PSP). Open-source, Nextflow-native R container. Supports 1- and 2-compartment oral/IV models with covariate testing (WT, AGE, CRCL, ALB). Outputs: parameter_estimates.csv (THETA, OMEGA, SIGMA), individual_estimates.csv (EBEs), VPC plot, GOF diagnostics. Individual AUC estimates from this workflow feed directly into exposure_response_modeling for the full PK\u2192E-R\u2192dose chain. Input: pk_data_csv (columns: ID, TIME, DV, AMT, EVID, CMT + optional covariates). Output: popPK_report.html, nlmixr2_results.json (OFV, AIC, RSE%), VPC + GOF PDFs. References: Fidler et al. 2019, Beal & Sheiner NONMEM, Monolix 2023.",
+          "domain": "pharmacology",
+          "input_types": "[\"csv\"]",
+          "output_types": "[\"html\", \"csv\", \"json\", \"pdf\"]",
+          "params_schema": null,
+          "executable": 1,
+          "real_exec_status": null,
+          "truncated_fields": []
+        }
+      ],
+      "source": "local_knowledge_database",
+      "execution_verified": false,
+      "note": "Catalogue records are retrieval evidence; availability and successful execution require separate checks."
+    },
+    "bd_catalog": {
+      "rnaseq_deseq2": {
+        "query": "RNA-seq DESeq2 differential expression",
+        "workflows": [
+          "vidger_deseq2_dge_visualization",
+          "nf-core/differentialabundance",
+          "saser_differential_usage_deseq2_edger",
+          "deseq2_de_from_transcript_abundance",
+          "zinbwave_differential_expression_with_weights",
+          "deseq2_multi_factor_analysis",
+          "vidger",
+          "isomiRs"
+        ],
+        "execution_verified": false
+      },
+      "single_cell_seurat": {
+        "query": "single-cell clustering Seurat cell type annotation",
+        "workflows": [
+          "nf-core/scrnaseq",
+          "nf-core/scdownstream",
+          "piuma_seurat_integrated_tda",
+          "scannotatr",
+          "simbu",
+          "retrofit_one_step_deconvolution_and_annotation",
+          "spatial_deconvolution_rctd",
+          "scthi_tme_classification"
+        ],
+        "execution_verified": false
+      },
+      "proteomics_diff": {
+        "query": "proteomics differential abundance",
+        "workflows": [
+          "nf-core/abundance_differential_filter",
+          "Lc Ms Proteomics Metabolomics",
+          "Abundance Differential Filter",
+          "sdams",
+          "mmuphin_differential_abundance_testing",
+          "reconsi_phyloseq_differential_abundance",
+          "phyloseq_differential_abundance_deseq2",
+          "msstatstmt"
+        ],
+        "execution_verified": false
+      },
+      "flow_cytometry": {
+        "query": "flow cytometry immunophenotyping",
+        "workflows": [
+          "Analyze Flow Cytometry Immunophenotyping",
+          "flowPloidy",
+          "flowviz",
+          "optimalFlow",
+          "flowtrans",
+          "flowfp",
+          "ncdfFlow",
+          "flowclean"
+        ],
+        "execution_verified": false
+      },
+      "survival_clinical": {
+        "query": "Kaplan-Meier Cox survival analysis clinical cohort",
+        "workflows": [
+          "Survival Analysis Km",
+          "survival_analysis_km",
+          "survcomp_survival_curve_visualization",
+          "survival_cox_proportional_hazards_regression",
+          "survival",
+          "rlassocox",
+          "findips_survival_outcome_ip_detection",
+          "top"
+        ],
+        "execution_verified": false
+      },
+      "admet_screen": {
+        "query": "ADMET hERG CYP3A4 solubility screening",
+        "workflows": [
+          "Predict ADMET Properties (AI)",
+          "Predict Admet Properties",
+          "Admet Pred",
+          "Herg Cardiac Safety Qsar",
+          "cyclic_peptide_design",
+          "herg_cardiac_safety_qsar",
+          "protac_design",
+          "Drugclip Virtual Screening"
+        ],
+        "execution_verified": false
+      },
+      "docking": {
+        "query": "molecular docking protein ligand",
+        "workflows": [
+          "fda_protein_ligand_affinity",
+          "Docking Autodock Vina",
+          "Run Diffdock With Smiles",
+          "Run Autosite",
+          "Run Autosite",
+          "GROMACS Protein-Ligand MD + MM-GBSA",
+          "AMBER pmemd GPU Molecular Dynamics",
+          "boltz"
+        ],
+        "execution_verified": false
+      },
+      "cryoem": {
+        "query": "cryo-EM single particle reconstruction",
+        "workflows": [
+          "CryoSPARC Standard Single-Particle Analysis",
+          "Helical SPA Pipeline",
+          "Symmetry Expansion",
+          "Particle Subtraction",
+          "Local Refinement",
+          "3D Variability Analysis",
+          "Topaz Extract",
+          "Global Ctf Refinement"
+        ],
+        "execution_verified": false
+      },
+      "boin_dose": {
+        "query": "BOIN dose escalation phase I",
+        "workflows": [
+          "clinical_trial_simulation",
+          "Clinical Trial Simulation",
+          "phase2_dose_justification",
+          "Phase2 Dose Justification",
+          "Exposure Response Modelling",
+          "Adaptive Trial Design",
+          "Exposure Response Modeling",
+          "virtual_patient_cohort"
+        ],
+        "execution_verified": false
+      },
+      "antibody_design": {
+        "query": "nanobody antibody developability",
+        "workflows": [
+          "bispecific_antibody_design",
+          "Antibody Developability",
+          "antibody_developability",
+          "fcrn_antibody_pk",
+          "Scfv Antibody Design",
+          "Fcrn Antibody Pk",
+          "Analyze Ebv Antibody Titers",
+          "scfv_antibody_design"
+        ],
+        "execution_verified": false
+      },
+      "peptide_design": {
+        "query": "cyclic peptide design permeability",
+        "workflows": [
+          "cyclic_peptide_design",
+          "Cyclic Peptide Cofold",
+          "Amber Peptide Mmgbsa",
+          "gromacs_pmx_fep",
+          "Membrane Permeability Prediction",
+          "membrane_permeability_prediction",
+          "mrna_therapeutic_design",
+          "Peptide Mmgbsa"
+        ],
+        "execution_verified": false
+      },
+      "variant_ctdna": {
+        "query": "variant calling ctDNA WGS",
+        "workflows": [
+          "nf-core/sarek",
+          "icnv_ngs_only_cnv_detection",
+          "nf-core/raredisease",
+          "icnv",
+          "Wgs Germline Gatk",
+          "Detect And Annotate Somatic Mutations",
+          "nf-core/vcf_impute_glimpse",
+          "cfdnakit"
+        ],
+        "execution_verified": false
+      }
+    },
+    "proposal_confidence": {
+      "can_discriminate": false,
+      "surrogate_report": {
+        "model": "gaussian_process",
+        "kernel": "1.0 * Tanimoto + White(noise)",
+        "featurizer": {
+          "type": "morgan_bits",
+          "radius": 2,
+          "n_bits": 2048
+        },
+        "score_scale": "observed range min-max normalised, higher = better",
+        "acquisition": "expected_improvement",
+        "selection_scores": [
+          1.0,
+          0.870384
+        ],
+        "n_train": 3,
+        "n_requested": 2,
+        "n_proposed": 2,
+        "n_candidates_scored": 4,
+        "can_discriminate": false,
+        "objectives": {
+          "composite_score": {
+            "noise_level": 0.707142,
+            "log_marginal_likelihood": -4.686967,
+            "discrimination": {
+              "can_discriminate": false,
+              "max_pairwise_order_probability": 0.5968,
+              "threshold": 0.95,
+              "n_candidates_compared": 4,
+              "reason": "no candidate pair is ordered with P >= 0.95 (best P = 0.597); predicted differences are within posterior uncertainty"
+            }
+          }
+        },
+        "excluded_candidates": [],
+        "warnings": [
+          "composite_score: cannot_discriminate \u2014 no candidate pair is ordered with P >= 0.95 (best P = 0.597); predicted differences are within posterior uncertainty",
+          "small_training_set: 3 compounds (< 10); the fitted noise level and all uncertainties are rough"
+        ]
+      },
+      "scores": {
+        "composite_score": [
+          0.6945225747829878,
+          0.6758069743204408
+        ]
+      }
+    }
+  },
+  "blocked": [
+    {
+      "case": "pk_analysis",
+      "layer": "indexed PKNCA workflow execution",
+      "reason": "not launched: authenticated project/dataset workflow journey unavailable; local Python is not a substitute for indexed R execution"
+    },
+    {
+      "case": "all four",
+      "layer": "authenticated chat/UI journey",
+      "reason": "E2E_FIXTURE_PASSWORD unset; saved localhost session expired. No login bypass or account reset attempted."
+    }
+  ],
+  "fixture_hashes": {
+    "assays_initial.csv": "b466456fc514025bf4aaca5e59bf21730b37e9bfbf71d898842d58b42d99c6d7",
+    "assays_safety.csv": "0b1a988f060f34caeb9a9412aca1ad07e0443fdea972e9962c3e4222ae2fb167",
+    "study_report.txt": "ee9e372d4b0d3404a83abd719833afa099dcbb40154cfdfd27af13337475333d"
+  },
+  "local_source_hashes": {
+    "scripts/test_sysucc_usecases.py": "b0f09f56cf33be423e952ba1f707f8cce659660401fb475ab0451575cf433b2d",
+    "frontend/server/code-runner.ts": "722910e3999a148c243d7bf4f651e93b4736e203e68c2e25aa45d51f917ccebb",
+    "backend/lib/galaxy/ai/drug_discovery/assay_ingestion.py": "dd76d28582b6504bc21f6be329ca6a12859c9410b4c9e498e0c09750b02eae2e",
+    "backend/lib/galaxy/ai/drug_discovery/assay_schema.py": "86a2886d92805386ce0d0673d083b43d691497d02a60a85dd638f8fab7b7acbd",
+    "backend/lib/galaxy/ai/drug_discovery/auto_retrain.py": "888256988b67164d114682a01f18bba15e3a60e90eca6196c4467b1bf448fb65",
+    "backend/lib/galaxy/ai/drug_discovery/bayesian_optimizer.py": "4b8d7f08ee40cefb23cd5bebca1091795009ae94bd8f1fcb42baf959afbff92f",
+    "backend/lib/galaxy/ai/drug_discovery/wetlab_report_ingester.py": "c9ab8cc166fba4c870993452faaab1c036944fb251dfcceec301afc74b04a32d",
+    "backend/lib/galaxy/ai/ml_training/training_job.py": "d80d34d3c7a324991aa905a9659b8763f18841c52da591b20e5d754ca7117483",
+    "backend/lib/galaxy/ai/drug_discovery/custom_model_registry.py": "7422ef96e905f0b033431f6ac88ac36c1e2738f340bbea7719529b07533a28db"
+  },
+  "durations_s": {
+    "file_comparison_and_recovery": 6.472,
+    "experimental_learning": 7.096,
+    "evidence_package_and_pk": 0.019,
+    "bd_search_and_instruments": 0.685,
+    "bd_model_versions": 0.017,
+    "bd_assay_fidelity": 0.008,
+    "bd_learning_reports_confidence": 3.132
+  },
+  "summary": {
+    "passed": 51,
+    "failed": 0,
+    "error": 0
+  },
+  "finished_at": "2026-10-31T18:21:34Z"
+}

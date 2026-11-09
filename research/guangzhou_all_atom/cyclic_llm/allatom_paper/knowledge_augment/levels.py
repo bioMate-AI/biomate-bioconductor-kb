@@ -34,7 +34,108 @@ P = dict(
     groupA_sens=os.path.join(AP, "rules_mining", "groupA_sensitivity.json"),
     ring_lib=os.path.join(AP, "structure_knowledge", "results", "library_v1.jsonl"),
     soft_pot=os.path.join(AP, "structure_knowledge", "results", "soft_potentials_v1.json"),
+    audit=os.path.join(AP, "knowledge", "eligibility_audit.json"),
+    pins=os.path.join(HERE, "pins.json"),
 )
+
+
+class PinMismatch(RuntimeError):
+    pass
+
+
+class AuditMissing(RuntimeError):
+    pass
+
+
+def _audit_decisions(doc):
+    """Parse reviewed decisions without accepting duplicate or malformed records."""
+    tables = [doc[k] for k in ("entries", "decisions", "rules") if k in doc]
+    if len(tables) != 1:
+        raise PinMismatch("eligibility audit requires exactly one decisions table")
+    table = tables[0]
+    if isinstance(table, dict):
+        pairs = [(i, v.get("decision") if isinstance(v, dict) else v) for i, v in table.items()]
+    elif isinstance(table, list):
+        if any(not isinstance(v, dict) for v in table):
+            raise PinMismatch("invalid audit record")
+        pairs = [(v.get("id"), v.get("decision")) for v in table]
+    else:
+        raise PinMismatch("invalid audit decisions table")
+    decisions = {}
+    for i, d in pairs:
+        if not isinstance(i, str) or not i or i in decisions:
+            raise PinMismatch("missing or duplicate audit id")
+        if d not in ("eligible", "ineligible", "quarantined", "rejected", "prompt_only"):
+            raise PinMismatch("unknown audit decision for %s" % i)
+        decisions[i] = d
+    return decisions
+
+
+def _read_json(path):
+    def unique(pairs):
+        out = {}
+        for key, value in pairs:
+            if key in out:
+                raise PinMismatch("duplicate JSON key: %s" % key)
+            out[key] = value
+        return out
+    with open(path) as f:
+        return json.load(f, object_pairs_hook=unique)
+
+
+def audited_eligible(kb_path=None):
+    """Eligibility is an intersection with the KB, never a promotion of a KB entry.
+
+    Missing evidence can be inspected only with KA_ALLOW_UNAUDITED=1; malformed
+    or stale evidence is always an error, even in development mode.
+    """
+    if not os.path.exists(P["audit"]):
+        if os.environ.get("KA_ALLOW_UNAUDITED") == "1":
+            return None, None, False
+        raise AuditMissing("knowledge/eligibility_audit.json missing; L1/L2 final weights are blocked")
+    doc = _read_json(P["audit"])
+    kbs = doc.get("kb_sha256") or (doc.get("meta") or {}).get("kb_sha256")
+    kb_path = kb_path or P["kb"]
+    if kbs != sha256_file(kb_path):
+        raise PinMismatch("eligibility audit KB hash does not match selected KB")
+    decisions = _audit_decisions(doc)
+    rules = _read_json(kb_path)["rules"]
+    known = {r["id"] for r in rules}
+    if len(known) != len(rules) or set(decisions) - known:
+        raise PinMismatch("duplicate KB ids or unknown eligibility audit ids")
+    return {i for i, d in decisions.items() if d == "eligible"}, sha256_file(P["audit"]), True
+
+
+def check_pins(strict=True, kb_path=None, direction_path=None):
+    """Bind selected inputs to an explicit reviewed manifest, including custom paths."""
+    paths = dict(kb_sha256=kb_path or P["kb"], eligibility_audit_sha256=P["audit"],
+                 direction_sha256=direction_path or P["direction"], groups_sha256=P["groups"],
+                 ring_library_sha256=P["ring_lib"], soft_potentials_sha256=P["soft_pot"])
+    now = {k: sha256_file(p) if os.path.exists(p) else None for k, p in paths.items()}
+    if not os.path.exists(P["pins"]):
+        if strict:
+            raise AuditMissing("knowledge_augment/pins.json missing; final L1/L2 inputs are unpinned")
+        return now, {"pins": "missing"}
+    pins = _read_json(P["pins"])
+    bad = {k: (pins.get(k), v) for k, v in now.items() if v is None or pins.get(k) != v}
+    if bad and strict:
+        raise PinMismatch("pinned input hash mismatch: %s" % bad)
+    return now, bad
+
+
+def eligibility_context(kb_path=None, direction_path=None):
+    eligible, audit_hash, audited = audited_eligible(kb_path)
+    development = os.environ.get("KA_ALLOW_UNAUDITED") == "1"
+    # Existing pins that disagree are never bypassed; development permits only
+    # missing evidence, and carries that status into all resulting artifacts.
+    pin_exists = os.path.exists(P["pins"])
+    _, bad = check_pins(strict=pin_exists or not development, kb_path=kb_path, direction_path=direction_path)
+    qualified = audited and not bad
+    return eligible, dict(status="AUDITED_PINNED" if qualified else "UNAUDITED",
+                          eligibility_audit_sha256=audit_hash,
+                          pins_sha256=sha256_file(P["pins"]) if pin_exists else None,
+                          final_eligible=qualified)
+
 LEVELS = ("L0", "L1", "L2", "L3")
 DEFAULT_LAM = 0.5
 DEFAULT_RING_WEIGHT = 0.5
@@ -57,8 +158,14 @@ def l1_selection(kb_path=None, direction_path=None):
     """ids of the entries used as L1 weights, with the reason every other weight-eligible entry is left out."""
     kb = json.load(open(kb_path or P["kb"]))["rules"]
     dc = json.load(open(direction_path or P["direction"]))["rules"]
+    eligible, _ = eligibility_context(kb_path, direction_path)
     used, left_out = [], {}
     for e in kb:
+        if eligible is not None:
+            if e["id"] not in eligible:
+                if e.get("weight_eligible"):
+                    left_out[e["id"]] = "audit decision: not eligible"
+                continue
         if not e.get("weight_eligible"):
             continue
         d = dc.get(e["id"], {})
@@ -79,7 +186,13 @@ def l1_selection(kb_path=None, direction_path=None):
 
 def literature_agreed_source(kb_path=None, direction_path=None, ids=None):
     kb = {e["id"]: e for e in json.load(open(kb_path or P["kb"]))["rules"]}
-    ids = l1_selection(kb_path, direction_path)[0] if ids is None else ids
+    allowed = set(l1_selection(kb_path, direction_path)[0])
+    if ids is None:
+        ids = sorted(allowed)
+    else:
+        ids = list(ids)
+        if len(set(ids)) != len(ids) or not set(ids) <= allowed:
+            raise PinMismatch("explicit rule ids must be a unique subset of audited selection")
     acc, n = {"polar": 0.0, "carbon": 0.0, "nme": 0.0}, {"polar": 0, "carbon": 0, "nme": 0}
     for i in ids:
         e = kb[i]
@@ -140,8 +253,12 @@ def build_level(name, exclude_tokens=(), lam_soft=DEFAULT_LAM, ring_weight=DEFAU
     assert name in LEVELS, name
     exclude_tokens = tuple(sorted(map(str, exclude_tokens)))
     ids, left_out, labels = (), {}, ()
+    audit_context = dict(status="NOT_APPLICABLE", final_eligible=False, eligibility_audit_sha256=None, pins_sha256=None)
     soft, ring = SoftSource.none(), None
     if name in ("L1", "L2"):
+        _, audit_context = eligibility_context()
+        if not audit_context["final_eligible"]:
+            labels = ("UNAUDITED: development only; not final evidence",)
         ids_l, left_out = l1_selection()
         ids = tuple(ids_l)
         soft = literature_agreed_source()
@@ -156,8 +273,11 @@ def build_level(name, exclude_tokens=(), lam_soft=DEFAULT_LAM, ring_weight=DEFAU
     assert_sources_disjoint(soft, forb)
     assert not (set(ids) & EXCLUDED_IDS_EXPLICIT), "excluded entry selected"
     prompt_ids = tuple(sorted(e["id"] for e in json.load(open(P["kb"]))["rules"] if e.get("quote_verified")))
+    if name in ("L1", "L2") and audit_context["eligibility_audit_sha256"]:
+        decisions = _audit_decisions(_read_json(P["audit"]))
+        prompt_ids = tuple(i for i in prompt_ids if decisions.get(i) in ("eligible", "prompt_only"))
     cfg = dict(
-        level=name, lam_soft=lam, ring_weight=(ring_weight if ring else 0.0), soft_name=soft.name, soft_weights=soft.weights, rule_ids=list(ids),
+        level=name, audit=audit_context, labels=list(labels), prompt_rule_ids=list(prompt_ids), lam_soft=lam, ring_weight=(ring_weight if ring else 0.0), soft_name=soft.name, soft_weights=soft.weights, rule_ids=list(ids),
         exclude_tokens=list(exclude_tokens), ring_targets_sha256=(ring.targets_sha256 if ring else None), ring_n=(ring.n if ring else None),
         inputs=dict(kb=sha256_file(P["kb"]), direction=sha256_file(P["direction"]), groups=sha256_file(P["groups"]),
                     groupA_sens=sha256_file(P["groupA_sens"]) if name == "L3" else None,

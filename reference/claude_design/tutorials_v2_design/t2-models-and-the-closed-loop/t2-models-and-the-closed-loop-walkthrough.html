@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T2 — Models and the closed loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t2">Tutorial 2 · Models and the closed loop</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">11</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">How BioMate gets smarter — the cycle behind every round</div>
+    <h2>Real lab results teach BioMate to design better molecules each round.</h2>
+    <p class="caption">A <b>model</b> is the part that makes predictions — "how strongly will this bind?", "is this likely to be toxic?" — instead of running a slow lab experiment every time. The <b>Models</b> area keeps these reusable predictors and is the home of the <b>closed loop</b>: the cycle that feeds your real laboratory results back in, so the next round of designs is better.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Design</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Make</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Test</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Learn</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Design again</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — WHY MODELS MATTER -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">Why models matter</span> · trust, and staying current <span class="badge concept">Concept</span></div>
+    <h2>A prediction is only useful if you know how far to trust it.</h2>
+    <p class="caption">Relying on predictions instead of experiments raises two problems. BioMate's Models area is built to address both — by treating every model as an inspectable object, and by feeding your real results back in.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile"><div class="n">1 · TRUST</div><h4>How good, and where?</h4><p>A model never tested may give wrong answers with high apparent confidence — the risk is worse the further your molecule is from what it learned from.</p></div>
+            <div class="tile"><div class="n">2 · STAYING CURRENT</div><h4>Your results are the truth</h4><p>A model that never updates with your new measurements slowly drifts away from reality. The loop keeps it current.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Your models and your measurements stay <b>private to your workspace</b> — never used to train shared models. The loop learns from your own real laboratory measurements and feeds them straight back into the next round of designs.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Trust and currency — your private data makes every prediction more dependable</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — MODEL = REUSABLE EXPERTISE -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">The idea</span> · a model is reusable learned expertise <span class="badge concept">Concept</span></div>
+    <h2>Learned once, reused everywhere — a prediction instead of an experiment.</h2>
+    <p class="caption">A model takes an input (a molecule, a protein sequence) and returns a prediction (a score, a 3-D structure). Some are <b>pre-trained</b> by the research community on large public datasets; others are <b>custom</b>, trained on <i>your</i> data to score <i>your</i> kind of molecule.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">ALPHAFOLD2 / OPENFOLD2</div><h4>Protein 3-D shape</h4><p>Predict a protein's structure from its sequence.</p></div>
+            <div class="tile"><div class="n">BOLTZ-2</div><h4>Shapes + fit</h4><p>Protein structures, and how a protein and a small molecule fit together.</p></div>
+            <div class="tile"><div class="n">EVO2</div><h4>Genome sequences</h4><p>A model of DNA / genome sequences.</p></div>
+            <div class="tile"><div class="n">INFERENCE</div><h4>Use, don't change</h4><p>Making a prediction with an already-trained model, without training anything of yours.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">All four pre-trained models are open and community-built; BioMate hosts them so you can use them directly. A <b>custom</b> model is one you train on your own data.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — pre-trained for reuse, custom for your own molecules</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — MODEL AS OBJECT, NOT SCOREBOARD -->
+  <section class="scene" data-seconds="54.0">
+    <div class="kicker"><span class="st">BioMate's guiding idea</span> · a model is an object, not a scoreboard <span class="badge concept">Concept</span></div>
+    <h2>Shown as documented facts — and judged against a floor, not a rank.</h2>
+    <p class="caption">Instead of ranking models on a scoreboard (which tempts people to game it), BioMate shows each model like a documented object you can inspect before you trust it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">EVIDENCE</div><h4>How it did — vs a floor</h4><p>A measured score against a required quality <b>floor</b>, on a <b>held-out test</b> — data it was not trained on, so the score can't be inflated by memorising.</p></div>
+            <div class="tile"><div class="n">LINEAGE</div><h4>What produced it</h4><p>The data and the run that built this model.</p></div>
+            <div class="tile"><div class="n">USED BY</div><h4>What depends on it</h4><p>Which analyses rely on it — so you can see the effect of changing it.</p></div>
+            <div class="tile"><div class="n">VERSIONS</div><h4>Nothing overwritten</h4><p>Every version is kept, not replaced.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Clearing the bar by more earns no higher rank — there is no scoreboard to climb. And where a model has not been scored, it reads <b>"not evaluated"</b> rather than inventing a number — so you never stake a wet-lab program on a confident-looking guess.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Honest evidence by default — a model states what it has proven, and what it has not</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — APPLICABILITY DOMAIN -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">Passing the floor isn't the whole story</span> · the applicability domain <span class="badge concept">Concept</span></div>
+    <h2>Trust for <i>your</i> molecule depends on what the model has seen.</h2>
+    <p class="caption">A good floor score means the model is accurate on test data <b>similar to what it learned from</b>. Whether you can trust it for <i>your specific</i> molecule also depends on the <b>applicability domain</b> — the kind of inputs it learned from.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile safe"><div class="n">IN DOMAIN</div><h4>Close to training data</h4><p>Ask about the kind of molecule the model learned from, and its prediction is on firm ground.</p></div>
+            <div class="tile hot"><div class="n">OUT OF DOMAIN</div><h4>Low confidence — treat as unproven</h4><p>Ask a kinase-inhibitor model about a peptide and it should <b>lower its confidence</b>, not pretend to know. Treating an out-of-domain prediction as reliable is a common cause of wet-lab experiments that were never going to work.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Like using a drug off-label: a low-confidence prediction means your input is unlike the model's training data — outside what it was tested for.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Out-of-domain → low confidence, not false certainty</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE FOUR TRACKS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The Models screen</span> · four ways to put a model to work <span class="badge concept">Concept</span></div>
+    <h2>Run it, train your own, match your house style, and close the loop.</h2>
+    <p class="caption">The Models screen gives you four ways to use a model — from a one-off prediction, to a custom scorer trained on your own data, to the closed loop that compounds accuracy round after round.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">RUN A MODEL</div><h4>A prediction now</h4><p>Use a community model to make a prediction straight away. This is inference — nothing of yours is trained.</p></div>
+            <div class="tile"><div class="n">TRAIN</div><h4>Your own scorer</h4><p>Build a custom model on your own data — a scorer tuned to your target and your chemistry.</p></div>
+            <div class="tile"><div class="n">ADAPT · HOUSE STYLE</div><h4>Your team's voice</h4><p>Match how your team writes reports; each learned rule is shown and can be switched off. (Style, not science.)</p></div>
+            <div class="tile"><div class="n">OPTIMISE · ROUNDS</div><h4>The closed loop</h4><p>The design→make→test→learn cycle, shown as rounds — where real lab results compound into better designs.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">One prediction, a custom scorer trained on your data, your house style, or the full closed loop — the same inspectable, versioned models underpin all four.</p>
+        </div>
+        <div class="tags">
+          <span class="verdict ok"><span class="mk"></span>Four ways to use a model — from a single prediction to the full closed loop</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — LIVE: REGISTRY -->
+  <section class="scene live split" data-kind="flow" data-seconds="30.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Step by step</span> · the model Registry <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>Every model available to your account, in one list.</h2><p class="caption">The <b>Registry</b> is the live list: each row is a model — its name, family, origin, and how many analyses use it. The community models (AlphaFold2, Boltz-2, Evo2) sit alongside any custom models your team registered. A model trained in one project can be used from any other; clicking a row opens its object view.</p><div class="tags"><span class="verdict ok"><span class="mk"></span>Registry — live; browse and reuse any model</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-registry.png" alt="The model Registry — each row a model with name, family, origin, and how many analyses use it"></div>
+          <figcaption><span class="lbl">Registry · live</span>One place to find and reuse a model — community-built or your own.</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 8 — LIVE: MODEL OBJECT -->
+  <section class="scene live split" data-kind="flow" data-seconds="32.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Reading a model</span> · the object view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>Open a model and read what you'd be trusting.</h2><p class="caption">Opening a model shows it as an <b>object</b>: <b>Evidence</b> (the quality floor — measured score, required floor, verdict), <b>Lineage</b> (the data and run that built it), <b>Used by</b> (what depends on it), and <b>Versions</b> (nothing overwritten). Here Evidence reads <b>"not evaluated"</b> — the model stating honestly that it has not yet been scored, rather than showing a confident-looking number it cannot back up. You read the full evidence, lineage, and version history <i>before</i> you trust a prediction.</p><div class="tags"><span class="verdict ok"><span class="mk"></span>Every model is an inspectable, versioned object with its evidence attached</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-model-object.png" alt="A model shown as an object — Evidence, Lineage, Used by, Versions — with Evidence reading not evaluated"></div>
+          <figcaption><span class="lbl">Model object · live</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 9 — LIVE: RUN A MODEL -->
+  <section class="scene live split" data-kind="flow" data-seconds="30.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Make a prediction now</span> · Run a model (inference) <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>Pick a domain, paste an input, and run it — no training.</h2><p class="caption">To make a prediction now, use <b>Run a model</b>: pick a domain (Structure, Genomic, or Chemical), paste an input — for Structure, a protein's one-letter sequence — and run. This is inference: the model isn't changed, and the result is attributed to the exact model and version that produced it.</p><div class="tags"><span class="verdict ok"><span class="mk"></span>Inference — run any community model on your input, instantly</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-run.png" alt="The Run a model inference form — choose a domain and paste an input"></div>
+          <figcaption><span class="lbl">Run a model · live</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 10 — LIVE: ROUNDS + CLOSED LOOP IN PRACTICE -->
+  <section class="scene live split" data-kind="flow" data-seconds="57.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">The closed loop</span> · the Rounds view, and how it works <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div><h2>Design → make → test → learn — recorded round by round.</h2><p class="caption">The <b>Rounds</b> view is the home of the closed loop, and this is the working behaviour behind it. As a round runs, a <b>safety / QC gate checks every candidate against its threshold</b> — when one crosses the line (say, a predicted hERG liability past the cardiac-safety limit), the gate halts that candidate and <b>suggests an advisory fix</b> you can confirm, rather than re-running on its own. Your <b>real bench results then feed the next round</b>: the model is retrained on the combined data and re-checked on data it was not trained on, so each round builds on measured ground truth. The view keeps every proposal accounted for, holds limit values as limits ("&gt;30 µM" is never silently replaced by 30), and keeps rejected candidates visible with their reason.</p><div class="tags"><span class="verdict ok"><span class="mk"></span>Safety / QC gate fires at its threshold and suggests a fix you confirm</span><span class="verdict ok"><span class="mk"></span>Limits kept as limits · rejected candidates stay visible</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-rounds.png" alt="The Rounds closed-loop view empty state, stating the loop's honesty rules"></div>
+          <figcaption><span class="lbl">Rounds · live</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 11 — CLOSING -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">The habit at a glance</div>
+    <h2>Inspect the model → trust within its domain → close the loop.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">Models is where BioMate keeps its reusable predictors and learns from your real results. Open a model as an object and read its evidence before trusting it; respect the applicability domain; run a community model for an immediate prediction; and let the closed loop turn each round of real lab data into a better next round. The value compounds — the closed loop is built to make each round more accurate than the last.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Open the model object — read Evidence, Lineage, Used by, Versions</li>
+            <li><span class="k">2</span>Check the applicability domain before trusting a prediction</li>
+            <li><span class="k">3</span>Run a community model for an immediate prediction — no training needed</li>
+            <li><span class="k">4</span>Feed real lab results back in — the safety gate guards each round and accuracy compounds</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Your models &amp; data</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Private to your workspace</span></td></tr>
+            <tr><td>Every model</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Inspectable, versioned object with evidence</span></td></tr>
+            <tr><td>Where it hasn't been scored</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Reads "not evaluated" — never a made-up number</span></td></tr>
+            <tr><td>Safety / QC gate</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Fires at its threshold, suggests a fix</span></td></tr>
+            <tr><td>The closed loop</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Compounds accuracy with each real round</span></td></tr>
+          </table>
+          <p class="footnote">The loop learns from your real laboratory measurements; your models and data stay private to your workspace. The hERG example above is a general illustration of how the loop works.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

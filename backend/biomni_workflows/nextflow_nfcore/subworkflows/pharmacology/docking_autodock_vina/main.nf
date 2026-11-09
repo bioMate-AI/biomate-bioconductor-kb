@@ -20,11 +20,11 @@ process DOCKING_AUTODOCK_VINA {
     tag "${meta.id}"
     label 'process_medium'
 
-    // local (ARM dev): biomni-drug-discovery-nf layers on biomni-structure-to-drug
+    // local (ARM dev): drug-discovery-nf layers on structure-to-drug
     // aws batch (AMD64): structure-based DD image (Vina, meeko, obabel, fpocket)
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' \
-        : 'biomate/biomni-drug-discovery-nf:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86' \
+        : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), val(shard_smiles)
@@ -547,8 +547,8 @@ process DOCKING_MERGE {
     publishDir path: { params.outdir }, mode: 'copy', overwrite: true
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' \
-        : 'biomate/biomni-drug-discovery-nf:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/structure-to-drug:x86' \
+        : 'biomate/drug-discovery-nf:latest'
 
     input:
     path shard_results
