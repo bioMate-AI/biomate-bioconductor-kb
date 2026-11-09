@@ -841,6 +841,8 @@
     "viewer": "Viewer",
     "editor": "Editor",
     "invite": "Invite",
+    "invite_sent": "Invitation emailed to {{email}} — they join when they open the link.",
+    "invite_help": "Existing BioMate users are added right away. A new email is sent an invitation link automatically.",
     "no_members": "No collaborators yet.",
     "owner": "Owner",
     "transfer": "Transfer ownership",

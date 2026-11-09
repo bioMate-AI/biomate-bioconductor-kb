@@ -29,6 +29,18 @@ describe("project-routes — contract", () => {
     expect(SRC.match(/app\.get\("\/api\/projects\/:id\/sessions"/)?.length).toBe(1);
   });
 
+  it("invite of a NEW (unregistered) email auto-emails the share link instead of 404", () => {
+    // One invite box serves both existing members and new people: an existing
+    // user is added directly; an unregistered email gets the project share link
+    // emailed to it (no separate "generate link" step).
+    expect(SRC.includes("sendProjectInviteEmail")).toBe(true);
+    // the no-user branch creates/reuses a share token and returns pending, not 404
+    expect(/if \(!invitee\.rows\.length\)\s*\{[\s\S]{0,1600}pending:\s*true/.test(SRC)).toBe(true);
+    expect(SRC.includes("FROM project_share_tokens WHERE project_id")).toBe(true);
+    // the old hard 404 for a new email must be gone
+    expect(SRC.includes('"No user found with that email"')).toBe(false);
+  });
+
   it("project-scoped URL import — authed, SSRF-validated, owner/editor, size-capped, records source='url'", () => {
     // Paste-a-URL ingest (spec 04 §4.6): fetches into the project's S3 prefix and
     // inserts a project_files row so it shows in the hub tree (unlike the
