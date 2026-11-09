@@ -44,8 +44,10 @@ if [ "${BUILD_MODE:-spot}" = spot ]; then
     echo 'shutdown -h +120   # hard stop: the instance terminates on shutdown'
     echo 'exec > /var/log/mlip-build.log 2>&1; set -x'
     # On failure stay up 20 min so the poller can read the log over SSM (the serial console does not
-    # carry it); /var/log/mlip-build.status tells the poller the build has ended.
-    echo "trap 'if grep -q BUILD_PUSH_OK /var/log/mlip-build.log; then echo ok > /var/log/mlip-build.status; shutdown -h now; else echo failed > /var/log/mlip-build.status; shutdown -h +20; fi' EXIT"
+    # carry it); /var/log/mlip-build.status tells the poller the build has ended. grep -x: under set -x
+    # this trap's own text is traced into the log, so a substring match always read as success (two
+    # failed builds shut down as 'ok').
+    echo "trap 'if grep -qx BUILD_PUSH_OK /var/log/mlip-build.log; then echo ok > /var/log/mlip-build.status; shutdown -h now; else echo failed > /var/log/mlip-build.status; shutdown -h +20; fi' EXIT"
     echo 'apt-get update -qq && apt-get install -y -qq docker.io docker-buildx unzip curl'
     echo 'curl -sSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && unzip -q /tmp/a.zip -d /tmp && /tmp/aws/install'
     echo 'mkdir -p /build && cd /build && base64 -d > Dockerfile <<"B64"'
