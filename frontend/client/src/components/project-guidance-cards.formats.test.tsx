@@ -51,14 +51,14 @@ describe('output format editor', () => {
   expect(alert.textContent).toContain('Your changes have not been saved');
   expect(screen.getByRole('dialog')).toBeTruthy(); expect(stored).toEqual([original]);
  });
- it('shows actual template preview without fake errors or requests', async () => {
-  await open(); fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-  const preview = screen.getByRole('dialog', { name: 'Output format preview' });
-  expect(within(preview).getByText(original.detail)).toBeTruthy();
-  expect(within(preview).getByText(/not a generated run report/)).toBeTruthy();
-  expect(screen.queryByRole('alert')).toBeNull(); expect(requests).toEqual([]);
-  fireEvent.click(within(preview).getByRole('button', { name: 'Close preview' }));
-  expect(screen.queryByRole('dialog')).toBeNull();
+ it('edit shows the full template detail (preview removed — edit sees the whole thing)', async () => {
+  await open();
+  // Preview was removed; Edit opens the editor with the full requirements text.
+  fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+  expect(screen.getByDisplayValue(original.detail)).toBeTruthy();
+  expect(requests).toEqual([]);
+  // no stray Preview affordance remains
+  expect(screen.queryByRole('button', { name: 'Preview' })).toBeNull();
  });
  it('bulk insertion preserves an enabled existing template and prevents repeats', async () => {
   await open(); fireEvent.click(screen.getByRole('button', { name: 'Start from these examples' }));

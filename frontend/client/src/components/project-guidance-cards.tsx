@@ -43,7 +43,6 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
   const [editing, setEditing] = useState<number | null>(null);
   const [formats, setFormats] = useState<OutputFormat[]>([]);
   const [formatEditor, setFormatEditor] = useState<{ index: number | null; value: OutputFormat } | null>(null);
-  const [preview, setPreview] = useState<OutputFormat | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [skills, setSkills] = useState<SkillPack[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -165,7 +164,6 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{f.name}</span>
                 {f.detail && <span style={S.hint}>{f.detail}</span>}
               </div>
-              <button className="btn sm ghost" onClick={() => setPreview(f)}>{t("project_instructions.preview")}</button>
               {canEdit && <button className="btn sm ghost" disabled={savingSettings || formatEditor !== null} onClick={() => setFormatEditor({ index: i, value: { ...f } })}>{t("instructions_formats.edit")}</button>}
               {canEdit && <button className="linkish" title={t("project_instructions.remove")} disabled={savingSettings || formatEditor !== null} onClick={() => saveSettings(selected, formats.filter((_, j) => j !== i))}>{t("project_instructions.remove")}</button>}
             </div>
@@ -204,13 +202,6 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
           const next = formatEditor.index === null ? [...formats, value] : formats.map((f, i) => i === formatEditor.index ? value : f);
           if (await saveSettings(selected, next)) setFormatEditor(null);
         }}>{savingSettings ? t("instructions_formats.saving") : t("instructions_formats.save")}</button><button className="btn sm ghost" disabled={savingSettings} onClick={() => setFormatEditor(null)}>{t("instructions_formats.cancel")}</button></div>
-      </section>}
-      {preview && <section role="dialog" aria-label={t("instructions_formats.preview_title")} style={S.card}>
-        <div style={S.row}><h3 style={{ margin: 0 }}>{preview.name}</h3><span className="chip">{t(`project_instructions.kind_${preview.kind}`)}</span></div>
-        <p style={S.hint}>{t("instructions_formats.preview_note")}</p>
-        <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{preview.detail || t("instructions_formats.no_requirements")}</p>
-        <span style={S.hint}>{preview.on ? t("instructions_formats.enabled") : t("instructions_formats.disabled")}</span>
-        <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setPreview(null)}>{t("instructions_formats.close_preview")}</button>
       </section>}
 
       {/* SKILLS & EXPERTS */}
