@@ -857,9 +857,14 @@ function PhaseGroupSection({
                       {tOr('panel.required_suffix', '{{labels}} — required', { labels: phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).map(p => p.label).join(', ') })}
                     </span>
                   ) : (
-                    phaseRenderedParams.slice(0, 4).map(p =>
-                      `${p.label}: ${p.value ?? p.defaultValue ?? '—'}`
-                    ).join(' · ')
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {phaseRenderedParams.slice(0, 4).map(p => (
+                        <div key={p.id} style={{ display: 'flex', gap: 6, minWidth: 0 }}>
+                          <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{p.label}:</span>
+                          <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{p.value ?? p.defaultValue ?? '—'}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

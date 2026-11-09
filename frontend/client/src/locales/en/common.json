@@ -932,7 +932,8 @@
     "notes_note": "Make a rule copies a note into the project instructions; the original note is kept.",
     "no_notes": "No notes yet.",
     "delete_note": "Delete note",
-    "delete_note_error": "Could not delete note. Your note has been kept."
+    "delete_note_error": "Could not delete note. Your note has been kept.",
+    "rules_seed_hint": "Rules shown here may be project defaults or examples — you can edit or remove any that don't fit your work."
   },
   "active_project": {
     "label": "Project:",
@@ -1016,6 +1017,9 @@
     "upload_failed": "Upload failed",
     "import_failed": "Import failed",
     "load_histories_failed": "Could not load histories",
-    "load_datasets_failed": "Could not load datasets"
+    "load_datasets_failed": "Could not load datasets",
+    "url_examples_toggle": "Examples & accepted sources",
+    "history_auto_label": "Chat session",
+    "history_auto_label_dated": "Chat session · {{date}}"
   }
 }

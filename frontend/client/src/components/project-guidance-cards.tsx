@@ -1,4 +1,4 @@
-import { t, locale } from '@/lib/i18n';
+import { t, tOr, locale } from '@/lib/i18n';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -127,6 +127,11 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
       {/* RULES */}
       <section style={S.card} data-testid="instructions-rules">
         <div style={S.row}><span style={S.k2}>{t("project_instructions.rules")}</span><span style={{ flex: 1 }} /><span style={S.hint}>{t("project_instructions.rules_hint")}</span></div>
+        {rules.length > 0 && (
+          <p style={{ ...S.hint, margin: 0 }} data-testid="rules-seed-hint">
+            {tOr('project_instructions.rules_seed_hint', 'Rules shown here may be project defaults or examples — you can edit or remove any that don’t fit your work.')}
+          </p>
+        )}
         <div>
           {rules.map((r, i) => (
             <div key={i} style={S.qline}>

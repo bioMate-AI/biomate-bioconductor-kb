@@ -1443,7 +1443,8 @@
     "notes_note": "设为规则会将笔记复制到项目指令中，原笔记会保留。",
     "no_notes": "暂无笔记。",
     "delete_note": "删除笔记",
-    "delete_note_error": "无法删除笔记，原笔记已保留。"
+    "delete_note_error": "无法删除笔记，原笔记已保留。",
+    "rules_seed_hint": "此处显示的规则可能是项目默认值或示例——你可以编辑或删除任何不适用于你工作的规则。"
   },
   "active_project": {
     "label": "项目：",
@@ -1507,6 +1508,9 @@
     "upload_failed": "上传失败",
     "import_failed": "导入失败",
     "load_histories_failed": "无法加载历史",
-    "load_datasets_failed": "无法加载数据集"
+    "load_datasets_failed": "无法加载数据集",
+    "url_examples_toggle": "示例与支持的来源",
+    "history_auto_label": "对话会话",
+    "history_auto_label_dated": "对话会话 · {{date}}"
   }
 }

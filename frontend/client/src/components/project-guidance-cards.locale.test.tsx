@@ -6,6 +6,14 @@ vi.mock('@/lib/i18n', () => ({ locale: 'zh', t: (key: string, vars?: Record<stri
  const value = key.split('.').reduce((v: any, part) => v?.[part], zh);
  if (typeof value !== 'string') throw new Error(`Missing Chinese key: ${key}`);
  return value.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars?.[k] ?? ''));
+},
+ // tOr mirrors the real helper: use the zh value when the key exists, otherwise the
+ // provided English fallback (new keys like project_instructions.rules_seed_hint are
+ // not in common.json yet, so they resolve to the fallback here).
+ tOr: (key: string, fallback: string, vars?: Record<string, unknown>) => {
+  const value = key.split('.').reduce((v: any, part) => v?.[part], zh);
+  const str = typeof value === 'string' ? value : fallback;
+  return str.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars?.[k] ?? ''));
 } }));
 import { ProjectInstructionsPage } from './project-guidance-cards';
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });

@@ -83,6 +83,27 @@ function isUsableDataset(state: string | undefined): boolean {
   return (state || '').toLowerCase() === 'ok';
 }
 
+// Galaxy auto-creates one internal history per chat session, named like
+// "GalaxyChat-2026-10-10" (or with a trailing session id). That raw identifier
+// is an implementation detail — a user never named it and shouldn't see it. We
+// render a friendly label instead, keeping the embedded date (the only
+// user-meaningful part) when present. Conservative: only names that clearly
+// start with the "GalaxyChat" auto prefix are rewritten; everything a user
+// actually named passes through untouched.
+const AUTO_HISTORY_DATE_RE = /^GalaxyChat[-_ ]?(\d{4}[-_]\d{2}[-_]\d{2})/i;
+const AUTO_HISTORY_RE = /^GalaxyChat[-_ ]/i;
+function friendlyHistoryName(name: string | undefined): string {
+  const raw = (name || '').trim();
+  const dated = AUTO_HISTORY_DATE_RE.exec(raw);
+  if (dated) {
+    return tOr('datasets_dialog.history_auto_label_dated', 'Chat session · {{date}}', { date: dated[1].replace(/_/g, '-') });
+  }
+  if (AUTO_HISTORY_RE.test(raw)) {
+    return tOr('datasets_dialog.history_auto_label', 'Chat session');
+  }
+  return raw;
+}
+
 // Tab: "This session" — shows sessionDatasets prop + inline upload button with drag-drop
 function SessionTab({
   datasets,
@@ -405,7 +426,7 @@ function HistoryTab({
         </button>
         <div className="flex items-center gap-2 pb-1 border-b">
           <Database className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium truncate">{selectedHistory.name}</span>
+          <span className="text-sm font-medium truncate">{friendlyHistoryName(selectedHistory.name)}</span>
         </div>
 
         {datasetsLoading ? (
@@ -489,9 +510,11 @@ function HistoryTab({
     );
   }
 
-  // History list view
+  // History list view. Match against both the raw name and the friendly label so
+  // a search for "chat" still finds the de-identified auto histories.
+  const q = search.toLowerCase();
   const filteredHistories = histories.filter(h =>
-    h.name.toLowerCase().includes(search.toLowerCase())
+    h.name.toLowerCase().includes(q) || friendlyHistoryName(h.name).toLowerCase().includes(q)
   );
 
   if (filteredHistories.length === 0) {
@@ -520,7 +543,7 @@ function HistoryTab({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium truncate">{h.name}</p>
+              <p className="text-sm font-medium truncate">{friendlyHistoryName(h.name)}</p>
               {h.source === 'run' && (
                 <Badge variant="outline" className="text-xs h-4 px-1 shrink-0 border-blue-300 text-blue-600">
                   {tOr('datasets_dialog.run_outputs', 'Run outputs')}
@@ -552,6 +575,9 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   const [url, setUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Examples are secondary — collapsed by default so the input is the focus and
+  // the tab isn't a wall of example URIs. Each source keeps its (localized) label.
+  const [showExamples, setShowExamples] = useState(false);
 
   const handleImport = async () => {
     if (!url.trim()) return;
@@ -579,50 +605,21 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
     }
   };
 
+  // Compact "source → one example" row for the collapsible examples list.
+  const ExampleRow = ({ label, code, icon }: { label: string; code: string; icon?: React.ReactNode }) => (
+    <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
+      <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-1">
+        {icon}{label}
+      </span>
+      <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all break-all">
+        {code}
+      </code>
+    </div>
+  );
+
   return (
     <div className="space-y-3 px-1 pb-2">
-      <div className="rounded-md bg-muted/50 p-3 text-xs space-y-2">
-        <div className="flex items-center gap-1.5">
-          <Info className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-          <p className="font-medium text-foreground">
-            {tOr('datasets_dialog.url_no_limit', 'No size limit — BioMate downloads server-side. Works for files of any size.')}
-          </p>
-        </div>
-        <div className="space-y-1.5 text-muted-foreground border-t pt-2">
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">{tOr('datasets_dialog.url_http_label', 'Public HTTP/HTTPS:')}</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_genomic.fna.gz
-            </code>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">{tOr('datasets_dialog.url_sra_label', 'NCBI SRA / EBI ENA (public):')}</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR1518169/SRR1518169
-            </code>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">{tOr('datasets_dialog.url_ftp_label', 'Public FTP:')}</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              ftp://ftp.ncbi.nlm.nih.gov/path/to/file.fastq.gz
-            </code>
-            <p className="mt-1">{tOr('datasets_dialog.url_no_credentials', 'Do not place credentials in a URL. Authenticated storage requires a managed connection.')}</p>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5">{tOr('datasets_dialog.url_s3_label', 'AWS S3 single file (uses your Account Settings credentials):')}</p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              s3://my-bucket/project/sample.bam
-            </code>
-          </div>
-          <div>
-            <p className="font-medium text-foreground/80 mb-0.5 flex items-center gap-1">
-              <FolderArchive className="h-3 w-3 text-amber-500" />
-              {tOr('datasets_dialog.url_s3_folder_label', 'S3 folder:')}
-            </p>
-            <p>{tOr('datasets_dialog.url_s3_folder_help', 'Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.')}</p>
-          </div>
-        </div>
-      </div>
+      {/* Primary action — input + Import kept at the top, the focus of the tab */}
       <div className="flex gap-2">
         <Input
           placeholder={tOr('datasets_dialog.url_placeholder', 'https://… or ftp://… or s3://…')}
@@ -641,6 +638,53 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
         </Button>
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {/* One-line reassurance — always visible, secondary to the input */}
+      <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground px-0.5">
+        <Info className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-px" />
+        <span>{tOr('datasets_dialog.url_no_limit', 'No size limit — BioMate downloads server-side. Works for files of any size.')}</span>
+      </p>
+
+      {/* Examples + help — collapsed disclosure so the tab isn't a wall of URIs */}
+      <div className="rounded-md bg-muted/50 text-xs">
+        <button
+          type="button"
+          aria-expanded={showExamples}
+          onClick={() => setShowExamples(v => !v)}
+          className="w-full flex items-center gap-1.5 px-3 py-2 font-medium text-foreground/80 hover:text-foreground transition-colors"
+        >
+          <ChevronRight className={cn('h-3 w-3 transition-transform', showExamples && 'rotate-90')} />
+          {tOr('datasets_dialog.url_examples_toggle', 'Examples & accepted sources')}
+        </button>
+        {showExamples && (
+          <div className="px-3 pb-3 space-y-2 text-muted-foreground border-t pt-2">
+            <ExampleRow
+              label={tOr('datasets_dialog.url_http_label', 'Public HTTP/HTTPS:')}
+              code="https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_genomic.fna.gz"
+            />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_sra_label', 'NCBI SRA / EBI ENA (public):')}
+              code="https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR1518169/SRR1518169"
+            />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_ftp_label', 'Public FTP:')}
+              code="ftp://ftp.ncbi.nlm.nih.gov/path/to/file.fastq.gz"
+            />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_s3_label', 'AWS S3 single file (uses your Account Settings credentials):')}
+              code="s3://my-bucket/project/sample.bam"
+            />
+            <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
+              <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-px">
+                <FolderArchive className="h-3 w-3 text-amber-500 shrink-0" />
+                {tOr('datasets_dialog.url_s3_folder_label', 'S3 folder:')}
+              </span>
+              <p className="text-[11px]">{tOr('datasets_dialog.url_s3_folder_help', 'Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.')}</p>
+            </div>
+            <p className="text-[11px] border-t pt-2">{tOr('datasets_dialog.url_no_credentials', 'Do not place credentials in a URL. Authenticated storage requires a managed connection.')}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

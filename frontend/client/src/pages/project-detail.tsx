@@ -659,9 +659,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button onClick={() => openChatWithProject()} data-testid="button-open-project-chat">
-              <MessageCircle className="w-4 h-4 mr-2" />Chat
-            </Button>
+            {/* Redundant top-right "Chat" entry point removed — the Chat tab navigates here
+                and the center "New Chat" panel is the single primary chat-start action. */}
             {isOwner && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
