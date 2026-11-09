@@ -1088,19 +1088,22 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                               agentic pipeline (tools + workflows + run_code). */}
                           <div className="space-y-2 pt-0.5" data-testid="llm-model-quickpick">
                             {([
+                              // Flagship-tier slugs only (no small/flash variants), each verified
+                              // against OpenRouter's live /models catalog on 2026-11-09.
                               { label: t('settings.api.models_open'), slugs: [
                                 'z-ai/glm-5.3-prime',
                                 'deepseek/deepseek-v4-pro',
-                                'deepseek/deepseek-v4.1-flash',
-                                'qwen/qwen3-max',
-                                'qwen/qwen3.5-9b',
+                                'qwen/qwen3-235b-a22b-2507',
                                 'moonshotai/kimi-k3',
-                                'google/gemma-4-31b',
+                                'meta-llama/llama-4-maverick',
                               ] },
                               { label: t('settings.api.models_proprietary'), slugs: [
                                 'anthropic/claude-opus-5.5',
+                                'anthropic/claude-sonnet-5.5',
                                 'openai/gpt-6.1-sol-pro',
                                 'google/gemini-3.1-pro-preview',
+                                'x-ai/grok-4.7',
+                                'mistralai/mistral-large-4-0',
                               ] },
                             ] as const).map(group => (
                               <div key={group.label}>
