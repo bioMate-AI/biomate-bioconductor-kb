@@ -408,7 +408,74 @@ write the overview of the top target's biology.)`,
       required: ['query'],
     },
   },
+  {
+    name: 'search_chat_history',
+    description: `Search the user's OWN past conversations (their earlier chat sessions) for text they
+mentioned before. Use this — do NOT guess from memory — whenever the user refers to something from a
+prior chat: "what did we conclude last week", "find the chat where we discussed GRCh38", "which
+session had the ADMET run", "remind me what we decided about X". It AND-matches your query words
+(case-insensitive) against the raw transcripts of this user's other sessions and returns the most
+recently-active matches first, each with a short snippet and the session_id. It does NOT search the
+CURRENT conversation (you already have that above) and only ever sees this user's own chats. An empty
+result is a REAL answer: if nothing matches, tell the user you found no prior chat mentioning it and
+ask them to paste the detail — never fabricate a recollection.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'The words to look for across past chats (e.g. "GRCh38 variant calling", "hERG threshold", "the campaign we named Falcon"). Keep it to the distinctive terms.',
+        },
+      },
+      required: ['query'],
+    },
+  },
 ];
+
+/** Pull a short, readable snippet from a chat_sessions.messages JSONB value around
+ *  the first matching token. Defensive about message shape (array of {role,content},
+ *  content as string | array-of-parts, or an arbitrary object). Used by the
+ *  search_chat_history tool handler. */
+export function extractChatSnippet(messages: any, lowerTokens: string[]): string {
+  let flat = '';
+  try {
+    if (typeof messages === 'string') {
+      flat = messages;
+    } else if (Array.isArray(messages)) {
+      flat = messages
+        .map((m: any) => {
+          if (typeof m === 'string') return m;
+          const c = m?.content ?? m?.text ?? '';
+          if (typeof c === 'string') return c;
+          if (Array.isArray(c)) {
+            return c.map((p: any) => (typeof p === 'string' ? p : p?.text ?? '')).join(' ');
+          }
+          return '';
+        })
+        .join('\n');
+    } else if (messages && typeof messages === 'object') {
+      flat = JSON.stringify(messages);
+    }
+  } catch {
+    flat = '';
+  }
+  flat = flat.trim();
+  if (!flat) return '';
+  const hay = flat.toLowerCase();
+  let idx = -1;
+  for (const tok of lowerTokens) {
+    if (!tok) continue;
+    const i = hay.indexOf(tok);
+    if (i >= 0 && (idx < 0 || i < idx)) idx = i;
+  }
+  if (idx < 0) idx = 0;
+  const start = Math.max(0, idx - 80);
+  const end = Math.min(flat.length, idx + 180);
+  let snip = flat.slice(start, end).replace(/\s+/g, ' ').trim();
+  if (start > 0) snip = '…' + snip;
+  if (end < flat.length) snip = snip + '…';
+  return snip;
+}
 
 /**
  * Model configuration for different AI tasks
@@ -3413,6 +3480,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
             case 'query_database': output = await this._toolQueryDatabase(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
+            case 'search_chat_history': output = await this._toolSearchChatHistory(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
             case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
             case 'request_new_tool': output = await this._toolRequestNewTool(args, toolContext.context); break;
@@ -10446,6 +10514,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_my_data':
             output = await this._toolSearchMyData(block.input, context);
             break;
+          case 'search_chat_history':
+            output = await this._toolSearchChatHistory(block.input, context);
+            break;
           case 'list_data_sources':
             output = await this._toolListDataSources(block.input);
             break;
@@ -10933,6 +11004,58 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         note: files.length
           ? 'These are the user\'s real files. Reference them by name; use the id/run_id to wire them into a workflow. Do not ask the user to re-upload a file already listed here.'
           : 'No matching datasets found in the user\'s projects. It is safe to ask them to upload the file.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** search_chat_history tool handler — cross-conversation search over the user's
+   *  OWN past chat sessions (chat_sessions.messages JSONB). This is the honest
+   *  answer to "what did we conclude last week / in an earlier chat": it actually
+   *  searches prior transcripts instead of fabricating a recollection. Scoped to
+   *  context.userId; EXCLUDES the current session (that transcript is already in
+   *  context). AND-matches whitespace tokens (case-insensitive) over the raw
+   *  message text, most-recently-active first, with a short snippet around the
+   *  first hit. An empty result is a real answer — say nothing was found. */
+  private async _toolSearchChatHistory(input: any, context: ChatContext): Promise<unknown> {
+    const query = (input?.query ?? '').toString().trim();
+    if (!query) return { error: 'query is required' };
+    const uid = context?.userId ? String(context.userId) : undefined;
+    if (!uid) return { error: 'no authenticated user in context' };
+    const currentSessionId = context?.sessionId ? String(context.sessionId) : undefined;
+    const tokens = query.split(/\s+/).filter(Boolean).slice(0, 6);
+    try {
+      const { pool } = await import('./db');
+      const params: any[] = [uid];
+      const clauses: string[] = ['user_id = $1'];
+      if (currentSessionId) {
+        params.push(currentSessionId);
+        clauses.push(`session_id <> $${params.length}`);
+      }
+      for (const tok of tokens) {
+        params.push(`%${tok}%`);
+        clauses.push(`messages::text ILIKE $${params.length}`);
+      }
+      const sql =
+        `SELECT session_id, title, status, last_activity, messages FROM chat_sessions ` +
+        `WHERE ${clauses.join(' AND ')} ORDER BY last_activity DESC NULLS LAST LIMIT 8`;
+      const result = await pool.query(sql, params);
+      const lowerTokens = tokens.map((t: string) => t.toLowerCase());
+      const sessions = result.rows.map((r: any) => ({
+        session_id: r.session_id,
+        title: r.title || '(untitled chat)',
+        status: r.status ?? undefined,
+        last_activity: r.last_activity,
+        snippet: extractChatSnippet(r.messages, lowerTokens),
+      }));
+      return {
+        query,
+        total: sessions.length,
+        sessions,
+        note: sessions.length
+          ? 'These are the user\'s own past conversations that mention the query. Quote the snippet or point to the session; do not fabricate detail beyond what the snippet shows.'
+          : 'No past conversation of this user mentions the query. Tell them nothing was found — do not invent a recollection; ask them to paste the detail or point you to the run/project.',
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), query };
