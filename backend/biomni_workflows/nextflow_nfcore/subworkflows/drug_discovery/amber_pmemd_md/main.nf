@@ -780,7 +780,10 @@ process MM_GBSA {
             export AMBERHOME
         fi
         echo "MM-GBSA using AMBERHOME=\$AMBERHOME"
-        source "\$AMBERHOME/amber.sh" 2>/dev/null || true
+        # amber.sh references unset vars (PYTHONPATH/LD_LIBRARY_PATH); under 'set -u' sourcing it
+        # aborts the whole script before ante-MMPBSA runs (|| true cannot catch a nounset abort in a
+        # sourced file). Disable nounset just for the source. AMBERHOME + PATH already suffice.
+        set +u; source "\$AMBERHOME/amber.sh" 2>/dev/null || true; set -u
 
         # Dry topologies for MM-GBSA. The complex prmtop is solvated, so it is the -sp topology;
         # complex/receptor/ligand are stripped of water and ions with ante-MMPBSA.py, with mbondi2
