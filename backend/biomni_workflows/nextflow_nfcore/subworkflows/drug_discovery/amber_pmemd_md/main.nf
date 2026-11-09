@@ -61,6 +61,7 @@ params.box_padding          = 12         // Angstrom from protein surface to box
 
 // Simulation settings
 params.n_steps              = 5000000    // MD steps (2 fs dt -> 10 ns default)
+params.equil_steps          = 50000      // NVT and NPT equilibration steps EACH (smoke runs pass a small value)
 params.dt                   = 0.002      // ps (2 fs timestep)
 params.temperature          = 300        // K
 params.pressure             = 1.0        // atm
@@ -443,7 +444,7 @@ import sys
 sys.path.insert(0, ".")
 from omm_helpers import *
 
-T, P, DT, NSTEP = ${params.temperature}, ${params.pressure}, ${params.dt}, 50000
+T, P, DT, NSTEP = ${params.temperature}, ${params.pressure}, ${params.dt}, int(${params.equil_steps})
 prmtop = app.AmberPrmtopFile("${prmtop}")
 inpcrd = app.AmberInpcrdFile("${minimized_rst}")
 system = build_system(prmtop)
