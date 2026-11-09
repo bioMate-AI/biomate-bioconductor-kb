@@ -35,6 +35,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # This branch carries ~1.2GB of committed data (galaxy_ai_tools.db,
+          # docs/*.npz, figures). A full checkout stalls the runner before the
+          # disk-cleanup step. The Docker build only needs the ml_training source
+          # (one COPY) + this Dockerfile; everything else is pip/git installs. A
+          # blob-filtered sparse checkout fetches just those paths, which also
+          # keeps `context: .` tiny.
+          sparse-checkout: |
+            backend/lib/galaxy/ai/ml_training
+            backend/docker/tabular-diffusion-training.Dockerfile
+          sparse-checkout-cone-mode: false
+          filter: blob:none
 
       - name: Compute build tags
         id: tags
