@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain, isCountMatrixDeWorkflow } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -709,4 +709,28 @@ it('shows sequencing QC thresholds for saved scdownstream without leaking CTF de
  fireEvent.click(screen.getByTestId('panel-tab-phases'));
  await waitFor(() => expect(view.container.querySelector('[data-qc-key="reads_surviving_pct"]')).toBeTruthy());
  expect(view.container.querySelector('[data-qc-key="fit_quality"]')).toBeNull();
+});
+
+it('identifies count-matrix DE workflows by identity but not sequencing pipelines', () => {
+ expect(isCountMatrixDeWorkflow({ name: 'nf-core/differentialabundance' })).toBe(true);
+ expect(isCountMatrixDeWorkflow({ name: 'DESeq2 differential expression' })).toBe(true);
+ expect(isCountMatrixDeWorkflow({ nextflow_path: 'workflows/limma_voom.nf' })).toBe(true);
+ expect(isCountMatrixDeWorkflow({ name: 'edgeR exactTest' })).toBe(true);
+ // Real sequencing pipelines — including single-cell sequencing — are untouched.
+ expect(isCountMatrixDeWorkflow({ name: 'nf-core/scdownstream' })).toBe(false);
+ expect(isCountMatrixDeWorkflow({ name: 'nf-core/rnaseq' })).toBe(false);
+ expect(isCountMatrixDeWorkflow({})).toBe(false);
+});
+
+it('drops sequencing-alignment QC gates for count-matrix DE workflows but keeps non-alignment gates', async () => {
+ vi.spyOn(global, 'fetch').mockImplementation(async input => String(input) === '/api/qc/profiles' ? ({ ok: true, json: async () => ({ profiles: [], defaults: { reads_surviving_pct: { bound: 50, direction: 'min', domains: ['rnaseq'] }, alignment_rate: { bound: 70, direction: 'min', domains: ['rnaseq'] }, mito_fraction_pct: { bound: 20, direction: 'max', domains: ['rnaseq'] }, median_cv_coverage: { bound: 1, direction: 'max', domains: ['rnaseq'] } } }) } as Response) : ({ ok: false, json: async () => ({}) } as Response));
+ (global as any).EventSource = class { addEventListener() {} removeEventListener() {} close() {} };
+ const view = render(<NextflowWorkflowViewer workflowDefinition={{ name: 'nf-core/differentialabundance', domain: 'transcriptomics', steps: {} }} status="failed" runId="da-recorded" nextflowStatus={{ processes: [{ id: 'real-task', name: 'DESEQ2', status: 'FAILED' }] }} />);
+ fireEvent.click(screen.getByTestId('panel-tab-phases'));
+ // Non-alignment transcriptomics metric survives.
+ await waitFor(() => expect(view.container.querySelector('[data-qc-key="median_cv_coverage"]')).toBeTruthy());
+ // Sequencing-alignment family dropped — differentialabundance consumes a count matrix, not reads.
+ expect(view.container.querySelector('[data-qc-key="reads_surviving_pct"]')).toBeNull();
+ expect(view.container.querySelector('[data-qc-key="alignment_rate"]')).toBeNull();
+ expect(view.container.querySelector('[data-qc-key="mito_fraction_pct"]')).toBeNull();
 });
