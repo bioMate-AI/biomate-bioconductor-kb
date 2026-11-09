@@ -186,3 +186,48 @@ state instead of ECONNREFUSED/IP; de-duplicate repeat launches.
 ### Batch 4 — NEEDS PRODUCT DECISION (Cluster 10)
 - Notes vs Rules vs memory consolidation; team-invite/role functionality; demo-seeded-rule labeling;
   report-template preview UX.
+
+---
+
+## COMPLETENESS AUDIT (2026-11-09) — per-screenshot status
+Resolved ✅ / partial 🟡 / open ❌, with the commit.
+
+| Screenshot | Status | Where |
+|---|---|---|
+| English_in_Chinese_UI_oldinfo | ✅ after-run empty state localized | 3823ee6aa8 |
+| cannot_handle_csv_dataset | ✅ stat grid reconciled | 3823ee6aa8 |
+| QC_wrong_under_溯源 | ✅ header-only CSV now readable (backend; not yet deployed) | 3823ee6aa8 |
+| needattention_why_dataset | ✅ no more false amber from profiling failure | 3823ee6aa8 |
+| unnecessary_detail_workflowpanel | ✅ basename only + Contrasts dedupe | 3823ee6aa8 |
+| file_input_necessary_or_not | ✅ gate respects required + data inputs enforced | 3823ee6aa8 / 40c814f12e |
+| confusing_workflow_parameter | ✅ Settings → Phases pointer | 3823ee6aa8 |
+| path_parameter_editissue | ✅ flex-1 min-w-0 | 3823ee6aa8 |
+| commentout_skip_phase | ✅ hidden unless skippable | 3823ee6aa8 |
+| comment_out_chat_for_newstep | ✅ removed | 3823ee6aa8 |
+| duplicate_after_run | ✅ gated kicker | 3823ee6aa8 |
+| crowd_parameters_…sameQC_eachphase | ✅ QC once + basename; 🟡 crowded param line not restyled | d782be698c / 89fb8358de |
+| note_memory_howworks | ✅ Notes→Memory | 683da003f2 |
+| how_works_teammember | ✅ unified invite + email diagnosed (SES grant pending) | 7a5f5f78cc |
+| MG_workflow_failed | ✅ required-input fix + phase i18n (generic UX error kept, per user) | 40c814f12e / 89fb8358de |
+| preview_confusing_report_template | ✅ Preview removed | 280a91b9f8 |
+| only_manual_editing_dataset | ✅ as-designed (user) | — |
+| lack_multi_select | ✅ multi-select | 8b2d54798f |
+| biomate_history_weirditem | ✅ errored items filtered; 🟡 history-NAME filter skipped (risky) | 8b2d54798f |
+| need_better_design_claude | ✅ From-URL localized; 🟡 not redesigned | 8b2d54798f |
+| large_blank_dataset / half_half_views | ✅ compact empty state + i18n | f6d4a580ae / 89fb8358de |
+| formats_duplications | ✅ project-page i18n; 🟡 duplicate chat-start buttons not consolidated | f6d4a580ae |
+| missing_file_context | ✅ project files injected | 0a1b80b736 |
+| un_expected_workflow_otherintent | ✅ attach-intent guard | 0a1b80b736 |
+| jupiter_failed / jupiter_fail_anothermessage | ✅ HDA readiness + friendly error | 0a1b80b736 |
+| ID_everywhere | ✅ edit_report self-loads; 🟡 raw run-ID in prose (LLM formatting) | 0a1b80b736 |
+| **unnecessary_id_response** | ❌ LLM still prints file UUIDs in chat prose — needs a response-formatting rule | — |
+| noteasexample_instruction_rule | ❌ seeded-rule "example/default" labeling not done | — |
+
+### Still open after this pass
+1. **LLM prints raw IDs in chat prose** (unnecessary_id_response + ID_everywhere) — a
+   prompt/response rule (never surface file UUIDs / run IDs; show names). Prompt-level.
+2. **noteasexample_instruction_rule** — mark demo-seeded rules as examples/defaults.
+3. **Polish** (🟡): crowded param line restyle; consolidate duplicate chat-start buttons;
+   From-URL dialog redesign; picker history-NAME filter.
+4. **Deploy** — the backend fixes (profiler header-only, required-input) + email SES grant
+   are committed/diagnosed but not live on dev.
