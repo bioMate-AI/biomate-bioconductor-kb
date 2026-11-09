@@ -25,7 +25,7 @@
  *       - protein: { id: A, sequence: <antigen 1> }
  *       - protein: { id: B, sequence: <antigen 2> } # optional (bispecific / multi-antigen)
  * then runs:
- *     boltz predict in.yaml --out_dir out --use_msa_server --no_kernels --override
+     *     boltz predict in.yaml --out_dir out --use_msa_server --no_kernels --num_workers 0 --override
  * and emits the predicted complex CIF + Boltz confidence JSON + a per-antibody
  * summary (complex_iptm, and interface_iptm[antigen] = antibody<->antigen iptm).
  *
@@ -125,8 +125,10 @@ print("=== Boltz YAML ===")
 print(open("in.yaml").read())
 PYEOF
 
-    # 2) Fold the complex.
-    boltz predict in.yaml --out_dir out --use_msa_server --no_kernels --override
+    # 2) Fold the complex. --num_workers 0: the default DataLoader worker subprocess crashes on AWS
+    #    Batch ("DataLoader worker exited unexpectedly") for Fv+antigen-sized inputs (small /dev/shm);
+    #    loading in-process avoids it (same fix boltz_structure_prediction uses).
+    boltz predict in.yaml --out_dir out --use_msa_server --no_kernels --num_workers 0 --override
 
     # 3) Summarise: complex confidence + per-antigen antibody<->antigen interface
     #    iptm from pair_chains_iptm (0-based chain position). Null if Boltz did

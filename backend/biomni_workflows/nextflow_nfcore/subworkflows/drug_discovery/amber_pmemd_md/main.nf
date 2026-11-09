@@ -156,7 +156,12 @@ def load_state(sim, inpcrd):
     sim.context.setPositions(inpcrd.getPositions())
     if inpcrd.getBoxVectors() is not None:
         sim.context.setPeriodicBoxVectors(*inpcrd.getBoxVectors())
-    vel = inpcrd.getVelocities() if hasattr(inpcrd, "getVelocities") else None
+    # AmberInpcrdFile.getVelocities() RAISES when the rst7 has no velocities (a sander-minimized
+    # restart has none), so hasattr is true but the call throws — guard it and return None.
+    try:
+        vel = inpcrd.getVelocities()
+    except Exception:
+        vel = None
     return vel
 
 def _angle(u, v):

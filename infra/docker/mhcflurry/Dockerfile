@@ -4,7 +4,7 @@
 # Built by scripts/build_mhcflurry_image.sh; the final RUN is a load+predict smoke test, so a
 # broken model install fails the build, not a user run.
 FROM mambaorg/micromamba:1.5.8
-RUN micromamba install -y -n base -c conda-forge python=3.11 pip tensorflow \
+RUN micromamba install -y -n base -c conda-forge python=3.11 pip tensorflow procps-ng \
  && micromamba clean -a -y
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 RUN pip install --no-cache-dir mhcflurry \
