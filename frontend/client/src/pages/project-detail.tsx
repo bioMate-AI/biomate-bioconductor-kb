@@ -1,4 +1,4 @@
-import { t } from "@/lib/i18n"
+import { t, tOr } from "@/lib/i18n"
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -75,6 +75,20 @@ import { cn } from "@/lib/utils"
 
 /** The three concrete project roles the server assigns (owner|editor|viewer). */
 export type ProjectRole = "owner" | "editor" | "viewer"
+
+/**
+ * Prettify a raw domain/tag token (e.g. "transcriptomics", "drug_discovery") for
+ * display: a localized `domains.*` label when one exists, else a Title-Cased
+ * version of the raw token — never the bare lowercase internal string.
+ */
+export function prettyTag(tag: string): string {
+  return tOr(`domains.${tag}`, tag.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()))
+}
+
+/** Localized label for a project lifecycle status (active|completed|archived|…). */
+export function prettyStatus(status: string): string {
+  return tOr(`projects.status_${status}`, status.charAt(0).toUpperCase() + status.slice(1))
+}
 
 // Rank so a role satisfies any capability requiring an equal-or-lower role.
 // owner ⊃ editor ⊃ viewer (owner can do everything an editor can, etc.).
@@ -587,7 +601,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" ? { display: "none" } : undefined}>
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
-            <ArrowLeft className="w-4 h-4 mr-2" />All projects
+            <ArrowLeft className="w-4 h-4 mr-2" />{tOr('projects.all_projects', 'All projects')}
           </Button>
         </div>
         <div className="flex items-start justify-between gap-4">
@@ -597,19 +611,19 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{project.description}</p>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {project.category && <Badge variant="outline" className="text-xs">{project.category}</Badge>}
+              {project.category && <Badge variant="outline" className="text-xs">{prettyTag(project.category)}</Badge>}
               <Badge variant="secondary" className={cn(
                 "text-xs",
                 project.status === "completed" && "bg-green-100 text-green-700",
                 project.status === "archived" && "bg-gray-100 text-gray-600",
                 project.status === "active" && "bg-blue-100 text-blue-700",
-              )}>{project.status}</Badge>
+              )}>{prettyStatus(project.status)}</Badge>
               {editingTags.map(tag => (
                 <span
                   key={tag}
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary text-secondary-foreground px-2 py-0.5 text-xs"
                 >
-                  <Tag className="w-3 h-3 opacity-60" />{tag}
+                  <Tag className="w-3 h-3 opacity-60" />{prettyTag(tag)}
                   {canEdit && (
                   <button
                     onClick={() => removeTag(tag)}
@@ -703,27 +717,27 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   data-testid="panel-new-project-chat"
                 >
                   <MessageCircle className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
-                  <p className="font-medium mb-1">Start a new chat about this project</p>
+                  <p className="font-medium mb-1">{tOr('projects.new_chat_title', 'Start a new chat about this project')}</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    BioMate tracks project files, workflow runs, and research context automatically.
+                    {tOr('projects.new_chat_desc', 'BioMate tracks project files, workflow runs, and research context automatically.')}
                   </p>
                   <Button
                     onClick={e => { e.stopPropagation(); openChatWithProject() }}
                     data-testid="button-new-project-chat"
                   >
-                    <Plus className="w-4 h-4 mr-2" />New Chat
+                    <Plus className="w-4 h-4 mr-2" />{tOr('projects.new_chat', 'New Chat')}
                   </Button>
                 </div>
 
                 {sessionsLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center py-4">
-                    <Loader2 className="w-4 h-4 animate-spin" />Loading sessions…
+                    <Loader2 className="w-4 h-4 animate-spin" />{tOr('projects.loading_sessions', 'Loading sessions…')}
                   </div>
                 ) : sessions.length > 0 ? (
                   <>
                     <div className="flex items-center justify-between shrink-0">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Recent chats ({sessions.length})
+                        {tOr('projects.recent_chats', 'Recent chats ({{count}})', { count: sessions.length })}
                       </p>
                       <button onClick={loadSessions} className="text-muted-foreground hover:text-foreground">
                         <RefreshCw className="w-3 h-3" />
@@ -793,7 +807,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
             <div data-testid="standing-instructions-card" className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : undefined}>
               <div className="flex items-center justify-between mb-1">
-                <h3 className="font-medium text-sm">Standing instructions</h3>
+                <h3 className="font-medium text-sm">{tOr('projects.standing_instructions', 'Standing instructions')}</h3>
                 {canEdit && !isEditingInstructions && (
                   <Button
                     variant="ghost" size="sm" className="h-7 w-7 p-0"
@@ -804,7 +818,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   </Button>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground mb-3">Read by the assistant on every chat in this project.</p>
+              <p className="text-[11px] text-muted-foreground mb-3">{tOr('projects.standing_instructions_hint', 'Read by the assistant on every chat in this project.')}</p>
 
               {isEditingInstructions ? (
                 <div className="space-y-2">
@@ -871,7 +885,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       <Button
                         variant="outline" size="sm" className="h-7 text-xs"
                         onClick={() => handlePromoteNote(newNote)}
-                        title="Append this text to Standing instructions"
+                        title={tOr('projects.promote_tooltip_text', 'Append this text to Standing instructions')}
                         data-testid="button-promote-new-note"
                       >
                         Promote to instruction ↑
@@ -898,7 +912,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           <button
                             onClick={() => handlePromoteNote(n.content)}
                             className="text-[11px] text-muted-foreground hover:text-primary"
-                            title="Append this note to Standing instructions"
+                            title={tOr('projects.promote_tooltip_note', 'Append this note to Standing instructions')}
                             data-testid={`button-promote-note-${n.id}`}
                           >
                             Promote to instruction ↑
