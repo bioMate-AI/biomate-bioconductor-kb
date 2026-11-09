@@ -49,3 +49,17 @@ well-wired during pretraining, so fusing them injects noise.
 earn its multi-channel keep, the protein/cross-modal fusion path needs repair (retrain the omic encoders
 on paired data, or adopt masked-decoder fusion) — and it must be shown to beat naive concatenation
 (0.918), not just RNA. Until then, the honest routing system uses raw channels, concatenated.
+
+---
+
+## Addendum — fusion-repair gate: NO fusion headroom (don't repair)
+
+Before scoping an FM fusion-repair, tested whether *any* learned fusion beats naive concat / best single
+channel (`fusion_headroom.json`): a nonlinear MLP on concat(RNA,protein) vs logistic-concat vs
+protein-alone. Result — MLP fusion is far WORSE at every budget (1000: 0.737 vs concat 0.918 vs protein
+0.931; 60: 0.409 vs 0.793). **No fusion headroom.** Learned/nonlinear fusion (the FM's OR a fresh MLP)
+loses to linear concat and the dominant single channel. On this task one channel (protein) dominates, so
+there is little complementary signal to fuse and nonlinear fusion only overfits. **Verdict: the FM
+fusion-repair is NOT justified here — the ceiling is protein-alone (abundant) / linear-concat (scarce).**
+A fusion-repair would only be worth testing on a task with genuinely COMPLEMENTARY channels (neither
+dominant), which this stim task is not.
