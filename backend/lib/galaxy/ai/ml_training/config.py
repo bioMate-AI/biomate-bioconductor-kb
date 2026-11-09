@@ -24,7 +24,10 @@ from typing import Any, Optional
 
 # --- Supported enums (validated; keeps the low-code surface constrained) -----
 
-TASK_TYPES = ("classification", "regression", "text_generation")
+TASK_TYPES = ("classification", "regression", "text_generation",
+              "structure_generation",
+              # scrna_diffusion: generate/augment single-cell expression profiles.
+              "expression_generation")
 # ludwig_tabular = low-code DL (Ludwig NN over RDKit descriptors, CPU-runnable);
 # chemprop_gnn = molecular graph DL (GPU); sklearn_gbr = cheap non-DL baseline;
 # ludwig_llm = low-code LLM fine-tuning (Ludwig LoRA/QLoRA over a base model).
@@ -34,10 +37,23 @@ TASK_TYPES = ("classification", "regression", "text_generation")
 # sklearn_tabular = generic numeric feature-matrix learner (e.g. a gene-expression
 # matrix + a subtype/outcome label), with stratified k-fold cross-validation.
 # NOT molecule-specific — the general counterpart to the SMILES-only paths.
+# protein_diffusion = protein/peptide backbone structure diffusion (RFdiffusion /
+# Chroma / Genie): fine-tune a released checkpoint OR train from scratch on a set
+# of PDB/mmCIF structures. Runs in the separate diffusion-training image (SE(3)
+# torch-cuda stack, no Ludwig/TRL) — its deps conflict with both.
+# scrna_diffusion = single-cell expression structure-diffusion (scDiffusion/CFGen):
+# fine-tune a pretrained checkpoint OR train from scratch to generate/augment
+# scRNA-seq cells. Runs in the separate sc-diffusion-training image (torch-cuda +
+# scanpy/anndata), GPU-only for real runs.
 MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "sklearn_tabular",
-               "ludwig_llm", "trl_dpo", "trl_grpo")
+               "ludwig_llm", "trl_dpo", "trl_grpo",
+               "protein_diffusion", "scrna_diffusion")
 LLM_MODEL_TYPES = ("ludwig_llm", "trl_dpo", "trl_grpo")   # text-generation family
 TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training image
+# Diffusion family runs in a dedicated GPU image (dispatch is per model_type in
+# executor_payload._resolve_container). protein_diffusion → diffusion-training;
+# scrna_diffusion → sc-diffusion-training.
+DIFFUSION_MODEL_TYPES = ("protein_diffusion", "scrna_diffusion")
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
 ADAPTERS = ("lora", "qlora", "none")
 # Built-in reward functions for GRPO (a real reward fn or a named built-in).
@@ -69,6 +85,15 @@ COMPOSITE_COMPONENT_KINDS = (
 
 # Comparison operators accepted by the numeric_threshold component.
 NUMERIC_THRESHOLD_OPS = ("<", "<=", ">", ">=", "==", "!=")
+
+# Structure-diffusion frameworks. rfdiffusion is the concrete implemented default
+# (BSD-licensed, released weights, documented fine-tune harness on the RF2 SE(3)
+# transformer); chroma/genie are accepted names for the same model_type/wrapper.
+DIFFUSION_FRAMEWORKS = ("rfdiffusion", "chroma", "genie")
+# Noise schedules supported by the diffusion sampler/backbone. Union of both
+# diffusion families: protein_diffusion uses linear|cosine; scrna_diffusion adds
+# sqrt (scDiffusion's train-from-scratch backbone supports it).
+NOISE_SCHEDULES = ("linear", "cosine", "sqrt")
 
 
 class ConfigError(ValueError):
@@ -220,6 +245,120 @@ class LLMSpec:
 
 
 @dataclass
+class DiffusionSpec:
+    """Protein/peptide structure-diffusion knobs (model_type == 'protein_diffusion').
+
+    Mirrors LLMSpec: a small typed block of the conditioning + sampling knobs the
+    structure-diffusion framework needs. The *dataset* for structure diffusion is
+    a set of PDB/mmCIF backbones (a directory or manifest), not molecules or text,
+    so it uses cfg.dataset.path/s3_uri as a structure-set pointer (parsed in the
+    trainer), NOT smiles_col/target_col.
+
+    Supports BOTH modes:
+      - finetune=True  → warm-start from `base_checkpoint` (the released RFdiffusion
+        weights) and adapt on the user's structure set.
+      - finetune=False → train the diffusion model from scratch on the structure set.
+
+    Conditioning fields map onto RFdiffusion's contig / hotspot / motif inputs so a
+    binder/scaffold design request renders as an ordinary parameter form.
+    """
+    framework: str = "rfdiffusion"                # rfdiffusion | chroma | genie
+    # Warm-start checkpoint for fine-tuning (framework-native id/path). The empty
+    # default + finetune=False means "train from scratch".
+    base_checkpoint: str = "rfdiffusion/Base_ckpt.pt"
+    finetune: bool = True                         # fine-tune a checkpoint vs. from-scratch
+    # --- conditioning ---
+    target_pdb: str = ""                          # target/receptor PDB for binder design (path/id)
+    hotspot_residues: str = ""                    # e.g. "A30,A33,A34" — target residues to engage
+    motif_pdb: str = ""                           # scaffolding motif structure (motif-scaffolding)
+    contig: str = ""                              # RFdiffusion contig/scaffold spec, e.g. "10-40/A20-30/10-40"
+    # --- length + sampling ---
+    length_min: int = 60                          # designed chain length range (residues)
+    length_max: int = 100
+    num_designs: int = 8                          # how many backbones to generate
+    diffusion_steps: int = 50                     # reverse-diffusion (T) steps at sampling
+    noise_schedule: str = "linear"                # linear | cosine
+
+    def validate(self) -> None:
+        if self.framework not in DIFFUSION_FRAMEWORKS:
+            raise ConfigError(f"diffusion.framework must be one of {DIFFUSION_FRAMEWORKS}")
+        if self.finetune and not (self.base_checkpoint or "").strip():
+            raise ConfigError("diffusion.base_checkpoint is required when finetune=True")
+        if self.length_min <= 0 or self.length_max <= 0:
+            raise ConfigError("diffusion.length_min/length_max must be > 0")
+        if self.length_min > self.length_max:
+            raise ConfigError("diffusion.length_min must be <= length_max")
+        if self.num_designs <= 0:
+            raise ConfigError("diffusion.num_designs must be > 0")
+        if self.diffusion_steps <= 0:
+            raise ConfigError("diffusion.diffusion_steps must be > 0")
+        if self.noise_schedule not in NOISE_SCHEDULES:
+            raise ConfigError(f"diffusion.noise_schedule must be one of {NOISE_SCHEDULES}")
+
+
+# Supported single-cell diffusion frameworks. scDiffusion (EperLuo/scDiffusion)
+# is the default: it is a genuine denoising-diffusion model over scRNA-seq
+# embeddings, operates on h5ad, ships a fine-tunable pretrained autoencoder
+# (SCimilarity) and supports classifier-guided conditional generation
+# (cell_type, guidance_scale). CFGen (theislab/CFGen) is a flow-matching
+# alternative kept as a supported value.
+SC_DIFFUSION_FRAMEWORKS = ("scdiffusion", "cfgen")
+
+
+@dataclass
+class SCDiffusionSpec:
+    """Single-cell expression-diffusion knobs (model_type == 'scrna_diffusion').
+
+    The dataset for expression diffusion is an **h5ad** AnnData of single cells
+    (genes × cells count matrix + obs metadata), NOT molecules or text — so it
+    ignores DatasetSpec.smiles_col/target_col and reads the AnnData directly.
+
+    Two modes, both supported:
+      * finetune=True  → warm-start from `base_checkpoint`/`base_model` (a
+        pretrained scDiffusion/CFGen weight) and adapt to the user's h5ad.
+      * finetune=False → train the diffusion backbone from scratch on the h5ad.
+
+    Conditioning (cell_type / condition_label) + guidance_scale drive
+    classifier-guided conditional generation of `n_cells_to_generate` new cells.
+    """
+    framework: str = "scdiffusion"                 # scdiffusion | cfgen
+    # Pretrained warm-start. base_checkpoint = a diffusion/backbone weight;
+    # base_model = the (fine-tunable) autoencoder/foundation weight (e.g.
+    # SCimilarity for scDiffusion). Either may be empty for train-from-scratch.
+    base_checkpoint: str = ""
+    base_model: str = ""
+    finetune: bool = True                          # fine-tune vs. train-from-scratch
+    # --- conditioning / generation ---
+    cell_type: str = ""                            # obs cell-type to condition on ("" = unconditional)
+    condition_label: str = ""                      # obs column for perturbation/condition (e.g. "perturbation")
+    n_cells_to_generate: int = 1000
+    n_genes: int = 0                               # 0 = infer from the h5ad var axis
+    guidance_scale: float = 1.0                    # classifier-free guidance strength
+    # --- diffusion backbone ---
+    diffusion_steps: int = 1000
+    noise_schedule: str = "cosine"                 # cosine | linear | sqrt
+
+    def validate(self) -> None:
+        if self.framework not in SC_DIFFUSION_FRAMEWORKS:
+            raise ConfigError(f"sc.framework must be one of {SC_DIFFUSION_FRAMEWORKS}")
+        if self.finetune and not (self.base_checkpoint.strip() or self.base_model.strip()):
+            raise ConfigError(
+                "sc.finetune=True requires a base_checkpoint or base_model to warm-start from "
+                "(set finetune=False to train the diffusion backbone from scratch)."
+            )
+        if self.n_cells_to_generate <= 0:
+            raise ConfigError("sc.n_cells_to_generate must be > 0")
+        if self.n_genes < 0:
+            raise ConfigError("sc.n_genes must be >= 0 (0 = infer from the h5ad)")
+        if self.guidance_scale <= 0:
+            raise ConfigError("sc.guidance_scale must be > 0")
+        if self.diffusion_steps <= 0:
+            raise ConfigError("sc.diffusion_steps must be > 0")
+        if self.noise_schedule not in NOISE_SCHEDULES:
+            raise ConfigError(f"sc.noise_schedule must be one of {NOISE_SCHEDULES}")
+
+
+@dataclass
 class TrainingConfig:
     """The full declarative spec for one training run."""
     name: str                                   # human-readable model name
@@ -235,6 +374,8 @@ class TrainingConfig:
     metric: str = "auc"                         # primary metric to track/gate
     gate_threshold: Optional[float] = None      # e.g. min AUC to pass QC gate
     llm: Optional[LLMSpec] = None               # required when model_type=ludwig_llm
+    diffusion: Optional[DiffusionSpec] = None   # required when model_type=protein_diffusion
+    sc: Optional[SCDiffusionSpec] = None        # required when model_type=scrna_diffusion
 
     # -- validation -----------------------------------------------------------
     def validate(self) -> "TrainingConfig":
@@ -265,6 +406,18 @@ class TrainingConfig:
                 raise ConfigError(
                     f"{self.model_type} trains on text; a Bemis-Murcko scaffold split "
                     "cannot be applied. Use split='random'.")
+        if self.model_type == "protein_diffusion":
+            if self.diffusion is None:
+                raise ConfigError(f"model_type={self.model_type} requires a `diffusion` spec")
+            self.diffusion.validate()
+            if self.task_type != "structure_generation":
+                raise ConfigError(f"{self.model_type} requires task_type=structure_generation")
+        if self.model_type == "scrna_diffusion":
+            if self.sc is None:
+                raise ConfigError(f"model_type={self.model_type} requires an `sc` spec")
+            self.sc.validate()
+            if self.task_type != "expression_generation":
+                raise ConfigError(f"{self.model_type} requires task_type=expression_generation")
         return self
 
     # -- (de)serialization ----------------------------------------------------
@@ -277,10 +430,14 @@ class TrainingConfig:
         ds = d.pop("dataset", {}) or {}
         hp = d.pop("hyperparams", {}) or {}
         llm = d.pop("llm", None)
+        diff = d.pop("diffusion", None)
+        sc = d.pop("sc", None)
         cfg = cls(
             dataset=DatasetSpec(**ds) if isinstance(ds, dict) else ds,
             hyperparams=Hyperparams(**hp) if isinstance(hp, dict) else hp,
             llm=LLMSpec(**llm) if isinstance(llm, dict) else llm,
+            diffusion=DiffusionSpec(**diff) if isinstance(diff, dict) else diff,
+            sc=SCDiffusionSpec(**sc) if isinstance(sc, dict) else sc,
             **d,
         )
         return cfg
@@ -298,6 +455,91 @@ class TrainingConfig:
             {"name": "metric", "type": "string", "label": "Evaluation metric", "value": self.metric},
             {"name": "gate_threshold", "type": "number", "label": "Quality gate threshold", "value": self.gate_threshold},
         ]
+        if self.model_type == "scrna_diffusion":
+            sc = self.sc or SCDiffusionSpec()
+            required = [
+                {"name": "dataset", "type": "file",
+                 "label": "Single-cell data (h5ad AnnData)",
+                 "value": self.dataset.name or self.dataset.path or self.dataset.s3_uri or "",
+                 "required": True},
+            ]
+            optional = [
+                {"name": "framework", "type": "select", "label": "Diffusion framework",
+                 "allowed_values": list(SC_DIFFUSION_FRAMEWORKS), "value": sc.framework,
+                 "default": "scdiffusion"},
+                {"name": "finetune", "type": "boolean", "label": "Fine-tune pretrained checkpoint",
+                 "value": sc.finetune, "default": True},
+                {"name": "base_checkpoint", "type": "string",
+                 "label": "Pretrained diffusion checkpoint (fine-tune warm-start)",
+                 "value": sc.base_checkpoint, "default": ""},
+                {"name": "base_model", "type": "string",
+                 "label": "Pretrained autoencoder/foundation weight (e.g. SCimilarity)",
+                 "value": sc.base_model, "default": ""},
+                {"name": "cell_type", "type": "string", "label": "Condition on cell type",
+                 "value": sc.cell_type, "default": ""},
+                {"name": "condition_label", "type": "string",
+                 "label": "Condition/perturbation obs column", "value": sc.condition_label,
+                 "default": ""},
+                {"name": "n_cells_to_generate", "type": "number", "label": "Cells to generate",
+                 "value": sc.n_cells_to_generate, "default": 1000},
+                {"name": "n_genes", "type": "number", "label": "Number of genes (0 = infer)",
+                 "value": sc.n_genes, "default": 0},
+                {"name": "guidance_scale", "type": "number", "label": "Guidance scale",
+                 "value": sc.guidance_scale, "default": 1.0},
+                {"name": "diffusion_steps", "type": "number", "label": "Diffusion steps",
+                 "value": sc.diffusion_steps, "default": 1000},
+                {"name": "noise_schedule", "type": "select", "label": "Noise schedule",
+                 "allowed_values": list(NOISE_SCHEDULES), "value": sc.noise_schedule,
+                 "default": "cosine"},
+                {"name": "epochs", "type": "number", "label": "Epochs",
+                 "value": self.hyperparams.epochs, "default": 50},
+                {"name": "learning_rate", "type": "number", "label": "Learning rate",
+                 "value": self.hyperparams.learning_rate, "default": 1e-4},
+            ]
+            return {"required_params": required, "optional_params": common + optional}
+
+        if self.model_type == "protein_diffusion":
+            diff = self.diffusion or DiffusionSpec()
+            required = [
+                {"name": "dataset", "type": "file",
+                 "label": "Structure set (dir/manifest of PDB/mmCIF backbones, or s3://…)",
+                 "value": self.dataset.path or self.dataset.s3_uri or self.dataset.name or "",
+                 "required": True},
+                {"name": "framework", "type": "select", "label": "Diffusion framework",
+                 "allowed_values": list(DIFFUSION_FRAMEWORKS), "value": diff.framework,
+                 "required": True},
+            ]
+            optional = [
+                {"name": "finetune", "type": "boolean", "label": "Fine-tune checkpoint (vs. from scratch)",
+                 "value": diff.finetune, "default": True},
+                {"name": "base_checkpoint", "type": "string", "label": "Base checkpoint (fine-tune)",
+                 "value": diff.base_checkpoint, "default": "rfdiffusion/Base_ckpt.pt"},
+                {"name": "target_pdb", "type": "string", "label": "Target PDB (binder design)",
+                 "value": diff.target_pdb, "default": ""},
+                {"name": "hotspot_residues", "type": "string", "label": "Hotspot residues (e.g. A30,A33)",
+                 "value": diff.hotspot_residues, "default": ""},
+                {"name": "motif_pdb", "type": "string", "label": "Motif PDB (scaffolding)",
+                 "value": diff.motif_pdb, "default": ""},
+                {"name": "contig", "type": "string", "label": "Contig / scaffold spec",
+                 "value": diff.contig, "default": ""},
+                {"name": "length_min", "type": "number", "label": "Length min (residues)",
+                 "value": diff.length_min, "default": 60},
+                {"name": "length_max", "type": "number", "label": "Length max (residues)",
+                 "value": diff.length_max, "default": 100},
+                {"name": "num_designs", "type": "number", "label": "Number of designs",
+                 "value": diff.num_designs, "default": 8},
+                {"name": "diffusion_steps", "type": "number", "label": "Diffusion steps (T)",
+                 "value": diff.diffusion_steps, "default": 50},
+                {"name": "noise_schedule", "type": "select", "label": "Noise schedule",
+                 "allowed_values": list(NOISE_SCHEDULES), "value": diff.noise_schedule,
+                 "default": "linear"},
+                {"name": "epochs", "type": "number", "label": "Fine-tune epochs",
+                 "value": self.hyperparams.epochs, "default": 5},
+                {"name": "learning_rate", "type": "number", "label": "Learning rate",
+                 "value": self.hyperparams.learning_rate, "default": 1e-4},
+            ]
+            return {"required_params": required, "optional_params": common + optional}
+
         if self.model_type in LLM_MODEL_TYPES:
             llm = self.llm or LLMSpec()
             is_dpo = self.model_type == "trl_dpo"

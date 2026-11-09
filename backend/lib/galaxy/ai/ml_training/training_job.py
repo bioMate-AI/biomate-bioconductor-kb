@@ -201,6 +201,13 @@ def _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker) -> Jo
     from .config import LLM_MODEL_TYPES
     if cfg.model_type in LLM_MODEL_TYPES:
         dataset = LoadedDataset([], "instruction", "output", source="llm/text (loaded in trainer)")
+    elif cfg.model_type == "protein_diffusion":
+        # Structure diffusion loads a set of PDB/mmCIF backbones inside its own
+        # trainer (not the molecular smiles/label loader) — pass a placeholder.
+        dataset = LoadedDataset([], "structure", "none",
+                                source="structure/pdb (loaded in trainer)")
+    elif cfg.model_type == "scrna_diffusion":
+        dataset = LoadedDataset([], "gene", "expr", source="scrna/h5ad (loaded in trainer)")
     elif cfg.model_type == "sklearn_tabular":
         # Generic feature-matrix trainer loads its own CSV (not the SMILES loader).
         dataset = LoadedDataset([], "features", cfg.dataset.target_col,

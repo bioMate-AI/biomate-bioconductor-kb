@@ -31,10 +31,21 @@ _DEFAULT_CPU_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-tr
 # TRL (DPO/GRPO) needs newer torch/transformers/pyarrow that conflict with
 # Ludwig's pins, so it ships in a separate image.
 _DEFAULT_TRL_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/trl-training:latest"
+# protein_diffusion (RFdiffusion/Chroma/Genie) needs the SE(3)-transformer
+# torch-cuda stack (dgl/e3nn/hydra) which conflicts with both Ludwig and TRL
+# pins, so it ships in its own diffusion-training image.
+_DEFAULT_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/diffusion-training:latest"
+# scrna_diffusion ships in its own GPU image (torch-cuda + scDiffusion/CFGen +
+# scanpy/anndata), separate from the protein diffusion (SE(3)) image.
+_DEFAULT_SC_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sc-diffusion-training:latest"
 
 
 def _resolve_container(cfg: TrainingConfig) -> str:
     from .config import TRL_MODEL_TYPES
+    if cfg.model_type == "protein_diffusion":
+        return os.environ.get("DIFFUSION_TRAINING_IMAGE", _DEFAULT_DIFFUSION_IMAGE)
+    if cfg.model_type == "scrna_diffusion":
+        return os.environ.get("SC_DIFFUSION_TRAINING_IMAGE", _DEFAULT_SC_DIFFUSION_IMAGE)
     if cfg.model_type in TRL_MODEL_TYPES:
         return os.environ.get("TRL_TRAINING_IMAGE", _DEFAULT_TRL_IMAGE)
     if cfg.model_type == "chemprop_gnn":
@@ -103,6 +114,41 @@ def training_launch_parameters(cfg: TrainingConfig, s3_dataset_uri: Optional[str
         "num_generations": llm.num_generations if llm else 4,
         "reward": llm.reward if llm else "length",
         "reward_keyword": llm.reward_keyword if llm else "",
+    })
+    # Structure-diffusion params (protein_diffusion) — passed to the CLI, ignored
+    # otherwise. Flat scalars (executor serializes dict/list as JSON; we avoid it).
+    diff = cfg.diffusion
+    parameters.update({
+        "framework": diff.framework if diff else "rfdiffusion",
+        "base_checkpoint": diff.base_checkpoint if diff else "",
+        "finetune": diff.finetune if diff else True,
+        "target_pdb": diff.target_pdb if diff else "",
+        "hotspot_residues": diff.hotspot_residues if diff else "",
+        "motif_pdb": diff.motif_pdb if diff else "",
+        "contig": diff.contig if diff else "",
+        "length_min": diff.length_min if diff else 60,
+        "length_max": diff.length_max if diff else 100,
+        "num_designs": diff.num_designs if diff else 8,
+        "diffusion_steps": diff.diffusion_steps if diff else 50,
+        "noise_schedule": diff.noise_schedule if diff else "linear",
+    })
+    # Single-cell diffusion params (scrna_diffusion) — passed to the CLI with an
+    # `sc_` prefix so they never collide with the llm base_model / protein
+    # diffusion_steps/noise_schedule above; ignored by other model types. Flat
+    # scalars only (executor JSON-serializes lists/dicts — CLAUDE.md).
+    sc = cfg.sc
+    parameters.update({
+        "sc_framework": sc.framework if sc else "scdiffusion",
+        "sc_base_checkpoint": sc.base_checkpoint if sc else "",
+        "sc_base_model": sc.base_model if sc else "",
+        "sc_finetune": sc.finetune if sc else True,
+        "sc_cell_type": sc.cell_type if sc else "",
+        "sc_condition_label": sc.condition_label if sc else "",
+        "sc_n_cells_to_generate": sc.n_cells_to_generate if sc else 1000,
+        "sc_n_genes": sc.n_genes if sc else 0,
+        "sc_guidance_scale": sc.guidance_scale if sc else 1.0,
+        "sc_diffusion_steps": sc.diffusion_steps if sc else 1000,
+        "sc_noise_schedule": sc.noise_schedule if sc else "cosine",
     })
 
     return parameters
