@@ -157,6 +157,32 @@ pulls the real image; it no longer hits the `NotImplementedError` placeholder.
 
 ---
 
+## 5b. Admin email alerting — restored + made PHI-safe
+
+Neither the owner nor the team was receiving new-registration / exception emails. Two causes:
+1. **Delivery (IAM):** the frontend container's `galaxy-dev` IAM user had `implicitDeny` on
+   `ses:SendEmail` (confirmed via `iam simulate-principal-policy`) — every SES send failed silently.
+   Fixed by adding `ses:SendEmail`/`ses:SendRawEmail` to its existing `SNSAndEventsAccess` **inline**
+   policy (overwrite in place — the user was at 10/10 managed policies and ~1948/2048B inline, so a
+   new policy wouldn't fit). SES itself is production (no sandbox); `noreply@biomate.ai` sends under
+   the verified `biomate.ai` domain.
+2. **Recipients (code):** `sendAdminAlert` was hardcoded to `yaoyun.zhang@biomate.ai`; the
+   registration notice went to `contact@biomate.ai`. Both now default to
+   `xiaoni5122@gmail.com, yaoyun.zhang@biomate.ai` (env `ADMIN_ALERT_EMAIL` / `ADMIN_NOTIFY_EMAIL`).
+   Also fixed a real SES bug: `Destination.ToAddresses` received the comma-joined string as one
+   malformed address — now split into individual addresses.
+
+**PHI-safety (HIPAA):** BioMate may process PHI (clinical/ACT programs). The new global-5xx alert was
+revised so the **email carries no PHI** — only error CLASS, HTTP status, method, the matched **route
+pattern** (e.g. `/api/projects/:id`, never concrete id values), timestamp, and a telemetry **ref**.
+The raw path/message/stack go only to `telemetryService` (the secure sink inside the compliance
+boundary); look up the ref there for detail. Registration notices carry email/name (PII, not PHI).
+Residual guidance for the user: prefer a Workspace/BAA-covered recipient over personal Gmail for
+sensitive alerts, and confirm AWS SES is under the AWS BAA if PHI could ever transit.
+
+Commits: `7653d821bd` (recipients + SES split + initial 5xx alert), PHI-safe revision in the same
+branch (this commit).
+
 ## 6. Open items
 
 1. **SES grant (email):** the `galaxy-dev` IAM user (frontend container) lacks `ses:SendEmail`, so

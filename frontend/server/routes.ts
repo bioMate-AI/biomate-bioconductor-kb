@@ -2385,7 +2385,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Notify the admin of every new registration (fire-and-forget; never fails the signup)
       try {
-        const _adminNotifyEmail = process.env.ADMIN_NOTIFY_EMAIL || 'contact@biomate.ai';
+        // Registration notices are PII (email/name), not PHI — delivered to the owner + team
+        // inboxes. Override with ADMIN_NOTIFY_EMAIL (comma-separated).
+        const _adminNotifyEmail = process.env.ADMIN_NOTIFY_EMAIL || 'xiaoni5122@gmail.com, yaoyun.zhang@biomate.ai';
         const _regSummary =
           `Email: ${result.user.email}\n` +
           `Name: ${result.user.fullName || '(none)'}\n` +
@@ -19865,25 +19867,39 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     console.error(`[ExpressError] ${req.method} ${req.path}:`, err.message);
     console.error(err.stack);
 
-    // Record 5xx as telemetry event (fire-and-forget)
+    // Correlation id so a PHI-free email can point at the full (secure) telemetry record.
+    const _errRef = `err_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Record 5xx as telemetry event (fire-and-forget). Telemetry is the SECURE sink that
+    // may hold PHI-bearing detail (raw path/message/stack); the alert email below must not.
     telemetryService.create('api_error_5xx', new Date(), {
+      ref: _errRef,
       path: req.path,
       method: req.method,
       error: err.message?.slice(0, 200),
       stack_top: err.stack?.split('\n')[1]?.trim()?.slice(0, 200),
     }).catch(() => {});
 
-    // Email the admin on unhandled 5xx (throttled, fire-and-forget; never fails the response)
+    // Email the admin on unhandled 5xx (throttled, fire-and-forget; never fails the response).
+    // PHI-SAFE: the email carries only a non-identifying signal — error CLASS, HTTP method, the
+    // matched ROUTE PATTERN (e.g. /api/projects/:id, never the concrete values), timestamp, and
+    // the telemetry ref. It deliberately omits the raw request path, error message, and stack,
+    // any of which can contain PHI (patient/sample ids, payload fragments). Look up the ref in
+    // telemetry (inside the compliance boundary) for the full detail. See 20261109 session doc.
     try {
-      const key = `${req.method} ${req.path}: ${err.message?.slice(0, 120)}`;
+      const errType = (err?.name || err?.constructor?.name || 'Error').slice(0, 80);
+      const routePattern = ((req.route?.path ?? req.baseUrl) || '(unmatched)').toString().slice(0, 120);
+      const key = `${req.method} ${routePattern}: ${errType}`;
       const now = Date.now();
       if (now - (_err5xxAlertAt.get(key) ?? 0) > ERR_5XX_ALERT_WINDOW_MS) {
         _err5xxAlertAt.set(key, now);
         emailService.sendAdminAlert('Unhandled server error (5xx)', {
-          path: req.path,
+          error_type: errType,
+          status: 500,
           method: req.method,
-          error: err.message?.slice(0, 300),
-          stack_top: err.stack?.split('\n').slice(1, 4).map((l) => l.trim()).join(' | ').slice(0, 400),
+          route: routePattern,
+          ref: _errRef,
+          note: 'PHI-safe alert — full detail is in telemetry under this ref, not in email.',
         }).catch(() => {});
       }
     } catch { /* alerting must never break the error path */ }
