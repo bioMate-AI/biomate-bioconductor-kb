@@ -139,23 +139,29 @@ export function ModelObject({
           )}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground">{identity.origin}</span>
+            {/* Only render an action when its handler is wired — otherwise the
+                button is an inert no-op in the live /models route. */}
+            {onSupersede && (
             <Button
               variant="outline"
               size="sm"
               className="h-6 text-[11px] px-2"
-              onClick={() => onSupersede?.(modelId)}
+              onClick={() => onSupersede(modelId)}
               data-testid="model-object-supersede"
             >
               Supersede
             </Button>
+            )}
+            {onUseInRun && (
             <Button
               size="sm"
               className="h-6 text-[11px] px-2"
-              onClick={() => onUseInRun?.(modelId)}
+              onClick={() => onUseInRun(modelId)}
               data-testid="model-object-use-in-run"
             >
               Use in a run
             </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -300,14 +306,16 @@ export function ModelObject({
                       <span className="font-mono truncate">{where}</span>
                       {how && <span className="text-[10px] text-muted-foreground truncate">{how}</span>}
                     </span>
+                    {onOpenConsumer && (
                     <button
                       type="button"
                       className="ml-auto shrink-0 text-primary hover:underline"
-                      onClick={() => onOpenConsumer?.(c)}
+                      onClick={() => onOpenConsumer(c)}
                       data-testid={`model-consumer-open-${c}`}
                     >
                       open →
                     </button>
+                    )}
                   </div>
                 )
               })
@@ -357,11 +365,11 @@ export function ModelObject({
                   {isCurrent && (
                     <Badge variant="outline" className="text-[10px]">current</Badge>
                   )}
-                  {!isCurrent && (
+                  {!isCurrent && onCompareVersion && (
                     <button
                       type="button"
                       className="ml-auto text-primary hover:underline"
-                      onClick={() => onCompareVersion?.(v.v)}
+                      onClick={() => onCompareVersion(v.v)}
                       data-testid={`model-version-compare-${v.v}`}
                     >
                       compare
