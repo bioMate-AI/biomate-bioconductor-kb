@@ -1328,6 +1328,8 @@ if dg_bind is not None:
     import math
     ki_nm = round(10**(dg_bind / 1.364) * 1e9, 2)
 
+n_analysed = (int(os.environ['MMGBSA_END']) - int(os.environ['MMGBSA_START'])) // int(os.environ['MMGBSA_INTERVAL']) + 1
+
 summary = {
     'ligand':                  '${params.ligand}',
     'receptor':                '${params.receptor}',
@@ -1342,8 +1344,12 @@ summary = {
     'interval':                int(os.environ['MMGBSA_INTERVAL']),
     'requested_window':        {'startframe': ${start_fr}, 'endframe': ${end_fr}, 'interval': ${interval}},
     'trajectory_analysis':     traj_summary,
+    'frames_analysed':         n_analysed,
     'interpretation': (
         'calculation failed' if dg_bind is None else
+        # Fewer than ~10 frames gives no usable estimate of the mean (a 10 ps smoke has 2), so the
+        # number is reported but not classified as binder strength.
+        'insufficient sampling (%d frames)' % n_analysed if n_analysed < 10 else
         'strong binder' if dg_bind < -10 else
         'moderate binder' if dg_bind < -7 else
         'weak binder' if dg_bind < -5 else
