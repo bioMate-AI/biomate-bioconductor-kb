@@ -4,7 +4,7 @@
 # this ECR image but it was never built, so every run failed CannotPullImageManifestError.
 #
 # Default (BUILD_MODE=spot): a one-shot c6i.2xlarge SPOT builder (16 GB RAM, 100 GB gp3) builds and
-# pushes, writes its log tail to the serial console, and terminates itself (hard stop after 2 h). The CUDA PyTorch image
+# pushes, reports status + log over SSM (stays up 20 min on failure), and terminates itself (hard stop after 2 h). The CUDA PyTorch image
 # is several GB and the conda solve needs memory; deploy-test (t3.medium, 4 GB, a ~97 GB disk shared
 # with other work) went unresponsive building even the CPU variant. Cost: ~$0.13/h spot, ~1 h build.
 # BUILD_MODE=host keeps the old path: detached build on deploy-test (the dev EC2 cannot reach the ECR
@@ -43,7 +43,9 @@ if [ "${BUILD_MODE:-spot}" = spot ]; then
     echo '#!/bin/bash'
     echo 'shutdown -h +120   # hard stop: the instance terminates on shutdown'
     echo 'exec > /var/log/mlip-build.log 2>&1; set -x'
-    echo "trap 'tail -60 /var/log/mlip-build.log | sed s/^/MLIPLOG:/ > /dev/console; shutdown -h now' EXIT"
+    # On failure stay up 20 min so the poller can read the log over SSM (the serial console does not
+    # carry it); /var/log/mlip-build.status tells the poller the build has ended.
+    echo "trap 'if grep -q BUILD_PUSH_OK /var/log/mlip-build.log; then echo ok > /var/log/mlip-build.status; shutdown -h now; else echo failed > /var/log/mlip-build.status; shutdown -h +20; fi' EXIT"
     echo 'apt-get update -qq && apt-get install -y -qq docker.io docker-buildx unzip curl'
     echo 'curl -sSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && unzip -q /tmp/a.zip -d /tmp && /tmp/aws/install'
     echo 'mkdir -p /build && cd /build && base64 -d > Dockerfile <<"B64"'
@@ -65,7 +67,7 @@ if [ "${BUILD_MODE:-spot}" = spot ]; then
     --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=100,VolumeType=gp3,DeleteOnTermination=true}' \
     --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=biomate-mlip-md-builder}]' \
     --user-data "file://$UD" --query 'Instances[0].InstanceId' --output text)
-  echo "[mlip] spot builder $BUILDER started (log tail -> its console output on exit); polling ECR"
+  echo "[mlip] spot builder $BUILDER started (status + log over SSM); polling ECR"
   builder_gone() { st=$(aws ec2 describe-instances --region "$REGION" --instance-ids "$BUILDER" \
     --query 'Reservations[0].Instances[0].State.Name' --output text 2>/dev/null); [ "$st" = terminated ] || [ "$st" = shutting-down ]; }
 else
@@ -83,6 +85,21 @@ for i in $(seq 1 125); do   # spot builder self-terminates at 120 min
     --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo none)
   if [ "${BUILD_MODE:-spot}" != spot ] && [ "$now" != "none" ] && [ "$now" != "$before" ]; then
     echo "[mlip] pushed $REPO_NAME:$TAG $now"; exit 0; fi
+  if [ "${BUILD_MODE:-spot}" = spot ] && [ $((i % 3)) -eq 0 ] && ! builder_gone; then
+    cid=$(aws ssm send-command --region "$REGION" --instance-ids "$BUILDER" --document-name AWS-RunShellScript \
+      --parameters 'commands=["cat /var/log/mlip-build.status 2>/dev/null || echo running","tail -c 6000 /var/log/mlip-build.log"]' \
+      --query Command.CommandId --output text 2>/dev/null || true)
+    if [ -n "$cid" ]; then
+      sleep 15
+      out=$(aws ssm get-command-invocation --region "$REGION" --command-id "$cid" --instance-id "$BUILDER" \
+        --query StandardOutputContent --output text 2>/dev/null || true)
+      echo "[mlip] ${i} min: $(printf '%s\n' "$out" | grep -v '^\s*$' | tail -1 | cut -c1-160)"
+      if [ "$(printf '%s\n' "$out" | head -1)" = failed ]; then
+        echo "[mlip] BUILD FAILED on $BUILDER; log tail:"; printf '%s\n' "$out" | tail -n +2 | tail -60
+        aws ec2 terminate-instances --region "$REGION" --instance-ids "$BUILDER" >/dev/null; exit 1
+      fi
+    fi
+  fi
   if builder_gone; then
     # Spot mode judges by this build's receipt tag, not the ECR digest alone: another build pushing
     # the same tag (e.g. a host-mode run still going) must not read as this build's success.
@@ -91,9 +108,7 @@ for i in $(seq 1 125); do   # spot builder self-terminates at 120 min
     if [ "$receipt" != none ] && [ "$receipt" = "$now" ]; then
       echo "[mlip] pushed $REPO_NAME:$TAG $now (receipt tag build-$BUILDER)"; exit 0
     fi
-    echo "[mlip] builder terminated without pushing $REPO_NAME:$TAG (receipt=$receipt, $TAG=$now); console tail:"
-    aws ec2 get-console-output --region "$REGION" --instance-id "$BUILDER" --latest --query Output --output text \
-      | grep MLIPLOG: | cut -c1-220 || true
+    echo "[mlip] builder terminated without pushing $REPO_NAME:$TAG (receipt=$receipt, $TAG=$now) — spot interruption or hard stop"
     exit 1
   fi
   if [ "${BUILD_MODE:-spot}" != spot ] && [ $((i % 5)) -eq 0 ]; then
