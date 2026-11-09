@@ -410,10 +410,12 @@ describe("ModelsPanel — Deep Learning & Foundation Models track", () => {
     expect(screen.getByTestId("dl-method-configure-sklearn_tabular")).toBeTruthy()
     expect(screen.queryByTestId("dl-method-chemprop_gnn")).toBeNull()
 
-    // Chat-to-set-up methods carry an honest badge and a chat action, not a form.
+    // LLM / generative methods carry an honest family badge and now open a real
+    // structured form (SpecSetup) via Configure — not a chat punt.
     expect(screen.getByTestId("dl-method-badge-trl_dpo")).toBeTruthy()
-    expect(screen.getByTestId("dl-method-chat-protein_diffusion")).toBeTruthy()
-    expect(screen.queryByTestId("dl-method-configure-protein_diffusion")).toBeNull()
+    expect(screen.getByTestId("dl-method-badge-protein_diffusion")).toBeTruthy()
+    expect(screen.getByTestId("dl-method-configure-protein_diffusion")).toBeTruthy()
+    expect(screen.queryByTestId("dl-method-chat-protein_diffusion")).toBeNull()
 
     // Section B lists the seeded catalog hit (real /api/workflows/search shape).
     await waitFor(() => expect(screen.getByTestId("dl-wf-Transcriptformer")).toBeTruthy())
@@ -431,6 +433,11 @@ describe("ModelsPanel — Deep Learning & Foundation Models track", () => {
     // ModelSetup appears inline, pre-selected to the chosen model_type.
     await waitFor(() => expect(screen.getByTestId("dl-setup")).toBeTruthy())
     expect((screen.getByLabelText("Model type") as HTMLSelectElement).value).toBe("sklearn_gbr")
+
+    // A generative method opens the structured SpecSetup panel inline instead.
+    fireEvent.click(screen.getByTestId("dl-method-configure-protein_diffusion"))
+    await waitFor(() => expect(screen.getByTestId("spec-setup-protein_diffusion")).toBeTruthy())
+    expect(screen.getByLabelText("Number of designs")).toBeTruthy()
   })
 })
 

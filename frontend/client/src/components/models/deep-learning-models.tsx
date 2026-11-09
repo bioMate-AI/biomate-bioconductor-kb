@@ -32,30 +32,32 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, Sparkles, MessageSquare, X } from "lucide-react"
+import { Search, Sparkles, X } from "lucide-react"
 import { ModelSetup } from "./model-setup"
+import { SpecSetup } from "./spec-setup"
 import { tOr } from "@/lib/i18n"
 
 /** Default query so Section B is populated on open (never an empty section). */
 export const DEFAULT_WF_QUERY = "foundation model deep learning transformer GNN embedding"
 
-/** A training method card. `mode: "form"` launches ModelSetup pre-selected to
- * `type`; `mode: "chat"` routes to a chat draft because the ModelSetup form
- * cannot configure it yet (LLM text-generation / generative structure diffusion). */
+/** A training method card. Every method opens a real structured form inline:
+ * `panel: "model"` launches ModelSetup (classification/regression) pre-selected
+ * to `type`; `panel: "spec"` launches SpecSetup — the structured LLM /
+ * generative-diffusion form whose fields mirror LLMSpec / DiffusionSpec /
+ * SCDiffusionSpec in `ml_training/config.py`. `badge` is an honest family tag
+ * (e.g. "LLM", "generative") shown on spec cards. */
 interface Method {
   type: string
-  mode: "form" | "chat"
+  panel: "model" | "spec"
   familyKey: string
   familyFallback: string
   nameKey: string
   nameFallback: string
   descKey: string
   descFallback: string
-  /** For chat-mode cards: the honest "… — chat to set up" badge. */
+  /** Optional honest family tag badge (spec cards). */
   badgeKey?: string
   badgeFallback?: string
-  /** For chat-mode cards: the pre-filled draft sent through the ?draft= bridge. */
-  chatDraft?: string
 }
 
 // Families grouped as the task specifies. Honest labels only — sklearn_tabular is
@@ -64,7 +66,7 @@ interface Method {
 const METHODS: Method[] = [
   {
     type: "sklearn_tabular",
-    mode: "form",
+    panel: "model",
     familyKey: "models.dl_family_tabular",
     familyFallback: "Tabular ML",
     nameKey: "models.dl_m_sklearn_tabular",
@@ -74,7 +76,7 @@ const METHODS: Method[] = [
   },
   {
     type: "sklearn_gbr",
-    mode: "form",
+    panel: "model",
     familyKey: "models.dl_family_molecular",
     familyFallback: "Molecular",
     nameKey: "models.dl_m_sklearn_gbr",
@@ -84,7 +86,7 @@ const METHODS: Method[] = [
   },
   {
     type: "ludwig_tabular",
-    mode: "form",
+    panel: "model",
     familyKey: "models.dl_family_dl",
     familyFallback: "Deep learning",
     nameKey: "models.dl_m_ludwig_tabular",
@@ -94,73 +96,63 @@ const METHODS: Method[] = [
   },
   {
     type: "ludwig_llm",
-    mode: "chat",
+    panel: "spec",
     familyKey: "models.dl_family_llm",
     familyFallback: "LLM fine-tuning",
     nameKey: "models.dl_m_ludwig_llm",
     nameFallback: "Ludwig LLM (LoRA / QLoRA)",
     descKey: "models.dl_d_ludwig_llm",
     descFallback: "Low-code LLM fine-tuning with LoRA / QLoRA adapters.",
-    badgeKey: "models.dl_badge_llm",
-    badgeFallback: "LLM — chat to set up",
-    chatDraft:
-      "Set up an LLM fine-tuning run. model_type=ludwig_llm; task_type=text_generation (LoRA/QLoRA). Help me choose the base model, the instruction/response columns, and the acceptance gate. Propose the workflow and input mapping for my confirmation before execution; do not claim training has started.",
+    badgeKey: "models.dl_badge_llm_tag",
+    badgeFallback: "LLM",
   },
   {
     type: "trl_dpo",
-    mode: "chat",
+    panel: "spec",
     familyKey: "models.dl_family_llm",
     familyFallback: "LLM fine-tuning",
     nameKey: "models.dl_m_trl_dpo",
     nameFallback: "TRL DPO (preference optimization)",
     descKey: "models.dl_d_trl_dpo",
     descFallback: "Direct preference optimization over chosen/rejected response pairs.",
-    badgeKey: "models.dl_badge_llm",
-    badgeFallback: "LLM — chat to set up",
-    chatDraft:
-      "Set up a DPO preference-optimization run. model_type=trl_dpo; task_type=text_generation. Help me provide the preference pairs (chosen/rejected) and the base model. Propose the workflow and input mapping for my confirmation before execution; do not claim training has started.",
+    badgeKey: "models.dl_badge_llm_tag",
+    badgeFallback: "LLM",
   },
   {
     type: "trl_grpo",
-    mode: "chat",
+    panel: "spec",
     familyKey: "models.dl_family_llm",
     familyFallback: "LLM fine-tuning",
     nameKey: "models.dl_m_trl_grpo",
     nameFallback: "TRL GRPO (reinforcement learning)",
     descKey: "models.dl_d_trl_grpo",
     descFallback: "Reinforcement learning (GRPO) against a reward signal.",
-    badgeKey: "models.dl_badge_llm",
-    badgeFallback: "LLM — chat to set up",
-    chatDraft:
-      "Set up a GRPO reinforcement-learning run. model_type=trl_grpo; task_type=text_generation. Help me define the reward signal and the base model. Propose the workflow and input mapping for my confirmation before execution; do not claim training has started.",
+    badgeKey: "models.dl_badge_llm_tag",
+    badgeFallback: "LLM",
   },
   {
     type: "protein_diffusion",
-    mode: "chat",
+    panel: "spec",
     familyKey: "models.dl_family_diffusion",
     familyFallback: "Generative / Diffusion",
     nameKey: "models.dl_m_protein_diffusion",
     nameFallback: "RFdiffusion (protein backbone design)",
     descKey: "models.dl_d_protein_diffusion",
     descFallback: "Generative protein backbone design over PDB / mmCIF structure inputs.",
-    badgeKey: "models.dl_badge_generative",
-    badgeFallback: "generative — chat to set up",
-    chatDraft:
-      "Set up a protein backbone design (generative) run. model_type=protein_diffusion (RFdiffusion). Input: PDB/mmCIF structure(s). Help me specify the contigs / motif scaffolding and the number of designs. Propose the workflow and input mapping for my confirmation before execution; do not fabricate structures.",
+    badgeKey: "models.dl_badge_generative_tag",
+    badgeFallback: "generative",
   },
   {
     type: "scrna_diffusion",
-    mode: "chat",
+    panel: "spec",
     familyKey: "models.dl_family_diffusion",
     familyFallback: "Generative / Diffusion",
     nameKey: "models.dl_m_scrna_diffusion",
     nameFallback: "scDiffusion / CFGen (single-cell generation)",
     descKey: "models.dl_d_scrna_diffusion",
     descFallback: "Generative single-cell expression profiles over an h5ad dataset.",
-    badgeKey: "models.dl_badge_generative",
-    badgeFallback: "generative — chat to set up",
-    chatDraft:
-      "Set up a single-cell generation (generative) run. model_type=scrna_diffusion (scDiffusion/CFGen). Input: an h5ad single-cell dataset. Help me specify the conditioning and the number of cells to generate. Propose the workflow and input mapping for my confirmation before execution; do not fabricate cells.",
+    badgeKey: "models.dl_badge_generative_tag",
+    badgeFallback: "generative",
   },
 ]
 
@@ -306,41 +298,28 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                     >
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold">{r.name}</span>
-                        {r.m.mode === "chat" && (
+                        {r.m.panel === "spec" && r.m.badgeKey && (
                           <Badge
                             variant="outline"
                             className="ml-auto gap-1 text-[9px]"
                             data-testid={`dl-method-badge-${r.m.type}`}
                           >
                             <Sparkles className="h-2.5 w-2.5" />
-                            {tOr(r.m.badgeKey ?? "models.dl_chat_badge", r.m.badgeFallback ?? "chat to set up")}
+                            {tOr(r.m.badgeKey, r.m.badgeFallback ?? "")}
                           </Badge>
                         )}
                       </div>
                       <p className="mt-0.5 text-[10px] text-muted-foreground">{r.desc}</p>
                       <p className="mt-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">{r.family}</p>
-                      {r.m.mode === "form" ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-1 h-6 px-2 text-[11px]"
-                          onClick={() => launchForm(r.m.type)}
-                          data-testid={`dl-method-configure-${r.m.type}`}
-                        >
-                          {tOr("models.dl_configure", "Configure")}
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-1 h-6 gap-1 px-2 text-[11px]"
-                          onClick={() => r.m.chatDraft && openDraft(r.m.chatDraft, onOpenChat)}
-                          data-testid={`dl-method-chat-${r.m.type}`}
-                        >
-                          <MessageSquare className="h-3 w-3" />
-                          {tOr("models.dl_set_up_in_chat", "Set up in chat")}
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-1 h-6 px-2 text-[11px]"
+                        onClick={() => launchForm(r.m.type)}
+                        data-testid={`dl-method-configure-${r.m.type}`}
+                      >
+                        {tOr("models.dl_configure", "Configure")}
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -368,7 +347,11 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                   {tOr("models.dl_close", "Close")}
                 </Button>
               </div>
-              <ModelSetup key={setupType} initialType={setupType} />
+              {METHODS.find((m) => m.type === setupType)?.panel === "spec" ? (
+                <SpecSetup key={setupType} initialType={setupType} />
+              ) : (
+                <ModelSetup key={setupType} initialType={setupType} />
+              )}
             </div>
           )}
         </CardContent>
