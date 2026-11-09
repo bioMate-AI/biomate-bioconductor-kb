@@ -1222,6 +1222,8 @@
     "registration_not_serving": "注册的产物版本不会自动部署用于推理。",
     "setup_tabular": "表格分类／回归模型（scikit-learn）",
     "setup_molecular": "分子性质预测模型（Chemprop）",
+    "setup_molecular_gbr": "分子性质基线模型（RDKit 描述符 + 梯度提升）",
+    "setup_molecular_dl": "分子深度学习模型（Ludwig 神经网络）",
     "setup_accuracy": "准确率",
     "setup_spearman": "Spearman 相关系数",
     "setup_name": "模型名称",

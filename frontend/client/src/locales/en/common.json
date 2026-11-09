@@ -709,6 +709,8 @@
     "registration_not_serving": "Registered artifact versions are not automatically deployed for inference.",
     "setup_tabular": "Tabular classifier / regressor (scikit-learn)",
     "setup_molecular": "Molecular property predictor (Chemprop)",
+    "setup_molecular_gbr": "Molecular property baseline (RDKit descriptors + gradient boosting)",
+    "setup_molecular_dl": "Molecular deep-learning model (Ludwig neural net)",
     "setup_accuracy": "Accuracy",
     "setup_spearman": "Spearman correlation",
     "setup_name": "Model name",
