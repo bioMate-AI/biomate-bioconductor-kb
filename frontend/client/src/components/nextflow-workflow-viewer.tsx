@@ -4043,7 +4043,7 @@ export function NextflowWorkflowViewer({
                     onStopPhase={onCancel}
                     onPreviewFile={(file, step) => { setPreviewFile(file); setPreviewStep(step ?? null); }}
                     onOpenFullStepView={(step) => setFullViewStep(buildStepDetailStep(step))}
-                    qcThresholds={displayedQcThresholds}
+                    qcThresholds={idx === 0 ? displayedQcThresholds : []}
                     qcOverrides={qcOverrides}
                     onQcChange={(key, val) => {
                       if (val === null) setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; });

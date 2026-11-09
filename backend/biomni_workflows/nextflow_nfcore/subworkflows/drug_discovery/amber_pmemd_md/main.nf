@@ -75,7 +75,10 @@ params.gpu                  = true
 
 // MD engine for EQUILIBRATION + PRODUCTION_MD: 'auto' | 'pmemd' | 'openmm'
 params.md_engine            = 'auto'
-params.pmemd_container      = null       // licensed AMBER image with pmemd.cuda (from the user's AMBER credential)
+// Licensed AMBER image with pmemd.cuda, from the user's BYOL AMBER credential. The executor injects
+// it into the head env as AMBER_PMEMD_CONTAINER (credentials_api 'amber' → license_image); unset =
+// no licence = md_engine=auto runs the dynamics in OpenMM.
+params.pmemd_container      = System.getenv('AMBER_PMEMD_CONTAINER') ?: null
 
 // AWS Batch flag — set via profile (aws/gpu_batch) or --use_aws true
 params.use_aws              = false

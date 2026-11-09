@@ -8095,6 +8095,19 @@ def _execute_nextflow_impl(
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
 
+    # BYOL AMBER: pmemd.cuda is the licensed AMBER engine (not in free AmberTools), so a user who
+    # holds an AMBER licence supplies their own image carrying it. Pass it to the head process as
+    # AMBER_PMEMD_CONTAINER; amber_pmemd_md reads it into params.pmemd_container and md_engine=auto
+    # then uses pmemd. With no image the workflow runs the dynamics in OpenMM (open-source fallback).
+    try:
+        _amber_cred = (request.credentials or {}).get("amber") or {}
+        _pmemd_image = str(_amber_cred.get("container_image") or "").strip()
+        if _pmemd_image:
+            env["AMBER_PMEMD_CONTAINER"] = _pmemd_image
+            log.info("[Nextflow run %s] user AMBER pmemd image supplied → md_engine=pmemd", run_id)
+    except Exception as _amber_e:
+        log.warning("[Nextflow] AMBER pmemd image injection skipped: %s", _amber_e)
+
     # AWS CRT SIGSEGV mitigation. Use a SHARED CRT cache dir, NOT per-run.
     # Per-run was the old mitigation (each NF head extracts its own .so).
     # That works for sequential fires (one extraction at a time) but with
