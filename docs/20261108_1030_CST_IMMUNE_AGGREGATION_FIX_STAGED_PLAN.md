@@ -50,6 +50,53 @@ proxies; a truly independent cohort + pretraining-overlap audit is the eventual 
 audit matters only at Gate 2, since Gate 1 is encoder-free). Batch-clean latent remains the
 precondition for any clinical-endpoint knowledge claim (separate from this stimulation endpoint).
 
+## GATE OUTCOME (11:05 CST — Spark was reachable by IP 192.168.1.205; the `.local` name just
+doesn't resolve from the current 10.234.x subnet, so Spark was never down)
+
+**Gate 1 (per-cell-norm cross-tissue) — NOT a clean pass.** Offset-stripping (`know_pc`) recovered only
+~+0.015–0.028 at full labels and nothing under scarcity; knowledge still loses cross-tissue at every
+budget (`know_pc − raw` = −0.017 lung / −0.031 spleen @full). So the per-cell OFFSET is a **minor**
+contributor, not the main cause. Per the pre-registered rule: do NOT jump to the expiMap GPU retrain.
+
+**Gate 1b (selection vs aggregation, `selection_vs_aggregation_20261108/`) — isolates the real cause.**
+The 1,995/2,000 genes that live in ≥1 gene set, left **ungrouped**, transfer *exactly* as well as raw
+(`raw_knowgenes − raw` = +0.001 lung / −0.000 spleen). Collapsing them into gene-set **means** is what
+loses transfer (`know_pc − raw` ≈ −0.02 to −0.03); a richer per-set summary (mean+std+max) recovers
+most of it for spleen. **Cause = AGGREGATION (averaging destroys within-set gene-level resolution),
+not gene selection, not offset.**
+
+**DECISION — DEFER Gate 2 (expiMap) for this endpoint. Do not spend GPU here.** The decisive fact:
+`raw_knowgenes ≈ raw` means the best any knowledge aggregation can do on this cell-level tissue-transfer
+task is **match raw, never beat it** — there is no latent knowledge transfer advantage to recover
+(all genes are measured in all tissues, so there is no unseen-entity gap for knowledge to bridge). A
+perfect expiMap would at most catch up to raw, not demonstrate a knowledge edge. The genuine
+knowledge-transfer advantage the literature shows (GEARS: **unseen genes/perturbations**) requires a
+regime this endpoint does not contain.
+
+**Revised use of Gate 2:** build the expiMap de-novo/learnable-mask decoder ONLY in service of a task
+that actually has an unseen-entity gap (unseen-gene / unseen-perturbation / genuinely independent
+cohort), where knowledge can bridge what raw cannot — not for cross-tissue on a fully-measured panel.
+The sample-efficiency benefit (scarce × cell-type-holdout) remains the real, reproduced value of the
+current mean channel on in-distribution data.
+
+## Gate 1c (unseen-gene external-knowledge bridge — the GEARS regime itself)
+
+Constructed the unseen-entity gap directly: mask 30% of HVG as "unseen", impute each from its SEEN
+gene-set co-members (external knowledge only, no coexpression/leak), leave-tissue-out, 3 mask seeds.
+Result (`unseen_gene_bridge_20261108/`): masking barely hurts (lung 0.843→0.837, spleen 0.699→0.666)
+and the knowledge bridge recovers ~0 (+7%/+4%, i.e. nil). **The stim signal is redundantly distributed
+across genes → there is NO unseen-entity gap to bridge on this task**, and the co-membership bridge
+doesn't recover even the small gap. This is a TASK property, not a mechanism failure: cell-level
+classification on a redundant 2000-HVG panel is the opposite of GEARS's setting (a held-out perturbation
+whose UNIQUE effect must be inferred from known relations).
+
+**PROGRAM CONCLUSION:** knowledge-for-transfer cannot be demonstrated on this endpoint at all, for any
+mechanism. To pursue it, change the TASK to one with a genuine unseen-entity gap — held-out-PERTURBATION
+prediction on the CZI Perturb-seq atlas (`s3://genome-scale-tcell-perturb-seq/`, leave-perturbation-out),
+the natural home of GEARS-style knowledge wins — not cross-tissue/cell-type on a fully-measured panel.
+Knowledge's demonstrated value on stimulation = sample-efficiency regularization under scarcity (real).
+
 ## Status
-- Gate-1 script: written, commented, syntax-checked, staged in repo. Not yet run (Spark down).
-- Gate-2: design only; do not start until Gate 1 is positive.
+- Gate 1 + Gate 1b + Gate 1c: RUN, documented. Conclusion: aggregation-loss confirmed; no transfer advantage to
+  recover on this endpoint → GPU expiMap retrain DEFERRED (would at best match raw here).
+- Gate 2: hold for an unseen-entity task; the two cheap gates saved an underdelivering GPU run.
