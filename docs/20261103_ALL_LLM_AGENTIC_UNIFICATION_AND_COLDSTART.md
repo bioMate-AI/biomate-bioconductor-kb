@@ -748,3 +748,34 @@ Residual risk: the stale CPU build on deploy-test can push `biomate/mlip-md:x86`
 - **Silent layer skip** (`4760622523`). The layer tests were `echo "$changed_paths" | grep -q X && do_backend=true`. Under `pipefail`, `grep -q` exits at its first match, `echo` dies of SIGPIPE on a long list, and the test reads as "no match". The 2,300-file diff logged `backend=false workflows=false` and deployed frontend + DB only. The commit was still recorded as deployed, so the next run's diff base already held it and shipped nothing. Reproduction: a 300k-line list gives old MISSED, new detected. All 17 `echo "$V" | grep -q` tests in the script now read here-strings. Dev was brought level once with the documented `BIOMATE_SYNC_FORCE=backend,workflows`, then checked on the container: `nf_param_requirement.py` present, the MM-GBSA window code present, MLIP `process_gpu` + `cuda12.4-x86`.
 - **Process note.** Bash reads a running script by byte offset, so editing `sync_to_dev.sh` while a sync runs can execute shifted fragments. The original bytes were restored for the run in flight and the fix was checked out afterwards.
 
+### 17.7 Wave 3 and the MLIP image (2026-11-08)
+
+**GROMACS (run f4ea5b26): end-to-end success.**
+- Launched without box params, confirming the null-param rule.
+- MM-GBSA analysed frames 1..2 of a 2-frame trajectory and gave ΔG = −12.62 ± 1.45 kcal/mol.
+- With 2 frames that value has no usable precision (benzene/T4-L99A is about −5 kcal/mol experimentally), yet it was labelled "strong binder" (Ki 0.56 nM). Since `696a747771`, fewer than 10 analysed frames gives `insufficient sampling (N frames)`, and `frames_analysed` is recorded.
+
+**MLIP MD (run d3625834): end-to-end success on the GPU.**
+- Tesla T4; driver supports CUDA 13.0.
+- `platform: CUDA`, AIMNet2, 12 atoms, 5,000 steps.
+- E = −610,150.8 kJ/mol = −232.39 Ha. That is the scale of benzene's total DFT energy (≈ −232.3 Ha), so the potential is physically sane.
+
+The image took five builds. Each failure was a real defect:
+
+| Build | Failure | Root cause → fix |
+|---|---|---|
+| 1 (`cuda12.4-x86`) | Built, but the first GPU run failed `import openmm.app`: "numpy.core.multiarray failed to import" | An unconstrained pip pulled numpy 2.2.6 under a numpy-1.x OpenMM. The energy smoke test never ran: the legacy Docker builder does not support heredoc `RUN`, so `python -` got empty input. → BuildKit; the smoke writes a marker that the last `RUN` requires (`e781f88410`). |
+| 2, 3 | Builder shut itself down within minutes, with no log | The serial console did not carry the log. Then the EXIT trap's `grep -q BUILD_PUSH_OK` matched its own `set -x` trace, so every failure took the success path. → status + log over SSM, `grep -qx` (`44d11d1007`, `e52ba80e12`). |
+| 4 | Smoke (now running): `libshm.so` undefined symbol `c10::utils::str_error` | pip had installed a torch wheel over conda's torch. → pip constrained to conda's exact torch and numpy (`1bc909ee61`). |
+| 5 | pip: `ResolutionImpossible`, aimnet 0.2.6 needs torch ≥ 2.10 vs conda's 2.5.1 | `cuda-version=12.4` capped PyTorch. → `pytorch>=2.10` (CUDA build) with any CUDA 12.x (`be0766cc9f`). **Pushed `cuda12-x86` (sha256:4642d0e5…); smoke passed.** |
+
+**Catalog-wide follow-up (`83d9956762`).** The MLIP log showed `here-document delimited by end-of-file (wanted END_VERSIONS)`. 12 workflows have column-0 lines (embedded Python heredocs), so Nextflow strips no common indent and the space-indented terminator never matches (`<<-` strips tabs only). The heredoc then swallows the rest of `.command.sh`, so any command after the versions block silently does not run. The terminator moved to column 0 (31 lines, 12 files).
+
+**Dev frontend note.** At 17:44 another session deployed the frontend only, at `ff3be8e3`, with an emergency override for its dataset-panel work. Dev's frontend therefore lacks the later edit_report and search_chat_history chat tools until a full frontend deploy of a descendant commit. This session's later syncs were workflows-only and left that frontend in place.
+
+**Open:**
+- AMBER engine decision (§17.3).
+- pmx FEP smoke not yet run.
+- `process_gpu` sizing (§17.5).
+- deploy-test's stale CPU build can still overwrite `mlip-md:x86`, which is unused.
+
