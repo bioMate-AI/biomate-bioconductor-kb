@@ -78,7 +78,9 @@ class EmailService {
       try {
         const cmd = new SendEmailCommand({
           Source: this.fromEmail,
-          Destination: { ToAddresses: [options.to] },
+          // options.to may be a comma-joined list (e.g. admin + extra recipient);
+          // SES ToAddresses needs individual addresses, not one joined string.
+          Destination: { ToAddresses: options.to.split(',').map((s) => s.trim()).filter(Boolean) },
           Message: {
             Subject: { Data: options.subject, Charset: 'UTF-8' },
             Body: {
@@ -657,7 +659,10 @@ class EmailService {
   }
 
   async sendAdminAlert(subject: string, details: Record<string, unknown>, extraRecipient?: string): Promise<boolean> {
-    const ADMIN_EMAIL = 'yaoyun.zhang@biomate.ai';
+    // Recipient(s) for new-registration notices + all system/exception alerts.
+    // Overridable via ADMIN_ALERT_EMAIL (comma-separated). Defaults to both the
+    // owner inbox and the team address so neither misses alerts.
+    const ADMIN_EMAIL = process.env.ADMIN_ALERT_EMAIL || 'xiaoni5122@gmail.com, yaoyun.zhang@biomate.ai';
     const to = extraRecipient ? `${ADMIN_EMAIL}, ${extraRecipient}` : ADMIN_EMAIL;
     const ts = new Date().toISOString();
     const rows = Object.entries(details)

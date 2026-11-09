@@ -19847,6 +19847,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   // ============================================================================
 
   // Error rate tracking middleware (must be last, after all routes)
+  // Throttle admin-alert emails for unhandled 5xx: dedup by method+path+message
+  // within a window so a recurring fault emails once, not on every request.
+  const _err5xxAlertAt = new Map<string, number>();
+  const ERR_5XX_ALERT_WINDOW_MS = 15 * 60 * 1000;
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     // A client error that carries its own 4xx status (e.g. UnsupportedUploadTypeError -> 415)
     // is the caller's problem, not a server fault: return that status and message, and don't
@@ -19868,6 +19872,21 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       error: err.message?.slice(0, 200),
       stack_top: err.stack?.split('\n')[1]?.trim()?.slice(0, 200),
     }).catch(() => {});
+
+    // Email the admin on unhandled 5xx (throttled, fire-and-forget; never fails the response)
+    try {
+      const key = `${req.method} ${req.path}: ${err.message?.slice(0, 120)}`;
+      const now = Date.now();
+      if (now - (_err5xxAlertAt.get(key) ?? 0) > ERR_5XX_ALERT_WINDOW_MS) {
+        _err5xxAlertAt.set(key, now);
+        emailService.sendAdminAlert('Unhandled server error (5xx)', {
+          path: req.path,
+          method: req.method,
+          error: err.message?.slice(0, 300),
+          stack_top: err.stack?.split('\n').slice(1, 4).map((l) => l.trim()).join(' | ').slice(0, 400),
+        }).catch(() => {});
+      }
+    } catch { /* alerting must never break the error path */ }
 
     // Default error response
     if (!res.headersSent) {
