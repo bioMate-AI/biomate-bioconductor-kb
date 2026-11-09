@@ -366,7 +366,7 @@ PYEOF
         vina: \$(python3 -c "from vina import Vina; print('1.2')" 2>/dev/null || echo "unknown")
         rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "unknown")
         meeko: \$(python3 -c "import meeko; print(meeko.__version__)" 2>/dev/null || echo "unknown")
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

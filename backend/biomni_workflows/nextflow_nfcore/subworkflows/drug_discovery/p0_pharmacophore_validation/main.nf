@@ -342,7 +342,7 @@ PYEOF
     "${task.process}":
         python: \$(python3 --version | cut -d' ' -f2)
         rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "unknown")
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

@@ -347,7 +347,7 @@ PYEOF
         python: \$(python3 --version | cut -d' ' -f2)
         ViennaRNA: \$(python3 -c "import RNA; print(RNA.__version__)" 2>/dev/null || echo "unknown")
         biopython: \$(python3 -c "import Bio; print(Bio.__version__)" 2>/dev/null || echo "unknown")
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

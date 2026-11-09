@@ -830,7 +830,7 @@ PYEOF
     "${task.process}":
         python: \$(python3 --version | cut -d' ' -f2)
         biomni_function: "predict_admet_properties"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

@@ -200,7 +200,7 @@ PYEOF
         openmm: \$(python3 -c "import openmm; print(openmm.version.version)" 2>/dev/null || echo "n/a(mock)")
         openmm-ml: \$(python3 -c "import openmmml; print(getattr(openmmml,'__version__','installed'))" 2>/dev/null || echo "n/a(mock)")
         potential: '${params.mlip}'
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

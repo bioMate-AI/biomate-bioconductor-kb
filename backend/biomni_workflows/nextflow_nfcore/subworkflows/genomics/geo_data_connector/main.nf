@@ -69,7 +69,7 @@ process GEO_FETCH {
     "${task.process}":
         r-base: "4.4.0 (stub)"
         bioconductor-geoquery: "2.72.0 (stub)"
-    END_VERSIONS
+END_VERSIONS
     """
 
     script:
@@ -168,7 +168,7 @@ REOF
     "${task.process}":
         r-base: \$(R --version | head -1 | awk '{print \$3}')
         bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -206,7 +206,7 @@ process GEO_LOAD_LOCAL {
     "${task.process}":
         r-base: "4.4.0 (stub)"
         bioconductor-geoquery: "2.72.0 (stub)"
-    END_VERSIONS
+END_VERSIONS
     """
 
     script:
@@ -288,7 +288,7 @@ REOF
     "${task.process}":
         r-base: \$(R --version | head -1 | awk '{print \$3}')
         bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -320,7 +320,7 @@ process GEO_COUNT_MATRIX {
     "${task.process}":
         r-base: "4.4.0 (stub)"
         bioconductor-geoquery: "2.72.0 (stub)"
-    END_VERSIONS
+END_VERSIONS
     """
 
     script:
@@ -377,7 +377,7 @@ REOF
     "${task.process}":
         r-base: \$(R --version | head -1 | awk '{print \$3}')
         bioconductor-biobase: \$(Rscript -e 'cat(as.character(packageVersion("Biobase")))')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -410,7 +410,7 @@ process GEO_CLINICAL_METADATA {
     "${task.process}":
         r-base: "4.4.0 (stub)"
         bioconductor-geoquery: "2.72.0 (stub)"
-    END_VERSIONS
+END_VERSIONS
     """
 
     script:
@@ -487,7 +487,7 @@ REOF
     "${task.process}":
         r-base: \$(R --version | head -1 | awk '{print \$3}')
         bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

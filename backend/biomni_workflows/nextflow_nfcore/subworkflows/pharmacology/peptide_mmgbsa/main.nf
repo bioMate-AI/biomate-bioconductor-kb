@@ -268,7 +268,7 @@ PYEOF
     "${task.process}":
         openmm: \$(python3 -c "import openmm; print(openmm.__version__)" 2>/dev/null || echo unknown)
         python: \$(python3 --version | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

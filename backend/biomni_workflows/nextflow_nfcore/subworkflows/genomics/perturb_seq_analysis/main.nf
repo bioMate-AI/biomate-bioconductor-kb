@@ -95,7 +95,7 @@ PYEOF
     "${task.process}":
         mageck: \$(mageck --version 2>&1 | head -1 | awk '{print \$NF}')
         python: \$(python3 --version | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -153,7 +153,7 @@ PYEOF
     "${task.process}":
         mageck: \$(mageck --version 2>&1 | head -1 | awk '{print \$NF}')
         python: \$(python3 --version | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -252,7 +252,7 @@ PYEOF
         python: \$(python3 --version | cut -d' ' -f2)
         scvi_tools: \$(python3 -c "import scvi; print(scvi.__version__)")
         scanpy: \$(python3 -c "import scanpy; print(scanpy.__version__)")
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

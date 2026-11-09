@@ -170,7 +170,7 @@ PYEOF
     "${task.process}":
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     '''
 
     stub:
@@ -181,7 +181,7 @@ PYEOF
     "${task.process}":
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -315,7 +315,7 @@ PYEOF
     "${task.process}":
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     '''
 
     stub:
@@ -326,7 +326,7 @@ PYEOF
     "${task.process}":
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -443,7 +443,7 @@ PYEOF
         mmpdb: \$(mmpdb --version 2>&1 | head -1 || echo "N/A")
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 
     stub:
@@ -455,7 +455,7 @@ PYEOF
         mmpdb: "3.1"
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -637,7 +637,7 @@ PYEOF
     "${task.process}":
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 
     stub:
@@ -649,7 +649,7 @@ PYEOF
     "${task.process}":
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

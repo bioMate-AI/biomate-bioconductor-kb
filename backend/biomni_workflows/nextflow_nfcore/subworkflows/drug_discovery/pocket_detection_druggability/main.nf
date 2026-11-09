@@ -328,7 +328,7 @@ PYEOF
         fpocket: \$(command -v fpocket >/dev/null 2>&1 && echo installed || echo absent)
         pocket_method: \$(python3 -c "import json,glob;print(json.load(open(glob.glob('*_pockets.json')[0]))['tool'])" 2>/dev/null || echo unknown)
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     '''
 
     stub:
@@ -340,7 +340,7 @@ PYEOF
     "${task.process}":
         fpocket: "4.1"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -444,7 +444,7 @@ EOF
         min_druggability: "${min_drug}"
         warn_druggability: "${warn_drug}"
         min_volume: "${min_vol}"
-    END_VERSIONS
+END_VERSIONS
     """
 
     stub:
@@ -453,7 +453,7 @@ EOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
