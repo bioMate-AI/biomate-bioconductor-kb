@@ -58,3 +58,26 @@ raw 0.800, know 0.828), but **mispicks in the crossover region** (~250: picks ra
 `ADAPTIVE IS BEST-ACROSS-CURVE = False`. A **fixed label-count threshold** (knowledge if n≲250, raw
 otherwise) is more robust than the learned selector. Consistent with the program pattern: simple rules
 ≥ learned selection on this data.
+
+---
+
+## Addendum 2 — GPU nonlinear attention (GEARS-style) ALSO loses to the neighbor-mean
+
+Ran the authorized GPU test: a learned-attention model (`run_gears_attn.py`, envpin2 torch/CUDA on the
+GB10) — the faithful nonlinear generalization of the neighbor-mean that LEARNS which training KOs to
+attend to (learnable KO embeddings + attention + temperature), proper 5-fold leave-KO-out, early-stopped.
+Result (Rest, `gears_attn_Rest.json`): **learned-attention +0.027 vs neighbor-mean +0.071 (Δ=−0.044,
+t=−16.6, 42% of KOs)** — VERDICT: neighbor-mean holds.
+
+This is the **4th** learned approach to lose to the fixed shared-set neighbor-mean (kernel-ridge,
+feature-ridge, full-scale feature-ridge, GPU attention). The simple non-parametric neighbor-mean is the
+frontier for unseen-perturbation prediction on this data; parametric/nonlinear learning does not beat it.
+
+**Honest caveat:** this is an attention-based learned model over aggregated DE deltas, NOT a 100% faithful
+GEARS (real GEARS runs a GNN over the gene coexpression+GO graph on per-cell post-perturbation expression,
+which this aggregated DE_stats substrate does not provide). A full GEARS on per-cell data *might* differ.
+But four learned approaches of increasing sophistication all losing is strong evidence the neighbor-mean
+is at/near the ceiling here.
+
+**Final go/no-go:** do NOT scale a learned perturbation model on this data — ship the neighbor-mean. The
+GPU test cleared the question honestly: the nonlinear lever does not pay off.
