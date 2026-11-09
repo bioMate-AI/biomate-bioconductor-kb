@@ -423,6 +423,20 @@
 
     // Real posts from the BioMate blog — newest first
     const POSTS = [
+      // Cyclic-peptide research preprints (Nov 2026)
+      { cat: 'Drug Discovery', title: 'Designing Cyclic Peptides That Are Valid by Construction',
+        date: 'Nov 9, 2026', read: '5 min', href: 'blog-cyclic-decoder.html',
+        desc: "BioMate's generator compiles cyclic-peptide design rules directly into the decoder, so every molecule it completes is valid by construction — about 3x the valid, novel yield of monomer-library enumeration at a matched budget. Companion to the constraint-guaranteed decoder preprint." },
+      { cat: 'Platform Architecture', title: 'Chain to Loop: Spending Each Experiment Where It Counts',
+        date: 'Nov 9, 2026', read: '5 min', href: 'blog-voi-scheduling.html',
+        desc: "A cost-aware value-of-information scheduler decides not only which candidate to test next, but which assay to spend the next unit of budget on — beating a fair cheapest-first cascade under pre-registration. Companion to the VOI scheduling preprint." },
+      { cat: 'AI & LLMs', title: 'Benchmarks You Can Trust: Controls, Not Just Metrics',
+        date: 'Nov 9, 2026', read: '5 min', href: 'blog-trustworthy-benchmarks.html',
+        desc: "BioMate evaluates discovery models with coordinated controls that separate real, transferable learning from artifacts — and a null-calibrated validity gate that holds its false-alarm rate. Companion to the benchmark-framework preprint." },
+      { cat: 'AI & LLMs', title: 'Knowledge a Program Can Use — Built Rigorously',
+        date: 'Nov 9, 2026', read: '5 min', href: 'blog-knowledge-layer.html',
+        desc: "A provenance-linked knowledge layer where every design statement is tied to its exact source, extracted by a frontier model behind deterministic rules and a multi-model committee gate. Companion to the knowledge-layer preprint." },
+
       // Research Survey Showcases — SOTA + where BioMate fits (Aug 17, 2026)
       { cat: 'Drug Development', title: 'Finding the Right Target: How BioMate Turns Human Genetics Into Drug Discovery',
         date: 'Aug 17, 2026', read: '9 min', href: 'blog-target-identification.html',
