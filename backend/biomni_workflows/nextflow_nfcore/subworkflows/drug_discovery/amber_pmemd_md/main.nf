@@ -22,7 +22,7 @@
  * H-bond constraints, Langevin thermostat, Monte Carlo barostat). Preparation (tleap), minimization
  * (sander), analysis (cpptraj) and MM-GBSA (MMPBSA.py) are free AmberTools either way.
  * 6. TRAJECTORY_ANALYSIS -- cpptraj: RMSD, RMSF, H-bonds, radius of gyration
- * 7. MM_GBSA             -- MMPBSA.py: GB model (igb=2), per-residue decomposition
+ * 7. MM_GBSA             -- MMPBSA.py: GB model (igb=2); total binding DeltaG
  *
  * Outputs:
  *   trajectory.nc|.dcd        -- production trajectory (NetCDF from pmemd, DCD from OpenMM)
@@ -751,7 +751,8 @@ process MM_GBSA {
     /*
      * MM-GBSA binding free energy with MMPBSA.py:
      *   - GB model igb=2 (Onufriev-Bashford-Case GB)
-     *   - Per-residue energy decomposition (idecomp=1)
+     *   - Total binding free energy (no per-residue decomp: print_res within-distance is
+     *     gmx_MMPBSA syntax, not AmberTools MMPBSA.py which needs integer residues)
      *   - Frames: startframe=${params.mmgbsa_startframe}, interval=${params.mmgbsa_interval}
      * Outputs: mmgbsa_results.csv, binding_summary.json
      */
@@ -820,17 +821,12 @@ Input file for MM/GBSA calculation
 &gb
   igb=2, saltcon=0.15,
 /
-&decomp
-  idecomp=1,
-  print_res='within 6.0',
-/
 GBSEOF
 
         MMPBSA.py \
             -O \
             -i mmgbsa.in \
             -o mmgbsa_raw.dat \
-            -do mmgbsa_decomp.dat \
             -sp ${prmtop} \
             -cp com_dry.prmtop \
             -rp rec_dry.prmtop \
