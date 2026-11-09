@@ -3254,6 +3254,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // List parts already staged for an in-flight multipart upload.
+  // Used by the client to resume an interrupted upload without re-uploading completed parts.
+  // Query: uploadId, key
+  app.get("/api/s3/upload/list-parts", authenticateToken, async (req, res) => {
+    try {
+      const { uploadId, key } = req.query as Record<string, string>;
+      if (!uploadId || !key) {
+        return res.status(400).json({ error: 'Missing required query params: uploadId, key' });
+      }
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      // On-prem: delegate to dedicated MinIO client so we hit the right endpoint.
+      if (process.env.S3_ENDPOINT_URL) {
+        const { S3Client, ListPartsCommand: LPC } = await import('@aws-sdk/client-s3');
+        const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+        const minioClient = new S3Client({
+          endpoint: process.env.S3_ENDPOINT_URL,
+          region: 'us-east-1',
+          forcePathStyle: S3_FORCE_PATH_STYLE,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+          },
+        });
+        const parts: Array<{ PartNumber: number; ETag: string; Size: number }> = [];
+        let marker: string | undefined;
+        for (;;) {
+          const out = await minioClient.send(new LPC({
+            Bucket: minioBucket, Key: key, UploadId: uploadId,
+            ...(marker !== undefined && { PartNumberMarker: marker }),
+          }));
+          for (const p of out.Parts ?? []) {
+            if (p.PartNumber && p.ETag) parts.push({ PartNumber: p.PartNumber, ETag: p.ETag, Size: p.Size ?? 0 });
+          }
+          if (!out.IsTruncated) break;
+          marker = out.NextPartNumberMarker;
+        }
+        return res.json({ parts, uploadId, key });
+      }
+      const parts = await s3Service.listUploadedParts(key, uploadId);
+      res.json({ parts, uploadId, key });
+    } catch (error: any) {
+      // NoSuchUpload means the uploadId expired/was aborted — tell client to start fresh.
+      if (error?.Code === 'NoSuchUpload' || error?.name === 'NoSuchUpload') {
+        return res.status(404).json({ error: 'NoSuchUpload', message: 'Upload session expired — start a new upload' });
+      }
+      console.error('[S3] list-parts error:', error);
+      res.status(500).json({ error: 'Failed to list parts', message: error.message });
+    }
+  });
+
+  // Generate fresh presigned part URLs for an existing multipart upload (AWS S3 path).
+  // Used during resume when old presigned URLs have expired.
+  // On-prem (MinIO): not needed — proxy URLs are stable and never expire.
+  // Body: { uploadId, key, partNumbers: number[], chunkSize: number }
+  app.post("/api/s3/upload/refresh-parts", authenticateToken, async (req, res) => {
+    try {
+      if (process.env.S3_ENDPOINT_URL) {
+        // On-prem: proxy URLs are reconstructed client-side; this endpoint is a no-op.
+        return res.json({ partUrls: [] });
+      }
+      const { uploadId, key, partNumbers, chunkSize } = req.body ?? {};
+      if (!uploadId || !key || !Array.isArray(partNumbers) || !chunkSize) {
+        return res.status(400).json({ error: 'Missing required fields: uploadId, key, partNumbers[], chunkSize' });
+      }
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      const partUrls = await s3Service.refreshPartUrls(key, uploadId, partNumbers, chunkSize);
+      res.json({ partUrls });
+    } catch (error: any) {
+      console.error('[S3] refresh-parts error:', error);
+      res.status(500).json({ error: 'Failed to refresh part URLs', message: error.message });
+    }
+  });
+
   // On-prem MinIO proxy for multipart part upload.
   // Browser PUTs each chunk here; Node.js relays to MinIO via UploadPartCommand
   // and returns { ETag } so the client can assemble the CompleteMultipartUpload call.

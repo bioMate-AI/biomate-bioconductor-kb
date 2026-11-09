@@ -39,6 +39,7 @@ vi.mock('@aws-sdk/client-s3', () => {
     UploadPartCommand: makeCmd('UploadPart'),
     CompleteMultipartUploadCommand: makeCmd('CompleteMultipart'),
     AbortMultipartUploadCommand: makeCmd('AbortMultipart'),
+    ListPartsCommand: makeCmd('ListParts'),
   };
 });
 
@@ -206,6 +207,63 @@ describe('S3Service.abortMultipartUpload', () => {
     expect(cmd.constructor.cmdName).toBe('AbortMultipart');
     expect(cmd.input.Key).toBe('users/u/uploads/x.gz');
     expect(cmd.input.UploadId).toBe('S3UPID-4');
+  });
+});
+
+describe('S3Service.listUploadedParts', () => {
+  it('returns all parts from a single-page response', async () => {
+    mockBucketThen({
+      Parts: [
+        { PartNumber: 1, ETag: '"aaa"', Size: 8388608 },
+        { PartNumber: 2, ETag: '"bbb"', Size: 8388608 },
+      ],
+      IsTruncated: false,
+    });
+    const s3 = new S3Service();
+    const parts = await s3.listUploadedParts('users/u/uploads/x.gz', 'S3UPID-5');
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toEqual({ PartNumber: 1, ETag: '"aaa"', Size: 8388608 });
+    expect(parts[1]).toEqual({ PartNumber: 2, ETag: '"bbb"', Size: 8388608 });
+    const cmd = sendMock.mock.calls[1][0];
+    expect(cmd.constructor.cmdName).toBe('ListParts');
+    expect(cmd.input.UploadId).toBe('S3UPID-5');
+  });
+
+  it('paginates until IsTruncated is false', async () => {
+    sendMock
+      .mockResolvedValueOnce({ LocationConstraint: 'us-west-2' }) // GetBucketLocation
+      .mockResolvedValueOnce({
+        Parts: [{ PartNumber: 1, ETag: '"p1"', Size: 1 }],
+        IsTruncated: true,
+        NextPartNumberMarker: 1,
+      })
+      .mockResolvedValueOnce({
+        Parts: [{ PartNumber: 2, ETag: '"p2"', Size: 1 }],
+        IsTruncated: false,
+      });
+    const s3 = new S3Service();
+    const parts = await s3.listUploadedParts('users/u/uploads/x.gz', 'S3UPID-6');
+    expect(parts).toHaveLength(2);
+    expect(parts.map(p => p.PartNumber)).toEqual([1, 2]);
+  });
+});
+
+describe('S3Service.refreshPartUrls', () => {
+  it('generates fresh presigned URLs for the requested part numbers', async () => {
+    sendMock.mockResolvedValueOnce({ LocationConstraint: 'us-west-2' });
+    getSignedUrlMock.mockImplementation(async (_c: unknown, cmd: any) =>
+      `https://s3/fresh-part-${cmd.input.PartNumber}`,
+    );
+    const s3 = new S3Service();
+    const urls = await s3.refreshPartUrls('users/u/uploads/x.gz', 'S3UPID-7', [2, 4], CHUNK_8MIB);
+    expect(urls).toEqual(['https://s3/fresh-part-2', 'https://s3/fresh-part-4']);
+    expect(getSignedUrlMock).toHaveBeenCalledTimes(2);
+    for (const call of getSignedUrlMock.mock.calls) {
+      const cmd = call[1] as any;
+      expect(cmd.constructor.cmdName).toBe('UploadPart');
+      expect(cmd.input.Key).toBe('users/u/uploads/x.gz');
+      expect(cmd.input.UploadId).toBe('S3UPID-7');
+    }
   });
 });
 
