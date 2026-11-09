@@ -10,6 +10,7 @@ import {
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
   GetBucketLocationCommand,
+  ListPartsCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
@@ -280,6 +281,64 @@ export class S3Service {
       })
     );
     return { key, bucket: this.bucket, location: out.Location };
+  }
+
+  /** List parts already uploaded for an in-flight multipart upload (used for resume). */
+  async listUploadedParts(
+    key: string,
+    uploadId: string,
+  ): Promise<Array<{ PartNumber: number; ETag: string; Size: number }>> {
+    await this.ensureBucketRegion();
+    const parts: Array<{ PartNumber: number; ETag: string; Size: number }> = [];
+    let partNumberMarker: string | undefined;
+    // ListParts is paginated (max 1 000 per page).
+    for (;;) {
+      const out = await this.s3Client.send(
+        new ListPartsCommand({
+          Bucket: this.bucket,
+          Key: key,
+          UploadId: uploadId,
+          ...(partNumberMarker !== undefined && { PartNumberMarker: partNumberMarker }),
+        }),
+      );
+      for (const p of out.Parts ?? []) {
+        if (p.PartNumber && p.ETag) {
+          parts.push({ PartNumber: p.PartNumber, ETag: p.ETag, Size: p.Size ?? 0 });
+        }
+      }
+      if (!out.IsTruncated) break;
+      partNumberMarker = out.NextPartNumberMarker;
+    }
+    return parts;
+  }
+
+  /**
+   * Generate fresh presigned URLs for a subset of parts in an existing multipart
+   * upload. Used during resume when old presigned URLs have expired (AWS S3 path).
+   */
+  async refreshPartUrls(
+    key: string,
+    uploadId: string,
+    partNumbers: number[],
+    chunkSize: number,
+  ): Promise<string[]> {
+    await this.ensureBucketRegion();
+    const { getSignedUrl: gsu } = await import('@aws-sdk/s3-request-presigner');
+    return Promise.all(
+      partNumbers.map(n =>
+        gsu(
+          this.s3Client,
+          new UploadPartCommand({
+            Bucket: this.bucket,
+            Key: key,
+            UploadId: uploadId,
+            PartNumber: n,
+            ContentLength: chunkSize,
+          }),
+          { expiresIn: 6 * 3600 },
+        ),
+      ),
+    );
   }
 
   /** Abort an in-flight multipart upload (frees S3 from billing the parts). */
