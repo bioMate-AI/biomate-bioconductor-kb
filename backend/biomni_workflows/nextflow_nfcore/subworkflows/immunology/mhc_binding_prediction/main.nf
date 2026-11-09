@@ -120,7 +120,11 @@ predictor = Class1PresentationPredictor.load()
 rows = []
 if scorable:
     try:
-        df = predictor.predict(peptides=scorable, alleles=[allele], verbose=0)
+        # include_affinity_percentile=True computes the %rank vs a random-peptide background (the
+        # NetMHC %rank analogue); without it the affinity_percentile column is absent and no
+        # strong/weak binder can be called (a 25 nM A*02:01 binder read as 0 strong binders).
+        df = predictor.predict(peptides=scorable, alleles=[allele], verbose=0,
+                               include_affinity_percentile=True)
     except Exception as e:
         sys.exit("FATAL: MHCflurry predict failed for allele %s: %s" % (allele, e))
 

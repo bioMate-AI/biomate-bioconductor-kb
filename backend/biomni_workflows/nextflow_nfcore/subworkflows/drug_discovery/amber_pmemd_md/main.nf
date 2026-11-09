@@ -771,7 +771,11 @@ process MM_GBSA {
     script:
     """
         set -euo pipefail
-        source /opt/amber24/amber.sh || true
+        # MMPBSA.py / ante-MMPBSA.py require AMBERHOME. The conda AmberTools image has no
+        # /opt/amber24/amber.sh, so derive AMBERHOME from cpptraj's location (its grandparent is the
+        # conda prefix = AMBERHOME); source amber.sh if that layout has one.
+        export AMBERHOME="\${AMBERHOME:-\$(dirname \$(dirname \$(command -v cpptraj)))}"
+        source "\$AMBERHOME/amber.sh" 2>/dev/null || true
 
         # Dry topologies for MM-GBSA. The complex prmtop is solvated, so it is the -sp topology;
         # complex/receptor/ligand are stripped of water and ions with ante-MMPBSA.py, with mbondi2
