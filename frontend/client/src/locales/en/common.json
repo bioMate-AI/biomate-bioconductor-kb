@@ -474,9 +474,9 @@
       "never_used": " · never used",
       "revoke": "Revoke",
       "llm_provider": "LLM Provider",
-      "llm_desc": "Choose which AI model powers your BioMate chats. The default uses BioMate's shared Claude quota and supports full workflow execution. OpenRouter lets you use economic models (DeepSeek, Qwen, Llama) with your own key — keys are stored encrypted and never returned to the browser.",
-      "provider_default_label": "BioMate Default",
-      "provider_default_desc": "Managed Gemini 3 + Claude fallback — full workflow execution, no key needed",
+      "llm_desc": "Choose which model powers your BioMate chats. The default is a managed hybrid that automatically picks the best model for each task and runs full workflows. Or bring your own key — OpenRouter gives you 200+ models including open-source ones (GLM, DeepSeek, Qwen, Llama); keys are stored encrypted and never returned to the browser.",
+      "provider_default_label": "BioMate Default (Hybrid)",
+      "provider_default_desc": "Hybrid — automatically uses the best model for each task. Full workflow execution, no key needed.",
       "provider_openrouter_desc": "200+ models including DeepSeek, Qwen, Llama · bring your own key",
       "provider_anthropic_label": "Anthropic (BYOK)",
       "provider_anthropic_desc": "Your own Anthropic key and quota",
@@ -493,7 +493,10 @@
       "get_key_pre": "Get a key at",
       "get_key_post": "— free tier available.",
       "anthropic_saved": "Anthropic key saved — chats use your quota",
-      "anthropic_key_label": "Anthropic API Key"
+      "anthropic_key_label": "Anthropic API Key",
+      "models_open": "Open-source",
+      "models_proprietary": "Proprietary",
+      "model_recommended": "Recommended open default — best routing accuracy at lowest cost in our benchmark"
     },
     "appearance": "Appearance",
     "content": "Settings content"

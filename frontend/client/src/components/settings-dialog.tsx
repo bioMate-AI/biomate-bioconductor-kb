@@ -1086,23 +1086,42 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                               is the recommended open default (best routing recall + lowest
                               cost); all are function-calling capable so they get the full
                               agentic pipeline (tools + workflows + run_code). */}
-                          <div className="flex flex-wrap gap-1.5 pt-0.5" data-testid="llm-model-quickpick">
-                            {[
-                              'z-ai/glm-5.3-prime',
-                              'moonshotai/kimi-k3',
-                              'deepseek/deepseek-v4-pro',
-                              'anthropic/claude-opus-5.5',
-                              'openai/gpt-6.1-sol-pro',
-                              'google/gemini-3.1-pro-preview',
-                            ].map(slug => (
-                              <button
-                                key={slug}
-                                type="button"
-                                onClick={() => llmKeys.setSelectedModel(slug)}
-                                className={`font-mono text-[10.5px] rounded-full border px-2 py-0.5 transition-colors ${llmKeys.selectedModel === slug ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
-                              >
-                                {slug.split('/').pop()}
-                              </button>
+                          <div className="space-y-2 pt-0.5" data-testid="llm-model-quickpick">
+                            {([
+                              { label: t('settings.api.models_open'), slugs: [
+                                'z-ai/glm-5.3-prime',
+                                'deepseek/deepseek-v4-pro',
+                                'deepseek/deepseek-v4.1-flash',
+                                'qwen/qwen3-max',
+                                'qwen/qwen3.5-9b',
+                                'moonshotai/kimi-k3',
+                                'google/gemma-4-31b',
+                              ] },
+                              { label: t('settings.api.models_proprietary'), slugs: [
+                                'anthropic/claude-opus-5.5',
+                                'openai/gpt-6.1-sol-pro',
+                                'google/gemini-3.1-pro-preview',
+                              ] },
+                            ] as const).map(group => (
+                              <div key={group.label}>
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">{group.label}</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {group.slugs.map(slug => {
+                                    const recommended = slug === 'z-ai/glm-5.3-prime';
+                                    return (
+                                      <button
+                                        key={slug}
+                                        type="button"
+                                        title={recommended ? t('settings.api.model_recommended') : undefined}
+                                        onClick={() => llmKeys.setSelectedModel(slug)}
+                                        className={`font-mono text-[10.5px] rounded-full border px-2 py-0.5 transition-colors ${llmKeys.selectedModel === slug ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                                      >
+                                        {recommended ? '★ ' : ''}{slug.split('/').pop()}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             ))}
                           </div>
                           <p className="text-xs text-muted-foreground">

@@ -7071,7 +7071,19 @@ ${paramLines || '(none recorded)'}`;
       // OPENROUTER_API_KEY in server env enables cheap Chinese models for all users.
       if (!_openrouterKey && process.env.OPENROUTER_API_KEY) {
         _openrouterKey = process.env.OPENROUTER_API_KEY;
-        if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
+        if (!_selectedModel) {
+          // China-origin requests default to the best Chinese LLM per our routing benchmark:
+          // z-ai/glm-5.3-prime (top routing recall at lowest cost; function-calling capable, so
+          // it gets the full agentic pipeline). Origin is read from an upstream geo header when
+          // present, else inferred from a zh-CN Accept-Language. Only affects the managed default
+          // (a user's own selected model/provider always wins). Overridable via env.
+          const _cc = String(req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'] || req.headers['x-appengine-country'] || '').toUpperCase();
+          const _lang = String(req.headers['accept-language'] || '').toLowerCase();
+          const _fromChina = _cc ? _cc === 'CN' : /(^|,)\s*zh-cn\b/.test(_lang);
+          _selectedModel = _fromChina
+            ? (process.env.OPENROUTER_CN_DEFAULT_MODEL || 'z-ai/glm-5.3-prime')
+            : (process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat');
+        }
       }
 
       // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
