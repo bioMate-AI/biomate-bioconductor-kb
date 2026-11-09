@@ -205,29 +205,36 @@ Resolved ✅ / partial 🟡 / open ❌, with the commit.
 | commentout_skip_phase | ✅ hidden unless skippable | 3823ee6aa8 |
 | comment_out_chat_for_newstep | ✅ removed | 3823ee6aa8 |
 | duplicate_after_run | ✅ gated kicker | 3823ee6aa8 |
-| crowd_parameters_…sameQC_eachphase | ✅ QC once + basename; 🟡 crowded param line not restyled | d782be698c / 89fb8358de |
+| crowd_parameters_…sameQC_eachphase | ✅ QC once + basename + crowded param line restyled (one label:value per row) | d782be698c / 89fb8358de / 9fcdea34ba |
 | note_memory_howworks | ✅ Notes→Memory | 683da003f2 |
 | how_works_teammember | ✅ unified invite + email diagnosed (SES grant pending) | 7a5f5f78cc |
 | MG_workflow_failed | ✅ required-input fix + phase i18n (generic UX error kept, per user) | 40c814f12e / 89fb8358de |
 | preview_confusing_report_template | ✅ Preview removed | 280a91b9f8 |
 | only_manual_editing_dataset | ✅ as-designed (user) | — |
 | lack_multi_select | ✅ multi-select | 8b2d54798f |
-| biomate_history_weirditem | ✅ errored items filtered; 🟡 history-NAME filter skipped (risky) | 8b2d54798f |
-| need_better_design_claude | ✅ From-URL localized; 🟡 not redesigned | 8b2d54798f |
+| biomate_history_weirditem | ✅ errored items filtered + internal GalaxyChat-* names shown as "Chat session · date" (friendlyHistoryName, searchable) | 8b2d54798f / 9fcdea34ba |
+| need_better_design_claude | ✅ From-URL localized + redesigned (input promoted to top, examples collapsed) | 8b2d54798f / 9fcdea34ba |
 | large_blank_dataset / half_half_views | ✅ compact empty state + i18n | f6d4a580ae / 89fb8358de |
-| formats_duplications | ✅ project-page i18n; 🟡 duplicate chat-start buttons not consolidated | f6d4a580ae |
+| formats_duplications | ✅ project-page i18n + redundant header "Chat" button removed (kept center CTA + tab nav) | f6d4a580ae / 9fcdea34ba |
 | missing_file_context | ✅ project files injected | 0a1b80b736 |
 | un_expected_workflow_otherintent | ✅ attach-intent guard | 0a1b80b736 |
 | jupiter_failed / jupiter_fail_anothermessage | ✅ HDA readiness + friendly error | 0a1b80b736 |
-| ID_everywhere | ✅ edit_report self-loads; 🟡 raw run-ID in prose (LLM formatting) | 0a1b80b736 |
-| **unnecessary_id_response** | ❌ LLM still prints file UUIDs in chat prose — needs a response-formatting rule | — |
-| noteasexample_instruction_rule | ❌ seeded-rule "example/default" labeling not done | — |
+| ID_everywhere | ✅ edit_report self-loads + chat-prose rule: refer to datasets by NAME only, never print id/UUID/s3_uri in prose | 0a1b80b736 / aebf2f5b4c |
+| **unnecessary_id_response** | ✅ galaxy-assistant prompt rule added (ll.9695): never surface file UUIDs/s3_uri in prose | aebf2f5b4c |
+| noteasexample_instruction_rule | ✅ section hint: seeded rules may be project defaults/examples, editable/removable (rules_seed_hint) | 9fcdea34ba |
 
 ### Still open after this pass
-1. **LLM prints raw IDs in chat prose** (unnecessary_id_response + ID_everywhere) — a
-   prompt/response rule (never surface file UUIDs / run IDs; show names). Prompt-level.
-2. **noteasexample_instruction_rule** — mark demo-seeded rules as examples/defaults.
-3. **Polish** (🟡): crowded param line restyle; consolidate duplicate chat-start buttons;
-   From-URL dialog redesign; picker history-NAME filter.
-4. **Deploy** — the backend fixes (profiler header-only, required-input) + email SES grant
-   are committed/diagnosed but not live on dev.
+**Update 2026-11-09 — all screenshot clusters are now RESOLVED and LIVE on dev** (HEAD `9228b39e73`,
+full frontend+backend sync healthy, Galaxy HUP'd clean). Items 1–3 below were closed by E/F's
+`9fcdea34ba` + `aebf2f5b4c`; item 4's backend layer is now deployed. The only remaining action is an
+AWS grant, not a code fix:
+
+1. ~~LLM prints raw IDs in chat prose~~ → ✅ done `aebf2f5b4c` (galaxy-assistant prose rule).
+2. ~~noteasexample_instruction_rule~~ → ✅ done `9fcdea34ba` (rules_seed_hint).
+3. ~~Polish (crowded param line, duplicate chat buttons, From-URL redesign, history-NAME filter)~~ → ✅ all done `9fcdea34ba`.
+4. **Deploy** → ✅ backend fixes (profiler header-only CSV, required-input classification) now LIVE on dev
+   (full backend sync `9228b39e73`). **Only remaining:** grant the `galaxy-dev` IAM user `ses:SendEmail`
+   so team-invite email actually sends — a one-line AWS policy change the user must authorize (the
+   auto-mode classifier blocks the assistant from AWS IAM/SES mutations, same as the ECR repo creation).
+
+**Net: 0 code issues open from the 30 screenshots. 1 ops action (SES grant) pending user AWS authorization.**
