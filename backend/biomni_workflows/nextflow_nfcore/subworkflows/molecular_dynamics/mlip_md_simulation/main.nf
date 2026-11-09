@@ -52,7 +52,7 @@ params.mock            = false       // true => deterministic, dependency-free d
 // Verified in conda-forge (2026-07): openmm 8.3-8.5.2, openmm-torch 1.1-1.5.1,
 // openmm-ml 1.0-1.7 (noarch), nnpops 0.2-0.7 all exist; base image
 // condaforge/miniforge3:24.11.3-2 exists on Docker Hub (HTTP 200).
-params.mlip_container  = System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/mlip-md:cuda12.4-x86' : 'biomate/mlip-md:latest'
+params.mlip_container  = System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/mlip-md:cuda12-x86' : 'biomate/mlip-md:latest'
 
 process MLIP_MD_SIMULATION {
     tag "$meta.id"

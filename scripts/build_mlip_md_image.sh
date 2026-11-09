@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build & push biomate/mlip-md:cuda12.4-x86 (infra/docker/mlip-md/Dockerfile) for the MLIP MD workflow
+# Build & push biomate/mlip-md:cuda12-x86 (infra/docker/mlip-md/Dockerfile) for the MLIP MD workflow
 # (nextflow_nfcore/subworkflows/molecular_dynamics/mlip_md_simulation). The workflow referenced
 # this ECR image but it was never built, so every run failed CannotPullImageManifestError.
 #
@@ -19,7 +19,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REGION=us-west-2
 REGISTRY=399683337364.dkr.ecr.us-west-2.amazonaws.com
 REPO_NAME=biomate/mlip-md
-TAG="${MLIP_TAG:-cuda12.4-x86}"   # the workflow pins this tag; bump both together when the CUDA build changes
+TAG="${MLIP_TAG:-cuda12-x86}"   # the workflow pins this tag; bump both together when the CUDA build changes
 INSTANCE_ID="${BUILD_INSTANCE_ID:-i-0482a6fa98c6f301a}"; AZ="${BUILD_AZ:-us-west-2a}"; EC2_USER="${BUILD_USER:-ubuntu}"
 KEY=/tmp/biomate_ec2_key_sync
 _SSM="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region ${REGION}"

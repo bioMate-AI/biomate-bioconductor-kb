@@ -8,10 +8,12 @@
 FROM docker.io/condaforge/miniforge3:24.11.3-2
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # The build host has no GPU, so conda sees no __cuda virtual package; declare the target CUDA so the
-# solver picks the CUDA PyTorch build. 12.4 runs on any >=525 driver (CUDA minor-version compatibility).
-ENV CONDA_OVERRIDE_CUDA=12.4
+# solver picks the CUDA PyTorch build. Any CUDA 12.x runtime runs on a >=525 driver (CUDA minor-version
+# compatibility). pytorch>=2.10 because aimnet (AIMNet2) requires it; with cuda-version pinned to 12.4
+# conda capped torch at 2.5.1 and the aimnet install was unresolvable.
+ENV CONDA_OVERRIDE_CUDA=12.9
 RUN conda install -y -n base -c conda-forge \
-        python=3.11 "openmm>=8.1" openmm-ml openmm-torch "pytorch=*=cuda*" "cuda-version=12.4" \
+        python=3.11 "openmm>=8.1" openmm-ml openmm-torch "pytorch>=2.10=*cuda*" "cuda-version>=12,<13" \
         numpy mdtraj rdkit procps-ng \
  && conda clean -afy \
  && python -c "import torch, numpy, openmm.app; print('conda env ok: torch', torch.__version__, 'cuda', torch.version.cuda, 'numpy', numpy.__version__)"
