@@ -241,21 +241,20 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
       {/* MEMORY */}
       <section style={S.card} data-testid="instructions-memory">
         <div style={S.row}>
-          <span style={S.k2}>{t("project_instructions.notes")}</span><span className="chip">{memory.length}</span>
+          <span style={S.k2}>{t("project_instructions.memory")}</span><span className="chip">{memory.length}</span>
           <span style={{ flex: 1 }} />
-          <span style={S.hint}>{t("project_instructions.notes_hint")}</span>
         </div>
         <div>
           {memory.map((m, i) => (
             <div key={m.id} style={S.qline}>
               <span style={{ flex: 1, fontSize: 13.5, lineHeight: 1.5 }}>{m.text}{m.source && <span style={{ ...S.hint, marginLeft: 8 }}>· {m.source}</span>}</span>
               {canEdit && <button className="linkish" disabled={noteBusy} onClick={async () => { setNoteBusy(true); try { await saveRules(rules.includes(m.text) ? rules : [...rules, m.text]); } finally { setNoteBusy(false); } }}>{t("project_instructions.make_rule")}</button>}
-              {canEdit && <button className="linkish" disabled={noteBusy} onClick={() => removeNote(m.id)}>{t("project_instructions.delete_note")}</button>}
+              {canEdit && <button className="linkish" disabled={noteBusy} onClick={() => removeNote(m.id)}>{t("project_instructions.forget")}</button>}
             </div>
           ))}
-          {memory.length === 0 && <span style={{ ...S.hint, display: 'block', padding: '6px 0' }}>{t("project_instructions.no_notes")}</span>}
+          {memory.length === 0 && <span style={{ ...S.hint, display: 'block', padding: '6px 0' }}>{t("project_instructions.no_memory")}</span>}
         </div>
-        <span style={S.hint}>{t("project_instructions.notes_note")}</span>
+        <span style={S.hint}>{t("project_instructions.memory_note")}</span>
       </section>
     </div>
   );
