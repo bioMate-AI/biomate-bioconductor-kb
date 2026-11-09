@@ -394,7 +394,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
                 value={param.value || ''}
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
                 placeholder={isActualPath ? tOr('panel.dataset_path_placeholder', 'Dataset path or ID') : ""}
-                className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
+                className={`${isActualPath ? 'flex-1 min-w-0 ' : ''}${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
               />
               {isActualPath && (
                 <Button

@@ -8,11 +8,21 @@ export function datasetContentType(name: string, declared?: string | null): stri
   return ({ json: "application/json", yaml: "application/yaml", yml: "application/yaml", csv: "text/csv", tsv: "text/tab-separated-values", txt: "text/plain", md: "text/markdown" } as Record<string, string>)[ext ?? ""] || declared || "—"
 }
 
-/** Legacy 0×0 for unprofiled text/binary is unknown, not a measured empty table. */
+/**
+ * Row/column count for the stat grid. Prefer a measured table `shape`, but
+ * reconcile with the parsed preview (`columns` / `sampleRows`) that the
+ * Table/Columns/Edit views already render — so the grid never shows "—" for a
+ * small CSV those views clearly display (e.g. a header + 1 data row). Only
+ * genuinely non-tabular profiles (no shape, no columns, no sample rows) → "—".
+ */
 export function datasetShape(profile?: DataProfile) {
   const shape = profile?.shape
-  if (!shape || (shape.rows === 0 && shape.cols === 0 && !profile?.columns?.length)) return { rows: undefined, cols: undefined }
-  return { rows: shape.rows, cols: shape.cols }
+  const cols = shape?.cols && shape.cols > 0 ? shape.cols : (profile?.columns?.length || undefined)
+  const rows = shape && typeof shape.rows === "number" && cols != null
+    ? shape.rows
+    : (profile?.sampleRows?.length || undefined)
+  if (rows == null && cols == null) return { rows: undefined, cols: undefined }
+  return { rows: rows ?? undefined, cols: cols ?? undefined }
 }
 
 export function openInErrorMessage(body: { message?: unknown; error?: unknown }, tool: string, status: number) {

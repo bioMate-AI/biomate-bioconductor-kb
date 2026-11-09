@@ -335,7 +335,7 @@ export function AfterRunReport({
     return (
       <div className="after-run-report" style={styles.root}>
         <div style={styles.head}>
-          <span style={styles.kicker}>After run</span>
+          {!embedded && <span style={styles.kicker}>{tOr('afterrun.kicker', 'After run')}</span>}
         </div>
         <div style={{
           display: 'flex',
@@ -351,13 +351,13 @@ export function AfterRunReport({
             <polyline points="12 6 12 12 16 14"/>
           </svg>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(0.40 0.012 260)' }}>
-            Run not started yet
+            {tOr('afterrun.empty_title', 'Run not started yet')}
           </div>
           <div style={{ fontSize: 13, color: 'oklch(0.55 0.01 260)', maxWidth: 280, lineHeight: 1.5 }}>
-            Outputs, findings, QC report, methods, and citations will appear here once the workflow completes.
+            {tOr('afterrun.empty_body', 'Outputs, findings, QC report, methods, and citations will appear here once the workflow completes.')}
           </div>
           <div style={{ fontSize: 12, color: 'oklch(0.62 0.01 260)', marginTop: 4 }}>
-            Use the <strong>Workflow settings</strong> tab to configure and launch.
+            {tOr('afterrun.empty_hint', 'Use the Workflow settings tab to configure and launch.')}
           </div>
         </div>
       </div>

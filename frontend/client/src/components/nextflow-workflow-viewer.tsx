@@ -398,8 +398,12 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
   if (reqList.length > 0 || optList.length > 0) {
     // Build structured params from required/optional lists
     const structuredNames = new Set([...reqList, ...optList].map((p: any) => p?.name).filter(Boolean));
+    // A param declared in BOTH required_params and optional_params must render
+    // once, not twice (reqList first → the required entry wins the dedup).
+    const seenStructured = new Set<string>();
     const structured = [...reqList, ...optList]
       .filter((p: any) => p?.name && !String(p.name).startsWith("__"))
+      .filter((p: any) => { if (seenStructured.has(p.name)) return false; seenStructured.add(p.name); return true; })
       .map((p: any) => {
         const userValue = currentParams[p.name];
         const defaultVal = p.default ?? null;
@@ -2242,12 +2246,16 @@ export function NextflowWorkflowViewer({
     : renderedParameters
         .filter((p: any) => p.required === true)
         .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
-  // Block Run if file-type params have no value — even when schema marks them optional, the
-  // workflow will fail at runtime without them (e.g. samplesheet/matrix in differentialabundance).
+  // Block Run only for REQUIRED file-type params with no value and no default.
+  // Blocking optional file inputs too contradicted the per-row "optional — empty"
+  // label (which keys off p.required); the run gate must use the same required
+  // flag so the footer and the row agree (cf. commit 5e812ef429 — a param is
+  // required only when the workflow enforces it). A workflow that truly needs a
+  // file it marks optional is a schema bug to fix in its definition, not here.
   const missingFileInputs = prereqChecklist?.overrideAllowed
     ? []
     : renderedParameters.filter(
-        (p: any) => p.type === 'file' && !p.value && !p.default
+        (p: any) => p.type === 'file' && p.required === true && !p.value && !p.default
       );
   const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired || missingFileInputs.length > 0;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
@@ -3688,12 +3696,11 @@ export function NextflowWorkflowViewer({
                         {r.empty ? (
                           <span style={{ color: 'var(--text-dim)' }}>{tOr('panel.not_set', 'not set')}</span>
                         ) : (
-                          <>
-                            <span>{r.ds?.name || basename(r.val)}</span>
-                            <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-dim)', wordBreak: 'break-all' }}>
-                              {r.ds?.id ? tOr('panel.id_prefix', 'id {{id}}', { id: r.ds.id }) : String(r.val)}
-                            </span>
-                          </>
+                          // Show the clean basename only; the full value (S3 URI
+                          // or dataset id) stays available on hover, never inline.
+                          <span title={r.ds?.id ? String(r.ds.id) : String(r.val)}>
+                            {r.ds?.name || basename(r.val)}
+                          </span>
                         )}
                       </span>
                       {r.status === 'resolved' && (
@@ -3760,7 +3767,11 @@ export function NextflowWorkflowViewer({
 
             if (globalParams.length === 0 && !mismatch) return (
               <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-                <div style={{ marginBottom: 6 }}>{tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
+                {/* Don't claim "no parameters" when params exist but are pinned to
+                    individual phases — point the user to the Phases tab instead. */}
+                <div style={{ marginBottom: 6 }}>{allPhaseParamNames.size > 0
+                  ? tOr('panel.params_in_phases', 'Parameters are configured per phase — open the Phases tab to adjust them.')
+                  : tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
                 <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
               </div>
             );
@@ -4083,16 +4094,8 @@ export function NextflowWorkflowViewer({
                     qcAdvisoryByStep={qcAdvisoryByStep}
                   />
                 ))}
-                <button
-                  className="suggest-step-row linkish"
-                  data-testid="button-suggest-step"
-                  onClick={() => {
-                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || tOr('panel.last_step', "last step");
-                    onAdjustViaChat?.(tOr('panel.add_step_msg', 'Add a step after "{{step}}" that ', { step: lastStep }));
-                  }}
-                >
-                  {tOr('panel.suggest_step', '+ Suggest a new step via chat')}
-                </button>
+                {/* "Suggest a new step via chat" removed — step authoring is not a
+                    supported action here; it only produced a free-text chat nudge. */}
               </div>
             )}
 
@@ -4129,7 +4132,10 @@ export function NextflowWorkflowViewer({
                 }
                 return { id: g.key, skippable: false, why: whyNotDeclared };
               });
-              if (skipPhases.length === 0) return null;
+              // Only surface the skip UI when at least one phase is actually
+              // skippable. When nothing is skippable the section is pure noise
+              // (four disabled rows + "cannot skip" warnings), so hide it.
+              if (!skipPhases.some((p) => p.skippable)) return null;
               return (
                 <div style={{ padding: '4px 18px 10px' }}>
                   <SkipDependency phases={skipPhases} />

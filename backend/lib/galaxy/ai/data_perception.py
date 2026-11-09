@@ -447,8 +447,13 @@ def _profile_table(path: str) -> DataProfile:
         p.notes.append("No columns parsed from table.")
         return p
     if n_rows == 0:
-        p.quality = "blocked"
-        p.notes.append("File parsed to 0 rows — header present but no data records.")
+        # Header present but no data rows: this is a readable (if empty) table,
+        # NOT an unprofilable file. Surface the columns so the Preview/Columns
+        # views and the stat grid show the real header (cols = n_cols, rows = 0)
+        # instead of "analyzer cannot read this dataset".
+        p.columns = [str(c) for c in header[:MAX_PREVIEW_COLS]]
+        p.sample_rows = []
+        p.notes.append("Header present; no data rows yet.")
         return p
 
     # Small tabular sample for the Preview tab (columns + first rows), capped.

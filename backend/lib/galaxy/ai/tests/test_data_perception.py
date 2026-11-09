@@ -199,13 +199,18 @@ def test_vcf_profile(tmp):
 # 7. Malformed / empty -> blocked, honest note, no fabricated fields.
 # ---------------------------------------------------------------------------
 def test_blocked_empty_and_missing(tmp):
-    # header only, 0 data rows
+    # header only, 0 data rows: a readable (empty) table, NOT "cannot read".
+    # The header columns must be surfaced so the stat grid shows cols>0, rows=0
+    # instead of "—"/blocked, with an honest note and no fabricated analysis.
     path = _write(tmp, "headeronly.csv", "a,b,label\n")
     prof = profile_dataset(path)
-    assert prof["quality"] == "blocked", prof
+    assert prof["quality"] != "blocked", prof
+    assert prof.get("shape", {}).get("cols") == 3, prof
+    assert prof.get("shape", {}).get("rows") == 0, prof
+    assert prof.get("columns") == ["a", "b", "label"], prof
     assert "leakage" not in prof and "classBalance" not in prof, prof
 
-    # missing file
+    # missing file still blocks (a real failure, not an empty table)
     prof2 = profile_dataset(os.path.join(tmp, "does_not_exist.csv"))
     assert prof2["quality"] == "blocked", prof2
     print("PASS test_blocked_empty_and_missing")
