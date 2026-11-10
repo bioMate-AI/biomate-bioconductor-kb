@@ -200,15 +200,16 @@ function RootRoute({
     }
   }, [isAuthenticated, isLoading, setLocation, initialMessage, initialDemoFiles])
 
-  // Handle ?session=<chatSessionId> — emitted by the "Open" button in the
-  // Workflow Runs dialog. Once auth is ready, load the session and strip the param.
+  // Handle ?session=<chatSessionId> — the open chat's address (written by App
+  // whenever a chat is open, and by the Runs dialog / project "Open" links).
+  // Once auth is ready, load it. The param is KEPT so a page refresh reopens
+  // the same chat instead of landing on a new one.
   useEffect(() => {
     if (isLoading || !isAuthenticated || handledSessionParam.current) return
     const sessionId = new URLSearchParams(search).get('session')
     if (sessionId) {
       handledSessionParam.current = true
       onChatSelect(sessionId)
-      window.history.replaceState(null, '', '/')
     }
   }, [isLoading, isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
   if (isLoading || !isAuthenticated) return null
@@ -874,10 +875,32 @@ function App() {
       : local
     if (session) {
       setCurrentChatSession(session)
-      // Navigate to home page for chat
+      // Navigate to the chat page; the URL-sync effect below adds ?session=.
       setLocation('/')
+    } else {
+      // Unknown/deleted id — drop it so a refresh doesn't keep retrying it.
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('session') === chatId) {
+        params.delete('session')
+        const qs = params.toString()
+        window.history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''))
+      }
     }
   }
+
+  // Keep the open chat in the URL (/?session=<id>) so refresh, back/forward
+  // and copied links reopen it. Only chats with messages are addressable — a
+  // fresh empty chat stays at "/" (refreshing it correctly gives a new chat).
+  // replaceState, not navigation: the chat is already rendered.
+  useEffect(() => {
+    if (location !== '/') return
+    const id = currentChatSession && currentChatSession.messages.length > 0 ? currentChatSession.id : null
+    if (!id) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('session') === id) return
+    params.set('session', id)
+    window.history.replaceState(null, '', '/?' + params.toString())
+  }, [location, currentChatSession?.id, currentChatSession?.messages.length])
 
   const handleChatUpdated = (session: ChatSession) => {
     console.log('App: Updating chat session:', session.id, 'workflows:', session.workflows)
