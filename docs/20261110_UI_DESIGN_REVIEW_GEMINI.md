@@ -90,6 +90,36 @@ Each is a separate, reviewable PR with before/after screenshots against the live
 
 ---
 
+## 5a. Prototype pictures — target direction
+
+Visual prototypes of the redesign (HTML rendered to image via headless Chrome; source
+`scratchpad/biomate_redesign_*.html`). These are **direction**, not pixel-final — a founder-reviewable
+picture of what the design-system changes above produce. They encode the Gemini fixes: Inter type
+ramp (15/13/12/11, weights 400/600), one indigo accent (#4F46E5) on a neutral canvas, minimal borders,
+an 8pt rhythm, clean tables (nowrap headers, tabular numerals, ellipsized sources), a single flattened
+segmented control, one consolidated Export dropdown, and chat↔panel de-duplication.
+
+### Workspace — completed run (hero)
+![Redesigned workspace: completed ADMET run](20261110_ui_redesign_prototype/01_workspace_redesign.jpg)
+
+What it demonstrates vs. the current UI:
+- **Chat ≠ panel duplication.** The chat gives a compact result card — title, status, a 2-line takeaway ("1 of 2 flagged for elevated DILI") and an **Inspect results →** action. The dense tables live only in the panel. (Today both panes repeat the same values.)
+- **Clean Key Results table.** Fixed columns, `tabular-nums` values on single lines (0.003 / 0.855 / −4.285), Source ellipsized, Interpretation is the one flexible wrapping column; row dividers not cell borders. (Fixes the "0.0⏎03" shredding — already shipped for the live tables.)
+- **Flattened navigation.** One segmented control (Overview / Data & molecules / Logs) instead of today's two stacked tab tiers.
+- **Restrained type + one accent + few borders** → reads as a product, not a schema dump. Muted amber QC-gate callout instead of a jarring pastel box.
+
+### Export — one consolidated dropdown
+![Export dropdown with all formats in one click-list](20261110_ui_redesign_prototype/02_export_dropdown.jpg)
+
+A single **Export ▾** button opens one click-list — **Markdown · Word (DOCX) · PowerPoint (PPTX)** (+ Raw predictions) — instead of scattering a floating export link, an in-chat download button, and three footer links. This is the "formats in the bottom click-list, don't crowd" directive, and matches what already shipped live (Word restored to the dropdown).
+
+### Landing — first impression
+![Redesigned landing / new-chat state](20261110_ui_redesign_prototype/03_landing_redesign.jpg)
+
+Borderless starter cards with hover elevation, a confident headline, and one polished composer — the first screen a prospect sees, set to feel effortless rather than like a form.
+
+---
+
 ## 6. Directives captured (for future sessions)
 - Report/export formats → one compact dropdown ("bottom click-list"), never spread across the panel. [[feedback_design_spec_is_source_of_truth]]
 - Founder wants a high-end, effortless, product-designed feel — treat typography/spacing/color/borders as a design-system task, not per-screen patches. [[feedback_no_bespoke_per_task_ui]] · [[feedback_design_conformance_audit]]
