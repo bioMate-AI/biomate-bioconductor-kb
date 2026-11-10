@@ -17994,6 +17994,20 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   // short viewer names the client uses. Fails closed (all false) on any error —
   // an honest "not available" beats a dead button.
   app.get("/api/interactive/available", optionalAuth, async (_req, res) => {
+    // HONEST availability (2026-11-10): the interactive tools are REGISTERED in the
+    // Galaxy toolbox even when the IT runtime cannot actually LAUNCH them — the
+    // Galaxy container has no docker socket, so every launch fails at the job with
+    // "the notebook/interactive job stopped before the session became available".
+    // Reporting a tool "available" purely because it's in the toolbox produces
+    // shown-but-dead buttons, which defeats this probe's whole purpose (hide a tool
+    // the environment can't run). So gate on INTERACTIVE_TOOLS_ENABLED — a signal the
+    // IT-enablement flow (sync_to_dev.sh enable_interactive_tools, or a real k8s/ECS
+    // IT destination) sets ONLY once the runtime is actually provisioned. Until then,
+    // report unavailable so the UI hides the buttons instead of launching a dead job.
+    const _runtimeReady = /^(1|true|yes)$/i.test(String(process.env.INTERACTIVE_TOOLS_ENABLED || ''));
+    if (!_runtimeReady) {
+      return res.json({ available: false, tools: { jupyter: false, rstudio: false, cellxgene: false } });
+    }
     const map: Record<string, string> = {
       jupyter: "interactive_tool_jupyter_notebook",
       rstudio: "interactive_tool_rstudio",
