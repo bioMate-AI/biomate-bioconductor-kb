@@ -83,13 +83,9 @@ _BIONEMO_META: Dict[str, Dict[str, Any]] = {
         "version": "2.0",
         "interface": "rest",
     },
-    "alphafold2": {
-        "name": "AlphaFold2",
-        "family": "structure",
-        "evidence_class": STRUCTURE,
-        "version": "2.3",
-        "interface": "rest",
-    },
+    # NOTE: AlphaFold2 was removed from the hosted catalogue (2026-11-10) — NVIDIA's
+    # hosted endpoint reached end of life on 2026-09-24 (410 Gone). Re-add for a
+    # self-host deployment running an AlphaFold2 NIM.
     # NOTE: ESMFold was removed from the hosted catalogue (2026-09-14) — NVIDIA
     # deprecated the hosted ESMFold NVCF function (invocation 404s "not found for
     # account"). Boltz-2 / AlphaFold2 / OpenFold2 cover structure prediction via
@@ -1080,7 +1076,9 @@ def infer(model_id: str, body: InferRequest, owner_id: Optional[str] = Header(No
         raise
     except Exception as exc:  # noqa: BLE001
         log.warning("models: inference %s failed, returning stub: %s", model_id, exc)
-        _fail_run(run_id, "Model inference failed. Check the configured model backend.")
+        # Show the real reason (e.g. "BioNeMo openfold2 error 500: CUDA error …"); the old
+        # generic text hid that every hosted model was returning 410 Gone.
+        _fail_run(run_id, f"Model inference failed: {str(exc)[:300]}")
 
     return {"run_id": run_id}
 
