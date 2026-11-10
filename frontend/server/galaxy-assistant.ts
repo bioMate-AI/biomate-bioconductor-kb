@@ -4826,24 +4826,37 @@ Rules:
     // Also injects P1 episode memory and P2 correction constraints.
     // All injections are non-fatal — failures are silently ignored.
     const isFirstMessage = !context.previousMessages || context.previousMessages.length === 0;
-    const _runProblem = asksAboutRunProblem(message);
-    if (_runProblem && !isFirstMessage && context.userId) {
-      // Any turn asking why a run fails gets the runs WITH their recorded errors (this chat first).
-      const block = await this._buildRecentRunsBlock(String(context.userId), { withErrors: true, chatSessionId: context.sessionId }).catch(() => '');
-      if (block) {
-        context = { ...context, ltmContextBlock: block + (context.ltmContextBlock || '') };
-        log('C2 recent runs (with errors) injected for a run-problem question');
+    // Universe model: the user's recent runs — each with status, output count and,
+    // for any FAILED run, a plain-language diagnosis (cause · at-fault · next, from
+    // the run's own recorded error) — are STANDING context on EVERY turn, not gated
+    // on detecting a "why did it fail?" phrasing or the first message. This is the
+    // principled fix for the class of context-referential questions ("why did my
+    // run fail?", "what did my run produce?", "show my results"): the run record is
+    // always part of the model, so the answer never depends on the intent
+    // classifier noticing it first. (The earlier gating is exactly how "why is the
+    // run failing?" reached the literature agent with no run in context — org-user
+    // issue #3; the run_diagnostics short-circuit remains only as a routing backstop
+    // so the literature path can't override, not as the source of the data.)
+    if (context.userId) {
+      const runsBlock = await this._buildRecentRunsBlock(
+        String(context.userId),
+        { withErrors: true, chatSessionId: context.sessionId },
+      ).catch(() => '');
+      if (runsBlock) {
+        context = { ...context, ltmContextBlock: runsBlock + (context.ltmContextBlock || '') };
+        log('Universe: recent runs (status + outputs + failed-run diagnosis) injected as standing context');
       }
     }
+    // First-message-only memory blocks (cross-session recall, episode memory,
+    // correction constraints). Runs are no longer here — they are standing context above.
     if (isFirstMessage && context.userId) {
       const uid = String(context.userId);
       try {
-        const [crossSessionBlock, episodeBlock, correctionBlock, recentRunsBlock] =
+        const [crossSessionBlock, episodeBlock, correctionBlock] =
           await Promise.all([
             this._buildCrossSessionContextBlock(message, uid),
             this._buildEpisodeMemoryBlock(message, uid),          // P1
             this._buildCorrectionContextBlock(uid),               // P2
-            this._buildRecentRunsBlock(uid, _runProblem ? { withErrors: true, chatSessionId: context.sessionId } : {}), // C2 (Galaxy History handoff)
           ]);
 
         let prefix = '';
@@ -4854,10 +4867,6 @@ Rules:
         if (episodeBlock) {
           prefix += episodeBlock;
           log('P1 episode memory injected for user ' + uid);
-        }
-        if (recentRunsBlock) {
-          prefix += recentRunsBlock;
-          log('C2 recent runs injected for user ' + uid);
         }
         if (crossSessionBlock) {
           prefix += crossSessionBlock;
@@ -11857,7 +11866,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       });
       return [
         opts.withErrors
-          ? '[The user\'s recent workflow runs, with a plain-language diagnosis of each failed run (cause · at-fault input · next action, from the run\'s own recorded error). Answer "why did my run fail?" from THIS — in one message give the specific cause, the input/param at fault, and the one concrete next action. Do NOT answer from literature, do NOT cite papers, and do NOT ask the user to paste logs/errors you have already been given here. The raw error is on the "Error:" line — show it only if they want detail. When a line says the cause could not be classified, state the failing step and show the raw error, and offer to investigate — never invent a cause. When a run has no recorded error, say exactly that and point to the run\'s card in the workflow panel → failed step → log]'
+          ? '[The user\'s recent workflow runs — STANDING context, present every turn. Each line: run id · workflow · status · date · N outputs; a FAILED run is followed by a plain-language diagnosis (cause · at-fault input · next action, from its recorded error). Answer ANY question about the user\'s own runs from THIS — their status, what a run produced (outputs/results), or why one failed — directly, in one message; never treat such a question as a literature/knowledge query. Do NOT answer from literature, do NOT cite papers, and do NOT ask the user to paste logs/errors you have already been given here. The raw error is on the "Error:" line — show it only if they want detail. When a line says the cause could not be classified, state the failing step and show the raw error, and offer to investigate — never invent a cause. When a run has no recorded error, say exactly that and point to the run\'s card in the workflow panel → failed step → log. To open a run\'s actual output files/findings, use its 8-char id with list_history / the outputs tool]'
           : '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
         ...lines,
         '(call list_history for filtered/expanded details)',
