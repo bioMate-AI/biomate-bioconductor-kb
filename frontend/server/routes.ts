@@ -14889,7 +14889,21 @@ Rules:
       //     already enforced (owner/member, above); the scan is scoped to the run's
       //     own workDir prefix (no cross-run / arbitrary-key access); an ambiguous
       //     basename is rejected rather than serving an arbitrary file.
-      if (!match && !filename.includes('/') && !filename.includes('\\')) {
+      // Restrict recovery to declared DATA outputs only — exactly the allowlist
+      // the /output_files listing uses. The work/ dir also holds Nextflow
+      // internals (.command.run/.sh/.err/.log, .exitcode) that expose backend
+      // internals (ECR image refs, S3 paths, injected env) and must never be
+      // downloadable. A requested name that is a dotfile / internal / non-data
+      // extension skips recovery and falls through to 404.
+      const _dlDataExts = new Set(['csv','tsv','txt','json','html','pdf','png','jpg','svg',
+        'xlsx','rds','vcf','bed','bam','fastq','fq','fa','fasta','gz','h5','h5ad']);
+      const _dlNfInternals = new Set(['.command.run','.command.sh','.command.out',
+        '.command.err','.command.log','.command.begin','.exitcode']);
+      const _dlExt = ((filename.includes('.') ? filename.split('.').pop() : '') || '').toLowerCase();
+      const _dlIsDataOutput = !filename.startsWith('.')
+        && !_dlNfInternals.has(filename)
+        && !!_dlExt && _dlDataExts.has(_dlExt);
+      if (!match && _dlIsDataOutput && !filename.includes('/') && !filename.includes('\\')) {
         const storedWorkDir = (run as any)?.execution?.nextflowWorkDir as string | undefined;
         const wdm = storedWorkDir && String(storedWorkDir).startsWith('s3://')
           ? String(storedWorkDir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/)

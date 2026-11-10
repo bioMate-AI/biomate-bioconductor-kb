@@ -41,6 +41,11 @@ describe("recovered output download integrity", () => {
     expect(section).toContain("execution?.nextflowWorkDir");
     // Exact-basename match + ambiguity rejection (no arbitrary file served).
     expect(section).toContain("is ambiguous in the work directory");
+    // Recovery must NOT serve Nextflow internals (.command.*/.exitcode) — they
+    // leak backend internals (ECR refs, S3 paths, injected env). Restrict to the
+    // data-output allowlist, gated on the requested filename.
+    expect(section).toContain("_dlNfInternals");
+    expect(section).toContain("_dlIsDataOutput");
   });
 
   it("still injects download_url only for available files", () => {
