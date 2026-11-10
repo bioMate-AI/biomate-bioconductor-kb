@@ -4872,11 +4872,18 @@ Rules:
     // on detecting a "why did it fail?" phrasing or the first message. This is the
     // principled fix for the class of context-referential questions ("why did my
     // run fail?", "what did my run produce?", "show my results"): the run record is
-    // always part of the model, so the answer never depends on the intent
-    // classifier noticing it first. (The earlier gating is exactly how "why is the
-    // run failing?" reached the literature agent with no run in context — org-user
-    // issue #3; the run_diagnostics short-circuit remains only as a routing backstop
-    // so the literature path can't override, not as the source of the data.)
+    // always part of the model on the MAIN assistant path, so the answer never depends
+    // on the intent classifier noticing it first. (The earlier gating is exactly how
+    // "why is the run failing?" reached the literature agent with no run in context —
+    // org-user issue #3.)
+    // HONEST SCOPE (committee review 2026-11-10): the research/literature sub-agent does
+    // NOT share this standing context by the same mechanism — it runs as a separate call
+    // (`queryResearch`), so the `run_diagnostics` short-circuit (asksAboutRunProblem →
+    // force run_diagnostics) is CURRENTLY LOAD-BEARING, not vestigial: without it a
+    // run-problem classified `research_question` would still reach the literature path.
+    // We now also thread the universe into that payload (`researchPayload.context
+    // .user_context`), but full parity needs the backend research agent to prefer it —
+    // until then the short-circuit stays as a real guard, not a belt-and-suspenders.
     if (context.userId) {
       const runsBlock = await this._buildRecentRunsBlock(
         String(context.userId),
@@ -5650,7 +5657,17 @@ Rules:
         // cross-references with PubMed/Semantic Scholar for supporting literature.
         const researchPayload: Record<string, unknown> = {
           query: message,
-          context: { information_need: intent.type },
+          context: {
+            information_need: intent.type,
+            // Universe context (the user's recent runs/outputs + standing memory) so the
+            // research agent can answer a question about the user's OWN run/data from it
+            // rather than citing general literature. This is the systematic counterpart to
+            // the run_diagnostics short-circuit: that guard keeps run-problems off this path,
+            // but any context-referential question that still routes here now at least carries
+            // the universe. (Backend research agent should prefer this when the question is
+            // about the user's own runs/outputs — committee review 2026-11-10.)
+            user_context: context.ltmContextBlock || undefined,
+          },
           include_citations: true,
           include_benchmark_evidence: true,
         };
