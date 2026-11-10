@@ -74,6 +74,7 @@ import type {
   WorkflowGenerationRequest,
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
+import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
 
 // ─── Agent tool infrastructure ────────────────────────────────────────────────
 
@@ -1880,6 +1881,12 @@ export function inferActionsFromType(type: string): ActionCategories {
     // HPO phenotype-to-gene mapping. Triggered by HPO terms, ENSG candidate lists, disease matching.
     'clinical_genomics': { needsResearchAgent: true, needsLLMReasoning: true },
     'benchmark_query': { needsBenchmarkAgent: true, needsLLMReasoning: true },
+    // Diagnosing the user's OWN failed/stuck run — answer from the run record's
+    // recorded error (injected recent-runs-with-errors block), NOT from literature.
+    // Routing this to research_question made BioMate reply with a generic cited
+    // paper about "why code fails" and ask for logs it already had (org-user issue
+    // #3, 2026-11-09). LLM reasoning only: no research/benchmark/workflow agent.
+    'run_diagnostics': { needsLLMReasoning: true },
     'dataset_inquiry': { needsDatasetAccess: true, needsLLMReasoning: true },
     'experiment_design': { needsResearchAgent: true, needsLLMReasoning: true },
     'data_interpretation': { needsResearchAgent: true, needsLLMReasoning: true },
@@ -2478,6 +2485,33 @@ export function runErrorSummary(execution: any, errorMessage?: string | null): s
     .find(l => l && !/^Caused by:?$/i.test(l) && !/DEBUG|WARN\s|RetryConfig|FileHelper|Error executing process >/.test(l)) || '';
   const parts = [proc || failed?.name ? `process ${proc || failed?.name} failed` : '', specific.slice(0, 300)].filter(Boolean);
   return parts.join(' — ') || 'failed with no recorded error message (task logs not captured)';
+}
+
+/** Assemble the raw error text recorded on a run (recorded error + log/trace lines). */
+function assembleRunErrorText(execution: any, errorMessage?: string | null): string {
+  const e = execution || {};
+  return [e.error, errorMessage, ...(Array.isArray(e.nextflowLog) ? e.nextflowLog : []), ...(Array.isArray(e.errorLines) ? e.errorLines : [])]
+    .filter((x: any) => typeof x === 'string' && x.trim())
+    .join('\n');
+}
+
+/**
+ * Plain-language explanation of WHY a run failed — the specific cause, the input/
+ * param at fault, and a concrete next action, in one message (raw error appended
+ * for expansion). Uses the deterministic rule-based classifier; when the error
+ * matches no known class it states the failing step and shows the raw error
+ * rather than inventing a cause. This is what the assistant relays when the user
+ * asks "why is the run failing?" (org-user issue #3). Returns `null` only when the
+ * run is not actually in a failed/error state.
+ */
+export function runFailureExplanation(execution: any, errorMessage?: string | null): string | null {
+  const e = execution || {};
+  const status = String(e.status ?? '').toLowerCase();
+  if (status && !/fail|error|cancel/.test(status)) return null;
+  const raw = assembleRunErrorText(e, errorMessage);
+  const failedProc = Array.isArray(e.processes) ? e.processes.find((p: any) => /fail/i.test(String(p?.status)))?.name : undefined;
+  const exp = classifyRunFailure(raw, { process: failedProc });
+  return formatRunFailureReply(exp);
 }
 
 /** Prompt line fixing the reply language to the user's own words (not the English attachment blocks,
@@ -7073,6 +7107,37 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         isMultiIntent: false,
         primaryIntent: knowledgeIntent,
       };
+    }
+
+    // Short-circuit: the user is asking why THEIR OWN run failed / is stuck.
+    // Deterministically route to run_diagnostics so the answer is composed from
+    // the run record's recorded error (the recent-runs-with-errors block injected
+    // upstream), NOT the research/literature agent. The production misroute this
+    // fixes: "why is the run failing?" was classified research_question and
+    // answered with a generic cited paper ("code execution often fails… please
+    // provide the error message/logs") three times — for logs BioMate already had
+    // (org-user issue #3, 2026-11-09). Gated on a real run-problem phrasing and a
+    // userId (so we have a run to inspect), and excluded when the user is clearly
+    // asking for new literature instead (so "find papers on why runs fail" still
+    // reaches research). asksAboutRunProblem is already scoped to not match
+    // generic questions like "what is the failure rate of CAR-T therapy?".
+    const _wantsLiterature = /\b(find|search|cite|review|look up)\b[^.?!\n]{0,40}\b(papers?|literature|publications?|studies|articles?)\b|\bpapers? (?:on|about)\b/i.test(message);
+    if (asksAboutRunProblem(message) && context.userId && !_wantsLiterature) {
+      const diagIntent: DecomposedIntent = {
+        id: 'intent_run_diagnostics_forced',
+        type: 'run_diagnostics',
+        subQuery: message,
+        keywords: [],
+        inlineParameters: {},
+        needsToolSearch: false,
+        needsDatasets: false,
+        confidence: 0.95,
+        facts: [],
+        dependsOn: [],
+        actions: inferActionsFromType('run_diagnostics'),
+      };
+      console.log('[GalaxyAssistant] Short-circuit: run-diagnostics (user asked why their run failed) — bypassing research/literature routing');
+      return { intents: [diagIntent], isMultiIntent: false, primaryIntent: diagIntent };
     }
 
     // Short-circuit: E2E test hook — bypass LLM classification entirely.
@@ -11727,9 +11792,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           paramCount: paramKeys.length,
           paramKeys: paramKeys.slice(0, 6),
           outputCount: Object.keys((e.outputs as any) || {}).length,
-          // The recorded failure reason (process + specific line), so "why did it fail?" is answered
-          // from the run itself, not guessed.
-          ...(/fail|error/i.test(String(e.status || '')) ? { error: runErrorSummary(e, (r as any).errorMessage) } : {}),
+          // The recorded failure reason (process + specific line) plus a plain-language
+          // diagnosis (cause · at-fault input · next action), so "why did it fail?" is
+          // answered from the run itself, not guessed.
+          ...(/fail|error/i.test(String(e.status || ''))
+            ? { error: runErrorSummary(e, (r as any).errorMessage), diagnosis: runFailureExplanation(e, (r as any).errorMessage) }
+            : {}),
         };
       });
       return {
@@ -11778,13 +11846,18 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const here = opts.chatSessionId && (r as any).chatSessionId === opts.chatSessionId ? ' · this chat' : '';
         let line = `  • ${r.id.slice(0, 8)} · ${r.workflowName || 'unnamed'} · ${status} · ${date} · ${outs} outputs${here}`;
         if (opts.withErrors && /fail|error/i.test(String(status))) {
-          line += `\n      error: ${runErrorSummary(e, (r as any).errorMessage)}`;
+          // Classified, plain-language cause + at-fault input + next action, so the
+          // assistant can answer "why did it fail?" legibly (not just the raw stack).
+          const explained = runFailureExplanation(e, (r as any).errorMessage);
+          line += explained
+            ? '\n' + explained.split('\n').map(l => `      ${l}`).join('\n')
+            : `\n      error: ${runErrorSummary(e, (r as any).errorMessage)}`;
         }
         return line;
       });
       return [
         opts.withErrors
-          ? '[The user\'s recent workflow runs, with the recorded error of each failed run — answer questions about a failing run from these errors (state the cause and the fix), not from literature. When a run has no recorded error, say exactly that and tell the user where to see its task log (the run\'s card in the workflow panel → failed step → log); do not guess causes]'
+          ? '[The user\'s recent workflow runs, with a plain-language diagnosis of each failed run (cause · at-fault input · next action, from the run\'s own recorded error). Answer "why did my run fail?" from THIS — in one message give the specific cause, the input/param at fault, and the one concrete next action. Do NOT answer from literature, do NOT cite papers, and do NOT ask the user to paste logs/errors you have already been given here. The raw error is on the "Error:" line — show it only if they want detail. When a line says the cause could not be classified, state the failing step and show the raw error, and offer to investigate — never invent a cause. When a run has no recorded error, say exactly that and point to the run\'s card in the workflow panel → failed step → log]'
           : '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
         ...lines,
         '(call list_history for filtered/expanded details)',

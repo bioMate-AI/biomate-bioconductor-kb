@@ -74,6 +74,14 @@
 .side-link .side-icon { opacity: 0.7; flex-shrink: 0; }
 
 .side-history { overflow-y: auto; flex: 1; }
+
+/* Per-chat row + delete control (app-sidebar "OTHER CHATS" list). The trash
+   icon is always rendered (dimmed) for discoverability; the row hover brightens
+   it and gives the row a subtle surface. */
+.sidebar-chat-row:hover { background: var(--surface-2); }
+.sidebar-chat-row:hover .sidebar-chat-delete { opacity: 1; }
+.sidebar-chat-delete:hover { background: var(--surface-3); color: var(--err, oklch(0.58 0.18 25)); }
+
 .side-history .side-link { padding: 5px 10px; font-size: 12.5px; }
 .side-history .side-link .q {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

@@ -111,7 +111,9 @@
     "generating": "Generating response...",
     "copy_message": "Copy message",
     "regenerate": "Regenerate",
-    "attach_file": "Attach file"
+    "attach_file": "Attach file",
+    "delete_chat": "Delete chat",
+    "delete_confirm": "Delete chat"
   },
   "composer": {
     "data": "data",
@@ -987,7 +989,10 @@
     "findings_pending": "Findings analysis is still pending. This report updates when the analysis is available.",
     "findings_empty": "No structured findings summary was recorded.",
     "incomplete_record_available": "Run incomplete — partial outputs and the run record remain available.",
-    "source_unavailable": "The cited output could not be uniquely located in this run: {{file}}"
+    "source_unavailable": "The cited output could not be uniquely located in this run: {{file}}",
+    "why_failed": "Why it failed",
+    "at_fault": "At fault",
+    "next_action": "Next"
   },
   "datasets_dialog": {
     "title": "Select dataset",
@@ -1033,6 +1038,7 @@
     "history_auto_label": "Chat session",
     "history_auto_label_dated": "Chat session · {{date}}",
     "url_cloud_label": "Google Drive / Dropbox (best for large files — no browser upload):",
-    "url_cloud_help": "Set the file to \"Anyone with the link\" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser."
+    "url_cloud_help": "Set the file to \"Anyone with the link\" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser.",
+    "browse_folder": "select a folder"
   }
 }

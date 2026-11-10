@@ -25,9 +25,13 @@ import {
   Wrench,
   Workflow,
   Server,
+  Trash2,
+  Check,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { t } from "@/lib/i18n"
+import { t, tOr } from "@/lib/i18n"
+import { chatHistoryService } from "@/lib/chat-history"
 import { analytics } from "@/lib/analytics"
 import { useActiveProject } from "@/contexts/active-project-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -130,6 +134,39 @@ export function AppSidebar({
   const { activeProjectId: contextProjectId, setActiveProjectId: setContextProjectId } = useActiveProject();
   const selectedProjectId = activeProjectId || contextProjectId;
   const [projectSessions, setProjectSessions] = useState<Record<string, Array<{ session_id: string; title: string }>>>({});
+
+  // Per-chat delete: `confirmingDeleteChatId` drives the inline confirm (trash →
+  // check/cancel); `deletedChatIds` optimistically hides a row the moment its
+  // DELETE succeeds (the parent-owned `chatSessions` prop lags one render).
+  const [confirmingDeleteChatId, setConfirmingDeleteChatId] = useState<string | null>(null);
+  const [deletedChatIds, setDeletedChatIds] = useState<Set<string>>(new Set());
+  const handleDeleteChat = useCallback(async (chatId: string) => {
+    setConfirmingDeleteChatId(null);
+    // Optimistically remove the row first so the UI feels instant.
+    setDeletedChatIds(prev => new Set(prev).add(chatId));
+    try {
+      // Explicit, caller-driven backend delete (same philosophy as
+      // fetchSessionDetail) — not gated on the background-sync flag. The route
+      // (DELETE /api/sessions/:sessionId) scopes to the owner via the JWT.
+      const res = await fetch(`/api/sessions/${encodeURIComponent(chatId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) {
+        // Roll back the optimistic hide on a real server error.
+        setDeletedChatIds(prev => { const n = new Set(prev); n.delete(chatId); return n; });
+        return;
+      }
+    } catch {
+      setDeletedChatIds(prev => { const n = new Set(prev); n.delete(chatId); return n; });
+      return;
+    }
+    // Keep localStorage truthful so the parent's next getAllSessions() won't
+    // resurrect the row (backend already deleted above — local-only purge).
+    chatHistoryService.removeSessionLocal(chatId);
+    // If we just deleted the chat the user is viewing, start a fresh chat.
+    if (activeChatId === chatId) onNewChat();
+  }, [activeChatId, onNewChat]);
 
   // Projects — fetched from API (not localStorage) so they survive page reload
   const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string; userId?: string }>>([]);
@@ -358,35 +395,79 @@ export function AppSidebar({
         {recentChats.length > 0 && (
           <>
             <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
-            {recentChats.filter(chat => !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
+            {recentChats.filter(chat => !deletedChatIds.has(chat.id) && !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id
+              const isConfirming = confirmingDeleteChatId === chat.id
               return (
-                <button
+                <div
                   key={chat.id}
-                  onClick={() => onChatSelect(chat.id)}
-                  data-testid={`button-chat-${chat.id}`}
+                  className="sidebar-chat-row"
+                  data-testid={`chat-row-${chat.id}`}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 9,
-                    padding: '5px 10px', borderRadius: 6,
-                    color: isActive ? 'var(--bm-text)' : 'var(--bm-text-muted)',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    borderRadius: 6,
                     background: isActive ? 'var(--bm-surface-3, oklch(0.945 0.005 240))' : 'transparent',
-                    fontWeight: isActive ? 500 : 400,
-                    fontSize: 12.5, cursor: 'pointer', border: 'none',
-                    width: '100%', textAlign: 'left',
                   }}
                 >
-                  <span style={{
-                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                    background: dotStatus === 'running' ? 'var(--bm-accent, oklch(0.55 0.14 245))' :
-                                dotStatus === 'failed'  ? 'var(--bm-err, oklch(0.58 0.18 25))' :
-                                dotStatus === 'cancelled' ? 'var(--bm-text-dim, oklch(0.62 0.01 260))' :
-                                dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
-                                'var(--bm-border-strong, oklch(0.80 0.008 240))',
-                    animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
-                  }} title={dotStatus || 'idle'} data-testid={`history-dot-${chat.id}`} />
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
-                </button>
+                  <button
+                    onClick={() => onChatSelect(chat.id)}
+                    data-testid={`button-chat-${chat.id}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '5px 10px', borderRadius: 6,
+                      color: isActive ? 'var(--bm-text)' : 'var(--bm-text-muted)',
+                      background: 'transparent',
+                      fontWeight: isActive ? 500 : 400,
+                      fontSize: 12.5, cursor: 'pointer', border: 'none',
+                      flex: 1, minWidth: 0, textAlign: 'left',
+                    }}
+                  >
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: dotStatus === 'running' ? 'var(--bm-accent, oklch(0.55 0.14 245))' :
+                                  dotStatus === 'failed'  ? 'var(--bm-err, oklch(0.58 0.18 25))' :
+                                  dotStatus === 'cancelled' ? 'var(--bm-text-dim, oklch(0.62 0.01 260))' :
+                                  dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
+                                  'var(--bm-border-strong, oklch(0.80 0.008 240))',
+                      animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
+                    }} title={dotStatus || 'idle'} data-testid={`history-dot-${chat.id}`} />
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
+                  </button>
+                  {isConfirming ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, paddingRight: 6 }}>
+                      <button
+                        onClick={() => handleDeleteChat(chat.id)}
+                        data-testid={`confirm-delete-chat-${chat.id}`}
+                        title={tOr('chat.delete_confirm', 'Delete chat')}
+                        aria-label={tOr('chat.delete_confirm', 'Delete chat')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-err, oklch(0.58 0.18 25))' }}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setConfirmingDeleteChatId(null)}
+                        data-testid={`cancel-delete-chat-${chat.id}`}
+                        title={tOr('common.cancel', 'Cancel')}
+                        aria-label={tOr('common.cancel', 'Cancel')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-dim)' }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmingDeleteChatId(chat.id); }}
+                      data-testid={`button-delete-chat-${chat.id}`}
+                      title={tOr('chat.delete_chat', 'Delete chat')}
+                      aria-label={tOr('chat.delete_chat', 'Delete chat')}
+                      className="sidebar-chat-delete"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, marginRight: 6, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-dim)', opacity: 0.55, flexShrink: 0 }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               )
             })}
 

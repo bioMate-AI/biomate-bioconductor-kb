@@ -1,5 +1,6 @@
 import { RunFileDownload, runFileUrl } from "@/components/run-file-download";
 import { normalizeQcEvents, qcActionTaken, qcResultLabel, qcSourceName, type QcAssessment } from "@shared/qc-assessment";
+import { classifyRunFailure } from "@shared/run-failure-classifier";
 /**
  * AfterRunReport — 7-tab inline after-run panel for the v2 workflow surface.
  *
@@ -723,6 +724,31 @@ function FailedRunSection({
           )}
         </div>
       )}
+
+      {/* Plain-language diagnosis (cause · at-fault input · next action), so a
+          first-time user can tell WHY the run failed without reading the stack
+          (org-user issue #3). Rule-based; when the error matches no known class
+          it is hidden and only the raw error below is shown — we never invent a
+          cause. The raw error stays available in the block beneath. */}
+      {(() => {
+        const diag = errorMessage ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
+        if (!diag || !diag.known || !diag.cause) return null;
+        return (
+          <div style={styles.failureDiagnosis} data-testid="afterrun-failure-diagnosis" data-failure-class={diag.klass}>
+            <div style={styles.failureDiagnosisCause}>
+              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {diag.cause}
+            </div>
+            {diag.culprit && !diag.cause.includes(diag.culprit) && (
+              <div style={styles.failureDiagnosisLine}>
+                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {diag.culprit}
+              </div>
+            )}
+            <div style={styles.failureDiagnosisLine}>
+              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {diag.nextAction}
+            </div>
+          </div>
+        );
+      })()}
 
       {errorMessage && (
         <pre style={styles.errorBlock} data-testid="afterrun-error-message">
@@ -2913,6 +2939,9 @@ const styles: Record<string, React.CSSProperties> = {
   failedHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 },
   failedBadge: { padding: "3px 9px", fontSize: 11, fontWeight: 600, borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.04em" },
   runAgainBtn: { marginLeft: "auto", padding: "6px 12px", fontSize: 12, fontWeight: 500, background: "oklch(0.55 0.14 245)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" },
+  failureDiagnosis: { background: "white", border: "1px solid oklch(0.88 0.04 25)", borderRadius: 4, padding: "8px 10px", margin: "6px 0", fontSize: 12.5, lineHeight: 1.45, color: "oklch(0.30 0.02 25)" },
+  failureDiagnosisCause: { marginBottom: 4 },
+  failureDiagnosisLine: { marginTop: 2 },
   errorBlock: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", background: "white", color: "oklch(0.40 0.18 25)", padding: 8, borderRadius: 4, whiteSpace: "pre-wrap", margin: "6px 0", border: "1px solid oklch(0.92 0.04 25)" },
   failedStepBox: { marginTop: 6 },
   failedStepLabel: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", marginBottom: 4, fontWeight: 600 },

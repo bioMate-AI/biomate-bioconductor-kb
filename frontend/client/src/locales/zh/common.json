@@ -117,7 +117,9 @@
       "matched": "已匹配到工作流",
       "plan": "正在准备方案…",
       "search": "正在检索 4,000+ 个工作流…"
-    }
+    },
+    "delete_chat": "删除对话",
+    "delete_confirm": "确认删除"
   },
   "composer": {
     "data": "数据",
@@ -1082,7 +1084,10 @@
     "findings_pending": "分析发现仍在生成，完成后报告会自动更新。",
     "findings_empty": "未记录结构化的分析发现摘要。",
     "incomplete_record_available": "运行未完成，仍可查看已生成的部分输出和运行记录。",
-    "source_unavailable": "无法在本次运行中唯一确定引用的输出文件：{{file}}"
+    "source_unavailable": "无法在本次运行中唯一确定引用的输出文件：{{file}}",
+    "why_failed": "失败原因",
+    "at_fault": "问题所在",
+    "next_action": "下一步"
   },
   "design": {
     "axis_x": "横轴",
@@ -1524,6 +1529,7 @@
     "history_auto_label": "对话会话",
     "history_auto_label_dated": "对话会话 · {{date}}",
     "url_cloud_label": "Google Drive / Dropbox（适合大文件——无需浏览器上传）：",
-    "url_cloud_help": "将文件共享设为“知道链接的任何人”并粘贴到此处——服务器会直接拉取，因此数 GB 的大文件无需经过浏览器。"
+    "url_cloud_help": "将文件共享设为“知道链接的任何人”并粘贴到此处——服务器会直接拉取，因此数 GB 的大文件无需经过浏览器。",
+    "browse_folder": "选择文件夹"
   }
 }

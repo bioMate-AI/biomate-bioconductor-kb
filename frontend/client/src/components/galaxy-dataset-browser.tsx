@@ -120,6 +120,7 @@ function SessionTab({
   const [uploadError, setUploadError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const folderRef = React.useRef<HTMLInputElement>(null);
 
   const uploadFile = async (file: File): Promise<void> => {
     // Size-branched upload: ≤100 MiB → single POST; larger → real S3 multipart.
@@ -230,6 +231,18 @@ function SessionTab({
           className="hidden"
           onChange={handleFileChange}
         />
+        {/* Folder selection for click-to-browse (drag-drop already accepts folders).
+            webkitdirectory makes the native picker choose a directory; its files
+            arrive in e.target.files like any multi-file selection. */}
+        <input
+          ref={folderRef}
+          type="file"
+          multiple
+          {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
+          className="hidden"
+          onChange={handleFileChange}
+          data-testid="dataset-folder-input"
+        />
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -253,7 +266,18 @@ function SessionTab({
                 : tOr('datasets_dialog.drop_hint', 'Drop files or folders here, or click to browse')}
           </span>
           {!uploading && (
-            <span className="text-[11px] text-muted-foreground/60">{tOr('datasets_dialog.files_folders_supported', 'Files and folders supported')}</span>
+            <span className="text-[11px] text-muted-foreground/60">
+              {tOr('datasets_dialog.files_folders_supported', 'Files and folders supported')}
+              {' · '}
+              <button
+                type="button"
+                className="underline hover:text-foreground"
+                onClick={(e) => { e.stopPropagation(); folderRef.current?.click(); }}
+                data-testid="dataset-browse-folder"
+              >
+                {tOr('datasets_dialog.browse_folder', 'select a folder')}
+              </button>
+            </span>
           )}
         </div>
       </div>
