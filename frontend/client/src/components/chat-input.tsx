@@ -522,7 +522,7 @@ export function ChatInput({
 
   return (
     <div
-      className="border-t bg-background p-4"
+      className="p-4"
       style={{ position: 'relative' }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}

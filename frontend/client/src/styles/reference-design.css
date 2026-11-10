@@ -8,16 +8,16 @@
 /* ── Global design tokens ─────────────────────────────────── */
 :root {
   /* Neutrals — cool-leaning oklch, matches reference tokens.css */
-  --bm-bg:            #ffffff;
+  --bm-bg:            oklch(0.96 0.01 240);
   --bm-bg-elev:       #ffffff;
-  --bm-surface:       oklch(0.985 0.003 240);
-  --bm-surface-2:     oklch(0.965 0.004 240);
-  --bm-surface-3:     oklch(0.945 0.005 240);
-  --bm-border:        oklch(0.915 0.006 240);
-  --bm-border-strong: oklch(0.86  0.008 240);
+  --bm-surface:       #ffffff;
+  --bm-surface-2:     oklch(0.97 0.01 240);
+  --bm-surface-3:     oklch(0.93 0.01 240);
+  --bm-border:        oklch(0.87 0.01 240);
+  --bm-border-strong: oklch(0.75 0.01 240);
   --bm-text:          oklch(0.22  0.01  260);
-  --bm-text-muted:    oklch(0.48  0.012 260);
-  --bm-text-dim:      oklch(0.62  0.010 260);
+  --bm-text-muted:    oklch(0.45 0.012 260);
+  --bm-text-dim:      oklch(0.55 0.010 260);
 
   /* Accent — single cool blue, used sparingly */
   --bm-accent:        oklch(0.55  0.14  245);
@@ -27,12 +27,12 @@
   --bm-primary:       #007fbd;
 
   /* Status colours */
-  --bm-ok:            oklch(0.62  0.13  150);
-  --bm-ok-soft:       oklch(0.96  0.04  150);
-  --bm-warn:          oklch(0.72  0.14  75);
-  --bm-warn-soft:     oklch(0.96  0.05  75);
-  --bm-err:           oklch(0.58  0.18  25);
-  --bm-err-soft:      oklch(0.96  0.05  25);
+  --bm-ok:            oklch(0.50 0.14 150);
+  --bm-ok-soft:       oklch(0.97 0.04 150);
+  --bm-warn:          oklch(0.60 0.16 75);
+  --bm-warn-soft:     oklch(0.97 0.05 75);
+  --bm-err:           oklch(0.55 0.18 25);
+  --bm-err-soft:      oklch(0.97 0.04 25);
 
   /* Speaker palette — workflow progress pills (Surface 2) */
   --bm-plan:   oklch(0.55 0.15 145);   /* green */

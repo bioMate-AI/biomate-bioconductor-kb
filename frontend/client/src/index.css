@@ -15,40 +15,40 @@
   --elevate-2: rgba(0,0,0, .08);
 
   /* Clean lab aesthetic with cool tones */
-  --background: 206 56% 99%;
+  --background: 212 20% 95%;
 
-  --foreground: 217 13% 11%;
+  --foreground: 212 20% 12%;
 
-  --border: 206 13% 89%;
+  --border: 212 15% 85%;
 
-  --card: 206 37% 98%;
+  --card: 0 0% 100%;
 
-  --card-foreground: 217 13% 11%;
+  --card-foreground: 212 20% 12%;
 
-  --card-border: 206 10% 82%;
+  --card-border: 212 15% 85%;
 
-  --sidebar: 206 37% 98%;
+  --sidebar: 0 0% 100%;
 
-  --sidebar-foreground: 217 13% 11%;
+  --sidebar-foreground: 212 20% 12%;
 
-  --sidebar-border: 206 13% 89%;
+  --sidebar-border: 212 15% 85%;
 
   /* Primary: Scientific Teal (DNA sequencing, lab equipment) */
   --sidebar-primary: 202 100% 37%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 206 16% 93%;
+  --sidebar-accent: 212 20% 95%;
 
-  --sidebar-accent-foreground: 217 13% 11%;
+  --sidebar-accent-foreground: 212 20% 12%;
 
   --sidebar-ring: 202 100% 37%;
 
-  --popover: 206 37% 98%;
+  --popover: 0 0% 100%;
 
-  --popover-foreground: 217 13% 11%;
+  --popover-foreground: 212 20% 12%;
 
-  --popover-border: 206 13% 89%;
+  --popover-border: 212 15% 85%;
 
   /* Primary: Scientific Teal */
   --primary: 202 100% 37%;
@@ -56,13 +56,13 @@
   --primary-foreground: 0 0% 100%;
 
   /* Secondary: Deep Purple (proteins, molecular biology) */
-  --secondary: 206 21% 95%;
+  --secondary: 212 20% 93%;
 
   --secondary-foreground: 217 13% 11%;
 
-  --muted: 206 21% 95%;
+  --muted: 212 20% 92%;
 
-  --muted-foreground: 217 6% 37%;
+  --muted-foreground: 212 15% 38%;
 
   /* Accent: Biology Green */
   --accent: 202 100% 94%;
@@ -73,7 +73,7 @@
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 206 13% 89%;
+  --input: 212 15% 85%;
   --ring: 202 100% 37%;
 
   /* Chart colors inspired by DNA bases (Adenine, Thymine, Guanine, Cytosine) */
