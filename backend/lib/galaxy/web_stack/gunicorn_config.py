@@ -6,6 +6,11 @@ import gc
 import os
 import sys
 
+# Recycle each worker after this many requests to cap memory growth from leaks.
+# jitter spreads the recycling so not all workers restart at the same moment.
+max_requests = 500
+max_requests_jitter = 50
+
 
 def is_preload_app():
     return "--preload" in os.environ.get("GUNICORN_CMD_ARGS", "") or "--preload" in sys.argv
