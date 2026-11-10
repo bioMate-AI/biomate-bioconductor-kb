@@ -793,6 +793,12 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
                 _update_chain(current)
                 log.warning("workflow_chain: step %d scalar-template warnings: %s", idx, tmpl_warnings)
 
+        # Record the fully-resolved params (handoffs + transforms + context + templates) on the step,
+        # so the chain status reflects what the run actually received — not the pre-wiring params.
+        # (Without this, a transform-wired value like herg_ic50_nM shows in the run but not the status.)
+        current["steps"][idx]["params"] = params
+        _update_chain(current)
+
         # Launch Nextflow via the existing executor
         try:
             from galaxy.webapps.galaxy.api.nextflow_executor import (  # noqa: PLC0415
