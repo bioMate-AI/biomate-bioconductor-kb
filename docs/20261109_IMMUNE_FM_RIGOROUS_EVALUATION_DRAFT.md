@@ -101,3 +101,38 @@ independent replicates; the FM checkpoint is one model (no retrained fusion); re
 All scripts + results committed under `docs/20261108_knowledge_features_baseline/`,
 `docs/20261109_immune_task_scoreboard/`, `docs/20261109_multichannel/`, and the gate docs
 `20261109_IMMUNE_PERTURB_*`, `20261109_IMMUNE_MULTICHANNEL_FUSION_BROKEN.md`, `20261109_SESSION_AUDIT.md`.
+
+## Architecture assessment (multi-omics) — design capable, trained model starved
+
+The multi-omic fusion (`MosaicOmicFusion` in `immune_hybrid_llm.py`) is a **sound design**: per-modality
+encoders + per-modality sigmoid **gates** + per-cell presence masks + modality-dropout + per-modality
+**reconstruction decoders**, upgraded to **cross-attention** so modalities interact (CLS-pooled fused rep).
+This matches field best practice (totalVI/MultiVI principles). The design is not the failure.
+
+**The trained checkpoint's weights show why fusion is net-negative:**
+
+| channel | encoder ‖W‖ | gate bias (sigmoid admit) | decoder |
+|---|---:|---:|---:|
+| rna | 124 (dominant) | +1.9 (0.87) | none (base) |
+| protein | 42 (undertrained) | **+1.0 (0.73, OPEN)** | yes |
+| atac | 31 | −0.29 (0.43) | yes |
+| tcr | 58 | +1.35 | yes |
+| knowledge | 22 | −3.09 (0.04, CLOSED) | none |
+| genetics | 14 | −1.42 (0.19) | yes |
+
+- RNA is the only well-trained channel; others are undertrained (protein 42 vs RNA 124).
+- The gate learned to **close** knowledge/genetics/atac (protecting z) — but **left protein's gate OPEN
+  (+1.0)** while protein's encoder is undertrained, so the fusion *admits* an unreliable protein signal
+  that corrupts z (`fm_multi` 0.692 ≪ `fm_rna` 0.835 ≪ naive concat 0.918). A correct fusion never does
+  worse than the best channel; this one does.
+- **Root cause = paired-multi-omic data starvation.** The checkpoint trained on **22,065,317 cells / 714
+  studies**, RNA-dominant; paired CITE/multiome is ≪0.1% (hundreds–thousands of anchors per program
+  docs). Protein was seen in *enough* cells to open its gate but *not enough* to make its encoder
+  reliable or teach the gate when to trust it. The multi-omic pathways are architecturally present but
+  functionally vestigial-to-harmful.
+
+**Verdict:** the multi-omic *architecture* can fulfill the objective; this *trained model* does not. The
+fix is **not a redesign — it is training on genuinely paired multi-omic data at scale** (CITE RNA+protein,
+multiome RNA+ATAC) with the reconstruction decoders active and the gates free to learn per-channel trust.
+Until that data exists, the working multi-omic path is naive concatenation of raw channels or a
+task-specific VAE (totalVI) — both beat this RNA-starved transformer fusion.
