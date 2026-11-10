@@ -7,17 +7,15 @@ Draft benchmark write-up. Recorded 2026-11-09. All numbers from committed artifa
 We evaluate an immune multi-omic foundation model (FM; 6-channel hybrid encoder — RNA / protein / ATAC /
 TCR / knowledge / genetics) against properly-tuned simple baselines across single-channel, multi-channel,
 and perturbation tasks, under group-disjoint splits, converged solvers, and matched nulls. **The FM does
-not beat simple baselines on any supervised IN-DATASET task we could measure — but it DOES win zero-shot
-CROSS-DATASET transfer, its designed regime.** It ties PCA on annotation
+not beat simple baselines on any supervised IN-DATASET task we could measure — and — under rigorous hardening — it does NOT
+robustly win zero-shot cross-dataset transfer either (raw RNA beats it on gold-label accuracy).** It ties PCA on annotation
 (at proper convergence), loses to raw RNA and to protein on stimulation classification, and its learned
 multi-omic *fusion* is actively harmful (far worse than naive concatenation). On unseen-perturbation
 prediction, four learned models (including a GPU attention model) all lose to a non-parametric neighbor-
 mean. The one regime where a learned component wins is **label scarcity** (a knowledge channel beats raw
 by +0.14 AUPRC at ~60 labels). These results reproduce the single-cell FM literature's own skeptical
-consensus (Kedzierska et al.; "one PCA still rules them all"). The FM's genuine niche is
-**zero-shot cross-dataset transfer**, where it DOES win: transferring a cell-type structure to an unseen
-cohort (D534→GSE239626), the FM beats PCA (NMI 0.477 vs 0.426) and raw (0.346) — PCA's per-dataset fit
-cannot transfer, the FM's fixed space can.
+consensus (Kedzierska et al.; "one PCA still rules them all"). A preliminary single-direction test (D534→GSE239626, NMI vs the target's clusters) suggested the FM won
+zero-shot transfer (FM 0.477 > PCA 0.426 > raw 0.346). **This did NOT survive hardening** (below).
 
 ## Methods
 
@@ -64,15 +62,14 @@ tiny sample. The benefit washes out as labels grow (a prior washing out with dat
 type-regularizer, not a transfer mechanism: under tissue shift it reverses (the mean inherits the
 compartment offset).
 
-**6. Zero-shot cross-dataset transfer — the FM WINS (its genuine niche).** Train a D534 18-cell-type
-classifier in each space, apply to the unseen GSE239626 cohort (MS vitamin-D trial, 72k cells, different
-gene panel), and score correspondence of transferred labels to GSE239626's own clusters: **FM NMI 0.477 /
-ARI 0.397 > PCA 0.426 / 0.352 > raw 0.346 / 0.215**. The FM's fixed shared embedding transfers cell
-structure across datasets where A-fit PCA (which must refit per dataset) and raw cannot. This is the one
-regime our in-dataset supervised evals structurally could not test — and it is exactly where the FM earns
-its place, consistent with the FM literature's integration/transfer claims. (Caveat: target labels are
-GSE239626's self-derived ADT clusters, so NMI measures transfer *coherence*, not gold-standard accuracy;
-one cohort pair, one direction, RNA-only FM.)
+**6. Zero-shot cross-dataset transfer — does NOT survive hardening.** A preliminary single-direction test
+(D534→GSE239626, NMI vs the target's self-derived clusters) suggested an FM win (0.477 > PCA 0.426 > raw
+0.346). But on the HARDENED test — gold-label accuracy, bidirectional, 6 directed transfers across three
+Cell-Ontology-labeled cohorts (io / imid / infectious_control, common named types) — **raw RNA wins**:
+mean accuracy raw 0.573 > PCA 0.470 > FM 0.456; macro-F1 raw 0.497 >> FM 0.357; the FM is best in only
+2/6 transfers. The preliminary win was an artifact of (a) a soft cluster-coherence metric instead of
+accuracy, (b) a single direction, and (c) a target with a very different gene panel that penalized raw's
+alignment. **Conclusion: the FM does not robustly beat raw even in zero-shot cross-dataset annotation.**
 
 ## Discussion
 
