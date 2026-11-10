@@ -4178,24 +4178,27 @@ def generate_workflow_unified(
 
         # ── Data-grounded input kinds ────────────────────────────────────────
         # Ground the routing input-kind check in the SHAPE of the data the user actually attached,
-        # rather than the intent classifier's guess from prose. data_perception.infer_input_kinds
-        # profiles each attached dataset (extension + column shape) and maps it to the closed
-        # input_kinds vocabulary (.fastq→fastq, .mzML→raw_spectra, abundance/DE TABLE→counts_matrix,
-        # proteinGroups→protein_table, …). When real data is attached, this OVERRIDES the prose
-        # classifier (request.user_input_kinds) so step 8a's compatibility fires generally and
-        # symmetrically — a processed TABLE demotes raw pipelines; raw files keep the raw pipeline.
-        # Without this a McGill user with processed DIA abundance tables was routed to the raw
-        # nf-core/diaproteomics pipeline. Falls back to the classifier's value when nothing is
-        # profilable. (docs 2026-11-09 processed-vs-raw routing.)
+        # rather than the intent classifier's guess from prose. data_perception profiles each
+        # attached dataset (extension + column shape) and maps it to the closed input_kinds vocab
+        # (.fastq→fastq, .mzML→raw_spectra, abundance/DE TABLE→counts_matrix, proteinGroups→
+        # protein_table, …), then resolve_effective_input_kinds combines that with the prose kinds:
+        #   • attached PRIMARY data (raw file or processed table) OVERRIDES the prose guess, so step
+        #     8a owns raw-vs-processed — a processed TABLE demotes raw pipelines; raw files keep them;
+        #   • an AUXILIARY-only attachment (reference genome .fa, gene model .gtf, ligand library
+        #     .sdf, structure .pdb) is MERGED with the prose kinds, never replacing them, so a user
+        #     with prose-described FASTQ reads + an attached reference genome keeps {fastq} and its
+        #     compatibility boost (committee review 2026-11-09, finding 3);
+        #   • nothing profilable (or a design/sample sheet) → the prose value is returned unchanged.
+        # Without this a McGill user with processed DIA abundance tables was routed to raw
+        # nf-core/diaproteomics. (docs 2026-11-09 processed-vs-raw routing.)
         effective_input_kinds = request.user_input_kinds
         try:
-            from galaxy.ai.data_perception import infer_input_kinds as _infer_input_kinds
-            _data_kinds = _infer_input_kinds(uploaded_datasets or [])
-            if _data_kinds:
-                effective_input_kinds = _data_kinds
+            from galaxy.ai.data_perception import resolve_effective_input_kinds as _resolve_input_kinds
+            effective_input_kinds = _resolve_input_kinds(request.user_input_kinds, uploaded_datasets or [])
+            if effective_input_kinds != request.user_input_kinds:
                 log.info(
-                    "[generate_workflow] data-grounded input_kinds=%s (override prose classifier=%s)",
-                    _data_kinds, request.user_input_kinds,
+                    "[generate_workflow] data-grounded input_kinds=%s (prose classifier=%s)",
+                    effective_input_kinds, request.user_input_kinds,
                 )
         except Exception as _ik_err:  # noqa: BLE001 — never block generation on perception
             log.debug("[generate_workflow] input-kind inference failed (non-fatal): %s", _ik_err)

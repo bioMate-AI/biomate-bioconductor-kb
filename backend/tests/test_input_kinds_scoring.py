@@ -180,3 +180,22 @@ def test_attached_raw_files_do_not_demote_raw_pipeline(tmp_path):
     # raw spectra attached → diaproteomics (raw_spectra) matches, not demoted
     assert _score_k(s, q, frozenset({"raw_spectra"}), ["raw_spectra"]) \
         == _score_k(s, q, frozenset({"raw_spectra"}), None) + 3.0
+
+
+def test_reference_attachment_does_not_discard_prose_fastq(tmp_path):
+    # Finding 3 (committee review 2026-11-09): a user with prose-described RNA-seq FASTQ reads who
+    # ALSO attaches a reference genome (.fa) + annotation (.gtf) must keep {fastq}. The auxiliary
+    # files are MERGED (resolve_effective_input_kinds), NOT allowed to override the prose primary —
+    # so the raw rnaseq pipeline keeps its +3 compatibility boost.
+    from galaxy.ai.data_perception import resolve_effective_input_kinds
+    s = _search(tmp_path)
+    datasets = [{"name": "GRCh38.primary_assembly.fa"}, {"name": "gencode.v44.annotation.gtf"}]
+    eff = resolve_effective_input_kinds(["fastq"], datasets)
+    assert "fastq" in eff  # prose fastq survives the reference attachment (not discarded)
+    q = "Run RNA-seq expression analysis."
+    assert _score_k(s, q, frozenset({"fastq"}), eff) == _score_k(s, q, frozenset({"fastq"}), None) + 3.0
+    # Contrast — an attached PRIMARY processed table IS authoritative and overrides the prose guess:
+    eff_tab = resolve_effective_input_kinds(["raw_spectra"], [{"name": "proteinGroups.txt"}])
+    assert set(eff_tab) == {"protein_table", "counts_matrix"}  # raw_spectra prose discarded
+    assert _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), eff_tab) \
+        == _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), None) - _PEN  # raw demoted (McGill)

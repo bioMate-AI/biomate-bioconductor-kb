@@ -13,7 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend" / "lib"))
 
-from galaxy.ai.data_perception import infer_input_kinds  # noqa: E402
+from galaxy.ai.data_perception import (  # noqa: E402
+    infer_input_kinds,
+    has_primary_input_kind,
+    resolve_effective_input_kinds,
+)
 from galaxy.ai.chain_composer.input_kinds_classifier import INPUT_KINDS  # noqa: E402
 
 
@@ -78,3 +82,59 @@ def test_robust_to_empty_and_malformed_input():
     assert infer_input_kinds([{}, {"name": ""}, "not-a-dict-without-ext", 123]) == []
     # a bare path string is accepted
     assert infer_input_kinds(["/x/run.mzML"]) == ["raw_spectra"]
+
+
+# ── PRIMARY vs AUXILIARY / reference inputs (committee review 2026-11-09, finding 3) ──
+# A reference/auxiliary file (reference genome, gene model, ligand library, structure) must not, on
+# its own, override a prose-described PRIMARY shape; a raw file or a processed table must.
+
+def test_has_primary_input_kind_classifies_primary_vs_auxiliary():
+    # raw instrument output + processed matrices/objects + per-sample results are PRIMARY
+    assert has_primary_input_kind(["fastq"]) is True
+    assert has_primary_input_kind(["protein_table", "counts_matrix"]) is True
+    assert has_primary_input_kind(["vcf"]) is True
+    # reference genome / annotation / ligand library / structure are AUXILIARY only
+    assert has_primary_input_kind(["fasta"]) is False
+    assert has_primary_input_kind(["annotation"]) is False
+    assert has_primary_input_kind(["molecules", "structure"]) is False
+    assert has_primary_input_kind(["fasta", "annotation"]) is False
+    assert has_primary_input_kind([]) is False
+    assert has_primary_input_kind(None) is False
+    # a raw read alongside a reference is still primary (the reference merely rides along)
+    assert has_primary_input_kind(["fastq", "fasta"]) is True
+
+
+def test_reference_files_infer_only_auxiliary_kinds():
+    # .fa → fasta, .gtf → annotation, .sdf → molecules, .pdb → structure — all AUXILIARY.
+    assert infer_input_kinds([{"name": "GRCh38.primary_assembly.fa"}]) == ["fasta"]
+    assert set(infer_input_kinds([
+        {"name": "GRCh38.fa"}, {"name": "gencode.v44.annotation.gtf"}
+    ])) == {"fasta", "annotation"}
+    assert infer_input_kinds([{"name": "fragment_library.sdf"}]) == ["molecules"]
+    assert infer_input_kinds([{"name": "receptor.pdb"}]) == ["structure"]
+
+
+def test_resolve_merges_auxiliary_but_keeps_prose_primary():
+    # Finding 3: prose says RNA-seq FASTQ reads, user also attaches a reference genome + GTF.
+    # The auxiliary kinds are MERGED — the prose {fastq} is NOT discarded.
+    datasets = [{"name": "GRCh38.fa"}, {"name": "gencode.v44.annotation.gtf"}]
+    eff = resolve_effective_input_kinds(["fastq"], datasets)
+    assert "fastq" in eff                       # prose primary survives
+    assert set(eff) == {"fastq", "fasta", "annotation"}
+
+
+def test_resolve_primary_attachment_overrides_prose():
+    # A processed abundance TABLE is PRIMARY → it OVERRIDES a (wrong) prose raw guess (McGill).
+    eff = resolve_effective_input_kinds(["raw_spectra"], [{"name": "proteinGroups.txt"}])
+    assert set(eff) == {"protein_table", "counts_matrix"}   # raw_spectra discarded
+    # Raw files attached + prose → raw primary overrides too.
+    assert resolve_effective_input_kinds(["counts_matrix"], [{"name": "reads.fastq.gz"}]) == ["fastq"]
+
+
+def test_resolve_design_sheet_and_nothing_profilable_leave_prose_unchanged():
+    # A design/sample sheet infers [] → prose returned unchanged (headline: sheet never demotes raw).
+    assert resolve_effective_input_kinds(["fastq"], [{"name": "samplesheet.csv"}]) == ["fastq"]
+    # Nothing attached / nothing profilable → prose preserved exactly (None / [] semantics intact).
+    assert resolve_effective_input_kinds(None, []) is None
+    assert resolve_effective_input_kinds([], None) == []
+    assert resolve_effective_input_kinds(["protein_table"], [{"s3_uri": "s3://b/data.csv"}]) == ["protein_table"]

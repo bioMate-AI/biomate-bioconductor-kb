@@ -267,6 +267,37 @@ _DESIGN_CUES: Tuple[str, ...] = (
     "metadata", "phenotype", "design matrix", "design_matrix", "manifest",
 )
 
+# ---------------------------------------------------------------------------
+# PRIMARY vs AUXILIARY input kinds (committee review 2026-11-09, finding 3)
+# ---------------------------------------------------------------------------
+# A workflow's PRIMARY input is the data it actually analyses: raw instrument output (FASTQ,
+# spectra, images, …) or a processed matrix/object/result (counts table, protein table, VCF, …).
+# These are the kinds that drive the raw-vs-processed routing decision (step 8a), so an attached
+# PRIMARY file is authoritative and may OVERRIDE a prose-guessed shape.
+#
+# AUXILIARY/reference inputs accompany a primary input but are not themselves the thing being
+# analysed: a reference genome (.fa→fasta), a gene model (.gtf→annotation), a ligand library
+# (.sdf→molecules), a receptor structure (.pdb→structure). A user whose real reads are remote or
+# prose-described, who also attaches a reference genome, still "has" {fastq} — so an auxiliary-only
+# attachment must NOT, on its own, discard the correct prose classification.
+AUXILIARY_INPUT_KINDS: frozenset = frozenset({"fasta", "annotation", "molecules", "structure"})
+PRIMARY_INPUT_KINDS: frozenset = frozenset({
+    # raw instrument output
+    "fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images",
+    # processed matrices / objects
+    "counts_matrix", "h5ad", "cellranger_output", "protein_table", "peptide_table",
+    "metabolite_table", "beta_values",
+    # per-sample result data that is itself a primary analysis input
+    "vcf", "peaks",
+})
+
+
+def has_primary_input_kind(kinds: Optional[Sequence[str]]) -> bool:
+    """True when ``kinds`` contains at least one PRIMARY input kind (raw file or processed
+    matrix/object/result). A set of only AUXILIARY/reference kinds (fasta/annotation/molecules/
+    structure) must not, on its own, override a prose-described primary shape — see finding 3."""
+    return any(str(k).strip().lower() in PRIMARY_INPUT_KINDS for k in (kinds or []))
+
 
 def _dataset_name_candidates(dataset: Any) -> List[str]:
     """All filename/URI-bearing strings for a session dataset (dict) or a raw path string."""
@@ -370,6 +401,39 @@ def infer_input_kinds(datasets: Optional[Sequence[Any]]) -> List[str]:
         except Exception:  # noqa: BLE001 — one bad dataset must not drop the rest.
             continue
     return sorted(kinds)
+
+
+def resolve_effective_input_kinds(
+    prose_kinds: Optional[Sequence[str]],
+    datasets: Optional[Sequence[Any]],
+) -> Optional[List[str]]:
+    """Combine the prose/intent-classifier input kinds with the kinds inferred from the user's
+    ACTUALLY-attached datasets, so workflow routing is grounded in the real data shape (finding 3).
+
+    Policy:
+      * Attached PRIMARY data (a raw file or a processed matrix/object/result) is authoritative and
+        OVERRIDES the prose classification — step 8a then owns the raw-vs-processed decision
+        (McGill: a processed abundance TABLE demotes raw nf-core/diaproteomics).
+      * An attachment that infers ONLY AUXILIARY/reference kinds (reference genome .fa→fasta,
+        gene model .gtf→annotation, ligand library .sdf→molecules, receptor .pdb→structure) is
+        MERGED with the prose kinds, NEVER replacing them — a user with prose-described FASTQ who
+        also attaches a reference .fa still "has" {fastq}, so the raw pipeline keeps its boost.
+      * Nothing profilable (or a design/sample sheet → no kind) → the prose value is returned
+        unchanged (None / [] / list preserved exactly, so the ``[]`` "states no input data" and the
+        "unknown shape" semantics in step 8 are untouched).
+
+    NEVER raises — perception must not block generation.
+    """
+    try:
+        data_kinds = infer_input_kinds(datasets)
+    except Exception:  # noqa: BLE001 — never block generation on perception
+        return prose_kinds
+    if not data_kinds:
+        return prose_kinds
+    if has_primary_input_kind(data_kinds):
+        return data_kinds  # attached primary data is authoritative — override the prose guess
+    # Auxiliary-only attachment: augment, do not discard, the prose primary shape.
+    return sorted(set(prose_kinds or []) | set(data_kinds))
 
 
 def _profile_structured(path: str, kind: str) -> DataProfile:

@@ -2101,25 +2101,35 @@ class UnifiedWorkflowSearch:
                     elif (user_types & self._PROCESSED_TYPES) and not (user_types & self._RAW_TYPES) and (wf_types & self._RAW_TYPES):
                         score -= 4.0  # user has processed data only but workflow needs raw input
 
-        # 8c. Downstream multi-omics integration guard (docs/20261109 issue #2, "U-MOFA") — FALLBACK.
-        # This is the prose keyword guard: it fires only when NO real input-kind shape is known
-        # (`not _user_shape_known`) — i.e. the user attached no profilable data and the intent
-        # classifier supplied nothing, so routing has only the query text to go on. When a data shape
-        # IS known (e.g. the user attached processed abundance TABLES → data_perception maps them to
-        # processed kinds), step 8a's data-grounded compatibility is authoritative and already demotes
-        # raw pipelines / boosts the matching integration route; 8c then stands down so the raw
-        # pipeline is not double-penalised. In the fallback case it still deterministically detects the
-        # "processed tables + integrate" intent from prose, down-ranks raw-only pipelines, and up-ranks
-        # integration workflows — the case 8a misses because no kind is detected
-        # ("integrate my DE tables, find overlapping genes with MOFA").
+        # 8c. Downstream multi-omics integration guard (docs/20261109 issue #2, "U-MOFA").
+        # The guard deterministically detects the "processed tables + integrate" intent from prose
+        # ("integrate my DE tables, find overlapping genes with MOFA") and does TWO things — they are
+        # gated differently (committee review 2026-11-09, finding 4):
+        #   (i) PENALISE raw-only pipelines — FALLBACK ONLY. It fires solely when NO real input-kind
+        #       shape is known (`not _user_shape_known`). When a data shape IS known (e.g. the user
+        #       attached processed abundance TABLES → data_perception maps them to processed kinds),
+        #       step 8a's data-grounded compatibility already demotes the raw pipeline, so 8c stands
+        #       down here to avoid DOUBLE-penalising it.
+        #   (ii) BOOST the downstream integration route — applies REGARDLESS of `_user_shape_known`,
+        #       but only for workflows step 8a cannot up-rank: UNLABELLED ones (input_kinds NULL, so
+        #       8a's `if input_kinds:` skips them). A LABELLED integration workflow is already handled
+        #       by 8a's +3 overlap when the shape is known, so boosting it again would double-count;
+        #       in the prose-only fallback 8a has no shape to act on, so 8c owns the boost there too.
         # A raw-only pipeline is one whose labelled input_kinds are all raw instrument kinds;
-        # unlabelled workflows are left untouched.
-        if not _user_shape_known and self._detect_integration_intent(query):
+        # unlabelled workflows are left untouched by the penalty.
+        if self._detect_integration_intent(query):
             wf_raw_only = bool(input_kinds) and input_kinds <= self._RAW_KINDS
-            if wf_raw_only:
-                score -= _INTEGRATION_RAW_PENALTY   # raw pipeline cannot run on processed tables
-            elif self._is_integration_workflow(name, description, workflow_domain, tags):
-                score += _INTEGRATION_WF_BOOST       # prefer the downstream integration route
+            if not _user_shape_known:
+                # Prose-only fallback: 8a has no data shape to act on → 8c owns raw-vs-integration.
+                if wf_raw_only:
+                    score -= _INTEGRATION_RAW_PENALTY   # raw pipeline cannot run on processed tables
+                elif self._is_integration_workflow(name, description, workflow_domain, tags):
+                    score += _INTEGRATION_WF_BOOST       # prefer the downstream integration route
+            elif not input_kinds and self._is_integration_workflow(name, description, workflow_domain, tags):
+                # Shape is known → 8a owns the raw penalty (no double-penalty). But 8a can only boost
+                # LABELLED workflows; an UNLABELLED integration workflow is invisible to it and would
+                # otherwise lose its up-rank entirely — so 8c still boosts exactly those here.
+                score += _INTEGRATION_WF_BOOST
 
         # 9. Preferred/legacy tag scoring — steer generic queries toward the AI-backed version
         tags_lower = [t.lower() for t in (tags or [])]

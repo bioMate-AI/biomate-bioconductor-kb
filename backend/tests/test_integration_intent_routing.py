@@ -173,3 +173,49 @@ def test_8c_suppressed_also_up_rank_handled_by_8a(tmp_path):
     integ = _score_uik(s, "nf-core/differentialabundance", "transcriptomics",
                        frozenset({"counts_matrix", "h5ad"}), uik)
     assert integ > raw
+
+
+# ── 8c BOOST preserved for UNLABELLED integration workflows even when a shape is known ──
+# Finding 4 (committee review 2026-11-09): gating ALL of 8c on `not _user_shape_known` silently
+# dropped the +6 up-rank for an UNLABELLED integration workflow (input_kinds NULL → 8a's
+# `if input_kinds:` skips it, so 8a can't boost it either). The boost must survive; only the raw
+# PENALTY is suppressed when a shape is known (8a owns it — no double-penalty).
+
+def test_8c_boost_preserved_for_unlabelled_integration_when_shape_known(tmp_path):
+    s = _search(tmp_path)
+    # Processed table attached → shape known. An UNLABELLED integration workflow (input_kinds NULL).
+    uik = ["counts_matrix"]
+    name, dom = "gintomics_complete_multiomics_integration", "systems_biology"
+    s._detect_integration_intent = lambda q: True
+    on = s._calculate_score(CANON, name, "", [], [], "nfcore", dom, 0.0,
+                            input_types=["input"], input_kinds=None, user_input_kinds=uik)
+    s._detect_integration_intent = lambda q: False
+    off = s._calculate_score(CANON, name, "", [], [], "nfcore", dom, 0.0,
+                             input_types=["input"], input_kinds=None, user_input_kinds=uik)
+    assert on - off == _BOOST  # the +6 up-rank still fires despite the known shape
+
+
+def test_8c_no_double_boost_for_labelled_integration_when_shape_known(tmp_path):
+    # A LABELLED integration workflow is already up-ranked by 8a's +3 overlap when the shape is
+    # known; 8c must NOT also +6 it (that would double-count). Toggling the detector changes nothing.
+    s = _search(tmp_path)
+    uik = ["counts_matrix"]
+    name, dom, kinds = "nf-core/differentialabundance", "transcriptomics", frozenset({"counts_matrix", "h5ad"})
+    s._detect_integration_intent = lambda q: True
+    on = s._calculate_score(CANON, name, "", [], [], "nfcore", dom, 0.0,
+                            input_types=["input"], input_kinds=kinds, user_input_kinds=uik)
+    s._detect_integration_intent = lambda q: False
+    off = s._calculate_score(CANON, name, "", [], [], "nfcore", dom, 0.0,
+                             input_types=["input"], input_kinds=kinds, user_input_kinds=uik)
+    assert on == off  # 8c inert for labelled workflows once the shape is known (8a handled it)
+
+
+def test_8c_unlabelled_integration_outranks_raw_with_known_shape(tmp_path):
+    # End-to-end: processed table attached. The UNLABELLED integration workflow (boosted by 8c) must
+    # still beat the raw-only pipeline (demoted by 8a's penalty, NOT double-penalised by 8c).
+    s = _search(tmp_path)
+    uik = ["counts_matrix"]
+    raw = _score_uik(s, "nf-core/diaproteomics", "proteomics", frozenset({"raw_spectra"}), uik)
+    integ_unlabelled = _score_uik(s, "gintomics_complete_multiomics_integration", "systems_biology",
+                                  None, uik)
+    assert integ_unlabelled > raw
