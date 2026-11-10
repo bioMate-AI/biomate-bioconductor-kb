@@ -2122,7 +2122,43 @@ do_sync() {
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
+  [[ "$SYNC_RESULT" == healthy ]] && record_deploy_ledger "$commit"
   [[ "$SYNC_RESULT" == healthy ]] && return 0 || return 1
+}
+
+# ---------------------------------------------------------------------------
+# Deploy ledger — who put what on dev (append-only, on the dev host)
+# ---------------------------------------------------------------------------
+# Every successful scripted sync and every GitHub-Action deploy appends one JSON
+# line to /opt/biomate/.deploy-ledger.jsonl. Before deploying we print the last
+# entries and warn when what is LIVE is not the last recorded deploy — i.e. someone
+# deployed through a path that skips the ancestry gate (an old checkout of this
+# script, a raw docker command). "Who removed my fix" becomes answerable.
+DEPLOY_LEDGER=/opt/biomate/.deploy-ledger.jsonl
+record_deploy_ledger() {
+  local _commit="$1" _branch _who _line
+  _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  _who="$(git -C "$REPO_ROOT" config user.name 2>/dev/null || echo '?')@$(hostname -s 2>/dev/null || echo '?')"
+  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}")"
+  ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") >> $DEPLOY_LEDGER" \
+    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who}" \
+    || log "[ledger] WARNING: could not append to $DEPLOY_LEDGER"
+}
+show_deploy_ledger() {
+  local _live="$1" _tail _last
+  _tail="$(ec2_ssh "tail -n 5 $DEPLOY_LEDGER 2>/dev/null" || true)"
+  if [[ -z "$_tail" ]]; then
+    log "[ledger] no deploy ledger yet on dev (first recorded sync)"
+    return 0
+  fi
+  log "[ledger] last deploys to dev:"
+  printf '%s\n' "$_tail" | sed 's/^/    /'
+  _last="$(printf '%s\n' "$_tail" | tail -n 1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("commit",""))' 2>/dev/null || true)"
+  if [[ -n "$_last" && "$_last" != "$_live" ]]; then
+    log "[ledger] WARNING: dev is running ${_live:0:10} but the last RECORDED deploy was ${_last:0:10}."
+    log "[ledger]          Someone deployed without the ancestry gate. The gate below still refuses"
+    log "[ledger]          to drop what is live; merge it if refused."
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -2178,6 +2214,7 @@ fi
 _ANCESTRY_JSON="$(python3 "$REPO_ROOT/scripts/dev_deploy_ancestry.py" "${_ANCESTRY_ARGS[@]}")" || exit 2
 _DEPLOYED_COMMIT="$(printf '%s' "$_ANCESTRY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["deployedCommit"])')"
 log "Public dev ancestry verified: ${_DEPLOYED_COMMIT:0:8} -> ${CURRENT_COMMIT:0:8}"
+show_deploy_ledger "$_DEPLOYED_COMMIT"
 if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
   enable_interactive_tools
   log "=== IT review/apply path finished (full code and DB sync skipped) ==="
