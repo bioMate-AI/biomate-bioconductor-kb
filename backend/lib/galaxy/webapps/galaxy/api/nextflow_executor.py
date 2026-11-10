@@ -7194,36 +7194,48 @@ def execute_nextflow(
         _tmp_path = _tmp_dir / _safe_name
         _tmp_path.write_text(request.file_content, encoding='utf-8')
         log.info("[Nextflow] Wrote user-uploaded workflow to %s (%d bytes)", _tmp_path, len(request.file_content))
-        # Feature ① — static pre-check of user-uploaded workflow source.
-        # Defense in depth; the sandbox CONTAINER is the real boundary. Only
-        # active when SANDBOX_ENABLED (default off → zero change): rejects with
-        # 422 in strict mode on a blocking hit, otherwise advisory-logs.
+        # Static security pre-check of user-uploaded workflow source — MANDATORY
+        # and FAIL-CLOSED. For SaaS, personal workflows run on shared AWS Batch
+        # (the Galaxy container has no docker), so this source screen is the
+        # primary pre-dispatch control against obvious container-escape / cloud-
+        # metadata-SSRF / credential-exfil patterns before arbitrary user code
+        # reaches Batch. It is defense in depth, not a complete boundary (a
+        # determined attacker can obfuscate past regex) — the Batch job container
+        # + a minimally-scoped job IAM role remain the real boundary — but a
+        # blocking hit must stop the run, and the screen must always run:
+        #   • blocking violation  → 422, never dispatched
+        #   • advisory violation  → logged, allowed
+        #   • screen cannot run   → 500, never dispatched (do not ship unscreened
+        #                           user code to shared compute)
         try:
-            from galaxy.ai.compute.sandbox.config import SandboxConfig as _SbxCfg
             from galaxy.ai.compute.sandbox.validator import (
                 validate_nextflow_source as _validate_nf,
                 has_blocking as _has_block,
                 format_violations as _fmt_v,
             )
-            _sbx_cfg = _SbxCfg.from_env()
-            if _sbx_cfg.enabled and _sbx_cfg.validate_uploads:
-                _viol = _validate_nf(request.file_content)
-                if _viol:
-                    _msg = _fmt_v(_viol)
-                    if _sbx_cfg.strict and _has_block(_viol):
-                        log.warning("[sandbox] rejecting upload %s: %s", _tmp_path, _msg)
-                        raise HTTPException(
-                            status_code=422,
-                            detail={
-                                "error": "Uploaded workflow failed the sandbox security pre-check",
-                                "violations": _msg,
-                            },
-                        )
-                    log.warning("[sandbox] upload %s advisory violations: %s", _tmp_path, _msg)
+            _viol = _validate_nf(request.file_content)
+            if _viol:
+                _msg = _fmt_v(_viol)
+                if _has_block(_viol):
+                    log.warning("[sandbox] rejecting uploaded workflow %s: %s", _tmp_path, _msg)
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "error": "Uploaded workflow failed the security pre-check and was not run.",
+                            "violations": _msg,
+                        },
+                    )
+                log.warning("[sandbox] uploaded workflow %s advisory violations: %s", _tmp_path, _msg)
         except HTTPException:
             raise
-        except Exception as _sbx_exc:  # pragma: no cover - defensive
-            log.debug("[sandbox] upload pre-check skipped: %s", _sbx_exc)
+        except Exception as _sbx_exc:
+            # Fail closed: if the screen itself cannot run, do not silently
+            # dispatch unscreened user code to shared Batch.
+            log.error("[sandbox] source pre-check failed to run on %s: %s", _tmp_path, _sbx_exc)
+            raise HTTPException(
+                status_code=500,
+                detail="Uploaded workflow could not be security-screened and was not run.",
+            )
         # Mutate the request so all downstream code (path resolution, logging) uses the real path
         request = request.model_copy(update={"nextflow_path": str(_tmp_path), "file_content": None})
 
@@ -7511,24 +7523,46 @@ def _execute_nextflow_impl(
         params["outdir"] = _slurm_outdir
         log.info("[Nextflow] Slurm executor — auto-setting outdir=%s", _slurm_outdir)
 
-    # Personal workflows (written to /tmp/biomate_user_nf/ from file_content at
-    # request time) must run locally — they are ad-hoc user scripts that don't
-    # carry BioMate's Batch process labels, and cannot initialise an S3 work dir.
+    # Personal (user-uploaded) workflows written to /tmp/biomate_user_nf/.
+    # Execution environment (2026-11-09):
+    #   • SaaS (NEXTFLOW_USE_AWS and not on-prem): run on AWS Batch, exactly like
+    #     catalog workflows. The SaaS Galaxy container has NO docker (no CLI, no
+    #     socket), so the former force-local path died at the first task with
+    #     "docker: command not found" (exit 127). Isolation for arbitrary user
+    #     code is the Batch job boundary (separate task container + job IAM role)
+    #     PLUS the mandatory source pre-check enforced at upload time
+    #     (validate_nextflow_source, above). The awsbatch routing block above
+    #     already set executor/outdir/s3_bucket, and the config builder already
+    #     skips BioMate-specific process selectors for personal workflows
+    #     (_is_personal_wf) — keep them.
+    #   • On-prem / local-docker (NEXTFLOW_EXECUTOR=local): run on the local docker
+    #     executor as before — those hosts have docker.
+    # In BOTH cases drop UI-seeded params: the viewer panel echoes the script's
+    # own params{} defaults, and passing them back via --params-file trips
+    # Nextflow 25+ strict "Parameter X … is not declared" validation. The script
+    # runs with its own declared defaults. Preserve outdir on the Batch path — its
+    # S3 work/out dir is required; drop it on local.
     # This override must come AFTER the awsbatch routing block so it wins.
     _nf_path_str = str(request.nextflow_path or "")
     if _nf_path_str.startswith("/tmp/biomate_user_nf/"):
-        compute["executor"] = "local"
-        params.pop("outdir", None)
-        # Params from the UI may contain default values from the script's params {}
-        # block (the viewer panel seeds them automatically). Passing them back via
-        # --params-file causes "Parameter X was specified on the command line or
-        # params file but is not declared in the script or config" in Nextflow 25+
-        # when strict-mode validation checks params against the nextflow.config
-        # rather than the script body. Personal workflows use their own script-level
-        # defaults — drop all user-supplied params so the script runs with its own
-        # declared defaults.
+        _personal_on_batch = (
+            compute.get("executor") == "awsbatch" and _use_aws_env and not _onprem_local
+        )
+        _saved_outdir = params.get("outdir")
         params.clear()
-        log.info("[Nextflow] Personal workflow — forcing local executor, cleared S3 outdir, cleared all params")
+        if _personal_on_batch:
+            if _saved_outdir:
+                params["outdir"] = _saved_outdir
+            log.info(
+                "[Nextflow] Personal workflow — running on AWS Batch "
+                "(executor=awsbatch, outdir=%s)", params.get("outdir"),
+            )
+        else:
+            compute["executor"] = "local"
+            log.info(
+                "[Nextflow] Personal workflow — local docker executor "
+                "(on-prem/local), cleared S3 outdir + params"
+            )
 
     # Auto-detect S3 outdir → route to AWS Batch automatically.
     # If the caller passes outdir=s3://..., we treat that as an implicit request
