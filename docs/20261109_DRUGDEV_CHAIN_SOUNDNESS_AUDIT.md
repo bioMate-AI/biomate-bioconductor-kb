@@ -50,3 +50,19 @@ So a multi-phase chain can report `succeeded` while **no data actually passed be
 - Audit: 11/24 drug-dev/pharma connections reference params absent from the target `.nf` (verified against `params.<name>` references, not just declarations).
 
 Related: [[project_composer_execution_bottleneck]] · [[project_drugdev_capability]] · workflow_chains (70 templates).
+
+---
+
+## Update (same day) — engine guard shipped, authoring guardrail shipped, and the deeper scope of the template problem
+
+**Shipped (commit `48c03e35f8`):**
+- **Engine guard against silent no-op handoffs.** A declared connection that resolves to no wiring (upstream output not found even after fallback) now **fails the step before launch** instead of running it on defaults and reporting `succeeded`. Mirrors the existing `transform_error` / binding-problem fail paths. py_compile + the 25+4 chain unit tests pass.
+- **Authoring-time validator** `scripts/validation/validate_chain_templates.py` — runs `galaxy.chain.binding_check.check_connections` (already enforced per-step at runtime, `workflow_chain.py:663`) over **every** registered template, so a template whose connection binds to an undeclared param is caught at CI/authoring instead of at execution.
+
+**The template problem is bigger than "7 drug-dev chains" and not mechanically fixable.** The validator flags **33 of 70 templates** (8 drug/pharma). The flagged connections fall into three classes, only the first of which is a simple rename:
+
+1. **Wrong scalar param name** — e.g. `admet_to_cipa_cardiac` wiring `admet_context` (CiPA declares no such param). Fixable by correcting the name, *if* the data also matches (see 3).
+2. **Model mismatch — HDA-staged Bioconductor workflows.** Many downstream R workflows (`deseq2_multi_factor_analysis`, `drimseq`, `FlowSOM`, `geomxtools`, …) declare only `outdir` / `none`: they consume their input via Galaxy dataset (HDA) staging, **not** via a `params.<name>` scalar. The params-based connection model (`counts`, `dds`, `rse` → `params.counts` …) does not reach them, so the binding check correctly rejects the connection. Fixing these requires reconciling the chain handoff model with HDA-staged inputs, not a rename.
+3. **Semantic / unit mismatch.** `admet_to_cipa_cardiac` wires ADMET `herg` → CiPA `herg_ic50_nM`, but ADMET-AI emits **hERG inhibition probability** (0–1, e.g. 0.003), while CiPA needs **hERG IC50 in nM**. No clean extraction exists — it needs a defensible probability→IC50 conversion. Likewise `target_to_lead_full` wires docking `vina_poses` → GROMACS `docked_poses`, but GROMACS takes a `ligand` SDF; a best-pose-to-ligand transform must be written. Only 2 transforms exist today (`smiles_file_to_json_list`, `pocket_json_to_box_center`).
+
+**Conclusion.** Deployment ✓, engine ✓ (and now hardened against silent false success + guarded at authoring time). But making the multi-phase drug-dev chains actually pass correct data between phases is **per-chain design work** — correct param names, new transforms (incl. unit conversions that must be scientifically defensible), and a handoff path for HDA-staged workflows. It should not be done by fabricating transforms. Recommend scoping it per chain, starting from the chains whose steps already emit the right data shape.
