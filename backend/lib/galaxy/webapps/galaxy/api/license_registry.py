@@ -128,6 +128,41 @@ LICENSE_REGISTRY: Dict[str, Dict[str, Any]] = {
             {"id": "gromacs", "label": "GROMACS", "note": "Free, HPC-optimized, wide FF support"},
         ],
     },
+    "netmhc": {
+        "display_name": "NetMHCpan / NetMHCIIpan",
+        "vendor": "DTU Health Tech",
+        # BYOL: the NetMHC tools are free for academic/non-profit use but CANNOT be redistributed,
+        # so BioMate's image does not contain them. A user who accepts the DTU academic licence
+        # downloads the tarball and supplies its URI; the executor flows it into the epitopeprediction
+        # workflow as params.netmhcpan_path / params.netmhciipan_path (the params the run + validator
+        # already consume). Credential shape: {netmhcpan_path, netmhciipan_path} — each an s3:// URI
+        # to the licensed tarball (either/both; class II needs netMHCIIpan).
+        "type": "license_file",
+        "registration_url": "https://services.healthtech.dtu.dk/software.php",
+        "approval_time": "instant–~1 day (academic web form + e-mailed download link)",
+        "cost": "free (academic/non-profit licence); commercial licence negotiated separately",
+        "container_patterns": ["netmhcpan", "netmhciipan", "netmhc", "epitopeprediction"],
+        # Executor reads these credential keys and sets the matching params (see nextflow_executor).
+        "cred_key_netmhcpan": "netmhcpan_path",
+        "cred_key_netmhciipan": "netmhciipan_path",
+        "user_must_provide": True,
+        # Class I has a license-free path; class II (HLA-DR/DP/DQ) does NOT — it requires this BYOL
+        # licence, since there is no redistributable class-II predictor equivalent to NetMHCIIpan.
+        "open_alternatives": [
+            {"id": "mhcflurry", "label": "MHCflurry 2 (class I only)",
+             "note": "License-free class-I peptide×HLA binding — workflow immunology/mhc_binding_prediction. "
+                     "No open class-II equivalent; HLA class II requires this NetMHCIIpan BYOL licence."},
+        ],
+        "byol_instructions": (
+            "1. Register at DTU Health Tech (https://services.healthtech.dtu.dk/software.php), "
+            "accept the academic licence (free for non-profit). "
+            "2. Download the netMHCpan and/or netMHCIIpan tarball from the e-mailed link. "
+            "3. Upload the tarball to your BioMate storage (an s3:// URI). "
+            "4. Enter the URI(s) in Settings → Credentials → NetMHC. "
+            "Class II (HLA-DR/DP/DQ) requires netMHCIIpan; for class I you can instead use the "
+            "license-free MHCflurry workflow (no credential)."
+        ),
+    },
     "schrodinger": {
         "display_name": "Schrödinger Suite",
         "vendor": "Schrödinger, Inc.",

@@ -3465,16 +3465,22 @@ def _validate_epitope_netmhc_params(nf_path: Path, params: dict) -> None:
         missing.append("netmhciipan_path")
     if not missing:
         return
+    _needs_classII = "netmhciipan_path" in missing
     raise HTTPException(
         status_code=422,
         detail={
-            "error": "NetMHC software path required",
+            "error": "NetMHC licence required (bring your own)",
             "missing": missing,
+            "tool_id": "netmhc",
             "suggestion": (
-                "Pass --netmhcpan_path (and/or --netmhciipan_path) as an s3:// URI to the "
-                "DTU-licensed tarball. For Plan A science sprint: "
-                "python3 research/anti-virus/science_sprint/track_plan_a_multitool.py "
-                "--netmhcpan-path s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/netMHCpan-4.1b.Linux.tar.gz"
+                "NetMHCpan / NetMHCIIpan are DTU-licensed and cannot be redistributed, so supply your "
+                "own licence: register at DTU Health Tech (free for academic/non-profit), download the "
+                "tarball, upload it to your storage, and enter the s3:// URI under "
+                "Settings → Credentials → NetMHC. "
+                + ("HLA class II (DR/DP/DQ) requires netMHCIIpan — there is no license-free class-II "
+                   "alternative. " if _needs_classII else "")
+                + "For HLA class I you can instead run the license-free MHCflurry workflow "
+                  "(immunology/mhc_binding_prediction) with no credential."
             ),
         },
     )
@@ -7719,6 +7725,19 @@ def _execute_nextflow_impl(
                 params.pop(_k, None)
             if _as_default:
                 log.info(f"[Nextflow {Path(str(nf_path)).parent.name}] not passing params equal to the pipeline default: {_as_default}")
+    # BYOL NetMHC: a user who accepts the DTU academic licence supplies the tarball URI(s) in
+    # Settings → Credentials → NetMHC; flow them into the params the epitopeprediction workflow +
+    # validator consume, so class II (NetMHCIIpan) runs on THEIR licensed binary. With no credential
+    # the validator below blocks with a customer-facing message (class I has the MHCflurry alt).
+    try:
+        _netmhc_cred = (request.credentials or {}).get("netmhc") or {}
+        for _ck in ("netmhcpan_path", "netmhciipan_path"):
+            _v = str(_netmhc_cred.get(_ck) or "").strip()
+            if _v and not params.get(_ck):
+                params[_ck] = _v
+    except Exception as _netmhc_e:
+        log.warning("[Nextflow] NetMHC BYOL credential injection skipped: %s", _netmhc_e)
+
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
     _validate_epitope_netmhc_params(nf_path, params)

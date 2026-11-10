@@ -9,7 +9,7 @@ export interface LicenseRequirement {
   tool_id: string;
   display_name: string;
   vendor: string;
-  type: 'docker_auth' | 'license_key' | 'license_server' | 'license_agreement' | 'license_image' | 'api_key' | 'none';
+  type: 'docker_auth' | 'license_key' | 'license_server' | 'license_agreement' | 'license_image' | 'license_file' | 'api_key' | 'none';
   registration_url: string;
   approval_time: string;
   cost: string;
@@ -30,6 +30,8 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
   const [licenseKey, setLicenseKey] = useState('');
   const [licenseServer, setLicenseServer] = useState('');
   const [containerImage, setContainerImage] = useState('');
+  const [netmhcpanPath, setNetmhcpanPath] = useState('');
+  const [netmhciipanPath, setNetmhciipanPath] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -48,12 +50,23 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
       data = { license_server: licenseServer.trim() };
     } else if (tool.type === 'license_image') {
       data = { container_image: containerImage.trim() };
+    } else if (tool.type === 'license_file') {
+      // At least one of the two licensed-tarball URIs; class II needs netMHCIIpan.
+      data = {};
+      if (netmhcpanPath.trim()) data.netmhcpan_path = netmhcpanPath.trim();
+      if (netmhciipanPath.trim()) data.netmhciipan_path = netmhciipanPath.trim();
     } else if (tool.type === 'license_agreement') {
       data = { agreed: 'true' };
     }
 
-    // Validate non-empty (skip for license_agreement which has a checkbox)
-    if (tool.type !== 'license_agreement') {
+    // Validate: license_file needs ≥1 URI; other credential types need every field.
+    if (tool.type === 'license_file') {
+      if (Object.keys(data).length === 0) {
+        setError('Enter at least one licensed tarball URI (class I and/or class II).');
+        setSaving(false);
+        return;
+      }
+    } else if (tool.type !== 'license_agreement') {
       const empty = Object.values(data).some(v => !v);
       if (empty) {
         setError('All fields are required.');
@@ -166,6 +179,37 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
               <p className="text-xs text-muted-foreground">
                 A container image you own that includes the licensed {tool.display_name} binary (e.g. pmemd.cuda).
                 The run uses it for the dynamics steps. Leave this unset to run on the free OpenMM engine instead.
+              </p>
+            </div>
+          )}
+
+          {tool.type === 'license_file' && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="cred-netmhcpan">netMHCpan tarball URI — HLA class I (optional)</Label>
+                <Input
+                  id="cred-netmhcpan"
+                  value={netmhcpanPath}
+                  onChange={e => setNetmhcpanPath(e.target.value)}
+                  placeholder="s3://your-bucket/netMHCpan-4.1b.Linux.tar.gz"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cred-netmhciipan">netMHCIIpan tarball URI — HLA class II (DR/DP/DQ)</Label>
+                <Input
+                  id="cred-netmhciipan"
+                  value={netmhciipanPath}
+                  onChange={e => setNetmhciipanPath(e.target.value)}
+                  placeholder="s3://your-bucket/netMHCIIpan-4.3e.Linux.tar.gz"
+                  autoComplete="off"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {tool.display_name} is DTU-licensed and cannot be redistributed, so bring your own: register
+                (free for academic/non-profit), download the tarball, upload it to your storage, and paste the
+                s3:// URI here. Enter either or both — <strong>HLA class II requires netMHCIIpan</strong>. For
+                class I you can instead use the license-free MHCflurry workflow with no credential.
               </p>
             </div>
           )}
