@@ -136,10 +136,11 @@ describe("research source detail", () => {
     expect(screen.getByTestId("reader-abstract")).toHaveTextContent("Measured inhibition across two experimental conditions.")
   })
 
-  it("folds streaming content and reveals the completed answer", () => {
+  it("streams the answer visibly (no folded 'Writing response…') and keeps it after completion", () => {
     const message = { ...researchMessage(baseResponse), content: "A detailed analysis is being written." }
     const { rerender } = render(<ChatMessage message={message} isStreaming />)
-    expect(screen.getByText("Writing response…").closest("details")).not.toHaveAttribute("open")
+    expect(screen.queryByText("Writing response…")).toBeNull()
+    expect(screen.getByText(message.content)).toBeVisible()
     rerender(<ChatMessage message={message} isStreaming={false} />)
     expect(screen.queryByText("Writing response…")).toBeNull()
     expect(screen.getByText(message.content)).toBeVisible()

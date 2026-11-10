@@ -73,7 +73,9 @@ MAX_TABLE_ROWS = 200_000
 # Small caps for the Preview-tab sample (columns + first rows) — kept tiny so the
 # profile response stays light; the full table lives behind the table viewer.
 MAX_PREVIEW_COLS = 12
-MAX_PREVIEW_ROWS = 8
+MAX_PREVIEW_ROWS = 100  # was 8: the preview showed 8 rows with no way to see more
+# Long cells (e.g. a JSONL record's nested arrays) are trimmed in the preview sample only.
+MAX_PREVIEW_CELL_CHARS = 300
 
 # Column-name tokens that mark a plausible classification LABEL column.
 _LABEL_NAME_TOKENS = (
@@ -184,6 +186,8 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
             return _profile_vcf(path)
         if kind == "table":
             return _profile_table(path)
+        if kind == "jsonl":
+            return _profile_table(path, reader=_read_jsonl)
         # Unknown / non-profilable — degrade honestly.
         p = DataProfile(quality="watch")
         p.notes.append(
@@ -488,9 +492,11 @@ def _strip_gz(name: str) -> str:
 
 
 def _sniff_kind(path: str) -> str:
-    """Return one of: 'fastq', 'vcf', 'table', 'unknown'."""
+    """Return one of: 'json', 'yaml', 'jsonl', 'fastq', 'vcf', 'table', 'unknown'."""
     lower = _strip_gz(path.lower())
     _, ext = os.path.splitext(lower)
+    if ext in (".jsonl", ".ndjson"):
+        return "jsonl"
     if ext in (".json", ".yaml", ".yml"):
         return "json" if ext == ".json" else "yaml"
     if ext in (".fastq", ".fq"):
@@ -511,6 +517,14 @@ def _sniff_kind(path: str) -> str:
         return "vcf"
     if head.startswith("@") and second and set(second.strip()) <= set("ACGTNacgtn"):
         return "fastq"
+    # JSON Lines: a JSON object per line. Must precede the comma check — every JSON object
+    # line contains commas, so it was profiled as CSV (columns like '{"source": "epar_table"').
+    if head.lstrip().startswith("{"):
+        try:
+            if isinstance(json.loads(head), dict):
+                return "jsonl"
+        except ValueError:
+            pass
     if ("," in head) or ("\t" in head):
         return "table"
     return "unknown"
@@ -649,6 +663,52 @@ def _read_table(path: str) -> Tuple[List[str], List[List[str]]]:
     return header, rows
 
 
+def _preview_cell(c: Any) -> str:
+    t = str(c)
+    return t if len(t) <= MAX_PREVIEW_CELL_CHARS else t[:MAX_PREVIEW_CELL_CHARS - 1] + "…"
+
+
+def _jsonl_cell(v: Any) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    if isinstance(v, (list, dict)):
+        return json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+    return str(v)
+
+
+def _read_jsonl(path: str) -> Tuple[List[str], List[List[str]]]:
+    """JSON Lines → (header, rows): one row per record, columns = top-level keys in first-seen
+    order, nested lists/objects as compact JSON. Unparseable lines are skipped and counted."""
+    keys: List[str] = []
+    seen = set()
+    records: List[Dict[str, Any]] = []
+    bad = 0
+    with _open_text(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                bad += 1
+                continue
+            if not isinstance(obj, dict):
+                obj = {"value": obj}
+            for k in obj:
+                if k not in seen:
+                    seen.add(k)
+                    keys.append(str(k))
+            records.append(obj)
+            if len(records) >= MAX_TABLE_ROWS:
+                break
+    if bad and not records:
+        raise ValueError(f"no valid JSON lines ({bad} unparseable)")
+    return keys, [[_jsonl_cell(r.get(k)) for k in keys] for r in records]
+
+
 def _column(rows: Sequence[Sequence[str]], idx: int) -> List[str]:
     out = []
     for r in rows:
@@ -672,9 +732,9 @@ def _find_col(header: Sequence[str], tokens: Sequence[str]) -> Optional[int]:
     return None
 
 
-def _profile_table(path: str) -> DataProfile:
+def _profile_table(path: str, reader=None) -> DataProfile:
     p = DataProfile()
-    header, rows = _read_table(path)
+    header, rows = (reader or _read_table)(path)
     n_rows = len(rows)
     n_cols = len(header)
     p.rows = n_rows
@@ -697,7 +757,7 @@ def _profile_table(path: str) -> DataProfile:
     # Small tabular sample for the Preview tab (columns + first rows), capped.
     p.columns = [str(c) for c in header[:MAX_PREVIEW_COLS]]
     p.sample_rows = [
-        [str(c) for c in r[:MAX_PREVIEW_COLS]] for r in rows[:MAX_PREVIEW_ROWS]
+        [_preview_cell(c) for c in r[:MAX_PREVIEW_COLS]] for r in rows[:MAX_PREVIEW_ROWS]
     ]
 
     signal: List[str] = []
@@ -784,8 +844,12 @@ def _profile_table(path: str) -> DataProfile:
     if watch and p.quality == "good":
         p.quality = "watch"
     if not p.notes:
+        # "No issues" only when nothing was flagged — the signal list (near-constant / missing
+        # columns) was ignored here, so the card said "no constant-column issues" beside a
+        # near-constant-column warning.
         p.notes.append(
             f"{n_rows:,} rows × {n_cols} columns; no leakage, imbalance, or constant-column issues detected."
+            if not signal else f"{n_rows:,} rows × {n_cols} columns."
         )
     return p
 

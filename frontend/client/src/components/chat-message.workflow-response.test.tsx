@@ -24,12 +24,13 @@ describe('workflow response', () => {
     expect(screen.queryByRole('log')).toBeNull()
   })
 
-  it('shows intent and unfolded updates within the same assistant response', () => {
+  it('keeps progress in the progress box and renders the answer below it, never inside', () => {
     const { container } = render(<ChatMessage message={message} isInPanel progressMessages={[
       { id: 'progress', role: 'assistant', content: 'Input structures resolved.', timestamp: new Date() },
     ]} />)
     expect(screen.getByText(message.content)).toBeVisible()
-    expect(screen.getByRole('log')).toHaveTextContent(message.content)
+    // The answer must not be trapped in the fixed-height auto-scrolling box (EPAR test 2026-11-10).
+    expect(screen.getByRole('log')).not.toHaveTextContent(message.content)
     expect(screen.getByRole('log')).toHaveTextContent('Input structures resolved.')
     expect(screen.getByRole('log').closest('[data-testid="chat-message-workflow"]')).not.toBeNull()
     expect(container.querySelector('details')).toBeNull()
@@ -46,11 +47,11 @@ describe('workflow response', () => {
     const { rerender } = render(<ChatMessage message={message} isStreaming isInPanel />)
     const content = '**Resolve the inputs.**\n\nThen inspect every compound.\n\n[Input file](https://example.org/inputs)'
     rerender(<ChatMessage message={{ ...message, content }} isStreaming isInPanel />)
-    const log = screen.getByRole('log')
-    expect(log).toHaveTextContent('Resolve the inputs.')
-    expect(log).toHaveTextContent('Then inspect every compound.')
-    expect(log.querySelector('strong')).toHaveTextContent('Resolve the inputs.')
-    expect(screen.getByRole('link', { name: 'Input file' }).closest('[role="log"]')).toBe(log)
+    // Streams as the normal answer, full height — no progress log wrapping it.
+    expect(screen.queryByRole('log')).toBeNull()
+    expect(screen.getByText('Then inspect every compound.')).toBeVisible()
+    expect(screen.getByText('Resolve the inputs.').closest('strong')).not.toBeNull()
+    expect(screen.getByRole('link', { name: 'Input file' })).toBeVisible()
     expect(screen.queryByText('Writing response…')).toBeNull()
     expect(screen.queryByText('Analysis plan')).toBeNull()
   })

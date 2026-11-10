@@ -343,6 +343,21 @@ export async function recordProjectActivity(
   }
 }
 
+/** Browsers send no / a generic type for scientific formats (.jsonl arrived as
+ *  application/octet-stream and was then shown as such in the dataset panel). Fill it from the
+ *  extension when the client didn't provide a specific one. */
+const EXT_CONTENT_TYPES: Record<string, string> = {
+  ".jsonl": "application/x-ndjson", ".ndjson": "application/x-ndjson", ".json": "application/json",
+  ".csv": "text/csv", ".tsv": "text/tab-separated-values", ".tab": "text/tab-separated-values",
+  ".txt": "text/plain", ".vcf": "text/x-vcf", ".fasta": "text/x-fasta", ".fa": "text/x-fasta",
+  ".fastq": "text/x-fastq", ".fq": "text/x-fastq", ".yaml": "application/yaml", ".yml": "application/yaml",
+  ".parquet": "application/vnd.apache.parquet", ".h5ad": "application/x-hdf5", ".gz": "application/gzip",
+};
+export function uploadContentType(fileName: string, clientType?: string | null): string {
+  if (clientType && clientType !== "application/octet-stream") return clientType;
+  return EXT_CONTENT_TYPES[path.extname(fileName || "").toLowerCase()] || "application/octet-stream";
+}
+
 export function registerProjectRoutes(app: Express): void {
   registerProjectInstructionSettings(app, _getUserRole);
   // ─── GET /api/projects ────────────────────────────────────────────────
@@ -728,7 +743,7 @@ export function registerProjectRoutes(app: Express): void {
         const contentHash = createHash("sha256").update(buf).digest("hex");
         const dup = await _findProjectFileByHash(id, contentHash);
         if (dup) return res.status(200).json({ file: dup, deduplicated: true });
-        const ctype = req.file.mimetype || "application/octet-stream";
+        const ctype = uploadContentType(originalName, req.file.mimetype);
         // Versioning (§4.4): re-uploading the SAME NAME with DIFFERENT content writes
         // a NEW version (append-only) rather than a second file. The old bytes stay
         // at their key (archived as a version); the new content takes a versioned key
@@ -752,7 +767,7 @@ export function registerProjectRoutes(app: Express): void {
           `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
            VALUES ($1, $2, $3, $4, $5, $6, 'upload', $7)
            RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-          [id, uid, originalName, key, req.file.size, req.file.mimetype || "application/octet-stream", contentHash]
+          [id, uid, originalName, key, req.file.size, ctype, contentHash]
         );
         await recordProjectActivity(id, uid, "file_added", {
           fileId: ins.rows[0].id,

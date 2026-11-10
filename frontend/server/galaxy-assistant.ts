@@ -2632,6 +2632,18 @@ export function hasComputableData(message: string): boolean {
   return rows.length >= 3;
 }
 
+/** Data run_code can compute on exists anywhere in the conversation — this message, an earlier
+ *  user turn (the UI adds the dataset block only on the turn the file is attached), or datasets
+ *  selected in the UI. hasComputableData(message) alone is false on every follow-up turn. */
+export function conversationHasComputableData(
+  message: string,
+  context?: { previousMessages?: Array<{ role: string; content: string }>; selectedDatasets?: string[] },
+): boolean {
+  if (hasComputableData(message)) return true;
+  if (Array.isArray(context?.selectedDatasets) && context!.selectedDatasets!.length > 0) return true;
+  return (context?.previousMessages || []).some(m => m.role === 'user' && hasComputableData(m.content || ''));
+}
+
 /** The user asked for code itself ("write a script", "give me the R code", 写代码/脚本). */
 export function wantsCodeItself(message: string): boolean {
   return /\b(write|give|show|generate|provide)\b[^.\n]{0,40}\b(scripts?|code|snippets?|functions?)\b|代码|脚本/i.test(message || '');
@@ -2641,7 +2653,14 @@ export function wantsCodeItself(message: string): boolean {
  *  describe running code that was never executed (external-user replay 2026-11-04: "Running
  *  analysis on qa_new_account_counts.csv…" with a pandas block and no run_code call). */
 export function presentsUnexecutedCode(text: string): boolean {
-  return /```\s*(?:python|py|r)\s*\n[\s\S]{60,}?```/i.test(text || '');
+  return /```\s*(?:python|py|r)\s*\n[\s\S]{60,}?```/i.test(text || '') || claimsProducedOutputFile(text);
+}
+
+/** A reply that says it produced an output file ("已生成 `results.csv`", "saved to summary.json").
+ *  Only meaningful when run_code did not run this turn — then the file does not exist
+ *  (EPAR test 2026-11-10: "已生成 clinical_studies_structured.csv" with no execution). */
+export function claimsProducedOutputFile(text: string): boolean {
+  return /(?:已生成|已保存|已导出|已创建|生成了|保存为|导出为|\b(?:saved|generated|created|wrote|written|exported)\b)[^\n]{0,60}?\b[\w.-]+\.(?:csv|tsv|xlsx?|json|png|pdf|svg|parquet|txt)\b/i.test(text || '');
 }
 
 /** Datasets attached to a message by the chat composer: the "[Uploaded datasets: name: dataset_id=<uuid>,
@@ -5098,9 +5117,13 @@ Rules:
     // actually executing. Flip to the direct-compute path so run_code stays
     // enabled and really runs in the sandbox. Conservative guard (explicit ask
     // + no pipeline keyword) so genuine workflow requests are untouched.
-    // The classifier's execution decision (any language) counts too, but only with data present —
-    // without it, the July protection (no-workflow → empty reply) stays in force.
-    const _directCompute = (intent as any).execution === 'direct_compute' && hasComputableData(message);
+    // The classifier's execution decision is authoritative (it is an LLM — any language, and it sees
+    // the history). Its prompt already restricts direct_compute to data that is in the conversation,
+    // so no second regex check on the CURRENT message: that check silently discarded every
+    // follow-up turn ("先做第一步", "不用工作流") because the dataset block lives in an earlier turn
+    // (dev logs 2026-11-10: execution=direct_compute + needsWorkflowGeneration=false, 3/3 turns,
+    // all overridden into workflow generation).
+    const _directCompute = (intent as any).execution === 'direct_compute';
     if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute || isSimpleSequencePropertyRequest(message))) {
       if (_directCompute) log('Direct-compute override: classifier execution=direct_compute with data in the conversation');
       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
@@ -10490,10 +10513,11 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const _runCodeOffered = Array.isArray(agentTools) && (agentTools as any[]).some((t: any) => t?.name === 'run_code');
       const _shouldNudgeUnexecutedCode = (text: string) =>
         _runCodeOffered && !_ranRunCode && !_codeNudged && presentsUnexecutedCode(text)
-        && hasComputableData(message) && !wantsCodeItself(message);
-      const _unexecutedCodeNudge = 'You presented analysis code but did not execute it, so no result has been '
-        + 'computed. The user\'s data is already staged (see the run_code inputs). Call run_code now with that '
-        + 'code (fix it if needed), then report only the actual output. Do not state results that were not computed.';
+        && conversationHasComputableData(message, context) && !wantsCodeItself(message);
+      const _unexecutedCodeNudge = 'You presented analysis code, or said you produced an output file, but run_code '
+        + 'did not run, so no result or file exists. The user\'s data is already staged (see the run_code inputs). '
+        + 'Call run_code now (write files to $OUTPUT_DIR), then report only the actual output. Do not state results '
+        + 'or files that were not produced.';
 
       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         const isFirstTurn = turn === 0;

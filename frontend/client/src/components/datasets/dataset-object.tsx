@@ -541,7 +541,7 @@ export function DatasetObject({
                     data-testid="dataset-preview-filter"
                     className="w-full rounded border bg-background px-2 py-1 text-xs mb-1"
                   />
-                  <div className="overflow-x-auto rounded border">
+                  <div className="overflow-auto rounded border" style={{ maxHeight: '60vh' }}>
                     <table className="w-full border-collapse text-sm">
                       <thead>
                         <tr style={{ background: 'var(--bm-accent-soft)' }}>
@@ -552,7 +552,7 @@ export function DatasetObject({
                               data-testid={`dataset-col-sort-${i}`}
                               title="Sort by this column"
                               className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b cursor-pointer select-none"
-                              style={{ color: 'var(--bm-accent-ink)' }}
+                              style={{ color: 'var(--bm-accent-ink)', position: 'sticky', top: 0, background: 'var(--bm-accent-soft)', zIndex: 1 }}
                             >
                               {c}{sortCol === i ? (sortAsc ? ' ▲' : ' ▼') : ''}
                             </th>
@@ -563,7 +563,7 @@ export function DatasetObject({
                         {rows.map((r, ri) => (
                           <tr key={ri} className="odd:bg-muted/20">
                             {cols.map((_, ci) => (
-                              <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b">
+                              <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b overflow-hidden text-ellipsis" style={{ maxWidth: 360 }} title={r[ci] ?? ""}>
                                 {r[ci] ?? ""}
                               </td>
                             ))}
@@ -651,7 +651,7 @@ export function DatasetObject({
                   <p className="text-xs text-muted-foreground">
                     {t('dataset_obj.edit_hint', { n: profile.sampleRows.length })}
                   </p>
-                  <div className="overflow-x-auto rounded border">
+                  <div className="overflow-auto rounded border" style={{ maxHeight: '60vh' }}>
                     <table className="w-full border-collapse text-sm">
                       <thead>
                         <tr style={{ background: 'var(--bm-accent-soft)' }}>
