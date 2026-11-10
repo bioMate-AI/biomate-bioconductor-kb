@@ -682,6 +682,24 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             if conn_warnings:
                 current["steps"][idx]["handoff_warnings"] = conn_warnings
                 _update_chain(current)
+            # Guard against a SILENT no-op handoff: a declared connection that produced no wiring
+            # (the upstream output was not found, even after the fallback) means this step would run
+            # on its defaults, not on the intended upstream value — and the chain would still report
+            # "succeeded". That is a false success. Fail the step before launch instead (same policy
+            # as transform_error below). Informational "wired via fallback" warnings are NOT failures.
+            _unresolved = [w for w in conn_warnings if (
+                w.startswith("No artifact '")
+                or "missing run_id for" in w
+                or w.startswith("Invalid from_step")
+            )]
+            if _unresolved:
+                msg = "unresolved input handoff(s): " + "; ".join(_unresolved)
+                log.error("workflow_chain: step %d not launched: %s", idx, msg)
+                current["steps"][idx]["status"] = "failed"
+                current["steps"][idx]["error"] = msg
+                current["status"] = "failed"
+                _update_chain(current)
+                return
             if current["steps"][idx].get("transform_error"):
                 msg = current["steps"][idx]["transform_error"]
                 log.error("workflow_chain: step %d not launched: %s", idx, msg)
