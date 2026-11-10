@@ -56,11 +56,23 @@ async function ensureProjectShareTokensTable(): Promise<void> {
       role        TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'editor')),
       created_by  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      expires_at  TIMESTAMPTZ
+      expires_at  TIMESTAMPTZ,
+      -- NULL = the owner's generic /share-link token (one per project; the
+      -- /share-link GET/POST/DELETE endpoints scope to invited_email IS NULL).
+      -- Set = a per-email invite token carrying THAT invite's own role, minted
+      -- by POST /members for an unregistered email. Keeping them distinct is
+      -- what stops a later invite from escalating a still-pending lower-role one.
+      invited_email TEXT
     )
   `);
+  // Idempotent migration for pre-existing single-row installs (their one row is
+  // the generic link → invited_email stays NULL, preserving backward behavior).
+  await pool.query(`ALTER TABLE project_share_tokens ADD COLUMN IF NOT EXISTS invited_email TEXT`);
   await pool.query(`CREATE INDEX IF NOT EXISTS pst_project_idx ON project_share_tokens(project_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS pst_token_idx   ON project_share_tokens(token)`);
+  // Lookups for "the generic link" and "a pending invite to this email" both
+  // filter on (project_id, invited_email); index the pair.
+  await pool.query(`CREATE INDEX IF NOT EXISTS pst_project_email_idx ON project_share_tokens(project_id, invited_email)`);
 }
 ensureProjectShareTokensTable().catch(e => console.error("[project_share_tokens] table init failed:", e?.message ?? e));
 
@@ -1138,25 +1150,37 @@ export function registerProjectRoutes(app: Express): void {
       const normEmail = email.toLowerCase().trim();
       const invitee = await pool.query(`SELECT id, email, full_name AS "fullName" FROM users WHERE email = $1`, [normEmail]);
       if (!invitee.rows.length) {
-        // New (not-yet-registered) email: auto-create/reuse the project share
-        // link and email it, instead of failing with 404. One invite box serves
-        // both existing members and new people — no separate "generate link" step.
-        // Reuse the project's single share token AS-IS; create one only if none exists.
-        // We intentionally do NOT mutate its role to this invite's role: the share token
-        // is a single per-project row that the /share-link GET/POST/DELETE endpoints
-        // operate on project-wide, and mutating it would escalate a still-pending
-        // lower-role invite (invite A as viewer, then B as editor → A's pending link
-        // would join as editor). Accepted limitation: a reused token keeps its original
-        // role, so a new-email invite's email-stated role may not match the join role.
-        // The proper fix (per-invite tokens) also requires making the /share-link
-        // endpoints token-aware — out of scope. (committee review 2026-11-10)
-        const tokRes = await pool.query(`SELECT token FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]);
-        let token: string = tokRes.rows[0]?.token;
-        if (!token) {
+        // New (not-yet-registered) email: mint a PER-INVITE share token that
+        // carries THIS invite's role + the target email, and email it. One
+        // invite box serves both existing members and new people — no separate
+        // "generate link" step, and no 404.
+        //
+        // PROPER FIX (committee review 2026-11-10 — per-invite tokens): we never
+        // reuse or mutate the owner's generic /share-link row (invited_email IS
+        // NULL). Each invite gets its own token keyed on invited_email, so
+        // inviting A as viewer then B as editor leaves A's token at viewer —
+        // the earlier shared-token escalation is gone. If a pending invite to
+        // the SAME email already exists we update THAT row's role in place
+        // (so re-inviting adjusts the pending role) rather than minting a
+        // duplicate; otherwise we insert a fresh per-email token. The
+        // /share-link GET/POST/DELETE endpoints are scoped to invited_email IS
+        // NULL and never touch these per-invite rows.
+        const prior = await pool.query(
+          `SELECT token FROM project_share_tokens WHERE project_id = $1 AND invited_email = $2 LIMIT 1`,
+          [id, normEmail]
+        );
+        let token: string;
+        if (prior.rows.length) {
+          token = prior.rows[0].token;
+          await pool.query(
+            `UPDATE project_share_tokens SET role = $1, created_by = $2 WHERE project_id = $3 AND invited_email = $4`,
+            [role, uid, id, normEmail]
+          );
+        } else {
           token = randomBytes(18).toString('base64url');
           await pool.query(
-            `INSERT INTO project_share_tokens (project_id, token, role, created_by) VALUES ($1, $2, $3, $4)`,
-            [id, token, role, uid]
+            `INSERT INTO project_share_tokens (project_id, token, role, created_by, invited_email) VALUES ($1, $2, $3, $4, $5)`,
+            [id, token, role, uid, normEmail]
           );
         }
         const inviter = await pool.query(`SELECT full_name AS "fullName", email FROM users WHERE id::text = $1`, [String(uid)]);
@@ -1298,8 +1322,10 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      // Scope to the generic share link only (invited_email IS NULL); per-invite
+      // tokens are addressed individually and must never surface here.
       const row = await pool.query(
-        `SELECT token, role, created_at, expires_at FROM project_share_tokens WHERE project_id = $1 LIMIT 1`,
+        `SELECT token, role, created_at, expires_at FROM project_share_tokens WHERE project_id = $1 AND invited_email IS NULL LIMIT 1`,
         [id]
       );
       if (!row.rows.length) return res.json({ token: null });
@@ -1323,18 +1349,21 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      // Operate ONLY on the generic link row (invited_email IS NULL). Setting
+      // the share-link role must never mutate a pending per-invite token.
       const existing = await pool.query(
-        `SELECT token, role FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]
+        `SELECT token, role FROM project_share_tokens WHERE project_id = $1 AND invited_email IS NULL LIMIT 1`, [id]
       );
       if (existing.rows.length) {
         // Idempotent on the token, but allow CHANGING the role of the existing
         // link without revoke+regenerate (closes the create-time-only gap).
         if (existing.rows[0].role !== role) {
-          await pool.query(`UPDATE project_share_tokens SET role = $1 WHERE project_id = $2`, [role, id]);
+          await pool.query(`UPDATE project_share_tokens SET role = $1 WHERE project_id = $2 AND invited_email IS NULL`, [role, id]);
         }
         return res.json({ token: existing.rows[0].token, role });
       }
       const token = randomBytes(18).toString('base64url'); // 24-char URL-safe token
+      // invited_email omitted → NULL → this is the generic link.
       await pool.query(
         `INSERT INTO project_share_tokens (project_id, token, role, created_by) VALUES ($1, $2, $3, $4)`,
         [id, token, role, uid]
@@ -1347,7 +1376,9 @@ export function registerProjectRoutes(app: Express): void {
   });
 
   // ─── DELETE /api/projects/:id/share-link ─────────────────────────────────────
-  // Owner only — revokes the share token so the link stops working.
+  // Owner only — revokes the GENERIC share link so that link stops working.
+  // Pending per-invite tokens (invited_email IS NOT NULL) are intentionally left
+  // intact: revoking the public link must not silently cancel individual invites.
   app.delete("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
@@ -1355,7 +1386,7 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
-      await pool.query(`DELETE FROM project_share_tokens WHERE project_id = $1`, [id]);
+      await pool.query(`DELETE FROM project_share_tokens WHERE project_id = $1 AND invited_email IS NULL`, [id]);
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[project_share] revoke failed:", e?.message ?? e);
