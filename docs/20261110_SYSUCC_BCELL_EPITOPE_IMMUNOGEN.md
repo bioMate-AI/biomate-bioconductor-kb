@@ -59,11 +59,31 @@ Per antigen (fans out one AWS-Batch task each, e.g. EBV gp350 / gH / gL / gB / E
 
 ---
 
-## 3. Next (by priority)
-1. **This workflow on dev** against real EBV antigens; sanity-check epitopes vs known gp350 neutralizing regions.
-2. **ESMFold + SASA** surface-accessibility refinement → conformational-aware epitope filtering (upgrades #2 developability path too).
-3. **ESMFold / AntiBERTa antibody developability** (#2) — strengthens SYSUCC's current antibody/ADC/bispecific wave.
-4. Class-II neoantigen remains gated (NetMHCIIpan); revisit if a redistributable class-II model matures.
+## 3. Built: `immunology/surface_epitope_mapping` (structure-based, 2026-11-10)
+
+Catalog id 14668, `biomate/workflow-tools` (CPU, no new image). The conformational-aware upgrade to the
+sequence-only B-cell path: given a predicted/experimental antigen structure (PDB/CIF), computes per-residue
+**Shrake-Rupley SASA** (biopython), relative SASA vs the Tien 2013 maxima, classifies residues exposed/buried,
+and combines surface exposure with Kolaskar antigenicity to call ranked **surface epitope patches**. One task
+per structure; pairs with an upstream fold step (nf-core/proteinfold ESMFold/AlphaFold, or Boltz-2).
+
+**Honest scope:** surface exposure is REAL (Shrake-Rupley on the actual coordinates), but patches are
+sequence-contiguous exposed stretches — NOT a trained conformational predictor (DiscoTope-3) or
+discontinuous spatial clustering (a stated future increment). Shortlist to confirm by ELISA/neutralization.
+
+**Validated:** ran on crambin (PDB 1CRN) in the `workflow-tools` biopython env — buried disulfide-core Cys
+→ RSA 0.0 (correct), exposed termini/loops high, one sensible surface patch called (res 36–43, mean RSA 0.56).
+`nextflow lint` parity; FTS routes.
+
+**Note — antibody developability is NOT a gap:** `pharmacology/antibody_developability` (id 12881/14561)
+is already a real liability scanner (aggregation/CamSol, deamidation NG/NS/DG, oxidation, pI, FcRn half-life).
+An earlier "descriptor-only" read was wrong; do not duplicate it.
+
+## 4. Next (by priority)
+1. **Both new workflows on dev** against real EBV antigens (fold → surface_epitope_mapping; bcell linear path); sanity-check vs known gp350 neutralizing regions.
+2. **Discontinuous (spatial-neighbour) conformational epitopes** — cluster exposed antigenic residues by 3D proximity (true DiscoTope-style), beyond today's sequence-contiguous patches.
+3. **ESMFold / AntiBERTa** as a learned structural+developability layer (GPU/weights) — the one genuinely heavy remaining item; sequence liabilities are already covered.
+4. Class-II neoantigen now runs via the **NetMHC BYOL** licence gate (`docs/...NETMHC...`); revisit a license-free class-II model if one matures.
 
 External SYSUCC framing stays confident-but-true and firewalls the ACT / MD-Anderson status ([[project_sysucc_multisite_act]], [[feedback_bd_material_no_internal_hedging]]). Judge runs by real output, not a "completed" flag ([[project_nfcore_run_status_not_trustworthy]]).
 
