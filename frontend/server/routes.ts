@@ -20063,13 +20063,19 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         return galaxyAPIProxy.downloadDataset(id);
       };
 
-      const result = await runCode({
+      // Bounded retry on a transient sandbox-sidecar connection blip (sidecar node
+      // recycling → ECONNREFUSED / "fetch failed" / 5xx). runCode returns exit_code=1
+      // with a "[sidecar …]" stderr rather than throwing, so retry on the RESULT; a
+      // genuine code error / execution timeout returns on the first attempt, and after
+      // retries the real sidecar error still surfaces to the user (honest fallback).
+      const { retryTransientRunCode } = await import('./transient-retry');
+      const result = await retryTransientRunCode(() => runCode({
         language: language as 'python' | 'r' | 'bash',
         code,
         input_datasets: datasetRefs,
         timeout_seconds: typeof timeout_seconds === 'number' ? Math.min(timeout_seconds, 300) : 30,
         downloadDataset: downloadDatasetFn,
-      });
+      }), { label: 'POST /api/code/run' });
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err?.message ?? String(err) });

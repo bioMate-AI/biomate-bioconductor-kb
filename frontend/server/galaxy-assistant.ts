@@ -9902,6 +9902,7 @@ PROACTIVE-WORK RULE (highest priority):
 - If the user gave a SMILES, gene symbol, accession, or any other identifier, ASSUME BioMate can resolve it — look in <pre_satisfied_parameters> or prior tool messages, or resolve it yourself via the data-plane tools (search_literature, list_data_sources, run_code). Use those before claiming anything is missing.
 
 BioMate's real capability surface (verified, do not extrapolate):
+- **Data ingestion:** users get data in by (a) the upload button, (b) an S3/local path, (c) an SRA/ENA/GEO/ArrayExpress/PXD accession, or (d) **Import from URL** (Data → Import from URL), which fetches any direct HTTP/FTP/S3 link AND a **Google Drive or Dropbox share link** — BioMate converts the share link to a direct download server-side. So BioMate CAN use a user's Google Drive / Dropbox data; NEVER tell a user it "cannot access Google Drive / Dropbox / their cloud files" — instead point them to **Import from URL** and ask for the share link.
 - **4,200+ indexed Nextflow workflows** across 36 biological domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19), and more.
 - **12,312 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
 - **Verified live DB integrations** called directly from the Galaxy backend Python (research_agent + knowledge modules):
@@ -10074,7 +10075,7 @@ ${runnableWorkflow ? '- Runnable workflow generated successfully — use "Workfl
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
   if (!_mfi.length) return '';
-  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to upload via the upload button or paste an S3/local path. Use plain language — no "DATA-FIRST RULE" phrasing.`;
+  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to provide the data by ANY of: the upload button, an S3/local path, a public URL, an SRA/GEO accession, OR **Import from URL** — which fetches a direct link AND a Google Drive / Dropbox **share link** (BioMate converts the share link to a direct download server-side). Never tell the user BioMate "cannot access Google Drive / Dropbox" — it can, via Import from URL with the share link. Use plain language — no "DATA-FIRST RULE" phrasing.`;
 })()}
 ${workflowGenerationFailed && hasInlineData ? '- Workflow generation failed (inline data was present) — use "Technical failure" format, do NOT ask for data the user already provided' : ''}
 ${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no inline data) — use "Clarification needed" format' : ''}
@@ -11062,14 +11063,20 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (context && context.runCodeHistory?.turn !== turn) context.runCodeHistory = { turn, codes: [] };
     const prior = input.language === 'python' ? context?.runCodeHistory?.codes ?? [] : [];
 
-    const result = await runCode({
+    // Bounded retry on a transient sandbox-sidecar connection blip (the sidecar
+    // node recycling → ECONNREFUSED / "fetch failed" / 5xx). runCode never throws
+    // on that — it returns exit_code=1 with a "[sidecar …]" stderr — so retry on
+    // the RESULT. A genuine code error or an execution timeout is returned on the
+    // first attempt; after retries the real error still surfaces (honest fallback).
+    const { retryTransientRunCode } = await import('./transient-retry');
+    const result = await retryTransientRunCode(() => runCode({
       language: input.language,
       code: input.code,
       input_datasets: datasetRefs,
       timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
       prior_code: prior.length ? [...prior] : undefined,
-    });
+    }), { label: 'run_code tool' });
     if (input.language === 'python' && result.exit_code === 0 && context?.runCodeHistory) {
       context.runCodeHistory.codes.push(String(input.code || ''));
     }
