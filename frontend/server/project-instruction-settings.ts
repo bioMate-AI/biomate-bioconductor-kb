@@ -7,6 +7,7 @@ import { authenticateToken } from './auth-middleware';
 // globals), so the server can import it directly and never diverge from the
 // editor panel / chat composer rendering.
 import { outputRequirementsToPrompt } from '../client/src/lib/output-requirements';
+import { appendOutputRequirementsBlock, type OutputRequirementsScope } from './chat-context';
 
 const settingsSchema = z.object({
   skillPackIds: z.array(z.string().min(1).max(200)).max(100),
@@ -44,6 +45,31 @@ export async function loadProjectOutputRequirements(projectId: string | null | u
  *  generators inject, so every surface honors the exact same text. */
 export async function loadProjectOutputRequirementsPrompt(projectId: string | null | undefined): Promise<string> {
   return outputRequirementsToPrompt(await loadProjectOutputRequirements(projectId));
+}
+
+/**
+ * THE output-requirements chokepoint for LLM deliverable generators.
+ *
+ * Every LLM deliverable (methods-report, findings summary, IND docx narrative, a
+ * figure-producing step) routes its prompt through here instead of hand-rolling
+ * its own `loadProjectOutputRequirementsPrompt(...)` + inline concat. It loads the
+ * project's rendered requirements and appends the scope-appropriate directive via
+ * the pure `appendOutputRequirementsBlock` composer.
+ *
+ * Safe-by-default: a missing projectId, an unconfigured project, or a load error
+ * returns the prompt UNCHANGED (the loader already swallows errors to '').
+ *
+ * NOTE: the chat stream path keeps using `appendProjectOutputRequirements`
+ * (chat-context.ts) because it must DEDUPE against a browser-threaded
+ * composerInstructions copy — a concern the deliverable generators don't have.
+ */
+export async function applyOutputRequirements(
+  prompt: string,
+  projectId: string | null | undefined,
+  scope: OutputRequirementsScope,
+): Promise<string> {
+  const requirementsPrompt = await loadProjectOutputRequirementsPrompt(projectId);
+  return appendOutputRequirementsBlock(prompt, requirementsPrompt, scope);
 }
 
 /** Separate persisted settings, with the same project access checks as content edits. */

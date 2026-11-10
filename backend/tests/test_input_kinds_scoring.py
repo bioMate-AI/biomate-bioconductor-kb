@@ -147,3 +147,36 @@ def test_input_compatible_prefers_classifier_kinds(tmp_path):
     assert s.input_compatible("I have Thermo .raw files", 1) is True
     assert s.input_compatible("I have Thermo .raw files", 1, user_input_kinds=["protein_table"]) is False
     assert s.input_compatible(Q_TABLE, 1, user_input_kinds=[]) is None
+
+
+# ── Data-grounded input kinds (from the user's ACTUALLY-attached datasets) ──────
+# The principled processed-vs-raw fix: user_input_kinds derived from the profiled shape of attached
+# datasets (data_perception.infer_input_kinds, threaded from the generate_workflow endpoint) make
+# step 8a fire GENERALLY — not from the prose guess. The prose here is deliberately modality-only
+# ("DIA proteomics") with NO processed-table / raw-file wording, so text detection is silent and ONLY
+# the attached-data kinds drive the raw-vs-processed decision. docs 2026-11-09.
+Q_MODALITY_ONLY = "Analyse my DIA proteomics data and report the quantities."  # no raw/processed cue
+
+
+def test_attached_processed_table_demotes_raw_and_boosts_processed(tmp_path):
+    # (a) user with an abundance/protein TABLE attached → raw pipeline demoted, table method boosted.
+    s = _search(tmp_path)
+    attached = ["protein_table", "counts_matrix"]  # what infer_input_kinds() returns for an abundance table
+    neutral_raw = _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), None)
+    data_raw = _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), attached)
+    assert neutral_raw - data_raw == _PEN  # diaproteomics (raw_spectra) can't consume the table
+    neutral_tab = _score_k(s, Q_MODALITY_ONLY, frozenset({"counts_matrix", "h5ad"}), None)
+    data_tab = _score_k(s, Q_MODALITY_ONLY, frozenset({"counts_matrix", "h5ad"}), attached)
+    assert data_tab - neutral_tab == 3.0  # differentialabundance (counts_matrix) is compatible
+
+
+def test_attached_raw_files_do_not_demote_raw_pipeline(tmp_path):
+    # (b) user with raw FASTQ / spectra attached → the raw processing pipeline is NOT demoted.
+    s = _search(tmp_path)
+    q = "Run RNA-seq expression analysis."  # no file-type wording; kinds come from the attachment
+    neutral = _score_k(s, q, frozenset({"fastq"}), None)
+    data = _score_k(s, q, frozenset({"fastq"}), ["fastq"])
+    assert data - neutral == 3.0  # fastq attached → nf-core/rnaseq (fastq) matches, never penalised
+    # raw spectra attached → diaproteomics (raw_spectra) matches, not demoted
+    assert _score_k(s, q, frozenset({"raw_spectra"}), ["raw_spectra"]) \
+        == _score_k(s, q, frozenset({"raw_spectra"}), None) + 3.0

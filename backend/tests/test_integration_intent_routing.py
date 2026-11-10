@@ -131,3 +131,45 @@ def test_guard_is_inert_without_integration_intent(tmp_path):
 def test_penalty_outweighs_source_priority_lead(tmp_path):
     # The raw pipeline's nfcore source priority (~6.7) must not let it survive the guard.
     assert _RAW_PEN > 6.7
+
+
+# ── 8c demoted to a FALLBACK when the data shape is known (docs 2026-11-09) ──────
+# When the user ATTACHED data, its profiled shape is threaded as user_input_kinds, step 8a's
+# data-grounded compatibility is authoritative, and the prose keyword guard (8c) must stand down so
+# the raw pipeline is not double-penalised. 8c still fires prose-only (no shape supplied).
+
+def _score_uik(s, name, domain, kinds, user_input_kinds):
+    return s._calculate_score(CANON, name, "", [], [], "nfcore", domain, 0.0,
+                              input_types=["input"], input_kinds=kinds,
+                              user_input_kinds=user_input_kinds)
+
+
+def test_8c_suppressed_when_data_shape_known_no_double_penalty(tmp_path):
+    s = _search(tmp_path)
+    name, dom, kinds = "nf-core/diaproteomics", "proteomics", frozenset({"raw_spectra"})
+    # Prose-only (CANON text detects protein_table): 8a (text) + 8c BOTH penalise the raw pipeline.
+    prose = _score_uik(s, name, dom, kinds, None)
+    # Data-grounded kinds supplied (user attached a processed table): 8a penalises ONCE, 8c stands down.
+    data = _score_uik(s, name, dom, kinds, ["protein_table", "counts_matrix"])
+    # The difference is exactly one _RAW_PEN — i.e. 8c's second penalty is gone, not doubled.
+    assert data - prose == _RAW_PEN
+
+
+def test_8c_still_fires_prose_only_fallback(tmp_path):
+    # No kinds supplied (classifier returned nothing, nothing profilable): 8c remains the fallback.
+    s = _search(tmp_path)
+    raw = _score_uik(s, "nf-core/diaproteomics", "proteomics", frozenset({"raw_spectra"}), None)
+    integ = _score_uik(s, "nf-core/differentialabundance", "transcriptomics",
+                       frozenset({"counts_matrix", "h5ad"}), None)
+    assert integ > raw  # the prose keyword guard still demotes raw / prefers integration
+
+
+def test_8c_suppressed_also_up_rank_handled_by_8a(tmp_path):
+    # With data-grounded counts_matrix, the integration workflow is preferred via 8a's +3 overlap
+    # (not 8c's boost), and the raw pipeline is demoted via 8a's penalty — all without 8c.
+    s = _search(tmp_path)
+    uik = ["counts_matrix"]
+    raw = _score_uik(s, "nf-core/diaproteomics", "proteomics", frozenset({"raw_spectra"}), uik)
+    integ = _score_uik(s, "nf-core/differentialabundance", "transcriptomics",
+                       frozenset({"counts_matrix", "h5ad"}), uik)
+    assert integ > raw

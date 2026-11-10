@@ -45,6 +45,93 @@ export function outputRequirementsToPrompt(raw: string | null | undefined): stri
   return `Output requirements (write deliverables to these):\n${lines.join('\n')}`;
 }
 
+// ── Structured parameterization ──────────────────────────────────────────────
+// Some deliverable generators are NOT LLM calls (e.g. the QC HTML template) or
+// run server-side where an appended prose block cannot steer them. For those we
+// parse the SAME store into a small structured object so a generator can honor
+// what it CAN deterministically (section palette, a length/dpi note) and a
+// cheap rule-based validator can flag deviations after an LLM deliverable is
+// produced. The structured object is derived ONLY from enabled formats, so a
+// switched-off format never takes effect here either.
+
+export interface OutputRequirements {
+  /** Enabled formats only (same filter as outputRequirementsToPrompt). */
+  formats: OutputFormat[];
+  /** The most restrictive "≤N words" / "N words" hint parsed from any detail, if any. */
+  lengthCapWords?: number;
+  /** A detail asked for findings/results before methods. */
+  findingsFirst?: boolean;
+  /** Figure DPI hint parsed from a detail (e.g. "300 dpi"). */
+  figureDpi?: number;
+  /** A detail asked for a greyscale-safe / grayscale palette. */
+  grayscaleSafe?: boolean;
+}
+
+const WORDS_CAP_RE =
+  /(?:≤|<=?|under|below|no more than|at most|max(?:imum)?|up to)\s*(\d{2,5})\s*(?:word|字)/i;
+const WORDS_PLAIN_RE = /(\d{2,5})\s*(?:word|字)/i;
+const DPI_RE = /(\d{2,4})\s*dpi/i;
+const FINDINGS_FIRST_RE = /findings[-\s]?first|findings\s+first|先列(?:研究)?发现/i;
+const GRAYSCALE_RE = /gr[ae]yscale|灰度/i;
+
+/** Parse the store into a structured object. Only enabled formats contribute hints.
+ *  Pure + dependency-free, so both the server generators and tests use it. */
+export function parseOutputRequirements(raw: string | null | undefined): OutputRequirements {
+  const formats = parseOutputFormats(raw).filter(f => f.on);
+  const out: OutputRequirements = { formats };
+  for (const f of formats) {
+    const detail = f.detail || '';
+    const cap = detail.match(WORDS_CAP_RE) ?? detail.match(WORDS_PLAIN_RE);
+    if (cap) {
+      const n = parseInt(cap[1], 10);
+      // Keep the MOST restrictive cap seen across enabled formats.
+      if (Number.isFinite(n) && (out.lengthCapWords === undefined || n < out.lengthCapWords)) {
+        out.lengthCapWords = n;
+      }
+    }
+    const dpi = detail.match(DPI_RE);
+    if (dpi) {
+      const n = parseInt(dpi[1], 10);
+      if (Number.isFinite(n) && (out.figureDpi === undefined || n > out.figureDpi)) out.figureDpi = n;
+    }
+    if (FINDINGS_FIRST_RE.test(detail)) out.findingsFirst = true;
+    if (GRAYSCALE_RE.test(detail)) out.grayscaleSafe = true;
+  }
+  return out;
+}
+
+/** Lightweight, non-blocking conformance check. Returns a list of human-readable
+ *  deviation strings for the requirements it CAN verify (length cap, findings-first
+ *  ordering). It NEVER throws, never rewrites the deliverable, and never fabricates —
+ *  callers log/annotate the deviations. `[]` means "nothing checkable deviated". */
+export function checkOutputConformance(
+  text: string | null | undefined,
+  reqs: OutputRequirements | null | undefined,
+): string[] {
+  const deviations: string[] = [];
+  if (!text || !reqs) return deviations;
+  const body = String(text);
+
+  if (reqs.lengthCapWords !== undefined) {
+    const words = body.trim().split(/\s+/).filter(Boolean).length;
+    // 10% tolerance — a prose cap is a target, not a hard token budget.
+    if (words > Math.round(reqs.lengthCapWords * 1.1)) {
+      deviations.push(`length cap: ${words} words > requested ≤${reqs.lengthCapWords}`);
+    }
+  }
+
+  if (reqs.findingsFirst) {
+    const methodIdx = body.search(/\bmethod/i);
+    const resultIdx = body.search(/\b(finding|result|conclusion)/i);
+    // Only a deviation when methods are clearly introduced BEFORE any finding/result.
+    if (methodIdx >= 0 && (resultIdx < 0 || methodIdx < resultIdx)) {
+      deviations.push('findings-first ordering: methods appear before findings/results');
+    }
+  }
+
+  return deviations;
+}
+
 /** Concrete, design-accurate examples (data_centroid_design_v2 ProjectSetup `outputs`) shown in the
  *  Instructions panel so a user understands what an output format IS — the field is hard to fill
  *  from a blank input. Seeded as `on:false` so adding an example never silently takes effect until

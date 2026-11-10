@@ -45,7 +45,8 @@ import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
 import { _isOwnerOrMember, _isOwnerOrEditor } from "./project-routes";
 import { appendComposerInstructions, appendProjectOutputRequirements } from "./chat-context";
-import { loadProjectOutputRequirementsPrompt } from "./project-instruction-settings";
+import { loadProjectOutputRequirementsPrompt, loadProjectOutputRequirements, applyOutputRequirements } from "./project-instruction-settings";
+import { parseOutputRequirements, checkOutputConformance, type OutputRequirements } from "../client/src/lib/output-requirements";
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
@@ -236,6 +237,12 @@ function backendPassthrough(label: string) {
     }
   };
 }
+
+// NOTE: the IND report module is PAUSED (feature-flagged off, IND_REPORT_ENABLED) and
+// its document generator runs in the Galaxy backend, out of this proxy's reach — so it is
+// deliberately NOT wired into the output-requirements chokepoint. If IND is re-enabled,
+// thread the project's requirements into the forwarded doc-gen body and have the backend
+// LLM step consume them, the same way the in-process generators do.
 
 // Initialize state poller and SSE manager
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
@@ -1526,7 +1533,7 @@ async function stageLocalFilesForBatch(
   return staged;
 }
 
-function buildQCReportHtml(run: any, invocationId: string): string {
+function buildQCReportHtml(run: any, invocationId: string, reqs?: OutputRequirements | null): string {
   const now = new Date().toISOString();
   const status = run?.status ?? "unknown";
   const workflowName = run?.workflowName ?? run?.name ?? "BioMate Workflow";
@@ -1550,12 +1557,42 @@ function buildQCReportHtml(run: any, invocationId: string): string {
     return `Analysis was performed using BioMate AI (biomate.ai). QC thresholds are evidence-graded (GOLD/SILVER/BRONZE) and cited to peer-reviewed sources. All pipeline steps were executed via validated Nextflow DSL2 workflows. Full audit log: invocation ID ${invocationId}.`;
   }
 
-  const statusColor: Record<string, string> = { PASS: "#15803d", FAIL: "#dc2626", WARN: "#d97706" };
-  const badgeStyle: Record<string, string> = {
-    GOLD:   "background:#ffd700;color:#333;",
-    SILVER: "background:#c0c0c0;color:#333;",
-    BRONZE: "background:#cd7f32;color:white;",
-  };
+  // Deterministic parameterization from the project's structured output requirements
+  // (Instructions → Output formats). This generator is a pure HTML template — NOT an
+  // LLM call — so it honors only what it can apply with certainty: a greyscale-safe
+  // palette. Requirements it CANNOT deterministically apply to a fixed tabular report
+  // (a prose word cap, a figure DPI — the report has no figures) are surfaced as an
+  // explicit, honest note rather than silently ignored. undefined reqs ⇒ unchanged.
+  const grayscaleSafe = reqs?.grayscaleSafe === true;
+  const statusColor: Record<string, string> = grayscaleSafe
+    ? { PASS: "#1a1a1a", FAIL: "#000000", WARN: "#595959" }
+    : { PASS: "#15803d", FAIL: "#dc2626", WARN: "#d97706" };
+  const badgeStyle: Record<string, string> = grayscaleSafe
+    ? {
+        GOLD:   "background:#1a1a1a;color:white;",
+        SILVER: "background:#808080;color:white;",
+        BRONZE: "background:#d9d9d9;color:#1a1a1a;",
+      }
+    : {
+        GOLD:   "background:#ffd700;color:#333;",
+        SILVER: "background:#c0c0c0;color:#333;",
+        BRONZE: "background:#cd7f32;color:white;",
+      };
+
+  // Acknowledge the active requirements in the deliverable, and be honest about the
+  // ones a fixed tabular HTML report can't deterministically satisfy.
+  const activeReqFormats = reqs?.formats ?? [];
+  const reqUnhonored: string[] = [];
+  if (reqs?.lengthCapWords !== undefined) reqUnhonored.push(`a ≤${reqs.lengthCapWords}-word prose cap (this QC report is a fixed tabular/audit layout, not free prose)`);
+  if (reqs?.figureDpi !== undefined) reqUnhonored.push(`a ${reqs.figureDpi} dpi figure spec (this report renders no raster figures)`);
+  const outputRequirementsSection = activeReqFormats.length === 0 ? "" : `
+<h2>Project Output Requirements</h2>
+<table>
+  <tr><th>Kind</th><th>Name</th><th>Detail</th></tr>
+  ${activeReqFormats.map(f => `<tr><td>${f.kind}</td><td>${f.name}</td><td>${f.detail || "—"}</td></tr>`).join("")}
+</table>
+${grayscaleSafe ? `<p style="font-size:13px;color:#555;">Applied: greyscale-safe palette (status and evidence colors rendered without hue so this report is legible in greyscale print).</p>` : ""}
+${reqUnhonored.length ? `<p style="font-size:13px;color:#555;">Not applied deterministically to this report: ${reqUnhonored.join("; ")}.</p>` : ""}`;
 
   const metricsRows = Object.entries(metrics)
     .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
@@ -1655,6 +1692,7 @@ ${auditLog.length > 0 ? `
 <h2>Methods Section Text</h2>
 <p style="font-size:13px;color:#555;">Copy the paragraph below directly into your manuscript methods section.</p>
 <div class="methods-block">${domainMethodsText()}</div>
+${outputRequirementsSection}
 
 <h2>Audit Log Download</h2>
 <p style="font-size:13px;">To download the full JSON audit log, use the BioMate Run Manager → <em>View logs</em> → <em>Download audit log</em>. The log includes all tool versions, parameters, and AutoFix decisions.</p>
@@ -6522,18 +6560,16 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
 
         // Honor the project's saved output-format requirements (Instructions →
         // Output formats) so the DOWNLOADED report follows them (e.g. "findings
-        // first, ≤200 words, 300 dpi greyscale figures"). Read server-side from
-        // the run's project — no browser threading needed. No setting ⇒ the
-        // prompt is unchanged (rule-first, safe).
+        // first, ≤200 words, 300 dpi greyscale figures"). Routed through THE
+        // chokepoint (applyOutputRequirements) — same mechanism as findings / IND /
+        // chat, instead of a hand-rolled concat. No setting ⇒ prompt unchanged.
+        const _reportProjectId = (run as any)?.projectId;
         try {
-          const _outReqPrompt = await loadProjectOutputRequirementsPrompt((run as any)?.projectId);
-          if (_outReqPrompt) {
-            USER = `${USER}
-
-=== PROJECT OUTPUT REQUIREMENTS (apply to this deliverable; do not fabricate data to satisfy a format) ===
-${_outReqPrompt}`;
-          }
+          USER = await applyOutputRequirements(USER, _reportProjectId, 'report');
         } catch { /* non-fatal — report still generates without the overrides */ }
+        // Structured requirements for the post-generation conformance check below.
+        let _reportReqs: ReturnType<typeof parseOutputRequirements> | null = null;
+        try { _reportReqs = parseOutputRequirements(await loadProjectOutputRequirements(_reportProjectId)); } catch { /* non-fatal */ }
 
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
@@ -6573,6 +6609,13 @@ ${paramLines || '(none recorded)'}`;
         // Single call for all domains — SYSTEM and USER are set per-domain above
         console.log(`[Report] Generating ${isCryoEM ? 'CryoEM' : 'generic'} report via fallback chain`);
         reportText = await claudeCall(USER);
+
+        // Non-blocking conformance check: flag (never fix/fabricate) any requirement
+        // the output measurably deviates from (e.g. a word cap, findings-first order).
+        if (_reportReqs) {
+          const _dev = checkOutputConformance(reportText, _reportReqs);
+          if (_dev.length) console.warn(`[Report] output-requirements deviation(s) for ${invocationId}: ${_dev.join('; ')}`);
+        }
 
         const header = [
           `BioMate AI — Report`,
@@ -12798,7 +12841,12 @@ ${paramLines || '(none recorded)'}`;
         return res.json({ invocationId, run });
       }
 
-      const html = buildQCReportHtml(run, invocationId);
+      // Thread the project's structured output requirements into the (non-LLM) QC
+      // HTML template so it honors what it deterministically can (e.g. greyscale-safe
+      // palette) via the same one mechanism. No setting ⇒ null ⇒ report unchanged.
+      let _qcReqs: OutputRequirements | null = null;
+      try { _qcReqs = parseOutputRequirements(await loadProjectOutputRequirements((run as any)?.projectId)); } catch { /* non-fatal */ }
+      const html = buildQCReportHtml(run, invocationId, _qcReqs);
       res.setHeader("Content-Type", "text/html");
       res.setHeader(
         "Content-Disposition",
@@ -16710,15 +16758,19 @@ Rules:
           );
 
           // Project output-format requirements (Instructions → Output formats),
-          // read server-side from the run's project. Applied as soft guidance to
-          // the narrative `summary` prose (length / ordering / emphasis) — the
-          // JSON schema and the strict grounding rules below still win. No setting
-          // ⇒ empty, so the prompt is unchanged.
-          let _findingsOutReq = '';
-          try { _findingsOutReq = await loadProjectOutputRequirementsPrompt((run as any)?.projectId); } catch { /* non-fatal */ }
+          // routed through THE chokepoint (applyOutputRequirements, 'findings-summary'
+          // scope) — same mechanism as the methods-report / IND / chat paths. Applied
+          // as soft guidance to the narrative `summary` prose; the chokepoint appends
+          // the requirements block to the HEAD, and the strict grounding rules below
+          // come AFTER it so they still win. No setting ⇒ prompt unchanged.
+          const _findingsProjectId = (run as any)?.projectId;
+          let _findingsReqs: ReturnType<typeof parseOutputRequirements> | null = null;
+          try { _findingsReqs = parseOutputRequirements(await loadProjectOutputRequirements(_findingsProjectId)); } catch { /* non-fatal */ }
 
-          const SYSTEM = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
-${_findingsOutReq ? `\nPROJECT OUTPUT REQUIREMENTS — apply to the "summary" prose (length, ordering, emphasis) where they fit a short findings narrative; NEVER fabricate numbers or restructure the JSON to satisfy them:\n${_findingsOutReq}\n` : ''}
+          let _findingsHead = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.`;
+          try { _findingsHead = await applyOutputRequirements(_findingsHead, _findingsProjectId, 'findings-summary'); } catch { /* non-fatal */ }
+
+          const SYSTEM = `${_findingsHead}
 STRICT GROUNDING RULES — violations will be rejected:
 1. Every numeric value in key_results MUST appear verbatim in the provided output files.
 2. Do NOT invent, estimate, or round values not present in the files.
@@ -16876,6 +16928,14 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
             // instruction (PMIDs the model invents are worse than none). Grounded
             // provenance lives in each key_result.source_file, validated above.
             delete parsed.citations;
+
+            // Non-blocking conformance check on the narrative summary (length cap /
+            // findings-first order). Logs a deviation — NEVER truncates or rewrites
+            // the grounded summary.
+            if (_findingsReqs && typeof parsed.summary === 'string') {
+              const _dev = checkOutputConformance(parsed.summary, _findingsReqs);
+              if (_dev.length) console.warn(`[Findings] output-requirements deviation(s) for ${runId}: ${_dev.join('; ')}`);
+            }
 
             // ── Proactive follow-up suggestions ────────────────────────────────
             // Inject domain-specific next-step offers based on workflow type and findings.

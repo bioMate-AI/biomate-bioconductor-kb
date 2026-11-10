@@ -4176,6 +4176,30 @@ def generate_workflow_unified(
             if _inline_lines and _inline_lines not in effective_intent:
                 effective_intent = f"{effective_intent}\n[Inline parameters:\n{_inline_lines}]"
 
+        # ── Data-grounded input kinds ────────────────────────────────────────
+        # Ground the routing input-kind check in the SHAPE of the data the user actually attached,
+        # rather than the intent classifier's guess from prose. data_perception.infer_input_kinds
+        # profiles each attached dataset (extension + column shape) and maps it to the closed
+        # input_kinds vocabulary (.fastq→fastq, .mzML→raw_spectra, abundance/DE TABLE→counts_matrix,
+        # proteinGroups→protein_table, …). When real data is attached, this OVERRIDES the prose
+        # classifier (request.user_input_kinds) so step 8a's compatibility fires generally and
+        # symmetrically — a processed TABLE demotes raw pipelines; raw files keep the raw pipeline.
+        # Without this a McGill user with processed DIA abundance tables was routed to the raw
+        # nf-core/diaproteomics pipeline. Falls back to the classifier's value when nothing is
+        # profilable. (docs 2026-11-09 processed-vs-raw routing.)
+        effective_input_kinds = request.user_input_kinds
+        try:
+            from galaxy.ai.data_perception import infer_input_kinds as _infer_input_kinds
+            _data_kinds = _infer_input_kinds(uploaded_datasets or [])
+            if _data_kinds:
+                effective_input_kinds = _data_kinds
+                log.info(
+                    "[generate_workflow] data-grounded input_kinds=%s (override prose classifier=%s)",
+                    _data_kinds, request.user_input_kinds,
+                )
+        except Exception as _ik_err:  # noqa: BLE001 — never block generation on perception
+            log.debug("[generate_workflow] input-kind inference failed (non-fatal): %s", _ik_err)
+
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
         if use_langgraph:
             result = ai_assistant.run_via_pipeline(
@@ -4194,7 +4218,7 @@ def generate_workflow_unified(
                 preferred_domains=request.preferred_domains or None,
                 penalized_domains=request.penalized_domains or None,
                 credential_map=credential_map or None,
-                user_input_kinds=request.user_input_kinds,
+                user_input_kinds=effective_input_kinds,
             )
 
         # Clarification requests from chain verifier — pass through with a clear error key

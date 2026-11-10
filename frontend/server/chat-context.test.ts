@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appendComposerInstructions,
+  appendOutputRequirementsBlock,
   appendProjectOutputRequirements,
   MAX_COMPOSER_INSTRUCTIONS_LENGTH,
   normalizeComposerInstructions,
@@ -92,5 +93,43 @@ describe("server-side project output requirements in chat context", () => {
     expect(disabledOnly).toBe("");
     expect(appendProjectOutputRequirements("Project: X", disabledOnly, undefined)).toBe("Project: X");
     expect(appendProjectOutputRequirements("Project: X", "", "composer")).toBe("Project: X");
+  });
+});
+
+describe("appendOutputRequirementsBlock — the deliverable-generator chokepoint composer", () => {
+  const prompt = outputRequirementsToPrompt(
+    JSON.stringify([{ kind: "report", name: "Internal memo", detail: "Findings first (≤200 words).", on: true }]),
+  );
+
+  it("returns the base prompt UNCHANGED when requirements are empty (behavior unchanged when unset)", () => {
+    const base = "Generate a methods section.";
+    expect(appendOutputRequirementsBlock(base, "", "report")).toBe(base);
+    expect(appendOutputRequirementsBlock(base, undefined, "report")).toBe(base);
+    expect(appendOutputRequirementsBlock(base, "   ", "findings-summary")).toBe(base);
+  });
+
+  it("frames the 'report' scope with the deliverable directive and preserves the base prompt", () => {
+    const out = appendOutputRequirementsBlock("BASE PROMPT", prompt, "report");
+    expect(out.startsWith("BASE PROMPT")).toBe(true);
+    expect(out).toContain("PROJECT OUTPUT REQUIREMENTS (apply to this deliverable");
+    expect(out).toContain("Findings first (≤200 words)");
+  });
+
+  it("frames the 'findings-summary' scope for the summary prose, not a full deliverable", () => {
+    const out = appendOutputRequirementsBlock("HEAD", prompt, "findings-summary");
+    expect(out).toContain('apply to the "summary" prose');
+    expect(out).toContain("NEVER fabricate numbers");
+    expect(out).toContain("Findings first (≤200 words)");
+  });
+
+  it("frames the 'figure' scope for figure outputs", () => {
+    const out = appendOutputRequirementsBlock("HEAD", prompt, "figure");
+    expect(out).toContain("apply to figures");
+  });
+
+  it("is idempotent — the block is never appended twice", () => {
+    const once = appendOutputRequirementsBlock("BASE", prompt, "report");
+    const twice = appendOutputRequirementsBlock(once, prompt, "report");
+    expect(twice).toBe(once);
   });
 });

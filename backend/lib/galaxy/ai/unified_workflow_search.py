@@ -2061,15 +2061,22 @@ class UnifiedWorkflowSearch:
                     score += 2.0
 
         # 8. Input-type compatibility scoring.
+        # The user's input kinds are "known" (a real data shape) when they were SUPPLIED and valid —
+        # whether grounded in the user's actually-attached datasets (data_perception.infer_input_kinds,
+        # threaded from the generate_workflow endpoint) or the intent classifier. A shape derived from
+        # the ATTACHED DATA is authoritative: step 8a's data-grounded compatibility then owns the
+        # raw-vs-processed decision, and the prose keyword guard (8c) stands down (see 8c).
+        _supplied_kinds = self._valid_kinds(user_input_kinds) if user_input_kinds is not None else None
+        _user_shape_known = bool(_supplied_kinds)
         # 8a. Preferred: the closed-vocabulary input_kinds (LLM-labelled per workflow). input_types holds
         # free-form names — channel names or placeholders such as ["input"] for many nf-core pipelines —
         # so a raw-spectra pipeline was never penalised for a processed protein table (2026-11-05).
         # A workflow that accepts both raw and processed kinds is never penalised.
         if input_kinds:
-            # The intent classifier's input_kinds (what the user HAS — not outputs wanted, not data said to be
-            # missing) when supplied; [] means "states no input data". The text regex only as a fallback: it
+            # The supplied input_kinds (what the user HAS — not outputs wanted, not data said to be
+            # missing) when present; [] means "states no input data". The text regex only as a fallback: it
             # cannot tell mentions from possession or handle negation (committee review 2026-11-05).
-            user_kinds = (self._valid_kinds(user_input_kinds) if user_input_kinds is not None
+            user_kinds = (_supplied_kinds if _supplied_kinds is not None
                           else self._query_input_kinds(query))
             if user_kinds:
                 if user_kinds & input_kinds:
@@ -2094,15 +2101,20 @@ class UnifiedWorkflowSearch:
                     elif (user_types & self._PROCESSED_TYPES) and not (user_types & self._RAW_TYPES) and (wf_types & self._RAW_TYPES):
                         score -= 4.0  # user has processed data only but workflow needs raw input
 
-        # 8c. Downstream multi-omics integration guard (docs/20261109 issue #2, "U-MOFA").
-        # When the user HAS processed/summarised tables and wants to INTEGRATE them (overlap,
-        # concordance, MOFA, multi-omics), a RAW-data pipeline cannot consume those tables and is
-        # the wrong route; an integration workflow is the right one. This complements step 8a: it
-        # also fires when the query mentions no explicit input-kind (e.g. "integrate my DE tables,
-        # find overlapping genes with MOFA") — a case 8a misses because no kind is detected — and it
-        # UP-ranks the integration route (8a only down-ranks). A raw-only pipeline is one whose
-        # labelled input_kinds are all raw instrument kinds; unlabelled workflows are left untouched.
-        if self._detect_integration_intent(query):
+        # 8c. Downstream multi-omics integration guard (docs/20261109 issue #2, "U-MOFA") — FALLBACK.
+        # This is the prose keyword guard: it fires only when NO real input-kind shape is known
+        # (`not _user_shape_known`) — i.e. the user attached no profilable data and the intent
+        # classifier supplied nothing, so routing has only the query text to go on. When a data shape
+        # IS known (e.g. the user attached processed abundance TABLES → data_perception maps them to
+        # processed kinds), step 8a's data-grounded compatibility is authoritative and already demotes
+        # raw pipelines / boosts the matching integration route; 8c then stands down so the raw
+        # pipeline is not double-penalised. In the fallback case it still deterministically detects the
+        # "processed tables + integrate" intent from prose, down-ranks raw-only pipelines, and up-ranks
+        # integration workflows — the case 8a misses because no kind is detected
+        # ("integrate my DE tables, find overlapping genes with MOFA").
+        # A raw-only pipeline is one whose labelled input_kinds are all raw instrument kinds;
+        # unlabelled workflows are left untouched.
+        if not _user_shape_known and self._detect_integration_intent(query):
             wf_raw_only = bool(input_kinds) and input_kinds <= self._RAW_KINDS
             if wf_raw_only:
                 score -= _INTEGRATION_RAW_PENALTY   # raw pipeline cannot run on processed tables
