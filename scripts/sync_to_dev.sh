@@ -278,11 +278,25 @@ deploy_frontend() {
     # bind-mounts /tmp/biomate_code/<session> which must resolve to the same
     # path inside the frontend container so paths match host-side.
     mkdir -p /tmp/biomate_code
+    # Interactive Tools (Jupyter/RStudio/CellxGene) are launchable ONLY when the
+    # Galaxy container actually has the host docker socket (ITs spawn docker child
+    # containers). Derive INTERACTIVE_TOOLS_ENABLED from the LIVE Galaxy container so
+    # the UI advertises the IT buttons exactly when they will work: set to 1 once the
+    # socket is enabled, and auto-cleared to 0 on the next frontend deploy if a
+    # rollback (or any recreate) ever drops the socket — no manual flag to keep in
+    # sync. /api/interactive/available gates on this; see routes.ts.
+    if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then
+      IT_ENABLED=1
+    else
+      IT_ENABLED=0
+    fi
+    echo "[frontend] INTERACTIVE_TOOLS_ENABLED=$IT_ENABLED (derived from Galaxy docker-socket mount)"
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
       -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
       -e MCP_UPSTREAM_URL=http://biomate-remote-mcp:8848 \
       -e BIOMATE_RESPONSE_MODEL=gpt-5.6-luna \
+      -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
       --restart unless-stopped \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v /tmp/biomate_code:/tmp/biomate_code \
@@ -1308,6 +1322,34 @@ enable_interactive_tools() {
   ec2_ssh "sudo env PYTHONDONTWRITEBYTECODE=1 BIOMATE_IT_SOCKET_APPROVED='${BIOMATE_IT_SOCKET_APPROVED:-0}' python3 '$stage/interactive_runtime_recovery.py' --deploy-lease '$REMOTE_SYNC_LEASE' --cli-sha256 2c0c7085014dab521228f90fc5fc714184cbba3ab1dd8d526840dd000ed478b5 $apply_args"
   local result=$?
   ec2_ssh "rm -f '$stage/interactive_runtime_recovery.py' '$stage/interactive_recreate_plan.py' '$stage/interactive_state_migration.py'; rmdir '$stage'" || true
+  # After a successful socket APPLY, the frontend must learn ITs are now launchable.
+  # This BIOMATE_ENABLE_IT path exits before the normal deploy_frontend runs, so the
+  # frontend would otherwise keep INTERACTIVE_TOOLS_ENABLED unset and hide the buttons
+  # even though ITs now work. Recreate the frontend from its current :latest image
+  # (no rebuild) with the flag DERIVED from the live Galaxy docker-socket mount — so
+  # /api/interactive/available flips to available and the IT buttons appear with no
+  # second sync. Non-fatal: a failure just means "run one normal sync to pick it up".
+  if [[ "$result" == "0" && "${BIOMATE_IT_APPLY:-0}" == "1" ]]; then
+    ec2_ssh '
+      if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then IT_ENABLED=1; else IT_ENABLED=0; fi
+      if docker image inspect biomate-dev-frontend:latest >/dev/null 2>&1; then
+        mkdir -p /tmp/biomate_code
+        docker rm -f biomate-dev-frontend 2>/dev/null || true
+        docker run -d --name biomate-dev-frontend --network biomate-dev-net \
+          -p 3000:3000 --env-file /opt/biomate/.env \
+          -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+          -e MCP_UPSTREAM_URL=http://biomate-remote-mcp:8848 \
+          -e BIOMATE_RESPONSE_MODEL=gpt-5.6-luna \
+          -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
+          --restart unless-stopped \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v /tmp/biomate_code:/tmp/biomate_code \
+          biomate-dev-frontend:latest >/dev/null
+        docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
+        echo "[galaxy-it] frontend refreshed: INTERACTIVE_TOOLS_ENABLED=$IT_ENABLED"
+      fi
+    ' || log "[galaxy-it] frontend IT-flag refresh failed (non-fatal; run a normal sync to pick it up)"
+  fi
   return "$result"
 }
 
@@ -1824,9 +1866,17 @@ rollback_sync() {
         docker tag biomate-dev-frontend:rollback biomate-dev-frontend:latest
         docker rm -f biomate-dev-frontend 2>/dev/null || true
         mkdir -p /tmp/biomate_code
+        # Keep INTERACTIVE_TOOLS_ENABLED in sync with the live Galaxy docker-socket
+        # mount even on a frontend rollback (same rule as deploy_frontend).
+        if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then
+          IT_ENABLED=1
+        else
+          IT_ENABLED=0
+        fi
         docker run -d --name biomate-dev-frontend --network biomate-dev-net \
           -p 3000:3000 --env-file /opt/biomate/.env \
           -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+          -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
           --restart unless-stopped \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v /tmp/biomate_code:/tmp/biomate_code \
