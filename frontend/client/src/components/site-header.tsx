@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, X, User } from "lucide-react"
-import { ThemeToggle } from "./theme-toggle"
+// import { ThemeToggle } from "./theme-toggle"  — light only for now
 import { UX_FEEDBACK_ADMIN_ENABLED } from "@/lib/feature-flags"
 import {
   DropdownMenu,
@@ -105,7 +105,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
-            <ThemeToggle />
+            {/* <ThemeToggle /> — light only for now */}
 
             {isAuthenticated ? (
               <DropdownMenu>

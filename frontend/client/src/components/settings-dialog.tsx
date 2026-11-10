@@ -21,7 +21,7 @@ import type { UserSettings } from "@shared/schema"
 import {
   User,
   Settings,
-  Palette,
+  // Palette,  (Appearance tab hidden)
   MessageSquare,
   Database,
   Bell,
@@ -430,10 +430,12 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                   <Key className="w-4 h-4" />
                   {t('settings.api_keys')}
                 </TabsTrigger>
+                {/* Appearance (theme) tab hidden — light only for now; dark mode not reviewed.
                 <TabsTrigger value="appearance" className="justify-start gap-2 p-3" data-testid="tab-appearance">
                   <Palette className="w-4 h-4" />
                   {tOr('settings.appearance', 'Appearance')}
                 </TabsTrigger>
+                */}
                 <TabsTrigger value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</TabsTrigger>
                 {onImportWorkflow && <TabsTrigger value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</TabsTrigger>}
                 {/* Stale stub tabs (profile/general/chat/data/notifications/privacy/
@@ -882,6 +884,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
               <TabsContent value="imports" className="space-y-4 m-0">
                 <Button data-testid="button-import-workflow-settings" onClick={onImportWorkflow}>{t('nav.import_workflow')}</Button>
               </TabsContent>
+              {/* Appearance tab content hidden — light only for now.
               <TabsContent value="appearance" className="space-y-6 m-0" data-testid="tab-content-appearance">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">{tOr('settings.appearance', 'Appearance')}</h3>
@@ -908,6 +911,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                   </Card>
                 </div>
               </TabsContent>
+              */}
 
               {/* API Keys Tab */}
               <TabsContent value="api-keys" className="space-y-6 m-0" data-testid="tab-content-api-keys">

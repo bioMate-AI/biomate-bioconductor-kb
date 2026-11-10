@@ -16,7 +16,8 @@ import ProjectDetailPage from "@/pages/project-detail";
 import ProjectNotesPage from "@/pages/project-notes";
 import NotFound from "@/pages/not-found";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
+// Theme toggle hidden — light only for now (dark mode not reviewed).
+// import { ThemeToggle } from "@/components/theme-toggle";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
 import { ToolIntroductionDialog } from "@/components/tool-introduction-dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -495,7 +496,7 @@ function PlatformLayout({
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
               <div className="flex-1" />
-              <ThemeToggle />
+              {/* <ThemeToggle /> — light only for now */}
             </div>
           ) : (
             /* Full sidebar */
