@@ -80,3 +80,37 @@ A prior, more rigorous audit already exists: **`docs/20261005_CHAIN_CONNECTION_A
 **So the real state:** diagnosis + exact fixes already exist (Oct-5); the renameable **(A)** fixes were never written into the catalog, and the design-gap **(B)** ones still need workflow/transform changes. The actionable next step is to **apply the Oct-5 audit's (A) `from_output` renames to `workflow_chains.connections`** (low-risk, pre-diagnosed), then re-validate, and only then tackle the (B) gaps.
 
 **What from today still stands as net-new/complementary:** the **silent-no-op runtime guard** (`48c03e35f8`) — it makes an unresolvable declared `from_output` **fail the step** instead of running on defaults (the Oct-5 "silently dropped" behavior). It fires only on genuine non-resolution (not on OK/FALLBACK), so it surfaces exactly the (B) gaps and any unapplied (A) rename at runtime. My `to_input` authoring validator should be re-based on the `from_output` method (or retired in favor of the Oct-5 approach) before it's trusted as a count.
+
+---
+
+## Applied — 16 Oct-5 (A) `from_output` renames written to the catalog (2026-11-09)
+
+Applied the pre-diagnosed renameable fixes from `20261005_CHAIN_CONNECTION_AUDIT.md`, each **verified**
+against the upstream workflow's real declared output filename (resolver rules: exact / substring /
+extension, case-insensitive). Reproducible script: `scripts/validation/apply_oct5_chain_connection_fixes.py`
+(dry-run by default, `--apply` writes; backs up `workflow_chains.connections` first).
+
+| Chain | Connection | from_output: was → now | resolves to |
+|---|---|---|---|
+| multiomic_differential_expression_exphunter | s1→s2 | count_matrix → **counts_matrix** | counts_matrix.tsv |
+| bp4_rnaseq_best_practices_pipeline | s1→s2 | salmon_quants → **counts_matrix** | counts_matrix.tsv |
+| rnaseq_differential_transcript_usage | s1→s2 | salmon_quants → **counts_matrix** | counts_matrix.tsv |
+| rnaseq_differential_transcript_usage | s2→s4 | drim_results → **dtu_gene_results** | dtu_gene_results.csv |
+| cytof_mass_cytometry_analysis | s2→s3, s2→s4 | cluster_assignments → **flowsom_assignments** | flowsom_assignments.csv |
+| geomx_spatial_transcriptomics | s2→s3 | norm_set → **normalized_target** | normalized_target_demodata_geomxset.rds |
+| cnv_consensus_pipeline | s2→s3 | cnv_segments → **copy_number_estimates** | copy_number_estimates.csv |
+| lcms_metabolomics_consensus | s1→s2 | xcms_set → **xcms_preprocessed** | xcms_preprocessed_object.rds |
+| lcms_metabolomics_consensus | s2→s3 | annotated_features → **xsannotated** | xsannotated.rds |
+| cyp450_ddi_chain | s1→s2 | ddi_predictions → **ddi_risk_assessment** | ddi_risk_assessment.json |
+| bioc_bulk_rnaseq_de_v2 | s2→s3 | enrichment → **enrichgo_results** | enrichGO_results_full.csv |
+| methylation_450k_array_analysis | s1→s2, s1→s3 | GenomicMethylSet → **gmsetex** | GMsetEx.rds |
+| target_to_lead_full | s5→s6 | mmgbsa_scores → **mmgbsa_results** | mmgbsa_results.csv |
+| andv_inhibitor_track_v1 | s5→s6 | mmgbsa_scores → **mmgbsa_results** | mmgbsa_results.csv |
+
+The catalog DB is gitignored; these rows deploy to dev on the next DB sync (md5 → upload + embeddings).
+
+**Still NOT fixed (need workflow/transform changes, per the Oct-5 (B)/Tier-4 tables, not renames):**
+- ADMET passed-compounds handoff (`passed_compounds`/`filtered_compounds`) — `predict_admet_properties` emits only a results JSON, no filtered SDF/SMI. Wrapper must emit one.
+- docking → GROMACS (`vina_poses` → `ligand`) — needs a best-pose-to-ligand transform.
+- scalar-field PK/ADMET handoffs (`herg_ic50_nM`, `bioavailability`, `cl_L_h`, …) — file resolver cannot address a field inside JSON; use the `context_params`/`resolve_context_params` path (none of these connections set it).
+- single-cell `.rds`-not-emitted gaps (scater/scran chains) — wrappers must `saveRDS` the SCE.
