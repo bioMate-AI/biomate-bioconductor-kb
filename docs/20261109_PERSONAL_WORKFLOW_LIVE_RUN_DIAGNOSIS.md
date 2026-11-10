@@ -82,6 +82,65 @@ review, so it should not be flipped without an explicit decision. Ship **#2** as
 an interim honesty fix regardless of the #1 decision, so the failure stops being
 cryptic.
 
+## Fix applied (Option 1 — chosen by the user)
+Commit `e0bd9e0118`:
+1. **Gate force-local to local/on-prem** (`nextflow_executor.py:7514`). On a Batch
+   platform (`NEXTFLOW_USE_AWS` and not on-prem) personal workflows keep the
+   awsbatch routing already applied upstream (executor + s3 outdir/workdir). The
+   config builder already skips BioMate-specific process selectors for personal
+   workflows, so a bare user `.nf` runs cleanly. On local/on-prem it still forces
+   the local docker executor.
+2. **Mandatory, fail-closed source pre-check** (`:7197`): `validate_nextflow_source`
+   runs on every upload — blocking pattern → 422 (never dispatched); validator
+   error → 500 (never dispatched); advisory → logged. Primary pre-dispatch control
+   before user code reaches shared Batch.
+3. **Shadow scheduler kept in parity** (`scheduler.py`): personal → awsbatch on a
+   Batch platform, else local. Parity self-test updated (5/5 in isolation).
+
+### Prediction for the live re-run (review-before-test)
+Re-run the probe on dev → source validator passes (no blocking patterns) →
+`executor=awsbatch` (dev: `NEXTFLOW_USE_AWS=true`, not on-prem) → s3 work/out dir
+→ Batch pulls `biocontainers/python:3.11` (cached) → `hello.txt` in the work dir
+→ trace COMPLETED → run state `completed`.
+
+### Live re-verify — PASSED (2026-11-10, after sync `e0bd9e01`, result=healthy)
+Re-ran the same probe on dev (run `00f37479…`, nf `f7192c30…`). Dev log now reads
+`Personal workflow — running on AWS Batch (executor=awsbatch, outdir=s3://…)` and
+`-w s3://…/work/…` (vs. the old `forcing local executor … -w /tmp/…`). Nextflow
+log tail confirms **real Batch**: `[AWS BATCH] Created job definition
+… container=quay.io/biocontainers/python:3.11`, `Submitted process > HELLO`,
+`Task completed > … HELLO; status: COMPLETED; exit: 0`, `is_batch: True`,
+`returncode: 0`, `status: succeeded`, `nf-amazon@3.3.0`, 59 s, 1/1 tasks.
+Output verified in the S3 work dir: `hello.txt` (38 B) =
+`"BioMate personal-workflow live run OK"`, `.exitcode` = `0`. ✅
+
+**Follow-on fix — outputs are now downloadable (catalog-wide, commits `90b11661`
++ `a5c34979`).** Initially `hello.txt` was *listed* (the `/output_files` endpoint
+recovers it from `work/`) but marked `download_unavailable`: publishDir is disabled
+on the Batch head JVM (CRT SIGSEGV avoidance, `nextflow_executor.py:3893-3913`), so
+declared outputs live only in the task `work/` dir and never reach the run output
+registry the download endpoint matched against. Result: user sees the file, can't
+download it. Affects every Batch run, not just uploaded ones.
+- Fix: the download endpoint (`/api/runs/:id/output/:name`) now recovers a work-dir
+  artifact — after the existing owner/member auth, it scans THIS run's own stored
+  work dir (`execution.nextflowWorkDir`) for an exact basename match and serves it
+  via the existing S3 presign path. Scoped to the run's own prefix; ambiguous name
+  → 409. The listing no longer marks these unavailable, so the download link works.
+- Security: the recovery is restricted to the same data-output allowlist the
+  listing uses — Nextflow internals (`.command.*`, `.exitcode`, which leak ECR
+  refs / S3 paths / injected env) are NOT downloadable. (A first pass missed this;
+  a negative live check — `GET …/output/.command.sh` → 302 — caught it, fixed in
+  `a5c34979`.)
+- Verified live on dev run `00f37479`: `.command.sh`/`.command.run` → 404;
+  `hello.txt` → 200, 38 B, `"BioMate personal-workflow live run OK"`. ✅
+
+### Residual security follow-up (infra, documented — not in this change)
+Regex source screening is defeatable by obfuscation (the validator says so). The
+real boundary for user code on Batch is the job container + its IAM role. Scope
+the Batch **job role** to least privilege and set the **IMDSv2 hop-limit=1** on
+the compute env so a task cannot reach `169.254.169.254` for instance-role creds.
+This is infra (Batch compute-env / job-def), not application code.
+
 ## Artifacts (for cleanup)
 - Uploaded probe workflow `f1a9d240-…` (`hello-liverun-probe`) on the fixture
   account — safe to delete; left in place pending the execution-direction decision.
