@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A Provenance-Grade Knowledge Layer — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Blog article theme — scoped so shared nav/footer is unaffected */
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+</style>
+  <meta name="description" content="A provenance-linked knowledge layer for cyclic-peptide design where every statement is tied to its exact source quote, with a de-circularized, held-out validation of how far its automated extension can be trusted." />
+  <meta name="keywords" content="knowledge base, provenance, information extraction, large language models, cyclic peptides, drug discovery, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-knowledge-layer.html" />
+  <meta property="og:title" content="Knowledge a Program Can Use — Built Rigorously — BioMate AI" />
+  <meta property="og:description" content="A provenance-linked knowledge layer for cyclic-peptide design where every statement is tied to its exact source quote, with a de-circularized, held-out validation of how far its automated extension can be trusted." />
+  <meta property="og:url" content="https://biomate.ai/blog-knowledge-layer.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/og-cover.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Knowledge a Program Can Use — Built Rigorously — BioMate AI" />
+  <meta name="twitter:description" content="A provenance-linked knowledge layer for cyclic-peptide design where every statement is tied to its exact source quote, with a de-circularized, held-out validation of how far its automated extension can be trusted." />
+  <meta name="twitter:image" content="https://biomate.ai/images/og-cover.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Knowledge a Program Can Use — Built Rigorously",
+    "description": "A provenance-linked knowledge layer for cyclic-peptide design where every statement is tied to its exact source quote, with a de-circularized, held-out validation of how far its automated extension can be trusted.",
+    "datePublished": "2026-11-09",
+    "dateModified": "2026-11-09",
+    "author": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai", "logo": {"@type":"ImageObject","url":"https://biomate.ai/assets/logo.png"}},
+    "mainEntityOfPage": {"@type":"WebPage","@id":"https://biomate.ai/blog-knowledge-layer.html"},
+    "url": "https://biomate.ai/blog-knowledge-layer.html",
+    "image": "https://biomate.ai/images/og-cover.png",
+    "articleSection": "Drug Development",
+    "keywords": "knowledge base, provenance, information extraction, large language models, cyclic peptides, drug discovery, BioMate AI"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "Knowledge a Program Can Use — Built Rigorously", "item": "https://biomate.ai/blog-knowledge-layer.html" }
+    ]
+  }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>AI & LLMs
+</div>
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">AI & LLMs</span>
+      <h1>Knowledge a Program Can Use — Built Rigorously</h1>
+      <div class="article-meta">
+        <span><strong>November 2026</strong></span>
+        <span>5 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+      <p class="lead">Design systems need more than measurements and structures: they need machine-usable knowledge — how chemistry sets permeability, how peptides sit in their targets, what earlier campaigns did and why. BioMate builds a provenance-linked knowledge layer where every statement is tied to its exact source, and extracts new knowledge with a pipeline rigorous enough to trust.</p>
+      <h2>From text to usable rules</h2>
+      <p>Existing collections give a designer data and structures, but not a design statement — "adding a hydrogen-bond donor and enlarging the ring lower permeability" — linked to its source, its evidence strength and the molecular feature it constrains. BioMate's layer provides exactly that, joining structure, property and prior-campaign knowledge in one schema with provenance on every entry.</p>
+      <h2>Rigor is the hard part</h2>
+      <p>Matching an exact quote proves where a sentence came from, not what it means. Scaling extraction naively produces thousands of records that mostly do not support the statement beside them. BioMate's pipeline pairs a frontier model with explicit, deterministic rules — one measured relation per statement, core developability properties only, no results cited from earlier work, no predictions, no off-scope endpoints — and then a multi-model committee gate for the meaning the rules cannot check.</p>
+      <h2>Measured improvement</h2>
+      <p>Under this rigorous, decompose-then-verify pipeline, statement-level extraction precision reaches a level that makes a scaled knowledge layer dependable rather than noisy — a substantial, measured improvement over a naive first generation, with inter-model agreement to match. Reliability comes from removing the checkable failures first and gating the rest.</p>
+      <h2>Provenance you can audit</h2>
+      <p>Every statement in the layer carries its source identity, exact quotation, evidence tier and the feature it constrains. That is what lets a generative system consume design knowledge as a prior it can trace — and what lets a scientist audit it. BioMate builds knowledge that is usable by a program and accountable to a person.</p>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-llm-core.html">The AI Layer in BioMate: Purpose-Built for Scientific Reasoning</a><div class="meta">April 22, 2026</div></li>
+<li><a href="blog-auto-discovery.html">A Platform That Never Stands Still: BioMate's Workflow Discovery Engine</a><div class="meta">April 18, 2026</div></li>
+<li><a href="blog-memory.html">A Platform That Learns Your Lab: BioMate's Hierarchical Memory Architecture</a><div class="meta">April 17, 2026</div></li>
+<li><a href="blog-workflow-routing.html">Finding the Right Workflow: BioMate's Hybrid Semantic Search</a><div class="meta">April 15, 2026</div></li>
+<li><a href="blog-auto-qc-loop.html">Quality That Never Settles: BioMate's Evidence-Graded Auto-QC Loop</a><div class="meta">March 12, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Bioconductor</span><span class="topic-chip">R</span><span class="topic-chip">Genomics</span><span class="topic-chip">Transcriptomics</span><span class="topic-chip">Automation</span><span class="topic-chip">Workflow Generation</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong \u2014 email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>
