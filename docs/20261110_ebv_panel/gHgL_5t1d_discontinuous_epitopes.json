@@ -1,0 +1,4391 @@
+{
+  "structure_id": "gHgL_5t1d",
+  "patch_radius_A": 12.0,
+  "n_patches": 70,
+  "n_truly_discontinuous": 68,
+  "note": "Spatial-neighbour conformational B-cell epitope patches from real CA-CA geometry (exposed antigenic residues within 12.0 A of a seed). n_sequence_segments>1 means the patch spans sequence-distant residues brought together by the fold. Geometric, not a trained predictor (DiscoTope); confirm by ELISA/neutralization.",
+  "patches": [
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 46,
+        "aa": "G"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.671,
+      "mean_surface_score": 0.6266,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 46,
+          "aa": "G",
+          "rsa": 0.9553,
+          "surface_score": 0.835
+        },
+        {
+          "chain": "H",
+          "resseq": 41,
+          "aa": "T",
+          "rsa": 0.8107,
+          "surface_score": 0.737
+        },
+        {
+          "chain": "H",
+          "resseq": 42,
+          "aa": "G",
+          "rsa": 0.7987,
+          "surface_score": 0.6981
+        },
+        {
+          "chain": "L",
+          "resseq": 45,
+          "aa": "P",
+          "rsa": 0.6042,
+          "surface_score": 0.6429
+        },
+        {
+          "chain": "H",
+          "resseq": 107,
+          "aa": "Q",
+          "rsa": 0.5058,
+          "surface_score": 0.5134
+        },
+        {
+          "chain": "L",
+          "resseq": 47,
+          "aa": "Q",
+          "rsa": 0.4987,
+          "surface_score": 0.5061
+        },
+        {
+          "chain": "L",
+          "resseq": 170,
+          "aa": "D",
+          "rsa": 0.5238,
+          "surface_score": 0.4536
+        }
+      ],
+      "rank": 1
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 213,
+        "aa": "V"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.5757,
+      "mean_surface_score": 0.6188,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 213,
+          "aa": "V",
+          "rsa": 0.6673,
+          "surface_score": 0.9228
+        },
+        {
+          "chain": "H",
+          "resseq": 131,
+          "aa": "A",
+          "rsa": 0.7099,
+          "surface_score": 0.7553
+        },
+        {
+          "chain": "H",
+          "resseq": 191,
+          "aa": "P",
+          "rsa": 0.6736,
+          "surface_score": 0.7167
+        },
+        {
+          "chain": "H",
+          "resseq": 212,
+          "aa": "I",
+          "rsa": 0.5878,
+          "surface_score": 0.6771
+        },
+        {
+          "chain": "H",
+          "resseq": 130,
+          "aa": "S",
+          "rsa": 0.5937,
+          "surface_score": 0.6009
+        },
+        {
+          "chain": "L",
+          "resseq": 127,
+          "aa": "S",
+          "rsa": 0.5878,
+          "surface_score": 0.5949
+        },
+        {
+          "chain": "H",
+          "resseq": 210,
+          "aa": "K",
+          "rsa": 0.5462,
+          "surface_score": 0.508
+        },
+        {
+          "chain": "H",
+          "resseq": 194,
+          "aa": "T",
+          "rsa": 0.4768,
+          "surface_score": 0.4334
+        },
+        {
+          "chain": "H",
+          "resseq": 132,
+          "aa": "A",
+          "rsa": 0.338,
+          "surface_score": 0.3597
+        }
+      ],
+      "rank": 2
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 573,
+        "aa": "L"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.5756,
+      "mean_surface_score": 0.6106,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 573,
+          "aa": "L",
+          "rsa": 0.7887,
+          "surface_score": 0.9859
+        },
+        {
+          "chain": "A",
+          "resseq": 572,
+          "aa": "Y",
+          "rsa": 0.8227,
+          "surface_score": 0.9551
+        },
+        {
+          "chain": "A",
+          "resseq": 625,
+          "aa": "K",
+          "rsa": 0.5889,
+          "surface_score": 0.5477
+        },
+        {
+          "chain": "A",
+          "resseq": 569,
+          "aa": "S",
+          "rsa": 0.5388,
+          "surface_score": 0.5453
+        },
+        {
+          "chain": "A",
+          "resseq": 575,
+          "aa": "S",
+          "rsa": 0.4964,
+          "surface_score": 0.5024
+        },
+        {
+          "chain": "A",
+          "resseq": 574,
+          "aa": "S",
+          "rsa": 0.387,
+          "surface_score": 0.3917
+        },
+        {
+          "chain": "A",
+          "resseq": 626,
+          "aa": "E",
+          "rsa": 0.4068,
+          "surface_score": 0.3462
+        }
+      ],
+      "rank": 3
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 82,
+        "aa": "L"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.5775,
+      "mean_surface_score": 0.6068,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 82,
+          "aa": "L",
+          "rsa": 0.9983,
+          "surface_score": 1.2479
+        },
+        {
+          "chain": "A",
+          "resseq": 85,
+          "aa": "A",
+          "rsa": 0.8354,
+          "surface_score": 0.8889
+        },
+        {
+          "chain": "A",
+          "resseq": 79,
+          "aa": "S",
+          "rsa": 0.8744,
+          "surface_score": 0.8849
+        },
+        {
+          "chain": "A",
+          "resseq": 214,
+          "aa": "P",
+          "rsa": 0.5722,
+          "surface_score": 0.6088
+        },
+        {
+          "chain": "A",
+          "resseq": 222,
+          "aa": "G",
+          "rsa": 0.6759,
+          "surface_score": 0.5907
+        },
+        {
+          "chain": "A",
+          "resseq": 84,
+          "aa": "I",
+          "rsa": 0.3804,
+          "surface_score": 0.4382
+        },
+        {
+          "chain": "A",
+          "resseq": 220,
+          "aa": "Q",
+          "rsa": 0.2837,
+          "surface_score": 0.2879
+        },
+        {
+          "chain": "A",
+          "resseq": 83,
+          "aa": "G",
+          "rsa": 0.3168,
+          "surface_score": 0.2769
+        },
+        {
+          "chain": "A",
+          "resseq": 81,
+          "aa": "T",
+          "rsa": 0.2606,
+          "surface_score": 0.2369
+        }
+      ],
+      "rank": 4
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 499,
+        "aa": "A"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.6035,
+      "mean_surface_score": 0.5928,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 499,
+          "aa": "A",
+          "rsa": 0.8341,
+          "surface_score": 0.8874
+        },
+        {
+          "chain": "A",
+          "resseq": 503,
+          "aa": "Q",
+          "rsa": 0.7184,
+          "surface_score": 0.7292
+        },
+        {
+          "chain": "A",
+          "resseq": 497,
+          "aa": "Q",
+          "rsa": 0.6914,
+          "surface_score": 0.7018
+        },
+        {
+          "chain": "A",
+          "resseq": 500,
+          "aa": "T",
+          "rsa": 0.7454,
+          "surface_score": 0.6776
+        },
+        {
+          "chain": "A",
+          "resseq": 504,
+          "aa": "A",
+          "rsa": 0.4492,
+          "surface_score": 0.4779
+        },
+        {
+          "chain": "A",
+          "resseq": 502,
+          "aa": "D",
+          "rsa": 0.4546,
+          "surface_score": 0.3936
+        },
+        {
+          "chain": "A",
+          "resseq": 498,
+          "aa": "E",
+          "rsa": 0.3317,
+          "surface_score": 0.2823
+        }
+      ],
+      "rank": 5
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 60,
+        "aa": "P"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 7,
+      "discontinuous": true,
+      "mean_rsa": 0.577,
+      "mean_surface_score": 0.5885,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 60,
+          "aa": "P",
+          "rsa": 0.8166,
+          "surface_score": 0.8689
+        },
+        {
+          "chain": "A",
+          "resseq": 388,
+          "aa": "V",
+          "rsa": 0.6119,
+          "surface_score": 0.8462
+        },
+        {
+          "chain": "C",
+          "resseq": 57,
+          "aa": "P",
+          "rsa": 0.7507,
+          "surface_score": 0.7988
+        },
+        {
+          "chain": "A",
+          "resseq": 109,
+          "aa": "P",
+          "rsa": 0.5872,
+          "surface_score": 0.6248
+        },
+        {
+          "chain": "C",
+          "resseq": 64,
+          "aa": "N",
+          "rsa": 0.6955,
+          "surface_score": 0.5397
+        },
+        {
+          "chain": "C",
+          "resseq": 56,
+          "aa": "D",
+          "rsa": 0.6216,
+          "surface_score": 0.5383
+        },
+        {
+          "chain": "A",
+          "resseq": 357,
+          "aa": "A",
+          "rsa": 0.4306,
+          "surface_score": 0.4582
+        },
+        {
+          "chain": "C",
+          "resseq": 59,
+          "aa": "P",
+          "rsa": 0.3281,
+          "surface_score": 0.3491
+        },
+        {
+          "chain": "C",
+          "resseq": 62,
+          "aa": "N",
+          "rsa": 0.3509,
+          "surface_score": 0.2723
+        }
+      ],
+      "rank": 6
+    },
+    {
+      "seed": {
+        "chain": "B",
+        "resseq": 27,
+        "aa": "P"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.5735,
+      "mean_surface_score": 0.575,
+      "residues": [
+        {
+          "chain": "B",
+          "resseq": 27,
+          "aa": "P",
+          "rsa": 0.8657,
+          "surface_score": 0.9211
+        },
+        {
+          "chain": "L",
+          "resseq": 61,
+          "aa": "S",
+          "rsa": 0.5848,
+          "surface_score": 0.5919
+        },
+        {
+          "chain": "B",
+          "resseq": 49,
+          "aa": "Y",
+          "rsa": 0.4139,
+          "surface_score": 0.4805
+        },
+        {
+          "chain": "H",
+          "resseq": 1,
+          "aa": "E",
+          "rsa": 0.52,
+          "surface_score": 0.4425
+        },
+        {
+          "chain": "B",
+          "resseq": 55,
+          "aa": "T",
+          "rsa": 0.4832,
+          "surface_score": 0.4392
+        }
+      ],
+      "rank": 7
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 598,
+        "aa": "Q"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.6098,
+      "mean_surface_score": 0.5736,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 598,
+          "aa": "Q",
+          "rsa": 0.6944,
+          "surface_score": 0.7048
+        },
+        {
+          "chain": "A",
+          "resseq": 595,
+          "aa": "E",
+          "rsa": 0.7594,
+          "surface_score": 0.6463
+        },
+        {
+          "chain": "A",
+          "resseq": 601,
+          "aa": "K",
+          "rsa": 0.6279,
+          "surface_score": 0.5839
+        },
+        {
+          "chain": "A",
+          "resseq": 600,
+          "aa": "P",
+          "rsa": 0.4646,
+          "surface_score": 0.4943
+        },
+        {
+          "chain": "A",
+          "resseq": 597,
+          "aa": "R",
+          "rsa": 0.5026,
+          "surface_score": 0.4388
+        }
+      ],
+      "rank": 8
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 48,
+        "aa": "P"
+      },
+      "n_residues": 8,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.5565,
+      "mean_surface_score": 0.5506,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 48,
+          "aa": "P",
+          "rsa": 0.7588,
+          "surface_score": 0.8073
+        },
+        {
+          "chain": "B",
+          "resseq": 98,
+          "aa": "S",
+          "rsa": 0.7177,
+          "surface_score": 0.7263
+        },
+        {
+          "chain": "A",
+          "resseq": 49,
+          "aa": "G",
+          "rsa": 0.7822,
+          "surface_score": 0.6837
+        },
+        {
+          "chain": "A",
+          "resseq": 46,
+          "aa": "K",
+          "rsa": 0.636,
+          "surface_score": 0.5915
+        },
+        {
+          "chain": "B",
+          "resseq": 97,
+          "aa": "S",
+          "rsa": 0.5352,
+          "surface_score": 0.5417
+        },
+        {
+          "chain": "A",
+          "resseq": 153,
+          "aa": "C",
+          "rsa": 0.2996,
+          "surface_score": 0.423
+        },
+        {
+          "chain": "A",
+          "resseq": 152,
+          "aa": "R",
+          "rsa": 0.4614,
+          "surface_score": 0.4028
+        },
+        {
+          "chain": "B",
+          "resseq": 95,
+          "aa": "R",
+          "rsa": 0.2615,
+          "surface_score": 0.2283
+        }
+      ],
+      "rank": 9
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 86,
+        "aa": "H"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.5627,
+      "mean_surface_score": 0.5432,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 86,
+          "aa": "H",
+          "rsa": 0.717,
+          "surface_score": 0.7923
+        },
+        {
+          "chain": "C",
+          "resseq": 87,
+          "aa": "T",
+          "rsa": 0.7596,
+          "surface_score": 0.6904
+        },
+        {
+          "chain": "A",
+          "resseq": 188,
+          "aa": "K",
+          "rsa": 0.669,
+          "surface_score": 0.6222
+        },
+        {
+          "chain": "C",
+          "resseq": 89,
+          "aa": "Q",
+          "rsa": 0.5986,
+          "surface_score": 0.6075
+        },
+        {
+          "chain": "C",
+          "resseq": 84,
+          "aa": "T",
+          "rsa": 0.624,
+          "surface_score": 0.5672
+        },
+        {
+          "chain": "A",
+          "resseq": 164,
+          "aa": "G",
+          "rsa": 0.5393,
+          "surface_score": 0.4713
+        },
+        {
+          "chain": "C",
+          "resseq": 209,
+          "aa": "S",
+          "rsa": 0.4108,
+          "surface_score": 0.4157
+        },
+        {
+          "chain": "C",
+          "resseq": 85,
+          "aa": "L",
+          "rsa": 0.3013,
+          "surface_score": 0.3767
+        },
+        {
+          "chain": "C",
+          "resseq": 126,
+          "aa": "N",
+          "rsa": 0.4451,
+          "surface_score": 0.3454
+        }
+      ],
+      "rank": 10
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 200,
+        "aa": "T"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.5418,
+      "mean_surface_score": 0.5289,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 200,
+          "aa": "T",
+          "rsa": 0.7513,
+          "surface_score": 0.6829
+        },
+        {
+          "chain": "C",
+          "resseq": 183,
+          "aa": "K",
+          "rsa": 0.6648,
+          "surface_score": 0.6182
+        },
+        {
+          "chain": "C",
+          "resseq": 146,
+          "aa": "P",
+          "rsa": 0.5741,
+          "surface_score": 0.6109
+        },
+        {
+          "chain": "C",
+          "resseq": 154,
+          "aa": "R",
+          "rsa": 0.6076,
+          "surface_score": 0.5304
+        },
+        {
+          "chain": "C",
+          "resseq": 150,
+          "aa": "P",
+          "rsa": 0.4561,
+          "surface_score": 0.4853
+        },
+        {
+          "chain": "C",
+          "resseq": 185,
+          "aa": "Y",
+          "rsa": 0.4098,
+          "surface_score": 0.4758
+        },
+        {
+          "chain": "C",
+          "resseq": 145,
+          "aa": "T",
+          "rsa": 0.3291,
+          "surface_score": 0.2991
+        }
+      ],
+      "rank": 11
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 90,
+        "aa": "V"
+      },
+      "n_residues": 8,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.483,
+      "mean_surface_score": 0.5272,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 90,
+          "aa": "V",
+          "rsa": 0.8093,
+          "surface_score": 1.1192
+        },
+        {
+          "chain": "A",
+          "resseq": 94,
+          "aa": "A",
+          "rsa": 0.6737,
+          "surface_score": 0.7168
+        },
+        {
+          "chain": "A",
+          "resseq": 87,
+          "aa": "A",
+          "rsa": 0.5882,
+          "surface_score": 0.6258
+        },
+        {
+          "chain": "A",
+          "resseq": 93,
+          "aa": "P",
+          "rsa": 0.4009,
+          "surface_score": 0.4266
+        },
+        {
+          "chain": "A",
+          "resseq": 260,
+          "aa": "S",
+          "rsa": 0.413,
+          "surface_score": 0.418
+        },
+        {
+          "chain": "A",
+          "resseq": 88,
+          "aa": "E",
+          "rsa": 0.3722,
+          "surface_score": 0.3167
+        },
+        {
+          "chain": "A",
+          "resseq": 255,
+          "aa": "T",
+          "rsa": 0.333,
+          "surface_score": 0.3027
+        },
+        {
+          "chain": "A",
+          "resseq": 89,
+          "aa": "P",
+          "rsa": 0.2741,
+          "surface_score": 0.2916
+        }
+      ],
+      "rank": 12
+    },
+    {
+      "seed": {
+        "chain": "B",
+        "resseq": 67,
+        "aa": "P"
+      },
+      "n_residues": 8,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.5383,
+      "mean_surface_score": 0.5235,
+      "residues": [
+        {
+          "chain": "B",
+          "resseq": 67,
+          "aa": "P",
+          "rsa": 0.8694,
+          "surface_score": 0.925
+        },
+        {
+          "chain": "B",
+          "resseq": 73,
+          "aa": "Q",
+          "rsa": 0.6956,
+          "surface_score": 0.706
+        },
+        {
+          "chain": "H",
+          "resseq": 27,
+          "aa": "Y",
+          "rsa": 0.5631,
+          "surface_score": 0.6537
+        },
+        {
+          "chain": "A",
+          "resseq": 22,
+          "aa": "E",
+          "rsa": 0.5467,
+          "surface_score": 0.4652
+        },
+        {
+          "chain": "B",
+          "resseq": 44,
+          "aa": "N",
+          "rsa": 0.5146,
+          "surface_score": 0.3993
+        },
+        {
+          "chain": "B",
+          "resseq": 66,
+          "aa": "S",
+          "rsa": 0.378,
+          "surface_score": 0.3826
+        },
+        {
+          "chain": "B",
+          "resseq": 43,
+          "aa": "E",
+          "rsa": 0.3895,
+          "surface_score": 0.3315
+        },
+        {
+          "chain": "A",
+          "resseq": 24,
+          "aa": "K",
+          "rsa": 0.3491,
+          "surface_score": 0.3247
+        }
+      ],
+      "rank": 13
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 208,
+        "aa": "V"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4932,
+      "mean_surface_score": 0.5199,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 208,
+          "aa": "V",
+          "rsa": 0.6548,
+          "surface_score": 0.9057
+        },
+        {
+          "chain": "H",
+          "resseq": 158,
+          "aa": "S",
+          "rsa": 0.634,
+          "surface_score": 0.6416
+        },
+        {
+          "chain": "H",
+          "resseq": 205,
+          "aa": "S",
+          "rsa": 0.4375,
+          "surface_score": 0.4427
+        },
+        {
+          "chain": "H",
+          "resseq": 206,
+          "aa": "T",
+          "rsa": 0.4768,
+          "surface_score": 0.4334
+        },
+        {
+          "chain": "H",
+          "resseq": 207,
+          "aa": "K",
+          "rsa": 0.417,
+          "surface_score": 0.3878
+        },
+        {
+          "chain": "H",
+          "resseq": 155,
+          "aa": "T",
+          "rsa": 0.3392,
+          "surface_score": 0.3084
+        }
+      ],
+      "rank": 14
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 414,
+        "aa": "H"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4562,
+      "mean_surface_score": 0.5156,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 416,
+          "aa": "V",
+          "rsa": 0.497,
+          "surface_score": 0.6873
+        },
+        {
+          "chain": "A",
+          "resseq": 414,
+          "aa": "H",
+          "rsa": 0.5098,
+          "surface_score": 0.5633
+        },
+        {
+          "chain": "A",
+          "resseq": 408,
+          "aa": "P",
+          "rsa": 0.5278,
+          "surface_score": 0.5616
+        },
+        {
+          "chain": "A",
+          "resseq": 457,
+          "aa": "L",
+          "rsa": 0.4413,
+          "surface_score": 0.5516
+        },
+        {
+          "chain": "A",
+          "resseq": 415,
+          "aa": "T",
+          "rsa": 0.4052,
+          "surface_score": 0.3684
+        },
+        {
+          "chain": "A",
+          "resseq": 411,
+          "aa": "Q",
+          "rsa": 0.3559,
+          "surface_score": 0.3613
+        }
+      ],
+      "rank": 15
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 120,
+        "aa": "K"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.5152,
+      "mean_surface_score": 0.5061,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 120,
+          "aa": "K",
+          "rsa": 0.9401,
+          "surface_score": 0.8743
+        },
+        {
+          "chain": "C",
+          "resseq": 121,
+          "aa": "K",
+          "rsa": 0.6252,
+          "surface_score": 0.5814
+        },
+        {
+          "chain": "C",
+          "resseq": 211,
+          "aa": "L",
+          "rsa": 0.4453,
+          "surface_score": 0.5566
+        },
+        {
+          "chain": "C",
+          "resseq": 122,
+          "aa": "K",
+          "rsa": 0.4732,
+          "surface_score": 0.4401
+        },
+        {
+          "chain": "C",
+          "resseq": 106,
+          "aa": "E",
+          "rsa": 0.4688,
+          "surface_score": 0.399
+        },
+        {
+          "chain": "C",
+          "resseq": 135,
+          "aa": "L",
+          "rsa": 0.2853,
+          "surface_score": 0.3566
+        },
+        {
+          "chain": "C",
+          "resseq": 108,
+          "aa": "T",
+          "rsa": 0.3682,
+          "surface_score": 0.3347
+        }
+      ],
+      "rank": 16
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 610,
+        "aa": "K"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.5272,
+      "mean_surface_score": 0.4991,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 610,
+          "aa": "K",
+          "rsa": 0.8868,
+          "surface_score": 0.8247
+        },
+        {
+          "chain": "A",
+          "resseq": 645,
+          "aa": "S",
+          "rsa": 0.587,
+          "surface_score": 0.5941
+        },
+        {
+          "chain": "C",
+          "resseq": 46,
+          "aa": "P",
+          "rsa": 0.5248,
+          "surface_score": 0.5584
+        },
+        {
+          "chain": "A",
+          "resseq": 638,
+          "aa": "E",
+          "rsa": 0.5035,
+          "surface_score": 0.4284
+        },
+        {
+          "chain": "A",
+          "resseq": 611,
+          "aa": "S",
+          "rsa": 0.3236,
+          "surface_score": 0.3274
+        },
+        {
+          "chain": "A",
+          "resseq": 641,
+          "aa": "N",
+          "rsa": 0.3374,
+          "surface_score": 0.2618
+        }
+      ],
+      "rank": 17
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 54,
+        "aa": "P"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.5106,
+      "mean_surface_score": 0.4963,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 54,
+          "aa": "P",
+          "rsa": 0.6795,
+          "surface_score": 0.723
+        },
+        {
+          "chain": "A",
+          "resseq": 360,
+          "aa": "K",
+          "rsa": 0.6184,
+          "surface_score": 0.5751
+        },
+        {
+          "chain": "A",
+          "resseq": 441,
+          "aa": "P",
+          "rsa": 0.4704,
+          "surface_score": 0.5005
+        },
+        {
+          "chain": "A",
+          "resseq": 363,
+          "aa": "E",
+          "rsa": 0.4227,
+          "surface_score": 0.3597
+        },
+        {
+          "chain": "C",
+          "resseq": 53,
+          "aa": "W",
+          "rsa": 0.362,
+          "surface_score": 0.3233
+        }
+      ],
+      "rank": 18
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 589,
+        "aa": "Q"
+      },
+      "n_residues": 10,
+      "n_sequence_segments": 7,
+      "discontinuous": true,
+      "mean_rsa": 0.4891,
+      "mean_surface_score": 0.4957,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 589,
+          "aa": "Q",
+          "rsa": 0.8522,
+          "surface_score": 0.865
+        },
+        {
+          "chain": "A",
+          "resseq": 593,
+          "aa": "A",
+          "rsa": 0.7693,
+          "surface_score": 0.8185
+        },
+        {
+          "chain": "A",
+          "resseq": 586,
+          "aa": "K",
+          "rsa": 0.6727,
+          "surface_score": 0.6256
+        },
+        {
+          "chain": "A",
+          "resseq": 533,
+          "aa": "K",
+          "rsa": 0.5627,
+          "surface_score": 0.5233
+        },
+        {
+          "chain": "A",
+          "resseq": 587,
+          "aa": "C",
+          "rsa": 0.3041,
+          "surface_score": 0.4294
+        },
+        {
+          "chain": "A",
+          "resseq": 592,
+          "aa": "V",
+          "rsa": 0.2848,
+          "surface_score": 0.3939
+        },
+        {
+          "chain": "A",
+          "resseq": 559,
+          "aa": "E",
+          "rsa": 0.4543,
+          "surface_score": 0.3866
+        },
+        {
+          "chain": "A",
+          "resseq": 563,
+          "aa": "S",
+          "rsa": 0.3534,
+          "surface_score": 0.3577
+        },
+        {
+          "chain": "A",
+          "resseq": 590,
+          "aa": "G",
+          "rsa": 0.3672,
+          "surface_score": 0.321
+        },
+        {
+          "chain": "A",
+          "resseq": 561,
+          "aa": "R",
+          "rsa": 0.2701,
+          "surface_score": 0.2358
+        }
+      ],
+      "rank": 19
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 28,
+        "aa": "D"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.5086,
+      "mean_surface_score": 0.4955,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 28,
+          "aa": "D",
+          "rsa": 0.7386,
+          "surface_score": 0.6396
+        },
+        {
+          "chain": "B",
+          "resseq": 54,
+          "aa": "Q",
+          "rsa": 0.5823,
+          "surface_score": 0.591
+        },
+        {
+          "chain": "A",
+          "resseq": 34,
+          "aa": "S",
+          "rsa": 0.5596,
+          "surface_score": 0.5663
+        },
+        {
+          "chain": "A",
+          "resseq": 35,
+          "aa": "H",
+          "rsa": 0.4003,
+          "surface_score": 0.4423
+        },
+        {
+          "chain": "B",
+          "resseq": 110,
+          "aa": "T",
+          "rsa": 0.262,
+          "surface_score": 0.2382
+        }
+      ],
+      "rank": 20
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 30,
+        "aa": "L"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.492,
+      "mean_surface_score": 0.4941,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 30,
+          "aa": "L",
+          "rsa": 0.5006,
+          "surface_score": 0.6257
+        },
+        {
+          "chain": "L",
+          "resseq": 72,
+          "aa": "S",
+          "rsa": 0.565,
+          "surface_score": 0.5718
+        },
+        {
+          "chain": "L",
+          "resseq": 34,
+          "aa": "G",
+          "rsa": 0.5454,
+          "surface_score": 0.4767
+        },
+        {
+          "chain": "B",
+          "resseq": 134,
+          "aa": "H",
+          "rsa": 0.4235,
+          "surface_score": 0.4679
+        },
+        {
+          "chain": "L",
+          "resseq": 33,
+          "aa": "N",
+          "rsa": 0.5818,
+          "surface_score": 0.4515
+        },
+        {
+          "chain": "L",
+          "resseq": 31,
+          "aa": "H",
+          "rsa": 0.3355,
+          "surface_score": 0.3708
+        }
+      ],
+      "rank": 21
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 674,
+        "aa": "Y"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.5038,
+      "mean_surface_score": 0.4933,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 674,
+          "aa": "Y",
+          "rsa": 0.8066,
+          "surface_score": 0.9365
+        },
+        {
+          "chain": "A",
+          "resseq": 608,
+          "aa": "T",
+          "rsa": 0.6354,
+          "surface_score": 0.5775
+        },
+        {
+          "chain": "A",
+          "resseq": 603,
+          "aa": "Q",
+          "rsa": 0.5021,
+          "surface_score": 0.5096
+        },
+        {
+          "chain": "A",
+          "resseq": 604,
+          "aa": "N",
+          "rsa": 0.6226,
+          "surface_score": 0.4832
+        },
+        {
+          "chain": "A",
+          "resseq": 607,
+          "aa": "R",
+          "rsa": 0.3739,
+          "surface_score": 0.3265
+        },
+        {
+          "chain": "A",
+          "resseq": 673,
+          "aa": "L",
+          "rsa": 0.2545,
+          "surface_score": 0.3181
+        },
+        {
+          "chain": "A",
+          "resseq": 606,
+          "aa": "T",
+          "rsa": 0.3316,
+          "surface_score": 0.3015
+        }
+      ],
+      "rank": 22
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 80,
+        "aa": "H"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.4976,
+      "mean_surface_score": 0.486,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 80,
+          "aa": "H",
+          "rsa": 0.7329,
+          "surface_score": 0.8099
+        },
+        {
+          "chain": "C",
+          "resseq": 77,
+          "aa": "K",
+          "rsa": 0.8191,
+          "surface_score": 0.7618
+        },
+        {
+          "chain": "C",
+          "resseq": 82,
+          "aa": "T",
+          "rsa": 0.6702,
+          "surface_score": 0.6092
+        },
+        {
+          "chain": "A",
+          "resseq": 141,
+          "aa": "T",
+          "rsa": 0.4475,
+          "surface_score": 0.4068
+        },
+        {
+          "chain": "C",
+          "resseq": 79,
+          "aa": "P",
+          "rsa": 0.2794,
+          "surface_score": 0.2973
+        },
+        {
+          "chain": "A",
+          "resseq": 139,
+          "aa": "P",
+          "rsa": 0.2753,
+          "surface_score": 0.2929
+        },
+        {
+          "chain": "A",
+          "resseq": 165,
+          "aa": "D",
+          "rsa": 0.2586,
+          "surface_score": 0.224
+        }
+      ],
+      "rank": 23
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 111,
+        "aa": "V"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4466,
+      "mean_surface_score": 0.4838,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 111,
+          "aa": "V",
+          "rsa": 0.6234,
+          "surface_score": 0.8622
+        },
+        {
+          "chain": "A",
+          "resseq": 101,
+          "aa": "Q",
+          "rsa": 0.5857,
+          "surface_score": 0.5945
+        },
+        {
+          "chain": "A",
+          "resseq": 108,
+          "aa": "H",
+          "rsa": 0.5208,
+          "surface_score": 0.5755
+        },
+        {
+          "chain": "A",
+          "resseq": 113,
+          "aa": "S",
+          "rsa": 0.3333,
+          "surface_score": 0.3373
+        },
+        {
+          "chain": "A",
+          "resseq": 100,
+          "aa": "M",
+          "rsa": 0.3238,
+          "surface_score": 0.2674
+        },
+        {
+          "chain": "A",
+          "resseq": 358,
+          "aa": "T",
+          "rsa": 0.2923,
+          "surface_score": 0.2657
+        }
+      ],
+      "rank": 24
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 48,
+        "aa": "P"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4695,
+      "mean_surface_score": 0.4822,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 48,
+          "aa": "P",
+          "rsa": 0.7066,
+          "surface_score": 0.7519
+        },
+        {
+          "chain": "C",
+          "resseq": 45,
+          "aa": "V",
+          "rsa": 0.497,
+          "surface_score": 0.6873
+        },
+        {
+          "chain": "C",
+          "resseq": 51,
+          "aa": "E",
+          "rsa": 0.6057,
+          "surface_score": 0.5154
+        },
+        {
+          "chain": "A",
+          "resseq": 548,
+          "aa": "I",
+          "rsa": 0.2898,
+          "surface_score": 0.3339
+        },
+        {
+          "chain": "C",
+          "resseq": 49,
+          "aa": "N",
+          "rsa": 0.4079,
+          "surface_score": 0.3165
+        },
+        {
+          "chain": "C",
+          "resseq": 47,
+          "aa": "K",
+          "rsa": 0.3098,
+          "surface_score": 0.2881
+        }
+      ],
+      "rank": 25
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 654,
+        "aa": "L"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 1,
+      "discontinuous": false,
+      "mean_rsa": 0.4719,
+      "mean_surface_score": 0.4789,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 654,
+          "aa": "L",
+          "rsa": 0.7545,
+          "surface_score": 0.9431
+        },
+        {
+          "chain": "A",
+          "resseq": 652,
+          "aa": "D",
+          "rsa": 0.6443,
+          "surface_score": 0.5579
+        },
+        {
+          "chain": "A",
+          "resseq": 655,
+          "aa": "H",
+          "rsa": 0.4204,
+          "surface_score": 0.4646
+        },
+        {
+          "chain": "A",
+          "resseq": 651,
+          "aa": "F",
+          "rsa": 0.2861,
+          "surface_score": 0.3121
+        },
+        {
+          "chain": "A",
+          "resseq": 650,
+          "aa": "D",
+          "rsa": 0.3564,
+          "surface_score": 0.3087
+        },
+        {
+          "chain": "A",
+          "resseq": 653,
+          "aa": "N",
+          "rsa": 0.3699,
+          "surface_score": 0.287
+        }
+      ],
+      "rank": 26
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 436,
+        "aa": "V"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4888,
+      "mean_surface_score": 0.478,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 436,
+          "aa": "V",
+          "rsa": 0.5751,
+          "surface_score": 0.7953
+        },
+        {
+          "chain": "A",
+          "resseq": 435,
+          "aa": "N",
+          "rsa": 0.8043,
+          "surface_score": 0.6242
+        },
+        {
+          "chain": "A",
+          "resseq": 527,
+          "aa": "W",
+          "rsa": 0.4716,
+          "surface_score": 0.4212
+        },
+        {
+          "chain": "A",
+          "resseq": 530,
+          "aa": "P",
+          "rsa": 0.374,
+          "surface_score": 0.3979
+        },
+        {
+          "chain": "A",
+          "resseq": 387,
+          "aa": "G",
+          "rsa": 0.4058,
+          "surface_score": 0.3547
+        },
+        {
+          "chain": "A",
+          "resseq": 437,
+          "aa": "T",
+          "rsa": 0.3022,
+          "surface_score": 0.2747
+        }
+      ],
+      "rank": 27
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 101,
+        "aa": "Y"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.4664,
+      "mean_surface_score": 0.4767,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 101,
+          "aa": "Y",
+          "rsa": 0.5746,
+          "surface_score": 0.6671
+        },
+        {
+          "chain": "C",
+          "resseq": 98,
+          "aa": "N",
+          "rsa": 0.815,
+          "surface_score": 0.6325
+        },
+        {
+          "chain": "C",
+          "resseq": 137,
+          "aa": "P",
+          "rsa": 0.5805,
+          "surface_score": 0.6177
+        },
+        {
+          "chain": "C",
+          "resseq": 104,
+          "aa": "T",
+          "rsa": 0.5901,
+          "surface_score": 0.5364
+        },
+        {
+          "chain": "C",
+          "resseq": 102,
+          "aa": "C",
+          "rsa": 0.3682,
+          "surface_score": 0.5198
+        },
+        {
+          "chain": "C",
+          "resseq": 100,
+          "aa": "T",
+          "rsa": 0.4926,
+          "surface_score": 0.4477
+        },
+        {
+          "chain": "C",
+          "resseq": 99,
+          "aa": "C",
+          "rsa": 0.2556,
+          "surface_score": 0.3608
+        },
+        {
+          "chain": "C",
+          "resseq": 136,
+          "aa": "Y",
+          "rsa": 0.2707,
+          "surface_score": 0.3143
+        },
+        {
+          "chain": "C",
+          "resseq": 103,
+          "aa": "N",
+          "rsa": 0.2501,
+          "surface_score": 0.1941
+        }
+      ],
+      "rank": 28
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 169,
+        "aa": "V"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.4766,
+      "mean_surface_score": 0.4758,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 169,
+          "aa": "V",
+          "rsa": 0.5524,
+          "surface_score": 0.7639
+        },
+        {
+          "chain": "C",
+          "resseq": 171,
+          "aa": "E",
+          "rsa": 0.6589,
+          "surface_score": 0.5607
+        },
+        {
+          "chain": "C",
+          "resseq": 173,
+          "aa": "N",
+          "rsa": 0.6583,
+          "surface_score": 0.5108
+        },
+        {
+          "chain": "C",
+          "resseq": 170,
+          "aa": "G",
+          "rsa": 0.4624,
+          "surface_score": 0.4041
+        },
+        {
+          "chain": "C",
+          "resseq": 90,
+          "aa": "V",
+          "rsa": 0.2875,
+          "surface_score": 0.3976
+        },
+        {
+          "chain": "C",
+          "resseq": 91,
+          "aa": "P",
+          "rsa": 0.3547,
+          "surface_score": 0.3774
+        },
+        {
+          "chain": "C",
+          "resseq": 172,
+          "aa": "G",
+          "rsa": 0.3619,
+          "surface_score": 0.3163
+        }
+      ],
+      "rank": 29
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 162,
+        "aa": "S"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.4795,
+      "mean_surface_score": 0.4758,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 162,
+          "aa": "S",
+          "rsa": 0.6934,
+          "surface_score": 0.7017
+        },
+        {
+          "chain": "H",
+          "resseq": 159,
+          "aa": "G",
+          "rsa": 0.5734,
+          "surface_score": 0.5012
+        },
+        {
+          "chain": "H",
+          "resseq": 160,
+          "aa": "S",
+          "rsa": 0.457,
+          "surface_score": 0.4625
+        },
+        {
+          "chain": "H",
+          "resseq": 161,
+          "aa": "L",
+          "rsa": 0.2972,
+          "surface_score": 0.3715
+        },
+        {
+          "chain": "H",
+          "resseq": 167,
+          "aa": "T",
+          "rsa": 0.3764,
+          "surface_score": 0.3422
+        }
+      ],
+      "rank": 30
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 207,
+        "aa": "T"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.491,
+      "mean_surface_score": 0.4744,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 207,
+          "aa": "T",
+          "rsa": 0.8268,
+          "surface_score": 0.7516
+        },
+        {
+          "chain": "L",
+          "resseq": 204,
+          "aa": "K",
+          "rsa": 0.5947,
+          "surface_score": 0.5531
+        },
+        {
+          "chain": "L",
+          "resseq": 208,
+          "aa": "S",
+          "rsa": 0.4968,
+          "surface_score": 0.5027
+        },
+        {
+          "chain": "L",
+          "resseq": 117,
+          "aa": "A",
+          "rsa": 0.3677,
+          "surface_score": 0.3912
+        },
+        {
+          "chain": "L",
+          "resseq": 209,
+          "aa": "P",
+          "rsa": 0.3092,
+          "surface_score": 0.329
+        },
+        {
+          "chain": "L",
+          "resseq": 205,
+          "aa": "T",
+          "rsa": 0.3507,
+          "surface_score": 0.3187
+        }
+      ],
+      "rank": 31
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 174,
+        "aa": "K"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.5034,
+      "mean_surface_score": 0.4733,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 174,
+          "aa": "K",
+          "rsa": 0.8323,
+          "surface_score": 0.774
+        },
+        {
+          "chain": "L",
+          "resseq": 173,
+          "aa": "S",
+          "rsa": 0.7216,
+          "surface_score": 0.7303
+        },
+        {
+          "chain": "H",
+          "resseq": 163,
+          "aa": "S",
+          "rsa": 0.6712,
+          "surface_score": 0.6793
+        },
+        {
+          "chain": "L",
+          "resseq": 175,
+          "aa": "D",
+          "rsa": 0.4051,
+          "surface_score": 0.3508
+        },
+        {
+          "chain": "H",
+          "resseq": 164,
+          "aa": "G",
+          "rsa": 0.3078,
+          "surface_score": 0.269
+        },
+        {
+          "chain": "L",
+          "resseq": 113,
+          "aa": "R",
+          "rsa": 0.2966,
+          "surface_score": 0.2589
+        },
+        {
+          "chain": "L",
+          "resseq": 172,
+          "aa": "D",
+          "rsa": 0.2892,
+          "surface_score": 0.2505
+        }
+      ],
+      "rank": 32
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 159,
+        "aa": "I"
+      },
+      "n_residues": 8,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4764,
+      "mean_surface_score": 0.4714,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 159,
+          "aa": "I",
+          "rsa": 0.7499,
+          "surface_score": 0.8639
+        },
+        {
+          "chain": "C",
+          "resseq": 198,
+          "aa": "F",
+          "rsa": 0.722,
+          "surface_score": 0.7877
+        },
+        {
+          "chain": "C",
+          "resseq": 158,
+          "aa": "A",
+          "rsa": 0.6466,
+          "surface_score": 0.688
+        },
+        {
+          "chain": "C",
+          "resseq": 157,
+          "aa": "N",
+          "rsa": 0.4601,
+          "surface_score": 0.357
+        },
+        {
+          "chain": "C",
+          "resseq": 197,
+          "aa": "K",
+          "rsa": 0.3273,
+          "surface_score": 0.3044
+        },
+        {
+          "chain": "A",
+          "resseq": 507,
+          "aa": "S",
+          "rsa": 0.2884,
+          "surface_score": 0.2919
+        },
+        {
+          "chain": "C",
+          "resseq": 155,
+          "aa": "N",
+          "rsa": 0.3563,
+          "surface_score": 0.2765
+        },
+        {
+          "chain": "A",
+          "resseq": 508,
+          "aa": "N",
+          "rsa": 0.2604,
+          "surface_score": 0.2021
+        }
+      ],
+      "rank": 33
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 161,
+        "aa": "Q"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 1,
+      "discontinuous": false,
+      "mean_rsa": 0.5151,
+      "mean_surface_score": 0.4698,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 161,
+          "aa": "Q",
+          "rsa": 0.6663,
+          "surface_score": 0.6763
+        },
+        {
+          "chain": "L",
+          "resseq": 158,
+          "aa": "S",
+          "rsa": 0.5435,
+          "surface_score": 0.55
+        },
+        {
+          "chain": "L",
+          "resseq": 162,
+          "aa": "N",
+          "rsa": 0.6119,
+          "surface_score": 0.4748
+        },
+        {
+          "chain": "L",
+          "resseq": 159,
+          "aa": "E",
+          "rsa": 0.4611,
+          "surface_score": 0.3924
+        },
+        {
+          "chain": "L",
+          "resseq": 160,
+          "aa": "R",
+          "rsa": 0.2927,
+          "surface_score": 0.2556
+        }
+      ],
+      "rank": 34
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 3,
+        "aa": "V"
+      },
+      "n_residues": 10,
+      "n_sequence_segments": 7,
+      "discontinuous": true,
+      "mean_rsa": 0.4481,
+      "mean_surface_score": 0.4677,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 3,
+          "aa": "V",
+          "rsa": 0.5617,
+          "surface_score": 0.7769
+        },
+        {
+          "chain": "L",
+          "resseq": 99,
+          "aa": "V",
+          "rsa": 0.4474,
+          "surface_score": 0.6188
+        },
+        {
+          "chain": "L",
+          "resseq": 1,
+          "aa": "D",
+          "rsa": 0.6687,
+          "surface_score": 0.5791
+        },
+        {
+          "chain": "L",
+          "resseq": 28,
+          "aa": "S",
+          "rsa": 0.4891,
+          "surface_score": 0.495
+        },
+        {
+          "chain": "L",
+          "resseq": 24,
+          "aa": "R",
+          "rsa": 0.5229,
+          "surface_score": 0.4565
+        },
+        {
+          "chain": "L",
+          "resseq": 26,
+          "aa": "S",
+          "rsa": 0.3894,
+          "surface_score": 0.394
+        },
+        {
+          "chain": "L",
+          "resseq": 98,
+          "aa": "H",
+          "rsa": 0.334,
+          "surface_score": 0.3691
+        },
+        {
+          "chain": "L",
+          "resseq": 27,
+          "aa": "Q",
+          "rsa": 0.354,
+          "surface_score": 0.3593
+        },
+        {
+          "chain": "L",
+          "resseq": 74,
+          "aa": "T",
+          "rsa": 0.3559,
+          "surface_score": 0.3235
+        },
+        {
+          "chain": "H",
+          "resseq": 46,
+          "aa": "E",
+          "rsa": 0.3584,
+          "surface_score": 0.305
+        }
+      ],
+      "rank": 35
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 174,
+        "aa": "S"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4512,
+      "mean_surface_score": 0.466,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 174,
+          "aa": "S",
+          "rsa": 0.769,
+          "surface_score": 0.7782
+        },
+        {
+          "chain": "H",
+          "resseq": 115,
+          "aa": "S",
+          "rsa": 0.5299,
+          "surface_score": 0.5362
+        },
+        {
+          "chain": "H",
+          "resseq": 172,
+          "aa": "L",
+          "rsa": 0.421,
+          "surface_score": 0.5262
+        },
+        {
+          "chain": "L",
+          "resseq": 163,
+          "aa": "G",
+          "rsa": 0.4129,
+          "surface_score": 0.3609
+        },
+        {
+          "chain": "L",
+          "resseq": 165,
+          "aa": "L",
+          "rsa": 0.2525,
+          "surface_score": 0.3156
+        },
+        {
+          "chain": "H",
+          "resseq": 175,
+          "aa": "D",
+          "rsa": 0.3221,
+          "surface_score": 0.2789
+        }
+      ],
+      "rank": 36
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 112,
+        "aa": "K"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4993,
+      "mean_surface_score": 0.4652,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 112,
+          "aa": "K",
+          "rsa": 0.8222,
+          "surface_score": 0.7646
+        },
+        {
+          "chain": "C",
+          "resseq": 147,
+          "aa": "D",
+          "rsa": 0.5163,
+          "surface_score": 0.4471
+        },
+        {
+          "chain": "C",
+          "resseq": 110,
+          "aa": "S",
+          "rsa": 0.41,
+          "surface_score": 0.415
+        },
+        {
+          "chain": "C",
+          "resseq": 113,
+          "aa": "G",
+          "rsa": 0.4249,
+          "surface_score": 0.3714
+        },
+        {
+          "chain": "C",
+          "resseq": 219,
+          "aa": "Q",
+          "rsa": 0.3232,
+          "surface_score": 0.3281
+        }
+      ],
+      "rank": 37
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 136,
+        "aa": "S"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.4817,
+      "mean_surface_score": 0.4584,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 136,
+          "aa": "S",
+          "rsa": 0.719,
+          "surface_score": 0.7276
+        },
+        {
+          "chain": "H",
+          "resseq": 133,
+          "aa": "Q",
+          "rsa": 0.6724,
+          "surface_score": 0.6825
+        },
+        {
+          "chain": "H",
+          "resseq": 188,
+          "aa": "S",
+          "rsa": 0.6542,
+          "surface_score": 0.662
+        },
+        {
+          "chain": "H",
+          "resseq": 135,
+          "aa": "N",
+          "rsa": 0.5862,
+          "surface_score": 0.4549
+        },
+        {
+          "chain": "H",
+          "resseq": 186,
+          "aa": "P",
+          "rsa": 0.3867,
+          "surface_score": 0.4114
+        },
+        {
+          "chain": "H",
+          "resseq": 137,
+          "aa": "M",
+          "rsa": 0.4506,
+          "surface_score": 0.3722
+        },
+        {
+          "chain": "H",
+          "resseq": 134,
+          "aa": "T",
+          "rsa": 0.34,
+          "surface_score": 0.309
+        },
+        {
+          "chain": "H",
+          "resseq": 187,
+          "aa": "S",
+          "rsa": 0.2664,
+          "surface_score": 0.2696
+        },
+        {
+          "chain": "H",
+          "resseq": 189,
+          "aa": "T",
+          "rsa": 0.26,
+          "surface_score": 0.2363
+        }
+      ],
+      "rank": 38
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 211,
+        "aa": "V"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4497,
+      "mean_surface_score": 0.4571,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 211,
+          "aa": "V",
+          "rsa": 0.4632,
+          "surface_score": 0.6406
+        },
+        {
+          "chain": "L",
+          "resseq": 157,
+          "aa": "G",
+          "rsa": 0.6014,
+          "surface_score": 0.5257
+        },
+        {
+          "chain": "L",
+          "resseq": 119,
+          "aa": "T",
+          "rsa": 0.4453,
+          "surface_score": 0.4048
+        },
+        {
+          "chain": "L",
+          "resseq": 212,
+          "aa": "K",
+          "rsa": 0.3989,
+          "surface_score": 0.371
+        },
+        {
+          "chain": "L",
+          "resseq": 213,
+          "aa": "S",
+          "rsa": 0.3395,
+          "surface_score": 0.3436
+        }
+      ],
+      "rank": 39
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 366,
+        "aa": "H"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.4656,
+      "mean_surface_score": 0.4558,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 366,
+          "aa": "H",
+          "rsa": 0.6487,
+          "surface_score": 0.7169
+        },
+        {
+          "chain": "A",
+          "resseq": 368,
+          "aa": "T",
+          "rsa": 0.5188,
+          "surface_score": 0.4716
+        },
+        {
+          "chain": "A",
+          "resseq": 370,
+          "aa": "E",
+          "rsa": 0.5307,
+          "surface_score": 0.4517
+        },
+        {
+          "chain": "A",
+          "resseq": 367,
+          "aa": "L",
+          "rsa": 0.3376,
+          "surface_score": 0.422
+        },
+        {
+          "chain": "A",
+          "resseq": 406,
+          "aa": "R",
+          "rsa": 0.4576,
+          "surface_score": 0.3995
+        },
+        {
+          "chain": "A",
+          "resseq": 369,
+          "aa": "T",
+          "rsa": 0.3002,
+          "surface_score": 0.2728
+        }
+      ],
+      "rank": 40
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 233,
+        "aa": "V"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4322,
+      "mean_surface_score": 0.4541,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 233,
+          "aa": "V",
+          "rsa": 0.6,
+          "surface_score": 0.8298
+        },
+        {
+          "chain": "A",
+          "resseq": 74,
+          "aa": "L",
+          "rsa": 0.4078,
+          "surface_score": 0.5097
+        },
+        {
+          "chain": "A",
+          "resseq": 232,
+          "aa": "F",
+          "rsa": 0.4237,
+          "surface_score": 0.4622
+        },
+        {
+          "chain": "A",
+          "resseq": 236,
+          "aa": "A",
+          "rsa": 0.4339,
+          "surface_score": 0.4617
+        },
+        {
+          "chain": "A",
+          "resseq": 73,
+          "aa": "K",
+          "rsa": 0.4511,
+          "surface_score": 0.4195
+        },
+        {
+          "chain": "A",
+          "resseq": 239,
+          "aa": "H",
+          "rsa": 0.3529,
+          "surface_score": 0.39
+        },
+        {
+          "chain": "A",
+          "resseq": 190,
+          "aa": "D",
+          "rsa": 0.4131,
+          "surface_score": 0.3577
+        },
+        {
+          "chain": "A",
+          "resseq": 191,
+          "aa": "E",
+          "rsa": 0.3982,
+          "surface_score": 0.3388
+        },
+        {
+          "chain": "A",
+          "resseq": 240,
+          "aa": "N",
+          "rsa": 0.4089,
+          "surface_score": 0.3173
+        }
+      ],
+      "rank": 41
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 85,
+        "aa": "R"
+      },
+      "n_residues": 14,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.4846,
+      "mean_surface_score": 0.4517,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 85,
+          "aa": "R",
+          "rsa": 0.7271,
+          "surface_score": 0.6347
+        },
+        {
+          "chain": "H",
+          "resseq": 65,
+          "aa": "K",
+          "rsa": 0.6221,
+          "surface_score": 0.5785
+        },
+        {
+          "chain": "H",
+          "resseq": 88,
+          "aa": "S",
+          "rsa": 0.5655,
+          "surface_score": 0.5723
+        },
+        {
+          "chain": "H",
+          "resseq": 89,
+          "aa": "E",
+          "rsa": 0.5859,
+          "surface_score": 0.4986
+        },
+        {
+          "chain": "H",
+          "resseq": 13,
+          "aa": "K",
+          "rsa": 0.5121,
+          "surface_score": 0.4762
+        },
+        {
+          "chain": "H",
+          "resseq": 66,
+          "aa": "G",
+          "rsa": 0.5381,
+          "surface_score": 0.4703
+        },
+        {
+          "chain": "H",
+          "resseq": 17,
+          "aa": "S",
+          "rsa": 0.4577,
+          "surface_score": 0.4632
+        },
+        {
+          "chain": "H",
+          "resseq": 15,
+          "aa": "G",
+          "rsa": 0.5095,
+          "surface_score": 0.4453
+        },
+        {
+          "chain": "H",
+          "resseq": 14,
+          "aa": "P",
+          "rsa": 0.416,
+          "surface_score": 0.4426
+        },
+        {
+          "chain": "H",
+          "resseq": 87,
+          "aa": "T",
+          "rsa": 0.4793,
+          "surface_score": 0.4357
+        },
+        {
+          "chain": "H",
+          "resseq": 69,
+          "aa": "T",
+          "rsa": 0.4619,
+          "surface_score": 0.4199
+        },
+        {
+          "chain": "H",
+          "resseq": 16,
+          "aa": "A",
+          "rsa": 0.3254,
+          "surface_score": 0.3463
+        },
+        {
+          "chain": "H",
+          "resseq": 67,
+          "aa": "E",
+          "rsa": 0.3198,
+          "surface_score": 0.2722
+        },
+        {
+          "chain": "H",
+          "resseq": 82,
+          "aa": "Q",
+          "rsa": 0.2636,
+          "surface_score": 0.2676
+        }
+      ],
+      "rank": 42
+    },
+    {
+      "seed": {
+        "chain": "B",
+        "resseq": 33,
+        "aa": "Q"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4477,
+      "mean_surface_score": 0.4471,
+      "residues": [
+        {
+          "chain": "B",
+          "resseq": 33,
+          "aa": "Q",
+          "rsa": 0.668,
+          "surface_score": 0.6781
+        },
+        {
+          "chain": "B",
+          "resseq": 40,
+          "aa": "L",
+          "rsa": 0.54,
+          "surface_score": 0.675
+        },
+        {
+          "chain": "B",
+          "resseq": 32,
+          "aa": "T",
+          "rsa": 0.5488,
+          "surface_score": 0.4988
+        },
+        {
+          "chain": "B",
+          "resseq": 78,
+          "aa": "R",
+          "rsa": 0.3933,
+          "surface_score": 0.3433
+        },
+        {
+          "chain": "H",
+          "resseq": 30,
+          "aa": "T",
+          "rsa": 0.274,
+          "surface_score": 0.2491
+        },
+        {
+          "chain": "A",
+          "resseq": 62,
+          "aa": "T",
+          "rsa": 0.2619,
+          "surface_score": 0.2381
+        }
+      ],
+      "rank": 43
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 202,
+        "aa": "P"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.446,
+      "mean_surface_score": 0.4452,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 202,
+          "aa": "P",
+          "rsa": 0.7503,
+          "surface_score": 0.7983
+        },
+        {
+          "chain": "H",
+          "resseq": 151,
+          "aa": "P",
+          "rsa": 0.5827,
+          "surface_score": 0.62
+        },
+        {
+          "chain": "H",
+          "resseq": 120,
+          "aa": "P",
+          "rsa": 0.4623,
+          "surface_score": 0.4918
+        },
+        {
+          "chain": "H",
+          "resseq": 153,
+          "aa": "T",
+          "rsa": 0.502,
+          "surface_score": 0.4563
+        },
+        {
+          "chain": "H",
+          "resseq": 203,
+          "aa": "A",
+          "rsa": 0.3982,
+          "surface_score": 0.4237
+        },
+        {
+          "chain": "H",
+          "resseq": 204,
+          "aa": "S",
+          "rsa": 0.3972,
+          "surface_score": 0.4019
+        },
+        {
+          "chain": "H",
+          "resseq": 150,
+          "aa": "E",
+          "rsa": 0.3812,
+          "surface_score": 0.3244
+        },
+        {
+          "chain": "H",
+          "resseq": 118,
+          "aa": "T",
+          "rsa": 0.286,
+          "surface_score": 0.26
+        },
+        {
+          "chain": "H",
+          "resseq": 119,
+          "aa": "T",
+          "rsa": 0.2539,
+          "surface_score": 0.2308
+        }
+      ],
+      "rank": 44
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 131,
+        "aa": "T"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4879,
+      "mean_surface_score": 0.4445,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 131,
+          "aa": "T",
+          "rsa": 0.7482,
+          "surface_score": 0.6801
+        },
+        {
+          "chain": "L",
+          "resseq": 132,
+          "aa": "S",
+          "rsa": 0.5981,
+          "surface_score": 0.6052
+        },
+        {
+          "chain": "L",
+          "resseq": 189,
+          "aa": "D",
+          "rsa": 0.5677,
+          "surface_score": 0.4916
+        },
+        {
+          "chain": "L",
+          "resseq": 133,
+          "aa": "G",
+          "rsa": 0.4533,
+          "surface_score": 0.3961
+        },
+        {
+          "chain": "L",
+          "resseq": 187,
+          "aa": "T",
+          "rsa": 0.3983,
+          "surface_score": 0.3621
+        },
+        {
+          "chain": "L",
+          "resseq": 128,
+          "aa": "E",
+          "rsa": 0.3517,
+          "surface_score": 0.2993
+        },
+        {
+          "chain": "L",
+          "resseq": 188,
+          "aa": "K",
+          "rsa": 0.2977,
+          "surface_score": 0.2769
+        }
+      ],
+      "rank": 45
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 20,
+        "aa": "L"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.438,
+      "mean_surface_score": 0.444,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 20,
+          "aa": "L",
+          "rsa": 0.6801,
+          "surface_score": 0.8502
+        },
+        {
+          "chain": "A",
+          "resseq": 45,
+          "aa": "A",
+          "rsa": 0.6389,
+          "surface_score": 0.6798
+        },
+        {
+          "chain": "B",
+          "resseq": 41,
+          "aa": "A",
+          "rsa": 0.4457,
+          "surface_score": 0.4743
+        },
+        {
+          "chain": "A",
+          "resseq": 41,
+          "aa": "T",
+          "rsa": 0.4976,
+          "surface_score": 0.4523
+        },
+        {
+          "chain": "A",
+          "resseq": 51,
+          "aa": "S",
+          "rsa": 0.3734,
+          "surface_score": 0.3779
+        },
+        {
+          "chain": "A",
+          "resseq": 21,
+          "aa": "S",
+          "rsa": 0.3505,
+          "surface_score": 0.3547
+        },
+        {
+          "chain": "A",
+          "resseq": 42,
+          "aa": "E",
+          "rsa": 0.3896,
+          "surface_score": 0.3315
+        },
+        {
+          "chain": "A",
+          "resseq": 53,
+          "aa": "E",
+          "rsa": 0.2908,
+          "surface_score": 0.2475
+        },
+        {
+          "chain": "A",
+          "resseq": 44,
+          "aa": "M",
+          "rsa": 0.2753,
+          "surface_score": 0.2274
+        }
+      ],
+      "rank": 46
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 95,
+        "aa": "V"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4523,
+      "mean_surface_score": 0.4342,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 95,
+          "aa": "V",
+          "rsa": 0.4717,
+          "surface_score": 0.6523
+        },
+        {
+          "chain": "A",
+          "resseq": 97,
+          "aa": "E",
+          "rsa": 0.7023,
+          "surface_score": 0.5977
+        },
+        {
+          "chain": "A",
+          "resseq": 98,
+          "aa": "G",
+          "rsa": 0.6162,
+          "surface_score": 0.5386
+        },
+        {
+          "chain": "A",
+          "resseq": 316,
+          "aa": "R",
+          "rsa": 0.3816,
+          "surface_score": 0.3331
+        },
+        {
+          "chain": "A",
+          "resseq": 308,
+          "aa": "T",
+          "rsa": 0.2696,
+          "surface_score": 0.2451
+        },
+        {
+          "chain": "A",
+          "resseq": 311,
+          "aa": "G",
+          "rsa": 0.2726,
+          "surface_score": 0.2382
+        }
+      ],
+      "rank": 47
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 279,
+        "aa": "R"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4655,
+      "mean_surface_score": 0.4308,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 279,
+          "aa": "R",
+          "rsa": 0.7452,
+          "surface_score": 0.6505
+        },
+        {
+          "chain": "A",
+          "resseq": 334,
+          "aa": "I",
+          "rsa": 0.4531,
+          "surface_score": 0.522
+        },
+        {
+          "chain": "A",
+          "resseq": 275,
+          "aa": "K",
+          "rsa": 0.4695,
+          "surface_score": 0.4366
+        },
+        {
+          "chain": "A",
+          "resseq": 337,
+          "aa": "G",
+          "rsa": 0.4988,
+          "surface_score": 0.4359
+        },
+        {
+          "chain": "A",
+          "resseq": 282,
+          "aa": "E",
+          "rsa": 0.3426,
+          "surface_score": 0.2916
+        },
+        {
+          "chain": "A",
+          "resseq": 276,
+          "aa": "G",
+          "rsa": 0.2837,
+          "surface_score": 0.2479
+        }
+      ],
+      "rank": 48
+    },
+    {
+      "seed": {
+        "chain": "B",
+        "resseq": 125,
+        "aa": "G"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4727,
+      "mean_surface_score": 0.4305,
+      "residues": [
+        {
+          "chain": "B",
+          "resseq": 125,
+          "aa": "G",
+          "rsa": 0.8124,
+          "surface_score": 0.7101
+        },
+        {
+          "chain": "B",
+          "resseq": 122,
+          "aa": "D",
+          "rsa": 0.6797,
+          "surface_score": 0.5886
+        },
+        {
+          "chain": "B",
+          "resseq": 124,
+          "aa": "F",
+          "rsa": 0.4254,
+          "surface_score": 0.4641
+        },
+        {
+          "chain": "B",
+          "resseq": 121,
+          "aa": "E",
+          "rsa": 0.3778,
+          "surface_score": 0.3215
+        },
+        {
+          "chain": "A",
+          "resseq": 66,
+          "aa": "A",
+          "rsa": 0.2735,
+          "surface_score": 0.291
+        },
+        {
+          "chain": "B",
+          "resseq": 127,
+          "aa": "N",
+          "rsa": 0.2676,
+          "surface_score": 0.2076
+        }
+      ],
+      "rank": 49
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 75,
+        "aa": "S"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4614,
+      "mean_surface_score": 0.4254,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 75,
+          "aa": "S",
+          "rsa": 0.7747,
+          "surface_score": 0.784
+        },
+        {
+          "chain": "H",
+          "resseq": 74,
+          "aa": "K",
+          "rsa": 0.5581,
+          "surface_score": 0.5191
+        },
+        {
+          "chain": "B",
+          "resseq": 72,
+          "aa": "N",
+          "rsa": 0.5312,
+          "surface_score": 0.4122
+        },
+        {
+          "chain": "H",
+          "resseq": 23,
+          "aa": "K",
+          "rsa": 0.3304,
+          "surface_score": 0.3073
+        },
+        {
+          "chain": "H",
+          "resseq": 54,
+          "aa": "E",
+          "rsa": 0.3156,
+          "surface_score": 0.2686
+        },
+        {
+          "chain": "H",
+          "resseq": 76,
+          "aa": "S",
+          "rsa": 0.2583,
+          "surface_score": 0.2614
+        }
+      ],
+      "rank": 50
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 73,
+        "aa": "D"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4756,
+      "mean_surface_score": 0.4253,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 73,
+          "aa": "D",
+          "rsa": 0.6468,
+          "surface_score": 0.5601
+        },
+        {
+          "chain": "C",
+          "resseq": 69,
+          "aa": "Q",
+          "rsa": 0.5179,
+          "surface_score": 0.5256
+        },
+        {
+          "chain": "C",
+          "resseq": 68,
+          "aa": "E",
+          "rsa": 0.4656,
+          "surface_score": 0.3962
+        },
+        {
+          "chain": "C",
+          "resseq": 75,
+          "aa": "E",
+          "rsa": 0.3914,
+          "surface_score": 0.333
+        },
+        {
+          "chain": "C",
+          "resseq": 72,
+          "aa": "G",
+          "rsa": 0.3563,
+          "surface_score": 0.3114
+        }
+      ],
+      "rank": 51
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 15,
+        "aa": "L"
+      },
+      "n_residues": 11,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4419,
+      "mean_surface_score": 0.4215,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 15,
+          "aa": "L",
+          "rsa": 0.5143,
+          "surface_score": 0.6429
+        },
+        {
+          "chain": "L",
+          "resseq": 85,
+          "aa": "A",
+          "rsa": 0.5528,
+          "surface_score": 0.5882
+        },
+        {
+          "chain": "L",
+          "resseq": 18,
+          "aa": "Q",
+          "rsa": 0.5551,
+          "surface_score": 0.5635
+        },
+        {
+          "chain": "L",
+          "resseq": 82,
+          "aa": "R",
+          "rsa": 0.638,
+          "surface_score": 0.557
+        },
+        {
+          "chain": "L",
+          "resseq": 112,
+          "aa": "K",
+          "rsa": 0.49,
+          "surface_score": 0.4557
+        },
+        {
+          "chain": "L",
+          "resseq": 86,
+          "aa": "E",
+          "rsa": 0.4345,
+          "surface_score": 0.3697
+        },
+        {
+          "chain": "L",
+          "resseq": 84,
+          "aa": "E",
+          "rsa": 0.3896,
+          "surface_score": 0.3315
+        },
+        {
+          "chain": "L",
+          "resseq": 16,
+          "aa": "G",
+          "rsa": 0.3725,
+          "surface_score": 0.3256
+        },
+        {
+          "chain": "L",
+          "resseq": 14,
+          "aa": "S",
+          "rsa": 0.298,
+          "surface_score": 0.3015
+        },
+        {
+          "chain": "L",
+          "resseq": 81,
+          "aa": "N",
+          "rsa": 0.3586,
+          "surface_score": 0.2783
+        },
+        {
+          "chain": "L",
+          "resseq": 17,
+          "aa": "D",
+          "rsa": 0.2576,
+          "surface_score": 0.2231
+        }
+      ],
+      "rank": 52
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 128,
+        "aa": "K"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.4211,
+      "mean_surface_score": 0.421,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 128,
+          "aa": "K",
+          "rsa": 0.7044,
+          "surface_score": 0.6551
+        },
+        {
+          "chain": "A",
+          "resseq": 154,
+          "aa": "H",
+          "rsa": 0.4129,
+          "surface_score": 0.4562
+        },
+        {
+          "chain": "A",
+          "resseq": 124,
+          "aa": "A",
+          "rsa": 0.3889,
+          "surface_score": 0.4138
+        },
+        {
+          "chain": "C",
+          "resseq": 74,
+          "aa": "K",
+          "rsa": 0.3953,
+          "surface_score": 0.3676
+        },
+        {
+          "chain": "A",
+          "resseq": 105,
+          "aa": "S",
+          "rsa": 0.362,
+          "surface_score": 0.3664
+        },
+        {
+          "chain": "A",
+          "resseq": 344,
+          "aa": "Q",
+          "rsa": 0.2629,
+          "surface_score": 0.2668
+        }
+      ],
+      "rank": 53
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 9,
+        "aa": "P"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4143,
+      "mean_surface_score": 0.4168,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 9,
+          "aa": "P",
+          "rsa": 0.6764,
+          "surface_score": 0.7197
+        },
+        {
+          "chain": "H",
+          "resseq": 11,
+          "aa": "L",
+          "rsa": 0.5045,
+          "surface_score": 0.6306
+        },
+        {
+          "chain": "H",
+          "resseq": 19,
+          "aa": "K",
+          "rsa": 0.4475,
+          "surface_score": 0.4162
+        },
+        {
+          "chain": "H",
+          "resseq": 8,
+          "aa": "G",
+          "rsa": 0.4105,
+          "surface_score": 0.3588
+        },
+        {
+          "chain": "H",
+          "resseq": 110,
+          "aa": "S",
+          "rsa": 0.277,
+          "surface_score": 0.2803
+        },
+        {
+          "chain": "H",
+          "resseq": 10,
+          "aa": "E",
+          "rsa": 0.3256,
+          "surface_score": 0.277
+        },
+        {
+          "chain": "H",
+          "resseq": 112,
+          "aa": "T",
+          "rsa": 0.2584,
+          "surface_score": 0.2349
+        }
+      ],
+      "rank": 54
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 521,
+        "aa": "R"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4725,
+      "mean_surface_score": 0.4095,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 521,
+          "aa": "R",
+          "rsa": 0.7498,
+          "surface_score": 0.6546
+        },
+        {
+          "chain": "A",
+          "resseq": 523,
+          "aa": "D",
+          "rsa": 0.4697,
+          "surface_score": 0.4068
+        },
+        {
+          "chain": "A",
+          "resseq": 539,
+          "aa": "D",
+          "rsa": 0.4307,
+          "surface_score": 0.373
+        },
+        {
+          "chain": "A",
+          "resseq": 520,
+          "aa": "E",
+          "rsa": 0.4062,
+          "surface_score": 0.3457
+        },
+        {
+          "chain": "A",
+          "resseq": 515,
+          "aa": "G",
+          "rsa": 0.3062,
+          "surface_score": 0.2676
+        }
+      ],
+      "rank": 55
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 493,
+        "aa": "S"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4124,
+      "mean_surface_score": 0.4068,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 493,
+          "aa": "S",
+          "rsa": 0.5412,
+          "surface_score": 0.5477
+        },
+        {
+          "chain": "A",
+          "resseq": 489,
+          "aa": "D",
+          "rsa": 0.5606,
+          "surface_score": 0.4854
+        },
+        {
+          "chain": "A",
+          "resseq": 492,
+          "aa": "L",
+          "rsa": 0.3692,
+          "surface_score": 0.4616
+        },
+        {
+          "chain": "A",
+          "resseq": 487,
+          "aa": "T",
+          "rsa": 0.3632,
+          "surface_score": 0.3301
+        },
+        {
+          "chain": "A",
+          "resseq": 456,
+          "aa": "A",
+          "rsa": 0.2991,
+          "surface_score": 0.3182
+        },
+        {
+          "chain": "A",
+          "resseq": 488,
+          "aa": "R",
+          "rsa": 0.3409,
+          "surface_score": 0.2976
+        }
+      ],
+      "rank": 56
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 62,
+        "aa": "G"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4581,
+      "mean_surface_score": 0.4055,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 62,
+          "aa": "G",
+          "rsa": 0.74,
+          "surface_score": 0.6468
+        },
+        {
+          "chain": "L",
+          "resseq": 65,
+          "aa": "D",
+          "rsa": 0.6008,
+          "surface_score": 0.5203
+        },
+        {
+          "chain": "L",
+          "resseq": 59,
+          "aa": "R",
+          "rsa": 0.472,
+          "surface_score": 0.4121
+        },
+        {
+          "chain": "L",
+          "resseq": 64,
+          "aa": "P",
+          "rsa": 0.2877,
+          "surface_score": 0.3061
+        },
+        {
+          "chain": "L",
+          "resseq": 58,
+          "aa": "N",
+          "rsa": 0.3577,
+          "surface_score": 0.2776
+        },
+        {
+          "chain": "L",
+          "resseq": 50,
+          "aa": "K",
+          "rsa": 0.2904,
+          "surface_score": 0.2701
+        }
+      ],
+      "rank": 57
+    },
+    {
+      "seed": {
+        "chain": "B",
+        "resseq": 113,
+        "aa": "T"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4343,
+      "mean_surface_score": 0.3984,
+      "residues": [
+        {
+          "chain": "B",
+          "resseq": 113,
+          "aa": "T",
+          "rsa": 0.6375,
+          "surface_score": 0.5795
+        },
+        {
+          "chain": "B",
+          "resseq": 116,
+          "aa": "G",
+          "rsa": 0.5748,
+          "surface_score": 0.5024
+        },
+        {
+          "chain": "B",
+          "resseq": 109,
+          "aa": "T",
+          "rsa": 0.5115,
+          "surface_score": 0.4649
+        },
+        {
+          "chain": "B",
+          "resseq": 119,
+          "aa": "S",
+          "rsa": 0.3269,
+          "surface_score": 0.3308
+        },
+        {
+          "chain": "A",
+          "resseq": 212,
+          "aa": "S",
+          "rsa": 0.2536,
+          "surface_score": 0.2566
+        },
+        {
+          "chain": "B",
+          "resseq": 112,
+          "aa": "E",
+          "rsa": 0.3014,
+          "surface_score": 0.2565
+        }
+      ],
+      "rank": 58
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 9,
+        "aa": "L"
+      },
+      "n_residues": 9,
+      "n_sequence_segments": 6,
+      "discontinuous": true,
+      "mean_rsa": 0.3894,
+      "mean_surface_score": 0.3974,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 9,
+          "aa": "L",
+          "rsa": 0.6766,
+          "surface_score": 0.8458
+        },
+        {
+          "chain": "L",
+          "resseq": 20,
+          "aa": "S",
+          "rsa": 0.4026,
+          "surface_score": 0.4074
+        },
+        {
+          "chain": "L",
+          "resseq": 105,
+          "aa": "G",
+          "rsa": 0.4422,
+          "surface_score": 0.3865
+        },
+        {
+          "chain": "L",
+          "resseq": 8,
+          "aa": "P",
+          "rsa": 0.3616,
+          "surface_score": 0.3848
+        },
+        {
+          "chain": "L",
+          "resseq": 5,
+          "aa": "T",
+          "rsa": 0.3778,
+          "surface_score": 0.3434
+        },
+        {
+          "chain": "L",
+          "resseq": 7,
+          "aa": "T",
+          "rsa": 0.3703,
+          "surface_score": 0.3366
+        },
+        {
+          "chain": "L",
+          "resseq": 108,
+          "aa": "K",
+          "rsa": 0.327,
+          "surface_score": 0.3041
+        },
+        {
+          "chain": "L",
+          "resseq": 12,
+          "aa": "P",
+          "rsa": 0.2716,
+          "surface_score": 0.289
+        },
+        {
+          "chain": "L",
+          "resseq": 10,
+          "aa": "S",
+          "rsa": 0.2753,
+          "surface_score": 0.2786
+        }
+      ],
+      "rank": 59
+    },
+    {
+      "seed": {
+        "chain": "C",
+        "resseq": 92,
+        "aa": "Q"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4125,
+      "mean_surface_score": 0.3958,
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 92,
+          "aa": "Q",
+          "rsa": 0.628,
+          "surface_score": 0.6374
+        },
+        {
+          "chain": "C",
+          "resseq": 93,
+          "aa": "N",
+          "rsa": 0.5822,
+          "surface_score": 0.4518
+        },
+        {
+          "chain": "C",
+          "resseq": 130,
+          "aa": "Q",
+          "rsa": 0.3816,
+          "surface_score": 0.3874
+        },
+        {
+          "chain": "C",
+          "resseq": 95,
+          "aa": "T",
+          "rsa": 0.3992,
+          "surface_score": 0.3629
+        },
+        {
+          "chain": "C",
+          "resseq": 96,
+          "aa": "K",
+          "rsa": 0.3676,
+          "surface_score": 0.3418
+        },
+        {
+          "chain": "C",
+          "resseq": 94,
+          "aa": "Y",
+          "rsa": 0.2755,
+          "surface_score": 0.3199
+        },
+        {
+          "chain": "C",
+          "resseq": 133,
+          "aa": "A",
+          "rsa": 0.2531,
+          "surface_score": 0.2693
+        }
+      ],
+      "rank": 60
+    },
+    {
+      "seed": {
+        "chain": "B",
+        "resseq": 101,
+        "aa": "T"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 3,
+      "discontinuous": true,
+      "mean_rsa": 0.4259,
+      "mean_surface_score": 0.389,
+      "residues": [
+        {
+          "chain": "B",
+          "resseq": 101,
+          "aa": "T",
+          "rsa": 0.6158,
+          "surface_score": 0.5598
+        },
+        {
+          "chain": "B",
+          "resseq": 105,
+          "aa": "R",
+          "rsa": 0.5038,
+          "surface_score": 0.4398
+        },
+        {
+          "chain": "B",
+          "resseq": 106,
+          "aa": "E",
+          "rsa": 0.4586,
+          "surface_score": 0.3903
+        },
+        {
+          "chain": "B",
+          "resseq": 103,
+          "aa": "H",
+          "rsa": 0.3394,
+          "surface_score": 0.3751
+        },
+        {
+          "chain": "A",
+          "resseq": 37,
+          "aa": "T",
+          "rsa": 0.3365,
+          "surface_score": 0.3059
+        },
+        {
+          "chain": "B",
+          "resseq": 102,
+          "aa": "G",
+          "rsa": 0.3011,
+          "surface_score": 0.2632
+        }
+      ],
+      "rank": 61
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 243,
+        "aa": "V"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4077,
+      "mean_surface_score": 0.3852,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 243,
+          "aa": "V",
+          "rsa": 0.3939,
+          "surface_score": 0.5447
+        },
+        {
+          "chain": "A",
+          "resseq": 286,
+          "aa": "E",
+          "rsa": 0.5143,
+          "surface_score": 0.4377
+        },
+        {
+          "chain": "A",
+          "resseq": 247,
+          "aa": "K",
+          "rsa": 0.439,
+          "surface_score": 0.4083
+        },
+        {
+          "chain": "A",
+          "resseq": 245,
+          "aa": "N",
+          "rsa": 0.4701,
+          "surface_score": 0.3648
+        },
+        {
+          "chain": "A",
+          "resseq": 284,
+          "aa": "D",
+          "rsa": 0.3725,
+          "surface_score": 0.3226
+        },
+        {
+          "chain": "A",
+          "resseq": 285,
+          "aa": "T",
+          "rsa": 0.2563,
+          "surface_score": 0.2329
+        }
+      ],
+      "rank": 62
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 148,
+        "aa": "D"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4326,
+      "mean_surface_score": 0.3734,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 148,
+          "aa": "D",
+          "rsa": 0.5821,
+          "surface_score": 0.5041
+        },
+        {
+          "chain": "L",
+          "resseq": 168,
+          "aa": "W",
+          "rsa": 0.5168,
+          "surface_score": 0.4615
+        },
+        {
+          "chain": "L",
+          "resseq": 150,
+          "aa": "N",
+          "rsa": 0.4322,
+          "surface_score": 0.3354
+        },
+        {
+          "chain": "L",
+          "resseq": 115,
+          "aa": "D",
+          "rsa": 0.3409,
+          "surface_score": 0.2952
+        },
+        {
+          "chain": "L",
+          "resseq": 147,
+          "aa": "K",
+          "rsa": 0.2912,
+          "surface_score": 0.2708
+        }
+      ],
+      "rank": 63
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 468,
+        "aa": "L"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.3825,
+      "mean_surface_score": 0.3709,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 468,
+          "aa": "L",
+          "rsa": 0.4765,
+          "surface_score": 0.5956
+        },
+        {
+          "chain": "A",
+          "resseq": 470,
+          "aa": "T",
+          "rsa": 0.378,
+          "surface_score": 0.3436
+        },
+        {
+          "chain": "A",
+          "resseq": 469,
+          "aa": "G",
+          "rsa": 0.3873,
+          "surface_score": 0.3385
+        },
+        {
+          "chain": "A",
+          "resseq": 471,
+          "aa": "E",
+          "rsa": 0.3855,
+          "surface_score": 0.3281
+        },
+        {
+          "chain": "A",
+          "resseq": 464,
+          "aa": "R",
+          "rsa": 0.2851,
+          "surface_score": 0.2489
+        }
+      ],
+      "rank": 64
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 202,
+        "aa": "K"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.4033,
+      "mean_surface_score": 0.3692,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 202,
+          "aa": "K",
+          "rsa": 0.6369,
+          "surface_score": 0.5924
+        },
+        {
+          "chain": "A",
+          "resseq": 176,
+          "aa": "K",
+          "rsa": 0.4056,
+          "surface_score": 0.3772
+        },
+        {
+          "chain": "A",
+          "resseq": 223,
+          "aa": "D",
+          "rsa": 0.363,
+          "surface_score": 0.3144
+        },
+        {
+          "chain": "B",
+          "resseq": 94,
+          "aa": "K",
+          "rsa": 0.3129,
+          "surface_score": 0.291
+        },
+        {
+          "chain": "A",
+          "resseq": 201,
+          "aa": "T",
+          "rsa": 0.298,
+          "surface_score": 0.2709
+        }
+      ],
+      "rank": 65
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 140,
+        "aa": "N"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4006,
+      "mean_surface_score": 0.3607,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 142,
+          "aa": "R",
+          "rsa": 0.589,
+          "surface_score": 0.5142
+        },
+        {
+          "chain": "A",
+          "resseq": 140,
+          "aa": "N",
+          "rsa": 0.5103,
+          "surface_score": 0.396
+        },
+        {
+          "chain": "A",
+          "resseq": 136,
+          "aa": "T",
+          "rsa": 0.3578,
+          "surface_score": 0.3253
+        },
+        {
+          "chain": "A",
+          "resseq": 54,
+          "aa": "A",
+          "rsa": 0.279,
+          "surface_score": 0.2969
+        },
+        {
+          "chain": "A",
+          "resseq": 150,
+          "aa": "Q",
+          "rsa": 0.2669,
+          "surface_score": 0.2709
+        }
+      ],
+      "rank": 66
+    },
+    {
+      "seed": {
+        "chain": "A",
+        "resseq": 329,
+        "aa": "K"
+      },
+      "n_residues": 6,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.3616,
+      "mean_surface_score": 0.3419,
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 384,
+          "aa": "P",
+          "rsa": 0.4273,
+          "surface_score": 0.4547
+        },
+        {
+          "chain": "A",
+          "resseq": 385,
+          "aa": "K",
+          "rsa": 0.4472,
+          "surface_score": 0.4159
+        },
+        {
+          "chain": "A",
+          "resseq": 339,
+          "aa": "T",
+          "rsa": 0.4267,
+          "surface_score": 0.3879
+        },
+        {
+          "chain": "A",
+          "resseq": 329,
+          "aa": "K",
+          "rsa": 0.3062,
+          "surface_score": 0.2848
+        },
+        {
+          "chain": "A",
+          "resseq": 341,
+          "aa": "K",
+          "rsa": 0.2997,
+          "surface_score": 0.2787
+        },
+        {
+          "chain": "A",
+          "resseq": 333,
+          "aa": "G",
+          "rsa": 0.2625,
+          "surface_score": 0.2294
+        }
+      ],
+      "rank": 67
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 193,
+        "aa": "R"
+      },
+      "n_residues": 7,
+      "n_sequence_segments": 5,
+      "discontinuous": true,
+      "mean_rsa": 0.4024,
+      "mean_surface_score": 0.3385,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 193,
+          "aa": "R",
+          "rsa": 0.68,
+          "surface_score": 0.5936
+        },
+        {
+          "chain": "L",
+          "resseq": 156,
+          "aa": "D",
+          "rsa": 0.4398,
+          "surface_score": 0.3808
+        },
+        {
+          "chain": "L",
+          "resseq": 192,
+          "aa": "E",
+          "rsa": 0.4437,
+          "surface_score": 0.3776
+        },
+        {
+          "chain": "L",
+          "resseq": 215,
+          "aa": "N",
+          "rsa": 0.3786,
+          "surface_score": 0.2938
+        },
+        {
+          "chain": "L",
+          "resseq": 195,
+          "aa": "N",
+          "rsa": 0.3535,
+          "surface_score": 0.2743
+        },
+        {
+          "chain": "L",
+          "resseq": 190,
+          "aa": "E",
+          "rsa": 0.2653,
+          "surface_score": 0.2258
+        },
+        {
+          "chain": "L",
+          "resseq": 216,
+          "aa": "R",
+          "rsa": 0.2559,
+          "surface_score": 0.2234
+        }
+      ],
+      "rank": 68
+    },
+    {
+      "seed": {
+        "chain": "L",
+        "resseq": 57,
+        "aa": "S"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 4,
+      "discontinuous": true,
+      "mean_rsa": 0.3465,
+      "mean_surface_score": 0.3254,
+      "residues": [
+        {
+          "chain": "L",
+          "resseq": 57,
+          "aa": "S",
+          "rsa": 0.3507,
+          "surface_score": 0.3549
+        },
+        {
+          "chain": "L",
+          "resseq": 71,
+          "aa": "G",
+          "rsa": 0.4014,
+          "surface_score": 0.3509
+        },
+        {
+          "chain": "L",
+          "resseq": 68,
+          "aa": "S",
+          "rsa": 0.3248,
+          "surface_score": 0.3287
+        },
+        {
+          "chain": "L",
+          "resseq": 79,
+          "aa": "M",
+          "rsa": 0.382,
+          "surface_score": 0.3155
+        },
+        {
+          "chain": "L",
+          "resseq": 70,
+          "aa": "S",
+          "rsa": 0.2737,
+          "surface_score": 0.2769
+        }
+      ],
+      "rank": 69
+    },
+    {
+      "seed": {
+        "chain": "H",
+        "resseq": 71,
+        "aa": "T"
+      },
+      "n_residues": 5,
+      "n_sequence_segments": 2,
+      "discontinuous": true,
+      "mean_rsa": 0.3464,
+      "mean_surface_score": 0.3089,
+      "residues": [
+        {
+          "chain": "H",
+          "resseq": 71,
+          "aa": "T",
+          "rsa": 0.3938,
+          "surface_score": 0.358
+        },
+        {
+          "chain": "H",
+          "resseq": 55,
+          "aa": "S",
+          "rsa": 0.3431,
+          "surface_score": 0.3472
+        },
+        {
+          "chain": "H",
+          "resseq": 57,
+          "aa": "N",
+          "rsa": 0.4021,
+          "surface_score": 0.312
+        },
+        {
+          "chain": "H",
+          "resseq": 56,
+          "aa": "G",
+          "rsa": 0.3248,
+          "surface_score": 0.2839
+        },
+        {
+          "chain": "H",
+          "resseq": 58,
+          "aa": "T",
+          "rsa": 0.268,
+          "surface_score": 0.2436
+        }
+      ],
+      "rank": 70
+    }
+  ]
+}
