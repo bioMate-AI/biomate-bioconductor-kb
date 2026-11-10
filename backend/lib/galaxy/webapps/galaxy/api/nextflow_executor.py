@@ -4175,6 +4175,20 @@ process {{
         # tuning (maxConnections etc.) is left alone for nfcore.
         # Reproduced 2026-06-07 on bamtofastq 2.2.1 with igenomes_ignore=true.
         is_nfcore = "/nf-core-workflows/" in nf_path
+        # Scoped ECS task role (2026-11-10 hardening): give every Batch task a
+        # least-privilege job role (S3+KMS only) so it assumes THAT via the ECS
+        # task-role endpoint, instead of having no jobRole and falling back to the
+        # EC2 instance role via IMDS. Without a jobRole (the prior state — verified:
+        # created job defs had jobRoleArn=null), tasks reach the instance role's
+        # ECR-push / SSM / broad-S3 perms — a path arbitrary uploaded workflow code
+        # must not have. Overridable per-deployment (other AWS accounts) via env;
+        # default is the SaaS role. Emitted ONLY in this awsbatch config block, so
+        # on-prem/local executors (which never reach here) are unaffected.
+        # See docs/20261110_BATCH_JOBROLE_IMDS_HARDENING_PLAN.md.
+        _batch_job_role = os.environ.get(
+            "NEXTFLOW_BATCH_JOB_ROLE_ARN",
+            "arn:aws:iam::399683337364:role/biomate-nextflow-task-role",
+        )
         lines += [
             f"aws {{",
             f"    region = '{region}'",
@@ -4214,6 +4228,9 @@ process {{
             # volumes needed — adding volumes=['/opt/aws-cli'] would duplicate the mount
             # and cause "containerPath values aren't unique across mountPoints" on AWS Batch.
             "        cliPath = '/opt/aws-cli/bin/aws'",
+            # Scoped task role — tasks assume the least-privilege job role via the
+            # ECS task-role endpoint (169.254.170.2), not the instance role via IMDS.
+            *([f"        jobRole = '{_batch_job_role}'"] if _batch_job_role else []),
             # Spot-reclaim resilience: retry a task up to 3x ONLY when its Batch instance is
             # reclaimed (spot interruption / host termination) — NOT on real task failures, so it
             # never masks a genuine bug. Default in NF 25.x is 0 (no retry), which made a reclaim
