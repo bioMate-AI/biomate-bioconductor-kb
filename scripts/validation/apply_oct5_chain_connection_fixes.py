@@ -78,7 +78,6 @@ def main():
             applied+=1
     if a.apply:
         conn.commit()
-        conn.execute("DELETE FROM workflows_fts"); # no-op for chains; chains aren't in workflows_fts
     print(f"\n{'APPLIED' if a.apply else 'DRY-RUN'}: {applied} applied, {skipped} skipped/unverified")
 
 if __name__=="__main__": main()
