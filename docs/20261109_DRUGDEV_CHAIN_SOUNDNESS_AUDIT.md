@@ -114,3 +114,34 @@ The catalog DB is gitignored; these rows deploy to dev on the next DB sync (md5 
 - docking → GROMACS (`vina_poses` → `ligand`) — needs a best-pose-to-ligand transform.
 - scalar-field PK/ADMET handoffs (`herg_ic50_nM`, `bioavailability`, `cl_L_h`, …) — file resolver cannot address a field inside JSON; use the `context_params`/`resolve_context_params` path (none of these connections set it).
 - single-cell `.rds`-not-emitted gaps (scater/scran chains) — wrappers must `saveRDS` the SCE.
+
+---
+
+## Design-gap fixes (the "still open" items) — 2026-11-09
+
+Fixed the gaps that needed workflow/transform changes (not renames), at the source:
+
+**1. ADMET → CiPA scalar handoff (`c86b6797a2`).** New transform `admet_toxicity_to_herg_ic50_nM`
+reads `toxicity_report.json` `toxicity.herg_ic50_uM` and returns **nM** (×1000 unit conversion — the
+ADMET workflow already computes an IC50, so this is NOT a probability→IC50 guess). `admet_to_cipa_cardiac`
+rewired: `toxicity_report → herg_ic50_nM` via that transform; the spurious `admet_context` connection
+removed. Verified on a real `toxicity_report.json` (432.4 µM → 432424.6 nM).
+
+**2. ADMET passed-compounds (`c86b6797a2`).** `predict_admet_properties` now emits `passed_compounds.smi`
+— SMILES clearing ADMET-AI hERG/DILI gates (`params.herg_pass_prob=0.5`, `dili_pass_prob=0.9`; DILI
+lenient since the model's baseline is high, hERG is the cardio gate). Previously it emitted no filtered
+set, so ADMET→docking chains had nothing to hand off. Chains rewired to route docking through it:
+`drug_discovery_admet_gated_screening` (s2→s3 `passed_compounds → smiles_list` + `smiles_file_to_json_list`,
+replacing the s1→s3 that bypassed ADMET) and `andv_inhibitor_track_v1` (s3→s4 `passed_compounds → smiles_list`,
+was the wrong `ligand_sdf`).
+
+**3. docking → GROMACS best pose.** `structure_prediction_docking` already emits the top pose as
+`rank1_*.sdf`; `target_to_lead_full` s4→s5 rewired `vina_poses → docked_poses` ⇒ `rank1 → ligand`
+(SDF→SDF, no transform; GROMACS declares `ligand`).
+
+**Still genuinely open (need a conversion STEP, not a rename/transform — in-process transforms lack RDKit/obabel):**
+- `target_to_lead_full` s3→s4: ADMET `passed_compounds.smi` (SMILES) → DiffDock `ligand_sdf` (SDF) — needs a SMILES→SDF embed step.
+- `andv_inhibitor_track_v1` s4→s5: Vina `*.pdbqt` poses → GROMACS `ligand` (SDF) — needs a pdbqt→SDF convert step (and best-pose selection by score).
+- Single-cell `.rds`-not-emitted gaps (`scrna_pseudobulk_de_bioc`, `scrna_consensus_de_bioc`): scater/scran wrappers emit only plots; must `saveRDS` the (normalised/clustered) SCE. Separate (single-cell) domain; not done here.
+
+Net: the drug-dev multi-phase chains now hand off real data at the ADMET→CiPA, ADMET→docking, and DiffDock→GROMACS steps; the two SMILES/SDF/pdbqt format conversions and the single-cell `.rds` gap remain as scoped convert-step work.
