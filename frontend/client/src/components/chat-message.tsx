@@ -92,6 +92,7 @@ import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
+import { WorkflowCredentialRequiredCard, type CredentialRequiredInfo } from "./workflow-credential-required-card"
 import { buildDisambiguationCorrection, submitCorrection } from "@/lib/corrections"
 import { pipelineApprovalOptions } from "@/lib/chain-execution"
 import { PipelineListView } from "./pipeline-list-view"
@@ -930,6 +931,35 @@ export function ChatMessage({
                         const correction = buildDisambiguationCorrection(candidates, c, { sessionId })
                         if (correction) void submitCorrection(correction)
                         onAdjustViaChat?.(`Use ${c.display_name || c.name}`)
+                      }}
+                    />
+                  </div>
+                )
+              }
+
+              // Credential-required card — workflow needs an API key the user hasn't configured
+              const isCredentialRequired = message.metadata?.workflow?.workflow_type === 'credential_required'
+              if (isCredentialRequired) {
+                const wf = message.metadata?.workflow
+                const info: CredentialRequiredInfo = {
+                  missing_credential: wf.missing_credential || '',
+                  tool_name: wf.tool_name || wf.missing_credential || 'Tool',
+                  fallback_method: wf.fallback_method || '',
+                  fallback_name: wf.fallback_name || wf.fallback_method || 'alternative',
+                  message: wf.message || '',
+                }
+                return (
+                  <div
+                    id={`workflow-artifact-anchor-${message.id}`}
+                    data-testid={`workflow-artifact-anchor-${message.id}`}
+                  >
+                    <WorkflowCredentialRequiredCard
+                      info={info}
+                      onUseAlternative={(_method, name) => {
+                        onAdjustViaChat?.(`Use ${name} instead`)
+                      }}
+                      onCredentialSaved={(toolName) => {
+                        onAdjustViaChat?.(`Run the same workflow with ${toolName}`)
                       }}
                     />
                   </div>
