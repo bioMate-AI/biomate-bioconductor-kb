@@ -263,7 +263,7 @@ export function AppSidebar({
             title="Early-access beta — features may change"
             style={{
               flexShrink: 0,
-              fontSize: 9,
+              fontSize: 'var(--fs-xs)',
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
@@ -294,7 +294,7 @@ export function AppSidebar({
 
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
+        <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
         <button className="side-link" onClick={() => { setContextProjectId(null); onNewChat(); }} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -350,7 +350,7 @@ export function AppSidebar({
       {/* Projects section — always visible */}
       <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8, maxHeight: '50vh', overflowY: 'auto', flexShrink: 1 }}>
           <button
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setProjectsExpanded(p => !p)}
             data-testid="button-projects-section"
           >
@@ -371,7 +371,7 @@ export function AppSidebar({
                   <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: selectedProjectId === proj.id ? 'var(--bm-accent, oklch(0.55 0.14 245))' : 'var(--bm-text-dim)', opacity: 0.8 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
                   {proj.userId && user && proj.userId !== user.id && (
-                    <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>shared</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>shared</span>
                   )}
                 </button>
                 {isExpanded && (
@@ -406,7 +406,7 @@ export function AppSidebar({
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {recentChats.length > 0 && (
           <>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
+            <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
             {recentChats.filter(chat => !deletedChatIds.has(chat.id) && !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id

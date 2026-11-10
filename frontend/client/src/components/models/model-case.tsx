@@ -48,7 +48,7 @@ function VerdictBadge({ verdict }: { verdict: string }) {
   return (
     <Badge
       variant="outline"
-      className="text-[10px] gap-1"
+      className="text-fs-xs gap-1"
       style={{ color: verdictColor(verdict) }}
       data-testid="model-case-floor-verdict"
     >
@@ -64,7 +64,7 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 // A small labelled section heading in the fixed spine order.
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="text-fs-xs font-semibold uppercase tracking-wide text-muted-foreground">
       {children}
     </div>
   )
@@ -156,12 +156,12 @@ export function ModelCase({
             </span>
           )}
           {c.origin && (
-            <span className="text-[11px] text-muted-foreground" data-testid="model-case-origin">
+            <span className="text-fs-xs text-muted-foreground" data-testid="model-case-origin">
               {c.origin}
             </span>
           )}
           {c.lane && (
-            <Badge variant="outline" className="text-[10px] ml-auto" data-testid="model-case-lane">
+            <Badge variant="outline" className="text-fs-xs ml-auto" data-testid="model-case-lane">
               {c.lane}
             </Badge>
           )}
@@ -184,14 +184,14 @@ export function ModelCase({
                   <span className="flex items-baseline gap-2 flex-wrap">
                     <span className="font-mono">{row.value}</span>
                     {row.note && (
-                      <span className="text-[10px] italic text-muted-foreground">{row.note}</span>
+                      <span className="text-fs-xs italic text-muted-foreground">{row.note}</span>
                     )}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="model-case-given-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="model-case-given-empty">
               No inputs recorded yet.
             </p>
           )}
@@ -204,7 +204,7 @@ export function ModelCase({
                   key={`${s.label}-${i}`}
                   variant="outline"
                   className={
-                    "text-[10px] gap-1 " +
+                    "text-fs-xs gap-1 " +
                     (s.status === "waiting" ? "text-muted-foreground opacity-70" : "")
                   }
                   data-testid={`model-case-stage-${i}`}
@@ -225,14 +225,14 @@ export function ModelCase({
           <div className="flex items-center gap-2 flex-wrap">
             <SectionLabel>What came back</SectionLabel>
             {c.confidence && (
-              <Badge variant="outline" className="text-[10px]" data-testid="model-case-confidence">
+              <Badge variant="outline" className="text-fs-xs" data-testid="model-case-confidence">
                 {c.confidence} confidence
               </Badge>
             )}
             {typeof c.flaggedCount === "number" && c.flaggedCount > 0 && (
               <Badge
                 variant="outline"
-                className="text-[10px]"
+                className="text-fs-xs"
                 style={{ color: verdictColor("flag") }}
                 data-testid="model-case-flagged"
               >
@@ -244,7 +244,7 @@ export function ModelCase({
           {c.headline ? (
             <p className="text-sm" data-testid="model-case-headline">{c.headline}</p>
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="model-case-result-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="model-case-result-empty">
               No result yet — nothing is reported until the evaluation stage finishes.
             </p>
           )}
@@ -261,7 +261,7 @@ export function ModelCase({
                   data-testid={`model-case-result-block-${i}`}
                   data-honest={b.honest ? "true" : "false"}
                 >
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="text-fs-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {b.label}
                   </div>
                   <div>{b.body}</div>
@@ -273,7 +273,7 @@ export function ModelCase({
           {/* BOUNDARY — what the result is NOT evidence for */}
           {c.boundary && (
             <div className="rounded border border-dashed px-2 py-1.5 text-xs" data-testid="model-case-boundary">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="text-fs-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Boundary
               </div>
               <div className="text-muted-foreground">{c.boundary}</div>
@@ -306,11 +306,11 @@ export function ModelCase({
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="model-case-floor-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="model-case-floor-empty">
               No floor evaluated yet.
             </p>
           )}
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             A floor, not a ranking. Clearing it by more does not make a model better.
           </p>
         </section>
@@ -319,7 +319,7 @@ export function ModelCase({
         <section data-testid="model-case-track-4" className="space-y-2">
           <div className="flex items-center gap-2">
             <SectionLabel>What it left behind</SectionLabel>
-            <span className="text-[10px] text-muted-foreground">every artefact is a file</span>
+            <span className="text-fs-xs text-muted-foreground">every artefact is a file</span>
           </div>
           {c.artefacts.length ? (
             <div className="rounded border divide-y text-xs" data-testid="model-case-artefacts">
@@ -334,14 +334,14 @@ export function ModelCase({
                   >
                     <Icon className="h-3 w-3 text-muted-foreground shrink-0" />
                     <span className="font-mono truncate">{a.name}</span>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{a.kind}</Badge>
+                    <Badge variant="outline" className="text-fs-xs shrink-0">{a.kind}</Badge>
                     <div className="ml-auto flex items-center gap-1 shrink-0">
                       {isReport ? (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 text-[11px] px-2"
+                            className="h-6 text-fs-xs px-2"
                             onClick={() => onEditReport?.(a)}
                             data-testid={`model-case-artefact-edit-${i}`}
                           >
@@ -362,7 +362,7 @@ export function ModelCase({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-6 text-[11px] px-2"
+                          className="h-6 text-fs-xs px-2"
                           onClick={() => onOpenArtefact?.(a)}
                           data-testid={`model-case-artefact-open-${i}`}
                         >
@@ -375,12 +375,12 @@ export function ModelCase({
               })}
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="model-case-artefacts-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="model-case-artefacts-empty">
               No artefacts yet.
             </p>
           )}
           {c.reportName && (
-            <p className="text-[10px] text-muted-foreground" data-testid="model-case-report-name">
+            <p className="text-fs-xs text-muted-foreground" data-testid="model-case-report-name">
               Report: <span className="font-mono">runs/models/{c.reportName}</span>
             </p>
           )}
@@ -396,7 +396,7 @@ export function ModelCase({
                   key={`${step.label}-${i}`}
                   variant={step.variant === "primary" ? "default" : "outline"}
                   size="sm"
-                  className="h-7 text-[11px] px-2.5"
+                  className="h-7 text-fs-xs px-2.5"
                   onClick={() => onNextStep?.(step)}
                   data-testid={`model-case-next-step-${i}`}
                 >
@@ -405,7 +405,7 @@ export function ModelCase({
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="model-case-next-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="model-case-next-empty">
               No decisions available.
             </p>
           )}
@@ -424,7 +424,7 @@ export function ModelCaseEmpty({ className }: { className?: string }) {
     <Card className={className} data-testid="model-case-empty">
       <CardContent className="py-8 text-center">
         <p className="text-sm text-muted-foreground">No worked cases yet</p>
-        <p className="text-[11px] text-muted-foreground mt-1">
+        <p className="text-fs-xs text-muted-foreground mt-1">
           Run a model, train, tune, or run a round to leave a worked case here.
         </p>
       </CardContent>

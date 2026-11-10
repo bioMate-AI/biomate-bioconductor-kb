@@ -305,14 +305,14 @@ export function JobLogViewer({
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-muted-foreground text-[10px]">
+                            <span className="text-muted-foreground text-fs-xs">
                               {formatTimestamp(entry.timestamp)}
                             </span>
                             {entry.source && (
                               <Badge
                                 variant="outline"
                                 className={cn(
-                                  "text-[9px] h-4 px-1",
+                                  "text-fs-xs h-4 px-1",
                                   entry.source === 'stderr' && "border-red-500 text-red-500"
                                 )}
                               >

@@ -117,10 +117,10 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">{tOr('panel.skip.phase', 'Phase')} {p.id}</span>
                   {p.param && (
-                    <span className="font-mono text-[11px] text-muted-foreground">{p.param}</span>
+                    <span className="font-mono text-fs-xs text-muted-foreground">{p.param}</span>
                   )}
                   {!p.skippable && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 text-fs-xs font-medium text-muted-foreground">
                       <Ban className="h-2.5 w-2.5" aria-hidden />
                       {tOr('panel.skip.not_declared', 'not declared skippable')}
                     </span>
@@ -132,7 +132,7 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
                 {blocked && (
                   <span
                     data-testid={`skip-blocked-${p.id}`}
-                    className="mt-0.5 inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400"
+                    className="mt-0.5 inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-fs-xs text-amber-600 dark:text-amber-400"
                   >
                     <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
                     {tOr('panel.skip.blocked', "Can't skip — {{list}} {{verb}} on it.", {
@@ -146,7 +146,7 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
                 {!blocked && p.warn && p.warn.length > 0 && isSkipped && (
                   <span
                     data-testid={`skip-warn-${p.id}`}
-                    className="mt-0.5 inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400"
+                    className="mt-0.5 inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-fs-xs text-amber-600 dark:text-amber-400"
                   >
                     <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
                     {tOr('panel.skip.warn', "{{list}} {{verb}} nothing to work on without it.", {

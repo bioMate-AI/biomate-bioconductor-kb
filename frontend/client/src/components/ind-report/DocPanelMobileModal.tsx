@@ -51,7 +51,7 @@ export function DocPanelMobileModal({
             margin: "8px 12px", padding: "6px 10px",
             background: "var(--ind-bg-sub, #f5f5f5)", border: "1px solid var(--ind-border, #e5e7eb)",
             borderRadius: 6, cursor: "pointer", zIndex: 1,
-            display: "flex", alignItems: "center", gap: 6, fontSize: 12,
+            display: "flex", alignItems: "center", gap: 6, fontSize: 'var(--fs-sm)',
           }}
         >
           <X size={14} /> Close

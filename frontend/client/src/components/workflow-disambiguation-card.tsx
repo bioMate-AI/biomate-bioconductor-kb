@@ -39,7 +39,7 @@ const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
 function SourceBadge({ source }: { source: string }) {
   const meta = SOURCE_LABELS[source] ?? { label: source, color: "bg-muted text-muted-foreground" }
   return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium", meta.color)}>
+    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-fs-xs font-medium", meta.color)}>
       {meta.label}
     </span>
   )
@@ -88,7 +88,7 @@ export function WorkflowDisambiguationCard({
 
       {/* Footer hint */}
       <div className="px-4 py-2 border-t">
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           Select a workflow to continue — you can refine parameters in the next step.
         </p>
       </div>

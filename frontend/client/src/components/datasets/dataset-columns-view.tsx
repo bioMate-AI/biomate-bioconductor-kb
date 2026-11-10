@@ -90,7 +90,7 @@ export function DatasetColumnsView({ columns, sampleRows, notes = [], totalRows,
                   {s.name}
                   {s.watch && (
                     <span
-                      className="ml-1.5 inline-flex items-center rounded px-1 py-0 text-[10px] font-medium border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      className="ml-1.5 inline-flex items-center rounded px-1 py-0 text-fs-xs font-medium border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                       data-testid="dataset-column-watch"
                       title={s.watchReason === "high-missing" ? t("dataset_obj.col_watch_missing") : s.watchReason}
                     >{t("dataset_obj.col_watch")}</span>

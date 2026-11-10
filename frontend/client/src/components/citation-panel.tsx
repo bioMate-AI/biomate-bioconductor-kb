@@ -494,7 +494,7 @@ export function CitationPanel({
                       <span className="flex-1" />
                       <Badge
                         variant="secondary"
-                        className="text-[10px] font-normal"
+                        className="text-fs-xs font-normal"
                         data-testid="retrieval-summary"
                       >
                         {retrievalKept} of {retrievalFound} kept
@@ -502,7 +502,7 @@ export function CitationPanel({
                     </summary>
                     <div className="space-y-1">
                       {retrievalSources.map((s) => (
-                        <p key={s.name} className="text-[11px] leading-relaxed break-words" data-testid={`retrieval-source-${s.name}`}>
+                        <p key={s.name} className="text-fs-xs leading-relaxed break-words" data-testid={`retrieval-source-${s.name}`}>
                           {s.name}: {s.found} found · <span className="font-medium">{s.kept} kept</span>
                         </p>
                       ))}
@@ -709,7 +709,7 @@ function ConflictRow({ conflicts, isExpanded, onToggle }: ConflictRowProps) {
                   >
                     <p>{pos.claim}</p>
                     {pos.source && (
-                      <p className="mt-1 text-[11px] text-muted-foreground">— {pos.source}</p>
+                      <p className="mt-1 text-fs-xs text-muted-foreground">— {pos.source}</p>
                     )}
                   </div>
                 ))}
@@ -751,15 +751,15 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
         </button>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {citation.locus && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0 hidden sm:inline-flex">
+            <Badge variant="outline" className="text-fs-xs px-1 py-0 hidden sm:inline-flex">
               {citation.locus}
             </Badge>
           )}
           {citation.doi && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0">DOI</Badge>
+            <Badge variant="outline" className="text-fs-xs px-1 py-0">DOI</Badge>
           )}
           {citation.pmid && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0">PMID</Badge>
+            <Badge variant="outline" className="text-fs-xs px-1 py-0">PMID</Badge>
           )}
           {/* Spec 01 §1.3.2 answer anatomy — an inline "open ▸" per source
               that opens the right-hand reader pane at this source. */}
@@ -767,7 +767,7 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 px-1.5 text-[11px]"
+              className="h-6 px-1.5 text-fs-xs"
               onClick={onRead}
               data-testid={`source-open-${index}`}
               aria-label={`Open source ${index + 1} in reader`}
@@ -802,7 +802,7 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
           {/* Spec 01 §1.4.2 — recency is stated, not implied. */}
           {hasRecency && (
             <p
-              className="text-[11px] mb-2 text-muted-foreground"
+              className="text-fs-xs mb-2 text-muted-foreground"
               data-testid="citation-recency"
             >
               {citation.retrieval_date && <span>Retrieved {citation.retrieval_date}</span>}

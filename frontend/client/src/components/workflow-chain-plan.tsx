@@ -38,7 +38,7 @@ interface WorkflowChainPlanProps {
 /** Badge for input/output type tokens */
 function TypeBadge({ type }: { type: string }) {
   return (
-    <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-mono bg-muted/60 text-muted-foreground border border-border/40">
+    <span className="inline-block rounded px-1.5 py-0.5 text-fs-xs font-mono bg-muted/60 text-muted-foreground border border-border/40">
       {type}
     </span>
   )
@@ -55,7 +55,7 @@ function StepConnector({ connections, fromStep, toStep }: {
     <div className="flex flex-col items-center py-1">
       <div className="w-px h-3 bg-border" />
       {relevant.length > 0 && (
-        <div className="flex flex-wrap gap-1 px-2 py-1 rounded-full border border-border/60 bg-background text-[10px] text-muted-foreground max-w-[90%] justify-center">
+        <div className="flex flex-wrap gap-1 px-2 py-1 rounded-full border border-border/60 bg-background text-fs-xs text-muted-foreground max-w-[90%] justify-center">
           {relevant.map((c, i) => (
             <span key={i}>
               <span className="font-mono text-emerald-600 dark:text-emerald-400">{c.from_output}</span>
@@ -98,10 +98,10 @@ export function WorkflowChainPlan({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{displayName}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+            <span className="text-fs-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
               {domain.replace(/_/g, ' ')}
             </span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-fs-xs text-muted-foreground">
               {sortedSteps.length} steps
             </span>
           </div>
@@ -120,12 +120,12 @@ export function WorkflowChainPlan({
           {requiredInputs.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <Database className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Inputs</span>
+              <span className="text-fs-xs text-muted-foreground font-medium uppercase tracking-wide">Inputs</span>
               {requiredInputs.map((inp, i) => (
                 <span key={i} className="flex items-center gap-1">
                   <TypeBadge type={inp.type} />
                   {inp.description && (
-                    <span className="text-[10px] text-muted-foreground">{inp.description}</span>
+                    <span className="text-fs-xs text-muted-foreground">{inp.description}</span>
                   )}
                 </span>
               ))}
@@ -138,20 +138,20 @@ export function WorkflowChainPlan({
               <div key={step.order}>
                 {/* Step card */}
                 <div className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-[10px] font-bold text-primary">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-fs-xs font-bold text-primary">
                     {step.order}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-xs font-medium truncate">{step.workflow_name}</span>
                       {step.role && (
-                        <span className="text-[10px] text-muted-foreground italic">{step.role}</span>
+                        <span className="text-fs-xs text-muted-foreground italic">{step.role}</span>
                       )}
                     </div>
                     {step.params_template && Object.keys(step.params_template).length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {Object.entries(step.params_template).slice(0, 4).map(([k, v]) => (
-                          <span key={k} className="text-[10px] font-mono bg-muted/60 border border-border/40 rounded px-1">
+                          <span key={k} className="text-fs-xs font-mono bg-muted/60 border border-border/40 rounded px-1">
                             {k}={String(v)}
                           </span>
                         ))}
@@ -177,12 +177,12 @@ export function WorkflowChainPlan({
           {expectedOutputs.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <CircleDot className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Outputs</span>
+              <span className="text-fs-xs text-muted-foreground font-medium uppercase tracking-wide">Outputs</span>
               {expectedOutputs.map((out, i) => (
                 <span key={i} className="flex items-center gap-1">
                   <TypeBadge type={out.type} />
                   {out.description && (
-                    <span className="text-[10px] text-muted-foreground">{out.description}</span>
+                    <span className="text-fs-xs text-muted-foreground">{out.description}</span>
                   )}
                 </span>
               ))}

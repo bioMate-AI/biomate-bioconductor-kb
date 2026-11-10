@@ -842,7 +842,7 @@ function PhaseGroupSection({
                 </span>
                 <button
                   className="linkish"
-                  style={{ fontSize: 10 }}
+                  style={{ fontSize: 'var(--fs-xs)' }}
                   onClick={() => setPhaseParamsOpen(o => !o)}
                   data-testid={`phase-params-toggle-${group.key}`}
                 >
@@ -889,14 +889,14 @@ function PhaseGroupSection({
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="list">
                           <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>
                             {p.label}{p.required ? ' *' : ''}
-                            <span className="hint" style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-dim)' }}>
+                            <span className="hint" style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-dim)' }}>
                               {items.length} {items.length === 1 ? tOr('panel.item', 'item') : tOr('panel.items', 'items')}
                             </span>
                           </span>
                           <div className="param-list" style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                             {items.map((it, i) => (
                               <div key={i} className="param-list-row" style={{ display: 'grid', gridTemplateColumns: '20px 1fr auto', gap: 6, alignItems: 'center' }}>
-                                <span className="mono" style={{ fontSize: 10, color: 'var(--text-dim)', textAlign: 'right' }}>{i + 1}</span>
+                                <span className="mono" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', textAlign: 'right' }}>{i + 1}</span>
                                 <input
                                   className="v mono"
                                   value={it}
@@ -1009,7 +1009,7 @@ function PhaseGroupSection({
                       <span
                         data-testid={`phase-step-advisory-${step.id}`}
                         title={adv.map((a) => `${a.metric}: ${a.value} (threshold ${a.threshold})`).join(', ')}
-                        style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 4, background: 'oklch(0.95 0.06 80)', color: 'oklch(0.45 0.15 70)' }}
+                        style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '1px 5px', borderRadius: 4, background: 'oklch(0.95 0.06 80)', color: 'oklch(0.45 0.15 70)' }}
                       >
                         ⚠ {head.metric}{more > 0 ? ` +${more}` : ''}
                       </span>
@@ -1107,7 +1107,7 @@ function PhaseGroupSection({
                 <span>{tOr('panel.qc_gates', 'QC Gates')}</span>
                 <button
                   className="linkish"
-                  style={{ fontSize: 10 }}
+                  style={{ fontSize: 'var(--fs-xs)' }}
                   onClick={() => setQcEditorOpen(o => !o)}
                   data-testid={`qc-edit-toggle-${group.key}`}
                 >
@@ -1139,7 +1139,7 @@ function PhaseGroupSection({
                   {t.modified && qcEditorOpen && (
                     <button
                       className="linkish"
-                      style={{ fontSize: 10, color: 'var(--warn)' }}
+                      style={{ fontSize: 'var(--fs-xs)', color: 'var(--warn)' }}
                       title={tOr('panel.reset_to_default', 'Reset to default')}
                       onClick={() => onQcChange(t.key, null)}
                     >×</button>
@@ -3112,7 +3112,7 @@ export function NextflowWorkflowViewer({
                   </button>
                 )}
                 {workflowDefinition?.qc_profile && (
-                  <span className="chip ok" style={{ fontSize: '10px' }}>
+                  <span className="chip ok" style={{ fontSize: 'var(--fs-xs)' }}>
                     {tOr('panel.qc_prefix', 'QC: ')}{(workflowDefinition.qc_profile as string).replace(/_/g, ' ')}
                   </span>
                 )}
@@ -3742,24 +3742,24 @@ export function NextflowWorkflowViewer({
                         )}
                       </span>
                       {r.status === 'resolved' && (
-                        <span className="chip ok" style={{ fontSize: 10, padding: '1px 5px' }} title={tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}>
+                        <span className="chip ok" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }} title={tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}>
                           {tOr('panel.resolved_format_unchecked', 'resolved · format not checked')}
                         </span>
                       )}
                       {r.status === 'unresolved' && (
-                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.required_not_set', 'required — not set')}</span>
+                        <span className="chip err" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.required_not_set', 'required — not set')}</span>
                       )}
                       {r.status === 'needs-mapping' && (
-                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.needs_mapping', 'needs mapping')}</span>
+                        <span className="chip err" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.needs_mapping', 'needs mapping')}</span>
                       )}
                       {r.status === 'optional-empty' && (
-                        <span className="chip" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
+                        <span className="chip" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
                       )}
                       {(r.status === 'unresolved' || r.status === 'needs-mapping') && (
                         <button
                           type="button"
                           className="btn sm ghost"
-                          style={{ fontSize: 10, padding: '1px 6px' }}
+                          style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px' }}
                           onClick={() => setBrowsingForParam({ id: r.p.id, label: r.p.label || r.p.name || r.p.id })}
                         >
                           {tOr('panel.choose_file', 'Choose file')}
@@ -3906,7 +3906,7 @@ export function NextflowWorkflowViewer({
                 ? tOr('panel.phases_label', 'PHASES · {{n}}', { n: groupedPhases.length })
                 : tOr('panel.steps_label', 'STEPS · {{n}}', { n: updatedPhases.length });
               return (
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}
                 </div>
               );
@@ -3970,7 +3970,7 @@ export function NextflowWorkflowViewer({
                   {(afBusy || issues.length > 0 || restartInv) && (
                     <div className="live-progress-badges">
                       {afBusy && (
-                        <span className="chip warn" data-testid="live-progress-autofix-chip" style={{ fontSize: 10 }}>
+                        <span className="chip warn" data-testid="live-progress-autofix-chip" style={{ fontSize: 'var(--fs-xs)' }}>
                           <ShieldCheck style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
                           {fixesApplied > 0
                             ? t('panel.live.autofix_applied', { n: fixesApplied })
@@ -3979,14 +3979,14 @@ export function NextflowWorkflowViewer({
                       )}
                       {issues.length > 0 && (
                         <span className="chip" data-testid="live-progress-issues-chip"
-                              style={{ fontSize: 10, background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+                              style={{ fontSize: 'var(--fs-xs)', background: 'var(--warn-soft)', color: 'var(--warn)' }}>
                           <AlertTriangle style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
                           {t('panel.live.issues_detected', { n: issues.length })}
                         </span>
                       )}
                       {restartInv && (
                         <span className="chip" data-testid="live-progress-restart-chip"
-                              style={{ fontSize: 10, background: 'var(--run-soft)', color: 'var(--run)' }}>
+                              style={{ fontSize: 'var(--fs-xs)', background: 'var(--run-soft)', color: 'var(--run)' }}>
                           <RotateCcw style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
                           {t('panel.live.restarted')}
                         </span>
@@ -4468,7 +4468,7 @@ export function NextflowWorkflowViewer({
               <div className="f-h">
                 <Activity className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
                 {tOr('panel.ai_findings_analysis', 'Findings analysis')}
-                {analysisState === 'done' && <span style={{ fontWeight: 400, marginLeft: 'auto', fontSize: 10 }}>claude-sonnet-4-6</span>}
+                {analysisState === 'done' && <span style={{ fontWeight: 400, marginLeft: 'auto', fontSize: 'var(--fs-xs)' }}>claude-sonnet-4-6</span>}
               </div>
 
               {analysisState === 'loading' && (

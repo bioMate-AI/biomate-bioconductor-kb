@@ -138,11 +138,11 @@ export function TrajectoryView({ rows, onExport, className }: TrajectoryViewProp
                 <span className="flex flex-col gap-0.5 min-w-0">
                   <span className="flex flex-wrap items-baseline gap-2">
                     <span className="text-sm font-medium">{r.k}</span>
-                    <span className="font-mono text-[11px] text-muted-foreground">{r.t}</span>
+                    <span className="font-mono text-fs-xs text-muted-foreground">{r.t}</span>
                   </span>
                   <span className="text-xs text-muted-foreground">{r.d}</span>
                   {r.meta && (
-                    <span className="font-mono text-[11px] text-muted-foreground/80">{r.meta}</span>
+                    <span className="font-mono text-fs-xs text-muted-foreground/80">{r.meta}</span>
                   )}
                 </span>
               </div>

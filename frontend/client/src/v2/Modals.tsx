@@ -159,7 +159,7 @@ const VizMicrographs = () => {
                     fill="rgba(220,220,230,0.55)"/>
                 ))}
               </svg>
-              <span style={{position:'absolute', bottom:2, left:4, fontSize:8, color:'#aab', fontFamily:'var(--font-mono)'}}>
+              <span style={{position:'absolute', bottom:2, left:4, fontSize:'var(--fs-xs)', color:'#aab', fontFamily:'var(--font-mono)'}}>
                 mic_{String(i+1).padStart(3,'0')}
               </span>
             </div>
@@ -293,7 +293,7 @@ const VizClass2D = ({ clean }) => {
                   <circle cx="20" cy="20" r="14" fill={`url(#c2d-${i})`}/>
                 )}
               </svg>
-              <span style={{position:'absolute', top:2, left:3, fontSize:7, color:'#aab', fontFamily:'var(--font-mono)'}}>
+              <span style={{position:'absolute', top:2, left:3, fontSize:'var(--fs-xs)', color:'#aab', fontFamily:'var(--font-mono)'}}>
                 {String(i+1).padStart(2,'0')}
               </span>
             </div>
@@ -931,7 +931,7 @@ function QcAuditModal({ scenario, phases, onClose }) {
                 background:'var(--surface)', padding:'10px 12px', borderRadius:'var(--r-sm)',
                 border:'1px solid var(--border)',
               }}>
-                <div style={{fontSize:10, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
+                <div style={{fontSize:'var(--fs-xs)', color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
                 <div style={{fontSize: 'var(--fs-section)', fontWeight:600, color: s[2] || 'var(--text)', marginTop:2}}>{s[1]}</div>
               </div>
             ))}
@@ -983,7 +983,7 @@ function QcAuditModal({ scenario, phases, onClose }) {
             <div style={{fontWeight:600, marginBottom:4}}>Operator e-signature</div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', color:'var(--text-muted)'}}>
               <span>Reviewed by Andrew Chen, PhD · 2026-04-19 22:18 UTC · TOTP verified</span>
-              <span className="mono" style={{fontSize:10}}>
+              <span className="mono" style={{fontSize:'var(--fs-xs)'}}>
                 sig:9f2a…b7e1
               </span>
             </div>
@@ -1033,7 +1033,7 @@ function QcAuditPanel({ scenario, phases }) {
         ].map((s, i) => (
           <div key={i} style={{background:'var(--surface)', padding:'10px 12px', borderRadius:'var(--r-sm)',
             border:'1px solid var(--border)'}}>
-            <div style={{fontSize:10, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
+            <div style={{fontSize:'var(--fs-xs)', color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
             <div style={{fontSize: 'var(--fs-section)', fontWeight:600, color: s[2] || 'var(--text)', marginTop:2}}>{s[1]}</div>
           </div>
         ))}
@@ -1086,7 +1086,7 @@ function QcAuditPanel({ scenario, phases }) {
             <div style={{fontWeight:600, marginBottom:4}}>Operator e-signature</div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', color:'var(--text-muted)'}}>
               <span>Reviewed by Andrew Chen, PhD · 2026-04-19 22:18 UTC · TOTP verified</span>
-              <span className="mono" style={{fontSize:10}}>sig:9f2a…b7e1</span>
+              <span className="mono" style={{fontSize:'var(--fs-xs)'}}>sig:9f2a…b7e1</span>
             </div>
           </div>
         </React.Fragment>

@@ -289,7 +289,7 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
       <Card data-testid="dl-section-train">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">{tOr("models.dl_section_train", "Train a model")}</CardTitle>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             {tOr(
               "models.dl_train_hint",
               "Method families. A form-ready method opens the training form pre-selected; a generative or LLM method opens in chat because the form cannot configure it yet.",
@@ -313,7 +313,7 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                         {r.m.panel === "spec" && r.m.badgeKey && (
                           <Badge
                             variant="outline"
-                            className="ml-auto gap-1 text-[9px]"
+                            className="ml-auto gap-1 text-fs-xs"
                             data-testid={`dl-method-badge-${r.m.type}`}
                           >
                             <Sparkles className="h-2.5 w-2.5" />
@@ -321,12 +321,12 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                           </Badge>
                         )}
                       </div>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">{r.desc}</p>
-                      <p className="mt-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">{r.family}</p>
+                      <p className="mt-0.5 text-fs-xs text-muted-foreground">{r.desc}</p>
+                      <p className="mt-0.5 text-fs-xs uppercase tracking-wide text-muted-foreground">{r.family}</p>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="mt-1 h-6 px-2 text-[11px]"
+                        className="mt-1 h-6 px-2 text-fs-xs"
                         onClick={() => launchForm(r.m.type)}
                         data-testid={`dl-method-configure-${r.m.type}`}
                       >
@@ -338,7 +338,7 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
               </div>
             ))
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="dl-methods-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="dl-methods-empty">
               {tOr("models.dl_no_methods", "No methods match your search.")}
             </p>
           )}
@@ -351,7 +351,7 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="ml-auto h-6 gap-1 px-2 text-[11px]"
+                  className="ml-auto h-6 gap-1 px-2 text-fs-xs"
                   onClick={() => setSetupType(null)}
                   data-testid="dl-setup-close"
                 >
@@ -375,7 +375,7 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
           <CardTitle className="text-sm">
             {tOr("models.dl_section_prebuilt", "Pre-built foundation models & workflows")}
           </CardTitle>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             {tOr(
               "models.dl_prebuilt_hint",
               "Searches the real workflow catalog. Open a hit in chat to review and run it.",
@@ -384,11 +384,11 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
         </CardHeader>
         <CardContent className="space-y-2">
           {wfLoading ? (
-            <p className="text-[11px] text-muted-foreground" data-testid="dl-wf-loading">
+            <p className="text-fs-xs text-muted-foreground" data-testid="dl-wf-loading">
               {tOr("models.dl_searching", "Searching workflows…")}
             </p>
           ) : wfError ? (
-            <p role="alert" className="text-[11px] text-destructive" data-testid="dl-wf-error">
+            <p role="alert" className="text-fs-xs text-destructive" data-testid="dl-wf-error">
               {wfError}
             </p>
           ) : hits.length ? (
@@ -401,7 +401,7 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-semibold">{hit.name}</span>
                   {hit.domain && (
-                    <Badge variant="outline" className="text-[9px]">{tOr(`domain.${hit.domain}`, hit.domain)}</Badge>
+                    <Badge variant="outline" className="text-fs-xs">{tOr(`domain.${hit.domain}`, hit.domain)}</Badge>
                   )}
                   <button
                     type="button"
@@ -413,12 +413,12 @@ export function DeepLearningModelsTab({ onOpenChat }: DeepLearningModelsTabProps
                   </button>
                 </div>
                 {hit.description && (
-                  <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2">{hit.description}</p>
+                  <p className="mt-0.5 text-fs-xs text-muted-foreground line-clamp-2">{hit.description}</p>
                 )}
               </div>
             ))
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="dl-wf-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="dl-wf-empty">
               {tOr("models.dl_no_workflows", "No matching workflows.")}
             </p>
           )}

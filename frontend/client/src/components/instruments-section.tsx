@@ -44,7 +44,7 @@ const btn = (variant: 'primary' | 'ghost' | 'outline'): React.CSSProperties => (
 });
 
 function Badge({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
-  return <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: bg, color: fg }}>{children}</span>;
+  return <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: bg, color: fg }}>{children}</span>;
 }
 
 export function InstrumentsSection() {

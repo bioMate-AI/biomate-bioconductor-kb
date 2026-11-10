@@ -672,7 +672,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                           </CardTitle>
                           <CardDescription className="text-xs mt-1">
                             Provide your own AWS credentials to access private S3 buckets during workflow execution.
-                            Create a read-only IAM user with <code className="bg-muted px-1 rounded text-[11px]">s3:GetObject</code> and <code className="bg-muted px-1 rounded text-[11px]">s3:ListBucket</code> on your data bucket.
+                            Create a read-only IAM user with <code className="bg-muted px-1 rounded text-fs-xs">s3:GetObject</code> and <code className="bg-muted px-1 rounded text-fs-xs">s3:ListBucket</code> on your data bucket.
                           </CardDescription>
                         </div>
                         {s3.hasSaved && (
@@ -918,7 +918,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                 <div>
                   <h3 className="text-lg font-semibold mb-1">{t('settings.api_keys')}</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    {t('settings.api.conn_desc_pre')} <code className="bg-muted px-1 rounded text-[11px]">Authorization: Bearer &lt;key&gt;</code>{t('settings.api.conn_desc_mid')} <span className="font-medium">{t('settings.api.you')}</span> {t('settings.api.conn_desc_post')}
+                    {t('settings.api.conn_desc_pre')} <code className="bg-muted px-1 rounded text-fs-xs">Authorization: Bearer &lt;key&gt;</code>{t('settings.api.conn_desc_mid')} <span className="font-medium">{t('settings.api.you')}</span> {t('settings.api.conn_desc_post')}
                   </p>
 
                   {/* Freshly created key — shown once */}
@@ -1010,11 +1010,11 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium truncate">{k.name || t('settings.api.unnamed_key')}</span>
                             {k.revokedAt
-                              ? <Badge variant="secondary" className="text-[10px]">{t('settings.api.revoked')}</Badge>
-                              : <Badge variant="secondary" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />{t('settings.api.active')}</Badge>}
+                              ? <Badge variant="secondary" className="text-fs-xs">{t('settings.api.revoked')}</Badge>
+                              : <Badge variant="secondary" className="text-fs-xs gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />{t('settings.api.active')}</Badge>}
                           </div>
-                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{k.keyPrefix}</div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                          <div className="text-fs-xs text-muted-foreground font-mono mt-0.5">{k.keyPrefix}</div>
+                          <div className="text-fs-xs text-muted-foreground mt-0.5">
                             {t('settings.api.created', { date: new Date(k.createdAt).toLocaleDateString() })}
                             {k.lastUsedAt ? t('settings.api.last_used', { date: new Date(k.lastUsedAt).toLocaleDateString() }) : t('settings.api.never_used')}
                           </div>
@@ -1111,7 +1111,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                               ] },
                             ] as const).map(group => (
                               <div key={group.label}>
-                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">{group.label}</p>
+                                <p className="text-fs-xs uppercase tracking-wide text-muted-foreground/70 mb-1">{group.label}</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {group.slugs.map(slug => {
                                     const recommended = slug === 'z-ai/glm-5.3-prime';
@@ -1121,7 +1121,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                                         type="button"
                                         title={recommended ? t('settings.api.model_recommended') : undefined}
                                         onClick={() => llmKeys.setSelectedModel(slug)}
-                                        className={`font-mono text-[10.5px] rounded-full border px-2 py-0.5 transition-colors ${llmKeys.selectedModel === slug ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                                        className={`font-mono text-fs-xs rounded-full border px-2 py-0.5 transition-colors ${llmKeys.selectedModel === slug ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
                                       >
                                         {recommended ? '★ ' : ''}{slug.split('/').pop()}
                                       </button>

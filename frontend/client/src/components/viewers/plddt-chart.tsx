@@ -104,7 +104,7 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
         </CardTitle>
         <CardDescription className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className="text-xs" data-testid="plddt-mean">mean {mean}</Badge>
-          <span className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-2 flex-wrap text-fs-xs text-muted-foreground">
             {PL_BANDS.map(b => (
               <span key={b.label} className="inline-flex items-center gap-1">
                 <span className="inline-block h-2 w-2 rounded-sm" style={{ background: b.color }} />
@@ -155,7 +155,7 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
               />
             ))}
           </svg>
-          <div className="flex justify-between text-[10px] text-muted-foreground font-mono px-0.5">
+          <div className="flex justify-between text-fs-xs text-muted-foreground font-mono px-0.5">
             <span>1</span>
             <span>{n}</span>
           </div>
@@ -170,10 +170,10 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
               <Badge variant="outline" className="text-xs" style={{ color: bandOf(plddt[active]).color }}>
                 {bandOf(plddt[active]).label}
               </Badge>
-              <span className="text-[10px] text-muted-foreground">click to centre the 3D view here</span>
+              <span className="text-fs-xs text-muted-foreground">click to centre the 3D view here</span>
             </>
           ) : (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-fs-xs text-muted-foreground">
               Hover a residue for its score; click to centre the 3D view on it.
             </span>
           )}
@@ -195,14 +195,14 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
                 >
                   <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ background: b.color }} />
                   <span className="text-xs font-semibold shrink-0">{r.label}</span>
-                  {r.note && <span className="text-[10px] text-muted-foreground truncate">{r.note}</span>}
+                  {r.note && <span className="text-fs-xs text-muted-foreground truncate">{r.note}</span>}
                 </button>
               )
             })}
           </div>
         )}
 
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           A structure picture with no confidence chart invites a claim its low-confidence loops
           cannot support. The two are one output, shown together.
         </p>

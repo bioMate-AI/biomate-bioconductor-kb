@@ -117,13 +117,13 @@ export function SourceReaderPane({
                   data-testid="reader-locus"
                 >
                   <span className="text-muted-foreground">cited for:</span>
-                  <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  <Badge variant="outline" className="text-fs-xs px-1 py-0">
                     {source.locus}
                   </Badge>
                 </div>
               )}
               {(source.retrieval_date || source.corpus_version) && (
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-fs-xs text-muted-foreground">
                   {source.retrieval_date && (
                     <span>Retrieved {source.retrieval_date}</span>
                   )}

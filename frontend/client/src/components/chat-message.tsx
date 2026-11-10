@@ -486,7 +486,7 @@ export function ChatMessage({
         style={{
           display: 'flex', flexDirection: 'row', alignItems: 'baseline', justifyContent: 'flex-start', flexWrap: 'wrap', gap: 6,
           width: '100%', minWidth: 0, textAlign: 'left',
-          fontSize: 12, fontStyle: 'normal',
+          fontSize: 'var(--fs-sm)', fontStyle: 'normal',
           color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
           opacity: 0.85,
         }}
@@ -502,7 +502,7 @@ export function ChatMessage({
             when it leads somewhere.
         <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} /> */}
         {timeLabel && (
-          <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
+          <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
         )}
       </div>
     )
@@ -573,7 +573,7 @@ export function ChatMessage({
     >
       {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
       {!continuation && <div className="who" title={fullTimestamp} style={{
-        fontSize: 9.5, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+        fontSize: 'var(--fs-xs)', color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
         letterSpacing: '0.13em', fontWeight: 600,
         fontFamily: 'var(--bm-font-mono)',
         display: 'flex', alignItems: 'center', gap: 6,
@@ -630,7 +630,7 @@ export function ChatMessage({
           overflowWrap: 'anywhere',
           whiteSpace: 'pre-wrap',
           overflow: 'visible',
-          fontSize: 13.5,
+          fontSize: 'var(--fs-base)',
           lineHeight: 1.6,
           alignSelf: 'flex-end',
         } : { lineHeight: 1.65 }}>
@@ -764,7 +764,7 @@ export function ChatMessage({
                     {!isInPanel && onOpenInPanel && (
                       <button
                         onClick={() => onOpenInPanel()}
-                        style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                        style={{ marginLeft: 8, fontSize: 'var(--fs-xs)', padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                       >
                         Open
                       </button>
@@ -798,10 +798,10 @@ export function ChatMessage({
               {/* Per-tab deep links. The run status + "Open run" already live on the
                   wf-chip above, so the answer block does not repeat them (avoids a
                   redundant second "Completed" hint). */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 12 }}>
-                <button type="button" data-testid="answer-link-summary" onClick={() => onOpenInPanel?.({ tab: 'summary' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Full table in Summary →</button>
-                <button type="button" data-testid="answer-link-outputs" onClick={() => onOpenInPanel?.({ tab: 'outputs' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Files in Outputs →</button>
-                <button type="button" data-testid="answer-link-report" onClick={() => onOpenInPanel?.({ tab: 'report' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Full report →</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 'var(--fs-sm)' }}>
+                <button type="button" data-testid="answer-link-summary" onClick={() => onOpenInPanel?.({ tab: 'summary' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>Full table in Summary →</button>
+                <button type="button" data-testid="answer-link-outputs" onClick={() => onOpenInPanel?.({ tab: 'outputs' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>Files in Outputs →</button>
+                <button type="button" data-testid="answer-link-report" onClick={() => onOpenInPanel?.({ tab: 'report' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>Full report →</button>
               </div>
             </div>
           )}

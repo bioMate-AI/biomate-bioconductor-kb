@@ -76,7 +76,7 @@ function isHeld(h: ChemHit): boolean {
 function VerdictChip({ verdict }: { verdict: HitVerdict }) {
   const s = VERDICT_STYLE[verdict]
   return (
-    <Badge variant="outline" className="text-[10px] gap-1" style={{ color: s.color }}>
+    <Badge variant="outline" className="text-fs-xs gap-1" style={{ color: s.color }}>
       <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
       {verdict}
     </Badge>
@@ -215,19 +215,19 @@ export function HitGrid({ hits, modelName = "admet-herg v3", modelId = "admet-he
                     data-testid={`hit-depiction-${h.id}`}
                     title={h.smiles}
                   >
-                    <span className="text-[9px] uppercase tracking-wide text-muted-foreground">2D depiction</span>
-                    <span className="text-[9px] font-mono break-all leading-tight mt-0.5 line-clamp-3">{h.smiles}</span>
+                    <span className="text-fs-xs uppercase tracking-wide text-muted-foreground">2D depiction</span>
+                    <span className="text-fs-xs font-mono break-all leading-tight mt-0.5 line-clamp-3">{h.smiles}</span>
                   </div>
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-mono font-semibold">{h.id}</span>
-                    <span className="text-[11px] font-mono" data-testid={`hit-card-score-${h.id}`}>
+                    <span className="text-fs-xs font-mono font-semibold">{h.id}</span>
+                    <span className="text-fs-xs font-mono" data-testid={`hit-card-score-${h.id}`}>
                       {held ? <span className="text-muted-foreground italic">held</span> : (h.score ?? "—")}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 flex-wrap">
                     <VerdictChip verdict={h.verdict} />
                     {h.confidence === "out-of-domain" && (
-                      <Badge variant="outline" className="text-[10px]" style={{ color: "var(--warn)" }}>
+                      <Badge variant="outline" className="text-fs-xs" style={{ color: "var(--warn)" }}>
                         out-of-domain
                       </Badge>
                     )}
@@ -240,17 +240,17 @@ export function HitGrid({ hits, modelName = "admet-herg v3", modelId = "admet-he
 
         {/* Model attribution + held explanation */}
         <div className="flex items-center gap-2 flex-wrap pt-1 border-t">
-          <span className="text-[10px] text-muted-foreground">Every score names the model behind it.</span>
+          <span className="text-fs-xs text-muted-foreground">Every score names the model behind it.</span>
           <button
             type="button"
-            className="text-[10px] text-primary hover:underline"
+            className="text-fs-xs text-primary hover:underline"
             data-testid="hit-model-link"
             onClick={() => onOpenModel?.(modelId)}
           >
             {modelName} →
           </button>
           {heldHits.length > 0 && (
-            <span className="text-[10px] text-muted-foreground" data-testid="hit-held-note">
+            <span className="text-fs-xs text-muted-foreground" data-testid="hit-held-note">
               {heldHits.map(h => h.id).join(", ")}{" "}
               {heldHits.length === 1 ? "is" : "are"} held: outside the model's applicability
               region, so no confident number is offered.

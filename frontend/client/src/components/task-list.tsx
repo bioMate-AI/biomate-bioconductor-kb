@@ -82,7 +82,7 @@ export function TaskList({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40">
-        <span className="font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Tasks</span>
+        <span className="font-medium text-muted-foreground uppercase tracking-wide text-fs-xs">Tasks</span>
         {showSummaryToggle && (
           <button
             className="text-muted-foreground underline underline-offset-2 hover:no-underline"
@@ -149,7 +149,7 @@ export function TaskList({
           {tasks.length > 0 && (
             <div className="px-3 py-1 flex items-center gap-2">
               <Separator className="flex-1" />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide flex-shrink-0">Queued messages</span>
+              <span className="text-fs-xs text-muted-foreground uppercase tracking-wide flex-shrink-0">Queued messages</span>
               <Separator className="flex-1" />
             </div>
           )}

@@ -260,7 +260,7 @@ export function Step2Admet({
         <div className="k">Model</div>
         <div className="v" style={{ fontSize: 'var(--fs-meta)', color: "var(--ind-text-muted)" }} title="hERG AUROC 0.931 · DILI 0.913 · Ames 0.934">
           ADMET-AI v2.0
-          <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 6px", borderRadius: 3, background: "oklch(0.92 0.04 150)", color: "oklch(0.40 0.10 150)", fontWeight: 700 }}>
+          <span style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', padding: "1px 6px", borderRadius: 3, background: "oklch(0.92 0.04 150)", color: "oklch(0.40 0.10 150)", fontWeight: 700 }}>
             TDC AUROC 0.93
           </span>
         </div>
@@ -295,7 +295,7 @@ export function Step2Admet({
                 <tr key={c.id} className={c.lead ? "lead" : ""}>
                   <td>
                     <b>{c.id}</b>
-                    {c.lead && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "var(--ind-accent)" }}>LEAD</span>}
+                    {c.lead && <span style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', fontWeight: 700, color: "var(--ind-accent)" }}>LEAD</span>}
                   </td>
                   <td className="mono">{c.hergIC50 >= 30 ? ">30" : c.hergIC50}</td>
                   <td>
@@ -606,7 +606,7 @@ export function Step4Leads({ data, expanded, onToggle }: { data: LeadsData; expa
                 <td>{r.rank}</td>
                 <td>
                   <b>{r.id}</b>
-                  {r.rank === 1 && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "var(--ind-accent)" }}>LEAD</span>}
+                  {r.rank === 1 && <span style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', fontWeight: 700, color: "var(--ind-accent)" }}>LEAD</span>}
                 </td>
                 <td className="mono">{r.score.toFixed(2)}</td>
                 <td><span className={`gate ${r.herg}`}>{r.herg === "clear" ? "✓" : r.herg === "flag" ? "✗" : "~"}</span></td>
@@ -749,7 +749,7 @@ export function Step5Document({
           display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
         }}
       >
-        <span style={{ background: "var(--ind-accent)", color: "white", padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700 }}>v2</span>
+        <span style={{ background: "var(--ind-accent)", color: "white", padding: "1px 7px", borderRadius: 3, fontSize: 'var(--fs-xs)', fontWeight: 700 }}>v2</span>
         <span style={{ fontWeight: 600, color: "var(--ind-text)" }}>Current</span>
         <span>· v1 signed 2026-05-01 by Dr. Jane Smith</span>
         <button className="ind-link" style={{ fontSize: 'var(--fs-micro)', marginLeft: "auto" }}>

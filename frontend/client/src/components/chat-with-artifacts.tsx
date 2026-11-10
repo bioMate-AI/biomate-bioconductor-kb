@@ -2007,9 +2007,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
-          <span style={{ fontSize: 10.5, color: 'var(--bm-text-dim)' }}>{activeProject?.name || 'Unfiled'} / {currentChatSession ? 'chat' : 'new chat'}</span>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--bm-text-dim)' }}>{activeProject?.name || 'Unfiled'} / {currentChatSession ? 'chat' : 'new chat'}</span>
           <span style={{
-            fontWeight: 600, fontSize: 14,
+            fontWeight: 600, fontSize: 'var(--fs-base)',
             color: 'var(--bm-text, hsl(var(--foreground)))',
             fontFamily: 'var(--bm-font-ui)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -2017,31 +2017,31 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             {currentChatSession?.title || t('New chat')}
           </span>
           {isConnected && (
-            <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
               live
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 12, height: 28 }}>{chatHidden ? 'Show chat' : 'Hide chat'}</Button>}
+          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 'var(--fs-sm)', height: 28 }}>{chatHidden ? 'Show chat' : 'Hide chat'}</Button>}
           <Button
             variant="ghost"
             size="sm"
             data-testid="button-toggle-run-manager"
             onClick={() => setShowRunManager((prev) => !prev)}
-            style={{ fontSize: 12, height: 28, gap: 5 }}
+            style={{ fontSize: 'var(--fs-sm)', height: 28, gap: 5 }}
           >
             <Layers className="h-3 w-3" style={{ flexShrink: 0 }} />
             {t('runs_ui.run_manager')}
             {runningCount > 0 ? (
               <span style={{
                 background: 'var(--bm-blue, oklch(0.55 0.18 240))',
-                color: 'white', borderRadius: 9, fontSize: 10,
+                color: 'white', borderRadius: 9, fontSize: 'var(--fs-xs)',
                 padding: '0 5px', fontWeight: 600, lineHeight: '16px',
               }}>{runningCount}</span>
             ) : (
-              <span style={{ color: 'var(--bm-text-dim)', fontSize: 11 }}>
+              <span style={{ color: 'var(--bm-text-dim)', fontSize: 'var(--fs-xs)' }}>
                 {runList.length > 0 ? runList.length : '0'}
               </span>
             )}
@@ -2169,19 +2169,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                           <p className="text-muted-foreground">
                             {run.execution?.status || "unknown"} · {formatRunTime(run.updatedAt || run.createdAt)}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-fs-xs text-muted-foreground">
                             {shortenId(run.id, "run ")}
                             {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, "inv ")}` : ""}
                             {` · ${formatFreshness(run.updatedAt || run.createdAt)}`}
                           </p>
                           <p
-                            className="mt-1 inline-flex rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-foreground/90"
+                            className="mt-1 inline-flex rounded border border-border px-1.5 py-0.5 text-fs-xs font-medium text-foreground/90"
                             data-testid={`run-manager-item-cta-${run.id}`}
                           >
                             {getRunPrimaryCta(run)}
                           </p>
                           {readinessHint && (
-                            <p className="text-[11px] text-muted-foreground">{readinessHint}</p>
+                            <p className="text-fs-xs text-muted-foreground">{readinessHint}</p>
                           )}
                         </button>
                       )
@@ -2298,7 +2298,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   key={p.id}
                   data-testid={`workflow-edits-pending-${p.id}`}
                   style={{
-                    fontSize: 11, padding: '2px 6px 2px 8px', borderRadius: 999,
+                    fontSize: 'var(--fs-xs)', padding: '2px 6px 2px 8px', borderRadius: 999,
                     background: 'oklch(0.94 0.06 70)', color: 'oklch(0.40 0.12 60)',
                     fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -2311,7 +2311,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     aria-label={t('runs_ui.apply')}
                     data-testid={`button-apply-${p.id}`}
                     onClick={() => confirmStructuralEdit(p.id)}
-                    style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}
+                    style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 'var(--fs-xs)' }}
                   >{t('runs_ui.apply')}</button>
                   <button
                     type="button"
@@ -2339,7 +2339,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   data-testid={`workflow-edits-chip-${chip.id}`}
                   className="workflow-edits-chip"
                   style={{
-                    fontSize: 11, padding: '2px 8px', borderRadius: 999,
+                    fontSize: 'var(--fs-xs)', padding: '2px 8px', borderRadius: 999,
                     background: 'oklch(0.95 0.03 145)', color: 'oklch(0.40 0.10 145)',
                     fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -2353,7 +2353,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       aria-label={t('runs_ui.undo')}
                       data-testid={`button-undo-${chip.id}`}
                       onClick={() => undoAppliedEdit(chip.id)}
-                      style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}
+                      style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 'var(--fs-xs)', opacity: 0.75 }}
                     >{t('runs_ui.undo')}</button>
                   )}
                   <button
@@ -2425,7 +2425,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 999,
                   background: 'oklch(0.45 0.18 240)', color: 'white',
-                  fontSize: 13, fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                  fontSize: 'var(--fs-base)', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
                   border: 'none', cursor: 'pointer',
                 }}
               >

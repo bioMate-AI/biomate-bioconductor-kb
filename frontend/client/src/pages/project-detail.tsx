@@ -817,7 +817,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   </Button>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground mb-3">{tOr('projects.standing_instructions_hint', 'Read by the assistant on every chat in this project.')}</p>
+              <p className="text-fs-xs text-muted-foreground mb-3">{tOr('projects.standing_instructions_hint', 'Read by the assistant on every chat in this project.')}</p>
 
               {isEditingInstructions ? (
                 <div className="space-y-2">
@@ -858,7 +858,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             {/* Notes — human-only free text, NOT read by the assistant. */}
             <div className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : "border-t border-border pt-4"} data-testid="notes-card">
               <h3 className="font-medium text-sm">Notes</h3>
-              <p className="text-[11px] text-muted-foreground mb-3">
+              <p className="text-fs-xs text-muted-foreground mb-3">
                 Private to you — <span className="font-medium">not read by the assistant</span>. Promote a note to make it a standing instruction.
               </p>
 
@@ -906,11 +906,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                     <div key={n.id} className="rounded-md border border-border bg-background p-2.5" data-testid={`note-row-${n.id}`}>
                       <p className="text-sm whitespace-pre-wrap">{n.content}</p>
                       <div className="flex items-center justify-between mt-1.5">
-                        <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
+                        <span className="text-fs-xs text-muted-foreground">{relTime(n.createdAt)}</span>
                         {canEdit && (
                           <button
                             onClick={() => handlePromoteNote(n.content)}
-                            className="text-[11px] text-muted-foreground hover:text-primary"
+                            className="text-fs-xs text-muted-foreground hover:text-primary"
                             title={tOr('projects.promote_tooltip_note', 'Append this note to Standing instructions')}
                             data-testid={`button-promote-note-${n.id}`}
                           >
@@ -972,7 +972,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       {p.hypothesis && (
                         <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{p.hypothesis}</p>
                       )}
-                      <span className="text-[10px] text-muted-foreground block mt-1.5">{relTime(p.created_at)}</span>
+                      <span className="text-fs-xs text-muted-foreground block mt-1.5">{relTime(p.created_at)}</span>
                     </div>
                   ))}
                 </div>
@@ -994,7 +994,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               {/* The current user's OWN role for this project (real, from the server). */}
               <span
                 data-testid="my-role-badge"
-                className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary capitalize"
+                className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-fs-xs font-medium text-primary capitalize"
                 title={t('project_members.your_role')}
               >
                 {t('project_members.you')}: {t(`project_members.${myRole}`)}
@@ -1033,7 +1033,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </Button>
                 {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
                 {inviteNotice && <p className="text-xs text-emerald-600 dark:text-emerald-400">{inviteNotice}</p>}
-                <p className="text-[11px] text-muted-foreground leading-snug">{t('project_members.invite_help')}</p>
+                <p className="text-fs-xs text-muted-foreground leading-snug">{t('project_members.invite_help')}</p>
               </div>
             )}
 
@@ -1051,19 +1051,19 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   return (
                     <div key={m.user_id} className="flex items-center gap-2 text-xs" data-testid={`member-row-${m.user_id}`}>
                       {/* Initials avatar */}
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-fs-xs font-semibold text-primary shrink-0">
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="truncate font-medium leading-tight">{m.fullName || m.email}</p>
-                        {m.fullName && <p className="text-muted-foreground truncate text-[10px]">{m.email}</p>}
+                        {m.fullName && <p className="text-muted-foreground truncate text-fs-xs">{m.email}</p>}
                       </div>
                       {/* Role badge / change dropdown */}
                       {m.role === "owner" ? (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">{t('project_members.owner')}</span>
+                        <span className="text-fs-xs font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">{t('project_members.owner')}</span>
                       ) : isOwner ? (
                         <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id, v as "viewer" | "editor")}>
-                          <SelectTrigger className="h-5 w-16 text-[10px] px-1.5 border-0 bg-muted/60 rounded shrink-0" data-testid={`select-role-${m.user_id}`}>
+                          <SelectTrigger className="h-5 w-16 text-fs-xs px-1.5 border-0 bg-muted/60 rounded shrink-0" data-testid={`select-role-${m.user_id}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1072,7 +1072,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${m.role === "editor" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-muted text-muted-foreground"}`}>
+                        <span className={`text-fs-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${m.role === "editor" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-muted text-muted-foreground"}`}>
                           {t(`project_members.${m.role}`)}
                         </span>
                       )}
@@ -1106,7 +1106,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 {!isOwner && (
                   <button
                     onClick={handleLeaveProject}
-                    className="mt-1 text-[11px] text-muted-foreground hover:text-destructive"
+                    className="mt-1 text-fs-xs text-muted-foreground hover:text-destructive"
                     data-testid="button-leave-project"
                   >
                     {t('project_members.leave')}

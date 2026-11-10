@@ -307,7 +307,7 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
             <input className={field} value={String(vals.reward_keyword)} onChange={setStr('reward_keyword')} required />
           </label>}
         {vals.reward === 'composite' &&
-          <p className="text-[11px] text-muted-foreground">{tOr('models.dl_spec_composite_note', 'A composite reward spec (weighted rule components) is defined in chat — continue to review and provide it there.')}</p>}
+          <p className="text-fs-xs text-muted-foreground">{tOr('models.dl_spec_composite_note', 'A composite reward spec (weighted rule components) is defined in chat — continue to review and provide it there.')}</p>}
       </>}
     </>}
 
@@ -328,7 +328,7 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
         <input className={field} value={String(vals.base_checkpoint)} onChange={setStr('base_checkpoint')} required={!!vals.finetune} />
       </label>
       {vals.finetune && !str('base_checkpoint') &&
-        <p role="alert" className="text-[11px] text-destructive">{tOr('models.dl_spec_ckpt_required', 'A base checkpoint is required when fine-tuning.')}</p>}
+        <p role="alert" className="text-fs-xs text-destructive">{tOr('models.dl_spec_ckpt_required', 'A base checkpoint is required when fine-tuning.')}</p>}
       <label className="block text-xs">{tOr('models.dl_spec_target_pdb', 'Target PDB (binder design, optional)')}
         <input className={field} value={String(vals.target_pdb)} onChange={setStr('target_pdb')} />
       </label>
@@ -350,7 +350,7 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
         </label>
       </div>
       {num('length_min') > num('length_max') &&
-        <p role="alert" className="text-[11px] text-destructive">{tOr('models.dl_spec_length_order', 'Length min must be ≤ length max.')}</p>}
+        <p role="alert" className="text-fs-xs text-destructive">{tOr('models.dl_spec_length_order', 'Length min must be ≤ length max.')}</p>}
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs">{tOr('models.dl_spec_num_designs', 'Number of designs')}
           <input className={field} type="number" min="1" step="1" value={String(vals.num_designs)} onChange={setNum('num_designs')} required />
@@ -385,7 +385,7 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
         <input className={field} value={String(vals.base_model)} onChange={setStr('base_model')} />
       </label>
       {vals.finetune && !str('base_checkpoint') && !str('base_model') &&
-        <p role="alert" className="text-[11px] text-destructive">{tOr('models.dl_spec_sc_warmstart', 'Fine-tuning requires a checkpoint or foundation weight — or uncheck fine-tune to train from scratch.')}</p>}
+        <p role="alert" className="text-fs-xs text-destructive">{tOr('models.dl_spec_sc_warmstart', 'Fine-tuning requires a checkpoint or foundation weight — or uncheck fine-tune to train from scratch.')}</p>}
       <label className="block text-xs">{tOr('models.dl_spec_cell_type', 'Condition on cell type (optional)')}
         <input className={field} value={String(vals.cell_type)} onChange={setStr('cell_type')} />
       </label>
@@ -431,7 +431,7 @@ export function SpecSetup({ initialType, onContinue }: { initialType: string; on
         <input className={field} value={String(vals.base_checkpoint)} onChange={setStr('base_checkpoint')} required={!!vals.finetune} />
       </label>
       {vals.finetune && !str('base_checkpoint') &&
-        <p role="alert" className="text-[11px] text-destructive">{tOr('models.dl_spec_tab_warmstart', 'Fine-tuning requires a checkpoint — or uncheck fine-tune to train from scratch.')}</p>}
+        <p role="alert" className="text-fs-xs text-destructive">{tOr('models.dl_spec_tab_warmstart', 'Fine-tuning requires a checkpoint — or uncheck fine-tune to train from scratch.')}</p>}
       <label className="block text-xs">{tOr('models.dl_spec_target_column', 'Condition on column (categorical; blank = unconditional)')}
         <input className={field} value={String(vals.target_column)} onChange={setStr('target_column')} />
       </label>

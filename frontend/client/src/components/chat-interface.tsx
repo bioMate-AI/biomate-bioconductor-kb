@@ -2146,7 +2146,7 @@ export function ChatInterface({
       {(currentTokenCount > 0 || activeLLMModel) && (
         <div className="flex items-center justify-between p-2 border-b bg-background/95">
           {activeLLMModel ? (
-            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-fs-xs font-mono text-muted-foreground">
               {activeLLMModel}
               <button
                 onClick={() => { setActiveLLMModel(null); fetch('/api/user/llm-api-keys', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'openrouter', key: '' }) }).catch(() => {}); }}

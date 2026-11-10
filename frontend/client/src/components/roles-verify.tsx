@@ -56,7 +56,7 @@ export function RolesCard({ data, className }: RolesCardProps) {
         <span className="text-sm font-medium">{tOr('panel.permissions_here','Your permissions here')}</span>
         <span
           data-testid="roles-you"
-          className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+          className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-fs-xs font-medium text-primary"
         >
           {data.you}
         </span>
@@ -76,7 +76,7 @@ export function RolesCard({ data, className }: RolesCardProps) {
             <span
               data-testid={`role-verdict-${c.capability}`}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-fs-xs font-medium",
                 c.allowed
                   ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                   : "border-border bg-muted text-muted-foreground",
@@ -151,7 +151,7 @@ export function VerifyPattern({ kinds, onExplain, className }: VerifyPatternProp
             <span className="text-xs font-semibold">{k.kind}</span>
             <span className="text-xs text-muted-foreground/80">{tOr('panel.verify.measured_by', 'measured by {{by}}', { by: k.measuredBy })}</span>
             <span className="text-xs text-muted-foreground">{k.stops}</span>
-            <span className="inline-flex items-center rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center rounded-full border border-border bg-muted px-1.5 py-0.5 text-fs-xs font-medium text-muted-foreground">
               {k.where}
             </span>
           </div>

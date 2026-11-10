@@ -36,7 +36,7 @@ function toHitVerdict(v: string): HitVerdict {
 function StubBanner({ reason }: { reason?: string }) {
   return (
     <div
-      className="flex items-start gap-2 rounded border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-[11px]"
+      className="flex items-start gap-2 rounded border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-fs-xs"
       data-testid="inference-stub-badge"
     >
       <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500 mt-0.5" />
@@ -100,15 +100,15 @@ function StructureView({ r }: { r: StructureResult }) {
         <Boxes className="h-6 w-6 text-muted-foreground mb-1" />
         <span className="text-xs text-muted-foreground">3D structure viewer</span>
         {r.structureFileRef ? (
-          <span className="text-[10px] font-mono text-muted-foreground mt-1 break-all px-2">
+          <span className="text-fs-xs font-mono text-muted-foreground mt-1 break-all px-2">
             {r.structureFileRef}
           </span>
         ) : (
-          <span className="text-[10px] text-muted-foreground mt-1">no structure file returned</span>
+          <span className="text-fs-xs text-muted-foreground mt-1">no structure file returned</span>
         )}
         {selected !== null && (
           <span
-            className="text-[10px] text-muted-foreground mt-1"
+            className="text-fs-xs text-muted-foreground mt-1"
             data-testid="inference-structure-selection"
           >
             centred on residue {selected} — open the structure file to view

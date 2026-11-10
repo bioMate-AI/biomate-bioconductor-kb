@@ -799,7 +799,7 @@ export function DatasetObject({
                             {diffData.truncated ? ` ${t('dataset_obj.diff_sampled')}` : ""}
                           </p>
                           {(diffData.changedCells ?? []).slice(0, 5).map((c: any, ci: number) => (
-                            <p key={ci} className="font-mono text-[11px]">
+                            <p key={ci} className="font-mono text-fs-xs">
                               <span className="text-muted-foreground">r{c.row} · {c.col}: </span>
                               <span className="text-red-600 dark:text-red-400 line-through">{String(c.from) || "∅"}</span>
                               {" → "}
@@ -992,7 +992,7 @@ export function DatasetObject({
                         its own object (spec §4.5.3). Typed by evidence class. */}
                     {produced.length > 0 && (
                       <div className="ml-4 space-y-1 border-l pl-2" data-testid={`dataset-produced-${c.runId}`}>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('dataset_obj.produced')}</p>
+                        <p className="text-fs-xs uppercase tracking-wide text-muted-foreground">{t('dataset_obj.produced')}</p>
                         {produced.map((p) => (
                           <a
                             key={p.id}
@@ -1033,7 +1033,7 @@ export function DatasetObject({
 function StatCard({ k, v }: { k: string; v: string }) {
   return (
     <div className="min-w-0 rounded border px-2.5 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</div>
+      <div className="text-fs-xs uppercase tracking-wide text-muted-foreground">{k}</div>
       <div className="text-sm font-mono font-semibold text-foreground [overflow-wrap:anywhere]" title={v}>{v}</div>
     </div>
   )

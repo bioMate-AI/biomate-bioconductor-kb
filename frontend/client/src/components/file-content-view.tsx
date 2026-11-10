@@ -73,7 +73,7 @@ export function TableGrid({ headers, rows, totalRows, maxHClass = "max-h-64", co
   return (
     <div className="rounded border text-xs font-mono">
       {/* Shape header — spec 14.2: the header states N rows × M cols. */}
-      <div className="flex items-center justify-between px-2 py-1 border-b bg-muted/60 text-[10px] text-muted-foreground font-sans">
+      <div className="flex items-center justify-between px-2 py-1 border-b bg-muted/60 text-fs-xs text-muted-foreground font-sans">
         <span>{t("preview.table_shape", { rows: totalRows.toLocaleString(), cols: headers.length })}</span>
         {totalRows > rows.length && <span>{t("preview.table_showing_first", { n: rows.length.toLocaleString() })}</span>}
       </div>
@@ -118,10 +118,10 @@ export function InlineTextViewer({ text, maxHClass = "max-h-40" }: { text: strin
     <div>
       {lines.length > 50 && (
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-muted-foreground">{t("preview.lines_total", { n: lines.length })}</span>
+          <span className="text-fs-xs text-muted-foreground">{t("preview.lines_total", { n: lines.length })}</span>
           <button
             onClick={() => setShowTail((s) => !s)}
-            className="text-[10px] text-primary flex items-center gap-0.5 hover:underline"
+            className="text-fs-xs text-primary flex items-center gap-0.5 hover:underline"
           >
             {showTail ? <><ChevronDown className="h-3 w-3" />{t("preview.show_from_start")}</> : <><ChevronUp className="h-3 w-3" />{t("preview.show_tail")}</>}
           </button>
@@ -148,7 +148,7 @@ export function InlineTableViewer({ text, ext, maxHClass, complete = false }: { 
     if (star) {
       return (
         <>
-          <p className="text-[10px] text-muted-foreground mb-1">STAR/RELION format · {star.rows.length} particles shown</p>
+          <p className="text-fs-xs text-muted-foreground mb-1">STAR/RELION format · {star.rows.length} particles shown</p>
           <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} maxHClass={maxHClass} complete={complete} />
         </>
       );

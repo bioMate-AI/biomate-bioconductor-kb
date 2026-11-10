@@ -102,7 +102,7 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
         <CardDescription className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className="text-xs font-mono">{locus}</Badge>
           {bp != null && (
-            <span className="text-[10px] text-muted-foreground">{bp.toLocaleString()} bp</span>
+            <span className="text-fs-xs text-muted-foreground">{bp.toLocaleString()} bp</span>
           )}
         </CardDescription>
       </CardHeader>
@@ -113,7 +113,7 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
           {(() => { const domainMax = sharedDomainMax(tracks, bp); return tracks.map(track => {
             return (
               <div key={track.name} className="flex items-center gap-2" data-testid={`seq-track-${track.name}`}>
-                <span className="text-[10px] text-muted-foreground w-24 shrink-0 truncate" title={track.name}>
+                <span className="text-fs-xs text-muted-foreground w-24 shrink-0 truncate" title={track.name}>
                   {track.name}
                 </span>
                 <svg
@@ -154,19 +154,19 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
         {/* Flagged intervals — the actionable output */}
         {flagged.length > 0 && (
           <div className="space-y-1" data-testid="seq-flagged">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Flagged intervals</p>
+            <p className="text-fs-xs uppercase tracking-wide text-muted-foreground">Flagged intervals</p>
             {flagged.map((f, i) => (
               <div
                 key={`${f.start}-${f.end}-${i}`}
                 className="flex items-center gap-2 rounded border px-2 py-1 flex-wrap"
                 data-testid={`seq-flag-${i}`}
               >
-                <span className="text-[11px] font-mono">{f.start.toLocaleString()}–{f.end.toLocaleString()}</span>
-                <Badge variant="outline" className="text-[10px]">{f.context}</Badge>
-                <span className="text-[10px] text-muted-foreground flex-1 min-w-[8rem]">{f.why}</span>
+                <span className="text-fs-xs font-mono">{f.start.toLocaleString()}–{f.end.toLocaleString()}</span>
+                <Badge variant="outline" className="text-fs-xs">{f.context}</Badge>
+                <span className="text-fs-xs text-muted-foreground flex-1 min-w-[8rem]">{f.why}</span>
                 <button
                   type="button"
-                  className="text-[10px] text-primary hover:underline shrink-0"
+                  className="text-fs-xs text-primary hover:underline shrink-0"
                   onClick={() => onOpenInterval?.(f)}
                 >
                   open
@@ -176,7 +176,7 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
           </div>
         )}
 
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           A per-base score is only actionable as an interval. Flagged regions are the output; the
           tracks are how you check them.
         </p>

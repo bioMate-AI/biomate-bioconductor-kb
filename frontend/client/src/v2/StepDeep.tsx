@@ -208,12 +208,12 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
                           background: "var(--bg-elev, #fff)", color: "var(--text)",
                         }}
                       />
-                      {p.reason && <div style={{ fontSize: 10.5, color: "var(--text-dim)", marginTop: 2 }}>{p.reason}</div>}
+                      {p.reason && <div style={{ fontSize: 'var(--fs-xs)', color: "var(--text-dim)", marginTop: 2 }}>{p.reason}</div>}
                     </td>
                     <td style={{ padding: "7px 0", textAlign: "right", whiteSpace: "nowrap" }}>
                       {p.origin && (
                         <span style={{
-                          fontSize: 10, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase",
+                          fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase",
                           padding: "2px 7px", borderRadius: 6,
                           color: p.origin === "default" ? "var(--text-muted)" : "var(--accent-ink)",
                           background: p.origin === "default" ? "var(--neutral-badge)" : "var(--accent-soft)",
@@ -225,7 +225,7 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
               })}
             </tbody>
           </table>
-          <div style={{ fontSize: 10.5, color: "var(--text-dim)", marginTop: 6 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: "var(--text-dim)", marginTop: 6 }}>
             {tOr("stepdeep.params_hint", "Defaults are muted; anything the project or you changed carries its reason. Edit a value here and the step re-runs from this point.")}
           </div>
         </section>

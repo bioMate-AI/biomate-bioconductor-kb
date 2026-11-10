@@ -152,12 +152,12 @@ function ProjectPicker({
                   <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
                 )}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="outline" className="text-[10px] capitalize">{statusLabel(p.status)}</Badge>
+                  <Badge variant="outline" className="text-fs-xs capitalize">{statusLabel(p.status)}</Badge>
                   {p.primaryDomain && (
-                    <Badge variant="outline" className="text-[10px]">{p.primaryDomain}</Badge>
+                    <Badge variant="outline" className="text-fs-xs">{p.primaryDomain}</Badge>
                   )}
                   {created && (
-                    <span className="text-[10px] text-muted-foreground ml-auto">{created}</span>
+                    <span className="text-fs-xs text-muted-foreground ml-auto">{created}</span>
                   )}
                 </div>
               </button>
@@ -225,11 +225,11 @@ export default function DataHubPage() {
           <h1 className="text-lg font-semibold">{t('nav.data')}</h1>
           {activeProject && (
             <>
-              <Badge variant="outline" className="text-[10px] capitalize">
+              <Badge variant="outline" className="text-fs-xs capitalize">
                 {statusLabel(activeProject.status)}
               </Badge>
               {activeProject.primaryDomain && (
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-fs-xs">
                   {activeProject.primaryDomain}
                 </Badge>
               )}

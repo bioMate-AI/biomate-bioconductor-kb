@@ -151,7 +151,7 @@ function RegChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] border font-mono text-[10.5px] font-medium whitespace-nowrap leading-none",
+        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] border font-mono text-fs-xs font-medium whitespace-nowrap leading-none",
         variant === "indigo"
           ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
           : "border-border bg-white dark:bg-background text-muted-foreground",
@@ -184,7 +184,7 @@ function Chip({
     warn: "bg-amber-500", err: "bg-red-500", default: "bg-muted-foreground",
   }[tone]
   return (
-    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11.5px] font-medium", toneClass)}>
+    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-fs-sm font-medium", toneClass)}>
       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotClass, pulse && "animate-pulse")} />
       {children}
     </span>
@@ -201,7 +201,7 @@ function ScoreBar({ score }: { score: number }) {
       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden" style={{ minWidth: 80 }}>
         <div className={cn("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
       </div>
-      <span className="font-mono text-[12.5px] text-muted-foreground w-9 text-right shrink-0">
+      <span className="font-mono text-fs-base text-muted-foreground w-9 text-right shrink-0">
         {score.toFixed(2)}
       </span>
     </div>
@@ -228,14 +228,14 @@ function DmtaStepper({ loopRunning }: { loopRunning: boolean }) {
               {n.status === "pending" && <span className="w-2 h-2 rounded-full border-[1.5px] border-current" />}
             </div>
             <span className={cn(
-              "text-[12px] font-semibold uppercase tracking-[0.04em]",
+              "text-fs-sm font-semibold uppercase tracking-[0.04em]",
               n.status === "done"    && "text-foreground",
               n.status === "active"  && "text-blue-600 dark:text-blue-400",
               n.status === "pending" && "text-muted-foreground",
             )}>
               {n.label}
             </span>
-            <span className="text-[10.5px] text-muted-foreground/70 capitalize">
+            <span className="text-fs-xs text-muted-foreground/70 capitalize">
               {n.status === "active" ? (loopRunning ? "running" : "waiting") : n.status === "done" ? "completed" : "pending"}
             </span>
           </div>
@@ -317,7 +317,7 @@ function CampaignDashboard({
       </div>
 
       {/* Meta line */}
-      <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground flex-wrap mb-4">
+      <div className="flex items-center gap-2 text-fs-base text-muted-foreground flex-wrap mb-4">
         <span>Round 1</span>
         <span className="text-muted-foreground/40">·</span>
         <span>{compounds.length} compounds ranked</span>
@@ -328,7 +328,7 @@ function CampaignDashboard({
           onClick={fetchCompounds}
           disabled={refreshing}
           data-testid="refresh-btn"
-          className="h-[26px] px-2 text-[12px] font-medium border border-border rounded-[4px] bg-white dark:bg-background hover:bg-muted/50 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          className="h-[26px] px-2 text-fs-sm font-medium border border-border rounded-[4px] bg-white dark:bg-background hover:bg-muted/50 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
         >
           <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} /> Refresh
         </button>
@@ -336,7 +336,7 @@ function CampaignDashboard({
 
       {/* DMTA Loop Progress */}
       <div data-tour="dmta-stepper" className="border border-border rounded-lg bg-muted/20 px-4 pt-3 pb-4 mb-5">
-        <div className="text-[11px] uppercase tracking-[0.05em] text-muted-foreground font-semibold mb-3">
+        <div className="text-fs-xs uppercase tracking-[0.05em] text-muted-foreground font-semibold mb-3">
           DMTA Loop Progress
         </div>
         <DmtaStepper loopRunning={loopRunning} />
@@ -344,7 +344,7 @@ function CampaignDashboard({
 
       {/* Top Compounds */}
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-[13.5px] font-semibold">Top Compounds</span>
+        <span className="text-fs-base font-semibold">Top Compounds</span>
         <span className="text-xs text-muted-foreground">
           Showing {visible.length} of {compounds.length}
         </span>
@@ -360,12 +360,12 @@ function CampaignDashboard({
       </div>
 
       <div className="border border-border rounded-md overflow-hidden">
-        <table className="w-full text-[13px] border-collapse">
+        <table className="w-full text-fs-base border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/30">
               {["#", "COMPOUND ID", "SCORE", "AD STATUS", "ROUND PROPOSED"].map((h, i) => (
                 <th key={h} className={cn(
-                  "py-2 px-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground",
+                  "py-2 px-2.5 text-fs-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground",
                   i === 0 ? "w-9" : i >= 2 ? "w-36" : "",
                   "text-left",
                 )}>
@@ -383,8 +383,8 @@ function CampaignDashboard({
                   c.ad === "out_of_domain" && "opacity-50",
                 )}
               >
-                <td className="py-2.5 px-2.5 font-mono text-[12px] text-muted-foreground">{c.rank}</td>
-                <td className="py-2.5 px-2.5 font-mono text-[12.5px]">{c.id}</td>
+                <td className="py-2.5 px-2.5 font-mono text-fs-sm text-muted-foreground">{c.rank}</td>
+                <td className="py-2.5 px-2.5 font-mono text-fs-base">{c.id}</td>
                 <td className="py-2.5 px-2.5"><ScoreBar score={c.score} /></td>
                 <td className="py-2.5 px-2.5">
                   {c.ad === "in_domain"
@@ -392,7 +392,7 @@ function CampaignDashboard({
                     : <span className="text-amber-600 dark:text-amber-400 text-xs font-medium">▲ OOD</span>
                   }
                 </td>
-                <td className="py-2.5 px-2.5 font-mono text-[12px] text-muted-foreground">
+                <td className="py-2.5 px-2.5 font-mono text-fs-sm text-muted-foreground">
                   Round {c.round}
                 </td>
               </tr>
@@ -406,14 +406,14 @@ function CampaignDashboard({
         <button
           data-testid="ingest-assay-btn"
           onClick={onIngestAssay}
-          className="h-8 px-3 text-[13px] font-medium border border-border rounded-[6px] bg-white dark:bg-background hover:bg-muted/50 flex items-center gap-1.5 cursor-pointer"
+          className="h-8 px-3 text-fs-base font-medium border border-border rounded-[6px] bg-white dark:bg-background hover:bg-muted/50 flex items-center gap-1.5 cursor-pointer"
         >
           <Upload className="h-3.5 w-3.5" /> Ingest New Assay Results
         </button>
         <button
           data-testid="export-cro-btn"
           onClick={onExportCroOrder}
-          className="h-8 px-3 text-[13px] font-medium rounded-[6px] bg-foreground text-background hover:bg-foreground/90 flex items-center gap-1.5 border-0 cursor-pointer"
+          className="h-8 px-3 text-fs-base font-medium rounded-[6px] bg-foreground text-background hover:bg-foreground/90 flex items-center gap-1.5 border-0 cursor-pointer"
         >
           <ExternalLink className="h-3.5 w-3.5" /> Export CRO Order
         </button>
@@ -455,7 +455,7 @@ function ToastMsg({ text, onDone }: { text: string; onDone: () => void }) {
   }, [onDone])
   return (
     <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-[8px] text-[13px] font-medium text-white z-50 pointer-events-none"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-[8px] text-fs-base font-medium text-white z-50 pointer-events-none"
       style={{ background: "oklch(0.22 0.01 260)", boxShadow: "0 4px 12px rgba(15,23,42,0.2)" }}
     >
       {text}
@@ -502,7 +502,7 @@ function OtpInput({
           disabled={isDisabled}
           maxLength={1}
           className={cn(
-            "w-10 h-12 text-center text-[18px] font-mono font-semibold rounded-[6px] border-2 outline-none transition-colors",
+            "w-10 h-12 text-center text-fs-xl font-mono font-semibold rounded-[6px] border-2 outline-none transition-colors",
             isError ? "border-red-400 bg-red-50 text-red-700" :
             isSuccess ? "border-green-400 bg-green-50 text-green-700" :
             v ? "border-blue-400 bg-blue-50" : "border-border bg-white",
@@ -631,41 +631,41 @@ function EsigModal({
       >
         {/* Head */}
         <div className="px-5 pt-5 pb-3.5" style={{ borderBottom: "1px solid oklch(0.915 0.006 240)" }}>
-          <div className="text-[15px] font-semibold" style={{ letterSpacing: "-0.01em" }}>Electronic Signature Required</div>
-          <div className="text-[12px] mt-0.5 font-mono" style={{ color: "oklch(0.48 0.012 260)" }}>21 CFR Part 11 §11.200(a)(1)</div>
+          <div className="text-fs-lg font-semibold" style={{ letterSpacing: "-0.01em" }}>Electronic Signature Required</div>
+          <div className="text-fs-sm mt-0.5 font-mono" style={{ color: "oklch(0.48 0.012 260)" }}>21 CFR Part 11 §11.200(a)(1)</div>
         </div>
 
         {/* Body */}
         <div className="px-5 pt-4 pb-5">
           {/* Action details */}
-          <div className="rounded-[6px] text-[13px] mb-3.5" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)", padding: "10px 12px" }}>
+          <div className="rounded-[6px] text-fs-base mb-3.5" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)", padding: "10px 12px" }}>
             <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Action:</span> <span className="font-mono">{action}</span></div>
             <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Campaign:</span> <span className="font-mono">{campaignId.slice(0, 16)}…</span></div>
             <div className="flex gap-2"><span style={{ color: "oklch(0.48 0.012 260)" }}>Target:</span> {target}</div>
           </div>
 
           {/* Meaning */}
-          <div className="text-[12px] font-semibold mb-1" style={{ color: "oklch(0.48 0.012 260)" }}>Meaning of signature</div>
-          <div className="rounded-[6px] text-[12.5px] leading-relaxed mb-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.96 0.03 280)", color: "oklch(0.32 0.14 280)", padding: "10px 12px" }}>
+          <div className="text-fs-sm font-semibold mb-1" style={{ color: "oklch(0.48 0.012 260)" }}>Meaning of signature</div>
+          <div className="rounded-[6px] text-fs-base leading-relaxed mb-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.96 0.03 280)", color: "oklch(0.32 0.14 280)", padding: "10px 12px" }}>
             {ESIG_MEANINGS[action]}
           </div>
-          <div className="text-[11px] italic mb-3" style={{ color: "oklch(0.62 0.010 260)" }}>
+          <div className="text-fs-xs italic mb-3" style={{ color: "oklch(0.62 0.010 260)" }}>
             This meaning is permanently recorded in the audit trail.
           </div>
 
           {/* OTP */}
-          <div className="text-[12.5px] text-center" style={{ color: "oklch(0.48 0.012 260)" }}>
+          <div className="text-fs-base text-center" style={{ color: "oklch(0.48 0.012 260)" }}>
             Enter your 6-digit authenticator code
           </div>
           <OtpInput state={state} onComplete={onComplete} />
           <div
             data-testid={state === "error" ? "esig-error" : state === "success" ? "esig-success" : undefined}
-            className={cn("text-[11.5px] text-center mb-3", state === "error" ? "text-red-600" : "")}
+            className={cn("text-fs-sm text-center mb-3", state === "error" ? "text-red-600" : "")}
           >
             {state === "error" ? errorMsg : `Code refreshes in ${countdown}s`}
           </div>
 
-          <div className="text-[11px] leading-relaxed" style={{ color: "oklch(0.62 0.010 260)" }}>
+          <div className="text-fs-xs leading-relaxed" style={{ color: "oklch(0.62 0.010 260)" }}>
             🛡 This signature is uniquely linked to your identity and cannot be reused. The audit record will include your user ID, the meaning above, and a SHA-256 hash of this action's payload.
           </div>
         </div>
@@ -674,14 +674,14 @@ function EsigModal({
         <div className="flex items-center gap-2 px-5 py-3" style={{ borderTop: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)" }}>
           <button
             onClick={onClose}
-            className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer"
+            className="h-8 px-3 text-fs-base font-medium rounded-[6px] cursor-pointer"
             style={{ border: "1px solid transparent", background: "transparent", color: "oklch(0.48 0.012 260)" }}
           >
             Cancel
           </button>
           <div className="flex-1" />
           <button
-            className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1.5"
+            className="h-8 px-4 text-fs-base font-medium rounded-[6px] cursor-pointer flex items-center gap-1.5"
             style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none", opacity: state !== "idle" && state !== "error" ? 0.5 : 1 }}
             disabled={state !== "idle" && state !== "error"}
           >
@@ -729,9 +729,9 @@ function CampaignWizard({
   const fieldStyle = {
     display: "flex" as const, flexDirection: "column" as const, gap: 4,
   }
-  const labelStyle = { fontSize: 12, fontWeight: 500 as const, color: "oklch(0.48 0.012 260)" }
+  const labelStyle = { fontSize: 'var(--fs-sm)', fontWeight: 500 as const, color: "oklch(0.48 0.012 260)" }
   const inputStyle = {
-    height: 34, padding: "0 10px", borderRadius: 6, fontSize: 13,
+    height: 34, padding: "0 10px", borderRadius: 6, fontSize: 'var(--fs-base)',
     border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff",
     outline: "none", width: "100%",
   }
@@ -740,9 +740,9 @@ function CampaignWizard({
     <div>
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <h2 className="text-[15px] font-semibold m-0" style={{ letterSpacing: "-0.01em" }}>New Drug Discovery Campaign</h2>
+        <h2 className="text-fs-lg font-semibold m-0" style={{ letterSpacing: "-0.01em" }}>New Drug Discovery Campaign</h2>
         <div className="flex-1" />
-        <span className="text-[12px] font-mono px-2 py-0.5 rounded-[4px]" style={{ background: "oklch(0.965 0.004 240)", color: "oklch(0.48 0.012 260)" }}>
+        <span className="text-fs-sm font-mono px-2 py-0.5 rounded-[4px]" style={{ background: "oklch(0.965 0.004 240)", color: "oklch(0.48 0.012 260)" }}>
           Step {step}/3
         </span>
       </div>
@@ -783,8 +783,8 @@ function CampaignWizard({
                 >
                   <input type="radio" checked={objective === o.k} onChange={() => setObjective(o.k)} className="mt-0.5" />
                   <span className="flex-1">
-                    <div className="text-[13px] font-medium">{o.l}</div>
-                    <div className="text-[11.5px] mt-0.5" style={{ color: "oklch(0.62 0.010 260)" }}>{o.d}</div>
+                    <div className="text-fs-base font-medium">{o.l}</div>
+                    <div className="text-fs-sm mt-0.5" style={{ color: "oklch(0.62 0.010 260)" }}>{o.d}</div>
                   </span>
                 </label>
               ))}
@@ -792,13 +792,13 @@ function CampaignWizard({
           </div>
 
           <div className="flex justify-between mt-5">
-            <button onClick={onDone} className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer" style={{ border: "1px solid transparent", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
+            <button onClick={onDone} className="h-8 px-3 text-fs-base font-medium rounded-[6px] cursor-pointer" style={{ border: "1px solid transparent", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
               Cancel
             </button>
             <button
               disabled={!step1Ok}
               onClick={() => setStep(2)}
-              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
+              className="h-8 px-4 text-fs-base font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
               style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none", opacity: step1Ok ? 1 : 0.4 }}
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
@@ -809,7 +809,7 @@ function CampaignWizard({
 
       {step === 2 && (
         <div>
-          <p className="text-[13.5px] mb-4" style={{ color: "oklch(0.48 0.012 260)" }}>
+          <p className="text-fs-base mb-4" style={{ color: "oklch(0.48 0.012 260)" }}>
             Upload your initial compound set (SMILES format). This library will be used as the virtual library for auto-retrain proposals.
           </p>
 
@@ -821,27 +821,27 @@ function CampaignWizard({
             {parsed ? (
               <>
                 <Check className="h-6 w-6 mb-2" style={{ color: "oklch(0.62 0.13 150)" }} />
-                <div className="text-[14px] font-semibold">library-seed.csv parsed</div>
-                <div className="text-[12.5px] mt-1" style={{ color: "oklch(0.48 0.012 260)" }}>{parsed.n} compounds · {parsed.invalid} invalid SMILES</div>
+                <div className="text-fs-base font-semibold">library-seed.csv parsed</div>
+                <div className="text-fs-base mt-1" style={{ color: "oklch(0.48 0.012 260)" }}>{parsed.n} compounds · {parsed.invalid} invalid SMILES</div>
               </>
             ) : (
               <>
                 <Upload className="h-6 w-6 mb-2" style={{ color: "oklch(0.62 0.010 260)" }} />
-                <div className="text-[14px] font-semibold">Drag and drop .csv, .smi, or .txt</div>
-                <div className="text-[13px] mt-1" style={{ color: "oklch(0.48 0.012 260)" }}>or <span className="underline cursor-pointer">browse files</span></div>
-                <div className="text-[11.5px] mt-2" style={{ color: "oklch(0.62 0.010 260)" }}>Format: one SMILES per line, or CSV with SMILES in the first column.</div>
+                <div className="text-fs-base font-semibold">Drag and drop .csv, .smi, or .txt</div>
+                <div className="text-fs-base mt-1" style={{ color: "oklch(0.48 0.012 260)" }}>or <span className="underline cursor-pointer">browse files</span></div>
+                <div className="text-fs-sm mt-2" style={{ color: "oklch(0.62 0.010 260)" }}>Format: one SMILES per line, or CSV with SMILES in the first column.</div>
               </>
             )}
           </div>
 
           <div className="flex justify-between mt-5">
-            <button onClick={() => setStep(1)} className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff", color: "oklch(0.22 0.01 260)" }}>
+            <button onClick={() => setStep(1)} className="h-8 px-3 text-fs-base font-medium rounded-[6px] cursor-pointer flex items-center gap-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff", color: "oklch(0.22 0.01 260)" }}>
               <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Back
             </button>
             <button
               disabled={!parsed}
               onClick={() => setStep(3)}
-              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
+              className="h-8 px-4 text-fs-base font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
               style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none", opacity: parsed ? 1 : 0.4 }}
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
@@ -861,12 +861,12 @@ function CampaignWizard({
               ["Auto-retrain", "Enabled · check every 60 min"],
               ["21 CFR Part 11", "Audit trail active"],
             ] as [string, string][]).map(([k, v], i, arr) => (
-              <div key={k} className="flex gap-2 text-[13px]" style={{ padding: "6px 0", borderBottom: i < arr.length - 1 ? "1px dashed oklch(0.915 0.006 240)" : "none" }}>
+              <div key={k} className="flex gap-2 text-fs-base" style={{ padding: "6px 0", borderBottom: i < arr.length - 1 ? "1px dashed oklch(0.915 0.006 240)" : "none" }}>
                 <span className="w-36 shrink-0" style={{ color: "oklch(0.48 0.012 260)" }}>{k}</span>
                 <span className="flex-1">{v}</span>
               </div>
             ))}
-            <div className="flex gap-2 text-[13px]" style={{ padding: "10px 0 4px" }}>
+            <div className="flex gap-2 text-fs-base" style={{ padding: "10px 0 4px" }}>
               <span className="w-36 shrink-0" style={{ color: "oklch(0.48 0.012 260)" }}>Model validation</span>
               <span className="flex-1 flex items-center gap-3">
                 {validationProgress < 100 ? (
@@ -875,10 +875,10 @@ function CampaignWizard({
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(0.915 0.006 240)", maxWidth: 180 }}>
                       <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${validationProgress}%` }} />
                     </div>
-                    <span className="font-mono text-[11.5px]" style={{ color: "oklch(0.62 0.010 260)" }}>{validationProgress}%</span>
+                    <span className="font-mono text-fs-sm" style={{ color: "oklch(0.62 0.010 260)" }}>{validationProgress}%</span>
                   </>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-0.5 rounded-full" style={{ background: "oklch(0.96 0.04 150)", color: "oklch(0.62 0.13 150)" }}>
+                  <span className="inline-flex items-center gap-1 text-fs-sm font-medium px-2 py-0.5 rounded-full" style={{ background: "oklch(0.96 0.04 150)", color: "oklch(0.62 0.13 150)" }}>
                     <Check className="h-3 w-3" /> EMA criterion met
                   </span>
                 )}
@@ -886,12 +886,12 @@ function CampaignWizard({
             </div>
           </div>
 
-          <p className="text-[12.5px] leading-relaxed mb-4" style={{ color: "oklch(0.48 0.012 260)" }}>
+          <p className="text-fs-base leading-relaxed mb-4" style={{ color: "oklch(0.48 0.012 260)" }}>
             Once launched, BioMate will: (1) run PBPK model validation against 31 reference drugs, (2) start the audit trail, (3) activate the auto-retrain loop, and (4) enable CRO order export and IND assembly.
           </p>
 
           <div className="flex justify-between mt-5">
-            <button onClick={() => setStep(2)} className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff", color: "oklch(0.22 0.01 260)" }}>
+            <button onClick={() => setStep(2)} className="h-8 px-3 text-fs-base font-medium rounded-[6px] cursor-pointer flex items-center gap-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff", color: "oklch(0.22 0.01 260)" }}>
               <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Back
             </button>
             <button
@@ -908,7 +908,7 @@ function CampaignWizard({
                 else { onToast("Campaign launched"); onDone() }
                 setLaunching(false)
               }}
-              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1 disabled:opacity-50"
+              className="h-8 px-4 text-fs-base font-medium rounded-[6px] cursor-pointer flex items-center gap-1 disabled:opacity-50"
               style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}
             >
               {launching ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Launching…</> : <>Launch Campaign <ChevronRight className="h-3.5 w-3.5" /></>}
@@ -936,7 +936,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome", target: null, placement: "center",
     title: "Welcome to the BioMate CRO tour",
-    body: <>I'll walk you through the compliance workspace in about 90 seconds. You'll see how the <b>DMTA loop</b>, <b>model validation</b>, <b>audit chain</b>, and <b>electronic signatures</b> work together to keep a campaign regulator-ready.<br/><span style={{ fontSize: 11.5, color: "oklch(0.62 0.010 260)", marginTop: 6, display: "block" }}>Use → / ← to step, Esc to skip.</span></>,
+    body: <>I'll walk you through the compliance workspace in about 90 seconds. You'll see how the <b>DMTA loop</b>, <b>model validation</b>, <b>audit chain</b>, and <b>electronic signatures</b> work together to keep a campaign regulator-ready.<br/><span style={{ fontSize: 'var(--fs-sm)', color: "oklch(0.62 0.010 260)", marginTop: 6, display: "block" }}>Use → / ← to step, Esc to skip.</span></>,
     setup: (setTab) => setTab("dashboard"),
   },
   {
@@ -991,7 +991,7 @@ const TOUR_STEPS: TourStep[] = [
     id: "done", target: null, placement: "center",
     title: "You're ready",
     body: <>
-      <ul style={{ paddingLeft: 18, margin: "8px 0 0", lineHeight: 1.7, color: "oklch(0.48 0.012 260)", fontSize: 12.5 }}>
+      <ul style={{ paddingLeft: 18, margin: "8px 0 0", lineHeight: 1.7, color: "oklch(0.48 0.012 260)", fontSize: 'var(--fs-base)' }}>
         <li>Replay this tour anytime from the <b style={{ color: "oklch(0.22 0.01 260)" }}>Tutorial</b> button in the top bar.</li>
         <li>Click a regulated action (Ingest Assay, Export CRO Order) to trigger the e-signature flow.</li>
         <li>Switch to <b style={{ color: "oklch(0.22 0.01 260)" }}>IND</b> tab, fill the form, and download the AI-written §2.6.1–§2.6.3 Markdown + DOCX.</li>
@@ -1086,19 +1086,19 @@ function TourCallout({
     >
       {/* Meta row */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10.5px] uppercase tracking-[0.06em] font-semibold" style={{ color: "oklch(0.55 0.14 245)" }}>
+        <span className="text-fs-xs uppercase tracking-[0.06em] font-semibold" style={{ color: "oklch(0.55 0.14 245)" }}>
           Step {step + 1} of {total}
         </span>
-        <button type="button" onClick={onSkip} className="text-[11.5px] cursor-pointer bg-transparent border-0 p-1" style={{ color: "oklch(0.62 0.010 260)" }}>
+        <button type="button" onClick={onSkip} className="text-fs-sm cursor-pointer bg-transparent border-0 p-1" style={{ color: "oklch(0.62 0.010 260)" }}>
           Skip tour ×
         </button>
       </div>
       {/* Title */}
-      <div className="text-[14.5px] font-semibold mb-1.5" style={{ letterSpacing: "-0.01em", color: "oklch(0.22 0.01 260)" }}>
+      <div className="text-fs-lg font-semibold mb-1.5" style={{ letterSpacing: "-0.01em", color: "oklch(0.22 0.01 260)" }}>
         {stepData.title}
       </div>
       {/* Body */}
-      <div className="text-[12.5px] leading-relaxed" style={{ color: "oklch(0.48 0.012 260)" }}>
+      <div className="text-fs-base leading-relaxed" style={{ color: "oklch(0.48 0.012 260)" }}>
         {stepData.body}
       </div>
       {/* Footer */}
@@ -1115,11 +1115,11 @@ function TourCallout({
         {/* Actions */}
         <div className="flex gap-1.5">
           {!isFirst && (
-            <button type="button" onClick={onPrev} className="h-7 px-2.5 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
+            <button type="button" onClick={onPrev} className="h-7 px-2.5 text-fs-sm font-medium rounded-[4px] cursor-pointer" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
               ← Back
             </button>
           )}
-          <button type="button" onClick={onNext} className="h-7 px-3 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}>
+          <button type="button" onClick={onNext} className="h-7 px-3 text-fs-sm font-medium rounded-[4px] cursor-pointer" style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}>
             {isLast ? (stepData.cta ?? "Done") : "Next →"}
           </button>
         </div>
@@ -1345,9 +1345,9 @@ export default function DrugDiscoveryCroDemo() {
       >
         {/* Top nav */}
         <div className="shrink-0 border-b flex items-center gap-3 px-5" style={{ height: 52, background: "#ffffff", borderColor: "oklch(0.915 0.006 240)" }}>
-          <button onClick={() => navigate("/")} className="w-[26px] h-[26px] rounded-[7px] bg-foreground text-background grid place-items-center font-mono text-[13px] font-bold shrink-0 hover:bg-foreground/90 border-0 cursor-pointer" aria-label="Back">B</button>
-          <span className="text-[14.5px] font-semibold tracking-[-0.01em]">BioMate</span>
-          <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
+          <button onClick={() => navigate("/")} className="w-[26px] h-[26px] rounded-[7px] bg-foreground text-background grid place-items-center font-mono text-fs-base font-bold shrink-0 hover:bg-foreground/90 border-0 cursor-pointer" aria-label="Back">B</button>
+          <span className="text-fs-lg font-semibold tracking-[-0.01em]">BioMate</span>
+          <div className="flex items-center gap-1 text-fs-base text-muted-foreground">
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
             <span style={{ color: "oklch(0.22 0.01 260)" }}>Drug Discovery · CRO Compliance</span>
           </div>
@@ -1363,13 +1363,13 @@ export default function DrugDiscoveryCroDemo() {
           <div className="max-w-[760px] mx-auto">
             <div className="flex items-center gap-3 mb-6">
               <div>
-                <h1 className="text-[18px] font-semibold tracking-[-0.01em]">CRO Compliance Campaigns</h1>
-                <p className="text-[13px] text-muted-foreground mt-0.5">Select a campaign to open its compliance workspace, or create a new one.</p>
+                <h1 className="text-fs-xl font-semibold tracking-[-0.01em]">CRO Compliance Campaigns</h1>
+                <p className="text-fs-base text-muted-foreground mt-0.5">Select a campaign to open its compliance workspace, or create a new one.</p>
               </div>
               <div className="flex-1" />
               <button
                 onClick={() => setShowWizard(true)}
-                className="h-8 px-3 text-[13px] font-medium flex items-center gap-1.5 rounded-[6px] cursor-pointer"
+                className="h-8 px-3 text-fs-base font-medium flex items-center gap-1.5 rounded-[6px] cursor-pointer"
                 style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}
               >
                 <Plus className="h-3.5 w-3.5" /> New Campaign
@@ -1389,8 +1389,8 @@ export default function DrugDiscoveryCroDemo() {
                 <div className="w-10 h-10 rounded-[10px] mb-3 grid place-items-center" style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.38 0.12 245)" }}>
                   <Plus className="h-5 w-5" />
                 </div>
-                <div className="text-[14px] font-semibold mb-1">No campaigns yet</div>
-                <div className="text-[13px] text-muted-foreground">Create your first drug discovery campaign to get started.</div>
+                <div className="text-fs-base font-semibold mb-1">No campaigns yet</div>
+                <div className="text-fs-base text-muted-foreground">Create your first drug discovery campaign to get started.</div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1408,14 +1408,14 @@ export default function DrugDiscoveryCroDemo() {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-semibold truncate">{c.molecule_name || c.campaign_id}</div>
-                      <div className="text-[12px] text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                      <div className="text-fs-base font-semibold truncate">{c.molecule_name || c.campaign_id}</div>
+                      <div className="text-fs-sm text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                         <span className="font-mono">{c.campaign_id.slice(0, 16)}…</span>
                         {c.target && <><span className="text-muted-foreground/40">·</span><span>{c.target}</span></>}
                         {c.indication && <><span className="text-muted-foreground/40">·</span><span>{c.indication}</span></>}
                       </div>
                     </div>
-                    <div className="text-[11.5px] text-muted-foreground shrink-0">
+                    <div className="text-fs-sm text-muted-foreground shrink-0">
                       {new Date(c.created_at).toLocaleDateString()}
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1493,19 +1493,19 @@ export default function DrugDiscoveryCroDemo() {
         {/* Brand mark */}
         <button
           onClick={() => navigate("/")}
-          className="w-[26px] h-[26px] rounded-[7px] bg-foreground text-background grid place-items-center font-mono text-[13px] font-bold shrink-0 hover:bg-foreground/90 border-0 cursor-pointer"
+          className="w-[26px] h-[26px] rounded-[7px] bg-foreground text-background grid place-items-center font-mono text-fs-base font-bold shrink-0 hover:bg-foreground/90 border-0 cursor-pointer"
           data-testid="cro-demo-back-btn"
           aria-label="Back"
         >
           B
         </button>
-        <span className="text-[14.5px] font-semibold tracking-[-0.01em]">BioMate</span>
+        <span className="text-fs-lg font-semibold tracking-[-0.01em]">BioMate</span>
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
+        <div className="flex items-center gap-1 text-fs-base text-muted-foreground">
           <button
             onClick={() => { setCampaignId(null); setPhase("idle") }}
-            className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-0 p-0 cursor-pointer text-[13px]"
+            className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-0 p-0 cursor-pointer text-fs-base"
           >
             Drug Discovery
           </button>
@@ -1521,11 +1521,11 @@ export default function DrugDiscoveryCroDemo() {
         <button
           data-tour="tut-btn"
           onClick={tour.start}
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold cursor-pointer transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-fs-sm font-semibold cursor-pointer transition-colors"
           style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.55 0.14 245)", border: "1px solid oklch(0.55 0.14 245)" }}
           title="Replay the tutorial"
         >
-          <span style={{ fontSize: 10 }}>▶</span> Tutorial
+          <span style={{ fontSize: 'var(--fs-xs)' }}>▶</span> Tutorial
         </button>
 
         {/* Reg chips + user badge — chips hidden on mobile */}
@@ -1535,9 +1535,9 @@ export default function DrugDiscoveryCroDemo() {
             <RegChip>ICH M4</RegChip>
           </div>
           <span className="hidden sm:inline text-muted-foreground/40 text-sm">·</span>
-          <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-fs-base text-muted-foreground">
             <div
-              className="w-[22px] h-[22px] rounded-full grid place-items-center text-[10px] font-semibold shrink-0"
+              className="w-[22px] h-[22px] rounded-full grid place-items-center text-fs-xs font-semibold shrink-0"
               style={{ background: "oklch(0.85 0.05 60)", color: "oklch(0.35 0.08 60)" }}
             >
               {(user?.name ?? user?.email ?? "U")[0].toUpperCase()}
@@ -1557,15 +1557,15 @@ export default function DrugDiscoveryCroDemo() {
           {/* .preamble */}
           <div className="flex flex-col gap-2 px-0.5">
             <div
-              className="text-[11px] uppercase tracking-[0.05em] font-semibold"
+              className="text-fs-xs uppercase tracking-[0.05em] font-semibold"
               style={{ color: "oklch(0.62 0.010 260)" }}
             >
               BioMate Assistant
             </div>
-            <p className="text-[14px] leading-relaxed max-w-[720px]" style={{ color: "oklch(0.22 0.01 260)" }}>
+            <p className="text-fs-base leading-relaxed max-w-[720px]" style={{ color: "oklch(0.22 0.01 260)" }}>
               I've loaded the CRO compliance workspace for{" "}
               <code
-                className="font-mono text-[12.5px] rounded-[3px] px-1.5 py-0.5"
+                className="font-mono text-fs-base rounded-[3px] px-1.5 py-0.5"
                 style={{ background: "oklch(0.965 0.004 240)" }}
               >
                 {campaignId!.slice(0, 16)}…
@@ -1607,13 +1607,13 @@ export default function DrugDiscoveryCroDemo() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div
-                    className="text-[15px] font-semibold leading-none"
+                    className="text-fs-lg font-semibold leading-none"
                     style={{ letterSpacing: "-0.01em" }}
                   >
                     Drug Discovery · {campaignMeta?.molecule_name || "Campaign"}
                   </div>
                   <div
-                    className="text-[12px] mt-px"
+                    className="text-fs-sm mt-px"
                     style={{ color: "oklch(0.62 0.010 260)" }}
                   >
                     <span
@@ -1631,7 +1631,7 @@ export default function DrugDiscoveryCroDemo() {
                 {/* .btn.sm — All campaigns */}
                 <button
                   onClick={() => { setCampaignId(null); setPhase("idle") }}
-                  className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
+                  className="h-[26px] px-2 text-fs-sm font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
                   style={{
                     border: "1px solid oklch(0.915 0.006 240)",
                     background: "#ffffff",
@@ -1645,7 +1645,7 @@ export default function DrugDiscoveryCroDemo() {
                 <button
                   data-tour="esig-btn"
                   onClick={handleExportCroOrder}
-                  className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
+                  className="h-[26px] px-2 text-fs-sm font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
                   style={{
                     border: "1px solid transparent",
                     background: "transparent",
@@ -1665,7 +1665,7 @@ export default function DrugDiscoveryCroDemo() {
                     className={cn(
                       "flex items-center gap-1.5 px-3.5 py-2.5 whitespace-nowrap cursor-pointer",
                       "border-b-2 -mb-px bg-transparent border-l-0 border-r-0 border-t-0",
-                      "text-[13px] font-medium transition-colors",
+                      "text-fs-base font-medium transition-colors",
                     )}
                     style={{
                       borderBottomColor: activeTab === tab.key ? "oklch(0.22 0.01 260)" : "transparent",
@@ -1686,7 +1686,7 @@ export default function DrugDiscoveryCroDemo() {
                     {tab.label}
                     {tab.count != null && (
                       <span
-                        className="font-mono text-[11px] px-[5px] py-[1px] rounded-[3px]"
+                        className="font-mono text-fs-xs px-[5px] py-[1px] rounded-[3px]"
                         style={{
                           background: activeTab === tab.key ? "oklch(0.945 0.005 240)" : "oklch(0.965 0.004 240)",
                           color: "oklch(0.62 0.010 260)",

@@ -236,7 +236,7 @@ function WorkflowPanel({ scenario, runState, setRunState, onOpenModal, tweaks, w
               <div className="param-row" key={p.key}>
                 <div className="k">{p.label}</div>
                 <div className="v" title={p.value}>{p.value}</div>
-                <button className="linkish edit" style={{fontSize:11}}
+                <button className="linkish edit" style={{fontSize:'var(--fs-xs)'}}
                   onClick={() => flash(`Edit “${p.label}” in workflow settings`)}>edit</button>
               </div>
             ))}
@@ -244,13 +244,13 @@ function WorkflowPanel({ scenario, runState, setRunState, onOpenModal, tweaks, w
         )}
 
         {!isSingleStep && (
-          <div style={{padding:'10px 18px 4px', fontSize:11, color:'var(--text-dim)',
+          <div style={{padding:'10px 18px 4px', fontSize:'var(--fs-xs)', color:'var(--text-dim)',
             textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600}}>
             Phases · {phases.length}
           </div>
         )}
         {isSingleStep && (
-          <div style={{padding:'10px 18px 4px', fontSize:11, color:'var(--text-dim)',
+          <div style={{padding:'10px 18px 4px', fontSize:'var(--fs-xs)', color:'var(--text-dim)',
             textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600}}>
             Single step
           </div>
@@ -338,7 +338,7 @@ function WorkflowPanel({ scenario, runState, setRunState, onOpenModal, tweaks, w
           )}
           {runState === 'running' && (
             <button className="btn" onClick={() => setRunState('idle')}
-              style={{flex:1, height:38, fontSize:13.5, fontWeight:600, borderRadius:'var(--r-md)'}}>
+              style={{flex:1, height:38, fontSize:'var(--fs-base)', fontWeight:600, borderRadius:'var(--r-md)'}}>
               <Icon name="stop" size={10}/> Cancel run
             </button>
           )}
@@ -489,7 +489,7 @@ function AfterRunReport({ base, phases, flash }) {
         <span className="kicker">After run</span>
         <span style={{flex:1}}/>
         <button className="linkish"
-          style={{fontSize:11.5, display:'inline-flex', alignItems:'center', gap:5}}
+          style={{fontSize:'var(--fs-sm)', display:'inline-flex', alignItems:'center', gap:5}}
           onClick={() => flash && flash('Building structured report — DOCX bundle will appear in Downloads')}
           title="Download a structured document covering every tab below">
           <Icon name="download" size={11}/> Download report

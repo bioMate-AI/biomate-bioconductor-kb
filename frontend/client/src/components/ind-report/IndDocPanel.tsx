@@ -729,7 +729,7 @@ function VersionHistory({
             <span
               style={{
                 background: "var(--ind-accent)", color: "white",
-                padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
+                padding: "1px 7px", borderRadius: 3, fontSize: 'var(--fs-xs)', fontWeight: 700,
               }}
             >
               v{currentVersion}
@@ -767,7 +767,7 @@ function VersionHistory({
               <span
                 style={{
                   background: "var(--ind-text-dim)", color: "white",
-                  padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
+                  padding: "1px 7px", borderRadius: 3, fontSize: 'var(--fs-xs)', fontWeight: 700,
                 }}
               >
                 v{v.version}

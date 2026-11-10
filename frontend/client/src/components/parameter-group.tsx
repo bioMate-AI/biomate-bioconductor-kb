@@ -46,10 +46,10 @@ function ListParamField({ param, onChange }: { param: any; onChange?: (id: strin
   const commit = (next: string[]) => onChange && onChange(param.id, serializeListItems(next, original));
   return (
     <div className="space-y-1.5 w-full" data-testid={`list-param-${param.id}`} data-param-kind="list">
-      {items.length === 0 && <p className="text-[11px] text-muted-foreground">No entries yet — add one below.</p>}
+      {items.length === 0 && <p className="text-fs-xs text-muted-foreground">No entries yet — add one below.</p>}
       {items.map((it, i) => (
         <div key={i} className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
+          <span className="text-fs-xs text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
           <Input
             value={it}
             spellCheck={false}
@@ -165,7 +165,7 @@ function ParamOriginBadge({ param }: { param: Parameter }) {
             data-testid={`param-origin-badge-${param.id}`}
             data-origin={origin}
             className={cn(
-              'inline-flex items-center rounded-sm border px-1 py-0 text-[10px] font-medium leading-tight align-middle ml-1 cursor-default',
+              'inline-flex items-center rounded-sm border px-1 py-0 text-fs-xs font-medium leading-tight align-middle ml-1 cursor-default',
               meta.className,
             )}
           >
@@ -483,7 +483,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
               className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
             />
             {param.minimum != null && param.maximum != null && (
-              <p className="text-[10px] text-muted-foreground">Range: {param.minimum} – {param.maximum}</p>
+              <p className="text-fs-xs text-muted-foreground">Range: {param.minimum} – {param.maximum}</p>
             )}
           </div>
         );

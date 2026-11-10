@@ -33,7 +33,7 @@ function AutoLoopCard({ phase, attempt = 1, maxAttempts = 3, autoloop = false, o
             </div>
           ))}
         </div>
-        <div style={{marginTop:4, fontSize:12}}>
+        <div style={{marginTop:4, fontSize:'var(--fs-sm)'}}>
           Proposed parameter adjustments for <strong>Phase {phase.id}</strong>:
         </div>
         <div className="al-table">
@@ -55,7 +55,7 @@ function AutoLoopCard({ phase, attempt = 1, maxAttempts = 3, autoloop = false, o
           </button>
           <button className="btn ghost sm" onClick={onDismiss}>Dismiss</button>
           <span style={{flex:1}}/>
-          <button className="linkish" style={{fontSize:11.5}}>Edit thresholds instead</button>
+          <button className="linkish" style={{fontSize:'var(--fs-sm)'}}>Edit thresholds instead</button>
         </div>
       </div>
     </div>

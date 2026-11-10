@@ -336,7 +336,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
                   }
                   title={r.source_file ? `Read from ${r.source_file}` : r.interpretation}
                 >
-                  <span className="text-[11px] text-muted-foreground">{r.metric}</span>
+                  <span className="text-fs-xs text-muted-foreground">{r.metric}</span>
                   <span className="text-xs font-mono font-semibold text-blue-800 dark:text-blue-300">{r.value}</span>
                 </button>
               )

@@ -227,7 +227,7 @@ function ConnectorTable({
   // rows get a subtle edge-to-edge band (--bm-surface-2, dark-mode safe) so a
   // wide row stays followable across; horizontal padding lives on the rows so
   // the band spans the full card width.
-  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background overflow-hidden" data-testid="connector-table">{rows.map((row, i) => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-4 py-3 border-b border-border last:border-0" style={{ background: i % 2 === 1 ? 'var(--bm-surface-2)' : 'transparent' }}><div className="min-w-0"><h3 className="text-[13px] font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-[11px] text-muted-foreground">{row.category}</span></article>)}</div></div>;
+  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background overflow-hidden" data-testid="connector-table">{rows.map((row, i) => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-4 py-3 border-b border-border last:border-0" style={{ background: i % 2 === 1 ? 'var(--bm-surface-2)' : 'transparent' }}><div className="min-w-0"><h3 className="text-fs-base font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-fs-xs text-muted-foreground">{row.category}</span></article>)}</div></div>;
   const checkable = !!onToggle;
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-meta)' }} data-testid="connector-table">
@@ -343,11 +343,11 @@ function DatabasesTab({
               }}
             >
               {g.label}
-              <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 3, background: active ? 'var(--foreground)' : 'var(--border)', color: active ? 'var(--background)' : 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', padding: '0 4px', borderRadius: 3, background: active ? 'var(--foreground)' : 'var(--border)', color: active ? 'var(--background)' : 'var(--muted-foreground)' }}>
                 {groupCount(g)}
               </span>
               {sel > 0 && (
-                <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 3, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>
+                <span style={{ fontSize: 'var(--fs-xs)', padding: '0 4px', borderRadius: 3, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>
                   {sel}✓
                 </span>
               )}
@@ -487,7 +487,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="text-xl font-semibold">Connectors</h1><div className="flex items-center gap-2"><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => adding || setupOrigin ? cancelAdding() : beginAdding()}>{adding || setupOrigin ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button><button className="text-sm border border-border rounded-md px-3 py-1.5" data-testid="connectors-close" onClick={() => onOpenChange(false)}>{tOr('actions.close', 'Close')}</button></div></div></> : <div className="flex items-center justify-between gap-3 pr-8"><DialogTitle>Connectors</DialogTitle><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => adding || setupOrigin ? cancelAdding() : beginAdding()}>{adding || setupOrigin ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button></div>}
           <p style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
-          <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
+          <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 'var(--fs-xs)', color: 'var(--muted-foreground)' }}>
             <span title="data leaves the estate"><strong>cloud</strong> data leaves</span>
             <span style={{ opacity: 0.4 }}>·</span>
             <span title="stays inside your network"><strong>on-prem</strong> stays inside</span>
@@ -520,14 +520,14 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
               {t.icon}
               {t.label}
               {t.count !== undefined && (
-                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 999, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
+                <span style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px', borderRadius: 999, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
                   {t.count}
                 </span>
               )}
               {t.id === 'databases' && selectedDbs.length > 0 && selectedDbs.length < DB.length && (
                 <span
                   title="Rows you have starred for your own reference. This is a local view filter only — it does not change which sources BioMate queries."
-                  style={{ fontSize: 10, padding: '1px 5px', borderRadius: 999, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}
+                  style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px', borderRadius: 999, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}
                 >
                   {selectedDbs.length} starred
                 </span>

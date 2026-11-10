@@ -306,9 +306,9 @@ function ObjectiveCell({ o }: { o: ObjectiveValue }) {
   return (
     <td className="px-2 py-1 font-mono whitespace-nowrap" data-testid={`obj-${o.name}`}>
       <span style={{ color }}>{o.value}</span>
-      <span className="text-[10px] text-muted-foreground ml-1">{o.unit}</span>
+      <span className="text-fs-xs text-muted-foreground ml-1">{o.unit}</span>
       {o.target != null && (
-        <span className="text-[10px] text-muted-foreground ml-1">
+        <span className="text-fs-xs text-muted-foreground ml-1">
           ({o.direction === "maximize" ? "≥" : "≤"} {o.target})
         </span>
       )}
@@ -332,7 +332,7 @@ function WhyRow({
   return (
     <tr data-testid={`why-detail-${candidate.id}`} className="bg-muted/30">
       <td colSpan={colSpan} className="px-3 py-2">
-        <div className="space-y-1 text-[11px]">
+        <div className="space-y-1 text-fs-xs">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold">{tOr("design.why_model", "Model")}</span>
             <span className="font-mono">{provenance.model}</span>
@@ -397,7 +397,7 @@ function MultiObjectiveView({
           <Target className="h-4 w-4" />
           {tOr("design.mov_title", "Multi-objective view")}
         </CardTitle>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           {tOr("design.mov_help_a", "Each objective keeps its own units and its own target — no single blended number. The")}{" "}
           <span className="font-mono">score</span>{" "}
           {tOr("design.mov_help_b", "column ranks only.")}{" "}
@@ -413,7 +413,7 @@ function MultiObjectiveView({
                 {objectiveMeta.map((m) => (
                   <th key={m.name} className="px-2 py-1 text-left font-semibold whitespace-nowrap">
                     {m.name}
-                    <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
+                    <span className="text-fs-xs text-muted-foreground ml-1">/{m.unit}</span>
                   </th>
                 ))}
                 <th className="px-2 py-1 text-left font-semibold" title={tOr("design.ranking_key_only", "Ranking key only")}>
@@ -452,7 +452,7 @@ function MultiObjectiveView({
                       <td className="px-2 py-1 font-mono text-muted-foreground">{c.score}</td>
                       <td className="px-2 py-1">
                         <span
-                          className="text-[10px] capitalize"
+                          className="text-fs-xs capitalize"
                           style={{
                             color:
                               c.verdict === "accepted"
@@ -472,7 +472,7 @@ function MultiObjectiveView({
                           type="button"
                           data-testid={`why-toggle-${c.id}`}
                           aria-expanded={isOpen}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                          className="inline-flex items-center gap-0.5 text-fs-xs text-primary hover:underline"
                           onClick={() => setOpenWhy((s) => ({ ...s, [c.id]: !s[c.id] }))}
                         >
                           <Info className="h-3 w-3" />
@@ -487,7 +487,7 @@ function MultiObjectiveView({
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1">
+        <p className="text-fs-xs text-muted-foreground mt-1">
           {tOr("design.score_footnote", "*score is a ranking key (mean of normalised per-objective scores), not a composite the pipeline optimises — the objectives above are optimised together.")}
         </p>
       </CardContent>
@@ -510,14 +510,14 @@ function RejectedSet({ rejected }: { rejected: RejectedCandidate[] }) {
             <CardTitle className="text-sm flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-red-500" />
               {tOr("design.rejected_title", "Rejected by a gate")}
-              <Badge variant="outline" className="text-[10px]" style={{ color: "#ef4444" }}>
+              <Badge variant="outline" className="text-fs-xs" style={{ color: "#ef4444" }}>
                 {rejected.length}
               </Badge>
               <ChevronDown
                 className={`h-4 w-4 ml-auto transition-transform ${open ? "rotate-180" : ""}`}
               />
             </CardTitle>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-fs-xs text-muted-foreground">
               {tOr("design.rejected_help", "Rejections stay visible with the gate that rejected them — safety is a gate, never traded away. Collapsed but present.")}
             </p>
           </CardHeader>
@@ -532,11 +532,11 @@ function RejectedSet({ rejected }: { rejected: RejectedCandidate[] }) {
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono font-semibold">{r.id}</span>
-                  <span className="text-red-500 text-[11px]" data-testid={`rejected-reason-${r.id}`}>
+                  <span className="text-red-500 text-fs-xs" data-testid={`rejected-reason-${r.id}`}>
                     {r.reason}
                   </span>
                 </div>
-                <div className="font-mono text-[10px] text-muted-foreground break-all mt-0.5">
+                <div className="font-mono text-fs-xs text-muted-foreground break-all mt-0.5">
                   {r.smiles}
                 </div>
               </div>
@@ -655,7 +655,7 @@ function CriteriaStrip({
           <SlidersHorizontal className="h-4 w-4" />
           {tOr("design.criteria_title", "Criteria & weights")}
         </CardTitle>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           {tOr("design.criteria_help_a", "Weights are the user's to set and are stated on every ranking. Changing a target or weight re-ranks the candidates below")}{" "}
           <strong>{tOr("design.criteria_help_b", "without re-running")}</strong>{" "}
           {tOr("design.criteria_help_c", "the predictions — no single blended number is optimised.")}
@@ -679,9 +679,9 @@ function CriteriaStrip({
                   <tr key={m.name} data-testid={`criteria-row-${m.name}`} className="border-b last:border-0">
                     <td className="px-2 py-1 font-mono font-semibold whitespace-nowrap">
                       {m.name}
-                      <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
+                      <span className="text-fs-xs text-muted-foreground ml-1">/{m.unit}</span>
                     </td>
-                    <td className="px-2 py-1 text-[10px] text-muted-foreground">
+                    <td className="px-2 py-1 text-fs-xs text-muted-foreground">
                       {m.direction === "maximize" ? tOr("design.maximize", "maximize ↑") : tOr("design.minimize", "minimize ↓")}
                     </td>
                     <td className="px-2 py-1">
@@ -717,7 +717,7 @@ function CriteriaStrip({
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-muted-foreground" data-testid="criteria-stated">
+        <p className="text-fs-xs text-muted-foreground" data-testid="criteria-stated">
           {tOr("design.ranking_criteria_prefix", "Ranking criteria: ")}{stated}
         </p>
       </CardContent>
@@ -831,7 +831,7 @@ function ParetoView({
       data-testid={testid}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-6 rounded border bg-background px-1 text-[10px] font-mono"
+      className="h-6 rounded border bg-background px-1 text-fs-xs font-mono"
     >
       {objectiveMeta.map((m) => (
         <option key={m.name} value={m.name}>
@@ -848,13 +848,13 @@ function ParetoView({
           <GitCompare className="h-4 w-4" />
           {tOr("design.pareto_title", "Trade-off (Pareto) view")}
         </CardTitle>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           {tOr("design.pareto_help", "The trade-off is shown, not collapsed. Each dot is a candidate on two objectives; highlighted dots are on the non-dominated (Pareto) front — no candidate beats them on both.")}{" "}
           {paretoSet.size === 0 && tOr("design.pareto_no_front", "No front members were returned for this run.")}
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-2 flex-wrap text-fs-xs text-muted-foreground">
           <span>{tOr("design.axis_y", "Y:")}</span>
           <AxisSelect value={ym.name} onChange={setYName} testid="pareto-y-axis" />
           <span className="ml-2">{tOr("design.axis_x", "X:")}</span>
@@ -904,12 +904,12 @@ function ParetoView({
             </circle>
           ))}
         </svg>
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+        <div className="flex items-center justify-between text-fs-xs text-muted-foreground font-mono">
           <span>
             {xm.name} → ({xmin} … {xmax}) /{xm.unit}
           </span>
         </div>
-        <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-3 flex-wrap text-fs-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#6366f1" }} />{" "}
             {tOr("design.legend_on_front", "on front ({{n}})", { n: pts.filter((p) => p.onFront).length })}
@@ -989,11 +989,11 @@ function RejectionProfile({
         <CardTitle className="text-sm flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-red-500" />
           {tOr("design.rejprofile_title", "Rejection profile")}
-          <Badge variant="outline" className="text-[10px]" style={{ color: "#ef4444" }}>
+          <Badge variant="outline" className="text-fs-xs" style={{ color: "#ef4444" }}>
             {total}
           </Badge>
         </CardTitle>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           {tOr("design.rejprofile_help_a", "Rejections are counted")}{" "}
           <em>{tOr("design.rejprofile_help_b", "and characterised")}</em>{" "}
           {tOr("design.rejprofile_help_c", "by cause — the failure profile is the diagnostic.")}{" "}
@@ -1009,10 +1009,10 @@ function RejectionProfile({
           >
             <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: "#ef4444" }} />
             <span className="font-semibold capitalize">{tOr("design.cause_" + cause, CAUSE_LABEL[cause])}</span>
-            <Badge variant="outline" className="text-[10px] ml-auto" data-testid={`rejection-count-${cause}`}>
+            <Badge variant="outline" className="text-fs-xs ml-auto" data-testid={`rejection-count-${cause}`}>
               {items.length}
             </Badge>
-            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[40%]" title={items.map((i) => i.id).join(", ")}>
+            <span className="text-fs-xs text-muted-foreground font-mono truncate max-w-[40%]" title={items.map((i) => i.id).join(", ")}>
               {items.map((i) => i.id).join(", ")}
             </span>
           </div>
@@ -1099,7 +1099,7 @@ function OrderSheetButton({
   }, [candidates, objectiveMeta, runId])
   return (
     <div className="flex items-center justify-between gap-2 rounded border px-2 py-1.5" data-testid="order-sheet">
-      <span className="text-[10px] text-muted-foreground">
+      <span className="text-fs-xs text-muted-foreground">
         {tOr("design.ordersheet_help_a", "Leave the platform as an")}{" "}
         <strong>{tOr("design.ordersheet_help_b", "order")}</strong>{" "}
         {tOr("design.ordersheet_help_c", "— candidate ids paired with the lab's registry ids, per-objective values in their own units (§5.7).")}
@@ -1193,7 +1193,7 @@ function EntryRoutes({
   ]
   return (
     <div className="flex items-center gap-2 flex-wrap" data-testid="entry-routes">
-      <span className="text-[10px] text-muted-foreground">{tOr("design.start_from", "Start from…")}</span>
+      <span className="text-fs-xs text-muted-foreground">{tOr("design.start_from", "Start from…")}</span>
       {routes.map((r) => (
         <Button
           key={r.key}
@@ -1272,7 +1272,7 @@ function PredictedVsMeasured({
           {hasMeasured && (
             <Badge
               variant="outline"
-              className="text-[10px]"
+              className="text-fs-xs"
               style={{ color: rows.some((r) => r.anyContradiction) ? "#ef4444" : "#22c55e" }}
               data-testid="pvm-contradiction-count"
             >
@@ -1280,7 +1280,7 @@ function PredictedVsMeasured({
             </Badge>
           )}
         </CardTitle>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-fs-xs text-muted-foreground">
           {tOr("design.pvm_help", "Measurements returned from the bench, shown against the predictions that preceded them — the only honest measure of whether the design pipeline is working. A large divergence is flagged; the surrogate is not trusted silently after a bad round (§5.7).")}
         </p>
       </CardHeader>
@@ -1298,8 +1298,8 @@ function PredictedVsMeasured({
                   {objectiveMeta.map((m) => (
                     <th key={m.name} className="px-2 py-1 text-left font-semibold whitespace-nowrap">
                       {m.name}
-                      <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
-                      <div className="text-[9px] font-normal text-muted-foreground">{tOr("design.pvm_pred_meas", "pred → meas")}</div>
+                      <span className="text-fs-xs text-muted-foreground ml-1">/{m.unit}</span>
+                      <div className="text-fs-xs font-normal text-muted-foreground">{tOr("design.pvm_pred_meas", "pred → meas")}</div>
                     </th>
                   ))}
                 </tr>
@@ -1310,7 +1310,7 @@ function PredictedVsMeasured({
                     <td className="px-2 py-1 font-mono font-semibold whitespace-nowrap">
                       {r.id}
                       {r.registryId && (
-                        <span className="text-[10px] text-muted-foreground ml-1">({r.registryId})</span>
+                        <span className="text-fs-xs text-muted-foreground ml-1">({r.registryId})</span>
                       )}
                     </td>
                     {r.cells.map(({ meta, pred, meas, contradiction }) => (
@@ -1327,7 +1327,7 @@ function PredictedVsMeasured({
                         </span>
                         {contradiction && (
                           <span
-                            className="text-[9px] text-red-500 ml-1"
+                            className="text-fs-xs text-red-500 ml-1"
                             data-testid={`pvm-flag-${r.id}-${meta.name}`}
                           >
                             {tOr("design.pvm_contradiction", "contradiction")}
@@ -1381,7 +1381,7 @@ function ModalityChips({
           )
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground" data-testid="dg-modality-blurb">
+      <p className="text-fs-xs text-muted-foreground" data-testid="dg-modality-blurb">
         {tOr(`design.modality_${modality}_blurb`, MODALITY_META[modality].blurb)}{" "}
         {tOr("design.stay_on_prefix", "What the generation should stay on:")}{" "}
         <span className="font-medium">{tOr(`design.modality_${modality}_stayon`, MODALITY_META[modality].stayOn)}</span>.
@@ -1583,7 +1583,7 @@ export function DesignGenerate({
       <Card data-testid="constraints-composer">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">{tOr("design.constraints_title", "Design constraints")}</CardTitle>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             {tOr("design.constraints_help", "Generation is only useful when constrained — these resolve to run parameters, shown before the run starts.")}
           </p>
         </CardHeader>
@@ -1606,7 +1606,7 @@ export function DesignGenerate({
               placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
               className="font-mono text-xs"
             />
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-fs-xs text-muted-foreground">
               {tOr("design.seed_help", "Leave blank to generate from scratch, or paste a SMILES to steer the search toward chemistry you trust. A target protein is set separately — it is not entered here.")}
             </p>
           </div>
@@ -1634,7 +1634,7 @@ export function DesignGenerate({
             <Label className="text-xs">{tOr("design.envelope", "Property envelope (a window, not a cut-off)")}</Label>
             <div className="grid grid-cols-3 gap-2" data-testid="dg-envelope">
               <div>
-                <span className="text-[10px] text-muted-foreground">{tOr("design.mw", "MW ≤")}</span>
+                <span className="text-fs-xs text-muted-foreground">{tOr("design.mw", "MW ≤")}</span>
                 <Input
                   data-testid="dg-mw"
                   value={mwMax}
@@ -1643,7 +1643,7 @@ export function DesignGenerate({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-muted-foreground">{tOr("design.logp", "logP ≤")}</span>
+                <span className="text-fs-xs text-muted-foreground">{tOr("design.logp", "logP ≤")}</span>
                 <Input
                   data-testid="dg-logp"
                   value={logpMax}
@@ -1652,7 +1652,7 @@ export function DesignGenerate({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-muted-foreground">{tOr("design.tpsa", "TPSA ≤")}</span>
+                <span className="text-fs-xs text-muted-foreground">{tOr("design.tpsa", "TPSA ≤")}</span>
                 <Input
                   data-testid="dg-tpsa"
                   value={tpsaMax}
@@ -1754,7 +1754,7 @@ export function DesignGenerate({
               rather than fabricate a peptide/protein shortlist (§11.6). */}
           {!canRun && (
             <div
-              className="rounded border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-[11px] text-muted-foreground"
+              className="rounded border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-fs-xs text-muted-foreground"
               data-testid="dg-modality-unrunnable"
             >
               <span className="font-semibold text-amber-600">{tOr("design.generator_coming", "Generator coming.")}</span>{" "}
@@ -1817,8 +1817,8 @@ export function DesignGenerate({
 
       {/* ---- run status / honest failure profile (§5.8) ---- */}
       {run && (
-        <div className="text-[10px] text-muted-foreground flex items-center gap-2 flex-wrap" data-testid="dg-status">
-          <Badge variant="outline" className="text-[10px]" data-status={run.status}>
+        <div className="text-fs-xs text-muted-foreground flex items-center gap-2 flex-wrap" data-testid="dg-status">
+          <Badge variant="outline" className="text-fs-xs" data-status={run.status}>
             {run.status}
           </Badge>
           {run.generator && (
@@ -1833,7 +1833,7 @@ export function DesignGenerate({
       )}
 
       {run?.notes && run.notes.length > 0 && (
-        <ul className="text-[10px] text-muted-foreground list-disc pl-4" data-testid="dg-notes">
+        <ul className="text-fs-xs text-muted-foreground list-disc pl-4" data-testid="dg-notes">
           {run.notes.map((n, i) => (
             <li key={i}>{n}</li>
           ))}

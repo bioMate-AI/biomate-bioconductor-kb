@@ -291,7 +291,7 @@ function FileRow({
           <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
         )}
         {file.step_name && (
-          <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
+          <span className="text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
             {file.step_name}
           </span>
         )}
@@ -665,7 +665,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
 
       {/* Scope hint + search (design §4.2.2) */}
       <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b">
-        <p className="text-[11px] text-muted-foreground">{t('file_tree.scope_hint')}</p>
+        <p className="text-fs-xs text-muted-foreground">{t('file_tree.scope_hint')}</p>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input

@@ -291,7 +291,7 @@ export function DataPerception({
       )}
 
       {/* Provenance note: profiling is backend, this is a read surface. */}
-      <div className="text-[11px] leading-snug text-muted-foreground/70">
+      <div className="text-fs-xs leading-snug text-muted-foreground/70">
         Perception is computed by the backend profiler at ingest. This panel shows what it
         observed; it does not re-profile the data.
       </div>
@@ -312,11 +312,11 @@ function Stat({
 }) {
   return (
     <div className="flex flex-col gap-0.5" data-testid={testId}>
-      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="text-fs-xs font-medium uppercase tracking-wide text-muted-foreground">
         {k}
       </span>
       <span className="text-sm font-semibold tabular-nums">{v}</span>
-      {hint && <span className="text-[11px] leading-tight text-amber-600 dark:text-amber-400">{hint}</span>}
+      {hint && <span className="text-fs-xs leading-tight text-amber-600 dark:text-amber-400">{hint}</span>}
     </div>
   );
 }

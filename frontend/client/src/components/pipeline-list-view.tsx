@@ -145,7 +145,7 @@ function StepStatusBadge({ status }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={cn('flex items-center gap-1 text-[10px] font-semibold tracking-wide px-1.5 py-0.5', cfg.className)}
+      className={cn('flex items-center gap-1 text-fs-xs font-semibold tracking-wide px-1.5 py-0.5', cfg.className)}
     >
       {cfg.icon}
       {cfg.label}
@@ -211,7 +211,7 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
           <span className="font-semibold text-sm leading-snug truncate">{step.workflowName}</span>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {step.durationMs != null && step.status === 'completed' && (
-              <span className="text-[10px] text-muted-foreground font-mono">
+              <span className="text-fs-xs text-muted-foreground font-mono">
                 {formatDuration(step.durationMs)}
               </span>
             )}
@@ -287,7 +287,7 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
               <Play className="h-3 w-3" />
               Approve &amp; Run Step {nextStep.stepNumber ?? '?'}
             </Button>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-fs-xs text-muted-foreground">
               Review outputs above before continuing
             </span>
           </div>
@@ -296,7 +296,7 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
         {/* Modify shortcut */}
         {!isReadOnly && onModifyStep && (
           <button
-            className="text-[10px] text-muted-foreground underline underline-offset-2 hover:no-underline"
+            className="text-fs-xs text-muted-foreground underline underline-offset-2 hover:no-underline"
             onClick={() => onModifyStep?.(step.id, `modify step ${step.stepNumber ?? ''} `)}
           >
             edit via chat
@@ -421,7 +421,7 @@ export function PipelineListView({
             </Badge>
           </div>
           {chainRunId && (
-            <span className="text-[10px] font-mono text-muted-foreground">
+            <span className="text-fs-xs font-mono text-muted-foreground">
               run: {chainRunId.slice(0, 8)}…
             </span>
           )}
@@ -478,7 +478,7 @@ export function PipelineListView({
               <div key={`parallel-${idx}`} className="space-y-1.5">
                 <div className="flex items-center gap-2 px-1">
                   <div className="h-px flex-1 bg-border" />
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide flex-shrink-0 flex items-center gap-1">
+                  <span className="text-fs-xs text-muted-foreground uppercase tracking-wide flex-shrink-0 flex items-center gap-1">
                     <GitMerge className="h-3 w-3" />
                     {stepNums} run in parallel
                   </span>

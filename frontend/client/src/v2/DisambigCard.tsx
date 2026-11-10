@@ -59,7 +59,7 @@ const STYLES = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    fontSize: 13,
+    fontSize: 'var(--fs-base)',
     color: "oklch(0.22 0.012 260)",
   } as React.CSSProperties,
   optionRow: {
@@ -74,7 +74,7 @@ const STYLES = {
     background: "oklch(0.97 0.02 240)",
   } as React.CSSProperties,
   name: {
-    fontSize: 13,
+    fontSize: 'var(--fs-base)',
     fontWeight: 600,
     color: "oklch(0.22 0.012 260)",
     display: "flex",
@@ -82,24 +82,24 @@ const STYLES = {
     gap: 6,
   } as React.CSSProperties,
   sub: {
-    fontSize: 11.5,
+    fontSize: 'var(--fs-sm)',
     color: "oklch(0.48 0.012 260)",
     marginTop: 2,
   } as React.CSSProperties,
   detail: {
-    fontSize: 11,
+    fontSize: 'var(--fs-xs)',
     color: "oklch(0.40 0.012 260)",
     marginTop: 4,
     fontFamily: "ui-monospace, SFMono-Regular, monospace",
   } as React.CSSProperties,
   score: {
-    fontSize: 13,
+    fontSize: 'var(--fs-base)',
     fontFamily: "ui-monospace, SFMono-Regular, monospace",
     color: "oklch(0.40 0.012 260)",
     textAlign: "right" as const,
   },
   badge: {
-    fontSize: 10,
+    fontSize: 'var(--fs-xs)',
     padding: "1px 6px",
     borderRadius: 4,
     background: "oklch(0.94 0.008 260)",
@@ -113,7 +113,7 @@ const STYLES = {
     color: "oklch(0.25 0.12 240)",
   } as React.CSSProperties,
   selectBtn: {
-    fontSize: 11.5,
+    fontSize: 'var(--fs-sm)',
     padding: "5px 10px",
     borderRadius: 4,
     border: "1px solid oklch(0.85 0.012 260)",
@@ -130,7 +130,7 @@ const STYLES = {
   foot: {
     padding: "8px 14px",
     borderTop: "1px solid oklch(0.96 0.005 260)",
-    fontSize: 11,
+    fontSize: 'var(--fs-xs)',
     color: "oklch(0.48 0.012 260)",
     display: "flex",
     alignItems: "center",

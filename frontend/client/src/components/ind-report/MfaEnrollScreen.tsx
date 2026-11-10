@@ -124,7 +124,7 @@ export function MfaEnrollScreen({
         {step === "qr" && (
           <>
             <h3 style={{ marginTop: 0 }}>Set up your authenticator app</h3>
-            <p style={{ fontSize: 13, color: "var(--ind-text-muted)" }}>
+            <p style={{ fontSize: 'var(--fs-base)', color: "var(--ind-text-muted)" }}>
               Scan the QR with Google Authenticator, 1Password, Authy, or any
               other RFC 6238 TOTP app. After enrollment, every IND signature
               requires a fresh 6-digit code from your app.
@@ -143,7 +143,7 @@ export function MfaEnrollScreen({
             ) : (
               <div style={{ padding: 20 }}>Generating QR…</div>
             )}
-            <div style={{ fontSize: 12, color: "var(--ind-text-muted)" }}>
+            <div style={{ fontSize: 'var(--fs-sm)', color: "var(--ind-text-muted)" }}>
               Or enter manually:
             </div>
             <div
@@ -151,12 +151,12 @@ export function MfaEnrollScreen({
               style={{
                 marginTop: 4, padding: 6,
                 background: "var(--ind-surface, #f9fafb)",
-                borderRadius: 4, fontSize: 13, wordBreak: "break-all",
+                borderRadius: 4, fontSize: 'var(--fs-base)', wordBreak: "break-all",
               }}
             >
               {secret || "(not yet generated)"}
             </div>
-            <label style={{ display: "block", marginTop: 14, fontSize: 12 }}>
+            <label style={{ display: "block", marginTop: 14, fontSize: 'var(--fs-sm)' }}>
               6-digit code from your app:
               <input
                 type="text"
@@ -167,14 +167,14 @@ export function MfaEnrollScreen({
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 style={{
                   width: "100%", marginTop: 4, padding: "8px 10px",
-                  fontSize: 18, letterSpacing: 4, textAlign: "center",
+                  fontSize: 'var(--fs-xl)', letterSpacing: 4, textAlign: "center",
                   border: "1px solid var(--ind-border, #d1d5db)", borderRadius: 4,
                 }}
                 autoFocus
               />
             </label>
             {err && (
-              <div style={{ color: "var(--ind-err)", fontSize: 13, marginTop: 8 }}>
+              <div style={{ color: "var(--ind-err)", fontSize: 'var(--fs-base)', marginTop: 8 }}>
                 {err}
               </div>
             )}
@@ -198,13 +198,13 @@ export function MfaEnrollScreen({
             <h3 style={{ marginTop: 0 }}>
               {alreadyEnrolled ? "MFA already enabled" : "MFA enabled ✓"}
             </h3>
-            <p style={{ fontSize: 13, color: "var(--ind-text-muted)" }}>
+            <p style={{ fontSize: 'var(--fs-base)', color: "var(--ind-text-muted)" }}>
               {alreadyEnrolled
                 ? "You're already enrolled. Use Reset to enroll a new authenticator (the old one stops working immediately)."
                 : "You're all set. Future signatures will require a fresh 6-digit code from your authenticator app."}
             </p>
             {err && (
-              <div style={{ color: "var(--ind-err)", fontSize: 13, marginTop: 8 }}>
+              <div style={{ color: "var(--ind-err)", fontSize: 'var(--fs-base)', marginTop: 8 }}>
                 {err}
               </div>
             )}

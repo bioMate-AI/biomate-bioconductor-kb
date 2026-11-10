@@ -164,12 +164,12 @@ export function PhaseCard({
               {displayName}
             </CardTitle>
             {phase.description && (
-              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{phase.description}</p>
+              <p className="text-fs-xs text-muted-foreground mt-0.5 truncate">{phase.description}</p>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <Badge variant="secondary" className={cn("text-[10px] uppercase px-1.5 py-0", badgeClass)} data-testid={`step-status-badge-${phase.id}`} data-status={status}>
+          <Badge variant="secondary" className={cn("text-fs-xs uppercase px-1.5 py-0", badgeClass)} data-testid={`step-status-badge-${phase.id}`} data-status={status}>
             {status}
           </Badge>
           {status === 'pending' && onExecute && (
@@ -258,7 +258,7 @@ export function PhaseCard({
 
       {/* Pause-after banner */}
       {pauseAfterEnabled && (
-        <div className="mx-3 mb-1 px-2 py-1 rounded text-[11px] bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 flex items-center gap-1">
+        <div className="mx-3 mb-1 px-2 py-1 rounded text-fs-xs bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 flex items-center gap-1">
           <PauseCircle className="h-3 w-3 flex-shrink-0" />
           Workflow will pause after this step
         </div>
@@ -272,8 +272,8 @@ export function PhaseCard({
               const current = key in paramOverrides ? paramOverrides[key] : defaultVal;
               const type = typeof defaultVal;
               return (
-                <div key={key} className="flex items-center gap-2 text-[11px]">
-                  <Label className="text-[11px] font-mono w-28 flex-shrink-0 truncate" title={key}>{key}</Label>
+                <div key={key} className="flex items-center gap-2 text-fs-xs">
+                  <Label className="text-fs-xs font-mono w-28 flex-shrink-0 truncate" title={key}>{key}</Label>
                   {type === 'boolean' ? (
                     <Switch
                       checked={!!current}
@@ -283,7 +283,7 @@ export function PhaseCard({
                     <Input
                       type={type === 'number' ? 'number' : 'text'}
                       value={current ?? ''}
-                      className="h-6 text-[11px] font-mono"
+                      className="h-6 text-fs-xs font-mono"
                       onChange={e => {
                         const v = type === 'number' ? parseFloat(e.target.value) : e.target.value;
                         setParamOverrides(p => ({...p, [key]: v}));
@@ -297,7 +297,7 @@ export function PhaseCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-6 text-[11px] mt-1"
+              className="h-6 text-fs-xs mt-1"
               disabled={!paramsDirty}
               onClick={() => {
                 const merged = { ...(phase.parameters as Record<string, any>), ...paramOverrides };
@@ -315,7 +315,7 @@ export function PhaseCard({
       {displayFiles.length > 0 && (
         <CardContent className="pt-0 pb-2 px-3">
           <button
-            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-fs-xs text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setFilesExpanded(e => !e)}
           >
             {filesExpanded
@@ -329,7 +329,7 @@ export function PhaseCard({
                 const canInlinePreview = runId && VISUALIZABLE_EXTS.has(f.extension.toLowerCase().replace(/^\./, ''));
                 const canPreview = onPreviewFile && VISUALIZABLE_EXTS.has(f.extension.toLowerCase().replace(/^\./, ''));
                 return (
-                  <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                  <div key={i} className="flex items-center gap-1.5 text-fs-xs">
                     {fileIcon(f.name)}
                     <span className="font-mono truncate">{f.name}</span>
                     <div className="ml-auto flex items-center gap-1 flex-shrink-0">
