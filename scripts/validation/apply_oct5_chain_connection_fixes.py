@@ -51,6 +51,50 @@ def resolves(new_fo, outfiles):
         if f.rsplit('.',1)[-1]==ext: return f          # extension (rule 4)
     return None
 
+# Design-gap connection REWIRES (not simple renames): new transforms + corrected to_input, applied
+# after the FIXES renames. These depend on backend changes shipped in git (transforms.admet_toxicity_
+# to_herg_ic50_nM, predict_admet_properties passed_compounds.smi). See
+# docs/20261109_DRUGDEV_CHAIN_SOUNDNESS_AUDIT.md.
+REWIRES = {
+ "admet_to_cipa_cardiac": [
+   {"from_step":1,"from_output":"toxicity_report","to_step":2,"to_input":"herg_ic50_nM",
+    "transform":{"name":"admet_toxicity_to_herg_ic50_nM"}},
+ ],
+ "drug_discovery_admet_gated_screening": [
+   {"from_step":1,"from_output":"filtered_compounds.smi","to_step":2,"to_input":"smiles_list","transform":{"name":"smiles_file_to_json_list","args":{}}},
+   {"from_step":2,"from_output":"passed_compounds","to_step":3,"to_input":"smiles_list","transform":{"name":"smiles_file_to_json_list","args":{}}},
+ ],
+}
+# Per-connection edits (chain, from_step, to_step) -> {field:value} for chains we only partly rewire.
+REWIRE_EDITS = [
+ ("andv_inhibitor_track_v1",3,4,{"from_output":"passed_compounds","to_input":"smiles_list","transform":{"name":"smiles_file_to_json_list","args":{}}}),
+ ("target_to_lead_full",4,5,{"from_output":"rank1","to_input":"ligand"}),
+]
+
+def apply_rewires(conn, do):
+    import time as _t
+    n=0
+    for chain, conns in REWIRES.items():
+        row=conn.execute("select name from workflow_chains where name=?",(chain,)).fetchone()
+        if not row: print(f"  REWIRE skip {chain}: not found"); continue
+        print(f"  {'REWIRE' if do else 'REWIRE(dry)'} {chain}: set {len(conns)} connection(s)")
+        if do:
+            conn.execute("update workflow_chains set connections=?, updated_at=? where name=?",
+                         (json.dumps(conns), _t.strftime('%Y-%m-%dT%H:%M:%SZ'), chain)); n+=1
+    for chain, fs, ts, fields in REWIRE_EDITS:
+        row=conn.execute("select connections from workflow_chains where name=?",(chain,)).fetchone()
+        if not row: print(f"  REWIRE_EDIT skip {chain}: not found"); continue
+        cs=json.loads(row[0] or "[]"); hit=False
+        for c in cs:
+            if int(c.get("from_step",-1))==fs and int(c.get("to_step",-1))==ts:
+                c.update(fields); hit=True
+        print(f"  {'REWIRE_EDIT' if do else 'REWIRE_EDIT(dry)'} {chain} s{fs}->s{ts}: {fields.get('from_output')}->{fields.get('to_input')} {'(ok)' if hit else '(connection not found)'}")
+        if do and hit:
+            conn.execute("update workflow_chains set connections=?, updated_at=? where name=?",
+                         (json.dumps(cs), _t.strftime('%Y-%m-%dT%H:%M:%SZ'), chain)); n+=1
+    return n
+
+
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("--apply",action="store_true"); a=ap.parse_args()
     conn=sqlite3.connect(DB); conn.row_factory=sqlite3.Row
@@ -76,6 +120,9 @@ def main():
             conn.execute("update workflow_chains set connections=?, updated_at=? where name=?",
                          (json.dumps(conns), time.strftime("%Y-%m-%dT%H:%M:%SZ"), chain))
             applied+=1
+    if a.apply:
+        conn.commit()
+    _rw = apply_rewires(conn, a.apply)
     if a.apply:
         conn.commit()
     print(f"\n{'APPLIED' if a.apply else 'DRY-RUN'}: {applied} applied, {skipped} skipped/unverified")
