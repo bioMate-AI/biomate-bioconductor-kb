@@ -1,14 +1,24 @@
 # BioMate AI
 
-> AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
+> AI platform for biomedical research and drug discovery, with a focus on immune-mediated disorders. Built on a catalog of 4,000+ workflows across 36 biomedical domains (1,092 confirmed by real end-to-end execution), serving pharma, biotech, academic labs, and core facilities, with AI-guided QC and audit-ready results. Drug-discovery capabilities span target identification, peptide and macrocycle design, ADMET, PBPK, docking, and IND/CRO support.
 
-## Last updated: 2026-08-17
+## Last updated: 2026-10-09
 
-BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+## Workbenches and research programs
+
+BioMate is an AI workbench for biomedical research, with drug discovery as its
+flagship specialization. AI helps plan and execute analyses, connect evidence,
+and prepare results for review. Turnaround depends on the task and input data;
+there is no platform-wide average runtime promise.
+
+- [Drug Discovery Workbench](https://biomate.ai/drug-discovery.html): target intelligence, molecular design, developability and experimental learning.
+- [Research Engines](https://biomate.ai/research-engines.html): active research programs in Virtual Cell LLM and cyclic-peptide generation.
+
+BioMate AI is an AI platform for biomedical research and drug discovery, with a focus on immune-mediated disorders — supporting target identification, peptide and macrocycle design, ADMET, PBPK, and closed-loop optimisation with wet-lab feedback — founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
 ## Key facts
 
-- 4,000+ validated workflows across 36 biomedical domains. Leading domains: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Additional coverage: single cell, metagenomics, cryo-EM, cryo-ET, metabolomics, imaging, pharmacology, immunology, microbiology, systems biology, synthetic biology, structural biology, cancer biology, cell biology, bioengineering, glycoengineering, rare disease, and more. Full R/Bioconductor method library included.
+- 4,000+ workflows across 36 biomedical domains (1,092 confirmed by real end-to-end execution). Leading domains: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Additional coverage: single cell, metagenomics, cryo-EM, cryo-ET, metabolomics, imaging, pharmacology, immunology, microbiology, systems biology, synthetic biology, structural biology, cancer biology, cell biology, bioengineering, glycoengineering, rare disease, and more. Full R/Bioconductor method library included.
 - Integrates gold-standard tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2
 - AI-graded QC framework: Gold / Silver / Bronze evidence grades with per-metric pass/fail thresholds
 - Auto-remediation loop: when a QC gate fails, BioMate proposes and reruns with corrected parameters
