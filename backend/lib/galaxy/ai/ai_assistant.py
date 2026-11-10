@@ -5815,6 +5815,18 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 for m in (search_results or [])[:3]
             ]
 
+            # A match whose template has no steps (no workflow_json, no nextflow_path) is not a
+            # workflow. Returning it as success produced the empty "Custom workflow" card (0 phases)
+            # that also disabled run_code for the turn (2026-11-10 EPAR test).
+            if not ((workflow_ga or {}).get('steps') or {}):
+                log.warning("[UnifiedWorkflowGeneration] built workflow has no steps — returning no_runnable_workflow")
+                return {
+                    'success': False,
+                    'error': 'no_runnable_workflow',
+                    'message': 'No runnable workflow matched this request.',
+                    'candidate_workflows': candidate_workflows,
+                }
+
             return {
                 'success': True,
                 'workflow_ga': workflow_ga,

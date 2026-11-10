@@ -271,6 +271,29 @@ def test_yaml_recursive_alias(tmp):
     print("PASS test_yaml_recursive_alias")
 
 
+# ---------------------------------------------------------------------------
+# JSON Lines -> one row per record (was profiled as CSV: every line split on commas,
+# columns like '{"source": "epar_table"'; EPAR dataset test 2026-11-10).
+# ---------------------------------------------------------------------------
+def test_jsonl_records_not_csv(tmp):
+    import json as _json
+    lines = [
+        {"source": "epar_table", "drug": f"d{i}", "page": i, "headers": ["A, B", ""], "rows": [["x", "y"]]}
+        for i in range(30)
+    ]
+    for name in ("t.jsonl", "t_noext"):  # by extension, and by content sniff
+        path = _write(tmp, name, "\n".join(_json.dumps(r) for r in lines) + "\n")
+        p = profile_to_dataclass(path)
+        assert p.rows == 30, (name, p.rows)
+        assert p.cols == 5, (name, p.cols)
+        assert p.columns == ["source", "drug", "page", "headers", "rows"], p.columns
+        assert p.sample_rows[0][3] == '["A, B",""]', p.sample_rows[0][3]
+        # 'source' is constant: flagged, and the note must not also claim "no constant-column issues".
+        assert any("near-constant" in s for s in (p.signal_summary or [])), p.signal_summary
+        assert not any("constant-column issues detected" in n for n in p.notes), p.notes
+    print("PASS test_jsonl_records_not_csv")
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     with tempfile.TemporaryDirectory() as tmp:
