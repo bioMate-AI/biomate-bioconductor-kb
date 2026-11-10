@@ -8030,6 +8030,27 @@ ${paramLines || '(none recorded)'}`;
 
   // Get benchmark results for a scenario
   // Direct workflow lookup by name — used by LLM reselection path
+  // Ranked catalog search — proxies Galaxy's UnifiedWorkflowSearch for the
+  // Workflows library "Browse" tab. Returns { query, results:[{rank,name,
+  // display_name,description,domain,source,format,score,type}, …] }.
+  app.post("/api/ai_assistant/search_ranked", optionalAuth, async (req, res) => {
+    try {
+      const { query, limit, preferred_domains } = req.body || {};
+      if (!query || !String(query).trim()) {
+        return res.status(400).json({ error: "query is required" });
+      }
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/search_ranked', {
+        query: String(query),
+        limit: typeof limit === 'number' ? limit : 10,
+        preferred_domains: Array.isArray(preferred_domains) ? preferred_domains : null,
+      });
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[search_ranked API] Error:", error?.message || error);
+      res.status(500).json({ error: 'RankedSearchError', message: error?.message || 'Ranked search failed' });
+    }
+  });
+
   app.get("/api/ai_assistant/workflow_by_name", async (req, res) => {
     try {
       const name = req.query.name as string;

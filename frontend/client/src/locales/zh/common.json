@@ -1531,5 +1531,21 @@
     "url_cloud_label": "Google Drive / Dropbox（适合大文件——无需浏览器上传）：",
     "url_cloud_help": "将文件共享设为“知道链接的任何人”并粘贴到此处——服务器会直接拉取，因此数 GB 的大文件无需经过浏览器。",
     "browse_folder": "选择文件夹"
+  },
+  "workflows_library": {
+    "title": "工作流库",
+    "tab_browse": "浏览",
+    "tab_my": "我的工作流",
+    "search_placeholder": "搜索工作流目录…",
+    "search_hint": "输入以搜索精选工作流目录。",
+    "search_hint_sub": "RNA-seq、变异检测、ADMET、冷冻电镜等。",
+    "search_error": "搜索失败，请重试。",
+    "no_results": "没有匹配的工作流。",
+    "run": "运行",
+    "run_title": "在对话中预填以运行此工作流",
+    "score": "评分",
+    "score_title": "来自排序引擎的相关性评分",
+    "chain": "工作流链",
+    "seed_prompt": "运行 {{name}} 工作流。"
   }
 }

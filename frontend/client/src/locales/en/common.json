@@ -1040,5 +1040,21 @@
     "url_cloud_label": "Google Drive / Dropbox (best for large files — no browser upload):",
     "url_cloud_help": "Set the file to \"Anyone with the link\" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser.",
     "browse_folder": "select a folder"
+  },
+  "workflows_library": {
+    "title": "Workflows library",
+    "tab_browse": "Browse",
+    "tab_my": "My workflows",
+    "search_placeholder": "Search the workflow catalog…",
+    "search_hint": "Type to search the curated workflow catalog.",
+    "search_hint_sub": "RNA-seq, variant calling, ADMET, cryo-EM and more.",
+    "search_error": "Search failed. Try again.",
+    "no_results": "No workflows match your search.",
+    "run": "Run",
+    "run_title": "Seed a chat to run this workflow",
+    "score": "score",
+    "score_title": "Relevance score from the ranking engine",
+    "chain": "Chain",
+    "seed_prompt": "Run the {{name}} workflow."
   }
 }

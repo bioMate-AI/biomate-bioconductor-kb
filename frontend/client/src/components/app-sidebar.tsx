@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
+import { WorkflowsLibraryDialog } from "./workflows-library-dialog"
 import type { Project } from "@shared/schema"
 import {
   MessageCircle,
@@ -115,6 +116,7 @@ export function AppSidebar({
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
+  const [showWorkflowsLibrary, setShowWorkflowsLibrary] = useState(false);
   const [runningCount, setRunningCount] = useState<number>(0);
   useEffect(() => {
     let cancelled = false;
@@ -304,6 +306,16 @@ export function AppSidebar({
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.data')}</span>
+          </span>
+        </button>
+
+        {/* Workflows — unified library: ranked catalog search + the user's
+            uploaded/personal workflows + upload. Opens WorkflowsLibraryDialog
+            (replaces the dead StarredWorkflowsDialog). */}
+        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsLibrary(true)}>
+          <Workflow className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>{tOr('nav.workflows', 'Workflows')}</span>
           </span>
         </button>
 
@@ -532,6 +544,7 @@ export function AppSidebar({
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} onImportWorkflow={() => { setShowSettingsDialog(false); setHistoryInitialTab("upload"); setShowHistoryDialog(true); }} />
       <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} importOnly onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
+      <WorkflowsLibraryDialog open={showWorkflowsLibrary} onOpenChange={setShowWorkflowsLibrary} />
 
     </div>
   )
