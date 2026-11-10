@@ -168,9 +168,35 @@ def pocket_json_to_box_center(path: str, args: Dict[str, Any]) -> Dict[str, Any]
     }
 
 
+def admet_toxicity_to_herg_ic50_nM(path: str, args: Dict[str, Any]) -> str:
+    """ADMET ``toxicity_report.json`` -> worst-case hERG IC50 in **nM** for CiPA cardiac models.
+
+    ``predict_admet_properties`` writes ``toxicity.herg_ic50_uM`` — the worst-case (lowest) IC50
+    across the compound set (Sander 2009 heuristic / ADMET-AI power-law anchor). CiPA ODE models
+    (``cipa_cardiac_safety_ode``) take ``herg_ic50_nM``; this is a pure unit conversion (uM -> nM,
+    x1000), NOT a probability->IC50 guess. The single scalar string wires to ``params.herg_ic50_nM``.
+    """
+    text = _read_text(path)
+    try:
+        data = json.loads(text)
+    except ValueError as exc:
+        raise TransformError("toxicity report %s is not valid JSON: %s" % (path, exc))
+    tox = data.get("toxicity") if isinstance(data, dict) else None
+    if not isinstance(tox, dict) or tox.get("herg_ic50_uM") is None:
+        raise TransformError("toxicity.herg_ic50_uM not found in %s" % path)
+    try:
+        uM = float(tox["herg_ic50_uM"])
+    except (TypeError, ValueError):
+        raise TransformError("herg_ic50_uM is not numeric in %s: %r" % (path, tox.get("herg_ic50_uM")))
+    if math.isnan(uM) or math.isinf(uM) or uM <= 0:
+        raise TransformError("herg_ic50_uM non-finite/non-positive in %s: %r" % (path, uM))
+    return repr(round(uM * 1000.0, 3))  # nM
+
+
 REGISTRY = {
     "smiles_file_to_json_list": smiles_file_to_json_list,
     "pocket_json_to_box_center": pocket_json_to_box_center,
+    "admet_toxicity_to_herg_ic50_nM": admet_toxicity_to_herg_ic50_nM,
 }  # type: Dict[str, Callable[[str, dict], Any]]
 
 
