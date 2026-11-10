@@ -17292,8 +17292,8 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
     if (typeof markdown !== 'string' || !markdown.trim()) {
       return res.status(400).json({ error: 'markdown (non-empty string) required' });
     }
-    if (fmt !== 'pptx' && fmt !== 'pdf') {
-      return res.status(400).json({ error: `Unsupported format: ${fmt} (pptx|pdf)` });
+    if (fmt !== 'pptx' && fmt !== 'pdf' && fmt !== 'docx') {
+      return res.status(400).json({ error: `Unsupported format: ${fmt} (pptx|docx|pdf)` });
     }
     const { writeFileSync, readFileSync, mkdtempSync, rmSync, existsSync } = await import('node:fs');
     const os = await import('node:os');
@@ -17310,6 +17310,12 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         const ref = existsSync(refDoc) ? ` --reference-doc=${JSON.stringify(refDoc)}` : '';
         _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --slide-level=2${ref}`, { timeout: 60_000 });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      } else if (fmt === 'docx') {
+        // Word report — same bundled pandoc as the Methods DOCX export. Optional branded reference doc.
+        const refDoc = path.join(process.cwd(), 'dist', 'assets', 'biomate-reference.docx');
+        const ref = existsSync(refDoc) ? ` --reference-doc=${JSON.stringify(refDoc)}` : '';
+        _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --to=docx${ref}`, { timeout: 60_000 });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       } else {
         _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --pdf-engine=weasyprint`, { timeout: 90_000 });
         res.setHeader('Content-Type', 'application/pdf');

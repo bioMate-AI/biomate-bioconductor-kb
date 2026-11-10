@@ -252,6 +252,7 @@ export function AfterRunReport({
   // gives a clear "started" signal (PM must-fix #4, client-side portion).
   const [downloadState, setDownloadState] = useState<'idle' | 'preparing'>('idle');
   const [deckState, setDeckState] = useState<'idle' | 'preparing'>('idle');
+  const [docxState, setDocxState] = useState<'idle' | 'preparing'>('idle');
   // Item 4 (UI refinement): the two separate download links merged into one
   // "Download" control that unfolds a menu (Markdown report · PPTX deck).
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
@@ -326,6 +327,40 @@ export function AfterRunReport({
       setDownloadToast(tOr('afterrun.deck_failed', 'Deck export failed — try the markdown report'));
     } finally {
       setDeckState('idle');
+      setTimeout(() => setDownloadToast(null), 4000);
+    }
+  };
+  // Export the same comprehensive report as a Word document (.docx), rendered
+  // on-prem by Pandoc on the server — data never leaves the estate.
+  const handleDownloadDocx = async () => {
+    if (docxState !== 'idle') return;
+    setDocxState('preparing');
+    try {
+      const md = buildFullReportMarkdown({
+        runId, workflowName, parameters, outputs,
+        methods: methods.text, qcEvents, findings, software, citations,
+      });
+      const resp = await fetch('/api/reports/convert', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown: md, format: 'docx', filename: `biomate-run-${runId}` }),
+      });
+      if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `biomate-run-${runId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadToast(tOr('afterrun.docx_downloaded', 'Word report (DOCX) downloaded — check your browser'));
+    } catch {
+      setDownloadToast(tOr('afterrun.docx_failed', 'Word export failed — try the markdown report'));
+    } finally {
+      setDocxState('idle');
       setTimeout(() => setDownloadToast(null), 4000);
     }
   };
@@ -422,6 +457,17 @@ export function AfterRunReport({
                 <button
                   type="button"
                   role="menuitem"
+                  onClick={() => { setDownloadMenuOpen(false); handleDownloadDocx(); }}
+                  disabled={docxState !== 'idle'}
+                  style={{ ...styles.linkish, background: "none", border: "none", textAlign: 'left', padding: '7px 10px', borderRadius: 6, cursor: docxState === 'idle' ? "pointer" : "default", opacity: docxState === 'idle' ? 1 : 0.6 }}
+                  title={tOr('afterrun.download_docx_title', 'Export this report as a Word document (.docx), rendered on-prem — no external service')}
+                  data-testid="afterrun-download-docx"
+                >
+                  ↓ {docxState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_docx', 'Word report (DOCX)')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => { setDownloadMenuOpen(false); handleDownloadDeck(); }}
                   disabled={deckState !== 'idle'}
                   style={{ ...styles.linkish, background: "none", border: "none", textAlign: 'left', padding: '7px 10px', borderRadius: 6, cursor: deckState === 'idle' ? "pointer" : "default", opacity: deckState === 'idle' ? 1 : 0.6 }}
@@ -495,12 +541,20 @@ export function AfterRunReport({
               {qcEvents.some(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')) && (
                 <section data-testid="completed-qc-findings" style={{ marginTop: 12 }}>
                   <h3 style={{ fontSize: 13, fontWeight: 600 }}>{tOr('afterrun.qc_findings', 'QC findings')}</h3>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead><tr><th align="left">Check</th><th align="left">Observed</th><th align="left">Flag condition</th><th align="left">Result</th></tr></thead>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+                    <colgroup><col /><col style={{ width: 72 }} /><col style={{ width: 104 }} /><col style={{ width: 88 }} /></colgroup>
+                    <thead><tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <th align="left" style={{ whiteSpace: 'nowrap', padding: '4px 6px', fontWeight: 600, color: 'var(--text-muted)' }}>Check</th>
+                      <th align="left" style={{ whiteSpace: 'nowrap', padding: '4px 6px', fontWeight: 600, color: 'var(--text-muted)' }}>Observed</th>
+                      <th align="left" style={{ whiteSpace: 'nowrap', padding: '4px 6px', fontWeight: 600, color: 'var(--text-muted)' }}>Flag condition</th>
+                      <th align="left" style={{ whiteSpace: 'nowrap', padding: '4px 6px', fontWeight: 600, color: 'var(--text-muted)' }}>Result</th>
+                    </tr></thead>
                     <tbody>{qcEvents.filter(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')).map((e, i) => (
                       <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td>{e.gate ?? '—'}<div style={{ color: 'var(--text-muted)', fontSize: 11, overflowWrap: 'anywhere' }}>{qcSourceName(e)}</div>{e.message && <div style={{ fontSize: 11 }}>{e.message}</div>}</td><td>{e.measured ?? '—'}</td>
-                        <td>{e.operator ? `${e.operator} ` : ''}{e.threshold ?? '—'}</td><td>{qcResultLabel(e.status)}</td>
+                        <td style={{ padding: '4px 6px', overflowWrap: 'anywhere' }}>{e.gate ?? '—'}<div style={{ color: 'var(--text-muted)', fontSize: 11, overflowWrap: 'anywhere' }}>{qcSourceName(e)}</div>{e.message && <div style={{ fontSize: 11, overflowWrap: 'anywhere' }}>{e.message}</div>}</td>
+                        <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.measured ?? '—'}</td>
+                        <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.operator ? `${e.operator} ` : ''}{e.threshold ?? '—'}</td>
+                        <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{qcResultLabel(e.status)}</td>
                       </tr>
                     ))}</tbody>
                   </table>
