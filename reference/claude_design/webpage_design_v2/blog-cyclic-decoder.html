@@ -92,6 +92,20 @@
   .footer-col ul a:hover { color:var(--accent); }
   .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
   @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+
+  /* Enrichment: head figure, results-in-brief, full-paper link */
+  .article-fig { margin:1.9rem 0; }
+  .article-fig img { border:1px solid var(--border); border-radius:var(--radius); width:100%; }
+  .article-fig figcaption { font-size:.8rem; color:var(--text-muted); margin-top:.55rem; line-height:1.5; text-align:center; }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:1.9rem 0; }
+  .stat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.15rem 1rem; text-align:center; }
+  .stat-num { font-family:var(--font-head); font-size:1.7rem; font-weight:700; color:var(--accent-light); line-height:1.1; }
+  .stat-label { font-size:.78rem; color:var(--text-muted); margin-top:.4rem; line-height:1.4; }
+  .fullpaper { background:var(--bg-card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius); padding:1.3rem 1.5rem; margin:2.25rem 0 .5rem; }
+  .fullpaper .k { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); display:block; margin-bottom:.45rem; }
+  .fullpaper .t { font-family:var(--font-head); font-size:1.12rem; color:var(--text); display:block; margin-bottom:.5rem; line-height:1.3; }
+  .fullpaper .lnk { font-size:.9rem; font-weight:700; }
+  @media(max-width:560px){ .stat-row { grid-template-columns:1fr; } }
 </style>
   <meta name="description" content="BioMate's cyclic-peptide decoder compiles the design rules — macrocycle closure, ring size, N-methyl count, molecular-weight bound and structural alerts — directly into generation, so every molecule it completes is valid by construction, delivering about three times the valid, novel yield of library enumeration at a matched sampling budget." />
   <meta name="keywords" content="cyclic peptides, macrocycles, generative models, constrained decoding, de novo molecular design, drug discovery, BioMate AI" />
@@ -164,6 +178,16 @@
     </div>
     <div class="article-body">
       <p class="lead">Cyclic peptides reach a prized middle ground between small molecules and biologics — large enough to grip flat protein–protein interfaces, yet sometimes orally available. BioMate designs them with a generator that builds the chemistry rules directly into how each molecule is produced, so what it proposes is valid before it is ever filtered.</p>
+      <figure class="article-fig">
+        <img src="images/blog-cyclic-decoder-hero.png" alt="A knowledge-aware, constraint-guaranteed decoder for cyclic peptides — study overview" loading="lazy" />
+        <figcaption>Study overview &mdash; design rules compiled directly into decoding yield molecules that are valid by construction, at roughly three times the valid, novel yield of library enumeration, and steerable toward measured permeability.</figcaption>
+      </figure>
+      <h2>Results in brief</h2>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num">&asymp;3&times;</div><div class="stat-label">valid, novel molecules vs library enumeration at a matched sampling budget</div></div>
+        <div class="stat"><div class="stat-num">0 / 900</div><div class="stat-label">valid strings discarded by the constrained decoder</div></div>
+        <div class="stat"><div class="stat-num">+&frac12; decade</div><div class="stat-label">log-P<sub>app</sub> shift when generation is steered by measured permeability</div></div>
+      </div>
       <h2>The problem with generate-then-filter</h2>
       <p>Most generative models for peptides produce candidates and then discard the ones that break the rules — macrocycle closure, ring size, N-methyl count, molecular-weight bounds, structural alerts. That wastes most of the output and leaves the validity of any given molecule to chance.</p>
       <h2>Rules compiled into the decoder</h2>
@@ -172,6 +196,12 @@
       <p>Benchmarked against tuned baselines at a matched sampling budget, the approach delivers about three times as many valid, novel molecules as enumerating a monomer library, and spans about three times as many distinct scaffolds for the same effort — evaluated under a pre-registration that fixes the metrics and controls in advance, so the result reflects capability rather than a favorable test.</p>
       <h2>Why it matters</h2>
       <p>When validity is guaranteed, the full strength of evaluation can be spent on the properties that actually decide a candidate — chemical diversity, permeability, and ultimately target activity. That is where real progress in cyclic-peptide design is won, and it is the problem BioMate is built to put front and center.</p>
+      <div class="fullpaper">
+        <span class="k">Read the full paper</span>
+        <span class="t">A knowledge-aware, constraint-guaranteed decoder for cyclic peptides</span>
+        <p style="margin:0 0 .6rem;">The complete study &mdash; methods, controls and every result &mdash; is archived open-access under CC-BY at Zenodo (doi:10.5281/zenodo.24090539).</p>
+        <a class="lnk" href="https://zenodo.org/records/24090539" target="_blank" rel="noopener">Read the full paper on Zenodo &rarr;</a>
+      </div>
     </div>
   </article>
 

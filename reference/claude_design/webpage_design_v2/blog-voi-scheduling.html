@@ -92,6 +92,20 @@
   .footer-col ul a:hover { color:var(--accent); }
   .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
   @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+
+  /* Enrichment: head figure, results-in-brief, full-paper link */
+  .article-fig { margin:1.9rem 0; }
+  .article-fig img { border:1px solid var(--border); border-radius:var(--radius); width:100%; }
+  .article-fig figcaption { font-size:.8rem; color:var(--text-muted); margin-top:.55rem; line-height:1.5; text-align:center; }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:1.9rem 0; }
+  .stat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.15rem 1rem; text-align:center; }
+  .stat-num { font-family:var(--font-head); font-size:1.7rem; font-weight:700; color:var(--accent-light); line-height:1.1; }
+  .stat-label { font-size:.78rem; color:var(--text-muted); margin-top:.4rem; line-height:1.4; }
+  .fullpaper { background:var(--bg-card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius); padding:1.3rem 1.5rem; margin:2.25rem 0 .5rem; }
+  .fullpaper .k { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); display:block; margin-bottom:.45rem; }
+  .fullpaper .t { font-family:var(--font-head); font-size:1.12rem; color:var(--text); display:block; margin-bottom:.5rem; line-height:1.3; }
+  .fullpaper .lnk { font-size:.9rem; font-weight:700; }
+  @media(max-width:560px){ .stat-row { grid-template-columns:1fr; } }
 </style>
   <meta name="description" content="A cost-aware value-of-information scheduler on BioMate decides not only which candidate to test next but which assay to run on it, across a cascade whose costs differ by orders of magnitude — turning a fixed validation cascade into an adaptive loop on real cyclic-peptide permeability and binding data." />
   <meta name="keywords" content="value of information, active learning, experimental design, assay cascade, cyclic peptides, drug discovery, BioMate AI" />
@@ -164,6 +178,16 @@
     </div>
     <div class="article-body">
       <p class="lead">A discovery program screens candidates through a cascade of assays whose costs differ by orders of magnitude — from cheap predictors to synthesis and a wet-lab measurement. BioMate decides not only which candidate to test next, but which assay to spend the next unit of budget on.</p>
+      <figure class="article-fig">
+        <img src="images/blog-voi-scheduling-hero.png" alt="Chain to loop: cost-aware value-of-information scheduling for cyclic-peptide discovery — study overview" loading="lazy" />
+        <figcaption>Study overview &mdash; a value-of-information scheduler ranks the next assay by expected decision gain per unit cost, beating cheapest-first and most-uncertain-first cascades on real cyclic-peptide campaigns.</figcaption>
+      </figure>
+      <h2>Results in brief</h2>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num">+0.201</div><div class="stat-label">cost-weighted top-10 AUC, permeability (vs a cheapest-first cascade)</div></div>
+        <div class="stat"><div class="stat-num">+0.080</div><div class="stat-label">cost-weighted top-10 AUC, binding affinity</div></div>
+        <div class="stat"><div class="stat-num">27 labs &middot; 40 targets</div><div class="stat-label">real cyclic-peptide assay cascades evaluated</div></div>
+      </div>
       <h2>The question most pipelines skip</h2>
       <p>As discovery becomes automated, the expensive decision is not only what to make but what to measure. Running every candidate through the full cascade is wasteful; running the cheapest assay first is blind to where information actually resolves a go/no-go decision. That scheduling question is usually ignored.</p>
       <h2>Value-of-information scheduling</h2>
@@ -172,6 +196,12 @@
       <p>On real cyclic-peptide assay cascades — permeability across dozens of laboratories and binding affinity across dozens of targets — the scheduler beats a fair cheapest-first cascade, judged by a cluster bootstrap over whole laboratories and targets rather than individual molecules, so the gain reflects transfer, not overfitting to one series.</p>
       <h2>Turning a fixed cascade into an adaptive one</h2>
       <p>Choosing what to measure next, not only what to make, turns a fixed validation cascade into an adaptive loop. As discovery moves toward self-driving laboratories, deciding where to spend each experiment may come to matter as much as the molecules proposed — and BioMate schedules that spend deliberately.</p>
+      <div class="fullpaper">
+        <span class="k">Read the full paper</span>
+        <span class="t">Chain to loop: cost-aware value-of-information scheduling for cyclic-peptide discovery</span>
+        <p style="margin:0 0 .6rem;">The complete study &mdash; methods, controls and every result &mdash; is archived open-access under CC-BY at Zenodo (doi:10.5281/zenodo.24090374).</p>
+        <a class="lnk" href="https://zenodo.org/records/24090374" target="_blank" rel="noopener">Read the full paper on Zenodo &rarr;</a>
+      </div>
     </div>
   </article>
 

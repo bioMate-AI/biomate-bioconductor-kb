@@ -92,6 +92,20 @@
   .footer-col ul a:hover { color:var(--accent); }
   .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
   @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+
+  /* Enrichment: head figure, results-in-brief, full-paper link */
+  .article-fig { margin:1.9rem 0; }
+  .article-fig img { border:1px solid var(--border); border-radius:var(--radius); width:100%; }
+  .article-fig figcaption { font-size:.8rem; color:var(--text-muted); margin-top:.55rem; line-height:1.5; text-align:center; }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:1.9rem 0; }
+  .stat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.15rem 1rem; text-align:center; }
+  .stat-num { font-family:var(--font-head); font-size:1.7rem; font-weight:700; color:var(--accent-light); line-height:1.1; }
+  .stat-label { font-size:.78rem; color:var(--text-muted); margin-top:.4rem; line-height:1.4; }
+  .fullpaper { background:var(--bg-card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius); padding:1.3rem 1.5rem; margin:2.25rem 0 .5rem; }
+  .fullpaper .k { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); display:block; margin-bottom:.45rem; }
+  .fullpaper .t { font-family:var(--font-head); font-size:1.12rem; color:var(--text); display:block; margin-bottom:.5rem; line-height:1.3; }
+  .fullpaper .lnk { font-size:.9rem; font-weight:700; }
+  @media(max-width:560px){ .stat-row { grid-template-columns:1fr; } }
 </style>
   <meta name="description" content="BioMate's benchmark framework uses coordinated controls — frozen-model, one-shot, shuffled-feedback and planted-shortcut — to separate real, transferable learning from the artefacts a weak method can hide behind, because trust in a verdict comes from controls, not a single headline metric." />
   <meta name="keywords" content="benchmarking, model evaluation, controls, machine learning, drug discovery, cyclic peptides, BioMate AI" />
@@ -164,6 +178,16 @@
     </div>
     <div class="article-body">
       <p class="lead">Automated discovery is only as good as the benchmark that tells you a model works. BioMate evaluates discovery models with the controls that separate real, transferable learning from the artifacts a weak method can hide behind.</p>
+      <figure class="article-fig">
+        <img src="images/blog-trustworthy-benchmarks-hero.png" alt="A benchmark framework to guide automated cyclic-peptide discovery — study overview" loading="lazy" />
+        <figcaption>Study overview &mdash; a pre-registered benchmark with permutation, ablation and placebo controls separates transferable learning from test-set luck, and a calibrated gate holds false alarms to 3&ndash;8%.</figcaption>
+      </figure>
+      <h2>Results in brief</h2>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num">3&ndash;8%</div><div class="stat-label">gate false-alarm rate, calibrated (vs 24.5&ndash;32.5% uncalibrated)</div></div>
+        <div class="stat"><div class="stat-num">+0.075</div><div class="stat-label">held-out-source ranking gain &mdash; the honest transfer signal</div></div>
+        <div class="stat"><div class="stat-num">pre-registered</div><div class="stat-label">margins, controls and verdicts fixed before the run</div></div>
+      </div>
       <h2>Why a good score is not enough</h2>
       <p>A model that ranks members of a familiar chemical series can look effective without learning anything that transfers to new chemistry or a new laboratory. Apparent gains can come from the initial predictor, from a nearby measured analogue, or from a validity check whose threshold is miscalibrated. A benchmark that doesn't control for these rewards the wrong thing.</p>
       <h2>A framework built around controls</h2>
@@ -172,6 +196,12 @@
       <p>A validity gate is only useful if it rarely cries wolf. A null-calibrated gate holds its false-alarm rate where an uncalibrated one flags clean benchmarks — while still detecting planted shortcuts. Trust in a verdict comes from controls that are themselves measured, not from a single headline metric.</p>
       <h2>The point</h2>
       <p>BioMate treats benchmark interpretation as an empirical object of study. The result is evaluation you can act on: when BioMate reports that a model learned something, the controls are there to show it is real.</p>
+      <div class="fullpaper">
+        <span class="k">Read the full paper</span>
+        <span class="t">A benchmark framework to guide automated cyclic-peptide discovery</span>
+        <p style="margin:0 0 .6rem;">The complete study &mdash; methods, controls and every result &mdash; is archived open-access under CC-BY at Zenodo (doi:10.5281/zenodo.24096974).</p>
+        <a class="lnk" href="https://zenodo.org/records/24096974" target="_blank" rel="noopener">Read the full paper on Zenodo &rarr;</a>
+      </div>
     </div>
   </article>
 

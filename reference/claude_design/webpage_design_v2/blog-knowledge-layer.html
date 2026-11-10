@@ -92,6 +92,20 @@
   .footer-col ul a:hover { color:var(--accent); }
   .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
   @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+
+  /* Enrichment: head figure, results-in-brief, full-paper link */
+  .article-fig { margin:1.9rem 0; }
+  .article-fig img { border:1px solid var(--border); border-radius:var(--radius); width:100%; }
+  .article-fig figcaption { font-size:.8rem; color:var(--text-muted); margin-top:.55rem; line-height:1.5; text-align:center; }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:1.9rem 0; }
+  .stat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.15rem 1rem; text-align:center; }
+  .stat-num { font-family:var(--font-head); font-size:1.7rem; font-weight:700; color:var(--accent-light); line-height:1.1; }
+  .stat-label { font-size:.78rem; color:var(--text-muted); margin-top:.4rem; line-height:1.4; }
+  .fullpaper { background:var(--bg-card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius); padding:1.3rem 1.5rem; margin:2.25rem 0 .5rem; }
+  .fullpaper .k { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); display:block; margin-bottom:.45rem; }
+  .fullpaper .t { font-family:var(--font-head); font-size:1.12rem; color:var(--text); display:block; margin-bottom:.5rem; line-height:1.3; }
+  .fullpaper .lnk { font-size:.9rem; font-weight:700; }
+  @media(max-width:560px){ .stat-row { grid-template-columns:1fr; } }
 </style>
   <meta name="description" content="A provenance-linked knowledge layer for cyclic-peptide design where every statement is tied to its exact source quote, with a de-circularized, held-out validation of how far its automated extension can be trusted." />
   <meta name="keywords" content="knowledge base, provenance, information extraction, large language models, cyclic peptides, drug discovery, BioMate AI" />
@@ -164,6 +178,16 @@
     </div>
     <div class="article-body">
       <p class="lead">Design systems need more than measurements and structures: they need machine-usable knowledge — how chemistry sets permeability, how peptides sit in their targets, what earlier campaigns did and why. BioMate builds a provenance-linked knowledge layer where every statement is tied to its exact source, and extracts new knowledge with a pipeline rigorous enough to trust.</p>
+      <figure class="article-fig">
+        <img src="images/blog-knowledge-layer-hero.png" alt="A knowledge-aware layer for cyclic-peptide design — study overview" loading="lazy" />
+        <figcaption>Study overview &mdash; a provenance-linked knowledge layer turns literature into machine-usable design knowledge, validated de-circularized on fresh papers by an independent five-family committee.</figcaption>
+      </figure>
+      <h2>Results in brief</h2>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num">107 &middot; 825</div><div class="stat-label">provenance-linked entries &middot; structures spanning 437 targets</div></div>
+        <div class="stat"><div class="stat-num">0.73 (&kappa; 0.68)</div><div class="stat-label">independent five-family faithfulness on held-out fresh papers</div></div>
+        <div class="stat"><div class="stat-num">0.97</div><div class="stat-label">precision at the committee-agreement gate</div></div>
+      </div>
       <h2>From text to usable rules</h2>
       <p>Existing collections give a designer data and structures, but not a design statement — "adding a hydrogen-bond donor and enlarging the ring lower permeability" — linked to its source, its evidence strength and the molecular feature it constrains. BioMate's layer provides exactly that, joining structure, property and prior-campaign knowledge in one schema with provenance on every entry.</p>
       <h2>Rigor is the hard part</h2>
@@ -172,6 +196,12 @@
       <p>Under this rigorous, decompose-then-verify pipeline, statement-level extraction precision reaches a level that makes a scaled knowledge layer dependable rather than noisy — a substantial, measured improvement over a naive first generation, with inter-model agreement to match. Reliability comes from removing the checkable failures first and gating the rest.</p>
       <h2>Provenance you can audit</h2>
       <p>Every statement in the layer carries its source identity, exact quotation, evidence tier and the feature it constrains. That is what lets a generative system consume design knowledge as a prior it can trace — and what lets a scientist audit it. BioMate builds knowledge that is usable by a program and accountable to a person.</p>
+      <div class="fullpaper">
+        <span class="k">Read more</span>
+        <span class="t">A knowledge-aware layer for cyclic-peptide design</span>
+        <p style="margin:0 0 .6rem;">The knowledge layer is detailed in a companion manuscript (in preparation). Our published cyclic-peptide work &mdash; the decoder, the value-of-information scheduler and the benchmark framework &mdash; is open-access.</p>
+        <a class="lnk" href="publications.html" target="_blank" rel="noopener">See all BioMate publications &rarr;</a>
+      </div>
     </div>
   </article>
 
