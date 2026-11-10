@@ -46,6 +46,19 @@ _FORMATS = {
 _EXT2FMT = {ext: fmt for fmt, exts in _FORMATS.items() for ext in exts}
 _DOUBLE_EXTS = ("vcf.gz", "fastq.gz", "fq.gz")
 
+# A param expecting the KEY format ALSO accepts these ``got`` formats, because the value commonly
+# ships in those containers. Keeps the gate conservative: it must never fire on a handoff that
+# actually works. SMILES routinely travel as .csv/.txt/.tsv (a column of SMILES), not only .smi;
+# csv/tsv are delimited text that tools usually read with a delimiter arg. Asymmetric where it
+# should be: a tabular file is accepted INTO an smi-param, but an .smi is not auto-accepted into a
+# strict .csv-parsing param. The real incompatibilities this gate exists for (.smi/.csv -> .sdf,
+# .pdbqt -> .pdb, .bam -> .vcf) are untouched.
+_ACCEPTS = {
+    "smi": {"csv", "tsv"},
+    "csv": {"tsv"},
+    "tsv": {"csv"},
+}
+
 # Role suffixes that don't change the declared format (ligand_sdf_file ≡ ligand_sdf).
 _ROLE_SUFFIXES = {"file", "files", "path", "paths", "input", "inputs", "output", "outputs", "dir"}
 
@@ -91,10 +104,14 @@ def expected_input_format(param_name: str, nf_text: Optional[str] = None) -> Opt
 
 
 def compatible(got_fmt: Optional[str], expected_fmt: Optional[str]) -> bool:
-    """True unless both formats are known and differ (unknown -> compatible, i.e. don't gate)."""
+    """True unless both formats are known and incompatible (unknown -> compatible, don't gate).
+
+    A format is compatible with itself and with any it is an accepted container for (``_ACCEPTS``)."""
     if expected_fmt is None or got_fmt is None:
         return True
-    return got_fmt == expected_fmt
+    if got_fmt == expected_fmt:
+        return True
+    return got_fmt in _ACCEPTS.get(expected_fmt, frozenset())
 
 
 def mismatch_message(resolved_filename: str, to_input: str, nf_text: Optional[str] = None) -> Optional[str]:
