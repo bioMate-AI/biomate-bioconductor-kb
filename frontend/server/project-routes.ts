@@ -109,7 +109,7 @@ async function _getUserRole(
   return r.rows[0].role === 'editor' ? 'editor' : 'viewer';
 }
 
-async function _isOwnerOrEditor(projectId: string, uid: string): Promise<boolean> {
+export async function _isOwnerOrEditor(projectId: string, uid: string): Promise<boolean> {
   const role = await _getUserRole(projectId, uid);
   return role === 'owner' || role === 'editor';
 }

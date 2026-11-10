@@ -153,6 +153,11 @@ describe("project-routes — registered into main router", () => {
     expect(/registerProjectRoutes\s*\}\s*=\s*await\s+import\("\.\/project-routes"\)/.test(ROUTES)).toBe(true);
     expect(/registerProjectRoutes\(app\)/.test(ROUTES)).toBe(true);
   });
+  it("launching a project-scoped run is editor-gated (viewers cannot start runs)", () => {
+    expect(ROUTES.includes("_isOwnerOrEditor")).toBe(true);
+    // the /api/workflows/execute path rejects a viewer with a 403 when request.projectId is set
+    expect(/request\.projectId[\s\S]{0,160}_isOwnerOrEditor[\s\S]{0,160}forbidden_viewer_run/.test(ROUTES)).toBe(true);
+  });
 });
 
 describe("MemoryService — new archive + delete helpers", () => {

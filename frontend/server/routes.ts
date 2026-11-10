@@ -43,7 +43,7 @@ import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
-import { _isOwnerOrMember } from "./project-routes";
+import { _isOwnerOrMember, _isOwnerOrEditor } from "./project-routes";
 import { appendComposerInstructions, appendProjectOutputRequirements } from "./chat-context";
 import { loadProjectOutputRequirementsPrompt } from "./project-instruction-settings";
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
@@ -11491,6 +11491,16 @@ ${paramLines || '(none recorded)'}`;
           message: "This workflow was not generated successfully, so it cannot be run. No compute was launched.",
           detail: genFailure.detail,
           guidance: "Refine the request and regenerate the workflow; retry once a runnable workflow is produced.",
+        });
+      }
+
+      // Role gate: launching a run against a project (uses its context/files, bills
+      // compute, writes outputs back) requires owner/editor. Viewers are read-only on
+      // compute — they can view/chat about the project but not start runs in it.
+      if (request.projectId && req.user?.id && !(await _isOwnerOrEditor(String(request.projectId), String(req.user.id)))) {
+        return res.status(403).json({
+          error: "forbidden_viewer_run",
+          message: "You have view-only access to this project, so you cannot launch runs in it. Ask an editor or the owner.",
         });
       }
 
