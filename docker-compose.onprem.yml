@@ -462,7 +462,6 @@ services:
     environment:
       NODE_ENV:    production
       PORT:        "3000"
-      DISABLE_GOOGLE_FONTS: ${DISABLE_GOOGLE_FONTS:-true}
       GALAXY_URL:  http://biomate-engine:8080
       GALAXY_API_KEY: ${GALAXY_API_KEY:-}
 
@@ -514,7 +513,7 @@ services:
       FRONTEND_URL:  ${FRONTEND_URL:-}
       # On-prem / China: strip Google Fonts CDN links at runtime (prevents white screen behind GFW).
       # vite.ts serveStatic() reads this env var and removes the links before serving index.html.
-      DISABLE_GOOGLE_FONTS: "true"
+      DISABLE_GOOGLE_FONTS: ${DISABLE_GOOGLE_FONTS:-true}
 
       # ── Workflow notifications ─────────────────────────────────────────────
       # Send email when a workflow finishes. Requires SMTP config above.

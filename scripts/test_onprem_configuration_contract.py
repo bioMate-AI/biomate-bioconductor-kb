@@ -15,7 +15,7 @@ class OnpremConfigurationContractTests(unittest.TestCase):
         names = set(re.findall(r"(?m)^\s*(?:#\s*)?((?:SLURM|NXF_K8S)_[A-Z_]+)=", template))
         self.assertGreaterEqual(len(names), 10, "fixture must contain actual documented cluster settings")
         compose = yaml.safe_load((ROOT / "docker-compose.onprem.yml").read_text())
-        backend = compose["services"]["galaxy-backend"]["environment"]
+        backend = compose["services"]["biomate-engine"]["environment"]
         for name in names:
             self.assertIn(name, backend, name)
             self.assertTrue(backend[name].startswith("${" + name + ":-"), name)
