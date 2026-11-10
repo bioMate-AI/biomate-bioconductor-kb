@@ -2,6 +2,14 @@
    Call renderShell({ active: 'home'|'services'|'newsroom'|'pricing'|'about'|'contact' }) */
 
 (function () {
+  // Ensure the square BioMate favicon shows in the browser tab on every page.
+  try {
+    if (!document.querySelector('link[rel~="icon"]')) {
+      var _fi = document.createElement("link");
+      _fi.rel = "icon"; _fi.type = "image/png"; _fi.href = "assets/favicon.png";
+      document.head.appendChild(_fi);
+    }
+  } catch (e) {}
   function svg(d, vb) {
     return `<svg viewBox="${vb || '0 0 24 24'}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   }
