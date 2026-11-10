@@ -12,6 +12,33 @@ export type RemoteFileUrlValidation =
   | { ok: true; url: URL; filename: string }
   | { ok: false; error: string };
 
+/**
+ * Rewrite a cloud share link (Google Drive, Dropbox) into a **direct-download**
+ * URL that Galaxy's server-side fetcher can pull — including large files, which
+ * browser upload chokes on. The file must be shared "anyone with the link"; a
+ * private file returns an HTML login page, which the import then surfaces as a
+ * failed fetch rather than silently importing HTML.
+ */
+export function normalizeCloudShareUrl(url: URL): URL {
+  const host = url.hostname.toLowerCase();
+  if (host === "drive.google.com" || host === "drive.usercontent.google.com" || host === "docs.google.com") {
+    // Accept /file/d/<id>/..., /d/<id>, open?id=<id>, uc?id=<id>, download?id=<id>
+    let id = url.searchParams.get("id") || "";
+    const m = url.pathname.match(/\/(?:file\/)?d\/([A-Za-z0-9_-]{10,})/);
+    if (m) id = m[1];
+    if (id) {
+      // usercontent download endpoint + confirm=t bypasses the large-file virus-scan interstitial.
+      return new URL(`https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`);
+    }
+  }
+  if (host === "www.dropbox.com" || host === "dropbox.com" || host === "dl.dropboxusercontent.com") {
+    const u = new URL(url.toString());
+    u.searchParams.set("dl", "1"); // dl=1 forces a direct download
+    return u;
+  }
+  return url;
+}
+
 export function validateRemoteFileUrl(value: unknown): RemoteFileUrlValidation {
   if (typeof value !== "string" || !value.trim()) {
     return { ok: false, error: "URL is required" };
@@ -23,6 +50,9 @@ export function validateRemoteFileUrl(value: unknown): RemoteFileUrlValidation {
   } catch {
     return { ok: false, error: "Invalid URL format" };
   }
+
+  // Cloud share links (Drive/Dropbox) → direct-download URL before the checks below.
+  url = normalizeCloudShareUrl(url);
 
   if (!SUPPORTED_PROTOCOLS.has(url.protocol)) {
     return { ok: false, error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs." };

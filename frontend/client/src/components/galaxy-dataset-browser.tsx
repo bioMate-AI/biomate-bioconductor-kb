@@ -674,6 +674,11 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
               label={tOr('datasets_dialog.url_s3_label', 'AWS S3 single file (uses your Account Settings credentials):')}
               code="s3://my-bucket/project/sample.bam"
             />
+            <ExampleRow
+              label={tOr('datasets_dialog.url_cloud_label', 'Google Drive / Dropbox (best for large files — no browser upload):')}
+              code="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
+            />
+            <p className="text-[11px] pl-[7.5rem] -mt-1">{tOr('datasets_dialog.url_cloud_help', 'Set the file to "Anyone with the link" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser.')}</p>
             <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
               <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-px">
                 <FolderArchive className="h-3 w-3 text-amber-500 shrink-0" />

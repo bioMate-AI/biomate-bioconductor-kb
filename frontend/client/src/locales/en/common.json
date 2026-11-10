@@ -1031,6 +1031,8 @@
     "load_datasets_failed": "Could not load datasets",
     "url_examples_toggle": "Examples & accepted sources",
     "history_auto_label": "Chat session",
-    "history_auto_label_dated": "Chat session · {{date}}"
+    "history_auto_label_dated": "Chat session · {{date}}",
+    "url_cloud_label": "Google Drive / Dropbox (best for large files — no browser upload):",
+    "url_cloud_help": "Set the file to \"Anyone with the link\" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser."
   }
 }
