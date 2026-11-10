@@ -155,9 +155,17 @@ paradox prompts; BioMate refused each correctly.)
   is NOT a code bug. `biomate.ai` is a separate site (/verify-email → 404) so APP_URL
   must stay dev-public. Low rate = deliverability/engagement (sender subdomain), a
   product/infra decision, not a code fix.
-- **I1/I2** — confirmed STILL LIVE: `ECONNREFUSED 127.0.0.1:8081` within 6h (none in
-  last 2h); the generate/run_code paths surface it instead of retrying. **FIX IN
-  PROGRESS this cycle** (retry/backoff on the generate + run_code paths).
+- **I1/I2** — **FIXED + deployed** (commit `aef0198c`). The GENERATION path was found
+  to already retry (galaxy-api-proxy.ts, 5 attempts) — left as-is. The real gap was
+  **run_code**, which had NO retry; both run_code sites now bounded-retry a transient
+  sidecar blip (new `transient-retry.ts`, 3 attempts ≤4.5s, aborts/genuine-errors never
+  retried, honest fallback preserved; 11 unit tests). Full suite 2644/0.
+- **I4** — **FIXED + behaviorally verified live** (commit `aef0198c`). Added the
+  Import-from-URL / Drive-Dropbox-share-link capability to the response prompt +
+  missing-input guidance. Live chat test ("my reads are on Google Drive") now returns
+  a step-by-step Import-from-URL answer ("BioMate automatically converts the Google
+  Drive share link to a direct download URL and imports the file") — no "cannot access"
+  refusal.
 - **I7** — confirmed FIXED: `no such table: workflows` has 0 occurrences in current logs.
 
 ## Top actions (highest leverage first)
