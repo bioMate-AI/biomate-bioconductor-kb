@@ -14539,18 +14539,16 @@ Rules:
                 continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
               } while (continuationToken);
               if (listed.length > 0) {
-                // These are recovery artifacts: they are in the Nextflow work
-                // directory, not the run's registered publishDir list.  Do
-                // not advertise the normal `/api/runs/:id/output/:filename`
-                // endpoint for them: that endpoint deliberately authorizes
-                // against the registry and would return a misleading 404.
-                // A caller can still see that recovery found a file, but the
-                // UI must present it as unavailable until it is published.
-                for (const file of listed) {
-                  file.download_unavailable = true;
-                  file.download_unavailable_reason =
-                    'Recovered work-directory artifact is not yet published to the run output registry.';
-                }
+                // Recovery artifacts: they live in the Nextflow task work/ dir on
+                // S3, not the registered publishDir list — publishDir is disabled
+                // on the Batch head JVM (CRT SIGSEGV avoidance, see
+                // nextflow_executor.py), so declared outputs never reach the
+                // registry. The download endpoint (/api/runs/:id/output/:name)
+                // recovers them from THIS run's own work dir (scoped + already
+                // owner/member-authorized), so they ARE downloadable; the
+                // download_url injection below wires the link. (Before 2026-11-10
+                // these were marked download_unavailable because the download
+                // endpoint couldn't serve them — it now can.)
                 outputFiles = listed;
                 console.log(`[output_files] workDir fallback: found ${listed.length} files under ${storedWorkDir}`);
               }
@@ -14882,6 +14880,72 @@ Rules:
           });
         }
       }
+      // 3c. Work-directory recovery (Batch). publishDir is disabled on the Batch
+      //     head JVM (CRT SIGSEGV avoidance), so declared outputs land only in the
+      //     task work/ dir on S3 and never reach the registry matched above — the
+      //     /output_files listing already recovers them, so a listed-but-404 file
+      //     would be an inconsistency. Mirror that listing here: scan THIS run's
+      //     own stored work dir for an exact basename match and serve it. Auth is
+      //     already enforced (owner/member, above); the scan is scoped to the run's
+      //     own workDir prefix (no cross-run / arbitrary-key access); an ambiguous
+      //     basename is rejected rather than serving an arbitrary file.
+      if (!match && !filename.includes('/') && !filename.includes('\\')) {
+        const storedWorkDir = (run as any)?.execution?.nextflowWorkDir as string | undefined;
+        const wdm = storedWorkDir && String(storedWorkDir).startsWith('s3://')
+          ? String(storedWorkDir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/)
+          : null;
+        if (wdm) {
+          const [, wdBucket, wdPrefix] = wdm;
+          const AWS = await import('@aws-sdk/client-s3');
+          const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+          const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+          const _wdS3Ep = process.env.S3_ENDPOINT_URL;
+          const wdS3 = new AWS.S3Client(_wdS3Ep ? {
+            endpoint: _wdS3Ep,
+            region: 'us-east-1',
+            forcePathStyle: S3_FORCE_PATH_STYLE,
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
+          } : {
+            region: 'us-east-1',
+            followRegionRedirects: true,
+            ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+          });
+          const hits: Array<{ key: string; size: number }> = [];
+          let wdToken: string | undefined;
+          try {
+            do {
+              const lr: any = await wdS3.send(new AWS.ListObjectsV2Command({
+                Bucket: wdBucket,
+                Prefix: `${wdPrefix}/`,
+                ContinuationToken: wdToken,
+                MaxKeys: 2000,
+              }));
+              for (const obj of (lr.Contents || [])) {
+                if (!obj.Key || obj.Key.endsWith('/')) continue;
+                if ((obj.Key.split('/').pop() || '') === filename) {
+                  hits.push({ key: obj.Key, size: obj.Size || 0 });
+                  if (hits.length > 1) break;
+                }
+              }
+              wdToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+            } while (wdToken && hits.length < 2);
+          } catch (e: any) {
+            console.warn(`[output_download] workDir recovery scan failed for ${runId}: ${e?.message || e}`);
+          }
+          if (hits.length === 1) {
+            match = { s3_uri: `s3://${wdBucket}/${hits[0].key}`, size: hits[0].size };
+          } else if (hits.length > 1) {
+            await writeAuditRow(409, null, runProjectId);
+            return res.status(409).json({
+              error: `Output filename ${filename} is ambiguous in the work directory; select a published output instead.`,
+            });
+          }
+        }
+      }
+
       if (!match) {
         await writeAuditRow(404, null, runProjectId);
         return res.status(404).json({ error: `File ${filename} not found in run ${runId}` });
