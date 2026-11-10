@@ -48,6 +48,7 @@ params.structures = '[]'
 params.chain      = ''
 params.rsa_cutoff = '0.25'
 params.min_patch  = '5'
+params.patch_radius = '12.0'   // CA-CA radius (A) for discontinuous spatial patches
 params.target     = 'EBV'
 params.outdir     = 'results'
 
@@ -64,6 +65,7 @@ process MAP_SURFACE_EPITOPES {
     output:
     tuple val(struct_id), path("${struct_id}_surface_residues.csv"), emit: residues
     tuple val(struct_id), path("${struct_id}_surface_epitopes.csv"), emit: epitopes
+    tuple val(struct_id), path("${struct_id}_discontinuous_epitopes.json"), emit: discontinuous
     tuple val(struct_id), path("${struct_id}_summary.json"),         emit: summary
     path "versions.yml",                                             emit: versions
 
@@ -74,15 +76,17 @@ process MAP_SURFACE_EPITOPES {
     export CHAIN='${params.chain}'
     export RSA_CUTOFF='${params.rsa_cutoff}'
     export MIN_PATCH='${params.min_patch}'
+    export PATCH_RADIUS='${params.patch_radius}'
 
     python3 << 'PYEOF'
-import os, json, sys, csv
+import os, json, sys, csv, math
 
 sid    = os.environ["STRUCT_ID"].strip()
 path   = os.environ["STRUCTURE"].strip()
 chain_sel = os.environ.get("CHAIN", "").strip()
 rsa_cut = float(os.environ.get("RSA_CUTOFF", "0.25") or 0.25)
 min_patch = int(float(os.environ.get("MIN_PATCH", "5") or 5))
+patch_r = float(os.environ.get("PATCH_RADIUS", "12.0") or 12.0)
 
 if not path or not os.path.exists(path):
     sys.exit("FATAL: structure file not found for %s (%r)" % (sid, path))
@@ -116,7 +120,8 @@ try:
 except Exception as e:
     sys.exit("FATAL: Shrake-Rupley SASA failed for %s: %s" % (sid, e))
 
-rows = []  # ordered residues analysed
+rows = []     # ordered residues analysed
+coords = []   # CA coordinate per row (None if absent) — for 3D discontinuous clustering
 for chain in model:
     if chain_sel and chain.id != chain_sel:
         continue
@@ -140,6 +145,11 @@ for chain in model:
             # surface-epitope score: exposed, antigenic residues score high
             "surface_score": round((rsa if rsa is not None else 0.0) * KOL[aa], 4),
         })
+        try:
+            c = res["CA"].get_coord()
+            coords.append((float(c[0]), float(c[1]), float(c[2])))
+        except Exception:
+            coords.append(None)
 
 if not rows:
     sys.exit("FATAL: no standard amino-acid residues analysed for %s "
@@ -187,9 +197,53 @@ with open("%s_surface_epitopes.csv" % sid, "w", newline="") as fh:
     for p in patches:
         w.writerow({k: p.get(k) for k in cols})
 
+# --- DISCONTINUOUS (spatial-neighbour) conformational epitope patches --------
+# True conformational B-cell epitopes are residues brought together in 3D by the
+# fold, not necessarily adjacent in sequence. Greedily grow patches: seed on the
+# most antigenic exposed residue, gather every exposed residue within patch_r (A)
+# CA-CA of the seed, mark them used, repeat. n_sequence_segments>1 => genuinely
+# discontinuous. Real geometry (actual coordinates), not a trained predictor.
+cand = [i for i in range(len(rows)) if rows[i]["exposed"] and coords[i] is not None]
+cand.sort(key=lambda i: rows[i]["surface_score"], reverse=True)
+used = set()
+disc = []
+for seed in cand:
+    if seed in used:
+        continue
+    members = [j for j in cand if j not in used and math.dist(coords[seed], coords[j]) <= patch_r]
+    if len(members) < min_patch:
+        continue
+    for j in members:
+        used.add(j)
+    rseqs = sorted(rows[j]["resseq"] for j in members)
+    n_seg = 1 + sum(1 for k in range(1, len(rseqs)) if rseqs[k] != rseqs[k-1] + 1)
+    disc.append({
+        "seed": {"chain": rows[seed]["chain"], "resseq": rows[seed]["resseq"], "aa": rows[seed]["aa"]},
+        "n_residues": len(members),
+        "n_sequence_segments": n_seg,           # >1 = truly discontinuous
+        "discontinuous": n_seg > 1,
+        "mean_rsa": round(sum(rows[j]["rsa"] for j in members)/len(members), 4),
+        "mean_surface_score": round(sum(rows[j]["surface_score"] for j in members)/len(members), 4),
+        "residues": [{"chain": rows[j]["chain"], "resseq": rows[j]["resseq"], "aa": rows[j]["aa"],
+                      "rsa": rows[j]["rsa"], "surface_score": rows[j]["surface_score"]} for j in members],
+    })
+disc.sort(key=lambda p: p["mean_surface_score"], reverse=True)
+for rank, p in enumerate(disc, 1):
+    p["rank"] = rank
+with open("%s_discontinuous_epitopes.json" % sid, "w") as fh:
+    json.dump({"structure_id": sid, "patch_radius_A": patch_r, "n_patches": len(disc),
+               "n_truly_discontinuous": sum(1 for p in disc if p["discontinuous"]),
+               "note": "Spatial-neighbour conformational B-cell epitope patches from real CA-CA geometry "
+                       "(exposed antigenic residues within %.1f A of a seed). n_sequence_segments>1 means the "
+                       "patch spans sequence-distant residues brought together by the fold. Geometric, not a "
+                       "trained predictor (DiscoTope); confirm by ELISA/neutralization." % patch_r,
+               "patches": disc}, fh, indent=2)
+
 n_exposed = sum(r["exposed"] for r in rows)
 summary = {
     "structure_id": sid, "target": os.environ.get("TARGET", ""),
+    "n_discontinuous_epitopes": len(disc),
+    "n_truly_discontinuous": sum(1 for p in disc if p["discontinuous"]),
     "method": "Shrake-Rupley SASA (biopython) + Tien 2013 relative-SASA + Kolaskar antigenicity",
     "n_residues": len(rows),
     "n_exposed": n_exposed,
@@ -208,7 +262,7 @@ summary = {
 }
 with open("%s_summary.json" % sid, "w") as fh:
     json.dump(summary, fh, indent=2)
-print(json.dumps({k: summary[k] for k in ("structure_id","n_residues","n_exposed","n_surface_epitopes","status")}, indent=2))
+print(json.dumps({k: summary[k] for k in ("structure_id","n_residues","n_exposed","n_surface_epitopes","n_discontinuous_epitopes","status")}, indent=2))
 PYEOF
 
     cat <<-END_VERSIONS > versions.yml
@@ -230,6 +284,7 @@ workflow SURFACE_EPITOPE_MAPPING {
     emit:
     residues = MAP_SURFACE_EPITOPES.out.residues
     epitopes = MAP_SURFACE_EPITOPES.out.epitopes
+    discontinuous = MAP_SURFACE_EPITOPES.out.discontinuous
     summary  = MAP_SURFACE_EPITOPES.out.summary
     versions = MAP_SURFACE_EPITOPES.out.versions
 }

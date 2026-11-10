@@ -79,6 +79,25 @@ discontinuous spatial clustering (a stated future increment). Shortlist to confi
 is already a real liability scanner (aggregation/CamSol, deamidation NG/NS/DG, oxidation, pI, FcRn half-life).
 An earlier "descriptor-only" read was wrong; do not duplicate it.
 
+## 3b. Discontinuous (spatial-neighbour) conformational epitopes + real gp350 validation (2026-11-10)
+
+`surface_epitope_mapping` now also emits **discontinuous conformational patches**: using the real CA
+coordinates, it greedily clusters exposed antigenic residues within `params.patch_radius` (default 12 Å)
+of a seed, so a patch can span sequence-distant residues brought together by the fold
+(`n_sequence_segments > 1` = genuinely discontinuous). New output `<id>_discontinuous_epitopes.json`.
+Honest: real 3D geometry, not a trained predictor (DiscoTope).
+
+**Validated on REAL EBV gp350** (identical Python to the container, run in a biopython env):
+- **Structure** — PDB **2H6O** (gp350 N-terminal/CR2-binding domain, 440 res): 198 exposed, 8 linear
+  surface patches, **23 discontinuous patches (21 truly discontinuous)**. E.g. rank 2 seeds on Ile255 and
+  gathers 10 residues across 4 sequence segments — a 3D-clustered epitope the sequence-only path misses.
+- **Sequence** — UniProt **P03200** gp350 (907 res): **25 linear B-cell epitopes**; top regions in the
+  hydrophilic membrane-proximal stalk (chemically sensible; in vivo glycan-shielded — why the structure/SASA
+  path complements the sequence path, and why both carry the "confirm by ELISA/neutralization" guard).
+
+A full AWS-Batch run only re-confirms container execution (image + biopython already verified); the science
+was validated here on real gp350 data.
+
 ## 4. Next (by priority)
 1. **Both new workflows on dev** against real EBV antigens (fold → surface_epitope_mapping; bcell linear path); sanity-check vs known gp350 neutralizing regions.
 2. **Discontinuous (spatial-neighbour) conformational epitopes** — cluster exposed antigenic residues by 3D proximity (true DiscoTope-style), beyond today's sequence-contiguous patches.
