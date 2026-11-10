@@ -44,7 +44,8 @@ import { selectReferencedDatasets, type DatasetReference } from "./dataset-refer
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
 import { _isOwnerOrMember } from "./project-routes";
-import { appendComposerInstructions } from "./chat-context";
+import { appendComposerInstructions, appendProjectOutputRequirements } from "./chat-context";
+import { loadProjectOutputRequirementsPrompt } from "./project-instruction-settings";
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
@@ -6519,6 +6520,21 @@ ${commonTail}
 N. REFERENCES — Relevant tool citations with PMIDs.`;
         }
 
+        // Honor the project's saved output-format requirements (Instructions →
+        // Output formats) so the DOWNLOADED report follows them (e.g. "findings
+        // first, ≤200 words, 300 dpi greyscale figures"). Read server-side from
+        // the run's project — no browser threading needed. No setting ⇒ the
+        // prompt is unchanged (rule-first, safe).
+        try {
+          const _outReqPrompt = await loadProjectOutputRequirementsPrompt((run as any)?.projectId);
+          if (_outReqPrompt) {
+            USER = `${USER}
+
+=== PROJECT OUTPUT REQUIREMENTS (apply to this deliverable; do not fabricate data to satisfy a format) ===
+${_outReqPrompt}`;
+          }
+        } catch { /* non-fatal — report still generates without the overrides */ }
+
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
         // ── Step-by-step report generation with Claude Sonnet 4.5 ─────────────
@@ -7035,6 +7051,25 @@ ${paramLines || '(none recorded)'}`;
           }
         } catch {
           // Non-fatal — never break chat on an instruction lookup failure.
+        }
+      }
+
+      // Output-format requirements the user saved on the project (Instructions →
+      // Output formats). The browser composer threads these as composerInstructions,
+      // but MCP / programmatic / other callers never do — so read them server-side
+      // and merge them into the project context. appendProjectOutputRequirements
+      // dedupes against composerInstructions so the chat composer path is never
+      // double-injected. No setting ⇒ no change.
+      if (_resolvedProjectId) {
+        try {
+          const _outReqPrompt = await loadProjectOutputRequirementsPrompt(_resolvedProjectId);
+          _projectContext = appendProjectOutputRequirements(
+            _projectContext,
+            _outReqPrompt,
+            context?.composerInstructions,
+          );
+        } catch {
+          // Non-fatal — never break chat on an output-requirements lookup failure.
         }
       }
 
@@ -16664,8 +16699,16 @@ Rules:
             `outputNumbers.size=${outputNumbers.size}`
           );
 
-          const SYSTEM = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
+          // Project output-format requirements (Instructions → Output formats),
+          // read server-side from the run's project. Applied as soft guidance to
+          // the narrative `summary` prose (length / ordering / emphasis) — the
+          // JSON schema and the strict grounding rules below still win. No setting
+          // ⇒ empty, so the prompt is unchanged.
+          let _findingsOutReq = '';
+          try { _findingsOutReq = await loadProjectOutputRequirementsPrompt((run as any)?.projectId); } catch { /* non-fatal */ }
 
+          const SYSTEM = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
+${_findingsOutReq ? `\nPROJECT OUTPUT REQUIREMENTS — apply to the "summary" prose (length, ordering, emphasis) where they fit a short findings narrative; NEVER fabricate numbers or restructure the JSON to satisfy them:\n${_findingsOutReq}\n` : ''}
 STRICT GROUNDING RULES — violations will be rejected:
 1. Every numeric value in key_results MUST appear verbatim in the provided output files.
 2. Do NOT invent, estimate, or round values not present in the files.

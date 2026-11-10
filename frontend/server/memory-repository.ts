@@ -162,15 +162,41 @@ export class UserMemoryRepository {
   }
 
   /**
-   * Get user's correction history for learning
+   * Get user's correction history for learning.
+   *
+   * Project scoping (the `projectId` argument):
+   *   - `undefined` (default): NO scoping — every correction for the user,
+   *     regardless of project. Used by account-level callers
+   *     (loadUserContext, the /api/memory/user/corrections endpoint) that are
+   *     not tied to one project.
+   *   - `null`: a project-less chat session — return ONLY the user's
+   *     project-agnostic (project_id IS NULL / account-level) corrections, so a
+   *     correction made inside some project never leaks into a generic session.
+   *   - a project id string: return corrections made in THAT project PLUS the
+   *     user's project-agnostic corrections, and never another project's. This
+   *     is the standing-context path (chat scoped to project A must not see
+   *     project B's routing corrections).
    */
   async getUserCorrections(
     userId: string,
-    limit: number = 20
+    limit: number = 20,
+    projectId?: string | null
   ): Promise<CorrectionLogEntry[]> {
+    const userCond = eq(ltmSchema.correctionLog.userId, userId);
+    // Build the project-scope predicate. `undefined` → no extra predicate.
+    const scopeCond =
+      projectId === undefined
+        ? undefined
+        : projectId === null
+        ? sql`${ltmSchema.correctionLog.projectId} IS NULL`
+        : or(
+            eq(ltmSchema.correctionLog.projectId, projectId),
+            sql`${ltmSchema.correctionLog.projectId} IS NULL`
+          );
+    const whereCond = scopeCond ? and(userCond, scopeCond) : userCond;
     return db.select()
       .from(ltmSchema.correctionLog)
-      .where(eq(ltmSchema.correctionLog.userId, userId))
+      .where(whereCond)
       .orderBy(desc(ltmSchema.correctionLog.createdAt))
       .limit(limit);
   }

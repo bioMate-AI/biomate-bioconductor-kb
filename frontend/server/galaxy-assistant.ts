@@ -754,6 +754,13 @@ export interface ChatContext {
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
+  /**
+   * The active project id (uuid) this chat is scoped to, or undefined when the
+   * chat is project-less. Set by routes.ts from the server-resolved project
+   * (`_resolvedProjectId`). Used to scope standing project memory — e.g. routing
+   * corrections — so a correction made in project A never surfaces in project B.
+   */
+  projectId?: string;
   /** When the user has a run's report open in the panel, the client may pass the
    *  exact markdown it is showing (buildFullReportMarkdown) + that run's id. The
    *  edit_report tool uses this as the faithful base so a chat edit forks from
@@ -4206,11 +4213,21 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
   /**
    * P2 — Build a correction context block from the user's correction history.
    * Formats past corrections as routing constraints to inject before intent analysis.
+   *
+   * Project-scoped: when `projectId` is a project id, only that project's
+   * corrections plus the user's project-agnostic ones are used (a correction
+   * made in project A never surfaces in project B). When `projectId` is null
+   * (a project-less session) only account-level corrections are used. When
+   * undefined, scoping is left to the repository default (all corrections).
+   *
    * Non-fatal: returns empty string on any error.
    */
-  private async _buildCorrectionContextBlock(userId: string): Promise<string> {
+  private async _buildCorrectionContextBlock(
+    userId: string,
+    projectId?: string | null
+  ): Promise<string> {
     try {
-      const corrections = await memoryService.users.getUserCorrections(userId, 5)
+      const corrections = await memoryService.users.getUserCorrections(userId, 5, projectId)
         .catch(() => []);
       if (!corrections.length) return '';
 
@@ -4230,6 +4247,29 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
 
       if (!lines.length) return '';
       return `[User routing corrections — apply these preferences when selecting workflows]\n${lines.join('\n')}\n\n`;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Standing long-term-memory prefix injected on EVERY turn (not first-message-only).
+   *
+   * Today this is the project-scoped routing-corrections block. It lives here —
+   * separate from the first-message cross-session / episode recall — because
+   * corrections are a persistent user constraint the model must honour on every
+   * message, not a one-time session primer. Project scoping flows straight
+   * through: `context.projectId` (undefined when the chat is project-less, in
+   * which case we pass `null` so only account-level corrections surface, never
+   * another project's).
+   *
+   * Non-fatal: returns '' on any error or when there is no user.
+   */
+  private async _buildStandingLtmPrefix(context: ChatContext): Promise<string> {
+    if (!context.userId) return '';
+    try {
+      const projectId = context.projectId ?? null;
+      return await this._buildCorrectionContextBlock(String(context.userId), projectId);
     } catch {
       return '';
     }
@@ -4846,24 +4886,30 @@ Rules:
         context = { ...context, ltmContextBlock: runsBlock + (context.ltmContextBlock || '') };
         log('Universe: recent runs (status + outputs + failed-run diagnosis) injected as standing context');
       }
+      // P2 routing corrections are STANDING context on EVERY turn (not
+      // first-message-only): they are a persistent user constraint the model
+      // must honour on every message, and they are PROJECT-SCOPED via
+      // context.projectId so a correction made in project A never surfaces in
+      // project B (project-less sessions see only account-level corrections).
+      const standingLtm = await this._buildStandingLtmPrefix(context).catch(() => '');
+      if (standingLtm) {
+        context = { ...context, ltmContextBlock: standingLtm + (context.ltmContextBlock || '') };
+        log('Universe: project-scoped routing corrections injected as standing context');
+      }
     }
-    // First-message-only memory blocks (cross-session recall, episode memory,
-    // correction constraints). Runs are no longer here — they are standing context above.
+    // First-message-only memory blocks (cross-session recall, episode memory).
+    // Runs and routing corrections are no longer here — they are standing
+    // context above (corrections moved out of this first-message gate).
     if (isFirstMessage && context.userId) {
       const uid = String(context.userId);
       try {
-        const [crossSessionBlock, episodeBlock, correctionBlock] =
+        const [crossSessionBlock, episodeBlock] =
           await Promise.all([
             this._buildCrossSessionContextBlock(message, uid),
             this._buildEpisodeMemoryBlock(message, uid),          // P1
-            this._buildCorrectionContextBlock(uid),               // P2
           ]);
 
         let prefix = '';
-        if (correctionBlock) {
-          prefix += correctionBlock;
-          log('P2 correction context injected for user ' + uid);
-        }
         if (episodeBlock) {
           prefix += episodeBlock;
           log('P1 episode memory injected for user ' + uid);
