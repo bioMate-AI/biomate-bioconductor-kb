@@ -83,34 +83,34 @@ threaded into the research payload). Humanitas and ibch.ru also hit real run err
 - **Test:** a run-problem query must return run-grounded diagnosis (status/step/log),
   not a literature deflection.
 
-### I9 — Email verification not completing · HIGH · SYSTEMIC · ROOT CAUSE FOUND (config)
-**46 of 47 organic users are unverified** (only one gmail verified) — a ~2% rate,
-abnormally low for "sent + delivered," which pointed at deliverability/link, not
-engagement. **Tested live and found a concrete configuration root cause:**
-- Registration DOES send the email (`auth-service.sendVerificationEmail`,
-  fire-and-forget → SES). SES is in **production** (not sandbox) and verifiably
-  delivers to external domains (observed: a `…@163.com` recipient got platform mail).
-- **But the production stack's email config points at the DEV subdomain:**
-  - `EMAIL_FROM = noreply@dev-public.biomate.ai` (sender looks like a dev/test
-    address → lower inbox trust / spam placement).
-  - `APP_URL = https://dev-public.biomate.ai` → every verify link is
-    `https://dev-public.biomate.ai/verify-email?token=…`, i.e. a **different domain**
-    than the `biomate.ai` a user signed up on (confusing; some users won't click a
-    dev-looking link; mismatched-domain cookies/redirects).
-  - **Both `biomate.ai` and `dev-public.biomate.ai` are already verified SES domains**
-    (sending enabled), so the fix needs **no new infra** — only config.
-- Secondary: the send is fire-and-forget with `.catch(() => {})`, so per-recipient
-  send failures are **silently swallowed** — no telemetry to distinguish "not
-  delivered" from "not clicked."
-- **Fix (config only — the user's call, since biomate.ai is the canonical product
-  URL): on the production frontend set `EMAIL_FROM=noreply@biomate.ai` and
-  `APP_URL=https://biomate.ai`** so verification mail comes from, and links to, the
-  real domain. Also log the verification-send outcome instead of swallowing it. NOT
-  changed autonomously — it's production, outward-facing (every user's email), and
-  "which domain is canonical" is a product decision.
-- **Test to confirm after the fix:** register a deliverable address → the email
-  arrives from `@biomate.ai` with a `biomate.ai/verify-email?token=…` link → clicking
-  flips `email_verified` true.
+### I9 — Email verification not completing · HIGH · SYSTEMIC · TESTED: not a code bug
+**46 of 47 organic users are unverified** (~2%). **Tested the full loop live on dev
+(2026-11-10):**
+- Registration/resend DOES send the email — `POST /api/auth/resend-verification`
+  for the fixture returned 200 and the frontend logged
+  `[EmailService] SES sent to …@163.com: Verify Your BioMate Account`. SES is in
+  **production** (not sandbox) and delivers to external domains. ✅
+- The verify LINK is `${APP_URL}/verify-email?token=…` with
+  `APP_URL=https://dev-public.biomate.ai` — **which is where the app actually lives**:
+  `dev-public.biomate.ai/verify-email` → 200. (Correction to an earlier note:
+  `biomate.ai` is a SEPARATE site — different title, and `/verify-email` → 404 there.
+  So APP_URL=dev-public is CORRECT; pointing it at biomate.ai would BREAK the link.) ✅
+- `verify-email` + `verifyEmail()` + `resend-verification` are all implemented and
+  wired (guarded by `auth-fixes-20260612.test.ts`).
+So send and link both work — **the low rate is NOT a broken flow/link/send.** It is
+**deliverability / engagement**, and the most suspicious factor is the sender
+`noreply@dev-public.biomate.ai` — a dev-looking subdomain that invites spam
+placement. (The fixture itself is unverified because E2E tests never click the email
+link — expected for a test account, and not representative of real users.)
+- **This is a product/infra decision, not a code fix:** choose a trustworthy sending
+  identity (e.g. `noreply@biomate.ai`, a verified SES domain — the From domain is
+  independent of APP_URL, so this does NOT require moving the app), and confirm
+  SPF/DKIM/DMARC alignment for it. Keep `APP_URL=dev-public.biomate.ai` (or move the
+  app to a cleaner host) so the link stays valid. Then measure the delivered→clicked
+  rate. NOT changed autonomously — outward-facing email on the real stack.
+- Minor: `auth-service` wraps the send in `.catch(() => {})`, but `email-service`
+  itself logs `SES sent` / `SES send failed`, so per-send outcomes ARE visible in the
+  frontend log — observability is adequate.
 
 ### I10 — Post-signup churn · MEDIUM · onboarding
 ~13 organic users (incl. Harvard, Houston Methodist, UTHealth, Tsinghua) registered
@@ -150,19 +150,22 @@ paradox prompts; BioMate refused each correctly.)
 | I12 citation friction | WAI | none (keep) |
 
 ## Live-test results this pass (2026-11-10)
-- **I9** — root-caused to config: prod `EMAIL_FROM`/`APP_URL` point at the dev
-  subdomain (`dev-public.biomate.ai`); both domains are SES-verified; send is wired
-  but fire-and-forget. Concrete, infra-free fix below.
+- **I9** — TESTED end-to-end: resend → `SES sent … Verify Your BioMate Account`;
+  verify link (`dev-public.biomate.ai/verify-email`) → 200. Send + link both WORK; it
+  is NOT a code bug. `biomate.ai` is a separate site (/verify-email → 404) so APP_URL
+  must stay dev-public. Low rate = deliverability/engagement (sender subdomain), a
+  product/infra decision, not a code fix.
 - **I1/I2** — confirmed STILL LIVE: `ECONNREFUSED 127.0.0.1:8081` within 6h (none in
-  last 2h); the generate/run_code paths surface it instead of retrying.
+  last 2h); the generate/run_code paths surface it instead of retrying. **FIX IN
+  PROGRESS this cycle** (retry/backoff on the generate + run_code paths).
 - **I7** — confirmed FIXED: `no such table: workflows` has 0 occurrences in current logs.
 
 ## Top actions (highest leverage first)
-1. **I9 verification config** — set `EMAIL_FROM=noreply@biomate.ai` +
-   `APP_URL=https://biomate.ai` on the production frontend (both domains already
-   SES-verified; no new infra), and log send outcomes. This is the single
-   highest-leverage organic fix; it's production email config, so confirm before
-   applying.
+1. **I9 deliverability** — the flow works; improve inbox placement by sending
+   verification from a trustworthy identity (`noreply@biomate.ai`, already a verified
+   SES domain) instead of `noreply@dev-public.biomate.ai`, with SPF/DKIM/DMARC
+   aligned; keep APP_URL on the real app host. Product/infra call — confirm before
+   changing outward-facing email.
 2. **I1/I2 connectivity resilience** — extend the execution retry to the
    workflow-generation and run_code paths so a transient Galaxy refusal doesn't become
    a user-visible "could not generate workflow."
