@@ -1,14 +1,39 @@
-# Batch job-role + IMDS hardening — audit + ready-to-apply plan (2026-11-10)
+# Batch job-role + IMDS hardening — APPLIED + verified (2026-11-10)
 
-**Status: AUDITED, NOT APPLIED.** The app-level control (mandatory, fail-closed
-source pre-check on uploads — commit `e0bd9e01`) is shipped. The infra hardening
-below is defense-in-depth for running arbitrary user `.nf` on shared Batch. It
-changes IAM + the Batch launch template on **shared production** infra (account
-`399683337364`, used by all environments) and can break **every** workflow run
-(catalog + uploaded) if mis-scoped. It was deliberately NOT applied autonomously
-overnight (unverifiable against real cross-bucket workflows with no one to catch a
-breakage). Apply in a supervised daytime window with the verification + rollback
-below.
+**Status: APPLIED + VERIFIED (supervised).** All three layers are now live:
+1. **Mandatory fail-closed source pre-check** on uploads (`e0bd9e01`) — proven: a
+   probe containing `169.254.169.254` was refused at execute (the `cloud_metadata_ip`
+   block rule), surfaced as a failed start, never dispatched.
+2. **Scoped task role** `biomate-nextflow-task-role` (S3 `GalaxyNextflowS3Access` +
+   `KMSDecryptForS3` only — same data-plane as before; NO SSM / ECR-push / EC2) wired
+   via `aws.batch.jobRole` (`62e60035`, env-overridable `NEXTFLOW_BATCH_JOB_ROLE_ARN`).
+   Verified: probe run registered job def `nf-quay-io-biocontainers-python-3-11:5`
+   with `jobRoleArn=…/biomate-nextflow-task-role` (rev 4 was null), ran on Batch
+   `returncode=0`, output downloaded.
+3. **IMDS hop-limit=1** — launch template `lt-099eb24c4fe1b477e` **v18**
+   (`HttpTokens=required, HttpPutResponseHopLimit=1, HttpEndpoint=enabled`); CE
+   `biomate-nextflow-ce-v2` pinned to v18 (ENABLED/VALID). Verified: a clean probe
+   cold-started a fresh v18 instance and completed `returncode=0` with its output
+   downloadable — tasks work purely via the task-role endpoint, no IMDS needed.
+
+A malicious uploaded `.nf` now cannot reach the instance role: the source screen
+blocks obvious metadata access, tasks default to the scoped role (not the instance
+role), and even obfuscated code can't reach `169.254.169.254` from a container
+(hop-limit=1). No catalog-workflow regression: each run re-registers its job defs
+with the scoped role before submitting (Nextflow refreshes on config change — proven
+by the probe's rev 4→5), and the scoped S3 policy is `GalaxyNextflowS3Access`
+verbatim (identical bucket scope). It changes IAM + the Batch launch template on
+shared infra (account `399683337364`); rollback below.
+
+## Rollback (if needed)
+- IMDS: `aws batch update-compute-environment --compute-environment
+  biomate-nextflow-ce-v2 --compute-resources
+  "launchTemplate={launchTemplateId=lt-099eb24c4fe1b477e,version=17}"`.
+- jobRole: revert `62e60035` + re-sync, or set `NEXTFLOW_BATCH_JOB_ROLE_ARN=""` on
+  the galaxy container (empty → no jobRole emitted).
+
+---
+## Original audit + plan (for reference)
 
 ## Audit (all read-only, confirmed live)
 - Job queue `biomate-nextflow-queue` → CE `biomate-nextflow-ce-v2` (MANAGED, EC2,
