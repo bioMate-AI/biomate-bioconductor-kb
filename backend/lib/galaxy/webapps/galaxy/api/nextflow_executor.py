@@ -1164,6 +1164,8 @@ def _classify_failure(
     returncode: Optional[int] = None,
     duration_s: Optional[int] = None,
     task_stderr: Optional[str] = None,
+    no_tasks_ran: bool = False,
+    workflow_path: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Classify a failed run into a user-safe verdict.
 
@@ -1210,6 +1212,7 @@ def _classify_failure(
         "config_param": "user_action_required",
         "input_data": "user_action_required",
         "tool_error": "user_action_required",
+        "credential_missing": "user_action_required",  # T2: license/API key not configured
         "arch_compat": "not_fixable",     # T4: architecture mismatch (e.g. ARM64 + amd64 image)
         "workflow_code": "not_fixable",   # T4: BioMate's defect, not the user's
         "unknown": "not_fixable",
@@ -1380,6 +1383,42 @@ def _classify_failure(
                        "A step failed while running. It can resume from the last "
                        "completed step; if it recurs, a parameter change may be needed.",
                        False, "fix_and_resume")
+
+    # ── credential / license not configured ──
+    # Heuristic: workflow exited in < 25 s with no tasks ever dispatched to Batch.
+    # This signature — fast startup failure, zero task submissions — almost always
+    # means the pipeline checked for a required credential/API key at launch and
+    # aborted immediately. A plain resume repeats the same exit; the user needs to
+    # either switch to a workflow that is licensed on this deployment or ask an
+    # admin to configure the missing key.
+    _CREDENTIAL_TOOL_HINTS: dict = {
+        "boltz": ("Boltz-2", "Chai-1 (available) or ESMFold"),
+        "alphafold3": ("AlphaFold 3", "Chai-1 (available) or ESMFold"),
+        "alphafold": ("AlphaFold", "Chai-1 (available) or ESMFold"),
+        "chai1": ("Chai-1", "ESMFold (free API)"),
+        "schrodinger": ("Schrödinger", "AutoDock-Vina or Gnina (free)"),
+        "moe": ("MOE", "RDKit-based docking (free)"),
+        "simcyp": ("Simcyp", "PK-Sim (open-source PBPK)"),
+        "nonmem": ("NONMEM", "Pumas or nlmixr (open-source)"),
+    }
+    _wf_stem = Path(workflow_path).stem.lower() if workflow_path else ""
+    _cred_hint: Optional[tuple] = None
+    for _key, _hint in _CREDENTIAL_TOOL_HINTS.items():
+        if _key in _wf_stem or _key in low:
+            _cred_hint = _hint
+            break
+    if no_tasks_ran and duration_s is not None and duration_s < 25:
+        _tool_name = _cred_hint[0] if _cred_hint else "this tool"
+        _alternative = f" Try **{_cred_hint[1]}** instead." if _cred_hint else ""
+        return verdict(
+            "credential_missing",
+            f"**{_tool_name}** requires a license or API key that isn't configured "
+            f"on this deployment — the workflow exited immediately without running any "
+            f"steps.{_alternative} If you need {_tool_name}, ask your administrator "
+            f"to add the credentials in the system settings.",
+            False, "check_input",
+        )
+
     # ── unknown ──
     return verdict("unknown",
                    "The run stopped before completing. "
@@ -1475,7 +1514,15 @@ def _trigger_auto_reroute_on_failure(
         except Exception:
             pass
 
-        failure_verdict = _classify_failure("failed", log_tail, returncode, task_stderr=task_stderr)
+        _run_duration = run_meta.get("duration_s") or run_meta.get("run_duration_s")
+        _saw_tasks = run_meta.get("saw_tasks", 0)
+        failure_verdict = _classify_failure(
+            "failed", log_tail, returncode,
+            duration_s=int(_run_duration) if _run_duration else None,
+            task_stderr=task_stderr,
+            no_tasks_ran=(_saw_tasks == 0),
+            workflow_path=failed_path,
+        )
         if not failure_verdict:
             return
 
