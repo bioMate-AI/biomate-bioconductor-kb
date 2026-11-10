@@ -295,14 +295,14 @@ export function AppSidebar({
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
-        <button className="side-link" onClick={() => { setContextProjectId(null); onNewChat(); }} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
+        <button className="side-link" onClick={() => { setContextProjectId(null); onNewChat(); }} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('chat.new_chat')}</span>
           </span>
         </button>
         {/* Data — the dataset object is a first-class surface (spec 04). */}
-        <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
+        <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.data')}</span>
@@ -312,7 +312,7 @@ export function AppSidebar({
         {/* Workflows — unified library: ranked catalog search + the user's
             uploaded/personal workflows + upload. Opens WorkflowsLibraryDialog
             (replaces the dead StarredWorkflowsDialog). */}
-        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsLibrary(true)}>
+        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsLibrary(true)}>
           <Workflow className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{tOr('nav.workflows', 'Workflows')}</span>
@@ -322,14 +322,14 @@ export function AppSidebar({
 
 
         {/* IND Report is paused — see IND_REPORT_ENABLED (feature-flags.ts). */}
-        {IND_REPORT_ENABLED && (<button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
+        {IND_REPORT_ENABLED && (<button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>IND Report</span>
           </span>
         </button>)}
 
-        <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
+        <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
           <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.models')}</span>
@@ -339,7 +339,7 @@ export function AppSidebar({
 
         {/* Billing hidden — /billing page crashes (BillingPage toFixed on undefined).
             Restore this nav entry once the page is hardened. */}
-        {/* <button className="side-link" data-testid="button-billing-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')}>
+        {/* <button className="side-link" data-testid="button-billing-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')}>
           <CreditCard className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.billing')}</span>
@@ -363,7 +363,7 @@ export function AppSidebar({
             return (
               <div key={proj.id}>
                 <button
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: selectedProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: selectedProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: selectedProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: selectedProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
                   onClick={() => { setContextProjectId(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
                   data-testid={`button-project-${proj.id}`}
                 >
@@ -379,21 +379,21 @@ export function AppSidebar({
                     {/* Project-child rows render in the design's accent blue (UI
                         refinement 1b) rather than muted gray. Active chat keeps its
                         background highlight. */}
-                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />{t("project_instructions.instructions")}</button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
+                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 'var(--fs-micro)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />{t("project_instructions.instructions")}</button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 'var(--fs-micro)', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.7 }} />
                       {t("project_instructions.files")}
                     </button>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
-                    {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 12, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
-                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
+                    {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
+                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 'var(--fs-meta)', width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
                   </div>
                 )}
               </div>
             );
           })}
           <button
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 10px', borderRadius: 5, color: 'var(--bm-text-dim)', fontSize: 11.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', marginTop: 2 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 10px', borderRadius: 5, color: 'var(--bm-text-dim)', fontSize: 'var(--fs-micro)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', marginTop: 2 }}
             onClick={onNewProject}
             data-testid="button-new-project"
           >
@@ -431,7 +431,7 @@ export function AppSidebar({
                       color: isActive ? 'var(--bm-text)' : 'var(--bm-text-muted)',
                       background: 'transparent',
                       fontWeight: isActive ? 500 : 400,
-                      fontSize: 12.5, cursor: 'pointer', border: 'none',
+                      fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none',
                       flex: 1, minWidth: 0, textAlign: 'left',
                     }}
                   >
@@ -486,7 +486,7 @@ export function AppSidebar({
           </>
         )}
         {recentChats.length === 0 && (
-          <div style={{ padding: '10px', fontSize: 12, color: 'var(--bm-text-dim)', textAlign: 'center' }}>
+          <div style={{ padding: '10px', fontSize: 'var(--fs-meta)', color: 'var(--bm-text-dim)', textAlign: 'center' }}>
             {t('No chats yet')}
           </div>
         )}
@@ -494,7 +494,7 @@ export function AppSidebar({
         {/* One Settings entry; imports and connectors live inside its panel. */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
           <button
-            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
             onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
             data-testid="button-settings-sidebar"
           >
@@ -503,7 +503,7 @@ export function AppSidebar({
           </button>
           {user?.subscriptionTier === 'admin' && (
             <button
-              style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
               onClick={() => setLocation('/admin')}
               data-testid="button-admin-dashboard"
             >
@@ -519,13 +519,13 @@ export function AppSidebar({
         <div style={{
           width: 26, height: 26, borderRadius: '50%',
           background: 'oklch(0.85 0.05 60)', color: 'oklch(0.35 0.08 60)',
-          display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0,
+          display: 'grid', placeItems: 'center', fontSize: 'var(--fs-micro)', fontWeight: 600, flexShrink: 0,
         }}>
           {user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U'}
         </div>
         <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
-          <div style={{ fontWeight: 500, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--bm-text)' }}>{user?.name || user?.email?.split('@')[0] || 'Researcher'}</div>
-          <div style={{ color: 'var(--bm-text-dim)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
+          <div style={{ fontWeight: 500, fontSize: 'var(--fs-meta)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--bm-text)' }}>{user?.name || user?.email?.split('@')[0] || 'Researcher'}</div>
+          <div style={{ color: 'var(--bm-text-dim)', fontSize: 'var(--fs-micro)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
         </div>
 
         <button
@@ -534,7 +534,7 @@ export function AppSidebar({
           title={t('nav.sign_out')}
           style={{
             flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
-            padding: '4px 8px', borderRadius: 6, fontSize: 11, color: 'var(--bm-text-muted)',
+            padding: '4px 8px', borderRadius: 6, fontSize: 'var(--fs-micro)', color: 'var(--bm-text-muted)',
           }}
         >
           {t('nav.sign_out')}
