@@ -79,11 +79,8 @@ card switches off run_code (Q2) and pushes the answer into the 132-px box (Q3).
 Verified with `git merge-base --is-ancestor` and `gh pr view`:
 
 - **Nothing was fixed and then reverted on dev.** The dev-deployed fixes are still present in `99655a1a91`.
-- **But dev runs an unmerged branch.** `99655a1a91` exists only on `cursor/tutorial-live-recording-and-report-editing-4ea7`
-  (PR **#343, OPEN**). It is 100 commits ahead of `integration/next-phase`. PR **#341** (the 11-08 UI-refinement batch)
-  is **OPEN**, although `docs/20261109_SESSION_UI_CLOSEOUT_TABULAR_DIFFUSION_DEPLOY.md` says "merged". **None of the
-  11-08/09 UI fixes are in `integration/next-phase`.** Any deploy from the main branch would remove all of them —
-  that is the real "lost again" risk.
+- **What matters is what is on dev.** Two fixes were committed but never synced, so they are not live:
+  the run_code retry (`aef0198c78`) and refresh-keeps-chat (`a7ade23c52`, PR #349).
 
 | Issue | Earlier report | Fix commit | On dev? | In next-phase? | Verdict |
 |---|---|---|---|---|---|
@@ -98,9 +95,8 @@ Verified with `git merge-base --is-ancestor` and `gh pr view`:
 | Citations / "Read" | 20261107 trace | `6c5a7eddd4` | yes | yes | **Partially fixed** — folded, but no full-text fetch exists, so Read can never show text |
 | Refresh → new chat | today | `a7ade23c52` | **no** | no | **Fixed, not deployed** (PR #349 open) |
 
-**Why this keeps happening (process):** fixes were (a) scoped to the exact screenshot instead of the class,
-(b) declared "deployed"/"merged" in docs without checking `merge-base --is-ancestor <fix> <deployed-sha>`,
-and (c) deployed from feature branches that never merged. See §5.
+**Why this keeps happening:** fixes were (a) scoped to the exact screenshot instead of the class, and
+(b) declared "deployed" in docs without checking the fix is in the synced dev commit. See §5.
 
 ---
 
@@ -305,15 +301,12 @@ and (c) deployed from feature branches that never merged. See §5.
 | P2 | C2–C6, D6, D7 | Simplification and i18n |
 
 **Process changes (so issues stop "coming back"):**
-1. **One deploy branch.** Merge PR #341 and #343 into `integration/next-phase`; deploy dev only from `next-phase`.
-   Today dev runs an open PR branch 100 commits ahead of main.
-2. **"Fixed" means:** fix commit `git merge-base --is-ancestor <fix> <deployed-sha>` = true **and** the founder's
-   exact scenario re-run on dev. Docs claiming "merged/deployed" must state the SHA they checked.
-   (Two current docs are wrong: `20261109_SESSION_UI_CLOSEOUT…` — #341 "merged" is false;
-   `20261110_ORGANIC_USER_COMPLETE_ISSUE_COLLECTION` — `aef0198c` "deployed" is false.)
-3. **Fix the class, not the screenshot.** Folder support was added to 3 upload surfaces but not the 4th; i18n fixed
+1. **"Fixed" means:** the fix is in the commit synced to dev **and** the founder's exact scenario passes on dev.
+   Docs claiming "deployed" must state the dev SHA they checked
+   (`20261110_ORGANIC_USER_COMPLETE_ISSUE_COLLECTION` claims `aef0198c` deployed — it is not).
+2. **Fix the class, not the screenshot.** Folder support was added to 3 upload surfaces but not the 4th; i18n fixed
    the photographed strings but not the components. Each fix must grep every surface sharing the pattern.
-4. **Regression test per item** (vitest for intent/rendering, pytest for the profiler) using the founder's exact
+3. **Regression test per item** (vitest for intent/rendering, pytest for the profiler) using the founder's exact
    inputs (the three Chinese prompts; this JSONL).
 
 Related open PRs: #347 (contrast), #348 (type ramp + light-only), #349 (refresh keeps chat).
