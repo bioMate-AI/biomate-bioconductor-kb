@@ -17,6 +17,7 @@ export function hasGeneratedWorkflow(workflow: any, metadata: any = {}): boolean
  */
 export function hasPendingWorkflowClarification(workflow: any, metadata: any = {}): boolean {
   return workflow?.workflow_type === 'disambiguation'
+    || workflow?.workflow_type === 'credential_required'
     || (Array.isArray(metadata?.intentClarification?.candidates) && metadata.intentClarification.candidates.length > 0)
     || (Array.isArray(metadata?.paramClarifications) && metadata.paramClarifications.length > 0)
     || (workflow?.needs_user_feedback === true && Array.isArray(workflow?.candidate_workflows) && workflow.candidate_workflows.length > 0);

@@ -5533,6 +5533,55 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                                 )
 
                 if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
+                    # ── Credential gate: if the matched workflow requires a license/API key
+                    # that isn't configured, prompt the user to enter their credentials or
+                    # switch to a free alternative instead of silently falling back.
+                    # Mapping: workflow-name fragment → (credential_map key, fallback spec)
+                    # fallback spec: (workflow_name_hint, extra_params_dict)
+                    _CRED_GATE = {
+                        "boltz":      ("boltz2",     ("structure_prediction", {"method": "chai1"})),
+                        "alphafold3": ("alphafold3",  ("structure_prediction", {"method": "chai1"})),
+                        "alphafold":  ("alphafold3",  ("structure_prediction", {"method": "chai1"})),
+                        "chai1":      ("chai1",       ("structure_prediction", {"method": "esmfold"})),
+                    }
+                    _TOOL_DISPLAY_NAMES = {
+                        "boltz2": "Boltz-2",
+                        "alphafold3": "AlphaFold 3",
+                        "chai1": "Chai-1",
+                        "esmfold": "ESMFold",
+                    }
+                    if credential_map:
+                        _match_stem = (getattr(best_match, 'name', '') or '').lower()
+                        for _frag, (_cred_key, _fallback) in _CRED_GATE.items():
+                            if _frag in _match_stem and not credential_map.get(_cred_key, True):
+                                _fb_name, _fb_params = _fallback
+                                _fb_cred_key = _fb_params.get("method")  # chai1 / esmfold
+                                _fb_cred_ok = credential_map.get(_fb_cred_key, True)
+                                # If neither the tool NOR its fallback is available, keep the
+                                # original match so the user at least sees the right name.
+                                if _fb_cred_ok:
+                                    _tool_disp = _TOOL_DISPLAY_NAMES.get(_cred_key, _frag.title())
+                                    _fb_disp   = _TOOL_DISPLAY_NAMES.get(_fb_cred_key or '', (_fb_cred_key or '').title())
+                                    log.info(
+                                        "[UnifiedWorkflowGeneration] credential gate: %s requires "
+                                        "%s — returning credential_required prompt (fallback=%s)",
+                                        best_match.name, _cred_key, _fb_cred_key,
+                                    )
+                                    return {
+                                        'success': False,
+                                        'workflow_type': 'credential_required',
+                                        'missing_credential': _cred_key,
+                                        'tool_name': _tool_disp,
+                                        'fallback_method': _fb_cred_key,
+                                        'fallback_name': _fb_disp,
+                                        'message': (
+                                            f"{_tool_disp} requires an API key or license that hasn't been configured. "
+                                            f"You can enter your credentials to run with {_tool_disp}, "
+                                            f"or switch to {_fb_disp} (available on this deployment)."
+                                        ),
+                                    }
+                                break
+
                     log.info(f"[UnifiedWorkflowGeneration] High-confidence Nextflow match: {best_match.filename}")
                     result = self._return_nextflow_match(
                         match=best_match, score=score, user_intent=user_intent,
