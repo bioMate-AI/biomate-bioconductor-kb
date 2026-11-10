@@ -12657,6 +12657,18 @@ ${paramLines || '(none recorded)'}`;
           console.error('[Nextflow Direct] Execution error:', error);
           const rawErrorMsg = error instanceof Error ? error.message : String(error);
 
+          // Classify: a non-2xx from Galaxy's execute carrying a 4xx is a CLIENT-side
+          // rejection — the workflow was REFUSED and never ran — not an infra/
+          // execution failure. The canonical case is the 422 sandbox security
+          // pre-check block on an uploaded workflow (e.g. source that touches the
+          // cloud-metadata endpoint). Such a rejection must NOT page the admin
+          // (it is an expected guardrail, not actionable), and the user should get
+          // the specific reason as a 4xx, not a generic 500 "something went wrong".
+          const _statusM = rawErrorMsg.match(/Nextflow execution failed \((\d{3})\)/);
+          const _httpStatus = _statusM ? Number(_statusM[1]) : 0;
+          const _clientRejected = _httpStatus >= 400 && _httpStatus < 500;
+          const _securityBlock = _httpStatus === 422 && /security pre-check|violation/i.test(rawErrorMsg);
+
           if (executionRun) {
             await storage.updateExecutionRun(executionRun.id, {
               execution: {
@@ -12667,7 +12679,27 @@ ${paramLines || '(none recorded)'}`;
             });
           }
 
-          // Email admin with full error details (fire-and-forget)
+          if (_clientRejected) {
+            // Pull the human reason (and any security violations) out of the
+            // Galaxy error body for a clear message; fall back to a generic line.
+            let reason = '';
+            try {
+              const jm = rawErrorMsg.match(/\{[\s\S]*\}\s*$/);
+              if (jm) {
+                const d = JSON.parse(jm[0]);
+                reason = d?.detail?.violations || d?.detail?.error || d?.error || d?.message || '';
+              }
+            } catch { /* non-JSON body → generic message */ }
+            return res.status(_securityBlock ? 422 : _httpStatus).json({
+              error: _securityBlock ? 'workflow_blocked_security' : 'workflow_rejected',
+              message: _securityBlock
+                ? `This uploaded workflow was blocked by the security pre-check and was not run.${reason ? ` Reason: ${reason}` : ''}`
+                : `The workflow could not be started.${reason ? ` ${reason}` : ''}`,
+              runId: executionRun?.id,
+            });
+          }
+
+          // Real infra/execution failure (5xx, network, unexpected) — page the admin.
           emailService.sendAdminAlert('Nextflow Execution Failed', {
             time: new Date().toISOString(),
             runId: executionRun?.id || 'n/a',
