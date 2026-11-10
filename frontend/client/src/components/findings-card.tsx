@@ -359,17 +359,17 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
                 <table className="text-xs w-full border-collapse">
                   <thead>
                     <tr className="border-b border-border/60">
-                      <th className="text-left py-1 pr-3 font-medium">{tOr('panel.findings.col_metric', 'Metric')}</th>
-                      <th className="text-left py-1 pr-3 font-medium">{tOr('panel.findings.col_value', 'Value')}</th>
+                      <th className="text-left py-1 pr-3 font-medium whitespace-nowrap">{tOr('panel.findings.col_metric', 'Metric')}</th>
+                      <th className="text-left py-1 pr-3 font-medium whitespace-nowrap">{tOr('panel.findings.col_value', 'Value')}</th>
                       <th className="text-left py-1 pr-3 font-medium">{tOr('panel.findings.col_interpretation', 'Interpretation')}</th>
-                      <th className="text-left py-1 font-medium">{tOr('panel.findings.col_source', 'Source')}</th>
+                      <th className="text-left py-1 font-medium whitespace-nowrap">{tOr('panel.findings.col_source', 'Source')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {kr.map((r, i) => (
                       <tr key={i} className="border-b border-border/30">
                         <td className="py-1 pr-3 font-medium whitespace-nowrap">{r.metric}</td>
-                        <td className="py-1 pr-3 font-mono">{r.value}</td>
+                        <td className="py-1 pr-3 font-mono whitespace-nowrap tabular-nums">{r.value}</td>
                         <td className="py-1 pr-3 text-muted-foreground">
                           {(() => {
                             const { label, text, title } = displayInterp(r, entityOrd)
@@ -385,7 +385,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
                         </td>
                         <td className="py-1 text-muted-foreground font-mono">
                           {r.source_file
-                            ? <span title={`Read from ${r.source_file}`}>{r.source_file}</span>
+                            ? <span className="inline-block max-w-[150px] truncate align-bottom" title={`Read from ${r.source_file}`}>{r.source_file}</span>
                             : <span className="opacity-40">—</span>}
                         </td>
                       </tr>
