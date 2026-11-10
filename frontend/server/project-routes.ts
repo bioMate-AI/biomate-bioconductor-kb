@@ -1141,13 +1141,21 @@ export function registerProjectRoutes(app: Express): void {
         // New (not-yet-registered) email: auto-create/reuse the project share
         // link and email it, instead of failing with 404. One invite box serves
         // both existing members and new people — no separate "generate link" step.
-        const tokRes = await pool.query(`SELECT token FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]);
+        const tokRes = await pool.query(`SELECT token, role FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]);
         let token: string = tokRes.rows[0]?.token;
         if (!token) {
           token = randomBytes(18).toString('base64url');
           await pool.query(
             `INSERT INTO project_share_tokens (project_id, token, role, created_by) VALUES ($1, $2, $3, $4)`,
             [id, token, role, uid]
+          );
+        } else if (tokRes.rows[0]?.role !== role) {
+          // The link is reused across invites, so it must carry the role THIS invite
+          // grants — otherwise the invitee joins at the old role while the email says
+          // otherwise (e.g. invited as editor, joins as viewer). Mirrors /share-link.
+          await pool.query(
+            `UPDATE project_share_tokens SET role = $1 WHERE project_id = $2 AND token = $3`,
+            [role, id, token]
           );
         }
         const inviter = await pool.query(`SELECT full_name AS "fullName", email FROM users WHERE id::text = $1`, [String(uid)]);

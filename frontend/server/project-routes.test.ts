@@ -35,7 +35,7 @@ describe("project-routes — contract", () => {
     // emailed to it (no separate "generate link" step).
     expect(SRC.includes("sendProjectInviteEmail")).toBe(true);
     // the no-user branch creates/reuses a share token and returns pending, not 404
-    expect(/if \(!invitee\.rows\.length\)\s*\{[\s\S]{0,1600}pending:\s*true/.test(SRC)).toBe(true);
+    expect(/if \(!invitee\.rows\.length\)\s*\{[\s\S]{0,2200}pending:\s*true/.test(SRC)).toBe(true);
     expect(SRC.includes("FROM project_share_tokens WHERE project_id")).toBe(true);
     // the old hard 404 for a new email must be gone
     expect(SRC.includes('"No user found with that email"')).toBe(false);
