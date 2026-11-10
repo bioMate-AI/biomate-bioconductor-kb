@@ -1,0 +1,4 @@
+rank,start,end,length,sequence,mean_composite,max_composite,mean_antigenicity,mean_hydrophilicity,mean_surface
+1,63,76,14,SLNSPKNGSNQLVI,0.534,0.9457,1.0111,2.709,1.684
+2,94,100,7,KRSSSAL,0.5175,0.6491,1.0261,2.714,1.656
+3,51,57,7,VSNQTCD,0.4533,0.711,1.0484,2.973,1.549

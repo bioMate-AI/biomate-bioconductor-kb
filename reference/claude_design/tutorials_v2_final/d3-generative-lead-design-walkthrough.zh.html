@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 用强化学习做生成式先导设计</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:60px 104px 64px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; margin-top:34px}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">生成式先导设计 — 描述你想要的分子，获得由 RL 设计的新颖候选物</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>生成式先导设计</b></div>
+    <div class="kicker">献给想要全新化学物质的药物化学家</div>
+    <h2>你还没有一个分子。BioMate 从零开始设计候选物。</h2>
+    <p class="caption lead">生成式设计不是从库里挑选，而是<b>发明</b>对准你所陈述目标的新颖候选物。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一个目标 + 一个种子骨架</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>REINVENT4 生成</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一个打分函数给出奖励</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>过滤 + 排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>排好序的候选假设</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>类药化学空间太过浩瀚，既无法枚举，也无法逐一筛选。</h2>
+    <p class="caption lead">类药空间大得近乎天文——没有任何库、筛选或算力能覆盖它。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <div class="bignum">10<sup style="font-size:.5em; vertical-align:super">60</sup></div>
+        <div class="vlabel">个可合成、类药的分子——<b>比可观测宇宙里的恒星还要多</b></div>
+        <div class="statrow">
+          <div class="stat"><div class="si">∞</div><div class="sh">无法枚举</div><div class="sp">这张清单比任何机器写得出的都长</div></div>
+          <div class="stat"><div class="si">⧉</div><div class="sh">类似物爆炸</div><div class="sp">一个骨架就衍生出数百万个变体，大多是废料</div></div>
+          <div class="stat"><div class="si">◎</div><div class="sh">靠设计去搜索</div><div class="sp">只提出新颖、可合成、对准靶点的分子</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>一个循环就是整套方法：生成、打分、学习——然后重复。</h2>
+    <p class="caption lead">生成器提出，打分函数评判，强化学习引导下一批。</p>
+    <div class="scene-body" style="justify-content:center">
+      <svg width="560" height="440" viewBox="0 0 560 440" style="display:block">
+        <defs>
+          <marker id="rlh" markerWidth="16" markerHeight="16" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,1 L11,5 L1,9" fill="none" stroke="#1a4a9c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <!-- loop arcs (clockwise): GENERATE -> SCORE -> LEARN -> GENERATE, center (280,230) r=175 -->
+        <g fill="none" stroke="#1a4a9c" stroke-width="3.4" opacity=".85">
+          <path d="M334.1,63.6 A175 175 0 0 1 451.2,266.4" marker-end="url(#rlh)"/>
+          <path d="M397.1,360 A175 175 0 0 1 162.9,360" marker-end="url(#rlh)"/>
+          <path d="M108.8,266.4 A175 175 0 0 1 225.9,63.6" marker-end="url(#rlh)"/>
+        </g>
+        <!-- nodes -->
+        <g>
+          <circle cx="280" cy="55" r="56" fill="#fff" stroke="#1a4a9c" stroke-width="2.6"/>
+          <circle cx="431.5" cy="317.5" r="56" fill="#fff" stroke="#1a4a9c" stroke-width="2.6"/>
+          <circle cx="128.5" cy="317.5" r="56" fill="#fff" stroke="#1a4a9c" stroke-width="2.6"/>
+        </g>
+        <g font-family="IBM Plex Mono,monospace" fill="#1a4a9c" font-size="14" text-anchor="middle" font-weight="600">
+          <text x="280" y="46">1</text><text x="431.5" y="308.5">2</text><text x="128.5" y="308.5">3</text>
+        </g>
+        <g font-family="IBM Plex Sans,sans-serif" fill="#101828" font-size="21" text-anchor="middle" font-weight="650">
+          <text x="280" y="70">GENERATE</text><text x="431.5" y="332.5">SCORE</text><text x="128.5" y="332.5">LEARN</text>
+        </g>
+        <g text-anchor="middle">
+          <text x="280" y="222" font-family="IBM Plex Mono,monospace" fill="#5a6474" font-size="15" letter-spacing="1.5">RL LOOP</text>
+          <text x="280" y="250" font-family="IBM Plex Sans,sans-serif" fill="#20293a" font-size="17">× several objectives</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="49.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 大白话目标 → 工作流 → 云端</div>
+    <h2>用大白话说出目标；BioMate 把它路由到一个生成式工作流。</h2>
+    <p class="caption lead">无需配置神经网络——陈述意图，BioMate 就为你搭好真实的运行。</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0; margin-top:20px">
+      <figure class="shotcol" style="flex:1.9">
+        <span class="lbl">实时产品 · BioMate 生成式模型之一 —— REINVENT4 Generative Lead Design</span>
+        <div class="frame"><img src="assets/live/generative-zh-panel.png" alt="BioMate workflow panel for REINVENT4 Generative Lead Design — inputs, synthesizability seed, output location, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话进，工作流出。</b>BioMate 的生成器之一——这里是 REINVENT4——打开它真实的参数面板。</span></li>
+          <li><span class="b gr"></span><span><b>种子骨架已预填。</b>可用你自己的骨架覆盖种子 SMILES。</span></li>
+          <li><span class="b am"></span><span><b>一键启动。</b><b>Confirm &amp; Run</b> 即在云端算力上运行。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的生成式工作流，已为你配好</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE SCORING FUNCTION -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">奖励</span> · 你朝什么方向优化</div>
+    <h2>打分函数就是目标——结果再好也不会超过它。</h2>
+    <p class="caption lead">强化学习会优化你所奖励的一切。BioMate 给出三个真实的打分函数选择。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">⚗</div><div class="sh">qed_sa</div><div class="sp">类药性 + 可合成性 · <b>默认</b>，无需靶点</div></div>
+        <div class="stat"><div class="si">⌖</div><div class="sh">docking_gnina</div><div class="sp">针对你提供的受体做 docking 构象打分 · 计算机模拟，非实测</div></div>
+        <div class="stat"><div class="si">⚙</div><div class="sh">custom_toml</div><div class="sp">你自己的 REINVENT4 奖励配方 · 完整多目标</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--blue); background:var(--blue-bg); border-color:var(--blue)">⚑ 受制于奖励</span> 你奖励什么，就得到什么——把目标定义好。</div>
+    </div>
+  </section>
+
+  <!-- 5 — THE RL OPTIMIZATION LOOP -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker"><span class="st">引擎</span> · 生成、打分、改进</div>
+    <h2>REINVENT4 运行一个循环，把生成引导向奖励。</h2>
+    <p class="caption lead">一个训练出来的策略写出 SMILES，为每个打分，再朝更高的奖励更新。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="pipeflow" style="max-width:1000px">
+        <div class="pstep"><div class="pn">1 · 提出</div><div class="pc">策略写出一批</div><div class="pt"><span class="eg">SMILES</span><span>并非枚举</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">一批</span></div>
+        <div class="pstep"><div class="pn">2 · 打分</div><div class="pc">给每个分子奖励</div><div class="pt"><span class="eg">scoring_function</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">奖励</span></div>
+        <div class="pstep"><div class="pn">3 · 更新</div><div class="pc">引导策略</div><div class="pt"><span class="eg">朝更高奖励</span></div></div>
+      </div>
+      <div class="ploop">&#8634; 重复 n_steps 次 — 默认 500（在 GPU 上约 15 分钟）</div>
+      <div class="statrow" style="max-width:920px; margin-top:28px">
+        <div class="stat"><div class="si" style="font-family:var(--ff-mono);color:var(--blue)">500</div><div class="sh">n_steps</div><div class="sp">RL 轮数 · 快速试跑用 200</div></div>
+        <div class="stat"><div class="si" style="font-family:var(--ff-mono);color:var(--blue)">128</div><div class="sh">batch_size</div><div class="sp">每轮采样的分子数</div></div>
+        <div class="stat"><div class="si" style="font-family:var(--ff-mono);color:var(--blue)">1.0</div><div class="sh">temperature</div><div class="sp">采样发散度 · 越低越保守</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">结果</span> · 排好序、过滤过的候选物</div>
+    <h2>一张排好序的新颖候选物表——每一个都带着它的分数。</h2>
+    <p class="caption lead">按类药性、PAINS 和新颖度过滤——再排序，每个分数都列出。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="vis" style="max-width:880px; gap:24px">
+        <table style="width:100%; border-collapse:collapse; font-family:var(--ff-mono)">
+          <thead><tr style="color:var(--mut); font-size:15px; letter-spacing:.06em; text-transform:uppercase">
+            <th style="text-align:left; padding:12px 16px; border-bottom:2px solid var(--line2)">候选物</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">score*</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">QED</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">SA</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">判定</th>
+          </tr></thead>
+          <tbody style="font-size:22px; color:var(--ink)">
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0001</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.94</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.71</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">2.8</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green); font-size:16px">&#10003; 接受</td></tr>
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0002</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.91</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.66</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">3.1</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green); font-size:16px">&#10003; 接受</td></tr>
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0003</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.88</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.63</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">3.4</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green); font-size:16px">&#10003; 接受</td></tr>
+            <tr><td style="padding:14px 16px; color:var(--mut); font-weight:600">BM-0014</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">0.52</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">0.31</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">5.6</td><td style="text-align:right; padding:14px 16px; color:var(--red); font-size:16px">&#10007; PAINS</td></tr>
+          </tbody>
+        </table>
+        <div class="vlabel" style="font-size:14px"><b>score*</b> 只是排序键——被拒的候选物连同原因一并保留可见。</div>
+        <div class="statrow" style="max-width:880px; margin-top:0">
+          <div class="stat"><div class="sh" style="font-family:var(--ff-mono); font-size:16px; color:var(--blue)">generated_molecules.csv</div><div class="sp" style="margin-top:6px">每一个被接受的分子，带分数</div></div>
+          <div class="stat"><div class="sh" style="font-family:var(--ff-mono); font-size:16px; color:var(--blue)">top_compounds.sdf</div><div class="sp" style="margin-top:6px">头部 N 个的三维构象</div></div>
+          <div class="stat"><div class="sh" style="font-family:var(--ff-mono); font-size:16px; color:var(--blue)">report.html</div><div class="sp" style="margin-top:6px">结构网格 + 分数随 epoch 曲线</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT RESPONSIBLY -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker">负责任地使用它</div>
+    <h2>这些是假设，不是命中——是走向实验台的起点。</h2>
+    <p class="caption lead">每个候选物都是计算机模拟的估计——一份排好优先级的实验短名单，而非答案。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">①</div><div class="sh">分流</div><div class="sp">把靠前的排名当作值得化学家留意的先导</div></div>
+        <div class="stat"><div class="si">②</div><div class="sh">合成</div><div class="sp">预测的分数不是真实的化合物——把它做出来</div></div>
+        <div class="stat"><div class="si">③</div><div class="sh">测定</div><div class="sp">在实验台上确认活性、选择性与安全性</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--amber); background:var(--amber-bg); border-color:var(--amber)">&#9873; 估计值</span> 判定哪些候选物是真的，靠实验，而非模型。</div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker">把范围讲清楚 · 你确切得到什么</div>
+    <h2>把范围讲清楚，好让你确切知道自己得到了什么。</h2>
+    <p class="caption lead">一个真实而具体的设计引擎——新颖、可合成、对准你靶点的结构。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">⌦</div><div class="sh">受制于奖励</div><div class="sp">好坏只取决于你选的打分函数</div></div>
+        <div class="stat"><div class="si">◐</div><div class="sh">学习 vs 基线</div><div class="sp">默认是真实的 RL 策略 · <code>brics</code> 是一个标明的对照项</div></div>
+        <div class="stat"><div class="si">⌖</div><div class="sh">设计引擎</div><div class="sp">BioMate 的生成器之一——也可换成其他模型</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="36.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">说出目标。获得被设计并排好序的新颖候选物。</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <p class="caption lead" style="text-align:center; margin:0 auto 26px">你定义奖励；BioMate 的生成器提出、过滤并排序新颖候选物。</p>
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · 目标</div><div class="pc">目标 + 种子骨架</div><div class="pt"><span>大白话</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">意图</span></div>
+        <div class="pstep"><div class="pn">2 · 生成</div><div class="pc">生成器提出</div><div class="pt"><span class="eg">REINVENT4</span><span>+ 其他模型</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">候选物</span></div>
+        <div class="pstep"><div class="pn">3 · 打分</div><div class="pc">奖励引导 RL</div><div class="pt"><span class="eg">qed_sa</span><span>docking · 自定义</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">分数</span></div>
+        <div class="pstep"><div class="pn">4 · 排序</div><div class="pc">过滤 + 排序</div><div class="pt"><span class="eg">类药 · 新颖</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">短名单</span></div>
+        <div class="pstep"><div class="pn">5 · 输出</div><div class="pc">排好序的候选物</div><div class="pt"><span class="eg">CSV · SDF · 报告</span></div></div>
+      </div>
+      <div class="ploop">&#8634; 候选物是假设——实验室让它们成真，循环随之改进</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

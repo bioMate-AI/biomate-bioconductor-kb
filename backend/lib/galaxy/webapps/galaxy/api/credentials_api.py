@@ -196,8 +196,11 @@ def get_license_requirements(
         # (e.g. simcyp_pbpk falls back to native PBPK; nonmem_poppk falls back to nlmixr2).
         # When has_fallback is True, the UI shows an advisory but does NOT block execution.
         has_fallback = bool(reg.get("open_alternatives")) and not reg.get("user_must_provide", True)
-        # Simcyp and NONMEM have built-in fallback scripts — override user_must_provide logic
-        if tool_id in ("simcyp", "nonmem") and reg.get("open_alternatives"):
+        # Simcyp/NONMEM/AMBER have a built-in open-source fallback the workflow runs automatically
+        # when the user supplies no credential (Simcyp->native PBPK, NONMEM->nlmixr2, AMBER
+        # pmemd->OpenMM 8). user_must_provide keeps source='none' (never a fake "provided by
+        # BioMate"), but has_fallback makes the gate advisory, not blocking.
+        if tool_id in ("simcyp", "nonmem", "amber") and reg.get("open_alternatives"):
             has_fallback = True
         requirements.append({
             "tool_id": tool_id,

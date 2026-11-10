@@ -2,7 +2,7 @@
 <tool id="biomni_bioengineering_perform_crispr_cas9_genome_editing" name="Biomni: Perform Crispr Cas9 Genome Editing" version="1.0.0">
     <description>Simulates CRISPR-Cas9 genome editing process including guide RNA design, delivery, and analysis.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/perform_crispr_cas9_genome_editing_wrapper.py' --output '$output'

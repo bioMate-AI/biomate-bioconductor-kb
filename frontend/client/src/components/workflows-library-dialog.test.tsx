@@ -1,0 +1,106 @@
+/**
+ * Workflows library — the unified surface that replaces the dead
+ * StarredWorkflowsDialog. Coverage:
+ *   1. Browse tab issues a real POST /api/ai_assistant/search_ranked and renders
+ *      the ranked results the engine returns (name, domain, score) — numbers are
+ *      rendered as returned, never invented.
+ *   2. Clicking "Run" on a result seeds the chat (reusing the established seed
+ *      path) and closes the dialog.
+ *   3. "My workflows" tab renders the user's personal/uploaded workflows from
+ *      GET /api/workflows/personal.
+ *   4. The sidebar "Workflows" entry opens the library — NOT the dead
+ *      StarredWorkflowsDialog.
+ *
+ * Only fetch is mocked (no msw, no live server).
+ */
+import React from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+vi.mock('@/lib/analytics', () => ({ analytics: { track: vi.fn() } }));
+
+import { WorkflowsLibraryDialog } from './workflows-library-dialog';
+
+const RANKED = {
+  query: 'rna-seq',
+  results: [
+    { rank: 1, name: 'nf-core/rnaseq', display_name: 'nf-core/rnaseq', description: 'Bulk RNA-seq quantification and QC.', domain: 'transcriptomics', source: 'nfcore', format: 'nextflow', score: 14.3, type: 'workflow' },
+    { rank: 2, name: 'DESeq2', display_name: 'DESeq2 differential expression', description: 'Differential gene expression.', domain: 'transcriptomics', source: 'bioconductor', format: 'r', score: 9.1, type: 'workflow' },
+  ],
+};
+
+const PERSONAL = [
+  { id: 'wf-1', workflow_name: 'My custom pipeline', description: 'Imported NF', file_type: 'nf', created_at: '2026-11-01T00:00:00.000Z' },
+];
+
+let fetchMock: any;
+
+beforeEach(() => {
+  fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (typeof url === 'string' && url.includes('/api/ai_assistant/search_ranked')) {
+      return { ok: true, status: 200, json: async () => RANKED } as Response;
+    }
+    if (typeof url === 'string' && url.includes('/api/workflows/personal')) {
+      return { ok: true, status: 200, json: async () => PERSONAL } as Response;
+    }
+    return { ok: true, status: 200, json: async () => ({}), text: async () => '' } as Response;
+  });
+  global.fetch = fetchMock;
+});
+afterEach(() => { vi.clearAllMocks(); });
+
+describe('WorkflowsLibraryDialog — Browse (ranked search)', () => {
+  it('calls /api/ai_assistant/search_ranked and renders the ranked results', async () => {
+    render(<WorkflowsLibraryDialog open onOpenChange={() => {}} onSeedChat={() => {}} />);
+
+    // Opens on the Browse tab; no search fired yet.
+    const input = await screen.findByTestId('browse-search-input');
+    fireEvent.change(input, { target: { value: 'rna-seq' } });
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some((c: any[]) =>
+        typeof c[0] === 'string' && c[0].includes('/api/ai_assistant/search_ranked')
+      )).toBe(true);
+    });
+
+    // Results render with the engine's name, domain and score (not invented).
+    expect(await screen.findByText('nf-core/rnaseq')).toBeInTheDocument();
+    expect(screen.getByText('DESeq2 differential expression')).toBeInTheDocument();
+    expect(screen.getAllByText('transcriptomics').length).toBeGreaterThan(0);
+    expect(screen.getByText(/14\.3/)).toBeInTheDocument();
+
+    // The request body carried the typed query.
+    const call = fetchMock.mock.calls.find((c: any[]) => typeof c[0] === 'string' && c[0].includes('search_ranked'));
+    expect(JSON.parse(call[1].body).query).toBe('rna-seq');
+  });
+
+  it('clicking Run seeds the chat and closes the dialog', async () => {
+    const onSeedChat = vi.fn();
+    const onOpenChange = vi.fn();
+    render(<WorkflowsLibraryDialog open onOpenChange={onOpenChange} onSeedChat={onSeedChat} />);
+
+    fireEvent.change(await screen.findByTestId('browse-search-input'), { target: { value: 'rna-seq' } });
+    const runBtn = await screen.findByTestId('button-run-catalog-1');
+    fireEvent.click(runBtn);
+
+    expect(onSeedChat).toHaveBeenCalledTimes(1);
+    expect(onSeedChat.mock.calls[0][0]).toContain('nf-core/rnaseq');
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('WorkflowsLibraryDialog — My workflows', () => {
+  it('renders the user personal/uploaded workflows from /api/workflows/personal', async () => {
+    render(<WorkflowsLibraryDialog open onOpenChange={() => {}} onSeedChat={() => {}} />);
+
+    fireEvent.click(await screen.findByTestId('tab-my-imports'));
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some((c: any[]) =>
+        typeof c[0] === 'string' && c[0].includes('/api/workflows/personal')
+      )).toBe(true);
+    });
+    expect(await screen.findByText('My custom pipeline')).toBeInTheDocument();
+    expect(screen.getByTestId('personal-workflow-row-wf-1')).toBeInTheDocument();
+  });
+});

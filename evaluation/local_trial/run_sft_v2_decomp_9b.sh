@@ -13,7 +13,8 @@ export MODEL_SIZE=med STAGE=sft ENTRY=spot_sft_gold_entry.sh BOOTSTRAP=today_boo
 export TAG=${TAG:-_decompv2} SFT_DATA=${SFT_DATA:-sft_from_gold_v2_decomp_20261006.jsonl}
 export SFT_OVERRIDE=${SFT_OVERRIDE:-650} SEQ_OVERRIDE=2048 BS_OVERRIDE=1 GA_OVERRIDE=16 FORCE_NGPU=1
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
-TYPES=(g6.2xlarge g5.2xlarge g6e.xlarge g5.4xlarge)   # 9B QLoRA 4-bit: 24GB+ only
+# 9B QLoRA 4-bit fits any single 24GB+ GPU; broad pool maximizes spot availability in a crunch
+TYPES=(g6.xlarge g5.xlarge g6.2xlarge g5.2xlarge g6.4xlarge g5.4xlarge g6e.xlarge g6.8xlarge g5.8xlarge g6e.2xlarge)
 RESULT="$S3/models_20260919/med/sft${TAG}_adapter/adapter_config.json"
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
   O=$(ONDEMAND=$1 INSTANCE_TYPE=$T SUBNET=$S bash spot_launch.sh 2>&1); IID=$(echo "$O"|grep -oE "i-[0-9a-f]{8,}"|head -1)

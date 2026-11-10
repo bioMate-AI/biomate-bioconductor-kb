@@ -1,0 +1,38 @@
+[
+ {
+  "name": "nf-core/mnaseseq",
+  "runId": "037e7998-dc14-4ffa-8b23-e5467b81075b",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 25,
+  "error": "",
+  "minutes": 6.1
+ },
+ {
+  "name": "nf-core/proteomicslfq",
+  "runId": "b0f2b91f-24bf-40cf-b8eb-7138612eaf3b",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 19,
+  "error": "",
+  "minutes": 6.1
+ },
+ {
+  "name": "nf-core/rnaseq",
+  "runId": "a2057c77-6210-46e7-8039-58f249d0ebd5",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 24,
+  "error": "",
+  "minutes": 6.1
+ },
+ {
+  "name": "nf-core/slamseq",
+  "runId": "e113f53f-f0de-42c1-bab7-44d1a8babeee",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 5,
+  "error": "",
+  "minutes": 7.1
+ }
+]

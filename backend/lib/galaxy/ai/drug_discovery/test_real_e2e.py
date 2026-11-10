@@ -7,9 +7,9 @@ Uses:
   - Real Gaussian Process Bayesian optimisation
   - Real CRO export generation with verifiable file outputs
 
-Run inside biomate/biomni-drug-discovery-nf Docker:
+Run inside biomate/drug-discovery-nf Docker:
   docker run --rm -v /app:/biomate \
-    biomate/biomni-drug-discovery-nf:latest \
+    biomate/drug-discovery-nf:latest \
     python3 /biomate/backend/lib/galaxy/ai/drug_discovery/test_real_e2e.py
 """
 

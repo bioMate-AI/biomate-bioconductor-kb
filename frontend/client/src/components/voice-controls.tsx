@@ -54,8 +54,13 @@ export function VoiceInput({ onTranscript, disabled }: { onTranscript: (text: st
   };
   useEffect(() => {
     const stop = () => { cleanup(); setState('idle'); };
+    const hide = () => { if (document.hidden) stop(); };
     window.addEventListener('biomate-live-voice-start', stop);
-    return () => { cleanup(); window.removeEventListener('biomate-live-voice-start', stop); };
+    document.addEventListener('visibilitychange', hide);
+    return () => {
+      cleanup(); window.removeEventListener('biomate-live-voice-start', stop);
+      document.removeEventListener('visibilitychange', hide);
+    };
   }, []);
   useEffect(() => { if (disabled) { cleanup(); setState('idle'); } }, [disabled]);
   async function start() {
@@ -114,7 +119,13 @@ export function ReadAloud({ text, disabled }: { text: string; disabled?: boolean
   const audio = useRef<HTMLAudioElement>();
   const url = useRef<string>();
   const abort = useRef<AbortController>();
-  const stop = () => { abort.current?.abort(); audio.current?.pause(); if (url.current) URL.revokeObjectURL(url.current); url.current = undefined; };
+  const stop = () => {
+    abort.current?.abort();
+    const player = audio.current; audio.current = undefined;
+    if (player) { player.onended = null; player.onerror = null; player.pause(); }
+    if (url.current) URL.revokeObjectURL(url.current);
+    url.current = undefined;
+  };
   useEffect(() => {
     const listener = () => { stop(); setState('idle'); };
     window.addEventListener('biomate-voice-stop', listener);

@@ -1,0 +1,7 @@
+{
+  "model": "MECHANISTIC PIPELINE (execution reference)",
+  "outcome": 0.85,
+  "safety": 0.9,
+  "fidelity": 1.0,
+  "n": 20
+}

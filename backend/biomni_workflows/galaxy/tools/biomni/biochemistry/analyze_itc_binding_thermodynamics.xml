@@ -2,7 +2,7 @@
 <tool id="biomni_biochemistry_analyze_itc_binding_thermodynamics" name="Biomni: Analyze Itc Binding Thermodynamics" version="1.0.0">
     <description>Analyzes isothermal titration calorimetry (ITC) data to determine binding affinity and thermodynamic parameters.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_itc_binding_thermodynamics_wrapper.py' --output '$output'

@@ -1,0 +1,91 @@
+{
+  "protocol": "percellnorm_aggregation_fix_leave_tissue_out",
+  "interpreter": "3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]",
+  "platform": "Linux-6.11.0-1016-nvidia-aarch64-with-glibc2.39",
+  "results": [
+    {
+      "tissue": "lung",
+      "budget": "full",
+      "n_test": 902,
+      "n_test_pos": 125,
+      "n_draws": 1,
+      "raw": 0.837994326068794,
+      "know_mean": 0.8067012774494885,
+      "know_pc": 0.8214809068059762,
+      "know_mean_minus_raw": -0.031293048619305486,
+      "know_pc_minus_raw": -0.016513419262817797,
+      "know_pc_minus_raw_fracpos": 0.0,
+      "know_pc_minus_shuf": 0.005281985320241156
+    },
+    {
+      "tissue": "lung",
+      "budget": 125,
+      "n_test": 902,
+      "n_test_pos": 125,
+      "n_draws": 10,
+      "raw": 0.8282672558057701,
+      "know_mean": 0.6959209755462428,
+      "know_pc": 0.716256310770029,
+      "know_mean_minus_raw": -0.13234628025952738,
+      "know_pc_minus_raw": -0.11201094503574094,
+      "know_pc_minus_raw_fracpos": 0.0,
+      "know_pc_minus_shuf": -0.10916372717103048
+    },
+    {
+      "tissue": "lung",
+      "budget": 60,
+      "n_test": 902,
+      "n_test_pos": 125,
+      "n_draws": 10,
+      "raw": 0.7861708599607511,
+      "know_mean": 0.6626493695890694,
+      "know_pc": 0.6583431403799637,
+      "know_mean_minus_raw": -0.12352149037168166,
+      "know_pc_minus_raw": -0.12782771958078737,
+      "know_pc_minus_raw_fracpos": 0.0,
+      "know_pc_minus_shuf": -0.12081251012079845
+    },
+    {
+      "tissue": "spleen",
+      "budget": "full",
+      "n_test": 3165,
+      "n_test_pos": 267,
+      "n_draws": 1,
+      "raw": 0.698295551125078,
+      "know_mean": 0.6392163925390758,
+      "know_pc": 0.6670355732550401,
+      "know_mean_minus_raw": -0.05907915858600221,
+      "know_pc_minus_raw": -0.03125997787003787,
+      "know_pc_minus_raw_fracpos": 0.0,
+      "know_pc_minus_shuf": 0.032170885461124676
+    },
+    {
+      "tissue": "spleen",
+      "budget": 125,
+      "n_test": 3165,
+      "n_test_pos": 267,
+      "n_draws": 10,
+      "raw": 0.6071533995541352,
+      "know_mean": 0.5319411468952391,
+      "know_pc": 0.542421381477121,
+      "know_mean_minus_raw": -0.07521225265889613,
+      "know_pc_minus_raw": -0.06473201807701426,
+      "know_pc_minus_raw_fracpos": 0.0,
+      "know_pc_minus_shuf": -0.034468228332051855
+    },
+    {
+      "tissue": "spleen",
+      "budget": 60,
+      "n_test": 3165,
+      "n_test_pos": 267,
+      "n_draws": 10,
+      "raw": 0.5710731047930769,
+      "know_mean": 0.5182221619823248,
+      "know_pc": 0.5078320350980772,
+      "know_mean_minus_raw": -0.05285094281075212,
+      "know_pc_minus_raw": -0.0632410696949997,
+      "know_pc_minus_raw_fracpos": 0.0,
+      "know_pc_minus_shuf": -0.04196700184008517
+    }
+  ]
+}

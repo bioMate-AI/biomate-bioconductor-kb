@@ -1,0 +1,1086 @@
+[
+  {
+    "document": "BioMate本地部署交付清单.docx",
+    "source_revision": "79c0421d90ff86f5973513a0360677bd72df390c",
+    "source_sha256": "4d37ba3f9756a0cbab8bd06222f135be2abf7097f54568288c9ada684ea1d3ba",
+    "candidate_path": "docs/qa/20261107-onprem-readiness/revised-manuals/BioMate本地部署交付清单.docx",
+    "candidate_sha256": "c1013713c45602e17404e420119319b55c91c280608869eca93068746acbed61",
+    "changes": [
+      {
+        "paragraph_index_in_approved_source": 100,
+        "before": "A2. 工作流启动后一直 running 不结束\n原因：DaoCloud 等镜像加速器会拦截 Docker-in-Docker 子容器拉取，导致 Nextflow 卡死。\n修复：删除 Docker daemon 加速器配置，改用直连：",
+        "after": "A2. 工作流启动后长时间未完成\n可能涉及镜像拉取、架构、资源不足或任务自身错误。先检查实际运行状态和执行器日志，再按已确认原因处理；不能默认归因于镜像代理。",
+        "reason": "删除与后续安全处置相矛盾的全局 Docker 代理删除指令。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 105,
+        "before": "# 检查 API Key 配置\ngrep LLM /app/biomate/.env\n\n# 测试网络连通性\ncurl -s -o /dev/null -w \"%{http_code}\" https://dashscope.aliyuncs.com\n# 期望：200 或 400（连通即可）\n\n# 若无法访问，确认防火墙出站规则，或改用内网 LLM",
+        "after": "只检查配置是否已设置，使用完整部署包的元数据诊断：\ncd /app/biomate\nbash scripts/diag-onprem.sh\n网络验证应针对所选模型服务，限制连接和响应超时；HTTP 连通不等于鉴权、模型及工具调用已通过。",
+        "reason": "移除 grep .env 的明文密钥输出；通用 HTTP 成功不能替代模型调用验收。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 143,
+        "before": "收集问题日志命令（发送给支持团队）：",
+        "after": "收集问题信息（由客户审查后按批准渠道发送）：",
+        "reason": "默认外发原始日志与诊断隐私边界不一致。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 144,
+        "before": "docker compose -f /app/biomate/docker-compose.onprem.yml logs \\\n  --tail 200 > /tmp/biomate-logs-$(date +%Y%m%d-%H%M).txt 2>&1\n# 发送 /tmp/biomate-logs-*.txt 文件",
+        "after": "cd /app/biomate\nbash scripts/diag-onprem.sh\n# 默认元数据模式；仅在客户明确授权后按远程支持手册采集敏感日志。",
+        "reason": "用配套元数据采集替代未经审查的完整 Compose 日志导出。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 113,
+        "before": "# 1. 检查前端日志确认原因\ndocker logs biomate-frontend 2>&1 | grep '\\[step-file\\]' | tail -10\n\n# 2. 确认 NEXTFLOW_WORK_DIR 写入 .env\ngrep NEXTFLOW_WORK_DIR /app/biomate/.env || \\\n  echo 'NEXTFLOW_WORK_DIR=/app/nf-work' >> /app/biomate/.env\n\n# 3. 重启前端（无需重建镜像）\ndocker restart biomate-frontend\n\n# 4. 验证：再次点击已完成工作流的 Outputs 文件，应直接显示内容",
+        "after": "先核对文件归属、运行记录、实际工作目录和前后端共享挂载。仅在配置确实错误时由管理员修改对应变量，并重建受影响服务；禁止把扩大允许路径作为 403 的通用绕过。再次验证本人有权访问的文件可以读取，而其他账号和无关路径仍被拒绝。",
+        "reason": "403 恢复同时验收正向访问与跨用户拒绝，不能无条件追加目录放宽权限。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 46,
+        "before": "BioMate 以打包文件方式交付，不需要访问 GitHub 私有仓库。\n乙方使用 scripts/package-onprem.sh 生成交付包（见运维手册附录），然后将以下文件传入客户服务器：",
+        "after": "BioMate 以经发行验收的部署包交付，不需要访问私有源码仓库。实施前核对版本清单、CPU 架构、镜像摘要和 SHA256 校验文件；未确认完整性时不得开始离线交付。",
+        "reason": "旧版引用的标准打包脚本不在已批准源码中；不得保留不可执行的交付命令。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 78,
+        "before": "若内网 LLM 不可达，检查服务器防火墙是否放行对应端口，及 .env 中 OPENAI_API_BASE_URL 是否正确填写。",
+        "after": "若内网 LLM 不可达，检查防火墙及 LLM_API_URL、LLM_MODEL、LLM_API_KEY，并确认 GALAXY_AI_LLM_PROVIDER=openai_compatible。只核对密钥是否已设置，不在截图、日志或聊天中输出明文。",
+        "reason": "使用前后端实际支持的配置名，并限制密钥输出。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 98,
+        "before": "A1. 页面空白 / 白屏\n根因：index.html 构建时硬编码了 Google Fonts CDN 链接（fonts.googleapis.com），国内访问时 CSS 请求挂起，浏览器白屏等待。\n永久修复：在 .env 中添加 DISABLE_GOOGLE_FONTS=true，然后重启前端：\ndocker restart biomate-frontend\n紧急修复（无需重启，容器重建后失效）：\ndocker exec biomate-frontend sed -i \\\n  \"/fonts\\.googleapis\\.com/d; /fonts\\.gstatic\\.com/d; /googletagmanager\\.com/d\" \\\n  /app/dist/public/index.html",
+        "after": "A1. 页面空白 / 白屏\n先检查浏览器网络请求、前端健康和镜像版本。若 Google CDN 请求阻塞，使用包含运行时过滤修复的配套镜像，并设置 DISABLE_GOOGLE_FONTS=true。\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate frontend\n验证根路径、index.html 和项目深链接均可加载，且不再请求 Google Fonts/Analytics。不要按行删除压缩后的 HTML；这可能删除整个页面。",
+        "reason": "落实配套代码、Compose 透传和根路径验收要求，删除危险的压缩 HTML 按行补丁。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 99,
+        "before": "docker restart biomate-frontend",
+        "after": "",
+        "reason": "移除已被重建容器步骤替代的孤立 restart 命令。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 101,
+        "before": "# 编辑 /etc/docker/daemon.json，删除 \"registry-mirrors\" 字段（或设为 []）\nvi /etc/docker/daemon.json\nsystemctl restart docker\ndocker restart biomate-galaxy",
+        "after": "先核对任务镜像名称、CPU 架构、预载状态及执行器日志，再确认是否受镜像代理影响。优先使用已验收的离线镜像和任务拉取策略；不要直接删除全局 Docker 镜像代理配置或重启 Docker，以免影响其他服务。",
+        "reason": "故障恢复应针对已确认原因，不能默认修改全局服务配置。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 103,
+        "before": "docker stop biomate-galaxy\ndocker run --rm -v biomate_galaxy_data:/data busybox \\\n  find /data -name \"*.lock\" -delete\ndocker start biomate-galaxy",
+        "after": "由管理员先确认无活动任务，并核对容器数据库卷的实际挂载及锁文件位置。停止后端，保留日志及该锁文件副本，只处理已确认失效的 /app/database/dependencies/involucro.lock，再启动后端。禁止递归删除所有 *.lock。",
+        "reason": "保留可恢复证据，限定单一失效锁，删除宽泛递归清理示例。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 108,
+        "before": "然后重启：docker restart biomate-galaxy",
+        "after": "然后重启：docker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "First Paragraph",
+        "after_style": "First Paragraph"
+      },
+      {
+        "paragraph_index_in_approved_source": 110,
+        "before": "docker inspect biomate-galaxy | grep Architecture\n# 期望：arm64（若显示 amd64，重新用 arm64 镜像包部署）",
+        "after": "docker exec biomate-galaxy uname -m\n# ARM64 应返回 aarch64；还须核对具体镜像的架构和工作流验收记录。",
+        "reason": "容器 inspect 不提供文中假设的顶层 Architecture 字段；使用实际运行架构检查。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 111,
+        "before": "A7. MinIO 访问报 SignatureDoesNotMatch\n原因：.env 中的 MINIO_ROOT_PASSWORD 与容器实际使用的密码不一致。\n修复：",
+        "after": "A7. MinIO 访问报签名错误\n可能涉及端点、签名区域、寻址方式或凭证不一致。先核对故障类别，不能仅凭错误信息认定密码有误。",
+        "reason": "区分多种签名错误成因，不将凭证误配置诊断为数据损坏。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 112,
+        "before": "A8. 工作流输出文件预览 / 下载返回 403\n现象：工作流运行完成后，在「After Run → Outputs」点击文件，弹出 Preview unavailable (HTTP 403) 或下载失败。\n根因：.env 中未配置 NEXTFLOW_WORK_DIR，或旧版镜像未包含本地文件路径白名单修复。\n修复：",
+        "after": "A8. 工作流输出预览或下载返回 403\n403 可能是权限、文件归属、路径或共享挂载问题。用有权访问该运行的账号验证；不得关闭鉴权或扩大访问根目录来绕过错误。",
+        "reason": "区分真实访问拒绝与配置缺陷，避免将所有 403 当作可绕过的问题。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 115,
+        "before": "grep MINIO /app/biomate/.env\n# 确认 MINIO_ROOT_USER 和 MINIO_ROOT_PASSWORD 与创建时一致\n# 若不一致，停止服务 → 删除 minio 卷 → 重新 install.sh",
+        "after": "只核对凭证是否已设置及受控保管记录，不输出明文。先备份对象数据和配置，再由管理员按存储服务的凭证轮换流程处理。禁止删除 MinIO 数据卷，也不能用重新安装来修复已有数据的认证问题。",
+        "reason": "删除可能造成研究数据永久丢失的恢复建议。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "operation": "move",
+        "paragraph_index_in_approved_source": 115,
+        "after_original_paragraph": 111,
+        "reason": "将 MinIO 处置内容归回 A7，不再插在 A8 文件权限问题之后。"
+      },
+      {
+        "paragraph_index_in_approved_source": 10,
+        "before": "说明： - 数据盘单独挂载是必须的。工作流运行产生的中间文件会写入 /app/nf-work，高峰期单次 RNA-seq 可产生 50～200 GB 临时文件。 - 鲲鹏 920 支持 ARM64 原生 Docker 镜像，BioMate AI 后端冷启动约 3～5 分钟（原生），Bioconductor R 类工作流（RNA-seq/scRNA-seq）通过 QEMU 运行，速度约为 x86 的 1/3，暂无 ARM64 原生版本。",
+        "after": "工作目录需要足够容量的持久化存储。实际临时空间、启动耗时和模拟性能取决于工作流、数据量、镜像架构及服务器配置。ARM64 主机应逐项核对任务镜像是否原生；需要模拟执行的工具必须另做功能与性能验收。",
+        "reason": "架构支持与性能必须按镜像和流程验证，不能给出统一倍速保证。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 31,
+        "before": "推荐：千问 qwen-plus。 性价比最佳，国内直连无延迟，支持函数调用（工作流参数提取所需）。",
+        "after": "推荐：千问 qwen-plus。 应按客户场景评测成本和质量，连通性与延迟以现场实测为准，支持函数调用（工作流参数提取所需）。",
+        "reason": "去除没有当前测试依据的性能和成本保证。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 43,
+        "before": "# 查看可用磁盘（找到未挂载的大容量盘，如 /dev/vdb）\nlsblk\n\n# 格式化（仅对全新未分区磁盘执行；若已有数据，跳过）\nmkfs.ext4 /dev/vdb\n\n# 挂载\nmkdir -p /app\nmount /dev/vdb /app\n\n# 写入 /etc/fstab 确保重启后自动挂载\nUUID=$(blkid -s UUID -o value /dev/vdb)\necho \"UUID=${UUID} /app ext4 defaults 0 2\" >> /etc/fstab\n\n# 确认\ndf -h /app\n# 期望：显示 /dev/vdb 挂载到 /app，容量 ≥ 500 GB",
+        "after": "数据盘初始化、格式化、挂载及开机持久化由客户基础设施管理员在核对设备标识、备份和授权后完成。不要按示例设备名格式化磁盘，也不要盲写 fstab。实施工程师仅做只读核对：\nlsblk -f\ndf -h /app",
+        "reason": "移除对假定设备名的格式化命令，避免误删客户数据盘。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 138,
+        "before": "☐ 本运维手册（docs/ONPREM_SETUP.md）纸质或电子版",
+        "after": "☐ 本运维手册（《BioMate 本地部署运维手册》）纸质或电子版",
+        "reason": "交付给客户的 Word 手册引用实际文档名称，不引用未随包提供的仓库 Markdown 路径。",
+        "before_style": "Compact",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 49,
+        "before": "# 将代码包和镜像包一同传入\nscp biomate-deploy-<版本>.tar.gz biomate-images-amd64-<版本>.tar.gz root@<服务器IP>:/app/\n\n# 在服务器上解压代码包\nmkdir -p /app/biomate\ntar -xzf /app/biomate-deploy-<版本>.tar.gz -C /app/biomate --strip-components=1\ncd /app/biomate",
+        "after": "# 将代码包和镜像包一同传入\nscp biomate-deploy-<版本>.tar.gz \\\n  biomate-images-amd64-<版本>.tar.gz \\\n  root@<服务器IP>:/app/\n\n# 在服务器上解压代码包\nmkdir -p /app/biomate\ntar -xzf /app/biomate-deploy-<版本>.tar.gz -C /app/biomate --strip-components=1\ncd /app/biomate",
+        "reason": "补充维护中断/数据保护边界，并为长命令加入可复制的 shell 续行。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 51,
+        "before": "# 将代码包和镜像包一同传入\nscp biomate-deploy-<版本>.tar.gz biomate-images-amd64.tar.gz root@<服务器IP>:/app/\n# 鲲鹏 920 使用：biomate-images-arm64.tar.gz\n\n# 在服务器上解压代码包\nmkdir -p /app/biomate\ntar -xzf /app/biomate-deploy-<版本>.tar.gz -C /app/biomate --strip-components=1\ncd /app/biomate\n\n# 预加载 Docker 镜像（install.sh 也会自动检测并跳过拉取步骤）\ndocker load < /app/biomate-images-amd64.tar.gz\n# 或：docker load < /app/biomate-images-arm64.tar.gz（鲲鹏）",
+        "after": "# 将代码包和镜像包一同传入\nscp biomate-deploy-<版本>.tar.gz \\\n  biomate-images-amd64.tar.gz \\\n  root@<服务器IP>:/app/\n# 鲲鹏 920 使用：biomate-images-arm64.tar.gz\n\n# 在服务器上解压代码包\nmkdir -p /app/biomate\ntar -xzf /app/biomate-deploy-<版本>.tar.gz -C /app/biomate --strip-components=1\ncd /app/biomate\n\n# 预加载 Docker 镜像（install.sh 也会自动检测并跳过拉取步骤）\ndocker load < /app/biomate-images-amd64.tar.gz\n# 或：docker load < /app/biomate-images-arm64.tar.gz（鲲鹏）",
+        "reason": "补充维护中断/数据保护边界，并为长命令加入可复制的 shell 续行。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 119,
+        "before": "cd /app/biomate\n\n# 1. 备份当前 .env（含所有密钥）\ncp .env .env.backup-$(date +%Y%m%d)\n\n# 2. 传入新版部署包，解压覆盖代码目录（保留 .env）\ntar -xzf /tmp/biomate-deploy-<新版本>.tar.gz -C /app/biomate --strip-components=1\n\n# 3. 联网环境：拉取新镜像\ndocker compose -f docker-compose.onprem.yml pull\n\n#    离线环境：加载新镜像包\n#    docker load < /tmp/biomate-images-amd64-<新版本>.tar.gz\n\n# 4. 滚动重启（无停机时间约 30 秒）\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 5. 验证\ndocker compose -f docker-compose.onprem.yml ps\ndocker logs biomate-galaxy --tail 30",
+        "after": "cd /app/biomate\n\n# 1. 备份当前 .env（含所有密钥）\ncp .env .env.backup-$(date +%Y%m%d)\n\n# 2. 传入新版部署包，解压覆盖代码目录（保留 .env）\ntar -xzf /tmp/biomate-deploy-<新版本>.tar.gz -C /app/biomate --strip-components=1\n\n# 3. 联网环境：拉取新镜像\ndocker compose -f docker-compose.onprem.yml pull\n\n#    离线环境：加载新镜像包\n#    docker load < /tmp/biomate-images-amd64-<新版本>.tar.gz\n\n# 4. 在维护窗口更新服务（可能中断，先确认无活动任务和可用备份）\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 5. 验证\ndocker compose -f docker-compose.onprem.yml ps\ndocker logs biomate-galaxy --tail 30",
+        "reason": "补充维护中断/数据保护边界，并为长命令加入可复制的 shell 续行。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "table_index": 20,
+        "row_index": 3,
+        "cell_index": 1,
+        "before": "对 /app/biomate/data/minio 目录做增量备份",
+        "after": "按实际 MinIO 数据卷或外部对象存储进行一致性备份，先核对挂载位置。",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "table_index": 22,
+        "row_index": 3,
+        "cell_index": 1,
+        "before": "参考 docs/ONPREM_SETUP.md 运维手册",
+        "after": "参考 《BioMate 本地部署运维手册》 运维手册",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "paragraph_index_in_approved_source": 1,
+        "before": "文档用途： 部署前由甲方（客户）对照填写，乙方（BioMate 实施工程师）现场验收签字。\n适用场景： 国内信创 / 私有化部署（千问 LLM + 海光 C86 / 华为鲲鹏）\n文档版本： v1.1 · 2026-11-06",
+        "after": "文档用途： 部署前由甲方（客户）对照填写，乙方（BioMate 实施工程师）现场验收签字。\n适用场景： 国内信创 / 私有化部署（千问 LLM + 海光 C86 / 华为鲲鹏）\n文档版本： v1.2 审阅版 · 2026-11-07",
+        "reason": "更新修订日期及审阅状态，保留原行内格式。"
+      },
+      {
+        "operation": "remove-empty-toc-placeholder",
+        "reason": "移除没有任何条目的英文目录占位块；保留正文及标题导航。"
+      },
+      {
+        "operation": "layout-repair",
+        "reason": "Visual QA found renderer font-resolution failure; input section/table-grid dimensions also needed explicit values. Fontconfig repair is task-local, not a customer system change.",
+        "changes": [
+          "explicit existing Heiti SC CJK font reference",
+          "explicit missing page/margin dimensions",
+          "bounded table grids and cell widths",
+          "black heading styles",
+          "light-gray table borders"
+        ],
+        "content_order_preserved": true
+      }
+    ],
+    "status": "edited-review-candidate-render-and-content-qa-required"
+  },
+  {
+    "document": "BioMate本地部署运维手册.docx",
+    "source_revision": "79c0421d90ff86f5973513a0360677bd72df390c",
+    "source_sha256": "b0c80cd36f34261e31fdb13440ccdddc7cf087c5c4c42aa87f76fb0c961901af",
+    "candidate_path": "docs/qa/20261107-onprem-readiness/revised-manuals/BioMate本地部署运维手册.docx",
+    "candidate_sha256": "d0729b5fe77189a055aa7cf2adce856e7c0e6142141b83dfa1077e85305c18d8",
+    "changes": [
+      {
+        "paragraph_index_in_approved_source": 21,
+        "before": "部署建议：优先选择海光 C86。 它完全兼容 linux/amd64 镜像，无需 QEMU 转译，性能与标准 x86 相同；ARM64（鲲鹏/飞腾）同样完整支持，但需按第 0.3 节额外配置。",
+        "after": "部署架构应按客户硬件、任务类型和配套发行清单选择。x86-64 与 ARM64 均有实现支持，但必须逐项核对应用、基础服务、任务镜像及模型依赖的架构；不能将平台支持等同于所有工作流均已原生验收。",
+        "reason": "去除跨 CPU 性能相同和全工作流完整支持的无条件保证。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 44,
+        "before": "BioMate 工作流的核心任务容器均已发布 ARM64 原生版本，Nextflow 执行器会自动拉取对应架构的镜像。",
+        "after": "任务镜像的 ARM64 可用性以配套发行清单、摘要和实际原生执行结果为准。显式指定的架构标签不会自动切换；多架构标签也须确认含有所需平台的 manifest。",
+        "reason": "镜像架构不能仅凭 Docker 默认平台或镜像命名推断。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 46,
+        "before": "部分生信分析容器（RNA-seq、scRNA-seq 等 R 类工作流）目前仅有 x86_64 版本，暂无 ARM64 原生版本。在 ARM64 主机上将通过 QEMU 以模拟模式运行——功能正常，但速度会慢 2～4 倍，建议 RNA-seq 等计算量大的分析优先使用 x86_64 主机。",
+        "after": "部分任务可能仅提供 x86-64 镜像。ARM64 上的模拟执行必须逐项验证功能、性能及依赖；不能承诺统一性能倍数或功能等价。未经该环境验收的工作流不得计为已通过。",
+        "reason": "删除未经逐流程验证的模拟运行保证。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 48,
+        "before": "ARM64 主机在 QEMU 模拟模式下（如旧版未迁移镜像），BioMate AI 后端冷启动可能需要 20～30 分钟。docker-compose.onprem.yml 已将 start_period 设为 1800s，健康检查不会误报。只要 docker logs biomate-galaxy 中出现 Booting worker，即表示正在正常启动，无需干预。",
+        "after": "健康检查宽限期只决定何时开始计入失败，不是启动成功证明。Booting worker 仅表示进程启动阶段；仍需验证健康端点、目录加载及实际工作流。超过约定观察时限时保留错误并核对原生架构、内存、模型资产和初始化状态。",
+        "reason": "不能凭一条 worker 日志判定成功，避免将真实启动故障当作正常等待。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 97,
+        "before": "若客户已在内网或云端购买对象存储（如阿里云 OSS、腾讯云 COS），可以完全替换内置 MinIO。只需修改 .env 中以下变量并重启服务，无需改动代码或重建镜像。关键区别在于 S3_FORCE_PATH_STYLE——MinIO 和 OSS 的要求相反。",
+        "after": "平台提供对象存储配置能力。OSS、COS 或其他服务能否替换当前存储，需在配套发行版中验证所有客户端路径；核对下面的配置示例后，按前述上传、下载、预览和任务执行测试验收。环境变化须重建相关容器，不能只 restart。",
+        "reason": "区分配置能力与所有存储路径已经验收，避免跨后端无条件兼容承诺。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 154,
+        "before": "#!/bin/bash\n# backup.sh — 建议每天定时执行\nBACKUP_DIR=/opt/biomate/backups/$(date +%Y%m%d)\nmkdir -p $BACKUP_DIR\n\n# PostgreSQL（用户数据、项目、历史）\ndocker exec biomate-postgres pg_dump -U biomate biomate | gzip > $BACKUP_DIR/postgres.sql.gz\n\n# 工作流数据库\ndocker cp biomate-galaxy:/app/database/galaxy_ai_tools.db $BACKUP_DIR/\n\n# 保留最近 30 天\nfind /opt/biomate/backups -maxdepth 1 -mtime +30 -type d -exec rm -rf {} +\necho \"Backup done: $BACKUP_DIR\"",
+        "after": "备份应写入客户批准的受限目录，使用唯一时间标识并限制权限。PostgreSQL 使用一致性导出并验证退出状态及恢复结果；SQLite 使用受支持的在线备份接口，或停止所有写入后连同 WAL/SHM 状态一致备份，不能直接复制运行中的主文件。对象存储、模型资产和配置另作一致性备份。自动过期清理必须遵循客户保留策略与批准清单，不递归删除整个备份根目录。只有校验和恢复演练通过后才能记录备份成功。",
+        "reason": "去除可能复制不一致 SQLite、管道失败仍报成功及递归删除备份根目录的示例。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 175,
+        "before": "方法二（紧急，无需重启）：直接 patch 运行中容器的 index.html",
+        "after": "方法二：由发行工程师提供配套修复镜像",
+        "reason": "旧标题与已删除的现场 HTML 热补丁相矛盾。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 181,
+        "before": "# 获取机器 IP\nPUBLIC_IP=$(curl -s --max-time 5 http://100.100.100.200/latest/meta-data/eip/public-ip 2>/dev/null \\\n         || ip route get 1 | awk '{print $7; exit}')\n\n# 写入 CORS 配置（多个 Origin 用逗号分隔）\nsed -i \"s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://${PUBLIC_IP}:5000|\" .env\n\ndocker restart biomate-frontend",
+        "after": "使用客户批准的真实 Web 访问 Origin（协议、主机和端口）配置 CORS_ORIGINS；多个值按模板约定分隔。不要从云元数据推断内网访问地址，也不要覆盖仍在使用的合法 Origin。\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate frontend\n验证获准 Origin 可访问，未获准 Origin 仍被拒绝。",
+        "reason": "避免使用公网 IP、覆盖现有 Origin 或放宽 CORS 作为通用修复。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 200,
+        "before": "如果从 GHCR（ghcr.io）拉取镜像太慢，可以配置阿里云镜像加速（需要登录阿里云控制台获取个人专属地址）：",
+        "after": "镜像拉取慢时，先核对配套发行清单和已验收的离线镜像包。Docker registry-mirrors 不是任意私有 GHCR 仓库的通用代理；不要据此承诺私有仓库加速。",
+        "reason": "区分 Docker Hub 镜像代理与私有 GHCR，纠正错误加速建议。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 201,
+        "before": "cat > /etc/docker/daemon.json <<'EOF'\n{\n  \"registry-mirrors\": [\n    \"https://<your-id>.mirror.aliyuncs.com\"\n  ],\n  \"log-driver\": \"json-file\",\n  \"log-opts\": {\n    \"max-size\": \"50m\",\n    \"max-file\": \"3\"\n  }\n}\nEOF\nsystemctl reload docker",
+        "after": "不要覆盖 /etc/docker/daemon.json。若客户基础设施管理员批准修改全局 Docker 配置，须先备份并合并现有设置，确认所有服务影响及回滚步骤，在维护窗口实施。优先使用已验收的离线交付包。",
+        "reason": "移除覆盖客户全局 Docker 配置的命令。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 230,
+        "before": "# 对旧镜像的临时绕过（新镜像无需此项）\necho \"NEXTFLOW_WORK_DIR=/app/nf-work\" >> .env\ndocker restart biomate-frontend\n\n# 确认修复生效：访问一个已完成的工作流，点击 Outputs 中的文件\n# 日志中应看到 \"Resolved bare filename\" 或直接输出文件内容（无 403）",
+        "after": "不要通过无条件追加 NEXTFLOW_WORK_DIR 或扩大允许目录绕过权限检查。核对发行版、运行归属和共享挂载后，验证有权访问的输出可读，并验证其他用户及无关路径仍被拒绝。",
+        "reason": "权限恢复必须包含负向隔离验收。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 232,
+        "before": "# 确认 MinIO 健康\ndocker exec biomate-minio mc alias set local http://localhost:9000 \\\n  ${MINIO_ROOT_USER:-biomate} ${MINIO_ROOT_PASSWORD} 2>/dev/null || \\\n  docker exec biomate-minio curl -sf http://localhost:9000/minio/health/live && echo OK\n\n# 确认文件确实上传到 MinIO（替换 <user_id>/<run_id>）\ndocker exec biomate-minio mc ls local/biomate-data/nextflow/outputs/<user_id>/<run_id>/ --recursive\n\n# 确认前端容器能访问 MinIO（同一 Docker 网络）\ndocker exec biomate-frontend curl -sf http://minio:9000/minio/health/live && echo \"MinIO reachable\"",
+        "after": "先用客户批准的管理通道检查存储健康，再由有权限的用户验证该运行的上传、预览和下载。健康端点返回成功不等于对象权限与数据读取成功。不要把存储密码放入命令行参数、截图或日志，也不要关闭桶或文件归属检查。",
+        "reason": "去除明文存储密码命令行及将健康检查等同于访问验收的示例。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 34,
+        "before": "然后在 docker-compose.onprem.yml 的 galaxy-backend 服务 environment: 块中追加这些变量（或在 install.sh 运行后通过 docker restart biomate-galaxy 应用）。",
+        "after": "先确认这些变量已在配套 Compose 的 galaxy-backend.environment 中传入；修改 .env 后重建后端服务。仅向宿主机 .env 添加变量或执行 restart 不会更新容器环境。",
+        "reason": "澄清宿主机配置与容器实际环境的区别。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 72,
+        "before": "docker restart biomate-galaxy",
+        "after": "docker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 74,
+        "before": "# 切换到 DeepSeek\nGALAXY_AI_LLM_PROVIDER=deepseek\nGALAXY_AI_LLM_MODEL=deepseek-chat\nDEEPSEEK_API_KEY=sk-your-deepseek-key\n\n# 应用配置\ndocker restart biomate-galaxy",
+        "after": "# 切换到 DeepSeek\nGALAXY_AI_LLM_PROVIDER=deepseek\nGALAXY_AI_LLM_MODEL=deepseek-chat\nDEEPSEEK_API_KEY=sk-your-deepseek-key\n\n# 应用配置\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 99,
+        "before": "# .env 中的关键配置差异\n# MinIO（本机自带，默认）\nS3_ENDPOINT_URL=http://minio:9000\nS3_BUCKET_NAME=biomate-data\nAWS_ACCESS_KEY_ID=<MINIO_ROOT_USER>\nAWS_SECRET_ACCESS_KEY=<MINIO_ROOT_PASSWORD>\nS3_FORCE_PATH_STYLE=true      # MinIO 必须 true（path-style）\n\n# 阿里云 OSS（替换内置 MinIO）\nS3_ENDPOINT_URL=https://oss-cn-hangzhou.aliyuncs.com   # 按 Region 修改\nS3_BUCKET_NAME=your-biomate-bucket\nAWS_ACCESS_KEY_ID=<OSS_ACCESS_KEY_ID>\nAWS_SECRET_ACCESS_KEY=<OSS_ACCESS_KEY_SECRET>\nS3_FORCE_PATH_STYLE=false     # OSS / 腾讯 COS 必须 false（virtual-hosted）\n\n# 应用配置\ndocker restart biomate-galaxy biomate-frontend",
+        "after": "# .env 中的关键配置差异\n# MinIO（本机自带，默认）\nS3_ENDPOINT_URL=http://minio:9000\nS3_BUCKET_NAME=biomate-data\nAWS_ACCESS_KEY_ID=<MINIO_ROOT_USER>\nAWS_SECRET_ACCESS_KEY=<MINIO_ROOT_PASSWORD>\nS3_FORCE_PATH_STYLE=true      # MinIO 必须 true（path-style）\n\n# 阿里云 OSS（替换内置 MinIO）\nS3_ENDPOINT_URL=https://oss-cn-hangzhou.aliyuncs.com   # 按 Region 修改\nS3_BUCKET_NAME=your-biomate-bucket\nAWS_ACCESS_KEY_ID=<OSS_ACCESS_KEY_ID>\nAWS_SECRET_ACCESS_KEY=<OSS_ACCESS_KEY_SECRET>\nS3_FORCE_PATH_STYLE=false     # OSS / 腾讯 COS 必须 false（virtual-hosted）\n\n# 应用配置\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend frontend",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 140,
+        "before": "# 1. 在 docker-compose.onprem.yml 中取消 ollama 服务的注释（约第100行）\n\n# 2. 在 .env 中设置\nGALAXY_AI_LLM_PROVIDER=ollama\nOLLAMA_BASE_URL=http://ollama:11434\n\n# 3. 启动（包含 Ollama）\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 4. 拉取模型（首次需要下载，约 20 GB）\ndocker exec biomate-ollama ollama pull qwen3:32b\n\n# 5. 重启后端使配置生效\ndocker restart biomate-galaxy",
+        "after": "# 1. 在 docker-compose.onprem.yml 中取消 ollama 服务的注释（约第100行）\n\n# 2. 在 .env 中设置\nGALAXY_AI_LLM_PROVIDER=ollama\nOLLAMA_BASE_URL=http://ollama:11434\n\n# 3. 启动（包含 Ollama）\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 4. 拉取模型（首次需要下载，约 20 GB）\ndocker exec biomate-ollama ollama pull qwen3:32b\n\n# 5. 重启后端使配置生效\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 159,
+        "before": "# 查看所有服务状态\ndocker compose -f docker-compose.onprem.yml ps\n\n# 查看日志（实时）\ndocker logs -f biomate-galaxy   # AI 后端\ndocker logs -f biomate-frontend # Node 前端\ndocker logs -f biomate-postgres # 数据库\n\n# 重启单个服务（改完配置后）\ndocker restart biomate-galaxy\ndocker restart biomate-frontend\n\n# 升级（拉取新镜像后）\ndocker compose -f docker-compose.onprem.yml pull\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 停止所有服务\ndocker compose -f docker-compose.onprem.yml down\n\n# 彻底清除（包括数据库，慎用！）\ndocker compose -f docker-compose.onprem.yml down -v",
+        "after": "# 查看所有服务状态\ndocker compose -f docker-compose.onprem.yml ps\n\n# 查看日志（实时）\ndocker logs -f biomate-galaxy   # AI 后端\ndocker logs -f biomate-frontend # Node 前端\ndocker logs -f biomate-postgres # 数据库\n\n# 重启单个服务（改完配置后）\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate frontend\n\n# 升级（拉取新镜像后）\ndocker compose -f docker-compose.onprem.yml pull\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 停止所有服务\ndocker compose -f docker-compose.onprem.yml down\n\n# 彻底清除（包括数据库，慎用！）\ndocker compose -f docker-compose.onprem.yml down -v",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 174,
+        "before": "# 在 .env 中添加（已有则跳过）\necho \"DISABLE_GOOGLE_FONTS=true\" >> /app/biomate/.env\n\n# 重启前端（Node.js 在 serveStatic 中运行时剥离 Google CDN 链接）\ndocker restart biomate-frontend\n\n# 验证：刷新浏览器，F12 Network 中不再出现 googleapis.com 请求",
+        "after": "# 在 .env 中添加（已有则跳过）\necho \"DISABLE_GOOGLE_FONTS=true\" >> /app/biomate/.env\n\n# 重启前端（Node.js 在 serveStatic 中运行时剥离 Google CDN 链接）\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate frontend\n\n# 验证：刷新浏览器，F12 Network 中不再出现 googleapis.com 请求",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 219,
+        "before": "# 确认是 AVX-512 问题\ndocker logs biomate-galaxy 2>&1 | grep -i \"illegal\\|SIGILL\\|signal 4\"\n\n# 如确认是 AVX-512，在 .env 中加入以下变量后重启\necho \"OPENBLAS_CORETYPE=SANDYBRIDGE\" >> .env\necho \"MKL_ENABLE_INSTRUCTIONS=AVX2\" >> .env\ndocker restart biomate-galaxy",
+        "after": "# 确认是 AVX-512 问题\ndocker logs biomate-galaxy 2>&1 | grep -i \"illegal\\|SIGILL\\|signal 4\"\n\n# 如确认是 AVX-512，在 .env 中加入以下变量后重启\necho \"OPENBLAS_CORETYPE=SANDYBRIDGE\" >> .env\necho \"MKL_ENABLE_INSTRUCTIONS=AVX2\" >> .env\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend",
+        "reason": "环境变量在容器创建时注入；应用 .env 变化须重建相关服务，不能只 restart。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 113,
+        "before": "在 .env 中追加：",
+        "after": "本地 GPU 任务必须单独验收",
+        "reason": "删除没有执行器消费的环境变量启用步骤。",
+        "before_style": "Normal",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 114,
+        "before": "NEXTFLOW_DOCKER_GPU_OPTIONS=--gpus all",
+        "after": "当前配套实现没有消费旧文所列的 GPU Docker 选项变量，不要依赖该设置启用 GPU。应核对 NVIDIA 驱动、任务容器设备请求和具体工作流的实际 GPU 使用。",
+        "reason": "没有运行时消费的变量不能作为已支持配置宣传。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 115,
+        "before": "executor 会将此值注入 Nextflow 的 docker { runOptions } 块，使 process_gpu 任务容器能访问 GPU 设备。",
+        "after": "将 GPU 暴露给后端容器，不等于后端启动的任务容器获得 GPU。Slurm 和 Kubernetes 执行器已有实现，但仍须核对实际提交的资源请求及 GPU 作业结果；修改资源名称不能替代兼容性验收。",
+        "reason": "区分后端与任务容器，以及执行器实现与真实 GPU 调度。",
+        "before_style": "Normal",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 168,
+        "before": "docker exec biomate-galaxy grep \"pull.never\" \\\n  /app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py\n# 若无输出，说明未注入，需要执行以下修复\n\ndocker exec biomate-galaxy python3 -c \"\nimport re, pathlib\np = pathlib.Path('/app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py')\nold = '--user root'\nnew = '--user root --pull never'\ncontent = p.read_text()\nif new not in content:\n    p.write_text(content.replace(old, new, 1))\n    print('已注入 --pull never')\nelse:\n    print('已存在，无需修改')\n\"\ndocker restart biomate-galaxy",
+        "after": "先检查当前镜像是否包含已验收的任务拉取策略，并确认本地镜像名称和架构正确。不要在客户现场通过替换容器内 Python 源码修复执行器；应使用配套发行版并保留回滚镜像。",
+        "reason": "删除依赖字符串替换位置的现场源代码热补丁。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 173,
+        "before": "方法一（推荐，永久生效）：设置 DISABLE_GOOGLE_FONTS=true 环境变量",
+        "after": "方法一 使用配套镜像的运行时 Google CDN 过滤",
+        "reason": "过滤功能存在于配套实现，不能暗示任意旧镜像均支持。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 176,
+        "before": "# 找到 index.html 路径（通常是 /app/dist/public/index.html）\ndocker exec biomate-frontend find /app/dist -name \"index.html\" 2>/dev/null | head -1\n\n# 移除所有 Google CDN 链接（立即生效，无需重启）\ndocker exec biomate-frontend sed -i \\\n  \"/fonts\\.googleapis\\.com/d; /fonts\\.gstatic\\.com/d; /googletagmanager\\.com/d\" \\\n  /app/dist/public/index.html\n\n# 验证\ndocker exec biomate-frontend grep -c \"googleapis\" /app/dist/public/index.html\n# 期望输出: 0\n\n# 注意：此方法在容器重建后失效，需重新执行。建议同时设置 DISABLE_GOOGLE_FONTS=true 作为永久修复。",
+        "after": "不建议直接用 sed 按行修改构建后的 index.html：压缩 HTML 可能只有一行，按行删除会破坏整个页面。若配套镜像尚未包含运行时过滤修复，应回滚至已验收版本或由发行工程师提供修复镜像。",
+        "reason": "避免紧急修复删除整份压缩页面。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 187,
+        "before": "# 找到 db volume 挂载路径\nVOL=$(docker inspect biomate-galaxy \\\n  --format '{{range .Mounts}}{{if eq .Destination \"/app/database\"}}{{.Source}}{{end}}{{end}}')\n\n# 从交付包的离线资产目录复制（需已解压 biomate-assets-*.tar.gz）\ncp /opt/biomate-assets/galaxy_ai_tools.db \"${VOL}/galaxy_ai_tools.db\"\n\ndocker restart biomate-galaxy",
+        "after": "首次初始化应使用容器可访问的受控内网资产源。已有目录更新按第 6 节执行：停止后端、备份 SQLite 目录和配置、核对新文件校验值后替换，再启动并检查索引。不要在运行中直接覆盖目录数据库。",
+        "reason": "区分首次初始化与已有目录更新，避免在线覆盖数据库。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 193,
+        "before": "VOL=$(docker inspect biomate-galaxy \\\n  --format '{{range .Mounts}}{{if eq .Destination \"/app/database\"}}{{.Source}}{{end}}{{end}}')\nrm -f \"${VOL}/dependencies/involucro.lock\"\ndocker restart biomate-galaxy",
+        "after": "确认无活动任务，停止后端并保留日志、锁文件副本和挂载记录。只处理已确认失效的 /app/database/dependencies/involucro.lock，然后启动后端。禁止在挂载路径为空或未经核对时执行文件删除。",
+        "reason": "对精确锁文件恢复增加路径及活动任务校验。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 211,
+        "before": "先确认 API Key 是否正确：docker exec biomate-galaxy printenv DEEPSEEK_API_KEY",
+        "after": "只确认密钥已设置，不输出其值：\ndocker exec biomate-galaxy python3 -c 'import os; print(\"DEEPSEEK_API_KEY=set\" if os.getenv(\"DEEPSEEK_API_KEY\") else \"DEEPSEEK_API_KEY=empty\")'\n随后在获准的网络边界内验证模型服务连通性。",
+        "reason": "避免 printenv 将真实 API 密钥暴露到日志或支持渠道。",
+        "before_style": "Compact",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 215,
+        "before": "# 确认 PostgreSQL 已就绪\ndocker exec biomate-postgres pg_isready -U biomate -d biomate\n\n# 确认 DATABASE_URL 格式正确\ndocker exec biomate-frontend printenv DATABASE_URL",
+        "after": "# 确认 PostgreSQL 已就绪\ndocker exec biomate-postgres pg_isready -U biomate -d biomate\n# 只确认连接字符串是否存在，不打印含密码的 URL\ndocker exec biomate-frontend node -e 'console.log(process.env.DATABASE_URL ? \"DATABASE_URL=set\" : \"DATABASE_URL=empty\")'",
+        "reason": "数据库连接 URL 可能含密码；诊断默认只报告设置状态。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 242,
+        "before": "# 生成 amd64 包（适合海光 C86 / 标准 x86 服务器）\nbash scripts/package-onprem.sh --arch amd64\n\n# 生成 ARM64 包（适合鲲鹏 920 服务器）\nbash scripts/package-onprem.sh --arch arm64\n\n# 同时生成两种架构\nbash scripts/package-onprem.sh --arch both\n\n# 含离线资产（工作流数据库 + nfcore 文件，约 350 MB 额外，完全离网时使用）\nbash scripts/package-onprem.sh --arch amd64 --with-assets\n\n# 指定版本号（默认从 git describe 获取）\nbash scripts/package-onprem.sh --arch amd64 --version v2.1.0\n\n# 强制重新拉取所有镜像（确保最新版）\nbash scripts/package-onprem.sh --arch amd64 --pull",
+        "after": "标准交付包应由已验收的发行流程生成。当前已批准仓库没有旧文引用的标准打包脚本，不得把旧命令当作可执行步骤。发行清单必须包含应用镜像、基础服务与任务镜像、目录数据库、工作流定义、模型资产、配置模板和维护工具，并逐项核对 CPU 架构、摘要及校验文件。",
+        "reason": "删除不存在的打包命令；明确完整离线交付的实际依赖。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 249,
+        "before": "# 1. 解压资产包到固定目录\nmkdir -p /opt/biomate-assets\ntar -xzf /tmp/biomate-assets-<version>.tar.gz -C /opt/biomate-assets/\n\n# 2. 在 /app/biomate/.env 中设置本地资产路径（install.sh 执行前，或修改后重新 up）\necho \"BIOMATE_DB_URL=file:///opt/biomate-assets/galaxy_ai_tools.db\" >> /app/biomate/.env\necho \"BIOMATE_NFCORE_URL=file:///opt/biomate-assets/nextflow_nfcore_subworkflows.tar.gz\" >> /app/biomate/.env\n\n# 3. 重新启动（若服务已运行）\ndocker compose -f /app/biomate/docker-compose.onprem.yml up -d",
+        "after": "首次初始化前，由客户管理员提供 db-init 和 nfcore-init 均可访问的受控内网资产地址，并设置 BIOMATE_DB_URL、BIOMATE_NFCORE_URL。仅在显式只读挂载和读取方式均已验收时使用本地文件路径；宿主机的 file:// 路径不会自动出现在容器内。已有数据卷按第 6 节备份更新，不能通过删除数据卷强制初始化。",
+        "reason": "去除没有容器挂载支撑的 host file:// 示例。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 1,
+        "before": "适用版本：docker-compose.onprem.yml\n目标读者：现场实施工程师\n前置要求：Docker ≥ 24、Docker Compose v2、≥ 16 GB RAM（Ollama 离线模式需要 ≥ 32 GB）\n部署前置清单 / 验收标准： 见 ONPREM_DELIVERY_CHECKLIST.md",
+        "after": "适用版本：docker-compose.onprem.yml\n目标读者：现场实施工程师\n前置要求：Docker ≥ 24、Docker Compose v2、≥ 16 GB RAM（Ollama 离线模式需要 ≥ 32 GB）\n部署前置清单 / 验收标准： 见 《BioMate 本地部署交付清单》",
+        "reason": "交付给客户的 Word 手册引用实际文档名称，不引用未随包提供的仓库 Markdown 路径。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 53,
+        "before": "注： Ollama 本地大模型需要 ≥ 32 GB 内存（32B 参数模型），推荐 ≥ 24 GB 显存的 GPU。",
+        "after": "本地模型的内存和显存需求取决于量化方式、上下文长度、批量和并发。按实际模型与服务器压测，不能只凭参数量给出统一最低内存；完全离线时还需预置模型权重及其全部依赖。",
+        "reason": "收紧没有具体模型配置和测试依据的硬件保证。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 75,
+        "before": "支持的 GALAXY_AI_LLM_PROVIDER 值：anthropic / deepseek / zhipu / openrouter / ollama",
+        "after": "支持的 GALAXY_AI_LLM_PROVIDER 包括 openai_compatible、anthropic、openai、deepseek、zhipu、openrouter 和 ollama。默认以配套 .env 模板为准；只配置选用提供商所需的端点、模型名及密钥。",
+        "reason": "补全实际模型提供商配置，与默认模板一致。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 92,
+        "before": "管理界面：http://<服务器IP>:9001（用 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD 登录）。",
+        "after": "MinIO 管理界面默认仅绑定服务器本机 127.0.0.1:9001。远程管理使用获准的 SSH 隧道或受控代理，不直接向用户网络开放管理端口。",
+        "reason": "与实际 Compose loopback 绑定一致。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 95,
+        "before": "要把输入/输出改存到客户已有的对象存储，只需把 S3_ENDPOINT_URL、S3_BUCKET_NAME 和凭证指向该存储即可， 无需改动代码。",
+        "after": "更换对象存储时同时核对端点、区域、凭证、寻址方式及各服务的实际配置，并用上传、下载、预览和工作流分阶段验证。只有客户端路径均通过验收后，才能替换现有存储；先备份并制定回滚方案。",
+        "reason": "不能把部分客户端配置支持等同于所有存储路径均已验证。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 217,
+        "before": "# 查看 Docker 占用\ndocker system df\n\n# 清理无用镜像和容器（不影响运行中的服务）\ndocker system prune -f\n\n# 查看工作流运行产生的文件\ndocker exec biomate-galaxy du -sh /app/logs /app/database",
+        "after": "# 查看 Docker 占用\ndocker system df\n\n# 清理无用镜像和容器（不影响运行中的服务）\n# 清理前逐项核对、备份并获得授权；不要执行全局 prune\n\n# 查看工作流运行产生的文件\ndocker exec biomate-galaxy du -sh /app/logs /app/database",
+        "reason": "全局清理可能删除停止的容器及离线恢复资产，不能作为例行无风险操作。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 159,
+        "before": "# 查看所有服务状态\ndocker compose -f docker-compose.onprem.yml ps\n\n# 查看日志（实时）\ndocker logs -f biomate-galaxy   # AI 后端\ndocker logs -f biomate-frontend # Node 前端\ndocker logs -f biomate-postgres # 数据库\n\n# 重启单个服务（改完配置后）\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate frontend\n\n# 升级（拉取新镜像后）\ndocker compose -f docker-compose.onprem.yml pull\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 停止所有服务\ndocker compose -f docker-compose.onprem.yml down\n\n# 彻底清除（包括数据库，慎用！）\ndocker compose -f docker-compose.onprem.yml down -v",
+        "after": "# 查看所有服务状态\ndocker compose -f docker-compose.onprem.yml ps\n\n# 查看日志（实时）\ndocker logs -f biomate-galaxy   # AI 后端\ndocker logs -f biomate-frontend # Node 前端\ndocker logs -f biomate-postgres # 数据库\n\n# 重启单个服务（改完配置后）\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate galaxy-backend\ndocker compose --env-file /app/biomate/.env \\\n  -f /app/biomate/docker-compose.onprem.yml \\\n  up -d --no-deps --force-recreate frontend\n\n# 升级（拉取新镜像后）\ndocker compose -f docker-compose.onprem.yml pull\ndocker compose -f docker-compose.onprem.yml up -d\n\n# 停止所有服务\ndocker compose -f docker-compose.onprem.yml down\n\n# 彻底清除（包括数据库，慎用！）\n# 禁止在例行维护中删除持久化卷；销毁必须另行授权并先验证备份",
+        "reason": "补充维护中断/数据保护边界，并为长命令加入可复制的 shell 续行。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "table_index": 0,
+        "row_index": 1,
+        "cell_index": 4,
+        "before": "✅ 完整支持",
+        "after": "按配套镜像逐项验收",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "table_index": 0,
+        "row_index": 2,
+        "cell_index": 4,
+        "before": "✅ 完整支持",
+        "after": "按配套镜像逐项验收",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "table_index": 0,
+        "row_index": 3,
+        "cell_index": 4,
+        "before": "✅ 完整支持",
+        "after": "按配套镜像逐项验收",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "table_index": 0,
+        "row_index": 4,
+        "cell_index": 4,
+        "before": "✅ 完整支持",
+        "after": "按配套镜像逐项验收",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "table_index": 3,
+        "row_index": 1,
+        "cell_index": 3,
+        "before": "默认，效果最好",
+        "after": "按客户评测选择",
+        "reason": "将能力声明与实际部署配置、验收和备份位置对齐。"
+      },
+      {
+        "operation": "remove-empty-toc-placeholder",
+        "reason": "移除没有任何条目的英文目录占位块；保留正文及标题导航。"
+      },
+      {
+        "operation": "layout-repair",
+        "reason": "Visual QA found renderer font-resolution failure; input section/table-grid dimensions also needed explicit values. Fontconfig repair is task-local, not a customer system change.",
+        "changes": [
+          "explicit existing Heiti SC CJK font reference",
+          "explicit missing page/margin dimensions",
+          "bounded table grids and cell widths",
+          "black heading styles",
+          "light-gray table borders"
+        ],
+        "content_order_preserved": true
+      }
+    ],
+    "status": "edited-review-candidate-render-and-content-qa-required"
+  },
+  {
+    "document": "BioMate本地部署运维远程支持手册.docx",
+    "source_revision": "79c0421d90ff86f5973513a0360677bd72df390c",
+    "source_sha256": "affa37bfb2f8ea33e532e35fa9fe438c4e2e810ad95edbbcd79b4e673a52508a",
+    "candidate_path": "docs/qa/20261107-onprem-readiness/revised-manuals/BioMate本地部署运维远程支持手册.docx",
+    "candidate_sha256": "206bab60451e952132246055a923bbc3cf59220849cac6c21cb41550ef6e1c48",
+    "changes": [
+      {
+        "paragraph_index_in_approved_source": 8,
+        "before": "方案 C：Cloudflare Tunnel（临时）",
+        "after": "方案 C：Cloudflare 正式隧道（须独立验收）",
+        "reason": "目录与正式隧道及 Access 验收要求一致，不宣传未验证的临时 SSH。",
+        "before_style": "Compact",
+        "after_style": "Compact"
+      },
+      {
+        "paragraph_index_in_approved_source": 9,
+        "before": "接入后：用 Claude Code 排查问题",
+        "after": "接入后：在批准的数据边界内排查问题",
+        "reason": "目录不默认指示启动外部 AI。",
+        "before_style": "Compact",
+        "after_style": "Compact"
+      },
+      {
+        "paragraph_index_in_approved_source": 11,
+        "before": "frp 服务端搭建（BioMate 团队内部）",
+        "after": "frp 中继服务管理（获准管理员）",
+        "reason": "服务部署权取决于客户授权，不限定为团队内部云账号。",
+        "before_style": "Compact",
+        "after_style": "Compact"
+      },
+      {
+        "paragraph_index_in_approved_source": 54,
+        "before": "在阿里云 ECS 上搭 frps 服务端，参见第 8 节。",
+        "after": "由获准管理员部署客户批准的中继服务，参见第 8 节；位置、访问范围及流量路径须经过审批。",
+        "reason": "与客户批准的中继位置一致，不默认使用团队的外部云账号。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 47,
+        "before": "bash remote-access.sh stop",
+        "after": "# 同一操作者、同一状态目录，只停止已验证归属的会话\nbash scripts/remote-access.sh stop",
+        "reason": "与部署包实际脚本路径和限定停止范围一致。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 64,
+        "before": "bash remote-access.sh stop",
+        "after": "# 同一操作者、同一状态目录，只停止已验证归属的会话\nbash scripts/remote-access.sh stop",
+        "reason": "与部署包实际脚本路径和限定停止范围一致。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 76,
+        "before": "bash remote-access.sh stop",
+        "after": "# 同一操作者、同一状态目录，只停止已验证归属的会话\nbash scripts/remote-access.sh stop",
+        "reason": "与部署包实际脚本路径和限定停止范围一致。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 48,
+        "before": "或工程师在 Tailscale 控制台删除该设备。",
+        "after": "随后由获准管理员在控制台撤销或删除对应设备，并验证访问已被拒绝。停止客户端和撤销服务端授权是两项独立检查。",
+        "reason": "不能把仅停止客户端与撤销服务端授权当作等价替代。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 67,
+        "before": "适用： 紧急情况，只需要轻量诊断，不需要完整 SSH 功能。",
+        "after": "适用：客户已批准正式 Cloudflare 中继与 Access 策略，且客户端、镜像和 SSH 访问均具备独立验收条件。",
+        "reason": "适用场景与正式隧道一致，不再宣传无需完整 SSH 的临时模式。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 78,
+        "before": "6. 接入后：用 Claude Code 排查问题",
+        "after": "6. 接入后：在批准的数据边界内排查问题",
+        "reason": "正文标题不默认指示启动外部 AI。",
+        "before_style": "Heading 2",
+        "after_style": "Heading 2"
+      },
+      {
+        "paragraph_index_in_approved_source": 79,
+        "before": "成功 SSH 进入客户服务器后，推荐工作流：",
+        "after": "进入客户环境后，只执行本次批准范围内的诊断与变更；先验证元数据，再按授权确定是否需要敏感日志。",
+        "reason": "SSH 权限不自动授权所有日志、数据或模型访问。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 80,
+        "before": "6.1 启动 Claude Code",
+        "after": "6.1 诊断工具及 AI 使用边界",
+        "reason": "与后续禁止自动安装和默认外发的说明一致。",
+        "before_style": "Heading 3",
+        "after_style": "Heading 3"
+      },
+      {
+        "paragraph_index_in_approved_source": 88,
+        "before": "# 加执行权限\nchmod +x diag-onprem.sh && bash diag-onprem.sh\n# 或者直接 bash 调用\nbash diag-onprem.sh",
+        "after": "cd /app/biomate\nbash scripts/diag-onprem.sh\n# bash 调用不要求脚本执行位；如仍拒绝访问，核对目录/文件权限和操作者。\n# 配套隐私过滤程序必须同时存在，不复制单个脚本绕过检查。",
+        "reason": "使用配套脚本真实路径，不把所有权限错误都归因于执行位。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 90,
+        "before": "脚本会自动切换 ghproxy 镜像，如果仍然失败：",
+        "after": "客户端预装失败或版本不匹配时由管理员核对来源、校验值、CPU 架构和批准的软件清单；脚本不会切换第三方镜像源。",
+        "reason": "删除与取消自动下载相矛盾的 ghproxy 说明。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 101,
+        "before": "8. frp 服务端搭建（BioMate 团队内部）",
+        "after": "8. frp 中继服务管理（获准管理员）",
+        "reason": "与客户审批的中继归属和管理职责一致。",
+        "before_style": "Heading 2",
+        "after_style": "Heading 2"
+      },
+      {
+        "paragraph_index_in_approved_source": 102,
+        "before": "在阿里云 ECS（推荐 2 核 2G，华东节点）部署 frps：",
+        "after": "中继位置、容量、网络区域与运维责任由客户批准并按实际并发验收，不默认指定供应商、区域或硬件规格。",
+        "reason": "删除未测量的固定规格与默认外部区域建议。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 36,
+        "before": "在 Tailscale 控制台生成 一次性 auth-key：",
+        "after": "由客户 IT 批准组织账号、访问策略和认证 key。凭据通过批准的密钥渠道写入仅当前操作者可读的文件；不放入命令行、聊天或截图。客户端须由管理员预装并验证。",
+        "reason": "新脚本拒绝明文命令行凭据，也不会接管已有主机连接。",
+        "before_style": "Compact",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 42,
+        "before": "# 一键安装并接入（将 tskey-auth-xxxx 替换为工程师提供的 key）\nbash remote-access.sh tailscale --key tskey-auth-xxxxxxxxxxxxxxxxxxxx",
+        "after": "# 管理员预装并启动 Tailscale，批准本次访问后准备私有凭据文件\nchmod 600 /secure/tailscale-auth\nbash scripts/remote-access.sh tailscale \\\n  --key-file /secure/tailscale-auth\n# 已有主机连接时拒绝接管；返回成功且状态确认 Running 才算接入。",
+        "reason": "与受保护的 auth-key file 接口一致；移除自动安装及明文 key 示例。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 58,
+        "before": "# token 由工程师通过安全渠道提供\nbash remote-access.sh frp \\\n  --server frps.biomate.ai \\\n  --token <工程师提供的token> \\\n  --port 16022",
+        "after": "# 管理员预装并校验 frpc；凭据文件归当前用户所有\nchmod 600 /secure/frp-token\nbash scripts/remote-access.sh frp \\\n  --server <客户批准的中继主机> \\\n  --token-file /secure/frp-token \\\n  --port <客户批准的端口>",
+        "reason": "改用私有凭据文件，不把共享 token 暴露到进程参数或 shell 历史。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 59,
+        "before": "脚本会自动下载适合架构的 frpc（支持 x86_64 和 ARM64），国内访问 GitHub 超时时自动切换镜像源。",
+        "after": "脚本不自动下载 frpc，也不使用未经校验的镜像代理。由管理员核对版本、来源校验值、CPU 架构和执行权限后预装；服务端登录成功仍须验证代理注册、SSH 账号和访问范围。",
+        "reason": "替换未校验自动下载保证，区分登录与端到端成功。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 66,
+        "before": "5. 方案 C：Cloudflare Tunnel（临时）",
+        "after": "5. 方案 C：Cloudflare 正式隧道（须独立验收）",
+        "reason": "未验证的 quick SSH 模式不作为可用支持通道。",
+        "before_style": "Heading 2",
+        "after_style": "Heading 2"
+      },
+      {
+        "paragraph_index_in_approved_source": 68,
+        "before": "注意： 临时 URL 随机生成，每次断开后失效；国内访问 Cloudflare 速度不稳定。",
+        "after": "必须经客户批准 Cloudflare 中继路径、Access 策略及数据边界。脚本拒绝 --quick SSH 模式；正式隧道须预置已验收的不可变镜像，支持 token-file，并单独验证 SSH。进程运行不等于通道验收。",
+        "reason": "与 fail-closed 实现一致，移除随机 URL 即可 SSH 的错误保证。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 70,
+        "before": "# 快速模式（无需任何账号，Docker 一行启动）\nbash remote-access.sh cloudflare --quick",
+        "after": "# 客户预载并验收镜像，凭据文件仅当前操作者可读\nchmod 600 /secure/cloudflare-token\nbash scripts/remote-access.sh cloudflare \\\n  --token-file /secure/cloudflare-token \\\n  --image cloudflare/cloudflared@sha256:<已验收的64位摘要>\n# 不会自动拉取镜像；实际版本须支持 token-file。",
+        "reason": "不可变镜像、离线预载和文件凭据取代 latest 与明文 token。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 72,
+        "before": "✓ 临时 Cloudflare 隧道已建立！\n  将以下 URL 发给工程师: https://abc-xyz.trycloudflare.com\n  工程师连接方式: ssh -o ProxyCommand='cloudflared access ssh --hostname %h' root@abc-xyz.trycloudflare.com",
+        "after": "脚本仅报告 Cloudflare 进程已启动。客户管理员随后验证服务端连接、Access 策略、SSH 访问及未授权拒绝。未完成这些验证不能记录远程支持通道通过。",
+        "reason": "删除无实际连接验证的成功输出示例。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 74,
+        "before": "# 安装 cloudflared（一次性）\nbrew install cloudflared  # macOS\n# 或: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared\n\n# 连接\nssh -o ProxyCommand='cloudflared access ssh --hostname %h' \\\n  root@abc-xyz.trycloudflare.com",
+        "after": "工程师使用经客户批准并校验的 cloudflared 客户端，通过批准的 Access 主机名及最小权限账号连接。软件安装、版本与来源校验由管理员管理；不要下载未固定版本的二进制后直接运行。",
+        "reason": "不再从 latest 下载未校验客户端，不默认使用 root。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 89,
+        "before": "Q: frpc 下载失败（国内网络）",
+        "after": "Q: frpc 未安装或版本未验收",
+        "reason": "脚本已取消未经校验的自动下载，不再按下载代理故障处理。",
+        "before_style": "Heading 3",
+        "after_style": "Heading 3"
+      },
+      {
+        "paragraph_index_in_approved_source": 91,
+        "before": "# 工程师从自己机器下载后通过 scp 传给客户\n# frpc 下载地址: https://github.com/fatedier/frp/releases\n# 文件名: frpc_0.61.1_linux_amd64.tar.gz 或 frpc_0.61.1_linux_arm64.tar.gz\nscp frpc root@<客户临时IP>:/tmp/biomate-frpc\nssh root@<客户临时IP> \"chmod +x /tmp/biomate-frpc\"\n# 然后运行\nbash remote-access.sh frp --server frps.biomate.ai --token <token> --port 16022",
+        "after": "由客户管理员按批准的软件分发流程预装 frpc，核对来源、版本、SHA256、CPU 架构及权限。再使用 --token-file 启动已批准的中继和端口。不要将可执行文件放到公共 /tmp 固定路径，也不要使用 --token 明文参数。",
+        "reason": "删除共享临时可执行路径和旧明文接口，保持与新脚本一致。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 99,
+        "before": "bash remote-access.sh status\n# 应显示: 无活跃远程接入会话",
+        "after": "# 使用创建会话的同一操作者及相同状态目录\nbash scripts/remote-access.sh stop\nbash scripts/remote-access.sh status\n# 仅停止本脚本已验证归属的会话，不停止主机其他连接。\n# 由管理员另行撤销服务端授权并验证无法再次连接。",
+        "reason": "脚本状态不是主机所有远程通道均已撤销的证明。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 103,
+        "before": "# 1. 下载 frps\nFRP_VER=0.61.1\ncurl -LO https://github.com/fatedier/frp/releases/download/v${FRP_VER}/frp_${FRP_VER}_linux_amd64.tar.gz\ntar -xzf frp_${FRP_VER}_linux_amd64.tar.gz\ncp frp_${FRP_VER}_linux_amd64/frps /usr/local/bin/\n\n# 2. 写配置\ncat > /etc/frps.toml <<'EOF'\nbindPort = 7000\nauth.method = \"token\"\nauth.token = \"your-shared-token-here\"\n\n# 允许的端口范围（SSH 转发用）\nallowPorts = [\n  { start = 16000, end = 16100 }\n]\n\n# 日志\nlog.to = \"/var/log/frps.log\"\nlog.level = \"info\"\nlog.maxDays = 7\nEOF\n\n# 3. 创建 systemd 服务\ncat > /etc/systemd/system/frps.service <<'EOF'\n[Unit]\nDescription=BioMate frp Server\nAfter=network.target\n\n[Service]\nExecStart=/usr/local/bin/frps -c /etc/frps.toml\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\nEOF\n\nsystemctl enable --now frps\n\n# 4. 配置域名（在阿里云 DNS 添加 A 记录）\n# frps.biomate.ai → ECS 公网 IP\n\n# 5. 安全组开放端口\n# 7000/tcp  (frp 控制端口，只对 frpc 客户端开放)\n# 16000-16100/tcp  (SSH 转发端口，对工程师 IP 开放)",
+        "after": "中继服务器由客户或获准基础设施管理员部署和管理。先核对 frps 发行版本、校验值与架构，再按批准的变更流程安装。配置及共享 token 仅管理员可读；限制客户端来源、工程师来源和允许的单个端口范围，配置日志保留及服务端撤销流程。启动后分别验证认证、代理注册、SSH 正向访问与未授权拒绝。不要照抄未校验下载、固定公网端口或示例 token 的自动部署脚本。",
+        "reason": "删除未经校验执行、默认全端口范围及示例明文服务器配置，服务器设置须独立审计。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 82,
+        "before": "6.2 常用诊断命令（Claude Code 可直接执行）",
+        "after": "6.2 客户批准范围内的元数据诊断",
+        "reason": "不能默认授权外部 AI 读取完整日志、运行路径或健康响应正文。",
+        "before_style": "Heading 3",
+        "after_style": "Heading 3"
+      },
+      {
+        "paragraph_index_in_approved_source": 83,
+        "before": "# 查看所有容器状态\ndocker ps -a\n\n# 查看 Galaxy 后端最近错误\ndocker logs biomate-galaxy --tail 100 2>&1 | grep -iE \"error|fail|exception\"\n\n# 实时跟踪日志\ndocker logs -f biomate-galaxy 2>&1 | grep -v \"DEBUG\\|INFO\"\n\n# 检查健康状态\ndocker inspect biomate-galaxy | python3 -c \"import sys,json; d=json.load(sys.stdin)[0]; h=d['State']['Health']; print(h['Status']); [print(l['Output']) for l in h.get('Log',[])]\"\n\n# 重启单个服务\ndocker restart biomate-galaxy\n\n# 检查磁盘使用（/app 目录）\ndf -h /app && du -sh /app/nf-work/* 2>/dev/null | sort -hr | head -10\n\n# 检查许可证\ncurl -sf http://localhost:5000/api/license/status | python3 -m json.tool\n\n# 测试 LLM 连通性\ncurl -sf http://localhost:5000/api/health/llm | python3 -m json.tool\n\n# 查看 Nextflow 运行日志（最近的）\nls -lt /app/nf-work/ 2>/dev/null | head -5",
+        "after": "cd /app/biomate\nbash scripts/diag-onprem.sh\n# 默认只采集元数据；先由客户审查结果。\n# 需要日志正文时，记录客户批准的范围、接收人和保留期限，\n# 再按第 2 节执行显式授权的敏感采集。\n# 不把实时原始日志、许可证内容或患者数据自动输入外部模型。",
+        "reason": "去除默认原始日志/健康响应正文采集，也修复原长行超出页面边界。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 14,
+        "before": "客户内网有问题\n        │\n        ▼\n能让客户发给你诊断包？ ──是──► 先收诊断包分析，80% 的问题可远程解决\n        │                        (bash diag-onprem.sh)\n        否\n        │\n        ▼\n需要实时远程操作\n        │\n   ┌────┴─────────────────────────┐\n   ▼                              ▼\n客户允许安装软件                客户安全管控严格\n（IT 审批较快）                 （不能装软件）\n        │                              │\n   方案 A: Tailscale              方案 B: frp\n   - 5 分钟搭好                   - 客户只需运行一个二进制\n   - 工程师 IP 透明可审计         - 流量走你们自己的中继服务器\n   - 临时 key 自动过期            - token 一次性，支持完即销毁\n        │                              │\n        └──────────┬───────────────────┘\n                   │\n            紧急/临时一次性？\n                   │\n              方案 C: Cloudflare\n              - 无需在客户机装任何东西（Docker 即可）\n              - 临时 URL，断开即失效\n              - 网速较慢，仅适合轻量诊断",
+        "after": "先确认客户授权及数据边界。\n可离线排查：在客户内网生成元数据诊断包，由客户审查后按批准渠道提供。\n确需远程操作：由客户 IT 审批接入软件、账号、访问范围及会话时限，再选用已验收的 Tailscale 或 frp 方案。\n第三方中继或临时公网隧道：额外核对流量经过的位置、访问控制和客户许可；不得作为无审批的备用通道。\n支持结束：停止对应通道，撤销设备/账号授权，验证无法重新连接并保存审计记录。认证 key 到期或轮换共享 token 均不能替代会话撤销。",
+        "reason": "决策图本身仍包含一次性 token、自动撤销及无审批接入等错误，不能只修正文而保留矛盾图示。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 38,
+        "before": "勾选 Ephemeral（临时，连接断开后设备自动移除）",
+        "after": "Ephemeral 设备的自动清理条件以服务配置为准；支持结束仍须主动停止通道并验证设备授权已撤销。",
+        "reason": "临时设备清理不能等同于即时断开或会话自动到期。",
+        "before_style": "Compact",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 52,
+        "before": "优势： 中继服务器由 BioMate 团队控制，流量不经过第三方，合规性更好。",
+        "after": "可选择客户批准的自管中继；仍需核对中继主机、云服务商、流量经过区域、密钥管理和日志策略。自管服务不自动等于无第三方参与或满足合规要求。",
+        "reason": "不把自管中继作为无条件合规保证。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 81,
+        "before": "# 如果客户机有网：\n# 通过 npm 临时安装（不影响系统）\nnpx @anthropic-ai/claude-code\n\n# 如果无网：先在本地机器用 claude，ssh 进去手动执行命令",
+        "after": "不要在客户服务器自动下载并运行外部 AI 工具。优先使用客户批准的本地诊断程序；确需 AI 辅助时，先审批模型位置、数据访问与外发范围。即使工具运行在工程师电脑上，输入客户日志或命令输出仍可能产生数据外发，不能以 SSH 手动执行替代数据授权。",
+        "reason": "联网、临时安装或工程师本机运行均不能构成默认数据处理授权。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 44,
+        "before": "# 查看客户机器的 Tailscale IP（在 Tailscale 控制台或让客户运行 tailscale ip -4）\nssh root@100.x.x.x\n\n# 然后启动 Claude Code 进行诊断\nclaude",
+        "after": "# 由客户批准的账号连接，仅在授权范围内操作\nssh <获准账号>@<批准的设备地址>\n# 使用获准的本地诊断工具；AI 辅助分析须另行核对数据授权。",
+        "reason": "不默认要求 root 或启动外部 AI。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 61,
+        "before": "ssh root@frps.biomate.ai -p 16022\n\n# 然后启动 Claude Code\nclaude",
+        "after": "# 连接地址、账号和端口由客户批准\nssh <获准账号>@<批准的中继地址> -p <获准端口>\n# 保留访问审计；不自动启动外部 AI。",
+        "reason": "接入成功不构成外部模型处理客户数据的授权。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 17,
+        "before": "大多数问题（容器崩溃、日志报错、配置错误）不需要远程接入，拿到诊断包就够了。",
+        "after": "优先在客户内网收集元数据诊断。默认不包含日志正文、运行记录或环境值；即使是元数据，也应由客户审查后再按批准渠道处理。",
+        "reason": "与默认最小化采集实现一致，不把脱敏当作自动可外发保证。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 18,
+        "before": "2.1 客户操作（60 秒）",
+        "after": "2.1 客户操作",
+        "reason": "去除未经测量的固定完成时长。",
+        "before_style": "Heading 3",
+        "after_style": "Heading 3"
+      },
+      {
+        "paragraph_index_in_approved_source": 19,
+        "before": "# 在客户服务器上运行（需要 Docker 已安装）\nbash <(curl -fsSL https://raw.githubusercontent.com/biomate-ai/biomate/main/scripts/diag-onprem.sh)\n\n# 或者如果已有脚本文件：\nbash diag-onprem.sh",
+        "after": "# 使用完整部署包，隐私过滤程序必须与 shell 脚本一同提供\ncd /app/biomate\nbash scripts/diag-onprem.sh\n# 只有在客户明确授权后才收集敏感日志\n# bash scripts/diag-onprem.sh --include-sensitive --confirm-authorized",
+        "reason": "替换远程下载即执行和单文件运行方式，说明额外敏感采集授权。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 20,
+        "before": "输出：/tmp/biomate-diag-YYYYMMDD_HHMMSS.tar.gz",
+        "after": "输出路径以脚本打印为准；每次使用唯一目录，默认目录权限仅限当前用户。",
+        "reason": "采用唯一安全临时目录，不再假定固定秒级文件名。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 21,
+        "before": "客户通过微信 / 钉钉 / 邮件发给工程师即可。",
+        "after": "由客户先检查诊断包，确认接收人、传输渠道和保留期限。不要上传公共文件分享服务，也不要默认将内容发送给境外 AI 服务。",
+        "reason": "落实医院数据边界与转移授权。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 24,
+        "before": "cd /tmp && tar -xzf biomate-diag-20261106_143022.tar.gz\ncd biomate-diag-20261106_143022",
+        "after": "在受控工作目录检查来源和归档内容后再解压。不要以 root 身份展开不可信归档，也不要直接在用户主目录覆盖现有文件。",
+        "reason": "避免将客户提供的归档直接展开到共享目录。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 26,
+        "before": "SUMMARY.txt              # 先看这个：容器状态 + 错误行统计\nsystem.txt               # 系统信息（OS、CPU、内存、磁盘）\ndocker-info.txt          # Docker 版本、磁盘用量\ncontainers-status.txt    # 所有容器健康状态 + 重启次数\nlogs/\n  biomate-galaxy-errors.log    # Galaxy 后端错误行（最重要）\n  biomate-frontend-errors.log\n  biomate-postgres-errors.log\n  biomate-galaxy-tail.log      # 完整日志（最近 500 行）\n  ...\ninspect/\n  biomate-galaxy.json          # docker inspect 完整 JSON\n  ...\napi-checks.txt           # /api/health、许可证、工作流搜索结果\nrecent-runs.txt          # 最近 10 次工作流运行\nenv-summary.txt          # 环境变量（密钥已脱敏）",
+        "after": "SUMMARY.txt             # 状态摘要\nsystem.txt              # 系统元数据\ndocker-info.txt         # Docker 版本和空间信息\ncontainers-status.txt   # 受控容器状态\ninspect/                # 仅允许字段的状态投影，不含完整配置\napi-checks.txt          # 默认仅 HTTP 状态，不含响应正文\nenv-summary.txt         # 仅环境变量名及设置状态\n\nlogs/ 和运行记录仅在显式授权的敏感模式下采集；该模式的输出不能视为已脱敏。",
+        "reason": "目录说明对应实际隐私边界，不再声称完整 inspect 或日志已安全脱敏。",
+        "before_style": "Source Code",
+        "after_style": "Source Code"
+      },
+      {
+        "paragraph_index_in_approved_source": 27,
+        "before": "用 Claude Code 分析（推荐）：",
+        "after": "在客户批准的数据边界内分析",
+        "reason": "不默认推荐把支持数据输入外部 AI。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 28,
+        "before": "# 在本地打开诊断目录\nclaude /tmp/biomate-diag-20261106_143022/\n\n# 然后让 Claude Code 帮你分析\n# 示例：\n# \"帮我看一下 SUMMARY.txt 和 galaxy-errors.log，诊断为什么 ADMET 工作流失败\"\n# \"api-checks.txt 里许可证状态是什么，有没有异常\"",
+        "after": "先查看 SUMMARY.txt 和状态元数据，再确定是否需要由客户批准更细的日志采集。若使用 AI 辅助分析，应事先确认模型部署位置、数据处理条款和授权范围；不得自动上传患者数据或凭证。",
+        "reason": "明确模型分析的数据流和审批条件。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 32,
+        "before": "优势： 最简单，工程师 IP 记录在 Tailscale 控制台（可审计），临时 auth-key 到期自动断开。",
+        "after": "优势：接入配置较简单，可通过控制台和访问策略审计。认证 key 到期不会自动撤销已经加入的设备；支持结束后必须停止通道并在控制台撤销或删除对应设备。",
+        "reason": "依据 Tailscale 官方 Auth keys 文档区分 auth key 到期与节点授权。",
+        "before_style": "Body Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 39,
+        "before": "Expiry: 1 hour（建议）",
+        "after": "认证 key 使用控制台支持的最短合适期限；支持会话另设明确结束时间。key 的有效期不是会话自动断开保证。",
+        "reason": "官方 auth key 有效期范围与旧文一小时示例不一致；会话撤销须独立执行。",
+        "before_style": "Compact",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 55,
+        "before": "4.2 工程师生成一次性 token",
+        "after": "4.2 共享凭证的保管与会话撤销",
+        "reason": "当前 frp 实现使用共享 token，不是一次性 token。",
+        "before_style": "Heading 3",
+        "after_style": "Heading 3"
+      },
+      {
+        "paragraph_index_in_approved_source": 56,
+        "before": "# 在 frps 服务端生成一次性 token（每次支持会话使用不同 token）\n# 目前：直接用配置文件里的共享 token，后续可升级为动态 token\n# 联系团队 @yaoyun 获取当前 token",
+        "after": "当前方案使用受控共享 token，由授权管理员通过批准的密钥渠道提供。不得宣称其为一次性凭证。每次支持都须记录客户授权、工程师身份、连接端口与结束时间；结束后停止对应客户端并验证无法再次连接。",
+        "reason": "与已实现的 frp 认证方式一致，补充会话级控制。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 104,
+        "before": "Token 管理原则： - 使用一个共享 token（非动态） - token 通过 1Password 团队 vault 管理 - 每季度轮换一次 - 客户支持完成后检查 /var/log/frps.log 确认连接已断开",
+        "after": "Token 管理原则：共享 token 存放于批准的密钥库，按组织策略及事件需要轮换。支持结束后停止对应会话，检查客户端、服务端和审计记录；仅轮换 token 或观察日志不能替代验证通道已关闭。\n参考：https://tailscale.com/docs/features/access-control/auth-keys",
+        "reason": "共享凭证轮换与活动会话撤销是不同控制。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 1,
+        "before": "适用对象： BioMate 实施 / 支持工程师\n版本： v1.0 · 2026-11-06\n前置要求： 已完成初始部署（参见 ONPREM_SETUP.md）",
+        "after": "适用对象： BioMate 实施 / 支持工程师\n版本： v1.0 · 2026-11-06\n前置要求： 已完成初始部署（参见 《BioMate 本地部署运维手册》）",
+        "reason": "交付给客户的 Word 手册引用实际文档名称，不引用未随包提供的仓库 Markdown 路径。",
+        "before_style": "Block Text",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 34,
+        "before": "注册 Tailscale 账号（免费，支持最多 20 台设备）",
+        "after": "由客户 IT 批准组织账号、访问策略和服务套餐。设备容量及许可按当前合同与官方说明确认，不在本手册承诺固定免费额度。",
+        "reason": "移除可能变化的商业套餐和设备数承诺。",
+        "before_style": "Compact",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 94,
+        "before": "# 强制走 TCP 443（HTTPS，几乎不会被封）\nsudo tailscale up --authkey=\"...\" --netfilter-mode=off",
+        "after": "由客户网络管理员核对官方接入需求、出站策略、代理和中继可达性。不要为了接入关闭防火墙管理，也不要把修改 netfilter 设置当作强制 TCP 传输或穿透防火墙的保证。",
+        "reason": "删除不准确的网络排障承诺及不必要的防火墙管理关闭命令。",
+        "before_style": "Source Code",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 96,
+        "before": "旧版本部署使用 MinIO，新版本使用阿里云 OSS。 如果客户是离线部署（无公网访问），biomate-minio 是必须运行的，缺失则工作流无法存储结果。",
+        "after": "是否运行 MinIO 取决于所选存储配置，不由新旧版本决定。使用外部对象存储或已验收的纯本地模式时，不应仅因没有 MinIO 容器就判定部署故障；先核对实际端点、凭证及文件读写路径。",
+        "reason": "存储模式可配置，不能把某个演示环境当作所有部署的默认。",
+        "before_style": "First Paragraph",
+        "after_style": "Normal"
+      },
+      {
+        "paragraph_index_in_approved_source": 1,
+        "before": "适用对象： BioMate 实施 / 支持工程师\n版本： v1.0 · 2026-11-06\n前置要求： 已完成初始部署（参见 《BioMate 本地部署运维手册》）",
+        "after": "适用对象： BioMate 实施 / 支持工程师\n版本： v1.1 审阅版 · 2026-11-07\n前置要求： 已完成初始部署（参见 《BioMate 本地部署运维手册》）",
+        "reason": "更新修订日期及审阅状态，保留原行内格式。"
+      },
+      {
+        "operation": "layout-repair",
+        "reason": "Visual QA found renderer font-resolution failure; input section/table-grid dimensions also needed explicit values. Fontconfig repair is task-local, not a customer system change.",
+        "changes": [
+          "explicit existing Heiti SC CJK font reference",
+          "explicit missing page/margin dimensions",
+          "bounded table grids and cell widths",
+          "black heading styles",
+          "light-gray table borders"
+        ],
+        "content_order_preserved": true
+      }
+    ],
+    "status": "edited-review-candidate-render-and-content-qa-required"
+  }
+]

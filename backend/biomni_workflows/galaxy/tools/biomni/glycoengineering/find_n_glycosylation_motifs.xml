@@ -2,7 +2,7 @@
 <tool id="biomni_glycoengineering_find_n_glycosylation_motifs" name="Biomni: Find N Glycosylation Motifs" version="1.0.0">
     <description>Scan a protein sequence for N-linked glycosylation sequons (N-X-[S/T]).</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/find_n_glycosylation_motifs_wrapper.py' --output '$output'

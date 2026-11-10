@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_perform_mwas_cyp2c19_metabolizer_status" name="Biomni: Perform Mwas Cyp2C19 Metabolizer Status" version="1.0.0">
     <description>Perform a Methylome-wide Association Study (MWAS) to identify CpG sites significantly associated with CYP2C19 metabolizer status.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/perform_mwas_cyp2c19_metabolizer_status_wrapper.py' --output '$output'

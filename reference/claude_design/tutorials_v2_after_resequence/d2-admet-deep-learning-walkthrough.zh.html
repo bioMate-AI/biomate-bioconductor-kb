@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · ADMET 深度学习</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-d2{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.rail .kind{font-family:var(--ff-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px}
+.rail .kind.concept{background:var(--blue-bg); color:var(--blue)}
+.rail .kind.flow{background:var(--panel2); color:var(--mut)}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* edu framing strip: task -> hard -> classical -> deep -> BioMate -> read */
+.frame-strip{display:flex; gap:0; margin:4px 0 0; flex-wrap:wrap}
+.frame-strip .fs{display:flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.04em; color:var(--mut); padding:4px 0}
+.frame-strip .fs b{color:var(--blue); font-weight:500; text-transform:uppercase; letter-spacing:.08em}
+.frame-strip .sep{color:var(--line2); margin:0 12px}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+
+/* screenshot figures (live product scenes) */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0f141b; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
+
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:44ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:96ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:51vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.card.big .row2, .card.big .row3, .card.big .row4, .card.big .row5{flex:1 1 auto; grid-template-rows:minmax(0,1fr)}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px; display:flex; flex-direction:column; justify-content:center}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.tile.good{border-color:var(--green); background:var(--green-bg)}
+.tile.good .n{color:var(--green)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:8px 15px; font-size:14px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+.metricrow{display:flex; gap:34px; margin-top:4px}
+.metric{display:flex; flex-direction:column}
+.metric .v{font-family:var(--ff-mono); font-size:26px; color:var(--ink); font-weight:600}
+.metric .k{font-size:12px; color:var(--mut); margin-top:2px}
+
+/* data table (gate / per-compound) */
+.gatetbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.gatetbl th{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); text-align:left; padding:6px 10px 6px 0; border-bottom:1px solid var(--line2); font-weight:500}
+.gatetbl td{padding:9px 10px 9px 0; border-bottom:1px solid var(--line); vertical-align:middle}
+.gatetbl td:first-child{font-weight:600; color:var(--ink)}
+.gatetbl tr:last-child td{border-bottom:none}
+.gatetbl .num{font-family:var(--ff-mono)}
+.gatetbl .halt{color:var(--red); font-weight:600}
+.gatetbl .safe{color:var(--green); font-weight:600}
+.diff .was{font-family:var(--ff-mono); color:var(--red); text-decoration:line-through; opacity:.8}
+.diff .now{font-family:var(--ff-mono); color:var(--green); font-weight:600}
+.diff .ar{color:var(--mut); margin:0 7px}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:12px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:44px; flex:1; min-height:0}
+.two-col.even{grid-template-columns:1fr 1fr}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.deliver{list-style:none; padding:0; margin:0}
+.deliver li{display:flex; align-items:baseline; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.deliver li:last-child{border-bottom:none}
+.deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
+.deliver li b{color:var(--ink); font-weight:600}
+code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:60px 104px 64px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; margin-top:34px}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-d2">药物研发模型 · ADMET 深度学习</span>
+  <span class="kind concept" id="kind">概念</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">15</span> 页</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="46.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>ADMET · 深度学习</b></div>
+    <div class="kicker">面向分子安全性的深度学习 · 从结构到一个安全性判断</div>
+    <h2>仅凭结构，用一个图神经网络，预测一个分子的 ADMET 与毒性。</h2>
+    <p class="caption lead">一个图神经网络读取结构，为 15 个安全性终点打分——背后是一道有出处的 QC 门。</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>任务</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>它为什么难</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>经典 QSAR</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>图神经网络</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>运行 + QC 门</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>解读结果</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — IDEA: the task -->
+  <section class="scene" data-kind="concept" data-seconds="37.0">
+    <div class="kicker"><span class="st">理念 · 1</span> · 任务——ADMET 预测什么，以及 hERG 为何居首 <span class="badge concept">概念</span></div>
+    <h2>ADMET 要问的是：身体究竟耐不耐受这个分子？</h2>
+    <p class="caption lead">结合靶点还不够——身体必须吸收、耐受并清除这个分子。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow" style="max-width:1180px">
+        <div class="stat"><div class="si">A</div><div class="sh">吸收</div><div class="sp">它进得去吗？</div></div>
+        <div class="stat"><div class="si">D</div><div class="sh">分布</div><div class="sp">它会去哪里？</div></div>
+        <div class="stat"><div class="si">M</div><div class="sh">代谢</div><div class="sp">被分解得多快？</div></div>
+        <div class="stat"><div class="si">E</div><div class="sh">排泄</div><div class="sp">它如何离开？</div></div>
+        <div class="stat" style="border-color:var(--red); background:var(--red-bg)"><div class="si" style="color:var(--red)">T</div><div class="sh">毒性</div><div class="sp">有无危害？含 hERG</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">&#9873; hERG 居首</span> 阻断心脏的 K⁺ 通道，你就有引发致命心律失常的风险——它曾终结过已获批的药物。</div>
+    </div>
+  </section>
+
+  <!-- 2 — IDEA: SOTA + why hard -->
+  <section class="scene" data-kind="concept" data-seconds="49.0">
+    <div class="kicker"><span class="st">理念 · 2</span> · 它为什么难——以及好模型是什么样 <span class="badge concept">概念</span></div>
+    <h2>结构到性质的映射是非线性的，标签稀疏，而新骨架会破坏一切捷径。</h2>
+    <p class="caption lead">好模型能泛化到它从未见过的化学类型——而不是记住一张表的那个。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="statline">
+          <span class="statbig">10<sup>60</sup></span>
+          <span class="statcap">个类药分子——而每个终点的标签只有几千条</span>
+        </div>
+        <div class="criteria">
+          <div class="crit"><span class="cn">01 · 浩瀚空间</span><span class="ct">无法穷举</span><span class="cd">从极小的带标签片段里做插值</span></div>
+          <div class="crit"><span class="cn">02 · 稀疏标签</span><span class="ct">带噪的检测</span><span class="cd">同一化合物在不同实验室读数不同</span></div>
+          <div class="crit"><span class="cn">03 · 最难之处</span><span class="ct">全新骨架</span><span class="cd">恰在你最需要处最不可靠</span></div>
+          <div class="crit"><span class="cn">04 · 不对称代价</span><span class="ct">漏判一次就致命</span><span class="cd">必须标记 hERG，绝不悄悄放过</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — IDEA: classical baseline QSAR -->
+  <section class="scene" data-kind="concept" data-seconds="44.0">
+    <div class="kicker"><span class="st">理念 · 3</span> · 经典基线——建立在分子描述符上的 QSAR <span class="badge concept">概念</span></div>
+    <h2>先看它必须超越的方法：把手工设计的描述符喂进一个浅层模型。</h2>
+    <p class="caption lead">可解释、又快——但对固定描述符没有编码的任何信号都视而不见。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="flowstage">
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">结构</span><span class="fs-s">一个 SMILES 字符串</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">固定描述符</span><span class="fs-s">logP、MW、环数、指纹位</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">随机森林</span><span class="fs-s">一个浅层学习器</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage accent"><span class="fs-i"></span><span class="fs-t">终点估计</span><span class="fs-s">每个模型一个值</span></div>
+        </div>
+        <div class="vlabel">快、可解释、数据高效——但特征是<b>事先固定</b>的，任何未编码的信号都看不见。这是真实的基线，不是陪衬的稻草人。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — IDEA: deep learning graph NN -->
+  <section class="scene" data-kind="concept" data-seconds="58.0">
+    <div class="kicker"><span class="st">理念 · 4</span> · 深度学习模型——一个消息传递图网络 <span class="badge concept">概念</span></div>
+    <h2>让分子成为一张图，再让模型自己学出特征。</h2>
+    <p class="caption lead">没有任何手工设计的特征——网络沿着化学键，逐键发现什么才重要。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">分子就是一张图</div>
+          <svg width="170" height="118" viewBox="0 0 170 118"><g class="mol">
+            <polygon points="85,16 128,41 128,88 85,113 42,88 42,41" fill="none"/>
+            <line x1="128" y1="41" x2="154" y2="28"/>
+            <circle class="r" cx="85" cy="16" r="8"/><circle class="r" cx="128" cy="41" r="8"/>
+            <circle class="r2" cx="128" cy="88" r="8"/><circle class="r" cx="85" cy="113" r="8"/>
+            <circle class="r" cx="42" cy="88" r="8"/><circle class="r" cx="42" cy="41" r="8"/>
+            <circle class="r2" cx="156" cy="26" r="8"/>
+          </g></svg>
+          <div class="gl-lbl">原子是节点，化学键是边</div></div>
+        <div class="glyph"><div class="n">消息传递</div>
+          <svg width="170" height="118" viewBox="0 0 170 118"><g class="mol">
+            <line x1="85" y1="60" x2="32" y2="30"/><line x1="85" y1="60" x2="138" y2="30"/><line x1="85" y1="60" x2="85" y2="110"/>
+            <circle class="r" cx="32" cy="30" r="8"/><circle class="r" cx="138" cy="30" r="8"/><circle class="r2" cx="85" cy="110" r="8"/>
+            <circle class="r" cx="85" cy="60" r="12"/>
+          </g>
+          <g stroke="#8a5a12" stroke-width="3" fill="none"><path d="M46,38 L68,51"/><path d="M124,38 L102,51"/><path d="M85,98 L85,76"/></g>
+          <g fill="#8a5a12"><polygon points="70,52 60,49 65,59"/><polygon points="100,52 110,49 105,59"/><polygon points="85,74 80,84 90,84"/></g>
+          </svg>
+          <div class="gl-lbl">消息沿化学键流动</div></div>
+        <div class="glyph"><div class="n">一次前向 → 15 个终点</div>
+          <svg width="190" height="118" viewBox="0 0 190 118">
+            <rect x="8" y="46" width="48" height="26" rx="6" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="2.4"/>
+            <path class="gl-arrow" d="M62,59 L86,59"/><polygon points="88,59 78,54 78,64" fill="#5a6474"/>
+            <g>
+              <rect x="96" y="70" width="12" height="32" rx="2" fill="#1c6b3a"/>
+              <rect x="114" y="54" width="12" height="48" rx="2" fill="#8a5a12"/>
+              <rect x="132" y="38" width="12" height="64" rx="2" fill="#9c1a2e"/>
+              <rect x="150" y="64" width="12" height="38" rx="2" fill="#1c6b3a"/>
+              <rect x="168" y="78" width="12" height="24" rx="2" fill="#1c6b3a"/>
+            </g>
+          </svg>
+          <div class="gl-lbl">汇聚后，读出每一个终点</div></div>
+      </div>
+      <div class="vlabel">BioMate 运行已发表的 <b>ADMET-AI / Chemprop</b> MPNN——15 个终点，来自 ChEMBL / TDC 的 200 多万条测量。<span style="color:var(--mut)">示例工具；特征是学来的，不是手写的。</span></div>
+    </div>
+  </section>
+
+  <!-- 5 — IDEA: classical vs deep -->
+  <section class="scene" data-kind="concept" data-seconds="33.0">
+    <div class="kicker"><span class="st">理念 · 5</span> · 经典与深度——各自何时取胜 <span class="badge concept">概念</span></div>
+    <h2>并非"深度永远更好"——这是两件各有取舍的工具。</h2>
+    <p class="caption lead">图网络在多样化学空间上取胜；森林在速度和极小数据上取胜。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow" style="max-width:940px">
+        <div class="stat">
+          <div class="sh">经典 · QSAR + 随机森林</div>
+          <div class="sc-bar warn" style="margin:14px 0 10px"><i style="width:62%"></i></div>
+          <div class="sp">固定特征——快而可解释，但对未编码的信号视而不见；对新骨架弱。</div>
+        </div>
+        <div class="stat" style="border-color:var(--green); background:var(--green-bg)">
+          <div class="sh" style="color:var(--green)">深度 · Chemprop 图网络</div>
+          <div class="sc-bar ok" style="margin:14px 0 10px"><i style="width:88%"></i></div>
+          <div class="sp">学出的特征——一次给出 15 个终点，在多样化学空间上最好。BioMate 的默认选择。</div>
+        </div>
+      </div>
+      <div class="vlabel">两者都是<b>对实验值的估计器</b>——在任何要紧的决定之前，都需要湿实验确认。</div>
+    </div>
+  </section>
+
+  <!-- 6 — IDEA: how BioMate runs it -->
+  <section class="scene" data-kind="concept" data-seconds="29.0">
+    <div class="kicker"><span class="st">理念 · 6</span> · BioMate 如何运行它——对话、路由、托管算力 <span class="badge concept">概念</span></div>
+    <h2>你用大白话描述目标；BioMate 挑选模型，并在托管算力上运行它。</h2>
+    <p class="caption lead">路由到经过验证的工作流，核对面板，然后运行——结果实时回传。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · 提问</div><div class="pc">大白话</div><div class="pt"><span>"做 ADMET 筛查"</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">意图</span></div>
+        <div class="pstep"><div class="pn">2 · 路由</div><div class="pc">挑选工作流</div><div class="pt"><span class="eg">ADMET-AI</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">面板</span></div>
+        <div class="pstep"><div class="pn">3 · 核对</div><div class="pc">运行前面板</div><div class="pt"><span>参数可编辑</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">确认</span></div>
+        <div class="pstep"><div class="pn">4 · 运行</div><div class="pc">托管算力</div><div class="pt"><span class="eg">AWS Batch</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">结果</span></div>
+        <div class="pstep"><div class="pn">5 · 闸门</div><div class="pc">QC + 报告</div><div class="pt"><span class="eg">hERG 门</span></div></div>
+      </div>
+      <div class="ploop">无需搭建环境，也无需购买模型授权——BioMate 托管算力，并实时推送 QC 门</div>
+    </div>
+  </section>
+
+  <!-- 7 — PRODUCT: pre-run -->
+  <section class="scene live" data-kind="flow" data-seconds="28.0">
+    <div class="kicker"><span class="st">产品 · 1</span> · 运行前的核对 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>真实产品录制</span></div>
+    <h2>模型将要用到的一切都摆了出来——而且可编辑——在一分钱算力被花掉之前。</h2>
+    <p class="caption lead">模型将要用到的一切都摆了出来——而且可编辑——在任何算力被花掉之前。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/prerun.png" alt="运行前：可编辑的 SMILES 清单与 ADMET 模型类型参数，位于"确认并运行"按钮上方"/></div>
+          <figcaption><span class="lbl">运行前 · 实时</span>你的 SMILES 清单和模型设置，均可编辑——缺了某个必需参数会阻断，并提示"立即修正"。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag new">可编辑参数</span><span class="tag">确认并运行</span><span class="tag">不确认就不会运行</span></div>
+  </section>
+
+  <!-- 8 — PRODUCT: running + gates -->
+  <section class="scene live" data-kind="flow" data-seconds="24.0">
+    <div class="kicker"><span class="st">产品 · 2</span> · 运行中，hERG 门尽在眼前 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>真实产品录制</span></div>
+    <h2>它在托管云算力上运行，而安全门全程可见。</h2>
+    <p class="caption lead">它在托管云算力上运行，安全门全程保持可见。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/running.png" alt="运行中：阶段卡与 QC 门清单，含 hERG 心脏安全性阈值"/></div>
+          <figcaption><span class="lbl">运行中 · 实时</span>阶段卡实时翻转，而这次运行将要检查的 QC 门并排列出。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag">pending → running → completed</span><span class="tag new">已列出 hERG 门</span><span class="tag">毫无隐藏</span></div>
+  </section>
+
+  <!-- 9 — HERO DATA: the hERG QC gate FIRES -->
+  <section class="scene" data-kind="concept" data-seconds="67.0">
+    <div class="kicker"><span class="st">产品 · 3 · 关键一幕</span> · hERG QC 门拦截一个有心脏毒性的候选物 <span class="badge concept">真实运行 · d0ff684b</span></div>
+    <h2>在一次真实运行里，门以 0.012&nbsp;µM 抓住了 terfenadine——并带着引用说明了为什么。</h2>
+    <p class="caption lead">aspirin 通过了；terfenadine——已知的 hERG 风险分子——在最差情形下触发了门。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statline" style="gap:44px">
+        <div style="text-align:center">
+          <div class="bignum" style="color:var(--red)">0.012<span style="font-size:.4em"> µM</span></div>
+          <div class="vlabel" style="margin-top:8px">terfenadine · 最差情形 hERG IC50 <span style="color:var(--mut)">（估计）</span></div>
+        </div>
+        <div style="font-size:52px; color:var(--mut); font-family:var(--ff-mono)">&#8810;</div>
+        <div style="text-align:center">
+          <div class="bignum" style="color:var(--ink2)">1.0<span style="font-size:.4em"> µM</span></div>
+          <div class="vlabel" style="margin-top:8px">GOLD 安全阈值 <span style="color:var(--mut)">（有出处）</span></div>
+        </div>
+      </div>
+      <div class="sc-note" style="margin-top:26px"><span class="flag">&#9873; [GOLD] 拦截</span> 预示 QT 间期延长 / 尖端扭转型室速（Sanguinetti 2006；FDA E14）。一条天真的流水线会把它悄悄放行。</div>
+      <table class="gatetbl" style="max-width:720px; margin:24px auto 0; width:100%">
+        <tr><th>化合物</th><th>logP</th><th>MW</th><th>hERG IC50</th><th>判定</th></tr>
+        <tr><td>aspirin</td><td class="num">1.31</td><td class="num">180.2</td><td class="num">10000 µM</td><td class="safe">安全</td></tr>
+        <tr><td>terfenadine</td><td class="num">7.01</td><td class="num">499.7</td><td class="num halt">0.012 µM</td><td class="halt">拦截</td></tr>
+      </table>
+      <div class="vlabel" style="margin-top:14px">有依据的修正：收紧 <code>logp_max</code> 5.0 → 4.0、<code>mw_max</code> 500 → 400——这是建议，而非自动重启。在安全化学上重新运行，顺利通过：这道门会<b>甄别</b>。</div>
+    </div>
+  </section>
+
+  <!-- 10 — PRODUCT: completed -->
+  <section class="scene live" data-kind="flow" data-seconds="28.0">
+    <div class="kicker"><span class="st">产品 · 4</span> · 已完成——结论摘要 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>真实产品录制</span></div>
+    <h2>运行结束时，面板直接从结果文件里读出结论。</h2>
+    <p class="caption lead">运行结束时，面板直接从结果文件里读出结论。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/completed.png" alt="已完成：绿色的已完成徽标，以及带 hERG、DILI 和口服生物利用度数值的结论摘要"/></div>
+          <figcaption><span class="lbl">已完成 · 实时</span>数值直接从输出里读出——绝非手写；读不出来就扣下不显示。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag">已完成</span><span class="tag">重新运行</span><span class="tag new">注意事项：计算机估计——请用湿实验确认</span></div>
+  </section>
+
+  <!-- 11 — PRODUCT: outputs -->
+  <section class="scene live" data-kind="flow" data-seconds="28.0">
+    <div class="kicker"><span class="st">产品 · 5</span> · 输出——按步骤归类的每个文件 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>真实产品录制</span></div>
+    <h2>摘要背后：是模型产出的原始文件。</h2>
+    <p class="caption lead">摘要背后：是模型产出的原始文件，按生成它们的步骤归类。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/outputs.png" alt="输出：结果文件归类在生成它们的步骤之下"/></div>
+          <figcaption><span class="lbl">输出 · 实时</span>表格以表格呈现，文本以代码呈现——每个都在原地预览，并归你下载。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag new">toxicity_report.json</span><span class="tag">qc_metrics.json</span><span class="tag">versions.yml</span></div>
+  </section>
+
+  <!-- 12 — PRODUCT: reproducibility record -->
+  <section class="scene live" data-kind="flow" data-seconds="29.0">
+    <div class="kicker"><span class="st">产品 · 6</span> · 可复现记录 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>真实产品录制</span></div>
+    <h2>是什么让一个模型估计站得住脚——完整的审计轨迹，汇于一个 JSON。</h2>
+    <p class="caption lead">完整的审计轨迹汇于一个 JSON——是哪个模型、在哪些输入上，产出了这个数字。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/record.png" alt="可复现记录：工作流名称、运行 id、时间戳，以及带 SHA-256 校验和的输出表"/></div>
+          <figcaption><span class="lbl">可复现 · 实时</span>一键导出 JSON——这正是审稿人或监管机构会要的证据；为空的字段会显示，而不是藏起来。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag">运行 id + 参数</span><span class="tag">模型 + 版本</span><span class="tag new">SHA-256 校验和</span></div>
+  </section>
+
+  <!-- 13 — IDEA: read the outputs + caveats -->
+  <section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">理念 · 7</span> · 如何读懂 ADMET 结果 <span class="badge concept">概念</span></div>
+    <h2>读这道门和每个化合物的分数——而不是孤立地看任何单一数字。</h2>
+    <p class="caption lead">站得住脚的输出，是一张表、一个有出处的门判定，以及一份可复现记录。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="ranges">
+        <div class="rg">
+          <div class="rg-name">适用域<span>离训练化学空间有多近</span></div>
+          <div>
+            <div class="rg-track">
+              <div class="rg-band g" style="left:5%; width:55%"></div>
+              <div class="rg-tag" style="left:32%">域内 · 可信</div>
+            </div>
+            <div class="rg-ends"><span>接近 ChEMBL / TDC</span><span>全新骨架 → 最不可靠</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tags" style="justify-content:center; margin-top:4px">
+        <span class="tag new">估计，而非检测</span>
+        <span class="tag">知道边界</span>
+        <span class="tag">信任这道门——标记，绝不悄悄放过</span>
+      </div>
+      <div class="vlabel">显示的 IC50 是从阻断风险概率推导出来的估计值——是模型输出，不是实测值。</div>
+    </div>
+  </section>
+
+  <!-- 14 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="54.0">
+    <div class="kicker">ADMET 深度学习一览</div>
+    <h2 style="font-size:38px">结构进去 → 学出来的图特征 → 带出处的安全性判断出来。</h2>
+    <p class="caption lead" style="text-align:center; max-width:76ch; margin:0 auto 10px">ADMET 深度学习仅凭结构，就预测身体会不会耐受一个分子。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow" style="max-width:1040px">
+        <div class="pstep"><div class="pn">输入</div><div class="pc">结构</div><div class="pt"><span>SMILES</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">图</span></div>
+        <div class="pstep"><div class="pn">模型</div><div class="pc">学出的特征</div><div class="pt"><span class="eg">Chemprop MPNN</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">15 个终点</span></div>
+        <div class="pstep"><div class="pn">闸门</div><div class="pc">有出处的 QC</div><div class="pt"><span class="eg">hERG · DILI</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">记录</span></div>
+        <div class="pstep"><div class="pn">输出</div><div class="pc">安全性判断</div><div class="pt"><span>审计 JSON</span></div></div>
+      </div>
+      <div class="recap">
+        <div class="rchip"><span class="rk">模型</span><span class="rv">图网络 · 15 个终点 · 200 多万条测量</span></div>
+        <div class="rchip"><span class="rk">运行</span><span class="rv">hERG 门拦下 terfenadine · 0.012 µM</span></div>
+        <div class="rchip"><span class="rk">记录</span><span class="rv">审计级别，一键导出 JSON</span></div>
+      </div>
+      <p class="footnote" style="text-align:center; margin-top:8px">计算机模拟分流，而非临床结论——模型估计需要实验验证。下一讲：D3——生成式先导化合物设计。</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

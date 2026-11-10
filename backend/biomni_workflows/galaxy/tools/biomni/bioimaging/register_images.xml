@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_register_images" name="Biomni: Register Images" version="1.0.0">
     <description>Perform image registration.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/register_images_wrapper.py' --output '$output'

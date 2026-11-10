@@ -74,6 +74,7 @@ import type {
   WorkflowGenerationRequest,
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
+import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
 
 // ─── Agent tool infrastructure ────────────────────────────────────────────────
 
@@ -430,7 +431,158 @@ ask them to paste the detail — never fabricate a recollection.`,
       required: ['query'],
     },
   },
+  {
+    name: 'edit_report',
+    description: `Edit the written FINDINGS REPORT of one of the user's runs, through chat, and save it as a
+new report version. Use this when the user asks to change their report in words: "tighten the abstract
+of my last run's report", "add a limitations paragraph", "rewrite the summary for a clinical audience".
+This edits the REAL, durable, versioned report (the same object the report panel shows) — version 0 (the
+run original) is always preserved; your edit is appended as a new version.
+
+THREE-STEP, NEVER-SILENT flow — follow it in order:
+  1. Call with just {run_id} (and optionally the user's instruction). The tool returns base_markdown —
+     the current report text. If it returns status "no_report_text", the report has not been opened or
+     saved yet: ask the user to open it in the report panel once, or paste the text. NEVER invent a
+     report body.
+  2. Compose the FULL edited report yourself and call again with {run_id, new_content}. The tool returns
+     a diff preview (added/removed lines). Show that change to the user. Do NOT save yet.
+  3. Only after the user agrees, call with {run_id, new_content, confirm: true} to SAVE it as a new
+     version. Saving modifies the user's report, so it requires their explicit OK first.
+If the client provided the exact text the user is viewing, pass it as current_markdown so the edit forks
+from precisely what they see.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        run_id: {
+          type: 'string',
+          description: "The run whose report to edit (run id, or the Galaxy invocation id). Get it from the recent-runs context or list_history if unsure.",
+        },
+        instruction: {
+          type: 'string',
+          description: 'Optional: what the user asked to change, for your own reference on step 1 (e.g. "tighten the abstract").',
+        },
+        new_content: {
+          type: 'string',
+          description: 'The FULL edited report markdown you composed. Required for the preview (step 2) and the save (step 3). Omit on step 1 to fetch the current text first.',
+        },
+        confirm: {
+          type: 'boolean',
+          description: 'Set true ONLY to save, and ONLY after the user has agreed to the previewed change. Without it the tool previews and does not write.',
+        },
+        current_markdown: {
+          type: 'string',
+          description: 'Optional: the exact report text the user is currently viewing, if the client supplied it. Used as the edit base so the fork matches what they see.',
+        },
+        note: {
+          type: 'string',
+          description: 'Optional short label stored with the saved version (e.g. "tightened abstract via chat").',
+        },
+      },
+      required: ['run_id'],
+    },
+  },
 ];
+
+/** Line-level diff summary produced by summarizeReportEdit, used by the edit_report
+ *  tool to show the user WHAT an edit changes before it is saved. */
+export interface ReportEditSummary {
+  added: number;
+  removed: number;
+  baseLines: number;
+  nextLines: number;
+  unchanged: boolean;
+  /** A short unified-diff-style preview (±/context lines), truncated. */
+  preview: string;
+}
+
+/** Minimal LCS line diff. O(m*n) memory — guarded by the caller for large inputs.
+ *  Returns a tagged sequence: ' ' context, '-' removed (in base only), '+' added
+ *  (in next only). */
+function lcsLineDiff(a: string[], b: string[]): Array<{ type: ' ' | '-' | '+'; line: string }> {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out: Array<{ type: ' ' | '-' | '+'; line: string }> = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (a[i] === b[j]) {
+      out.push({ type: ' ', line: a[i] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      out.push({ type: '-', line: a[i] });
+      i++;
+    } else {
+      out.push({ type: '+', line: b[j] });
+      j++;
+    }
+  }
+  while (i < m) out.push({ type: '-', line: a[i++] });
+  while (j < n) out.push({ type: '+', line: b[j++] });
+  return out;
+}
+
+/** Summarize the change from `base` report markdown to `next`. Counts added/removed
+ *  lines and builds a short preview of only the changed lines (with a little context),
+ *  truncated to `maxPreviewLines`. For very large reports it falls back to a
+ *  multiset line-count so it never allocates an O(m*n) table. Pure + testable. */
+export function summarizeReportEdit(base: string, next: string, maxPreviewLines = 40): ReportEditSummary {
+  const a = (base ?? '').split('\n');
+  const b = (next ?? '').split('\n');
+  if (base === next) {
+    return { added: 0, removed: 0, baseLines: a.length, nextLines: b.length, unchanged: true, preview: '' };
+  }
+  // Guard the O(m*n) table on large inputs: fall back to a frequency-based count.
+  if (a.length > 2000 || b.length > 2000) {
+    const freq = new Map<string, number>();
+    for (const l of a) freq.set(l, (freq.get(l) ?? 0) + 1);
+    for (const l of b) freq.set(l, (freq.get(l) ?? 0) - 1);
+    let added = 0;
+    let removed = 0;
+    for (const v of freq.values()) {
+      if (v < 0) added += -v;
+      else if (v > 0) removed += v;
+    }
+    return {
+      added,
+      removed,
+      baseLines: a.length,
+      nextLines: b.length,
+      unchanged: added === 0 && removed === 0,
+      preview: '(report too large to show a line-by-line preview; ' + added + ' line(s) added, ' + removed + ' removed)',
+    };
+  }
+  const diff = lcsLineDiff(a, b);
+  let added = 0;
+  let removed = 0;
+  for (const d of diff) {
+    if (d.type === '+') added++;
+    else if (d.type === '-') removed++;
+  }
+  const previewLines: string[] = [];
+  for (const d of diff) {
+    if (d.type === ' ') continue;
+    previewLines.push((d.type === '+' ? '+ ' : '- ') + d.line);
+    if (previewLines.length >= maxPreviewLines) {
+      previewLines.push('… (preview truncated)');
+      break;
+    }
+  }
+  return {
+    added,
+    removed,
+    baseLines: a.length,
+    nextLines: b.length,
+    unchanged: added === 0 && removed === 0,
+    preview: previewLines.join('\n'),
+  };
+}
 
 /** Pull a short, readable snippet from a chat_sessions.messages JSONB value around
  *  the first matching token. Defensive about message shape (array of {role,content},
@@ -602,6 +754,25 @@ export interface ChatContext {
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
+  /**
+   * The active project id (uuid) this chat is scoped to, or undefined when the
+   * chat is project-less. Set by routes.ts from the server-resolved project
+   * (`_resolvedProjectId`). Used to scope standing project memory — e.g. routing
+   * corrections — so a correction made in project A never surfaces in project B.
+   */
+  projectId?: string;
+  /** When the user has a run's report open in the panel, the client may pass the
+   *  exact markdown it is showing (buildFullReportMarkdown) + that run's id. The
+   *  edit_report tool uses this as the faithful base so a chat edit forks from
+   *  precisely what the user sees, rather than a server-reconstructed approximation. */
+  openReportRunId?: string;
+  openReportMarkdown?: string;
+  /** Auth headers (Authorization + cookie) copied from the originating chat
+   *  request by routes.ts, so a tool handler can make an AUTHENTICATED self-call
+   *  back to the Node API. Used by edit_report to reconstruct a run's report
+   *  from /api/workflows/runs/:runId/findings/report when the client did not
+   *  pass the open markdown and no version is saved yet. Never logged. */
+  selfRequestAuth?: { authorization?: string; cookie?: string };
   enableThinking?: boolean;
   /** Accumulated facts from prior turns, passed so the LLM can decide supersession */
   accumulatedFacts?: Array<{ id: string; category: string; value: string }>;
@@ -1717,6 +1888,12 @@ export function inferActionsFromType(type: string): ActionCategories {
     // HPO phenotype-to-gene mapping. Triggered by HPO terms, ENSG candidate lists, disease matching.
     'clinical_genomics': { needsResearchAgent: true, needsLLMReasoning: true },
     'benchmark_query': { needsBenchmarkAgent: true, needsLLMReasoning: true },
+    // Diagnosing the user's OWN failed/stuck run — answer from the run record's
+    // recorded error (injected recent-runs-with-errors block), NOT from literature.
+    // Routing this to research_question made BioMate reply with a generic cited
+    // paper about "why code fails" and ask for logs it already had (org-user issue
+    // #3, 2026-11-09). LLM reasoning only: no research/benchmark/workflow agent.
+    'run_diagnostics': { needsLLMReasoning: true },
     'dataset_inquiry': { needsDatasetAccess: true, needsLLMReasoning: true },
     'experiment_design': { needsResearchAgent: true, needsLLMReasoning: true },
     'data_interpretation': { needsResearchAgent: true, needsLLMReasoning: true },
@@ -2315,6 +2492,33 @@ export function runErrorSummary(execution: any, errorMessage?: string | null): s
     .find(l => l && !/^Caused by:?$/i.test(l) && !/DEBUG|WARN\s|RetryConfig|FileHelper|Error executing process >/.test(l)) || '';
   const parts = [proc || failed?.name ? `process ${proc || failed?.name} failed` : '', specific.slice(0, 300)].filter(Boolean);
   return parts.join(' — ') || 'failed with no recorded error message (task logs not captured)';
+}
+
+/** Assemble the raw error text recorded on a run (recorded error + log/trace lines). */
+function assembleRunErrorText(execution: any, errorMessage?: string | null): string {
+  const e = execution || {};
+  return [e.error, errorMessage, ...(Array.isArray(e.nextflowLog) ? e.nextflowLog : []), ...(Array.isArray(e.errorLines) ? e.errorLines : [])]
+    .filter((x: any) => typeof x === 'string' && x.trim())
+    .join('\n');
+}
+
+/**
+ * Plain-language explanation of WHY a run failed — the specific cause, the input/
+ * param at fault, and a concrete next action, in one message (raw error appended
+ * for expansion). Uses the deterministic rule-based classifier; when the error
+ * matches no known class it states the failing step and shows the raw error
+ * rather than inventing a cause. This is what the assistant relays when the user
+ * asks "why is the run failing?" (org-user issue #3). Returns `null` only when the
+ * run is not actually in a failed/error state.
+ */
+export function runFailureExplanation(execution: any, errorMessage?: string | null): string | null {
+  const e = execution || {};
+  const status = String(e.status ?? '').toLowerCase();
+  if (status && !/fail|error|cancel/.test(status)) return null;
+  const raw = assembleRunErrorText(e, errorMessage);
+  const failedProc = Array.isArray(e.processes) ? e.processes.find((p: any) => /fail/i.test(String(p?.status)))?.name : undefined;
+  const exp = classifyRunFailure(raw, { process: failedProc });
+  return formatRunFailureReply(exp);
 }
 
 /** Prompt line fixing the reply language to the user's own words (not the English attachment blocks,
@@ -3481,6 +3685,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'query_database': output = await this._toolQueryDatabase(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
             case 'search_chat_history': output = await this._toolSearchChatHistory(args, toolContext.context); break;
+            case 'edit_report': output = await this._toolEditReport(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
             case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
             case 'request_new_tool': output = await this._toolRequestNewTool(args, toolContext.context); break;
@@ -4008,11 +4213,21 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
   /**
    * P2 — Build a correction context block from the user's correction history.
    * Formats past corrections as routing constraints to inject before intent analysis.
+   *
+   * Project-scoped: when `projectId` is a project id, only that project's
+   * corrections plus the user's project-agnostic ones are used (a correction
+   * made in project A never surfaces in project B). When `projectId` is null
+   * (a project-less session) only account-level corrections are used. When
+   * undefined, scoping is left to the repository default (all corrections).
+   *
    * Non-fatal: returns empty string on any error.
    */
-  private async _buildCorrectionContextBlock(userId: string): Promise<string> {
+  private async _buildCorrectionContextBlock(
+    userId: string,
+    projectId?: string | null
+  ): Promise<string> {
     try {
-      const corrections = await memoryService.users.getUserCorrections(userId, 5)
+      const corrections = await memoryService.users.getUserCorrections(userId, 5, projectId)
         .catch(() => []);
       if (!corrections.length) return '';
 
@@ -4032,6 +4247,29 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
 
       if (!lines.length) return '';
       return `[User routing corrections — apply these preferences when selecting workflows]\n${lines.join('\n')}\n\n`;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Standing long-term-memory prefix injected on EVERY turn (not first-message-only).
+   *
+   * Today this is the project-scoped routing-corrections block. It lives here —
+   * separate from the first-message cross-session / episode recall — because
+   * corrections are a persistent user constraint the model must honour on every
+   * message, not a one-time session primer. Project scoping flows straight
+   * through: `context.projectId` (undefined when the chat is project-less, in
+   * which case we pass `null` so only account-level corrections surface, never
+   * another project's).
+   *
+   * Non-fatal: returns '' on any error or when there is no user.
+   */
+  private async _buildStandingLtmPrefix(context: ChatContext): Promise<string> {
+    if (!context.userId) return '';
+    try {
+      const projectId = context.projectId ?? null;
+      return await this._buildCorrectionContextBlock(String(context.userId), projectId);
     } catch {
       return '';
     }
@@ -4628,38 +4866,60 @@ Rules:
     // Also injects P1 episode memory and P2 correction constraints.
     // All injections are non-fatal — failures are silently ignored.
     const isFirstMessage = !context.previousMessages || context.previousMessages.length === 0;
-    const _runProblem = asksAboutRunProblem(message);
-    if (_runProblem && !isFirstMessage && context.userId) {
-      // Any turn asking why a run fails gets the runs WITH their recorded errors (this chat first).
-      const block = await this._buildRecentRunsBlock(String(context.userId), { withErrors: true, chatSessionId: context.sessionId }).catch(() => '');
-      if (block) {
-        context = { ...context, ltmContextBlock: block + (context.ltmContextBlock || '') };
-        log('C2 recent runs (with errors) injected for a run-problem question');
+    // Universe model: the user's recent runs — each with status, output count and,
+    // for any FAILED run, a plain-language diagnosis (cause · at-fault · next, from
+    // the run's own recorded error) — are STANDING context on EVERY turn, not gated
+    // on detecting a "why did it fail?" phrasing or the first message. This is the
+    // principled fix for the class of context-referential questions ("why did my
+    // run fail?", "what did my run produce?", "show my results"): the run record is
+    // always part of the model on the MAIN assistant path, so the answer never depends
+    // on the intent classifier noticing it first. (The earlier gating is exactly how
+    // "why is the run failing?" reached the literature agent with no run in context —
+    // org-user issue #3.)
+    // HONEST SCOPE (committee review 2026-11-10): the research/literature sub-agent does
+    // NOT share this standing context by the same mechanism — it runs as a separate call
+    // (`queryResearch`), so the `run_diagnostics` short-circuit (asksAboutRunProblem →
+    // force run_diagnostics) is CURRENTLY LOAD-BEARING, not vestigial: without it a
+    // run-problem classified `research_question` would still reach the literature path.
+    // We now also thread the universe into that payload (`researchPayload.context
+    // .user_context`), but full parity needs the backend research agent to prefer it —
+    // until then the short-circuit stays as a real guard, not a belt-and-suspenders.
+    if (context.userId) {
+      const runsBlock = await this._buildRecentRunsBlock(
+        String(context.userId),
+        { withErrors: true, chatSessionId: context.sessionId },
+      ).catch(() => '');
+      if (runsBlock) {
+        context = { ...context, ltmContextBlock: runsBlock + (context.ltmContextBlock || '') };
+        log('Universe: recent runs (status + outputs + failed-run diagnosis) injected as standing context');
+      }
+      // P2 routing corrections are STANDING context on EVERY turn (not
+      // first-message-only): they are a persistent user constraint the model
+      // must honour on every message, and they are PROJECT-SCOPED via
+      // context.projectId so a correction made in project A never surfaces in
+      // project B (project-less sessions see only account-level corrections).
+      const standingLtm = await this._buildStandingLtmPrefix(context).catch(() => '');
+      if (standingLtm) {
+        context = { ...context, ltmContextBlock: standingLtm + (context.ltmContextBlock || '') };
+        log('Universe: project-scoped routing corrections injected as standing context');
       }
     }
+    // First-message-only memory blocks (cross-session recall, episode memory).
+    // Runs and routing corrections are no longer here — they are standing
+    // context above (corrections moved out of this first-message gate).
     if (isFirstMessage && context.userId) {
       const uid = String(context.userId);
       try {
-        const [crossSessionBlock, episodeBlock, correctionBlock, recentRunsBlock] =
+        const [crossSessionBlock, episodeBlock] =
           await Promise.all([
             this._buildCrossSessionContextBlock(message, uid),
             this._buildEpisodeMemoryBlock(message, uid),          // P1
-            this._buildCorrectionContextBlock(uid),               // P2
-            this._buildRecentRunsBlock(uid, _runProblem ? { withErrors: true, chatSessionId: context.sessionId } : {}), // C2 (Galaxy History handoff)
           ]);
 
         let prefix = '';
-        if (correctionBlock) {
-          prefix += correctionBlock;
-          log('P2 correction context injected for user ' + uid);
-        }
         if (episodeBlock) {
           prefix += episodeBlock;
           log('P1 episode memory injected for user ' + uid);
-        }
-        if (recentRunsBlock) {
-          prefix += recentRunsBlock;
-          log('C2 recent runs injected for user ' + uid);
         }
         if (crossSessionBlock) {
           prefix += crossSessionBlock;
@@ -5197,6 +5457,31 @@ Rules:
       }
     }
 
+    // Data-attach guard:
+    // A pure "add/attach these files" action is dataset management, NOT an
+    // analysis request — but a bare "also add the other two files" was being
+    // misrouted into workflow-card generation (un_expected_workflow_otherintent).
+    // Suppress generation only when the message reads as an attach/add-files
+    // action AND carries no genuine analysis/workflow verb. Real requests like
+    // "run rnaseq on the other two files" keep their analysis verb and are
+    // unaffected, so this stays narrow. Runs on the ORIGINAL user query so
+    // injected context (paper text, dataset blocks) can't dilute the match.
+    if (actions.needsWorkflowGeneration) {
+      const _attachQuery = originalUserQuery || message;
+      const _isAttachAction =
+        // attach verb followed (within a short span) by a files noun or pronoun
+        /\b(?:also\s+)?(?:add|attach|include|upload)\b[^.?!\n]{0,40}\b(?:files?|datasets?|samples?|attachments?|docs?|documents?|pdfs?|csvs?|them|these|those|it)\b/i.test(_attachQuery)
+        // strong signal: "the other/remaining/rest/both ... files"
+        || /\b(?:the\s+)?(?:other|remaining|rest|both|two|three|four|additional|more)\s+(?:two|three|four|\d+\s+)?(?:files?|datasets?|samples?|attachments?|documents?)\b/i.test(_attachQuery);
+      const _hasAnalysisVerb =
+        /\b(run|execute|process|analy[sz]e|align|map|call|quantify|trim|filter|normali[sz]e|cluster|assemble|annotate|predict|screen|dock|simulate|differential\s+expression|variant|genotyp\w*|workflow|pipeline|rna-?seq|atac|chip-?seq|admet|docking|align\w*|deseq|enrich\w*)\b/i.test(_attachQuery);
+      if (_isAttachAction && !_hasAnalysisVerb) {
+        log('Data-attach guard: add/attach-files action with no analysis verb — suppressing workflow generation, routing to plain/dataset response');
+        actions.needsWorkflowGeneration = false;
+        actions.needsWorkflowModification = false;
+      }
+    }
+
     // PBPK: NO prereq gate. pbpk_simulation has a default for every param
     // (SMILES=aspirin, CLint=45 µL/min/mg, fu_plasma=0.05, population=healthy_adult,
     // dose=500 mg), so a bare "run a PBPK simulation" must one-click with defaults and
@@ -5372,7 +5657,17 @@ Rules:
         // cross-references with PubMed/Semantic Scholar for supporting literature.
         const researchPayload: Record<string, unknown> = {
           query: message,
-          context: { information_need: intent.type },
+          context: {
+            information_need: intent.type,
+            // Universe context (the user's recent runs/outputs + standing memory) so the
+            // research agent can answer a question about the user's OWN run/data from it
+            // rather than citing general literature. This is the systematic counterpart to
+            // the run_diagnostics short-circuit: that guard keeps run-problems off this path,
+            // but any context-referential question that still routes here now at least carries
+            // the universe. (Backend research agent should prefer this when the question is
+            // about the user's own runs/outputs — committee review 2026-11-10.)
+            user_context: context.ltmContextBlock || undefined,
+          },
           include_citations: true,
           include_benchmark_evidence: true,
         };
@@ -6884,6 +7179,37 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         isMultiIntent: false,
         primaryIntent: knowledgeIntent,
       };
+    }
+
+    // Short-circuit: the user is asking why THEIR OWN run failed / is stuck.
+    // Deterministically route to run_diagnostics so the answer is composed from
+    // the run record's recorded error (the recent-runs-with-errors block injected
+    // upstream), NOT the research/literature agent. The production misroute this
+    // fixes: "why is the run failing?" was classified research_question and
+    // answered with a generic cited paper ("code execution often fails… please
+    // provide the error message/logs") three times — for logs BioMate already had
+    // (org-user issue #3, 2026-11-09). Gated on a real run-problem phrasing and a
+    // userId (so we have a run to inspect), and excluded when the user is clearly
+    // asking for new literature instead (so "find papers on why runs fail" still
+    // reaches research). asksAboutRunProblem is already scoped to not match
+    // generic questions like "what is the failure rate of CAR-T therapy?".
+    const _wantsLiterature = /\b(find|search|cite|review|look up)\b[^.?!\n]{0,40}\b(papers?|literature|publications?|studies|articles?)\b|\bpapers? (?:on|about)\b/i.test(message);
+    if (asksAboutRunProblem(message) && context.userId && !_wantsLiterature) {
+      const diagIntent: DecomposedIntent = {
+        id: 'intent_run_diagnostics_forced',
+        type: 'run_diagnostics',
+        subQuery: message,
+        keywords: [],
+        inlineParameters: {},
+        needsToolSearch: false,
+        needsDatasets: false,
+        confidence: 0.95,
+        facts: [],
+        dependsOn: [],
+        actions: inferActionsFromType('run_diagnostics'),
+      };
+      console.log('[GalaxyAssistant] Short-circuit: run-diagnostics (user asked why their run failed) — bypassing research/literature routing');
+      return { intents: [diagIntent], isMultiIntent: false, primaryIntent: diagIntent };
     }
 
     // Short-circuit: E2E test hook — bypass LLM classification entirely.
@@ -9503,7 +9829,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
       }
-      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id with read_file to preview it, OR with run_code's input_datasets to load the FULL file for computation (it is staged into the sandbox like any input; a file over the sandbox cap will not be staged and run_code will report that — run a workflow on very large files). Use its s3_uri for Nextflow workflow parameters. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed or read in run_code, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id with read_file to preview it, OR with run_code's input_datasets to load the FULL file for computation (it is staged into the sandbox like any input; a file over the sandbox cap will not be staged and run_code will report that — run a workflow on very large files). Use its s3_uri for Nextflow workflow parameters. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed or read in run_code, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn. When you MENTION a dataset to the user in your reply, refer to it by its NAME only (e.g. "counts_matrix.csv") — never print its id/UUID or s3_uri in prose; those are for your tool calls, not for the user to read.\n</session_datasets>\n`;
       return body;
     })();
 
@@ -9576,6 +9902,7 @@ PROACTIVE-WORK RULE (highest priority):
 - If the user gave a SMILES, gene symbol, accession, or any other identifier, ASSUME BioMate can resolve it — look in <pre_satisfied_parameters> or prior tool messages, or resolve it yourself via the data-plane tools (search_literature, list_data_sources, run_code). Use those before claiming anything is missing.
 
 BioMate's real capability surface (verified, do not extrapolate):
+- **Data ingestion:** users get data in by (a) the upload button, (b) an S3/local path, (c) an SRA/ENA/GEO/ArrayExpress/PXD accession, or (d) **Import from URL** (Data → Import from URL), which fetches any direct HTTP/FTP/S3 link AND a **Google Drive or Dropbox share link** — BioMate converts the share link to a direct download server-side. So BioMate CAN use a user's Google Drive / Dropbox data; NEVER tell a user it "cannot access Google Drive / Dropbox / their cloud files" — instead point them to **Import from URL** and ask for the share link.
 - **4,200+ indexed Nextflow workflows** across 36 biological domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19), and more.
 - **12,312 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
 - **Verified live DB integrations** called directly from the Galaxy backend Python (research_agent + knowledge modules):
@@ -9748,7 +10075,7 @@ ${runnableWorkflow ? '- Runnable workflow generated successfully — use "Workfl
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
   if (!_mfi.length) return '';
-  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to upload via the upload button or paste an S3/local path. Use plain language — no "DATA-FIRST RULE" phrasing.`;
+  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to provide the data by ANY of: the upload button, an S3/local path, a public URL, an SRA/GEO accession, OR **Import from URL** — which fetches a direct link AND a Google Drive / Dropbox **share link** (BioMate converts the share link to a direct download server-side). Never tell the user BioMate "cannot access Google Drive / Dropbox" — it can, via Import from URL with the share link. Use plain language — no "DATA-FIRST RULE" phrasing.`;
 })()}
 ${workflowGenerationFailed && hasInlineData ? '- Workflow generation failed (inline data was present) — use "Technical failure" format, do NOT ask for data the user already provided' : ''}
 ${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no inline data) — use "Clarification needed" format' : ''}
@@ -10517,6 +10844,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_chat_history':
             output = await this._toolSearchChatHistory(block.input, context);
             break;
+          case 'edit_report':
+            output = await this._toolEditReport(block.input, context);
+            break;
           case 'list_data_sources':
             output = await this._toolListDataSources(block.input);
             break;
@@ -10733,14 +11063,20 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (context && context.runCodeHistory?.turn !== turn) context.runCodeHistory = { turn, codes: [] };
     const prior = input.language === 'python' ? context?.runCodeHistory?.codes ?? [] : [];
 
-    const result = await runCode({
+    // Bounded retry on a transient sandbox-sidecar connection blip (the sidecar
+    // node recycling → ECONNREFUSED / "fetch failed" / 5xx). runCode never throws
+    // on that — it returns exit_code=1 with a "[sidecar …]" stderr — so retry on
+    // the RESULT. A genuine code error or an execution timeout is returned on the
+    // first attempt; after retries the real error still surfaces (honest fallback).
+    const { retryTransientRunCode } = await import('./transient-retry');
+    const result = await retryTransientRunCode(() => runCode({
       language: input.language,
       code: input.code,
       input_datasets: datasetRefs,
       timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
       prior_code: prior.length ? [...prior] : undefined,
-    });
+    }), { label: 'run_code tool' });
     if (input.language === 'python' && result.exit_code === 0 && context?.runCodeHistory) {
       context.runCodeHistory.codes.push(String(input.code || ''));
     }
@@ -11059,6 +11395,160 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** edit_report tool handler — chat-driven editing of a run's findings report,
+   *  saved as a new version of the DURABLE, versioned report (reportVersionStore,
+   *  DB-backed). Three-phase + never-silent:
+   *    - no new_content  → return the current base text (from client current_markdown
+   *      or the latest saved version) so the model can compose the edit; honest
+   *      "no_report_text" when there is nothing stored to edit (never fabricate one).
+   *    - new_content, no confirm → return a diff preview; DO NOT write.
+   *    - new_content + confirm:true → append the new version (v0 run original is
+   *      preserved by the store's fork protection) and return the saved version.
+   *  Scoped by the store's run resolution; the run must belong to the user's data. */
+  private async _toolEditReport(input: any, context: ChatContext): Promise<unknown> {
+    const runId = (input?.run_id ?? input?.runId ?? '').toString().trim();
+    if (!runId) {
+      return { error: 'run_id is required — tell me which run\'s report to edit (a run id or name).' };
+    }
+    const instruction = typeof input?.instruction === 'string' ? input.instruction : undefined;
+    const newContent = typeof input?.new_content === 'string' ? input.new_content : undefined;
+    const clientMarkdown = typeof input?.current_markdown === 'string' ? input.current_markdown : undefined;
+    const confirm = input?.confirm === true;
+    const note = typeof input?.note === 'string' && input.note.trim() ? input.note.trim() : 'Edited via chat';
+    try {
+      const { reportVersionStore } = await import('./report-version-store');
+
+      // Resolve the current base text: what the client shows (most faithful) else the
+      // latest saved version. Never reconstruct an approximation and pass it off as the report.
+      // Priority: explicit tool arg → the report the client has open this turn → latest saved version.
+      let baseMarkdown: string | undefined = clientMarkdown;
+      let baseSource: 'client' | 'saved_version' | 'run_original' | 'none' = clientMarkdown !== undefined ? 'client' : 'none';
+      if (
+        baseMarkdown === undefined &&
+        typeof context?.openReportMarkdown === 'string' &&
+        (!context.openReportRunId || context.openReportRunId === runId)
+      ) {
+        baseMarkdown = context.openReportMarkdown;
+        baseSource = 'client';
+      }
+      const versions = await reportVersionStore.list(runId);
+      if (versions === null) {
+        return { run_id: runId, status: 'run_not_found', note: 'No run with that id for this user. Check the run id (list_history can find it).' };
+      }
+      if (baseMarkdown === undefined && versions.length > 0) {
+        const latest = versions.reduce((a, b) => (a.version >= b.version ? a : b));
+        baseMarkdown = latest.content ?? '';
+        baseSource = 'saved_version';
+      }
+
+      // Still nothing to fork from? The run has produced a report (shown in the
+      // after-run panel) but it was never opened client-side nor saved as a
+      // version. Reconstruct it server-side from the structured report endpoint
+      // so edit_report forks from what the run actually produced instead of
+      // telling the user to paste text they can already see (ID_everywhere).
+      if (baseMarkdown === undefined) {
+        const reconstructed = await this._reconstructRunReportMarkdown(runId, context).catch(() => undefined);
+        if (reconstructed && reconstructed.trim()) {
+          baseMarkdown = reconstructed;
+          baseSource = 'run_original';
+          // Seed the immutable v0 so a later edit forks from this real report,
+          // not from a client blob. Best-effort — never block the edit on it.
+          try { await reportVersionStore.ensureOriginal(runId, reconstructed); } catch { /* non-fatal */ }
+        }
+      }
+
+      // Phase 1: hand back the base so the model can compose the edit.
+      if (newContent === undefined) {
+        if (baseMarkdown === undefined) {
+          return {
+            run_id: runId,
+            status: 'no_report_text',
+            note: 'This run has no stored report text yet, and the client did not provide the text currently shown. Ask the user to open the report in the report panel once (or paste its text); then call edit_report again. Do NOT invent a report body.',
+          };
+        }
+        return {
+          run_id: runId,
+          status: 'base_ready',
+          base_source: baseSource,
+          instruction: instruction ?? null,
+          base_markdown: baseMarkdown,
+          note: 'This is the current report. Compose the FULL edited report and call edit_report again with it as new_content to preview the change. Do not save until the user agrees.',
+        };
+      }
+
+      // Phases 2/3: we have the edited content. Compute the diff for the user.
+      const base = baseMarkdown ?? '';
+      const summary = summarizeReportEdit(base, newContent);
+      if (summary.unchanged) {
+        return { run_id: runId, status: 'no_change', note: 'The edited content is identical to the current report — nothing to save.' };
+      }
+
+      // Phase 2: preview only (no confirm) — never writes.
+      if (!confirm) {
+        return {
+          run_id: runId,
+          status: 'preview',
+          base_source: baseSource,
+          added_lines: summary.added,
+          removed_lines: summary.removed,
+          diff_preview: summary.preview,
+          note: 'Show the user this change (added/removed lines). To SAVE it as a new report version, call edit_report again with the same new_content and confirm:true — only after the user agrees.',
+        };
+      }
+
+      // Phase 3: confirmed save. Seed v0 (run original) from the base so the fork is faithful.
+      const saved = await reportVersionStore.append(runId, newContent, { note, currentMarkdown: base });
+      if (!saved) {
+        return { run_id: runId, status: 'run_not_found', note: 'The run could not be found when saving. Nothing was written.' };
+      }
+      return {
+        run_id: runId,
+        status: 'saved',
+        version: saved.version,
+        added_lines: summary.added,
+        removed_lines: summary.removed,
+        note: 'Saved as report version ' + saved.version + '. The report panel will show it; version 0 (the run original) is preserved. Tell the user it is saved.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), run_id: runId };
+    }
+  }
+
+  /** Reconstruct a run's report markdown from the structured server endpoint so
+   *  edit_report can fork from what the run produced when the client did not
+   *  pass the open markdown and no version is saved yet. Uses the findings
+   *  report (resolves + authorizes the run server-side) via an authenticated
+   *  self-call — same pattern as the /output_files self-fetch in routes.ts.
+   *  Returns undefined when nothing can be reconstructed (not-ready / 401 / 404),
+   *  letting the caller fall back to the honest no_report_text. */
+  private async _reconstructRunReportMarkdown(runId: string, context: ChatContext): Promise<string | undefined> {
+    if (!runId) return undefined;
+    const port = process.env.PORT || '5000';
+    const base = `http://localhost:${port}`;
+    const headers: Record<string, string> = {
+      // Without X-Forwarded-Proto this self-fetch is 301'd to https on a
+      // plain-HTTP port by forceHTTPS (only /internal/ is exempt) and fails.
+      'X-Forwarded-Proto': 'https',
+    };
+    const auth = context?.selfRequestAuth;
+    if (auth?.authorization) headers['Authorization'] = auth.authorization;
+    if (auth?.cookie) headers['cookie'] = auth.cookie;
+    try {
+      const r = await fetch(
+        `${base}/api/workflows/runs/${encodeURIComponent(runId)}/findings/report`,
+        { headers: headers as any, signal: AbortSignal.timeout(15000) },
+      );
+      if (!r.ok) return undefined; // 409 not-ready / 404 unavailable / 401
+      const ct = (r.headers.get('content-type') || '').toLowerCase();
+      // The endpoint sends findings markdown as text/markdown (JSON only on error).
+      if (!ct.includes('markdown') && !ct.includes('text/plain')) return undefined;
+      const md = await r.text();
+      return md && md.trim() ? md : undefined;
+    } catch {
+      return undefined;
     }
   }
 
@@ -11381,9 +11871,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           paramCount: paramKeys.length,
           paramKeys: paramKeys.slice(0, 6),
           outputCount: Object.keys((e.outputs as any) || {}).length,
-          // The recorded failure reason (process + specific line), so "why did it fail?" is answered
-          // from the run itself, not guessed.
-          ...(/fail|error/i.test(String(e.status || '')) ? { error: runErrorSummary(e, (r as any).errorMessage) } : {}),
+          // The recorded failure reason (process + specific line) plus a plain-language
+          // diagnosis (cause · at-fault input · next action), so "why did it fail?" is
+          // answered from the run itself, not guessed.
+          ...(/fail|error/i.test(String(e.status || ''))
+            ? { error: runErrorSummary(e, (r as any).errorMessage), diagnosis: runFailureExplanation(e, (r as any).errorMessage) }
+            : {}),
         };
       });
       return {
@@ -11432,13 +11925,18 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const here = opts.chatSessionId && (r as any).chatSessionId === opts.chatSessionId ? ' · this chat' : '';
         let line = `  • ${r.id.slice(0, 8)} · ${r.workflowName || 'unnamed'} · ${status} · ${date} · ${outs} outputs${here}`;
         if (opts.withErrors && /fail|error/i.test(String(status))) {
-          line += `\n      error: ${runErrorSummary(e, (r as any).errorMessage)}`;
+          // Classified, plain-language cause + at-fault input + next action, so the
+          // assistant can answer "why did it fail?" legibly (not just the raw stack).
+          const explained = runFailureExplanation(e, (r as any).errorMessage);
+          line += explained
+            ? '\n' + explained.split('\n').map(l => `      ${l}`).join('\n')
+            : `\n      error: ${runErrorSummary(e, (r as any).errorMessage)}`;
         }
         return line;
       });
       return [
         opts.withErrors
-          ? '[The user\'s recent workflow runs, with the recorded error of each failed run — answer questions about a failing run from these errors (state the cause and the fix), not from literature. When a run has no recorded error, say exactly that and tell the user where to see its task log (the run\'s card in the workflow panel → failed step → log); do not guess causes]'
+          ? '[The user\'s recent workflow runs — STANDING context, present every turn. Each line: run id · workflow · status · date · N outputs; a FAILED run is followed by a plain-language diagnosis (cause · at-fault input · next action, from its recorded error). Answer ANY question about the user\'s own runs from THIS — their status, what a run produced (outputs/results), or why one failed — directly, in one message; never treat such a question as a literature/knowledge query. Do NOT answer from literature, do NOT cite papers, and do NOT ask the user to paste logs/errors you have already been given here. The raw error is on the "Error:" line — show it only if they want detail. When a line says the cause could not be classified, state the failing step and show the raw error, and offer to investigate — never invent a cause. When a run has no recorded error, say exactly that and point to the run\'s card in the workflow panel → failed step → log. To open a run\'s actual output files/findings, use its 8-char id with list_history / the outputs tool]'
           : '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
         ...lines,
         '(call list_history for filtered/expanded details)',

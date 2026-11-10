@@ -5,7 +5,7 @@
 
 ## Summary
 
-Biomni Docker container (`biomate/biomni-tools:latest`) successfully executes unique analysis tools that are NOT available in standard Galaxy toolshed.
+Biomni Docker container (`biomate/workflow-tools:latest`) successfully executes unique analysis tools that are NOT available in standard Galaxy toolshed.
 
 ## Test Results
 
@@ -97,7 +97,7 @@ Biomni Docker container (`biomate/biomni-tools:latest`) successfully executes un
 ## Docker Image Status
 
 ### Current Image
-- **Image:** `biomate/biomni-tools:latest`
+- **Image:** `biomate/workflow-tools:latest`
 - **Size:** 6.52GB
 - **Status:** Contains old code with query functions
 
@@ -132,7 +132,7 @@ Biomni/biomni_galaxy/tools/biomni/
 <tool id="biomni_molecular_biology_find_restriction_sites"
       name="Biomni: Find Restriction Sites" version="1.0.0">
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command>
 python -c "
@@ -181,21 +181,21 @@ backend/biomni_workflows/galaxy/subworkflows/
 
 ```bash
 # Test restriction site analysis
-docker run --rm biomate/biomni-tools:latest python -c "
+docker run --rm biomate/workflow-tools:latest python -c "
 from biomni.tool.molecular_biology import find_restriction_sites
 result = find_restriction_sites('GAATTCAAGCTTGAATTC', ['EcoRI', 'HindIII'], is_circular=False)
 print(result)
 "
 
 # Test glycosylation prediction
-docker run --rm biomate/biomni-tools:latest python -c "
+docker run --rm biomate/workflow-tools:latest python -c "
 from biomni.tool.glycoengineering import find_n_glycosylation_motifs
 result = find_n_glycosylation_motifs('MNFTHGLSPAAGTSTLNQTALQ')
 print(result)
 "
 
 # Test enzyme kinetics
-docker run --rm biomate/biomni-tools:latest python -c "
+docker run --rm biomate/workflow-tools:latest python -c "
 from biomni.tool.biochemistry import analyze_enzyme_kinetics_assay
 result = analyze_enzyme_kinetics_assay('Lysozyme', [0.1,0.5,1,2,5,10], 50.0)
 print(result)

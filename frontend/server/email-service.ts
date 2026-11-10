@@ -78,7 +78,9 @@ class EmailService {
       try {
         const cmd = new SendEmailCommand({
           Source: this.fromEmail,
-          Destination: { ToAddresses: [options.to] },
+          // options.to may be a comma-joined list (e.g. admin + extra recipient);
+          // SES ToAddresses needs individual addresses, not one joined string.
+          Destination: { ToAddresses: options.to.split(',').map((s) => s.trim()).filter(Boolean) },
           Message: {
             Subject: { Data: options.subject, Charset: 'UTF-8' },
             Body: {
@@ -657,7 +659,10 @@ class EmailService {
   }
 
   async sendAdminAlert(subject: string, details: Record<string, unknown>, extraRecipient?: string): Promise<boolean> {
-    const ADMIN_EMAIL = 'yaoyun.zhang@biomate.ai';
+    // Recipient(s) for new-registration notices + all system/exception alerts.
+    // Overridable via ADMIN_ALERT_EMAIL (comma-separated). Defaults to both the
+    // owner inbox and the team address so neither misses alerts.
+    const ADMIN_EMAIL = process.env.ADMIN_ALERT_EMAIL || 'xiaoni5122@gmail.com, yaoyun.zhang@biomate.ai';
     const to = extraRecipient ? `${ADMIN_EMAIL}, ${extraRecipient}` : ADMIN_EMAIL;
     const ts = new Date().toISOString();
     const rows = Object.entries(details)
@@ -681,6 +686,53 @@ class EmailService {
       </body></html>
     `;
     return this.sendEmail({ to, subject: `[BioMate Alert] ${subject}`, html });
+  }
+
+  /**
+   * Project invitation for a NEW (not-yet-registered) email. Carries the
+   * project's share link (/join/<token>); opening it signs the person up and
+   * adds them to the project at the link's role. One invite box covers both
+   * existing members and new people — no separate "generate link" step.
+   */
+  async sendProjectInviteEmail(
+    to: string,
+    token: string,
+    projectName: string,
+    inviterName: string,
+    role: string,
+  ): Promise<boolean> {
+    const inviteUrl = `${this.appUrl}/join/${token}`;
+    const roleLabel = role === 'editor' ? 'an editor' : 'a viewer';
+    const html = `
+      <!DOCTYPE html><html><head><meta charset="utf-8"></head>
+      <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333">
+      <div style="max-width:600px;margin:0 auto;padding:20px">
+        <div style="background-color:#4F46E5;color:white;padding:20px;text-align:center;border-radius:5px 5px 0 0">
+          <h2 style="margin:0">You've been invited to BioMate</h2>
+        </div>
+        <div style="background-color:#f9fafb;padding:30px;border-radius:0 0 5px 5px">
+          <p><strong>${this.escape(inviterName)}</strong> invited you to collaborate on the project
+          <strong>${this.escape(projectName)}</strong> as ${roleLabel}.</p>
+          <p style="text-align:center">
+            <a href="${inviteUrl}" style="display:inline-block;padding:12px 30px;background-color:#4F46E5;color:#fff;text-decoration:none;border-radius:5px;font-weight:600">Open the project</a>
+          </p>
+          <p style="font-size:13px;color:#666">If the button doesn't work, copy this link:<br>
+          <span style="font-family:monospace;word-break:break-all">${inviteUrl}</span></p>
+          <p style="font-size:12px;color:#888;margin-top:20px">If you don't have a BioMate account yet, opening the link lets you create one and join automatically.</p>
+        </div>
+      </div>
+      </body></html>`;
+    return this.sendEmail({
+      to,
+      subject: `${inviterName} invited you to "${projectName}" on BioMate`,
+      html,
+    });
+  }
+
+  private escape(s: string): string {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+    ));
   }
 }
 

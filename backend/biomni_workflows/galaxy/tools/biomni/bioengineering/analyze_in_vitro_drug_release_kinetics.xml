@@ -2,7 +2,7 @@
 <tool id="biomni_bioengineering_analyze_in_vitro_drug_release_kinetics" name="Biomni: Analyze In Vitro Drug Release Kinetics" version="1.0.0">
     <description>Analyzes in vitro drug release kinetics from biomaterial formulations.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_in_vitro_drug_release_kinetics_wrapper.py' --output '$output'

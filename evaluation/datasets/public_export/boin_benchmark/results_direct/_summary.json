@@ -1,0 +1,44 @@
+[
+  {
+    "model": "openai/gpt-6.1-sol",
+    "tier": "hand",
+    "outcome": 0.1,
+    "fidelity": 0.008,
+    "empties": 4
+  },
+  {
+    "model": "openai/gpt-6.1-sol",
+    "tier": "hand",
+    "outcome": 0.1,
+    "fidelity": 0.008,
+    "empties": 1
+  },
+  {
+    "model": "openai/gpt-6.1-sol",
+    "tier": "gen",
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  },
+  {
+    "model": "google/gemini-3.1-pro-preview",
+    "tier": "hand",
+    "outcome": 0.4,
+    "fidelity": 0.716,
+    "empties": 0
+  },
+  {
+    "model": "google/gemini-3.1-pro-preview",
+    "tier": "hand",
+    "outcome": 0.3,
+    "fidelity": 0.659,
+    "empties": 0
+  },
+  {
+    "model": "google/gemini-3.1-pro-preview",
+    "tier": "gen",
+    "outcome": 1.0,
+    "fidelity": 1.0,
+    "empties": 0
+  }
+]

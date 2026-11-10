@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Generative lead design with reinforcement learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">Generative lead design — describe the molecule you want, get novel candidates designed by RL</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">For the medicinal chemist who wants new chemical matter</div>
+    <h2>You don't have a molecule yet. BioMate designs candidates from scratch.</h2>
+    <p class="caption lead">Generative design <b>invents</b> novel candidates aimed at a goal you state — not picked from a library.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A goal + a seed scaffold</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>REINVENT4 generates</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>A scoring function rewards</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Filter + rank</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Ranked candidate hypotheses</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Drug-like chemical space is far too vast to enumerate or screen.</h2>
+    <p class="caption lead">The drug-like space is astronomically large — no library, screen, or compute can cover it.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <div class="bignum">10<sup style="font-size:.5em; vertical-align:super">60</sup></div>
+        <div class="vlabel">synthesizable, drug-like molecules — <b>more than the stars in the observable universe</b></div>
+        <div class="statrow">
+          <div class="stat"><div class="si">∞</div><div class="sh">Can't enumerate</div><div class="sp">The list is longer than any machine can write</div></div>
+          <div class="stat"><div class="si">⧉</div><div class="sh">Analogs explode</div><div class="sp">One scaffold yields millions of mostly-junk variants</div></div>
+          <div class="stat"><div class="si">◎</div><div class="sh">Search by design</div><div class="sp">Propose only novel, makeable, on-target molecules</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>One loop is the whole method: generate, score, learn — repeat.</h2>
+    <p class="caption lead">A generator proposes, a scoring function judges, and RL steers the next batch.</p>
+    <div class="scene-body" style="justify-content:center">
+      <svg width="560" height="440" viewBox="0 0 560 440" style="display:block">
+        <defs>
+          <marker id="rlh" markerWidth="16" markerHeight="16" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M1,1 L11,5 L1,9" fill="none" stroke="#1d5fa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <!-- loop arcs (clockwise): GENERATE -> SCORE -> LEARN -> GENERATE, center (280,230) r=175 -->
+        <g fill="none" stroke="#1d5fa6" stroke-width="3.4" opacity=".85">
+          <path d="M334.1,63.6 A175 175 0 0 1 451.2,266.4" marker-end="url(#rlh)"/>
+          <path d="M397.1,360 A175 175 0 0 1 162.9,360" marker-end="url(#rlh)"/>
+          <path d="M108.8,266.4 A175 175 0 0 1 225.9,63.6" marker-end="url(#rlh)"/>
+        </g>
+        <!-- nodes -->
+        <g>
+          <circle cx="280" cy="55" r="56" fill="#fff" stroke="#1d5fa6" stroke-width="2.6"/>
+          <circle cx="431.5" cy="317.5" r="56" fill="#fff" stroke="#1d5fa6" stroke-width="2.6"/>
+          <circle cx="128.5" cy="317.5" r="56" fill="#fff" stroke="#1d5fa6" stroke-width="2.6"/>
+        </g>
+        <g font-family="IBM Plex Mono,monospace" fill="#1d5fa6" font-size="14" text-anchor="middle" font-weight="600">
+          <text x="280" y="46">1</text><text x="431.5" y="308.5">2</text><text x="128.5" y="308.5">3</text>
+        </g>
+        <g font-family="IBM Plex Sans,sans-serif" fill="#1a1f2b" font-size="21" text-anchor="middle" font-weight="650">
+          <text x="280" y="70">GENERATE</text><text x="431.5" y="332.5">SCORE</text><text x="128.5" y="332.5">LEARN</text>
+        </g>
+        <g text-anchor="middle">
+          <text x="280" y="222" font-family="IBM Plex Mono,monospace" fill="#5c6573" font-size="15" letter-spacing="1.5">RL LOOP</text>
+          <text x="280" y="250" font-family="IBM Plex Sans,sans-serif" fill="#323846" font-size="17">× several objectives</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="49.0">
+    <div class="kicker"><span class="st">In BioMate</span> · plain goal → workflow → cloud</div>
+    <h2>Say the goal in plain language; BioMate routes it to a generative workflow.</h2>
+    <p class="caption lead">No neural network to configure — state the intent and BioMate sets up the real run.</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0; margin-top:20px">
+      <figure class="shotcol" style="flex:1.9">
+        <span class="lbl">Live product · one of BioMate's generative models — REINVENT4 Generative Lead Design</span>
+        <div class="frame"><img src="../assets/live/generative-live-panel.png" alt="BioMate workflow panel for REINVENT4 Generative Lead Design — inputs, synthesizability seed, output location, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain language in, workflow out.</b> One of BioMate's generators — here REINVENT4 — opens with its real parameter panel.</span></li>
+          <li><span class="b gr"></span><span><b>Seed scaffold, pre-filled.</b> Override the seed SMILES with your own scaffold.</span></li>
+          <li><span class="b am"></span><span><b>One click to run.</b> <b>Confirm &amp; Run</b> launches it on cloud compute.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>A real generative workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE SCORING FUNCTION -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">The reward</span> · what you optimize toward</div>
+    <h2>The scoring function is the objective — results are only as good as it.</h2>
+    <p class="caption lead">RL optimizes whatever you reward. BioMate exposes three real scoring-function choices.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">⚗</div><div class="sh">qed_sa</div><div class="sp">Drug-likeness + synthesizability · <b>default</b>, no target needed</div></div>
+        <div class="stat"><div class="si">⌖</div><div class="sh">docking_gnina</div><div class="sp">Docking pose vs a receptor you supply · in-silico, not measured</div></div>
+        <div class="stat"><div class="si">⚙</div><div class="sh">custom_toml</div><div class="sp">Your own REINVENT4 reward recipe · full multi-objective</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--blue); background:var(--blue-bg); border-color:var(--blue)">⚑ Reward-bound</span> whatever you reward is what you get — define the objective well.</div>
+    </div>
+  </section>
+
+  <!-- 5 — THE RL OPTIMIZATION LOOP -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker"><span class="st">The engine</span> · generate, score, improve</div>
+    <h2>REINVENT4 runs a loop that steers generation toward the reward.</h2>
+    <p class="caption lead">A trained policy writes SMILES, scores each, and updates toward higher reward.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="pipeflow" style="max-width:1000px">
+        <div class="pstep"><div class="pn">1 · PROPOSE</div><div class="pc">Policy writes a batch</div><div class="pt"><span class="eg">SMILES</span><span>not enumerated</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">batch</span></div>
+        <div class="pstep"><div class="pn">2 · SCORE</div><div class="pc">Reward each molecule</div><div class="pt"><span class="eg">scoring_function</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">rewards</span></div>
+        <div class="pstep"><div class="pn">3 · UPDATE</div><div class="pc">Steer the policy</div><div class="pt"><span class="eg">toward higher reward</span></div></div>
+      </div>
+      <div class="ploop">&#8634; repeat for n_steps — default 500 (≈15 min on GPU)</div>
+      <div class="statrow" style="max-width:920px; margin-top:28px">
+        <div class="stat"><div class="si" style="color:var(--blue)">500</div><div class="sh">n_steps</div><div class="sp">RL epochs · 200 for a quick run</div></div>
+        <div class="stat"><div class="si" style="color:var(--blue)">128</div><div class="sh">batch_size</div><div class="sp">Molecules sampled per epoch</div></div>
+        <div class="stat"><div class="si" style="color:var(--blue)">1.0</div><div class="sh">temperature</div><div class="sp">Sampling spread · lower = conservative</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">The result</span> · ranked, filtered candidates</div>
+    <h2>A ranked table of novel candidates — each with its scores.</h2>
+    <p class="caption lead">Filtered for drug-likeness, PAINS, and novelty — then ranked, every score shown.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="vis" style="max-width:880px; gap:24px">
+        <table style="width:100%; border-collapse:collapse; font-family:var(--ff-mono)">
+          <thead><tr style="color:var(--mut); font-size:15px; letter-spacing:.06em; text-transform:uppercase">
+            <th style="text-align:left; padding:12px 16px; border-bottom:2px solid var(--line2)">Candidate</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">score*</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">QED</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">SA</th>
+            <th style="text-align:right; padding:12px 16px; border-bottom:2px solid var(--line2)">Verdict</th>
+          </tr></thead>
+          <tbody style="font-size:22px; color:var(--ink)">
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0001</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.94</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.71</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">2.8</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green)">&#10003; accepted</td></tr>
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0002</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.91</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.66</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">3.1</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green)">&#10003; accepted</td></tr>
+            <tr><td style="padding:14px 16px; border-bottom:1px solid var(--line); color:var(--blue); font-weight:600">BM-0003</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.88</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">0.63</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line)">3.4</td><td style="text-align:right; padding:14px 16px; border-bottom:1px solid var(--line); color:var(--green)">&#10003; accepted</td></tr>
+            <tr><td style="padding:14px 16px; color:var(--mut); font-weight:600">BM-0014</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">0.52</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">0.31</td><td style="text-align:right; padding:14px 16px; color:var(--mut)">5.6</td><td style="text-align:right; padding:14px 16px; color:var(--red)">&#10007; PAINS</td></tr>
+          </tbody>
+        </table>
+        <div class="vlabel"><b>score*</b> is a ranking key only — rejected candidates stay visible with their reason.</div>
+        <div class="statrow" style="max-width:880px; margin-top:0">
+          <div class="stat"><div class="sh" style="color:var(--blue)">generated_molecules.csv</div><div class="sp" style="margin-top:6px">Every accepted molecule, with scores</div></div>
+          <div class="stat"><div class="sh" style="color:var(--blue)">top_compounds.sdf</div><div class="sp" style="margin-top:6px">Top-N as 3D conformers</div></div>
+          <div class="stat"><div class="sh" style="color:var(--blue)">report.html</div><div class="sp" style="margin-top:6px">Structure grid + score-vs-epoch</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT RESPONSIBLY -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker">Using it responsibly</div>
+    <h2>These are hypotheses, not hits — a starting point for the bench.</h2>
+    <p class="caption lead">Every candidate is an in-silico estimate — a prioritized shortlist of experiments, not answers.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">①</div><div class="sh">Triage</div><div class="sp">Read the top ranks as leads worth a chemist's eye</div></div>
+        <div class="stat"><div class="si">②</div><div class="sh">Synthesize</div><div class="sp">A predicted score is not a real compound — make it</div></div>
+        <div class="stat"><div class="si">③</div><div class="sh">Assay</div><div class="sp">Confirm activity, selectivity, and safety at the bench</div></div>
+      </div>
+      <div class="sc-note"><span class="flag" style="color:var(--amber); background:var(--amber-bg); border-color:var(--amber)">&#9873; Estimates</span> the experiment, not the model, decides which candidates are real.</div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker">Precise about scope · what you get</div>
+    <h2>Precise about scope, so you know exactly what you're getting.</h2>
+    <p class="caption lead">A real, specific design engine — novel, synthesizable structures aimed at your target.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">⌦</div><div class="sh">Reward-bound</div><div class="sp">Only as good as the scoring function you choose</div></div>
+        <div class="stat"><div class="si">◐</div><div class="sh">Learned vs baseline</div><div class="sp">Real RL policy by default · <code>brics</code> is a labeled comparator</div></div>
+        <div class="stat"><div class="si">⌖</div><div class="sh">Design engine</div><div class="sp">One of BioMate's generators — swap in others too</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="36.0">
+    <div class="kicker">The value at a glance</div>
+    <h2>State the goal. Get novel candidates, designed and ranked.</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <p class="caption lead" style="text-align:center; margin:0 auto 26px">You define the reward; BioMate's generator proposes, filters, and ranks novel candidates.</p>
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · GOAL</div><div class="pc">Goal + seed scaffold</div><div class="pt"><span>plain language</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">intent</span></div>
+        <div class="pstep"><div class="pn">2 · GENERATE</div><div class="pc">A generator proposes</div><div class="pt"><span class="eg">REINVENT4</span><span>+ other models</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">candidates</span></div>
+        <div class="pstep"><div class="pn">3 · SCORE</div><div class="pc">Reward steers RL</div><div class="pt"><span class="eg">qed_sa</span><span>docking · custom</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">scores</span></div>
+        <div class="pstep"><div class="pn">4 · RANK</div><div class="pc">Filter + rank</div><div class="pt"><span class="eg">drug-like · novel</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">shortlist</span></div>
+        <div class="pstep"><div class="pn">5 · OUTPUT</div><div class="pc">Ranked candidates</div><div class="pt"><span class="eg">CSV · SDF · report</span></div></div>
+      </div>
+      <div class="ploop">&#8634; candidates are hypotheses — the lab makes them real, then the loop improves</div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

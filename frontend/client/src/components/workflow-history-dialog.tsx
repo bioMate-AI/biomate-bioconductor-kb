@@ -14,9 +14,23 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Search, Upload, Play, CheckCircle2, Info, Trash2 } from 'lucide-react';
+import { Loader2, Search, Upload, Play, CheckCircle2, Info, Trash2, Sparkles } from 'lucide-react';
 import { analytics } from '@/lib/analytics';
 import { parseNfParams } from '@/lib/parse-nf-params';
+import { tOr } from '@/lib/i18n';
+
+/** One ranked catalog match returned by POST /api/ai_assistant/search_ranked. */
+interface RankedResult {
+  rank: number;
+  name: string;
+  display_name?: string;
+  description?: string;
+  domain?: string;
+  source?: string;
+  format?: string;
+  score?: number | null;
+  type?: string;
+}
 
 interface RunRow {
   runId: string;
@@ -38,14 +52,28 @@ interface PersonalWorkflow {
   created_at: string;
 }
 
+type HistoryTab = 'runs' | 'imports' | 'upload' | 'browse';
+
 interface WorkflowHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOpenRun?: (row: RunRow) => void;
   onRunAgain?: (row: RunRow) => void;
-  /** Open dialog directly on this tab (default: 'runs') */
-  initialTab?: 'runs' | 'imports' | 'upload';
+  /** Open dialog directly on this tab (default: 'runs', or 'browse' in library mode) */
+  initialTab?: HistoryTab;
   importOnly?: boolean;
+  /**
+   * Unified Workflows-library mode. Shows Browse (ranked catalog search) +
+   * My Imports + Import Workflow, and hides Run History. Used by the sidebar
+   * "Workflows" entry via <WorkflowsLibraryDialog>.
+   */
+  library?: boolean;
+  /**
+   * Seed the chat composer with a run request for the clicked catalog result.
+   * The library wrapper navigates to /?draft=<prompt> (the established, non-
+   * destructive seed path) so the user reviews and runs.
+   */
+  onSeedChat?: (prompt: string) => void;
 }
 
 function statusColor(status: string): string {
@@ -73,8 +101,8 @@ function formatWhen(iso: string | undefined | null): string {
 
 const PAGE_SIZE = 50;
 
-export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain, initialTab, importOnly = false }: WorkflowHistoryDialogProps) {
-  const [activeTab, setActiveTab] = useState<'runs' | 'imports' | 'upload'>(initialTab ?? (importOnly ? 'upload' : 'runs'));
+export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain, initialTab, importOnly = false, library = false, onSeedChat }: WorkflowHistoryDialogProps) {
+  const [activeTab, setActiveTab] = useState<HistoryTab>(initialTab ?? (library ? 'browse' : importOnly ? 'upload' : 'runs'));
   const [rows, setRows] = useState<RunRow[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -98,6 +126,64 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const [uploadResult, setUploadResult] = useState<{ workflow_name: string; message: string } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadFileRef = useRef<HTMLInputElement>(null);
+
+  // Browse tab (ranked catalog search) state
+  const [browseQuery, setBrowseQuery] = useState('');
+  const [browseResults, setBrowseResults] = useState<RankedResult[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [browseError, setBrowseError] = useState<string | null>(null);
+  const [browseSearched, setBrowseSearched] = useState(false);
+  const browseDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const browseReqRef = useRef(0);
+
+  function fetchRanked(query: string) {
+    const q = query.trim();
+    if (!q) {
+      setBrowseResults([]);
+      setBrowseSearched(false);
+      setBrowseError(null);
+      setBrowseLoading(false);
+      return;
+    }
+    const seq = ++browseReqRef.current;
+    setBrowseLoading(true);
+    setBrowseError(null);
+    fetch('/api/ai_assistant/search_ranked', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, limit: 15 }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data) => {
+        if (seq !== browseReqRef.current) return; // stale response
+        setBrowseResults(Array.isArray(data?.results) ? data.results : []);
+        setBrowseSearched(true);
+      })
+      .catch((err) => {
+        if (seq !== browseReqRef.current) return;
+        setBrowseError(err?.message || tOr('workflows_library.search_error', 'Search failed. Try again.'));
+        setBrowseResults([]);
+        setBrowseSearched(true);
+      })
+      .finally(() => {
+        if (seq === browseReqRef.current) setBrowseLoading(false);
+      });
+  }
+
+  function handleBrowseSearch(value: string) {
+    setBrowseQuery(value);
+    if (browseDebounceRef.current) clearTimeout(browseDebounceRef.current);
+    browseDebounceRef.current = setTimeout(() => fetchRanked(value), 300);
+  }
+
+  function handleRunCatalog(r: RankedResult) {
+    const label = r.display_name || r.name;
+    const prompt = tOr('workflows_library.seed_prompt', 'Run the {{name}} workflow.', { name: label });
+    analytics.track('catalog_workflow_seeded', { workflow_name: r.name, wf_source: r.source, wf_type: r.type });
+    onSeedChat?.(prompt);
+    onOpenChange(false);
+  }
 
   function fetchRuns(searchTerm: string, page: number) {
     let cancelled = false;
@@ -273,6 +359,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   useEffect(() => {
     if (open) {
       if (importOnly) setActiveTab(initialTab === 'imports' ? 'imports' : 'upload');
+      else if (library) setActiveTab(initialTab ?? 'browse');
       else if (initialTab) setActiveTab(initialTab);
     } else {
       setSearch('');
@@ -281,9 +368,13 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       setTotal(0);
       setError(null);
       setImportsSearch('');
+      setBrowseQuery('');
+      setBrowseResults([]);
+      setBrowseSearched(false);
+      setBrowseError(null);
       resetUpload();
     }
-  }, [open, initialTab, importOnly]);
+  }, [open, initialTab, importOnly, library]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = offset / PAGE_SIZE;
@@ -294,12 +385,24 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl" data-testid="workflow-history-dialog">
         <DialogHeader>
-          <DialogTitle>{importOnly ? "Import workflow" : "Workflows"}</DialogTitle>
+          <DialogTitle>{library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? "Import workflow" : "Workflows"}</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
         <div className="flex gap-1 border-b pb-0 -mb-px">
-          {!importOnly && <button
+          {library && <button
+            data-testid="tab-browse"
+            onClick={() => setActiveTab('browse')}
+            className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'browse'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            {tOr('workflows_library.tab_browse', 'Browse')}
+          </button>}
+          {!importOnly && !library && <button
             data-testid="tab-runs"
             onClick={() => setActiveTab('runs')}
             className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
@@ -319,7 +422,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            My Imports
+            {library ? tOr('workflows_library.tab_my', 'My workflows') : 'My Imports'}
           </button>
           <button
             data-testid="tab-upload"
@@ -454,6 +557,87 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               </div>
             )}
           </>
+        )}
+
+        {activeTab === 'browse' && (
+          <div data-testid="workflow-browse-panel">
+            {/* Ranked catalog search — POST /api/ai_assistant/search_ranked */}
+            <div className="relative mt-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder={tOr('workflows_library.search_placeholder', 'Search the workflow catalog…')}
+                value={browseQuery}
+                onChange={(e) => handleBrowseSearch(e.target.value)}
+                className="pl-8 h-8 text-sm"
+                data-testid="browse-search-input"
+                aria-label={tOr('workflows_library.search_placeholder', 'Search the workflow catalog…')}
+              />
+            </div>
+
+            <ScrollArea className="h-[340px] pr-3 mt-2">
+              {browseLoading && (
+                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> {tOr('common.loading', 'Loading…')}
+                </div>
+              )}
+              {browseError && !browseLoading && (
+                <div className="text-sm text-destructive py-4" data-testid="browse-error">{browseError}</div>
+              )}
+              {!browseLoading && !browseError && !browseSearched && (
+                <div className="text-sm text-muted-foreground py-12 text-center" data-testid="browse-empty-hint">
+                  <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                  <p>{tOr('workflows_library.search_hint', 'Type to search the curated workflow catalog.')}</p>
+                  <p className="mt-1 text-xs">{tOr('workflows_library.search_hint_sub', 'RNA-seq, variant calling, ADMET, cryo-EM and more.')}</p>
+                </div>
+              )}
+              {!browseLoading && !browseError && browseSearched && browseResults.length === 0 && (
+                <div className="text-sm text-muted-foreground py-12 text-center" data-testid="browse-no-results">
+                  {tOr('workflows_library.no_results', 'No workflows match your search.')}
+                </div>
+              )}
+              {!browseLoading && !browseError && browseResults.length > 0 && (
+                <ul className="space-y-1" data-testid="browse-results-list">
+                  {browseResults.map((r) => (
+                    <li
+                      key={`${r.type || 'wf'}-${r.name}-${r.rank}`}
+                      data-testid={`browse-result-${r.rank}`}
+                      className="flex items-start gap-3 px-2 py-2.5 rounded hover:bg-accent"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate flex items-center gap-1.5">
+                          {r.display_name || r.name}
+                          {r.type === 'chain' && (
+                            <span className="px-1 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700 font-medium">{tOr('workflows_library.chain', 'Chain')}</span>
+                          )}
+                        </div>
+                        {r.description && (
+                          <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{r.description}</div>
+                        )}
+                        <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                          {r.domain && <span className="px-1 py-0.5 rounded bg-muted">{r.domain}</span>}
+                          {r.source && <span>{r.source}</span>}
+                          {typeof r.score === 'number' && (
+                            <span title={tOr('workflows_library.score_title', 'Relevance score from the ranking engine')}>
+                              {tOr('workflows_library.score', 'score')} {r.score}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        data-testid={`button-run-catalog-${r.rank}`}
+                        title={tOr('workflows_library.run_title', 'Seed a chat to run this workflow')}
+                        onClick={() => handleRunCatalog(r)}
+                      >
+                        <Play className="w-3.5 h-3.5 mr-1" />{tOr('workflows_library.run', 'Run')}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ScrollArea>
+          </div>
         )}
 
         {activeTab === 'upload' && (

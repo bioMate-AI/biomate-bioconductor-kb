@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_get_bacterial_transformation_protocol" name="Biomni: Get Bacterial Transformation Protocol" version="1.0.0">
     <description>Return a standard protocol for bacterial transformation.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_bacterial_transformation_protocol_wrapper.py' --output '$output'

@@ -20,7 +20,7 @@
  *   GenBank: MN908947.3 (Wuhan-Hu-1 SARS-CoV-2 reference)
  *   Expected: CAI >= 0.90 (human-optimised), no premature stops
  *
- * Container: biomate/biomni-tools:latest  (or ECR :x86 on AWS Batch)
+ * Container: biomate/workflow-tools:latest  (or ECR :x86 on AWS Batch)
  */
 
 nextflow.enable.dsl = 2
@@ -39,8 +39,8 @@ process P0_MRNA_VALIDATION {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -347,7 +347,7 @@ PYEOF
         python: \$(python3 --version | cut -d' ' -f2)
         ViennaRNA: \$(python3 -c "import RNA; print(RNA.__version__)" 2>/dev/null || echo "unknown")
         biopython: \$(python3 -c "import Bio; print(Bio.__version__)" 2>/dev/null || echo "unknown")
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

@@ -46,103 +46,241 @@
   "peptides": {
     "avb6": [
       {
-        "id": "CTRL-TRIVEHEXIN",
-        "pep": "YRGDLAYPK",
-        "helm": "cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])",
-        "role": "control"
+        "id": "AVB6-M7-W",
+        "pep": "RGDLWPK",
+        "helm": "cyclo(R-G-D-L-W-[dP]-[NMeK])"
+      },
+      {
+        "id": "AVB6-M7-Y",
+        "pep": "RGDLYPK",
+        "helm": "cyclo(R-G-D-L-Y-[dP]-[NMeK])"
+      },
+      {
+        "id": "AVB6-M10-FF",
+        "pep": "FRGDLAFPKG",
+        "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK]-G)"
+      },
+      {
+        "id": "AVB6-M10-WW",
+        "pep": "WRGDLAWPKG",
+        "helm": "cyclo(W-R-G-D-L-A-W-[dP]-[NMeK]-G)"
+      },
+      {
+        "id": "AVB6-M11-WY",
+        "pep": "SGWRGDLAYPK",
+        "helm": "cyclo(S-G-W-R-G-D-L-A-Y-[dP]-[NMeK])"
+      },
+      {
+        "id": "AVB6-M12-F",
+        "pep": "GSFRGDLAFPKG",
+        "helm": "cyclo(G-S-F-R-G-D-L-A-F-[dP]-[NMeK]-G)"
+      },
+      {
+        "id": "AVB6-M12-W",
+        "pep": "SGYRGDLAWPKN",
+        "helm": "cyclo(S-G-Y-R-G-D-L-A-W-[dP]-[NMeK]-N)"
       },
       {
         "id": "CTRL-AVEBEHEXIN",
         "pep": "FRGDLAFPK",
-        "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
-        "role": "control"
+        "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])"
+      },
+      {
+        "id": "CTRL-Trivehexin-mono",
+        "helm": "cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])",
+        "pep": "YRGDLAYPK"
+      },
+      {
+        "id": "AVB6-EN-01",
+        "helm": "cyclo(F-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLGFPK"
+      },
+      {
+        "id": "AVB6-EN-02",
+        "helm": "cyclo(F-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
+        "pep": "FRGDLGFPK"
+      },
+      {
+        "id": "AVB6-EN-03",
+        "helm": "cyclo(F-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+        "pep": "FRGDLGFPK"
+      },
+      {
+        "id": "AVB6-EN-04",
+        "helm": "cyclo(F-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLSFPK"
+      },
+      {
+        "id": "AVB6-EN-05",
+        "helm": "cyclo(F-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+        "pep": "FRGDLSFPK"
+      },
+      {
+        "id": "AVB6-EN-06",
+        "helm": "cyclo(F-R-G-D-L-S-[Phe4Cl]-[dP]-[NMeK])",
+        "pep": "FRGDLSFPK"
+      },
+      {
+        "id": "AVB6-EN-07",
+        "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-EN-08",
+        "helm": "cyclo(F-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-EN-09",
+        "helm": "cyclo(F-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-EN-10",
+        "helm": "cyclo(F-R-G-D-L-S-Y-[dP]-[NMeK])",
+        "pep": "FRGDLSYPK"
+      },
+      {
+        "id": "AVB6-EN-11",
+        "helm": "cyclo(F-R-G-D-L-S-W-[dP]-[NMeK])",
+        "pep": "FRGDLSWPK"
+      },
+      {
+        "id": "AVB6-EN-12",
+        "helm": "cyclo(F-R-G-D-L-S-F-[dP]-[NMeK])",
+        "pep": "FRGDLSFPK"
+      },
+      {
+        "id": "AVB6-NN-01",
+        "helm": "cyclo(Y-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+        "pep": "YRGDLGFPK"
+      },
+      {
+        "id": "AVB6-NN-02",
+        "helm": "cyclo(W-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+        "pep": "WRGDLGFPK"
+      },
+      {
+        "id": "AVB6-NN-03",
+        "helm": "cyclo(Y-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+        "pep": "YRGDLSFPK"
+      },
+      {
+        "id": "AVB6-NN-04",
+        "helm": "cyclo(W-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+        "pep": "WRGDLSFPK"
+      },
+      {
+        "id": "AVB6-NN-05",
+        "helm": "cyclo([2Nal]-R-G-D-L-S-Y-[dP]-[NMeK])",
+        "pep": "FRGDLSYPK"
+      },
+      {
+        "id": "AVB6-NN-06",
+        "helm": "cyclo(W-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+        "pep": "WRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-07",
+        "helm": "cyclo(Y-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+        "pep": "YRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-08",
+        "helm": "cyclo(Y-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+        "pep": "YRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-09",
+        "helm": "cyclo(Y-R-G-D-L-[Abu]-[2Nal]-[dP]-[NMeK])",
+        "pep": "YRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-10",
+        "helm": "cyclo(W-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+        "pep": "WRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-11",
+        "helm": "cyclo([2Nal]-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLGFPK"
+      },
+      {
+        "id": "AVB6-NN-12",
+        "helm": "cyclo([2Nal]-R-G-D-L-G-F-[dP]-[NMeK])",
+        "pep": "FRGDLGFPK"
+      },
+      {
+        "id": "AVB6-NN-13",
+        "helm": "cyclo(W-R-G-D-L-[Abu]-[2Nal]-[dP]-[NMeK])",
+        "pep": "WRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-14",
+        "helm": "cyclo([2Nal]-R-G-D-L-A-Y-[dP]-[NMeK])",
+        "pep": "FRGDLAYPK"
+      },
+      {
+        "id": "AVB6-NN-15",
+        "helm": "cyclo([2Nal]-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-16",
+        "helm": "cyclo(F-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-17",
+        "helm": "cyclo(F-R-G-D-L-[Abu]-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-18",
+        "helm": "cyclo([2Nal]-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+        "pep": "FRGDLAFPK"
+      },
+      {
+        "id": "AVB6-NN-19",
+        "helm": "cyclo(W-R-G-D-L-S-W-[dP]-[NMeK])",
+        "pep": "WRGDLSWPK"
+      },
+      {
+        "id": "AVB6-NN-20",
+        "helm": "cyclo(Y-R-G-D-L-S-W-[dP]-[NMeK])",
+        "pep": "YRGDLSWPK"
+      },
+      {
+        "id": "AVB6-NN-21",
+        "helm": "cyclo(W-R-G-D-L-S-F-[dP]-[NMeK])",
+        "pep": "WRGDLSFPK"
+      },
+      {
+        "id": "AVB6-NN-22",
+        "helm": "cyclo(Y-R-G-D-L-S-F-[dP]-[NMeK])",
+        "pep": "YRGDLSFPK"
+      },
+      {
+        "id": "AVB6-NN-23",
+        "helm": "cyclo(W-R-G-D-L-S-Y-[dP]-[NMeK])",
+        "pep": "WRGDLSYPK"
+      },
+      {
+        "id": "AVB6-NN-24",
+        "helm": "cyclo(W-R-G-D-L-[Aib]-W-[dP]-[NMeK])",
+        "pep": "WRGDLAWPK"
+      },
+      {
+        "id": "AVB6-NN-25",
+        "helm": "cyclo(W-R-G-D-L-[Abu]-W-[dP]-[NMeK])",
+        "pep": "WRGDLAWPK"
       }
     ],
     "pdl1": [
       {
-        "id": "PDL1-G2-A01",
-        "pep": "WYFPVITQNKTA",
-        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-Q-N-K-T-A)"
-      },
-      {
-        "id": "PDL1-G2-A02",
-        "pep": "WYFPVISDQKTA",
-        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-A)"
-      },
-      {
-        "id": "PDL1-G2-A03",
-        "pep": "WYFPVISDQKTG",
-        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-G)"
-      },
-      {
-        "id": "PDL1-G2-A04",
-        "pep": "WYFPLISENKTG",
-        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-N-K-T-G)"
-      },
-      {
-        "id": "PDL1-G2-A05",
-        "pep": "WYFPLITDQKTG",
-        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-D-Q-K-T-G)"
-      },
-      {
-        "id": "PDL1-G2-A06",
-        "pep": "WYFPIISENKSA",
-        "helm": "cyclo(W-Y-F-[dP]-I-[NMeI]-S-E-N-K-S-A)"
-      },
-      {
-        "id": "PDL1-G2-A07",
-        "pep": "WYFPLISEQKAA",
-        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-Q-K-A-A)"
-      },
-      {
-        "id": "PDL1-G2-A08",
-        "pep": "WYFPVITDNKTG",
-        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-D-N-K-T-G)"
-      },
-      {
-        "id": "PDL1-G2-F01",
-        "pep": "VHWEYPEFRLLD",
-        "helm": "cyclo(V-H-W-E-Y-[dP]-E-F-R-[NMeL]-L-D)"
-      },
-      {
-        "id": "PDL1-G2-F02",
-        "pep": "FKYPDFKLISV",
-        "helm": "cyclo(F-K-Y-[dP]-D-F-K-[NMeL]-I-S-V)"
-      },
-      {
-        "id": "PDL1-G2-F03",
-        "pep": "IFRVNVRYHPF",
-        "helm": "cyclo([NMeI]-F-R-V-N-V-R-Y-H-[dP]-F)"
-      },
-      {
-        "id": "PDL1-G2-F04",
-        "pep": "FYRVRLPDFKIE",
-        "helm": "cyclo([NMeF]-Y-R-V-R-L-[dP]-D-F-K-I-E)"
-      },
-      {
         "id": "PDL1-G2-F05",
         "pep": "VRVSYNPWFNLE",
         "helm": "cyclo(V-R-V-S-Y-N-[dP]-W-[NMeF]-N-L-E)"
-      },
-      {
-        "id": "PDL1-G2-F06",
-        "pep": "PYDYQYLTIDVTV",
-        "helm": "cyclo([dP]-Y-D-Y-Q-Y-[NMeL]-T-I-D-V-T-V)"
-      },
-      {
-        "id": "PDL1-G2-F07",
-        "pep": "IVQISPYKYEYQI",
-        "helm": "cyclo([NMeI]-V-Q-I-S-[dP]-Y-K-Y-E-Y-Q-I)"
-      },
-      {
-        "id": "PDL1-G2-F08",
-        "pep": "FDYKLWDPYKI",
-        "helm": "cyclo(F-D-Y-K-L-[NMeW]-D-[dP]-Y-K-I)"
-      },
-      {
-        "id": "PDL1-G2-F09",
-        "pep": "IQFIRPYRYSWN",
-        "helm": "cyclo(I-Q-F-[NMeI]-R-[dP]-Y-R-Y-S-W-N)"
       },
       {
         "id": "PDL1-G2-F10",
@@ -155,29 +293,29 @@
         "helm": "cyclo(F-R-F-[dP]-K-L-N-W-N-[NMeL]-I-E)"
       },
       {
-        "id": "PDL1-G2-F12",
-        "pep": "YKYPLQLRVHLQ",
-        "helm": "cyclo(Y-K-Y-[dP]-[NMeL]-Q-L-R-V-H-L-Q)"
-      },
-      {
         "id": "PDL1-G2-F13",
         "pep": "FVRVRFPHIQWD",
         "helm": "cyclo([NMeF]-V-R-V-R-F-[dP]-H-I-Q-W-D)"
       },
       {
-        "id": "PDL1-G2-F14",
-        "pep": "WDLVPKIDYEF",
-        "helm": "cyclo(W-D-[NMeL]-V-[dP]-K-I-D-Y-E-F)"
+        "id": "PDL1-G2-A04",
+        "pep": "WYFPLISENKTG",
+        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-N-K-T-G)"
       },
       {
-        "id": "PDL1-G2-F15",
-        "pep": "IFTINPYKYDFK",
-        "helm": "cyclo([NMeI]-F-T-I-N-[dP]-Y-K-Y-D-F-K)"
+        "id": "PDL1-G2-A02",
+        "pep": "WYFPVISDQKTA",
+        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-A)"
       },
       {
-        "id": "PDL1-G2-F16",
-        "pep": "VRLYQFDPFKFT",
-        "helm": "cyclo(V-R-[NMeL]-Y-Q-F-D-[dP]-F-K-F-T)"
+        "id": "PDL1-G2-F01",
+        "pep": "VHWEYPEFRLLD",
+        "helm": "cyclo(V-H-W-E-Y-[dP]-E-F-R-[NMeL]-L-D)"
+      },
+      {
+        "id": "PDL1-G2-A08",
+        "pep": "WYFPVITDNKTG",
+        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-D-N-K-T-G)"
       }
     ],
     "pdl1_round3_full": [
@@ -393,6 +531,344 @@
         "pep": "FRGDLAFPK",
         "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
         "role": "control"
+      }
+    ],
+    "pdl1_g2_full": [
+      {
+        "id": "PDL1-G2-A01",
+        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-Q-N-K-T-A)",
+        "pep": "WYFPVITQNKTA",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.65,
+          "net": 1,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A02",
+        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-A)",
+        "pep": "WYFPVISDQKTA",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.61,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A03",
+        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-G)",
+        "pep": "WYFPVISDQKTG",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.58,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A04",
+        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-N-K-T-G)",
+        "pep": "WYFPLISENKTG",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.6,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A05",
+        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-D-Q-K-T-G)",
+        "pep": "WYFPLITDQKTG",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.65,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A06",
+        "helm": "cyclo(W-Y-F-[dP]-I-[NMeI]-S-E-N-K-S-A)",
+        "pep": "WYFPIISENKSA",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.61,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A07",
+        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-Q-K-A-A)",
+        "pep": "WYFPLISEQKAA",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.66,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-A08",
+        "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-D-N-K-T-G)",
+        "pep": "WYFPVITDNKTG",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.58,
+          "net": 0,
+          "liab": []
+        },
+        "source": "K-05 analog"
+      },
+      {
+        "id": "PDL1-G2-F01",
+        "helm": "cyclo(V-H-W-E-Y-[dP]-E-F-R-[NMeL]-L-D)",
+        "pep": "VHWEYPEFRLLD",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 4,
+          "meanH": 0.62,
+          "net": -2,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F02",
+        "helm": "cyclo(F-K-Y-[dP]-D-F-K-[NMeL]-I-S-V)",
+        "pep": "FKYPDFKLISV",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 3,
+          "meanH": 0.65,
+          "net": 1,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F03",
+        "helm": "cyclo([NMeI]-F-R-V-N-V-R-Y-H-[dP]-F)",
+        "pep": "IFRVNVRYHPF",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 4,
+          "meanH": 0.64,
+          "net": 2,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F04",
+        "helm": "cyclo([NMeF]-Y-R-V-R-L-[dP]-D-F-K-I-E)",
+        "pep": "FYRVRLPDFKIE",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 3,
+          "meanH": 0.46,
+          "net": 1,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F05",
+        "helm": "cyclo(V-R-V-S-Y-N-[dP]-W-[NMeF]-N-L-E)",
+        "pep": "VRVSYNPWFNLE",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.58,
+          "net": 0,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F06",
+        "helm": "cyclo([dP]-Y-D-Y-Q-Y-[NMeL]-T-I-D-V-T-V)",
+        "pep": "PYDYQYLTIDVTV",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 3,
+          "meanH": 0.64,
+          "net": -2,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F07",
+        "helm": "cyclo([NMeI]-V-Q-I-S-[dP]-Y-K-Y-E-Y-Q-I)",
+        "pep": "IVQISPYKYEYQI",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 3,
+          "meanH": 0.62,
+          "net": 0,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F08",
+        "helm": "cyclo(F-D-Y-K-L-[NMeW]-D-[dP]-Y-K-I)",
+        "pep": "FDYKLWDPYKI",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 4,
+          "meanH": 0.61,
+          "net": 0,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F09",
+        "helm": "cyclo(I-Q-F-[NMeI]-R-[dP]-Y-R-Y-S-W-N)",
+        "pep": "IQFIRPYRYSWN",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 4,
+          "meanH": 0.62,
+          "net": 2,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F10",
+        "helm": "cyclo(V-[dP]-D-F-R-[NMeF]-V-T-I-N-W-E)",
+        "pep": "VPDFRFVTINWE",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.67,
+          "net": -1,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F11",
+        "helm": "cyclo(F-R-F-[dP]-K-L-N-W-N-[NMeL]-I-E)",
+        "pep": "FRFPKLNWNLIE",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.66,
+          "net": 1,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F12",
+        "helm": "cyclo(Y-K-Y-[dP]-[NMeL]-Q-L-R-V-H-L-Q)",
+        "pep": "YKYPLQLRVHLQ",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 3,
+          "meanH": 0.55,
+          "net": 2,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F13",
+        "helm": "cyclo([NMeF]-V-R-V-R-F-[dP]-H-I-Q-W-D)",
+        "pep": "FVRVRFPHIQWD",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 4,
+          "meanH": 0.66,
+          "net": 1,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F14",
+        "helm": "cyclo(W-D-[NMeL]-V-[dP]-K-I-D-Y-E-F)",
+        "pep": "WDLVPKIDYEF",
+        "metrics": {
+          "n2": 0,
+          "nw": 1,
+          "arom": 3,
+          "meanH": 0.66,
+          "net": -2,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F15",
+        "helm": "cyclo([NMeI]-F-T-I-N-[dP]-Y-K-Y-D-F-K)",
+        "pep": "IFTINPYKYDFK",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 4,
+          "meanH": 0.56,
+          "net": 1,
+          "liab": []
+        },
+        "source": "fresh diverse"
+      },
+      {
+        "id": "PDL1-G2-F16",
+        "helm": "cyclo(V-R-[NMeL]-Y-Q-F-D-[dP]-F-K-F-T)",
+        "pep": "VRLYQFDPFKFT",
+        "metrics": {
+          "n2": 0,
+          "nw": 0,
+          "arom": 4,
+          "meanH": 0.6,
+          "net": 1,
+          "liab": []
+        },
+        "source": "fresh diverse"
       }
     ]
   },

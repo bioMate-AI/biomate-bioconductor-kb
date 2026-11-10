@@ -1,0 +1,24 @@
+# =====================================================================================================
+# pdl1_m2c_setup_latent_guidance.yaml — config for setup_latent_guidance.py, used ONLY with --energy d2.
+# It encodes a TRAIN split with the frozen v1 AE, computes mean/std of consecutive-latent distances, calls
+# model.set_consec_dist(mean,std) and RE-SAVES the (working copy of the) ckpt. REQUIRED before generate.py
+# with sample_opt.energy_func == default. Provenance: copied from m2c_setup_latent_guidance.yaml.
+#
+# The mmap_dir / specify_index below are PLACEHOLDERS: for --energy d2, pdl1_m2c_generate.py overrides them
+# via overwrite_values to point at the D2 finetune-run TRAIN split (--d2-guidance-mmap / --d2-guidance-index),
+# the distribution the M2c ckpt was actually trained on. For --energy off this file is never used.
+# =====================================================================================================
+
+dataset:
+  test:                                        # setup_latent_guidance uses create_dataset(...)[2] = 'test' slot
+    class: CoDesignDataset
+    mmap_dir: ./data/bound_cyclic_pepglad/processed
+    specify_index: ./data/bound_cyclic_pepglad/processed/train_index.txt   # consec-dist over the D2 TRAIN latent
+    backbone_only: false
+    use_covariance_matrix: true
+
+dataloader:
+  num_workers: 2
+  batch_size: 16
+
+backbone_only: false

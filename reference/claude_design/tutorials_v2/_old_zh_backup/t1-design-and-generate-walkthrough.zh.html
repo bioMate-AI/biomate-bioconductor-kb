@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T1 — 设计全新药物分子（设计与生成）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden}
+/* top rail */
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px)}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t1{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+/* stage */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 70px 48px; opacity:0; transform:translateY(8px); transition:none; pointer-events:none}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.tile.safe{border-color:var(--green); background:var(--green-bg)}
+.tile.safe .n{color:var(--green)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+/* teaching bullet list */
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+/* flow chips (title) */
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+/* two-column teach split */
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink)}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+/* screenshot figures (live) */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+/* Live-UI FOCAL scenes: a HIGH-DPI crop zoomed to the element that makes the point,
+   in a centred vertical stack that gets (nearly) the full stage width. */
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:44ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:98ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:52vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px; justify-content:center}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t1">教程 1 · 设计全新药物分子（设计与生成）</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">11</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>设计与生成</b></div>
+    <div class="kicker">药物发现的第一步——在你动手合成任何东西之前</div>
+    <h2>从单个种子分子，设计出全新的候选药物。</h2>
+    <p class="caption">一款新药，通常都从一个能贴附到与疾病相关<b>靶点</b>、并改变其行为的<b>分子</b>开始。<b>设计与生成</b>就是 BioMate 里负责这件事的工具：它提出全新的候选分子，给它们打分，把明显不安全的挑到一边，交回一份简短、排好序的名单——几分钟，而不是几个月。</p>
+    <p class="caption sub">贯穿示例：以一个熟悉的化合物作种子的小分子生成。我们会从表单，走到排好序的候选分子，再到权衡取舍的视图——然后看看真实的实验结果如何推动下一轮。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>给一个种子分子</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>生成候选分子</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>为每个目标打分</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>给短名单排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>闭环</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE PROBLEM -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">为什么难</span> · 它要解决的问题 <span class="badge concept">概念</span></div>
+    <h2>可能的分子太多，还要同时满足四项要求。</h2>
+    <p class="caption">类药分子的总数大约是 10⁶⁰——比可观测宇宙里的恒星还多。没有哪个化学家能靠手工画出并测试其中哪怕极小的一部分，而一个有用的药，必须<b>同时</b>满足好几项要求。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 强效</div><h4>结合靶点</h4><p>足够强地贴附到疾病蛋白上，才能真正改变它的行为。</p></div>
+            <div class="tile"><div class="n">2 · 安全</div><h4>不造成伤害</h4><p>不损害心脏、肝脏等——这些风险往往让项目在后期折戟。</p></div>
+            <div class="tile"><div class="n">3 · 可合成</div><h4>能被造出来</h4><p>能在实验室里以合理成本合成——有些分子纸面上没问题，却根本做不出来。</p></div>
+            <div class="tile"><div class="n">4 · 体内表现</div><h4>在体内表现良好</h4><p>能被吸收，又不会太快被清除。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">把 10⁶⁰ 缩小到第一份可测试的短名单，通常要一支化学团队花上好几个月。设计与生成会自动完成这第一道筛选——在你花钱去合成或测试任何东西之前。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——每个药物项目起步时都面对的这道挤压</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — GENERATE VS SCREEN + SEED -->
+  <section class="scene" data-seconds="52.0">
+    <div class="kicker"><span class="st">先要懂的几个概念</span> · 生成、种子、SMILES <span class="badge concept">概念</span></div>
+    <h2>BioMate 生成全新的分子——用一个可选的种子来引导搜索。</h2>
+    <p class="caption">"筛选"是测试你<b>已经有</b>的分子；"生成"（也就是这个工具）是朝着你的目标提出<b>全新</b>的分子。你可以给它一个<b>种子</b>——一个已知分子，让它在其基础上生成新颖的变体来引导方向——也可以留空，让它从零开始生成。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">种子 · 可选</div><h4>用一个已知分子来引导</h4><p>以 <b>SMILES</b> 字符串输入，为搜索锚定方向，或者留空让它从零开始生成。阿司匹林 <code>CC(=O)Oc1ccccc1C(=O)O</code> 只是格式示例。</p></div>
+            <div class="tile"><div class="n">从哪里获取</div><h4>去查，不要手打</h4><p>从 <b>PubChem</b> 或 <b>ChEMBL</b> 这类免费数据库复制"规范 SMILES（Canonical SMILES）",或向你的化学合作者索取。</p></div>
+            <div class="tile"><div class="n">靶点 vs 种子</div><h4>蛋白质 vs 分子</h4><p>你的<b>靶点</b>是一种蛋白质（例如 JAK1）。<b>种子</b>是一个小分子。只有靶点？去查一个已知的结合物，用它的 SMILES。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">BioMate 会提出<b>新颖、化学上合理的候选分子</b>——由你给出的种子来引导（给了才用）——再对它们筛选、排序，所以每一个候选分子都是有意、可核查的设计，而不是黑箱里的凭空一猜。</p>
+        </div>
+        <div class="tags">
+          <span class="verdict plain"><span class="mk"></span>背景——种子是起点，不是答案</span>
+          <span class="verdict ok"><span class="mk"></span>生成器——围绕你的种子枚举、筛选并排序变体</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — SCAFFOLD STAY/HOP/GROW -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">要多大胆</span> · 骨架策略 <span class="badge concept">概念</span></div>
+    <h2>保留核心、跳到新核心，或从片段生长。</h2>
+    <p class="caption"><b>骨架</b>是一个分子的核心骨干——决定它基本形状的那一部分。你告诉 BioMate 要离种子多远去探索。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">保留（Stay）</div><h4>改动修饰部分</h4><p>保持同一个核心，只改动它周围的部分。保守——安全的默认选项。</p></div>
+            <div class="tile"><div class="n">跳跃（Hop）</div><h4>更换核心</h4><p>换到一个不同、但应当仍能适配靶点的核心——以绕开竞争对手的专利，或逃离一个带毒性的核心。</p></div>
+            <div class="tile"><div class="n">生长（Grow）</div><h4>把它搭建起来</h4><p>从一个小片段出发，把它生长成一个完整的、药物大小的分子。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">实践中为什么要做骨架跳跃：化学家往往需要一个作用机理与原分子相同、但在法律和化学上都截然不同的分子。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——一个设置控制搜索探索的远近</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — PROPERTY WINDOW -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">属性窗口</span> · 是偏好，不是硬性规则 <span class="badge concept">概念</span></div>
+    <h2>三个数字，预测它能否做成药片。</h2>
+    <p class="caption">能被吸收的分子，往往落在三项可测量属性的特定区间里。BioMate 让你设一个目标窗口——这是<b>用于排序的软性偏好，而不是硬性的截断线</b>。一个刚好落在窗口之外、却很有希望的分子不会被删掉，只是分数稍微低一点。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">MW</div><h4>分子量</h4><p>大致就是分子的大小。</p></div>
+            <div class="tile"><div class="n">logP</div><h4>偏油还是偏水</h4><p>它在脂与水中溶解的倾向。</p></div>
+            <div class="tile"><div class="n">TPSA</div><h4>极性表面积</h4><p>它表面有多少是极性的。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">三者合在一起，能预测一个分子能否做成<b>口服药片</b>、能多容易地<b>穿过细胞膜</b>，以及能否抵达<b>细胞内部</b>或大脑里的靶点。更小、极性更低的分子更容易穿过——所以针对细胞内靶点，你可能要把窗口调低。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>软性偏好——刚好落在窗口之外的分子排名更低，绝不删除</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — MULTI-OBJECTIVE + SAFETY GATE -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker"><span class="st">多目标打分</span> · 目标各自独立，安全可见 <span class="badge concept">概念</span></div>
+    <h2>没有单一的魔法分数——安全闸门也从不隐藏。</h2>
+    <p class="caption">你想要一个既强效<b>又</b>安全<b>还</b>好合成的分子。这些目标会互相拉扯，所以 BioMate 把每一个<b>单独列出、各用各的单位</b>，绝不揉成一个"综合"数字——单一的综合分可能让一个不安全的分子藏在漂亮的平均值背后。怎么权衡，由<i>你</i>来定。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile"><div class="n">多目标</div><h4>每个目标各占一列</h4><p>强效、安全、可合成并排展示——权衡取舍一目了然，不会被平均掉。你来挑最看重的那一项。</p></div>
+            <div class="tile safe"><div class="n">安全闸门</div><h4>标出、放到一边——仍然展示</h4><p>已知有风险的子结构（"结构警示"——例如与心律或肝脏风险相关的基团）会连同原因一起被标出、放到一边，但绝不隐藏。警示是一面警告旗，不是一次已证实的毒性测量。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px"><b>每个候选分子被打分的维度：</b>它的类药性、与你设定的属性窗口的契合程度，以及一道可见的安全闸门。而且每个候选分子都会和它<b>最相近的那个真实、已知的分子</b>并列展示，让每一个分数都落在真实的参照上。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>安全是一道可见的闸门，不是暗中的过滤——没有任何隐藏</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — LIVE: THE FORM -->
+  <section class="scene live" data-kind="flow" data-seconds="29.0">
+    <div class="kicker"><span class="st">一步步来</span> · 设计与生成表单 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>你填几项约束——在任何分子被生成之前。</h2>
+    <p class="caption">这是实际产品里真实的设计与生成表单：选<b>模态</b>（先从小分子开始），给一个<b>种子</b> SMILES，选<b>骨架策略</b>（保留 / 跳跃 / 生长），并设定 <b>MW / logP / TPSA</b> 窗口。排除项和种子系列是可选的。然后按下<b>"生成并排序"</b>——一分钟内就完成。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t1-form.png" alt="设计与生成表单——模态、种子 SMILES、骨架策略，以及 MW/logP/TPSA 窗口"/></div>
+          <figcaption><span class="lbl">设计与生成 · 实时</span>这是一组约束条件的表单，不是聊天框——在任何分子被生成之前，你会审阅每一项设置。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>小分子生成器——在实际产品中端到端运行</span></div>
+  </section>
+
+  <!-- 8 — LIVE: RANKED RESULTS -->
+  <section class="scene live" data-kind="flow" data-seconds="32.0">
+    <div class="kicker"><span class="st">读懂结果</span> · 多目标视图 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>每个候选分子是一行；每个目标各占一列。</h2>
+    <p class="caption">每一行是一个被提出的分子（BM-0001、BM-0002……）。每个目标各占一列——没有什么被揉进单一的数字。<b>"score*" 只是一个排序用的键</b>，不是质量结论。<b>结论</b>那一列显示"通过"还是"驳回",而<b>被驳回的分子仍然留在那里，连同原因</b>。每一行上的<b>"为什么？"</b>会解释这个分数，包括它最像的那个已知分子。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t1-results.png" alt="排好序的候选分子——每个分子一行，每个目标各占一列，带有通过／驳回结论和一个 why 链接"/></div>
+          <figcaption><span class="lbl">排好序的候选分子 · 实时</span>权衡取舍被直接、并排地展示出来——由你来决定如何权衡强效、安全与可合成。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>目标分开展示，被驳回的候选分子连同原因一起展示——没有任何隐藏</span></div>
+  </section>
+
+  <!-- 9 — LIVE: PARETO + REJECTIONS -->
+  <section class="scene live" data-kind="flow" data-seconds="36.0">
+    <div class="kicker"><span class="st">权衡图</span> · 帕累托前沿与驳回汇总 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div>
+    <h2>现有最好的折中方案——以及某些为何被放到一边。</h2>
+    <p class="caption">每个点是一个候选分子；落在前沿边界上的那些点，就是<b>现有最好的折中方案</b>——要让其中一个在某个目标上更好，你就得接受它在另一个目标上更差。你根据自己最看重什么，从这条边界上去挑。<b>驳回汇总</b>告诉你候选分子<i>为什么</i>被淘汰：很高的驳回率，是最清楚的信号，说明你的种子或约束需要调整——这是一个有用的诊断，而不是一次失败。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t1-pareto.png" alt="帕累托权衡图" style="object-fit:contain"/></div>
+          <figcaption><span class="lbl">权衡前沿 · 实时</span>每个点是一个候选分子在两个目标上的表现；高亮的点落在非支配前沿上。这里的候选分子主要在类药性上有差异，且全都落在属性窗口之外——于是前沿塌缩向最具类药性的那一个，这本身就是一个该把窗口放宽的信号。</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t1-rejection.png" alt="驳回汇总——被安全闸门放到一边的候选分子，连同原因" style="object-fit:contain"/></div>
+          <figcaption><span class="lbl">驳回画像 · 实时</span>驳回会按原因计数和归类——这里有四个候选分子触发了结构警示，并按 ID 继续展示。安全是一道闸门，绝不拿来交换。</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>驳回有解释；空结果会指明原因——可以行动，不是死胡同</span></div>
+  </section>
+
+  <!-- 10 — CLOSED LOOP -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">接下来会怎样</span> · 闭环 <span class="badge concept">概念</span></div>
+    <h2>短名单只是起点——真实的实验结果让下一轮更好。</h2>
+    <p class="caption">这些候选分子离临床还很远；它的价值在于<b>聪明地起步</b>。从结果里，你可以<b>导出一张订单表</b>——一个把每个候选分子和一个实验室 ID 配对起来的文件，好让化学家真正去合成、测试排在前面的分子。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:14px">
+            <span class="chip"><span class="i"></span>设计</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>合成</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>测试</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>学习</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>再设计</span>
+          </div>
+          <p class="card" style="box-shadow:none; border:none; padding:0">当实验结果回来，它们会进入 BioMate 的<b>模型</b>模块（教程 2），由它从真实测量中<i>学习</i>，提出更好的下一轮。设计 → 合成 → 测试 → 学习，这就是闭环，也是 BioMate 每一轮都更准的原因。常见的分工交接：临床医生或生物学家贡献经过验证的靶点、以及需要避开的真实安全问题；BioMate 产出并排序候选分子；药物化学家审阅短名单，决定合成哪些。</p>
+          <p class="footnote" style="margin-top:20px">能力范围：<b>小分子</b>生成器能端到端跑通——种子进去，一份排好序、有真实参照的短名单出来，可以作为订单表直接交到实验室手里。</p>
+        </div>
+        <div class="tags">
+          <span class="verdict ok"><span class="mk"></span>小分子生成器——端到端跑通，直达订单表</span>
+          <span class="verdict ok"><span class="mk"></span>闭环——真实实验数据训练出更好的下一轮</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 — CLOSING -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="kicker">一眼看懂这个习惯</div>
+    <h2 style="font-size:40px">给种子 → 生成 → 逐列读每个目标 → 从前沿上挑。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">设计与生成把一张白纸变成一份筛过、排好序的短名单。给一个种子分子，选好探索的远近与属性窗口，再逐一读候选分子——每个目标分开、安全作为可见闸门展示。然后导出订单表，让闭环把下一轮做得更聪明。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>选一个模态；给一个种子 SMILES（来自 PubChem/ChEMBL）</li>
+            <li><span class="k">2</span>选骨架策略和 MW/logP/TPSA 窗口</li>
+            <li><span class="k">3</span>生成并排序；逐列读每个目标，以及"为什么？"</li>
+            <li><span class="k">4</span>从权衡前沿上挑；导出订单表</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>小分子生成</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">端到端运行</span></td></tr>
+            <tr><td>生成器引擎</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">围绕你的种子枚举并排序变体</span></td></tr>
+            <tr><td>多目标排序</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">目标分开保持</span></td></tr>
+            <tr><td>安全闸门（结构警示）</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">可见，不隐藏</span></td></tr>
+            <tr><td>候选分子参照</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">展示最相近的真实已知分子</span></td></tr>
+            <tr><td>订单表导出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">每个候选分子配一个实验室 ID</span></td></tr>
+          </table>
+          <p class="footnote">短名单是计算层面的早期筛查，不是成品药——价值在于聪明地起步，再用真实实验数据合上闭环。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 非房室药代动力学分析（NCA）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">S1 · 非房室 PK 分析——一条浓度-时间曲线变成站得住脚的暴露量数字</span>
+  <span class="spacer"></span>
+  <span class="counter">阶段 <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="kicker">献给每一位测量药物浓度随时间变化的人</div>
+    <h2>你有一条浓度-时间曲线。BioMate 把它变成你能捍卫的暴露量数字。</h2>
+    <p class="caption lead">一张浓度随时间变化的表，变成站得住脚的暴露量数字——不拟合任何模型。</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>浓度-时间 CSV</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Nca Pknca</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>校验曲线</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>AUC · Cmax · t&frac12; · CL · Vd</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一份站得住脚的报告</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">这个功能要解决的问题</div>
+    <h2>暴露量是 PK 的第一个问题——用标准的方式去计算。</h2>
+    <p class="caption lead">身体见到了多少药、又停留了多久——直接从观测曲线上读出。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 820 384" style="width:100%; max-width:900px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- AUC shaded area -->
+          <path d="M90,340 C150,282 210,102 270,90 C360,78 440,172 540,232 C620,276 700,302 760,314 L760,340 Z" fill="#e9f2fd"/>
+          <!-- axes -->
+          <line x1="90" y1="40" x2="90" y2="340" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="90" y1="340" x2="788" y2="340" stroke="#d3d8df" stroke-width="2"/>
+          <!-- terminal slope (dashed) -->
+          <line x1="500" y1="214" x2="802" y2="334" stroke="#94600f" stroke-width="2.6" stroke-dasharray="7 6"/>
+          <!-- concentration-time curve -->
+          <path d="M90,340 C150,282 210,102 270,90 C360,78 440,172 540,232 C620,276 700,302 760,314" fill="none" stroke="#1d5fa6" stroke-width="3.8"/>
+          <!-- Cmax / Tmax guides -->
+          <line x1="90" y1="90" x2="270" y2="90" stroke="#5c6573" stroke-width="1.6" stroke-dasharray="5 5"/>
+          <line x1="270" y1="90" x2="270" y2="340" stroke="#5c6573" stroke-width="1.6" stroke-dasharray="5 5"/>
+          <circle cx="270" cy="90" r="8.5" fill="#1d5fa6"/>
+          <!-- labels -->
+          <text x="300" y="268" text-anchor="middle" font-family="IBM Plex Mono" font-size="22" fill="#1d5fa6" font-weight="600">AUC</text>
+          <text x="284" y="80" font-family="IBM Plex Mono" font-size="18" fill="#1d5fa6" font-weight="600">Cmax</text>
+          <text x="270" y="364" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" fill="#5c6573">Tmax</text>
+          <text x="690" y="286" font-family="IBM Plex Mono" font-size="16" fill="#94600f" font-weight="600">斜率 &rarr; t&frac12;</text>
+          <text x="440" y="378" text-anchor="middle" font-family="IBM Plex Mono" font-size="15" fill="#5c6573">时间 (h)</text>
+          <text x="52" y="196" font-family="IBM Plex Mono" font-size="15" fill="#5c6573" transform="rotate(-90 52 196)">浓度</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:24px">
+        <div class="stat"><div class="si tag">有多少</div><div class="sh">AUC——总暴露量</div><div class="sp">曲线下的阴影面积。</div></div>
+        <div class="stat"><div class="si tag">有多高</div><div class="sh">Tmax 时刻的 Cmax</div><div class="sp">峰值，及其出现的时刻。</div></div>
+        <div class="stat"><div class="si tag">有多久</div><div class="sh">末端 t&frac12;</div><div class="sp">由对数线性的尾部斜率得出。</div></div>
+        <div class="stat"><div class="si tag">有多快</div><div class="sh">CL/F · Vd/F</div><div class="sp">清除率与表观分布容积。</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">开始前要懂的几个概念</div>
+    <h2>四个基本概念，就是 NCA 的全部。</h2>
+    <p class="caption lead">不需要房室模型，也不需要微分方程——只需从观测曲线上读出四样东西。</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">曲线</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+          </svg>
+          <div class="gl-lbl">浓度对时间——原始测量</div></div>
+        <div class="glyph"><div class="n">AUC</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82 L172,92 Z" fill="#e9f2fd"/>
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+          </svg>
+          <div class="gl-lbl">曲线下面积——总暴露量</div></div>
+        <div class="glyph"><div class="n">峰值</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <line x1="86" y1="24" x2="86" y2="92" stroke="#5c6573" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+            <circle cx="86" cy="24" r="6.5" fill="#1d5fa6"/>
+          </svg>
+          <div class="gl-lbl">Cmax 与 Tmax——峰值的高度和时刻</div></div>
+        <div class="glyph"><div class="n">尾部</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+            <line x1="100" y1="40" x2="182" y2="98" stroke="#94600f" stroke-width="2.8" stroke-dasharray="6 5"/>
+          </svg>
+          <div class="gl-lbl">末端斜率 &rarr; 半衰期与清除率</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">在 BioMate 中</span> · 目标 + 一份 CSV → 一次运行</div>
+    <h2>说出目标，附上一份浓度-时间 CSV；BioMate 就路由到 Nca Pknca。</h2>
+    <p class="caption lead">用自然语言说出目标，再附上一份浓度-时间 CSV——PKNCA 在云端算力上运行。</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的 Nca Pknca 工作流</span>
+        <div class="frame"><img src="../assets/live/nca-zh-panel.png" alt="BioMate 中 Nca Pknca 非房室 PK 工作流的面板"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>路由到 <b>Nca Pknca</b>——标注为 <b>Drug Discovery</b>，单一阶段。</span></li>
+          <li><span class="b"></span><span>只有一个必需输入：浓度-时间 CSV（<b>Input Csv</b>）。</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run</b> 在云端跑起 PKNCA——无需安装任何东西。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 NCA 工作流，已为你配置就绪</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 那张浓度-时间表</div>
+    <h2>一张整洁的浓度-时间表，外加剂量和给药途径。</h2>
+    <p class="caption lead">每个采样点一行——在任何计算开跑之前先校验，于是格式有误的表会快速失败。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 640 196" style="width:100%; max-width:720px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <rect x="20" y="12" width="600" height="44" rx="7" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.6"/>
+          <rect x="20" y="60" width="600" height="40" fill="#fff" stroke="#e3e7ec" stroke-width="1.2"/>
+          <rect x="20" y="100" width="600" height="40" fill="#f7f8fa" stroke="#e3e7ec" stroke-width="1.2"/>
+          <rect x="20" y="140" width="600" height="40" fill="#fff" stroke="#e3e7ec" stroke-width="1.2"/>
+          <g font-family="IBM Plex Mono" font-size="17" fill="#1d5fa6" font-weight="600" text-anchor="middle">
+            <text x="80" y="40">subject_id</text><text x="200" y="40">time</text><text x="320" y="40">conc</text><text x="440" y="40">dose</text><text x="560" y="40">route</text>
+          </g>
+          <g font-family="IBM Plex Mono" font-size="16" fill="#323846" text-anchor="middle">
+            <text x="80" y="85">S01</text><text x="200" y="85">0.5</text><text x="320" y="85">12.4</text><text x="440" y="85">100</text><text x="560" y="85">oral</text>
+            <text x="80" y="125">S01</text><text x="200" y="125">2.0</text><text x="320" y="125">48.1</text><text x="440" y="125">100</text><text x="560" y="125">oral</text>
+            <text x="80" y="165">S02</text><text x="200" y="165">1.0</text><text x="320" y="165">35.6</text><text x="440" y="165">100</text><text x="560" y="165">iv</text>
+          </g>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:24px">
+        <div class="stat"><div class="si tag">必需的列</div><div class="sh">每个采样点一行</div><div class="sp"><code>subject_id · time · conc · dose · route</code></div></div>
+        <div class="stat"><div class="si tag">研究设计</div><div class="sh">剂量与给药途径</div><div class="sp">给药途径决定血管外还是血管内。</div></div>
+        <div class="stat"><div class="si tag">单位</div><div class="sh">标注出来，而非靠猜</div><div class="sp">默认的 <code>h</code> 和 <code>ng/mL</code> 标注坐标轴。</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:22px; display:flex; align-items:center; justify-content:center; gap:14px"><span class="vflag green">校验</span> 第 1 步把负浓度归零，并拒绝负时间。</div>
+    </div>
+  </section>
+
+  <!-- 5 — WHAT NCA COMPUTES -->
+  <section class="scene" data-seconds="52.0">
+    <div class="kicker"><span class="st">计算</span> · PKNCA，按受试者逐一算</div>
+    <h2>标准的暴露量参数，按约定算出。</h2>
+    <p class="caption lead">在校验过的曲线上运行 R/PKNCA——逐受试者，全部由数据导出，无一拟合。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si tag">AUClast / AUCinf</div><div class="sh">总暴露量</div><div class="sp">先观测，再外推到无穷。</div></div>
+        <div class="stat"><div class="si tag">Cmax</div><div class="sh">峰值</div><div class="sp">观测到的最高浓度。</div></div>
+        <div class="stat"><div class="si tag">Tmax</div><div class="sh">峰值时刻</div><div class="sp">从采样点上读出。</div></div>
+      </div>
+      <div class="statrow" style="margin-top:22px">
+        <div class="stat"><div class="si tag">t&frac12;</div><div class="sh">持续性</div><div class="sp">由对数线性尾部得到的末端半衰期。</div></div>
+        <div class="stat"><div class="si tag">CL/F</div><div class="sh">表观清除率</div><div class="sp">身体清除药物的速率。</div></div>
+        <div class="stat"><div class="si tag">Vd/F</div><div class="sh">表观分布容积</div><div class="sp">药物铺展进去的空间。</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:24px">方法：<b>上升段线性、下降段对数的梯形法</b> · 逐受试者写入 <code>nca_results.csv</code>，汇总于 <code>nca_summary.json</code></div>
+    </div>
+  </section>
+
+  <!-- 6 — DOSE-RESPONSE CONTEXT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">置于语境中</span> · 从暴露到效应</div>
+    <h2>暴露量只是故事的一半——另一半是它产生了什么效应。</h2>
+    <p class="caption lead">NCA 为剂量选择链接下来消费的暴露量数字提供锚点。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · 观测</div><div class="pc">浓度曲线</div><div class="pt"><span>浓度对时间</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">NCA</span></div>
+        <div class="pstep"><div class="pn">2 · 暴露</div><div class="pc">AUC · Cmax</div><div class="pt"><span class="eg">Nca Pknca</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">拟合</span></div>
+        <div class="pstep"><div class="pn">3 · 反应</div><div class="pc">暴露对效应</div><div class="pt"><span class="eg">Exposure Response</span><span>Emax / Hill</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">选择</span></div>
+        <div class="pstep"><div class="pn">4 · 剂量</div><div class="pc">一个剂量依据</div><div class="pt"><span class="eg">Dose Response</span><span>LL.4 / LL.5</span></div></div>
+      </div>
+      <div class="ploop">&#8626; 每个环节都是一条真实的 BioMate 工作流——NCA 产出其余环节所消费的暴露量</div>
+    </div>
+  </section>
+
+  <!-- 7 — READING THE PARAMETERS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">解读</span> · 每个数字都回答一个给药问题</div>
+    <h2>解读这些参数：每一个都对应一个决策。</h2>
+    <p class="caption lead">报告把一张对数线性图、一张逐受试者的表，连同写明的假设一并呈现。</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="criteria">
+        <div class="crit"><div class="cn">AUC</div><div class="ct">暴露量够不够？</div><div class="cd">与目标比较——并检验剂量比例关系。</div></div>
+        <div class="crit"><div class="cn">Cmax / Tmax</div><div class="ct">多快、多高？</div><div class="cd">尖锐的早期峰值，还是缓慢、延长的吸收。</div></div>
+        <div class="crit"><div class="cn">t&frac12;</div><div class="ct">多久给一次药？</div><div class="cd">定下给药间隔和达到稳态的时间。</div></div>
+        <div class="crit"><div class="cn">CL/F · Vd/F</div><div class="ct">为剂量定标</div><div class="cd">清除率驱动维持剂量。</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+    <!-- ADDED PRODUCT SCENE -->
+  <section class="scene" data-kind="live" data-seconds="30.0" data-added="1">
+    <div class="kicker"><span class="st">真实产品</span> · 参数与输入 <span class="badge flow">产品</span></div>
+    <h2>运行前，核对真实的参数与输入</h2>
+    <p class="caption lead">必填项、输入文件、输出位置与权限，都集中在同一个面板里。</p>
+    <div class="scene-body shotwrap">
+      <figure class="shotcol">
+        <span class="lbl">真实产品 · BioMate 中的 NCA 非房室药代动力学 · 工作流设置</span>
+        <div class="frame"><img src="../assets/live/nca-settings-zh.png" alt="真实产品 · BioMate 中的 NCA 非房室药代动力学 · 工作流设置"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>用自然语言描述任务，BioMate 摆出真实参数</span></li>
+          <li><span class="b gr"></span><span>必填项清晰标注，可一键覆盖默认值</span></li>
+          <li><span class="b rd"></span><span>确认后在云端运行，无需本地安装</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+<section class="scene" data-seconds="56.0">
+    <div class="kicker">NCA 的用武之地 · 让它站得住脚的约定</div>
+    <h2>之所以站得住脚，因为它遵循明确的约定——并在每次运行上跑质量闸门。</h2>
+    <p class="caption lead">NCA 总结你已有的数据；要预测超出数据的情形，它会承接给 PBPK。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si tag">采样</div><div class="sh">采样计划就是上限</div><div class="sp">Tmax 只能是一个被采过的时间点。</div></div>
+        <div class="stat"><div class="si tag">方法</div><div class="sh">写明的假设</div><div class="sp">线性 PK、单剂量、对数线性尾部。</div></div>
+        <div class="stat"><div class="si tag">承接</div><div class="sh">NCA &rarr; PBPK（S2）</div><div class="sp">先总结，预测向前时再谈机制。</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">外推 &gt; 20%</span> AUCinf 被标为不可靠——FDA BA/BE 约定限定了外推尾部的占比。</div>
+      <div class="sc-note" style="margin-top:16px"><span class="flag amber">末端点 &lt; 3</span> 不拟合半衰期——该受试者被标出，而非靠猜。</div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="42.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2>输入一条浓度-时间曲线。输出站得住脚的暴露量数字。</h2>
+    <p class="caption lead">校验曲线、按约定计算、对结果跑闸门、渲染报告——全在云端。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · 输入</div><div class="pc">浓度-时间 CSV</div><div class="pt"><span>subject · time · conc</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">校验</span></div>
+        <div class="pstep"><div class="pn">2 · 校验</div><div class="pc">曲线已核对</div><div class="pt"><span class="eg">NCA_INPUT_VALIDATION</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">计算</span></div>
+        <div class="pstep"><div class="pn">3 · PKNCA</div><div class="pc">AUC · Cmax · t&frac12;</div><div class="pt"><span class="eg">梯形法</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">闸门</span></div>
+        <div class="pstep"><div class="pn">4 · QC</div><div class="pc">外推 · 末端斜率</div><div class="pt"><span class="eg">FDA &le; 20%</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">报告</span></div>
+        <div class="pstep"><div class="pn">5 · 报告</div><div class="pc">站得住脚、可复现</div><div class="pt"><span class="eg">nca_report.html</span></div></div>
+      </div>
+      <div class="ploop">&#8634; 不依赖模型——当你需要预测向前时，与 PBPK（S2）互为衔接</div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

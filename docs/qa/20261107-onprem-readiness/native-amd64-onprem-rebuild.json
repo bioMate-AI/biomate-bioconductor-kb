@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "run_id": 42433990224,
+  "source_commit": "229656f852ad3201aad8f42cbc7548ff88889266",
+  "url": "https://github.com/bioMate-AI/biomate/actions/runs/42433990224",
+  "local_image_id": "sha256:eeef7a039e3e06499b92bcc7e0da7727ad2428309d82128eba8e6be46aa3930d",
+  "image_id_is_registry_manifest_digest": false,
+  "architecture": "amd64",
+  "os": "linux",
+  "base": "python:3.11-slim-bookworm",
+  "smoke_sha256": "cf6f18667e85e60142853633ae42f2d401d21fff7a3d194967fd1953044fd2a1",
+  "runtime_bounds": {"network": "none", "cpus": 1, "cpu_affinity_count": 1, "memory_gib": 4, "timeout_seconds": 300},
+  "functional_checks": ["core scientific/runtime imports", "finite ViennaRNA fold", "ethanol physicochemical CSV values", "invalid SMILES rejection"],
+  "observed_dependencies": {
+    "biomni": "0.0.8",
+    "DeepPurpose": "0.1.5",
+    "numpy": "2.4.6",
+    "opencv-python-headless": "5.0.0.93",
+    "torch": "2.15.0+cpu"
+  },
+  "published": false,
+  "deployed": false,
+  "release_ready": false,
+  "limitations": ["contains legacy upstream runtime names", "not native ARM64 rebuild qualification", "not learned-model accuracy validation", "not clean on-prem installation or complete workflow acceptance"]
+}

@@ -2,7 +2,7 @@
 <tool id="biomni_synthetic_biology_optimize_codons_for_heterologous_expression" name="Biomni: Optimize Codons For Heterologous Expression" version="1.0.0">
     <description>Analyzes and optimizes a DNA/RNA sequence for improved expression in a heterologous host organism.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/optimize_codons_for_heterologous_expression_wrapper.py' --output '$output'

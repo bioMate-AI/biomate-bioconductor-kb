@@ -2,7 +2,7 @@
 <tool id="biomni_pathology_analyze_intracellular_calcium_with_rhod2" name="Biomni: Analyze Intracellular Calcium With Rhod2" version="1.0.0">
     <description>Analyzes intracellular calcium concentration using Rhod-2 fluorescent indicator from microscopy images.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_intracellular_calcium_with_rhod2_wrapper.py' --output '$output'

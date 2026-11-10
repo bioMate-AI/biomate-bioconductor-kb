@@ -1,0 +1,29 @@
+{
+  "Rest": {
+    "n": 6840,
+    "neighbor_mean": 0.07806202352288494,
+    "random": -0.02131322232094609,
+    "learned_ridge": 0.01307644628863084,
+    "best_lam": 100.0,
+    "learned_minus_neighbor_t": -23.00028504643242,
+    "learned_minus_neighbor_mean": -0.0649855772342541
+  },
+  "Stim8hr": {
+    "n": 7142,
+    "neighbor_mean": 0.03852313896921803,
+    "random": -0.021438312118819365,
+    "learned_ridge": 0.024366983522164494,
+    "best_lam": 100.0,
+    "learned_minus_neighbor_t": -4.713198304346795,
+    "learned_minus_neighbor_mean": -0.014156155447053537
+  },
+  "Stim48hr": {
+    "n": 7175,
+    "neighbor_mean": 0.035192644087511056,
+    "random": -0.01690515580268856,
+    "learned_ridge": 0.01883859442575839,
+    "best_lam": 100.0,
+    "learned_minus_neighbor_t": -5.364625307065792,
+    "learned_minus_neighbor_mean": -0.016354049661752666
+  }
+}

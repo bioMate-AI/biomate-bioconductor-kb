@@ -1,0 +1,63 @@
+[
+ {
+  "name": "nf-core/chipseq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/chipseq\\\" needs 4 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"input\",\"label\":\"Samplesheet CSV (sample,fastq_1,fastq_2,antibody,control)\",\"description\":\"Samplesheet CSV (sample,fastq_1,fastq_2,antibody,control)\",\"type\":\"string\"},{\"name\":\"genome\",\"label\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"description\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"type\":\"string\"},{\""
+  }
+ },
+ {
+  "name": "nf-core/atacseq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/atacseq\\\" needs 5 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"input\",\"label\":\"Samplesheet CSV (sample,fastq_1,fastq_2,replicate)\",\"description\":\"Samplesheet CSV (sample,fastq_1,fastq_2,replicate)\",\"type\":\"string\"},{\"name\":\"genome\",\"label\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"description\":\"Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6\",\"type\":\"string\"},{\"name\":\"macs_gs"
+  }
+ },
+ {
+  "name": "nf-core/eager",
+  "runId": "45686885-633e-43c3-82c0-aaeedf48a5cf",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "",
+  "minutes": 3.0
+ },
+ {
+  "name": "nf-core/mnaseseq",
+  "runId": "790f5f16-a16c-4f48-b5d2-6178eebdec4e",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "",
+  "minutes": 1.0
+ },
+ {
+  "name": "nf-core/moleculardynamics",
+  "runId": "358bcfb8-d2cc-4f28-9c64-4eb5a62482ae",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "",
+  "minutes": 1.0
+ },
+ {
+  "name": "nf-core/spatialxe",
+  "runId": "c5b036f9-1708-4bd3-b6af-ec674e30eca0",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "",
+  "minutes": 3.0
+ },
+ {
+  "name": "nf-core/genephylo",
+  "runId": "5c1f0ea1-6e2e-4fed-af9a-799c48d246bc",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "",
+  "minutes": 1.0
+ }
+]

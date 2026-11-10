@@ -1,5 +1,5 @@
 """K2 deterministic verification. A rule that fails any check is DISCARDED, never repaired."""
-import hashlib, re, unicodedata
+import hashlib, math, re, unicodedata
 from config import (DIRECTIONS, PROPERTIES, SUBSTRUCTURES, QUOTE_MIN_WORDS, QUOTE_MAX_WORDS, TOPICS, LESSON_TYPES,
                     STRUCT_FEATURES, TARGETS)
 
@@ -21,29 +21,36 @@ def quote_words(quote: str) -> int:
 
 
 def _num_strings(value):
+    if isinstance(value,bool):return []
     if value is None or value == "":
         return []
     s = str(value).strip().replace(",", "")
     out = {s}
     try:
         f = float(s)
+        if not math.isfinite(f):return []
         out.add(("%g" % f))
         if f == int(f):
             out.add(str(int(f)))
-    except ValueError:
-        pass
+    except (ValueError, OverflowError):
+        return []
     return [x for x in out if x]
 
 
 def number_ok(effect, quote: str, passage_norm: str) -> bool:
     """If an effect-size value is given its digits must occur in the quote or the source passage."""
+    if effect is None:return True
+    if not isinstance(effect,dict):return False
     if not effect or effect.get("value") in (None, "", "null"):
         return True
     hay = (norm(quote) + " " + passage_norm).replace(",", "")
-    return any(re.search(r"(?<![\d.])" + re.escape(n) + r"(?![\d])", hay) for n in _num_strings(effect.get("value")))
+    # A positive substring inside -5 or the endpoint of an unreviewed range is
+    # not evidence for +5. This remains occurrence checking, not relation proof.
+    return any(re.search(r"(?<![\w.+\-−–—])" + re.escape(n) + r"(?![\w.])", hay) for n in _num_strings(effect.get("value")))
 
 
 def schema_errors(rule: dict) -> list:
+    if not isinstance(rule,dict):return ['not_an_object']
     errs = []
     for k in REQUIRED:
         if k not in rule or rule[k] in (None, ""):
@@ -55,6 +62,11 @@ def schema_errors(rule: dict) -> list:
     if rule.get("substructure_class") not in SUBSTRUCTURES:
         errs.append("bad_substructure")
     st = rule.get("statement") or ""
+    for key in ('statement','scope','quote'):
+        if not isinstance(rule.get(key),str):errs.append('bad_type:'+key)
+    if rule.get('effect_size') is not None and not isinstance(rule.get('effect_size'),dict):
+        errs.append('bad_type:effect_size')
+    if errs:return errs
     if not (5 <= len(st) <= 400):
         errs.append("statement_length")
     try:
@@ -162,10 +174,12 @@ def strict_ok(rule: dict) -> bool:
     """STRICT arm (A5, tightened by A5.1; frozen before any precision judgement or STRICT-arm count): RAW verified AND all of:
     proxy_entailment == YES; confidence >= 0.7; text (quote+statement) has a cyclic/peptide term AND a term matching the rule's property
     (property 'other' needs only the cyclic term); sar_rule must have a non-'other' property and direction in {increases, decreases, conditional}."""
+    if not isinstance(rule,dict) or any(not isinstance(rule.get(k,''),str) for k in ('quote','statement')):
+        return False
     if rule.get("proxy_entailment") != "YES":
         return False
     try:
-        if float(rule.get("confidence", 0)) < 0.7:
+        if not 0.7 <= float(rule.get("confidence", 0)) <= 1.0:
             return False
     except (TypeError, ValueError):
         return False

@@ -2,7 +2,7 @@
 <tool id="biomni_systems_biology_dimerization_odes" name="Biomni: Dimerization Odes" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/dimerization_odes_wrapper.py' --output '$output'

@@ -75,3 +75,39 @@ c4671db6e + a300a976f (+ the WIP commit 1db223db8) need a follow-up push + sync.
   Proposal pending user approval before deletion.
 - A 2,141-line uncommitted drug-discovery/Benchling WIP (assay/BO/Benchling) was blocking
   the sync guard; committed as-is (1db223db8) per user request to unblock the deploy.
+
+---
+
+## Phase 2 — design-conformance pass (same day)
+
+The user pushed back that UI still "doesn't match the design" and asked directly whether
+I was capable. Root cause of the repeated misses: I was verifying fixes by **logic/tsc**,
+not by **rendering the UI and visually diffing against the design reference**. Corrected
+method (now in memory `feedback_design_conformance_audit`): serve the design
+(`cd reference/claude_design && python3 -m http.server 7779`; the cro prototype is
+Babel/React UMD, needs HTTP + the completed `runState`), screenshot the design target,
+diff against the current surface (or the user's `~/Desktop/business/bioconductor_screenshot/
+UI_refinement/*.png`), fix, redeploy, re-render. Design tokens: `reference/claude_design/
+cro/src/tokens.css` + `layout.css`.
+
+Surfaces done this phase (all deployed, tsc + vitest green):
+1. **After-run report** — matched the design's clean findings card: removed the "RUN
+   ORIGINAL" banner + the italic manifest meta-sentence + the "Run again with edits"
+   rerun button; FindingsCard header → "✨ AI Findings · generated from outputs" on a
+   neutral card (was "📖 Findings Summary", blue). (AfterRunReport.tsx, findings-card.tsx)
+2. **Dataset panel wide margin** — was `max-w-6xl mx-auto` (centered narrow column with
+   big side margins); now `w-full` to fill the width like the design. (data-hub.tsx)
+3. **Settings → tabbed panel + accurate API-key panel** — sidebar: Connectors promoted
+   to WORKSPACE, Settings is one click (removed the 2 sub-items). Dialog titled
+   "Settings", now tabbed (API Keys + Appearance). API-key panel: fixed the wrong
+   "Claude Sonnet" default (backend primary is Gemini 3) + quick-pick chips for the
+   backend-tested OpenRouter models. (app-sidebar.tsx, settings-dialog.tsx)
+4. **Connector guided add + directory scan-preview** — see
+   `docs/20261101_CONNECTOR_GUIDED_ADD_AND_DIRECTORY_SCAN.md`. Guided 5-kind picker +
+   a secure directory scan (allowed-roots allowlist, realpath, no symlink-follow;
+   on-prem only, inert on cloud).
+
+vitest caught 4 tests asserting the old (pre-fix) behavior; all updated to the new design
+behavior (not reverted). Deploy discipline followed throughout: commit → push → PR #295 →
+tsc + vitest → sync_to_dev.sh → verify `Sync OK` in the log (the exit-0-but-aborted guard
+trap bit once and was caught by reading the log).

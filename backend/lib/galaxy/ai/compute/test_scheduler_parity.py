@@ -28,11 +28,15 @@ CASES = [
         BACKEND_AWSBATCH,
     ),
     (
-        "personal_wf_overrides_aws_env",
+        # 2026-11-09: personal workflow on a Batch platform now runs on Batch
+        # (was local; the SaaS Galaxy container has no docker). Screened by the
+        # mandatory upload source pre-check before dispatch.
+        "personal_wf_on_batch_platform",
         dict(use_aws_env=True, nextflow_path="/tmp/biomate_user_nf/u1/x.nf"),
-        BACKEND_LOCAL,
+        BACKEND_AWSBATCH,
     ),
     (
+        # No Batch platform flag → local docker (on-prem / local dev).
         "personal_wf_default",
         dict(nextflow_path="/tmp/biomate_user_nf/u1/x.nf"),
         BACKEND_LOCAL,

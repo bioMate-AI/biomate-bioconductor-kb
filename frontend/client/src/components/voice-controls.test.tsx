@@ -23,6 +23,48 @@ beforeEach(() => {
     : { ok: true, json: async () => ({ text: '检查 BRCA1' }) }));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('releases recording on page hide without submitting audio', async () => {
+  const callback = vi.fn(); render(<VoiceInput onTranscript={callback} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Speak' }));
+  await screen.findByRole('button', { name: 'Stop' });
+  const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+  try {
+    fireEvent(document, new Event('visibilitychange'));
+    expect(stopTrack).toHaveBeenCalled();
+    expect(callback).not.toHaveBeenCalled();
+    expect(vi.mocked(fetch).mock.calls.some(c => String(c[0]).includes('/transcribe'))).toBe(false);
+    expect(screen.getByRole('button', { name: 'Speak' })).toBeInTheDocument();
+  } finally { hidden.mockRestore(); }
+});
+
+it('detaches callbacks from stopped audio before another reply plays', async () => {
+  const players: any[] = [];
+  vi.stubGlobal('Audio', class {
+    onended: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    pause = vi.fn(); play = vi.fn().mockResolvedValue(undefined);
+    constructor() { players.push(this); }
+  });
+  const OriginalURL = URL;
+  vi.stubGlobal('URL', class extends OriginalURL {
+    static createObjectURL = vi.fn(() => 'blob:test');
+    static revokeObjectURL = vi.fn();
+  });
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => url.endsWith('/status')
+    ? { ok: true, json: async () => ({ available: true }) }
+    : { ok: true, blob: async () => new Blob(['audio'], { type: 'audio/mpeg' }) }));
+  try {
+    render(<ReadAloud text="Review TP53" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Read aloud' }));
+    await waitFor(() => expect(players[0]?.play).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(players[0].onended).toBeNull();
+    expect(players[0].onerror).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Read aloud' }));
+    await waitFor(() => expect(players[1]?.play).toHaveBeenCalled());
+    expect(players[1].pause).not.toHaveBeenCalled();
+  } finally { cleanup(); vi.stubGlobal('URL', OriginalURL); }
+});
 describe('voice controls', () => {
   it('returns an editable transcript only after recording stops and releases the microphone', async () => {
     const callback = vi.fn(); render(<VoiceInput onTranscript={callback} />);

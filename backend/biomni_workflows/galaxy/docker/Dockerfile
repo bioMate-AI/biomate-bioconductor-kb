@@ -1,8 +1,8 @@
 # Biomni Galaxy Tools Docker Image
 # Complete dependency installation for all 21 domains
 #
-# Build: docker build -t biomate/biomni-tools:latest -f biomni_galaxy/docker/Dockerfile .
-# Run:   docker run -it biomate/biomni-tools:latest biomni-tool --list-domains
+# Build: docker build -t biomate/workflow-tools:latest -f biomni_galaxy/docker/Dockerfile .
+# Run:   docker run -it biomate/workflow-tools:latest biomni-tool --list-domains
 
 FROM python:3.11-slim
 

@@ -2,7 +2,7 @@
 <tool id="biomni_genetics_simulate_demographic_history" name="Biomni: Simulate Demographic History" version="1.0.0">
     <description>Simulate DNA sequences with specified demographic and coalescent histories using msprime.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/simulate_demographic_history_wrapper.py' --output '$output'

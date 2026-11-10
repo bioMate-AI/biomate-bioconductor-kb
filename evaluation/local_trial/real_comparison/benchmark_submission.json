@@ -1,0 +1,16 @@
+{
+  "http_status": 200,
+  "response": {
+    "benchmarkId": "bm_mv2la6qj_0",
+    "children": [
+      {
+        "method": "snf",
+        "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59"
+      },
+      {
+        "method": "mfa",
+        "runId": "e9acdf33-6575-44cb-82e5-725130386d7f"
+      }
+    ]
+  }
+}

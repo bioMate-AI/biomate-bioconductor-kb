@@ -3465,16 +3465,22 @@ def _validate_epitope_netmhc_params(nf_path: Path, params: dict) -> None:
         missing.append("netmhciipan_path")
     if not missing:
         return
+    _needs_classII = "netmhciipan_path" in missing
     raise HTTPException(
         status_code=422,
         detail={
-            "error": "NetMHC software path required",
+            "error": "NetMHC licence required (bring your own)",
             "missing": missing,
+            "tool_id": "netmhc",
             "suggestion": (
-                "Pass --netmhcpan_path (and/or --netmhciipan_path) as an s3:// URI to the "
-                "DTU-licensed tarball. For Plan A science sprint: "
-                "python3 research/anti-virus/science_sprint/track_plan_a_multitool.py "
-                "--netmhcpan-path s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/netMHCpan-4.1b.Linux.tar.gz"
+                "NetMHCpan / NetMHCIIpan are DTU-licensed and cannot be redistributed, so supply your "
+                "own licence: register at DTU Health Tech (free for academic/non-profit), download the "
+                "tarball, upload it to your storage, and enter the s3:// URI under "
+                "Settings → Credentials → NetMHC. "
+                + ("HLA class II (DR/DP/DQ) requires netMHCIIpan — there is no license-free class-II "
+                   "alternative. " if _needs_classII else "")
+                + "For HLA class I you can instead run the license-free MHCflurry workflow "
+                  "(immunology/mhc_binding_prediction) with no credential."
             ),
         },
     )
@@ -3704,11 +3710,11 @@ process {{
   }}
 }}
 """
-        # On-prem container override for ADMET workflows: biomni-admet is a private
+        # On-prem container override for ADMET workflows: admet is a private
         # ECR image (not accessible without AWS credentials). BIOMATE_ADMET_CONTAINER
-        # lets operators substitute a pre-pulled image, e.g. biomni-tools which has
+        # lets operators substitute a pre-pulled image, e.g. workflow-tools which has
         # the biomni package with RDKit-based ADMET fallback when admet_ai is absent.
-        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest
+        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/workflow-tools:latest
         admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
         admet_container_override = ""
         if admet_container:
@@ -4175,6 +4181,20 @@ process {{
         # tuning (maxConnections etc.) is left alone for nfcore.
         # Reproduced 2026-06-07 on bamtofastq 2.2.1 with igenomes_ignore=true.
         is_nfcore = "/nf-core-workflows/" in nf_path
+        # Scoped ECS task role (2026-11-10 hardening): give every Batch task a
+        # least-privilege job role (S3+KMS only) so it assumes THAT via the ECS
+        # task-role endpoint, instead of having no jobRole and falling back to the
+        # EC2 instance role via IMDS. Without a jobRole (the prior state — verified:
+        # created job defs had jobRoleArn=null), tasks reach the instance role's
+        # ECR-push / SSM / broad-S3 perms — a path arbitrary uploaded workflow code
+        # must not have. Overridable per-deployment (other AWS accounts) via env;
+        # default is the SaaS role. Emitted ONLY in this awsbatch config block, so
+        # on-prem/local executors (which never reach here) are unaffected.
+        # See docs/20261110_BATCH_JOBROLE_IMDS_HARDENING_PLAN.md.
+        _batch_job_role = os.environ.get(
+            "NEXTFLOW_BATCH_JOB_ROLE_ARN",
+            "arn:aws:iam::399683337364:role/biomate-nextflow-task-role",
+        )
         lines += [
             f"aws {{",
             f"    region = '{region}'",
@@ -4214,6 +4234,9 @@ process {{
             # volumes needed — adding volumes=['/opt/aws-cli'] would duplicate the mount
             # and cause "containerPath values aren't unique across mountPoints" on AWS Batch.
             "        cliPath = '/opt/aws-cli/bin/aws'",
+            # Scoped task role — tasks assume the least-privilege job role via the
+            # ECS task-role endpoint (169.254.170.2), not the instance role via IMDS.
+            *([f"        jobRole = '{_batch_job_role}'"] if _batch_job_role else []),
             # Spot-reclaim resilience: retry a task up to 3x ONLY when its Batch instance is
             # reclaimed (spot interruption / host termination) — NOT on real task failures, so it
             # never masks a genuine bug. Default in NF 25.x is 0 (no retry), which made a reclaim
@@ -4375,11 +4398,11 @@ def _extract_nf_process_containers(nf_path: Path) -> list[str]:
 
 def _resolve_local_image_alias(image: str) -> Optional[str]:
     """
-    Given a short image name (e.g. 'biomate/biomni-tools:latest'), return the
+    Given a short image name (e.g. 'biomate/workflow-tools:latest'), return the
     locally-available tag that satisfies it.
 
     On on-prem deployments the same image may be present under its full ECR path
-    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:latest).
+    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:latest).
     We match by the image name+tag ignoring the registry prefix.
     """
     if _is_local_docker_image(image):
@@ -4412,8 +4435,8 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
 # excluded — they require AWS credentials unavailable on bare metal / China ECS.
 _ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
     # biomate images: pulled from GHCR
-    "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
-    "biomate/biomni-drug-discovery-nf:latest": "ghcr.io/biomate-ai/biomni-drug-discovery-nf:latest",
+    "biomate/workflow-tools:latest": "ghcr.io/biomate-ai/workflow-tools:latest",
+    "biomate/drug-discovery-nf:latest": "ghcr.io/biomate-ai/drug-discovery-nf:latest",
     # Standard public images: use DaoCloud mirror (accessible from China Aliyun ECS)
     "condaforge/miniforge3:latest": "docker.m.daocloud.io/condaforge/miniforge3:latest",
     "python:3.11-slim": "docker.m.daocloud.io/python:3.11-slim",
@@ -4527,7 +4550,7 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     # Domain-aware preference order
     image_preferences: list[str] = []
     if raw_nextflow_path.startswith("biomni_nf/"):
-        image_preferences.extend(["biomate/biomni-tools:latest", "biomate/biotools:arm64"])
+        image_preferences.extend(["biomate/workflow-tools:latest", "biomate/biotools:arm64"])
     elif raw_nextflow_path.startswith("nfcore/"):
         image_preferences.extend(["biomate/rnaseq:x86", "biomate/biotools:arm64"])
 
@@ -7194,36 +7217,48 @@ def execute_nextflow(
         _tmp_path = _tmp_dir / _safe_name
         _tmp_path.write_text(request.file_content, encoding='utf-8')
         log.info("[Nextflow] Wrote user-uploaded workflow to %s (%d bytes)", _tmp_path, len(request.file_content))
-        # Feature ① — static pre-check of user-uploaded workflow source.
-        # Defense in depth; the sandbox CONTAINER is the real boundary. Only
-        # active when SANDBOX_ENABLED (default off → zero change): rejects with
-        # 422 in strict mode on a blocking hit, otherwise advisory-logs.
+        # Static security pre-check of user-uploaded workflow source — MANDATORY
+        # and FAIL-CLOSED. For SaaS, personal workflows run on shared AWS Batch
+        # (the Galaxy container has no docker), so this source screen is the
+        # primary pre-dispatch control against obvious container-escape / cloud-
+        # metadata-SSRF / credential-exfil patterns before arbitrary user code
+        # reaches Batch. It is defense in depth, not a complete boundary (a
+        # determined attacker can obfuscate past regex) — the Batch job container
+        # + a minimally-scoped job IAM role remain the real boundary — but a
+        # blocking hit must stop the run, and the screen must always run:
+        #   • blocking violation  → 422, never dispatched
+        #   • advisory violation  → logged, allowed
+        #   • screen cannot run   → 500, never dispatched (do not ship unscreened
+        #                           user code to shared compute)
         try:
-            from galaxy.ai.compute.sandbox.config import SandboxConfig as _SbxCfg
             from galaxy.ai.compute.sandbox.validator import (
                 validate_nextflow_source as _validate_nf,
                 has_blocking as _has_block,
                 format_violations as _fmt_v,
             )
-            _sbx_cfg = _SbxCfg.from_env()
-            if _sbx_cfg.enabled and _sbx_cfg.validate_uploads:
-                _viol = _validate_nf(request.file_content)
-                if _viol:
-                    _msg = _fmt_v(_viol)
-                    if _sbx_cfg.strict and _has_block(_viol):
-                        log.warning("[sandbox] rejecting upload %s: %s", _tmp_path, _msg)
-                        raise HTTPException(
-                            status_code=422,
-                            detail={
-                                "error": "Uploaded workflow failed the sandbox security pre-check",
-                                "violations": _msg,
-                            },
-                        )
-                    log.warning("[sandbox] upload %s advisory violations: %s", _tmp_path, _msg)
+            _viol = _validate_nf(request.file_content)
+            if _viol:
+                _msg = _fmt_v(_viol)
+                if _has_block(_viol):
+                    log.warning("[sandbox] rejecting uploaded workflow %s: %s", _tmp_path, _msg)
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "error": "Uploaded workflow failed the security pre-check and was not run.",
+                            "violations": _msg,
+                        },
+                    )
+                log.warning("[sandbox] uploaded workflow %s advisory violations: %s", _tmp_path, _msg)
         except HTTPException:
             raise
-        except Exception as _sbx_exc:  # pragma: no cover - defensive
-            log.debug("[sandbox] upload pre-check skipped: %s", _sbx_exc)
+        except Exception as _sbx_exc:
+            # Fail closed: if the screen itself cannot run, do not silently
+            # dispatch unscreened user code to shared Batch.
+            log.error("[sandbox] source pre-check failed to run on %s: %s", _tmp_path, _sbx_exc)
+            raise HTTPException(
+                status_code=500,
+                detail="Uploaded workflow could not be security-screened and was not run.",
+            )
         # Mutate the request so all downstream code (path resolution, logging) uses the real path
         request = request.model_copy(update={"nextflow_path": str(_tmp_path), "file_content": None})
 
@@ -7511,24 +7546,46 @@ def _execute_nextflow_impl(
         params["outdir"] = _slurm_outdir
         log.info("[Nextflow] Slurm executor — auto-setting outdir=%s", _slurm_outdir)
 
-    # Personal workflows (written to /tmp/biomate_user_nf/ from file_content at
-    # request time) must run locally — they are ad-hoc user scripts that don't
-    # carry BioMate's Batch process labels, and cannot initialise an S3 work dir.
+    # Personal (user-uploaded) workflows written to /tmp/biomate_user_nf/.
+    # Execution environment (2026-11-09):
+    #   • SaaS (NEXTFLOW_USE_AWS and not on-prem): run on AWS Batch, exactly like
+    #     catalog workflows. The SaaS Galaxy container has NO docker (no CLI, no
+    #     socket), so the former force-local path died at the first task with
+    #     "docker: command not found" (exit 127). Isolation for arbitrary user
+    #     code is the Batch job boundary (separate task container + job IAM role)
+    #     PLUS the mandatory source pre-check enforced at upload time
+    #     (validate_nextflow_source, above). The awsbatch routing block above
+    #     already set executor/outdir/s3_bucket, and the config builder already
+    #     skips BioMate-specific process selectors for personal workflows
+    #     (_is_personal_wf) — keep them.
+    #   • On-prem / local-docker (NEXTFLOW_EXECUTOR=local): run on the local docker
+    #     executor as before — those hosts have docker.
+    # In BOTH cases drop UI-seeded params: the viewer panel echoes the script's
+    # own params{} defaults, and passing them back via --params-file trips
+    # Nextflow 25+ strict "Parameter X … is not declared" validation. The script
+    # runs with its own declared defaults. Preserve outdir on the Batch path — its
+    # S3 work/out dir is required; drop it on local.
     # This override must come AFTER the awsbatch routing block so it wins.
     _nf_path_str = str(request.nextflow_path or "")
     if _nf_path_str.startswith("/tmp/biomate_user_nf/"):
-        compute["executor"] = "local"
-        params.pop("outdir", None)
-        # Params from the UI may contain default values from the script's params {}
-        # block (the viewer panel seeds them automatically). Passing them back via
-        # --params-file causes "Parameter X was specified on the command line or
-        # params file but is not declared in the script or config" in Nextflow 25+
-        # when strict-mode validation checks params against the nextflow.config
-        # rather than the script body. Personal workflows use their own script-level
-        # defaults — drop all user-supplied params so the script runs with its own
-        # declared defaults.
+        _personal_on_batch = (
+            compute.get("executor") == "awsbatch" and _use_aws_env and not _onprem_local
+        )
+        _saved_outdir = params.get("outdir")
         params.clear()
-        log.info("[Nextflow] Personal workflow — forcing local executor, cleared S3 outdir, cleared all params")
+        if _personal_on_batch:
+            if _saved_outdir:
+                params["outdir"] = _saved_outdir
+            log.info(
+                "[Nextflow] Personal workflow — running on AWS Batch "
+                "(executor=awsbatch, outdir=%s)", params.get("outdir"),
+            )
+        else:
+            compute["executor"] = "local"
+            log.info(
+                "[Nextflow] Personal workflow — local docker executor "
+                "(on-prem/local), cleared S3 outdir + params"
+            )
 
     # Auto-detect S3 outdir → route to AWS Batch automatically.
     # If the caller passes outdir=s3://..., we treat that as an implicit request
@@ -7668,6 +7725,19 @@ def _execute_nextflow_impl(
                 params.pop(_k, None)
             if _as_default:
                 log.info(f"[Nextflow {Path(str(nf_path)).parent.name}] not passing params equal to the pipeline default: {_as_default}")
+    # BYOL NetMHC: a user who accepts the DTU academic licence supplies the tarball URI(s) in
+    # Settings → Credentials → NetMHC; flow them into the params the epitopeprediction workflow +
+    # validator consume, so class II (NetMHCIIpan) runs on THEIR licensed binary. With no credential
+    # the validator below blocks with a customer-facing message (class I has the MHCflurry alt).
+    try:
+        _netmhc_cred = (request.credentials or {}).get("netmhc") or {}
+        for _ck in ("netmhcpan_path", "netmhciipan_path"):
+            _v = str(_netmhc_cred.get(_ck) or "").strip()
+            if _v and not params.get(_ck):
+                params[_ck] = _v
+    except Exception as _netmhc_e:
+        log.warning("[Nextflow] NetMHC BYOL credential injection skipped: %s", _netmhc_e)
+
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
     _validate_epitope_netmhc_params(nf_path, params)
@@ -8094,6 +8164,19 @@ def _execute_nextflow_impl(
     # Set it whenever we're running on AWS Batch so every .nf file picks the correct ECR image.
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
+
+    # BYOL AMBER: pmemd.cuda is the licensed AMBER engine (not in free AmberTools), so a user who
+    # holds an AMBER licence supplies their own image carrying it. Pass it to the head process as
+    # AMBER_PMEMD_CONTAINER; amber_pmemd_md reads it into params.pmemd_container and md_engine=auto
+    # then uses pmemd. With no image the workflow runs the dynamics in OpenMM (open-source fallback).
+    try:
+        _amber_cred = (request.credentials or {}).get("amber") or {}
+        _pmemd_image = str(_amber_cred.get("container_image") or "").strip()
+        if _pmemd_image:
+            env["AMBER_PMEMD_CONTAINER"] = _pmemd_image
+            log.info("[Nextflow run %s] user AMBER pmemd image supplied → md_engine=pmemd", run_id)
+    except Exception as _amber_e:
+        log.warning("[Nextflow] AMBER pmemd image injection skipped: %s", _amber_e)
 
     # AWS CRT SIGSEGV mitigation. Use a SHARED CRT cache dir, NOT per-run.
     # Per-run was the old mitigation (each NF head extracts its own .so).

@@ -2,7 +2,7 @@
 <tool id="biomni_glycoengineering_list_glycoengineering_resources" name="Biomni: List Glycoengineering Resources" version="1.0.0">
     <description>Curate and summarize external glycoengineering tools and resources.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/list_glycoengineering_resources_wrapper.py' --output '$output'

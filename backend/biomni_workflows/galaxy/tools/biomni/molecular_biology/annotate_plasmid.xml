@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_annotate_plasmid" name="Biomni: Annotate Plasmid" version="1.0.0">
     <description>Annotate a DNA sequence using pLannotate's command-line interface.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/annotate_plasmid_wrapper.py' --output '$output'

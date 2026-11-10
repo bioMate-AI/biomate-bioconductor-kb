@@ -2,7 +2,7 @@
 <tool id="biomni_lab_automation_get_pylabrobot_documentation_material" name="Biomni: Get Pylabrobot Documentation Material" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_pylabrobot_documentation_material_wrapper.py' --output '$output'

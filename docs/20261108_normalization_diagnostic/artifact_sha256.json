@@ -1,0 +1,20 @@
+{
+  "s2_f1_scaler.npz": "c0894924176c9dda0dd64ac5a4c3962dd86f576d59b3414c6e47cecc13e622ea",
+  "s0_f2_scaler.npz": "1f3ea59b6082f36dabb92e6355454f7ed64c5f059d820e56e828bc099d6c3a7c",
+  "s1_f1_scaler.npz": "c0894924176c9dda0dd64ac5a4c3962dd86f576d59b3414c6e47cecc13e622ea",
+  "split_indices.npz": "b30ae88d54272be5ef3cca5f1b84cf9a9176412cbd732e184c29d6af542402b4",
+  "memory.json": "9dc4c21c878936765abea114957826436f47f61b31d8188224c0b9d06a7c0097",
+  "results.json": "95e239ed9d853454954da788c66f2f25401afc9606a21772ea8c494f00f920df",
+  "s0_f0_scaler.npz": "729a6e0a8d2be9f809229f04ece6167ccf24ddc71352bddda10ba80cca177613",
+  "summarize.py": "b26d7354934f7f0fc88f85e035ed16a20e78daf06b809bd04ebb2f86f0a0096e",
+  "comparison.json": "fee648fa82fd5f8f70719d57b6bababa1149aebc3eea22f69ca5b3b8b69a7379",
+  "s1_f0_scaler.npz": "729a6e0a8d2be9f809229f04ece6167ccf24ddc71352bddda10ba80cca177613",
+  "predictions.npz": "867c6149e4a3cfc7cb4d95f32b8e9c5d31da24fc6812f53f364939322848878b",
+  "s2_f0_scaler.npz": "729a6e0a8d2be9f809229f04ece6167ccf24ddc71352bddda10ba80cca177613",
+  "protocol.json": "a4a22ad93c328910542ba3c0c96859881e69f4da88594fe2f779c435e3ef1c9d",
+  "s0_f1_scaler.npz": "c0894924176c9dda0dd64ac5a4c3962dd86f576d59b3414c6e47cecc13e622ea",
+  "container_status.txt": "29464a2f4d719c2ecc87d295d9533efbb05b3b4126f5ec124f81a930b228a4bc",
+  "s1_f2_scaler.npz": "1f3ea59b6082f36dabb92e6355454f7ed64c5f059d820e56e828bc099d6c3a7c",
+  "run_diagnostic.py": "6e7e37216b80f425ece2bf0df58435218af2ac03c7d13daee24f778720044ff0",
+  "s2_f2_scaler.npz": "1f3ea59b6082f36dabb92e6355454f7ed64c5f059d820e56e828bc099d6c3a7c"
+}

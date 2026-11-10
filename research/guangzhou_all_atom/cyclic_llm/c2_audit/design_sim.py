@@ -94,11 +94,16 @@ def main():
         jobs.append((L, 0.0, 1.0, 1.0, cal["0.48_external"][0], [(10, 1), (10, 3)], ns, 291 + L, "ctrl:tau0"))
         jobs.append((L, 0.48, 1.0, 1.0, 0.0, [(10, 1), (10, 3)], ns, 391 + L, "ctrl:no_signal"))
     if PILOT: jobs = jobs[:3] + jobs[-4:]
-    rows = []
+    rows = []; jf = lambda j: f"{OUT}/job_{j[8].replace(':', '_')}_L{j[0]}.json"   # per-job checkpoint (restartable on spot)
+    todo = []
+    for j in jobs:
+        if os.path.exists(jf(j)): rows += json.load(open(jf(j)))
+        else: todo.append(j)
     with ProcessPoolExecutor(max_workers=WORKERS) as ex:
-        futs = {ex.submit(run_group, j): j for j in jobs}
+        futs = {ex.submit(run_group, j): j for j in todo}
         for f in as_completed(futs):
-            rows += f.result(); print("done", futs[f][8], futs[f][0], "(%ds)" % (time.time() - t0), flush=True)
+            r = f.result(); json.dump(r, open(jf(futs[f]) + ".tmp", "w")); os.replace(jf(futs[f]) + ".tmp", jf(futs[f])); rows += r
+            print("done", futs[f][8], futs[f][0], "(%ds)" % (time.time() - t0), flush=True)
     json.dump(dict(calibration={k: dict(signal_sd=v[0], raw_rho=v[1], tau=taus[k]) for k, v in cal.items()}, sigma_m=SIGMA_M, tau_hat=TAU_HAT, within_lab_sd=WD, studies=ns, rows=rows), open(f"{OUT}/D1_sim_results.json", "w"), indent=1)
     print("SIM_DONE %ds rows=%d" % (time.time() - t0, len(rows)), flush=True)
 

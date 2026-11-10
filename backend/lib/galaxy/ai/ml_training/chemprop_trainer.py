@@ -58,6 +58,15 @@ def train(cfg: TrainingConfig, dataset: LoadedDataset, artifact_dir: str) -> Tra
     elif cfg.model_type in ("trl_dpo", "trl_grpo"):
         from .trl_trainer import train_trl
         result = train_trl(cfg, dataset, artifact_dir)
+    elif cfg.model_type == "protein_diffusion":
+        from .diffusion_trainer import train_diffusion
+        result = train_diffusion(cfg, dataset, artifact_dir)
+    elif cfg.model_type == "scrna_diffusion":
+        from .scrna_diffusion_trainer import train_scrna_diffusion
+        result = train_scrna_diffusion(cfg, dataset, artifact_dir)
+    elif cfg.model_type == "tabular_diffusion":
+        from .tabular_diffusion_trainer import train_tabular_diffusion
+        result = train_tabular_diffusion(cfg, dataset, artifact_dir)
     elif cfg.model_type == "sklearn_gbr":
         result = _train_sklearn(cfg, dataset, artifact_dir)
     elif cfg.model_type == "sklearn_tabular":

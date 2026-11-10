@@ -1,0 +1,730 @@
+[
+  {
+    "id": "i-0dace5be00919a762",
+    "name": "allatom-k2",
+    "time": "2026-10-29T19:59:22Z",
+    "type": "g5.4xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-064431274a16c4983",
+    "name": "allatom-ka",
+    "time": "2026-10-29T19:58:35Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0f498c8fb40a9325c",
+    "name": "allatom-k2-cpu",
+    "time": "2026-10-29T19:56:48Z",
+    "type": "c6i.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-098cc97fa8999f24d",
+    "name": "allatom-E-eval-v2",
+    "time": "2026-10-29T19:48:20Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0430822d721c62507",
+    "name": "allatom-u1-tests6",
+    "time": "2026-10-29T19:47:38Z",
+    "type": "c6i.xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-05abec4e69f28184f",
+    "name": "allatom-k2",
+    "time": "2026-10-29T19:43:11Z",
+    "type": "g6.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0ac66552b28c10d37",
+    "name": "allatom-E-tune-z2",
+    "time": "2026-10-29T19:20:45Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d2768097e338a323",
+    "name": "allatom-u1-cpu_sampB",
+    "time": "2026-10-29T19:12:32Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-05a4b47158af8fc39",
+    "name": "allatom-u1-cpu_diag6",
+    "time": "2026-10-29T19:04:28Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-08f6e31fbdf3f578f",
+    "name": "allatom-u1-tests5",
+    "time": "2026-10-29T18:59:16Z",
+    "type": "c6i.xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d05b2d28eac48c9a",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:58:34Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-026edcd42449fb345",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:55:10Z",
+    "type": "c5.2xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0c8c514f7ca5f29e2",
+    "name": "allatom-u1-cpu_diag4",
+    "time": "2026-10-29T18:53:48Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0609fef39c55c57f2",
+    "name": "allatom-k4",
+    "time": "2026-10-29T18:52:24Z",
+    "type": "g6.4xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-0ba07ee32cc8a119a",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:50:26Z",
+    "type": "c6a.2xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-050c262897bde086d",
+    "name": "allatom-k2",
+    "time": "2026-10-29T18:48:21Z",
+    "type": "g6.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0491de3a7f3922d1c",
+    "name": "allatom-u1-tests3",
+    "time": "2026-10-29T18:47:58Z",
+    "type": "c6i.xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0bb30ff6e260d2ea9",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:46:33Z",
+    "type": "c6a.2xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-0975bbeaf8f8fd859",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:41:41Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-02068296a71a339f0",
+    "name": "allatom-u1-cpu_diag3",
+    "time": "2026-10-29T18:39:45Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-0132e43111f2e82e2",
+    "name": "allatom-k4",
+    "time": "2026-10-29T18:36:02Z",
+    "type": "g6.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0c439aeb6d8035c06",
+    "name": "allatom-E-tune-z",
+    "time": "2026-10-29T18:35:34Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-08daf170f11086051",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:32:44Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-04ace84372d60ce52",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:27:44Z",
+    "type": "c6a.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-025378fefed7533bf",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:26:49Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-09f62fde6377bf5fa",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:25:25Z",
+    "type": "c6a.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-03edc45e969f3d28e",
+    "name": "allatom-k4",
+    "time": "2026-10-29T18:21:33Z",
+    "type": "g6.4xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-04be4a2eafd261862",
+    "name": "allatom-k2",
+    "time": "2026-10-29T18:17:38Z",
+    "type": "g6.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-07bd8586348385a3f",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:15:28Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0b5c424c117011289",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:14:03Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-006b76c168692cfba",
+    "name": "allatom-E-tune2",
+    "time": "2026-10-29T18:13:08Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d93ae1f4e36b1c1e",
+    "name": "allatom-k3",
+    "time": "2026-10-29T18:12:40Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-0a50596ad4a02634a",
+    "name": "allatom-u1-cpu_diag2",
+    "time": "2026-10-29T18:11:22Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-092e9ab9c257045db",
+    "name": "allatom-u1-diag1",
+    "time": "2026-10-29T18:09:38Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-0c375e9f21b90a831",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:56:27Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-0bda060a5219eb357",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:56:12Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-05d27bda9e6c3a256",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:54:50Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-03d1b7fc48d52da48",
+    "name": "allatom-k-build7",
+    "time": "2026-10-29T17:53:29Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-095c87bb3965354a9",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:52:22Z",
+    "type": "m6i.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-03a8f1c96f1a7a5e7",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:51:10Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-057fe10e6d5cd08c5",
+    "name": "allatom-k-build6",
+    "time": "2026-10-29T17:51:05Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d61b3296712dd019",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:50:44Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-040bd8d98cd99321c",
+    "name": "allatom-k4",
+    "time": "2026-10-29T17:50:23Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0ae9ef3e1ea8e7c8b",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:49:30Z",
+    "type": "c6i.large",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-0e6405e7bce41fbae",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:49:15Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-05636feb0548028bd",
+    "name": "allatom-k4",
+    "time": "2026-10-29T17:46:26Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-025f52a20911f0782",
+    "name": "allatom-k-tier1",
+    "time": "2026-10-29T17:45:42Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0fd5ac5e4db53b719",
+    "name": "allatom-k2",
+    "time": "2026-10-29T17:43:35Z",
+    "type": "g6.xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0a28301e176bee590",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:42:20Z",
+    "type": "c6a.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-032591f4ee5395799",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:41:34Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-053ad2fb2ea72300f",
+    "name": "allatom-k4",
+    "time": "2026-10-29T17:41:26Z",
+    "type": "c5.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0ce13ce3138436ac1",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:41:19Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-00ffed5ed153a761c",
+    "name": "allatom-u1-cpu_smoke",
+    "time": "2026-10-29T17:40:34Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0b4a7bd29bec771d1",
+    "name": "allatom-k4",
+    "time": "2026-10-29T17:36:36Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-056896ad22e2a7a5e",
+    "name": "allatom-k-build5",
+    "time": "2026-10-29T17:34:39Z",
+    "type": "c5.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-065bb973642047618",
+    "name": "allatom-k4",
+    "time": "2026-10-29T17:31:40Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-04248e75f665d5e0e",
+    "name": "allatom-k-build4",
+    "time": "2026-10-29T17:30:40Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0ca9a410c82e75c1b",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:29:18Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-07bf46048c22e5030",
+    "name": "allatom-k4",
+    "time": "2026-10-29T17:29:00Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0c837f327aeddac1c",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:28:50Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-095a253938e0f7795",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:28:24Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-05e5bfb2167de292e",
+    "name": "allatom-k-build3",
+    "time": "2026-10-29T17:28:10Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-077ed323990681cc8",
+    "name": "allatom-E-bw",
+    "time": "2026-10-29T17:27:58Z",
+    "type": "c5.12xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0576b8bb9539d7c3e",
+    "name": "allatom-k2",
+    "time": "2026-10-29T17:27:20Z",
+    "type": "g6.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0258ac609c1dd79dd",
+    "name": "allatom-k-build2",
+    "time": "2026-10-29T17:26:19Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0561a5a02766cf83f",
+    "name": "allatom-E-tune",
+    "time": "2026-10-29T17:24:56Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-02eb90ddc7abd0bd6",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:23:55Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-02293f2982d11b97d",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:21:11Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0e3b373801f3a228f",
+    "name": "allatom-k2-import",
+    "time": "2026-10-29T17:21:11Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-09902d71c5933f63e",
+    "name": "allatom-u2u3-smoke3",
+    "time": "2026-10-29T17:19:05Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-0890edcbcaee45f35",
+    "name": "allatom-E-quality",
+    "time": "2026-10-29T17:18:41Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-09821b37791c7ca33",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:18:37Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0cd98bc022833cfcf",
+    "name": "allatom-k-fetcharxiv",
+    "time": "2026-10-29T17:17:43Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0c095646abedaeb2f",
+    "name": "allatom-k2",
+    "time": "2026-10-29T17:17:34Z",
+    "type": "g6.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0bd98fb72120c8854",
+    "name": "allatom-k-fetch3",
+    "time": "2026-10-29T17:17:19Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-02e3f73775c7aa116",
+    "name": "allatom-ib-mine-groupA-v2b",
+    "time": "2026-10-29T17:15:36Z",
+    "type": "c6i.large",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-0289c20ea2fa4649c",
+    "name": "allatom-u1-dev2",
+    "time": "2026-10-29T17:15:12Z",
+    "type": "c6i.xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0e15eeb0402e1a3e0",
+    "name": "allatom-k-build1",
+    "time": "2026-10-29T17:14:40Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d82da31f601c37ea",
+    "name": "allatom-k3",
+    "time": "2026-10-29T17:14:34Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-02f458def0e7f02e1",
+    "name": "allatom-ib-mine-groupA-v2",
+    "time": "2026-10-29T17:13:09Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-066fbbcdf44f155ea",
+    "name": "allatom-u2u3-smoke2",
+    "time": "2026-10-29T17:09:47Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2b"
+  },
+  {
+    "id": "i-08e566080a6fc3300",
+    "name": "allatom-ib-build-store",
+    "time": "2026-10-29T17:07:29Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0380a1019e47f63b9",
+    "name": "allatom-E-quality",
+    "time": "2026-10-29T17:07:12Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0c531080acbeeb79f",
+    "name": "allatom-u2u3-stageB",
+    "time": "2026-10-29T17:06:45Z",
+    "type": "c5.2xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0f2a77999328efbea",
+    "name": "allatom-ib-mine-groupA-final2",
+    "time": "2026-10-29T17:05:39Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-05c49c3edebcb6568",
+    "name": "allatom-k-fetch2",
+    "time": "2026-10-29T17:05:05Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-06bfa62e03f793f8d",
+    "name": "allatom-ib-structure-tests2",
+    "time": "2026-10-29T17:03:58Z",
+    "type": "c6i.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0f38ebcbdfe093a44",
+    "name": "allatom-ib-mine-groupA-final",
+    "time": "2026-10-29T17:03:06Z",
+    "type": "c6i.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-093132bdc144bfda4",
+    "name": "allatom-ia",
+    "time": "2026-10-29T17:02:55Z",
+    "type": "c6i.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-076728e84bcbbe63f",
+    "name": "allatom-k-fetch1",
+    "time": "2026-10-29T17:02:51Z",
+    "type": "c6i.large",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0a00181824568968d",
+    "name": "allatom-u2u3-smoke",
+    "time": "2026-10-29T17:02:36Z",
+    "type": "c5.9xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-0a565835d5ac427a2",
+    "name": "allatom-u2u3-stageA",
+    "time": "2026-10-29T17:01:59Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-006335f4f671fa94d",
+    "name": "allatom-ib-structure-tests",
+    "time": "2026-10-29T17:01:54Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-091d242b02424431b",
+    "name": "allatom-u1-dev1",
+    "time": "2026-10-29T17:00:39Z",
+    "type": "c6i.xlarge",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-0088d0bc5fa762d89",
+    "name": "allatom-ib-mine-groupA-debug2",
+    "time": "2026-10-29T17:00:36Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d7f379ef819621fc",
+    "name": "allatom-ib-retrieval-tests",
+    "time": "2026-10-29T17:00:00Z",
+    "type": "c6i.large",
+    "az": "us-west-2a"
+  },
+  {
+    "id": "i-0afb828dc9e1336ea",
+    "name": "allatom-ia",
+    "time": "2026-10-29T16:59:12Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-02fab3d5997dea880",
+    "name": "allatom-u2u3-stageA",
+    "time": "2026-10-29T16:59:10Z",
+    "type": "c6i.2xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-08c323d5dace017d1",
+    "name": "allatom-E-prep",
+    "time": "2026-10-29T16:58:36Z",
+    "type": "c5.4xlarge",
+    "az": "us-west-2d"
+  },
+  {
+    "id": "i-035a552ba30bbf975",
+    "name": "allatom-ib-mine-groupA-debug",
+    "time": "2026-10-29T16:58:30Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0d30d831bcbdf7cde",
+    "name": "allatom-ib-mine-groupA",
+    "time": "2026-10-29T16:56:37Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-0636d496c6c8e882a",
+    "name": "allatom-E-prep",
+    "time": "2026-10-29T16:56:03Z",
+    "type": "c6i.4xlarge",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-09f805ebda6803c08",
+    "name": "allatom-harness-test2",
+    "time": "2026-10-29T16:44:35Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  },
+  {
+    "id": "i-095c209226a9430d6",
+    "name": "allatom-harness-test",
+    "time": "2026-10-29T16:42:28Z",
+    "type": "c6i.large",
+    "az": "us-west-2c"
+  }
+]

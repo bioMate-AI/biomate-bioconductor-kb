@@ -1,0 +1,10 @@
+cells=8000 classes=18 | agent(loose,random): raw=0.490 fm_z=0.536
+
+=== (1) random split, PROPER convergence (saga 2000, tol1e-3) ===
+  raw    macroF1=0.4358  iters=[157, 187, 200] capped=[False, False, False]
+  pca50  macroF1=0.4662  iters=[181, 226, 195] capped=[False, False, False]
+  know   macroF1=0.3907  iters=[307, 295, 300] capped=[False, False, False]
+  fm_z   macroF1=0.4718  iters=[484, 360, 535] capped=[False, False, False]
+
+=== (2) leave-one-TISSUE-out (group-disjoint generalization) ===
+  held-out bone_marrow      raw=0.379 pca50=0.355 know=0.262 fm_z=0.414

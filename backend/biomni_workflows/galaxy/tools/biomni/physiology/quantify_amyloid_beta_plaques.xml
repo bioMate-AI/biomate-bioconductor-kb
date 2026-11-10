@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_quantify_amyloid_beta_plaques" name="Biomni: Quantify Amyloid Beta Plaques" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/quantify_amyloid_beta_plaques_wrapper.py' --output '$output'

@@ -1,0 +1,9 @@
+RULE-LAYER + SCORER on HELD-OUT items (deterministic, no LLM):
+  alias     : 3/3 expected params filled correctly
+  boundary  : 0/2 expected params filled correctly
+  guardrail : 1/2 expected params filled correctly
+  rule      : 11/12 expected params filled correctly
+  must_not_fill violations across all held-out: 0
+
+  GENERALIZATION (covered classes, excl. honest-boundary): 15/17 = 88%
+  honest-boundary (uncovered organisms) outcomes: [('ph_19', 'Sscrofa11.1', '(abstained)'), ('ph_20', 'GRCg7b', '(abstained)')]  (abstain = rule correctly did NOT hallucinate)

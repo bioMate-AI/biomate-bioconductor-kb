@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_check_model_files_exist" name="Biomni: Check Model Files Exist" version="1.0.0">
     <description>Check if actual model weight files exist for the specified folds</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/check_model_files_exist_wrapper.py' --output '$output'

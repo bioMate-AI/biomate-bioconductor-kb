@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_analyze_chromatin_interactions" name="Biomni: Analyze Chromatin Interactions" version="1.0.0">
     <description>Analyze chromatin interactions from Hi-C data to identify enhancer-promoter interactions and TADs.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_chromatin_interactions_wrapper.py' --output '$output'

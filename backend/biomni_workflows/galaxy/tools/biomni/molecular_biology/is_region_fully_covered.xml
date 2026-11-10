@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_is_region_fully_covered" name="Biomni: Is Region Fully Covered" version="1.0.0">
     <description>Check if the target region is fully covered.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/is_region_fully_covered_wrapper.py' --output '$output'

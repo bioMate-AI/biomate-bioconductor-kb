@@ -1,0 +1,155 @@
+REMARK original generated coordinate pdb file
+ATOM      1  N   SER X   1       5.341 -20.876  33.601  1.00  0.00      PEP  N
+ATOM      2  HN  SER X   1       4.467 -20.597  33.204  0.00  0.00      PEP   
+ATOM      3  CA  SER X   1       5.661 -20.386  34.934  1.00  0.00      PEP  C
+ATOM      4  HA  SER X   1       4.755 -19.931  35.311  0.00  0.00      PEP   
+ATOM      5  CB  SER X   1       6.097 -21.513  35.865  1.00  0.00      PEP  C
+ATOM      6  HB1 SER X   1       7.005 -21.990  35.430  0.00  0.00      PEP   
+ATOM      7  HB2 SER X   1       6.387 -21.104  36.859  0.00  0.00      PEP   
+ATOM      8  OG  SER X   1       5.073 -22.482  35.979  1.00  0.00      PEP  O
+ATOM      9  HG1 SER X   1       5.467 -23.265  36.383  0.00  0.00      PEP   
+ATOM     10  C   SER X   1       6.727 -19.296  34.879  1.00  0.00      PEP  C
+ATOM     11  O   SER X   1       7.828 -19.521  34.372  1.00  0.00      PEP  O
+ATOM     12  N   GLY X   2       6.387 -18.141  35.344  1.00  0.00      PEP  N
+ATOM     13  HN  GLY X   2       5.468 -17.955  35.688  0.00  0.00      PEP   
+ATOM     14  CA  GLY X   2       7.312 -17.031  35.401  1.00  0.00      PEP  C
+ATOM     15  HA1 GLY X   2       8.299 -17.471  35.350  0.00  0.00      PEP   
+ATOM     16  HA2 GLY X   2       7.102 -16.517  36.329  0.00  0.00      PEP   
+ATOM     17  C   GLY X   2       7.188 -16.029  34.276  1.00  0.00      PEP  C
+ATOM     18  O   GLY X   2       7.858 -14.994  34.314  1.00  0.00      PEP  O
+ATOM     19  N   ARG X   3       6.387 -16.320  33.282  1.00  0.00      PEP  N
+ATOM     20  HN  ARG X   3       5.879 -17.178  33.304  0.00  0.00      PEP   
+ATOM     21  CA  ARG X   3       6.177 -15.467  32.122  1.00  0.00      PEP  C
+ATOM     22  HA  ARG X   3       5.458 -15.951  31.472  0.00  0.00      PEP   
+ATOM     23  CB  ARG X   3       5.623 -14.097  32.523  1.00  0.00      PEP  C
+ATOM     24  HB1 ARG X   3       6.274 -13.723  33.349  0.00  0.00      PEP   
+ATOM     25  HB2 ARG X   3       5.755 -13.381  31.682  0.00  0.00      PEP   
+ATOM     26  CG  ARG X   3       4.190 -14.137  33.004  1.00  0.00      PEP  C
+ATOM     27  HG1 ARG X   3       3.585 -14.710  32.267  0.00  0.00      PEP   
+ATOM     28  HG2 ARG X   3       4.142 -14.723  33.951  0.00  0.00      PEP   
+ATOM     29  CD  ARG X   3       3.667 -12.745  33.254  1.00  0.00      PEP  C
+ATOM     30  HD1 ARG X   3       4.220 -12.289  34.108  0.00  0.00      PEP   
+ATOM     31  HD2 ARG X   3       3.794 -12.093  32.358  0.00  0.00      PEP   
+ATOM     32  NE  ARG X   3       2.247 -12.741  33.563  1.00  0.00      PEP  N
+ATOM     33  HE  ARG X   3       1.835 -13.659  33.543  0.00  0.00      PEP   
+ATOM     34  CZ  ARG X   3       1.547 -11.646  33.846  1.00  0.00      PEP  C
+ATOM     35  NH1 ARG X   3       2.141 -10.461  33.860  1.00  0.00      PEP  N
+ATOM     36 HH11 ARG X   3       1.632  -9.645  34.095  0.00  0.00      PEP   
+ATOM     37 HH12 ARG X   3       3.138 -10.463  33.758  0.00  0.00      PEP   
+ATOM     38  NH2 ARG X   3       0.251 -11.745  34.107  1.00  0.00      PEP  N
+ATOM     39 HH21 ARG X   3      -0.291 -10.926  34.232  0.00  0.00      PEP   
+ATOM     40 HH22 ARG X   3      -0.170 -12.631  33.960  0.00  0.00      PEP   
+ATOM     41  C   ARG X   3       7.458 -15.299  31.308  1.00  0.00      PEP  C
+ATOM     42  O   ARG X   3       8.567 -15.422  31.815  1.00  0.00      PEP  O
+ATOM     43  N   GLY X   4       7.268 -15.002  30.038  1.00  0.00      PEP  N
+ATOM     44  HN  GLY X   4       6.368 -14.883  29.620  0.00  0.00      PEP   
+ATOM     45  CA  GLY X   4       8.399 -14.826  29.150  1.00  0.00      PEP  C
+ATOM     46  HA1 GLY X   4       9.062 -14.108  29.613  0.00  0.00      PEP   
+ATOM     47  HA2 GLY X   4       8.013 -14.518  28.187  0.00  0.00      PEP   
+ATOM     48  C   GLY X   4       9.168 -16.116  28.954  1.00  0.00      PEP  C
+ATOM     49  O   GLY X   4       8.670 -17.218  29.197  1.00  0.00      PEP  O
+ATOM     50  N   ASP X   5      10.394 -15.970  28.495  1.00  0.00      PEP  N
+ATOM     51  HN  ASP X   5      10.818 -15.097  28.268  0.00  0.00      PEP   
+ATOM     52  CA  ASP X   5      11.274 -17.103  28.268  1.00  0.00      PEP  C
+ATOM     53  HA  ASP X   5      10.673 -17.992  28.426  0.00  0.00      PEP   
+ATOM     54  CB  ASP X   5      11.806 -17.069  26.837  1.00  0.00      PEP  C
+ATOM     55  HB1 ASP X   5      12.157 -16.044  26.602  0.00  0.00      PEP   
+ATOM     56  HB2 ASP X   5      12.660 -17.765  26.721  0.00  0.00      PEP   
+ATOM     57  CG  ASP X   5      10.738 -17.433  25.824  1.00  0.00      PEP  C
+ATOM     58  OD1 ASP X   5       9.928 -18.336  26.107  1.00  0.00      PEP  O
+ATOM     59  OD2 ASP X   5      10.724 -16.820  24.738  1.00  0.00      PEP  O
+ATOM     60  C   ASP X   5      12.423 -17.166  29.265  1.00  0.00      PEP  C
+ATOM     61  O   ASP X   5      13.302 -18.021  29.129  1.00  0.00      PEP  O
+ATOM     62  N   LEU X   6      12.427 -16.274  30.246  1.00  0.00      PEP  N
+ATOM     63  HN  LEU X   6      11.793 -15.508  30.329  0.00  0.00      PEP   
+ATOM     64  CA  LEU X   6      13.403 -16.359  31.317  1.00  0.00      PEP  C
+ATOM     65  HA  LEU X   6      14.326 -16.693  30.862  0.00  0.00      PEP   
+ATOM     66  CB  LEU X   6      13.595 -14.998  31.974  1.00  0.00      PEP  C
+ATOM     67  HB1 LEU X   6      12.584 -14.623  32.256  0.00  0.00      PEP   
+ATOM     68  HB2 LEU X   6      14.150 -15.132  32.929  0.00  0.00      PEP   
+ATOM     69  CG  LEU X   6      14.277 -13.922  31.132  1.00  0.00      PEP  C
+ATOM     70  HG  LEU X   6      13.677 -13.766  30.203  0.00  0.00      PEP   
+ATOM     71  CD1 LEU X   6      14.370 -12.624  31.907  1.00  0.00      PEP  C
+ATOM     72 HD11 LEU X   6      14.909 -11.854  31.314  0.00  0.00      PEP   
+ATOM     73 HD12 LEU X   6      13.356 -12.236  32.144  0.00  0.00      PEP   
+ATOM     74 HD13 LEU X   6      14.920 -12.775  32.860  0.00  0.00      PEP   
+ATOM     75  CD2 LEU X   6      15.665 -14.392  30.723  1.00  0.00      PEP  C
+ATOM     76 HD21 LEU X   6      16.163 -13.623  30.094  0.00  0.00      PEP   
+ATOM     77 HD22 LEU X   6      16.312 -14.576  31.605  0.00  0.00      PEP   
+ATOM     78 HD23 LEU X   6      15.600 -15.333  30.135  0.00  0.00      PEP   
+ATOM     79  C   LEU X   6      13.009 -17.388  32.366  1.00  0.00      PEP  C
+ATOM     80  O   LEU X   6      13.803 -17.698  33.259  1.00  0.00      PEP  O
+ATOM     81  N   ALA X   7      11.802 -17.899  32.282  1.00  0.00      PEP  N
+ATOM     82  HN  ALA X   7      11.137 -17.617  31.591  0.00  0.00      PEP   
+ATOM     83  CA  ALA X   7      11.345 -18.926  33.205  1.00  0.00      PEP  C
+ATOM     84  HA  ALA X   7      11.802 -18.804  34.180  0.00  0.00      PEP   
+ATOM     85  CB  ALA X   7       9.834 -18.854  33.371  1.00  0.00      PEP  C
+ATOM     86  HB1 ALA X   7       9.551 -17.862  33.783  0.00  0.00      PEP   
+ATOM     87  HB2 ALA X   7       9.319 -18.978  32.394  0.00  0.00      PEP   
+ATOM     88  HB3 ALA X   7       9.461 -19.634  34.069  0.00  0.00      PEP   
+ATOM     89  C   ALA X   7      11.760 -20.302  32.705  1.00  0.00      PEP  C
+ATOM     90  O   ALA X   7      12.250 -20.467  31.595  1.00  0.00      PEP  O
+ATOM     91  N   PHE X   8      11.544 -21.298  33.558  1.00  0.00      PEP  N
+ATOM     92  HN  PHE X   8      11.156 -21.194  34.472  0.00  0.00      PEP   
+ATOM     93  CA  PHE X   8      11.875 -22.667  33.196  1.00  0.00      PEP  C
+ATOM     94  HA  PHE X   8      12.881 -22.647  32.796  0.00  0.00      PEP   
+ATOM     95  CB  PHE X   8      11.783 -23.573  34.416  1.00  0.00      PEP  C
+ATOM     96  HB1 PHE X   8      10.844 -23.347  34.967  0.00  0.00      PEP   
+ATOM     97  HB2 PHE X   8      11.738 -24.643  34.118  0.00  0.00      PEP   
+ATOM     98  CG  PHE X   8      12.912 -23.365  35.392  1.00  0.00      PEP  C
+ATOM     99  CD1 PHE X   8      14.138 -23.974  35.190  1.00  0.00      PEP  C
+ATOM    100  HD1 PHE X   8      14.284 -24.609  34.327  0.00  0.00      PEP   
+ATOM    101  CE1 PHE X   8      15.181 -23.787  36.082  1.00  0.00      PEP  C
+ATOM    102  HE1 PHE X   8      16.133 -24.270  35.910  0.00  0.00      PEP   
+ATOM    103  CZ  PHE X   8      15.001 -22.975  37.190  1.00  0.00      PEP  C
+ATOM    104  HZ  PHE X   8      15.812 -22.822  37.888  0.00  0.00      PEP   
+ATOM    105  CD2 PHE X   8      12.747 -22.549  36.495  1.00  0.00      PEP  C
+ATOM    106  HD2 PHE X   8      11.794 -22.071  36.676  0.00  0.00      PEP   
+ATOM    107  CE2 PHE X   8      13.785 -22.352  37.397  1.00  0.00      PEP  C
+ATOM    108  HE2 PHE X   8      13.637 -21.714  38.257  0.00  0.00      PEP   
+ATOM    109  C   PHE X   8      10.961 -23.154  32.081  1.00  0.00      PEP  C
+ATOM    110  O   PHE X   8       9.898 -22.573  31.837  1.00  0.00      PEP  O
+ATOM    111  N   PRO X   9      11.335 -24.201  31.408  1.00  0.00      PEP  N
+ATOM    112  CD  PRO X   9      12.510 -25.062  31.700  1.00  0.00      PEP  C
+ATOM    113  HD1 PRO X   9      12.322 -25.758  32.548  0.00  0.00      PEP   
+ATOM    114  HD2 PRO X   9      13.426 -24.466  31.918  0.00  0.00      PEP   
+ATOM    115  CA  PRO X   9      10.684 -24.608  30.161  1.00  0.00      PEP  C
+ATOM    116  HA  PRO X   9      10.907 -23.884  29.386  0.00  0.00      PEP   
+ATOM    117  CB  PRO X   9      11.347 -25.949  29.839  1.00  0.00      PEP  C
+ATOM    118  HB1 PRO X   9      11.443 -26.118  28.743  0.00  0.00      PEP   
+ATOM    119  HB2 PRO X   9      10.814 -26.805  30.310  0.00  0.00      PEP   
+ATOM    120  CG  PRO X   9      12.694 -25.839  30.428  1.00  0.00      PEP  C
+ATOM    121  HG1 PRO X   9      13.379 -25.342  29.713  0.00  0.00      PEP   
+ATOM    122  HG2 PRO X   9      13.120 -26.840  30.668  0.00  0.00      PEP   
+ATOM    123  C   PRO X   9       9.177 -24.761  30.279  1.00  0.00      PEP  C
+ATOM    124  O   PRO X   9       8.654 -25.228  31.288  1.00  0.00      PEP  O
+ATOM    125  N   LYS X  10       8.494 -24.363  29.169  1.00  0.00      PEP  N
+ATOM    126  HN  LYS X  10       8.971 -23.856  28.453  0.00  0.00      PEP   
+ATOM    127  CA  LYS X  10       7.087 -24.612  28.914  1.00  0.00      PEP  C
+ATOM    128  HA  LYS X  10       6.873 -24.138  27.964  0.00  0.00      PEP   
+ATOM    129  CB  LYS X  10       6.820 -26.104  28.782  1.00  0.00      PEP  C
+ATOM    130  HB1 LYS X  10       7.178 -26.586  29.721  0.00  0.00      PEP   
+ATOM    131  HB2 LYS X  10       5.720 -26.273  28.744  0.00  0.00      PEP   
+ATOM    132  CG  LYS X  10       7.524 -26.730  27.581  1.00  0.00      PEP  C
+ATOM    133  HG1 LYS X  10       8.612 -26.495  27.633  0.00  0.00      PEP   
+ATOM    134  HG2 LYS X  10       7.420 -27.838  27.637  0.00  0.00      PEP   
+ATOM    135  CD  LYS X  10       6.951 -26.198  26.285  1.00  0.00      PEP  C
+ATOM    136  HD1 LYS X  10       5.843 -26.307  26.319  0.00  0.00      PEP   
+ATOM    137  HD2 LYS X  10       7.177 -25.108  26.227  0.00  0.00      PEP   
+ATOM    138  CE  LYS X  10       7.540 -26.936  25.099  1.00  0.00      PEP  C
+ATOM    139  HE1 LYS X  10       7.427 -28.035  25.229  0.00  0.00      PEP   
+ATOM    140  HE2 LYS X  10       7.026 -26.638  24.159  0.00  0.00      PEP   
+ATOM    141  NZ  LYS X  10       8.983 -26.637  24.949  1.00  0.00      PEP  N
+ATOM    142  HZ1 LYS X  10       9.370 -27.152  24.132  0.00  0.00      PEP   
+ATOM    143  HZ2 LYS X  10       9.113 -25.615  24.806  0.00  0.00      PEP   
+ATOM    144  HZ3 LYS X  10       9.488 -26.928  25.811  0.00  0.00      PEP   
+ATOM    145  C   LYS X  10       6.145 -24.004  29.948  1.00  0.00      PEP  C
+ATOM    146  O   LYS X  10       5.043 -24.513  30.155  1.00  0.00      PEP  O
+ATOM    147  N   GLY X  11       6.520 -22.807  30.669  1.00  0.00      PEP  N
+ATOM    148  HN  GLY X  11       7.446 -22.435  30.624  0.00  0.00      PEP   
+ATOM    149  CA  GLY X  11       5.589 -22.071  31.499  1.00  0.00      PEP  C
+ATOM    150  HA1 GLY X  11       4.742 -22.724  31.658  0.00  0.00      PEP   
+ATOM    151  HA2 GLY X  11       5.354 -21.160  30.965  0.00  0.00      PEP   
+ATOM    152  C   GLY X  11       6.145 -21.688  32.852  1.00  0.00      PEP  C
+ATOM    153  O   GLY X  11       7.252 -22.080  33.225  1.00  0.00      PEP  O
+END

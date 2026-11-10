@@ -198,6 +198,244 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
         return p
 
 
+# ---------------------------------------------------------------------------
+# Attached-data → input_kinds mapping
+# ---------------------------------------------------------------------------
+# Maps the SHAPE of the data the user actually attached to the closed input-kind
+# vocabulary used by workflow routing (galaxy.ai.chain_composer.input_kinds_classifier.INPUT_KINDS,
+# mirrored in UnifiedWorkflowSearch._RAW_KINDS/_PROCESSED_KINDS). Grounding the routing check in the
+# real data shape — not the intent classifier's guess from prose — is the principled fix for the
+# processed-vs-raw mismatch (a processed abundance TABLE must not route to a raw LC-MS pipeline).
+#
+# Only valid INPUT_KINDS keys are emitted; UnifiedWorkflowSearch._valid_kinds re-validates anyway.
+# An extension that unambiguously identifies the data wins outright. A table is classified from
+# filename cues (and, when a local file is actually readable, its column shape); a cue-less /
+# unreadable table yields NO kind rather than a guess — routing then falls back to the prose path.
+
+# Unambiguous file-extension → input_kind (raw instrument output + a few reference/object types).
+_EXT_TO_KIND: Dict[str, str] = {
+    ".fastq": "fastq", ".fq": "fastq",
+    ".bam": "bam", ".cram": "bam", ".sam": "bam",
+    ".vcf": "vcf", ".bcf": "vcf",
+    ".raw": "raw_spectra", ".mzml": "raw_spectra", ".mzxml": "raw_spectra",
+    ".wiff": "raw_spectra", ".mgf": "raw_spectra", ".d": "raw_spectra",
+    ".h5ad": "h5ad", ".loom": "h5ad",
+    ".idat": "idat",
+    ".bcl": "bcl",
+    ".fast5": "nanopore_signal", ".pod5": "nanopore_signal",
+    ".mrc": "raw_images", ".mrcs": "raw_images", ".tif": "raw_images", ".tiff": "raw_images",
+    ".eer": "raw_images", ".dm4": "raw_images", ".czi": "raw_images", ".nd2": "raw_images",
+    ".pdb": "structure", ".cif": "structure", ".mmcif": "structure", ".ent": "structure",
+    ".sdf": "molecules", ".smi": "molecules", ".smiles": "molecules", ".mol2": "molecules",
+    ".fasta": "fasta", ".fa": "fasta", ".faa": "fasta", ".fna": "fasta",
+    ".gtf": "annotation", ".gff": "annotation", ".gff3": "annotation",
+    ".narrowpeak": "peaks", ".broadpeak": "peaks",
+    ".mtx": "cellranger_output",
+}
+
+_TABLE_EXTS = (".csv", ".tsv", ".txt", ".tab")
+
+# Filename/column cues → processed-table kind(s). A processed abundance/quant/DE matrix is the
+# canonical ``counts_matrix`` kind (omics-agnostic numeric matrix that generic integration
+# workflows consume); modality-specific cues add the precise proteomics/metabolomics/methylation
+# kind on top. Ordered most-specific first. A design/sample sheet is NOT a processed matrix.
+_TABLE_CUE_RULES: List[Tuple[Tuple[str, ...], Tuple[str, ...]]] = [
+    # (substring cues, kinds to emit) — a design matrix is intentionally mapped to NOTHING below.
+    (("proteingroups", "pg_matrix", "pg.matrix", "protein group", "protein-group",
+      "protein_group", "protein intensit", "protein_intensit", "protein abundance",
+      "protein-abundance", "protein_abundance", "protein level", "protein-level",
+      "protein_level", "lfq"), ("protein_table", "counts_matrix")),
+    (("peptides.txt", "evidence.txt", "psm", "precursor report", "diann", "dia-nn",
+      "peptide intensit", "peptide table", "peptide-level", "peptide level"),
+     ("peptide_table", "counts_matrix")),
+    (("metabolite", "feature table", "feature_table", "lc-ms feature", "peak table",
+      "peak_table", "peak intensit"), ("metabolite_table", "counts_matrix")),
+    (("beta value", "beta-value", "beta_value", "m-value", "methylation matrix",
+      "methylation_matrix", "ewas"), ("beta_values",)),
+    (("featurecount", "feature_count", "htseq", "gene count", "gene_count",
+      "count matrix", "count_matrix", "counts matrix", "counts_matrix", "countmatrix",
+      "expression matrix", "expression_matrix", "salmon", "rsem", "tpm", "fpkm",
+      "abundance", "deseq", "edger", "differential", "de_result", "de result",
+      "de_table", "de table", "log2fc", "logfc", "quant.sf", "quantification"),
+     ("counts_matrix",)),
+]
+
+# Cues that mark a table as sample/design metadata, NOT a processed data matrix. These must never
+# demote a raw pipeline (a sample sheet legitimately accompanies raw FASTQ / spectra).
+_DESIGN_CUES: Tuple[str, ...] = (
+    "samplesheet", "sample_sheet", "sample sheet", "coldata", "col_data",
+    "metadata", "phenotype", "design matrix", "design_matrix", "manifest",
+)
+
+# ---------------------------------------------------------------------------
+# PRIMARY vs AUXILIARY input kinds (committee review 2026-11-09, finding 3)
+# ---------------------------------------------------------------------------
+# A workflow's PRIMARY input is the data it actually analyses: raw instrument output (FASTQ,
+# spectra, images, …) or a processed matrix/object/result (counts table, protein table, VCF, …).
+# These are the kinds that drive the raw-vs-processed routing decision (step 8a), so an attached
+# PRIMARY file is authoritative and may OVERRIDE a prose-guessed shape.
+#
+# AUXILIARY/reference inputs accompany a primary input but are not themselves the thing being
+# analysed: a reference genome (.fa→fasta), a gene model (.gtf→annotation), a ligand library
+# (.sdf→molecules), a receptor structure (.pdb→structure). A user whose real reads are remote or
+# prose-described, who also attaches a reference genome, still "has" {fastq} — so an auxiliary-only
+# attachment must NOT, on its own, discard the correct prose classification.
+AUXILIARY_INPUT_KINDS: frozenset = frozenset({"fasta", "annotation", "molecules", "structure"})
+PRIMARY_INPUT_KINDS: frozenset = frozenset({
+    # raw instrument output
+    "fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images",
+    # processed matrices / objects
+    "counts_matrix", "h5ad", "cellranger_output", "protein_table", "peptide_table",
+    "metabolite_table", "beta_values",
+    # per-sample result data that is itself a primary analysis input
+    "vcf", "peaks",
+})
+
+
+def has_primary_input_kind(kinds: Optional[Sequence[str]]) -> bool:
+    """True when ``kinds`` contains at least one PRIMARY input kind (raw file or processed
+    matrix/object/result). A set of only AUXILIARY/reference kinds (fasta/annotation/molecules/
+    structure) must not, on its own, override a prose-described primary shape — see finding 3."""
+    return any(str(k).strip().lower() in PRIMARY_INPUT_KINDS for k in (kinds or []))
+
+
+def _dataset_name_candidates(dataset: Any) -> List[str]:
+    """All filename/URI-bearing strings for a session dataset (dict) or a raw path string."""
+    if isinstance(dataset, str):
+        return [dataset] if dataset.strip() else []
+    if not isinstance(dataset, dict):
+        return []
+    out: List[str] = []
+    for key in ("file_path", "path", "s3_uri", "uri", "source_url", "name", "filename"):
+        v = dataset.get(key)
+        if isinstance(v, str) and v.strip():
+            out.append(v.strip())
+    return out
+
+
+def _ext_of(name: str) -> str:
+    """Lowercased extension with any trailing .gz stripped (e.g. 'x.fastq.gz' → '.fastq')."""
+    base = _strip_gz(name.lower())
+    _, ext = os.path.splitext(base)
+    return ext
+
+
+def _local_path(dataset: Any) -> Optional[str]:
+    """A readable LOCAL filesystem path for the dataset, if one exists (never an s3:// URI)."""
+    candidates = [dataset] if isinstance(dataset, str) else (
+        [dataset.get(k) for k in ("file_path", "path", "uri", "source_url")]
+        if isinstance(dataset, dict) else []
+    )
+    for c in candidates:
+        if isinstance(c, str) and c and "://" not in c and os.path.exists(c):
+            return c
+    return None
+
+
+def _looks_like_numeric_matrix(path: str) -> bool:
+    """True when a local table reads as a wide numeric matrix (≥3 cols, ≥2 rows, majority of the
+    sampled value cells numeric) — the shape of a counts/abundance/expression matrix."""
+    try:
+        prof = profile_to_dataclass(path)
+    except Exception:  # noqa: BLE001 — perception must never raise into routing.
+        return False
+    if prof.quality == "blocked" or prof.cols < 3 or prof.rows < 2 or not prof.sample_rows:
+        return False
+    numeric = total = 0
+    for row in prof.sample_rows:
+        # Skip the first (identifier) column; count the rest.
+        for cell in row[1:]:
+            total += 1
+            try:
+                float(str(cell).replace(",", ""))
+                numeric += 1
+            except ValueError:
+                pass
+    return total > 0 and (numeric / total) >= 0.6
+
+
+def _kinds_for_table(names: Sequence[str], dataset: Any) -> List[str]:
+    """Classify a tabular dataset into processed input kinds from filename cues, falling back to a
+    local column-shape check. Returns [] for a design/sample sheet or an uncertain cue-less table."""
+    hay = " ".join(names).lower()
+    if any(cue in hay for cue in _DESIGN_CUES):
+        return []  # a sample/design sheet is not a processed data matrix — never demote raw pipelines
+    for cues, kinds in _TABLE_CUE_RULES:
+        if any(cue in hay for cue in cues):
+            return list(kinds)
+    # No filename cue: only commit to a processed kind when a local file actually reads as a matrix.
+    local = _local_path(dataset)
+    if local and _looks_like_numeric_matrix(local):
+        return ["counts_matrix"]
+    return []
+
+
+def infer_input_kinds(datasets: Optional[Sequence[Any]]) -> List[str]:
+    """Derive the closed-vocabulary input kinds the user HAS from the datasets actually attached.
+
+    ``datasets`` is the session-dataset list (dicts with name/path/s3_uri/… fields) or a list of
+    path strings. Returns a sorted, de-duplicated list of INPUT_KINDS keys, or [] when nothing can
+    be grounded (routing then falls back to the prose/intent path). This NEVER raises.
+
+    Symmetry is automatic: raw files (.fastq/.mzML/…) map to raw kinds, so the raw pipeline stays
+    compatible; processed tables map to processed kinds, so raw pipelines become incompatible (step
+    8a) and downstream/integration methods are preferred — for every modality, with no per-case list.
+    """
+    kinds: set = set()
+    for ds in (datasets or []):
+        try:
+            names = _dataset_name_candidates(ds)
+            if not names:
+                continue
+            # First name with a recognised extension decides; else try the table path.
+            ext = ""
+            for nm in names:
+                e = _ext_of(nm)
+                if e in _EXT_TO_KIND or e in _TABLE_EXTS:
+                    ext = e
+                    break
+            if ext in _EXT_TO_KIND:
+                kinds.add(_EXT_TO_KIND[ext])
+            elif ext in _TABLE_EXTS or _local_path(ds):
+                kinds.update(_kinds_for_table(names, ds))
+        except Exception:  # noqa: BLE001 — one bad dataset must not drop the rest.
+            continue
+    return sorted(kinds)
+
+
+def resolve_effective_input_kinds(
+    prose_kinds: Optional[Sequence[str]],
+    datasets: Optional[Sequence[Any]],
+) -> Optional[List[str]]:
+    """Combine the prose/intent-classifier input kinds with the kinds inferred from the user's
+    ACTUALLY-attached datasets, so workflow routing is grounded in the real data shape (finding 3).
+
+    Policy:
+      * Attached PRIMARY data (a raw file or a processed matrix/object/result) is authoritative and
+        OVERRIDES the prose classification — step 8a then owns the raw-vs-processed decision
+        (McGill: a processed abundance TABLE demotes raw nf-core/diaproteomics).
+      * An attachment that infers ONLY AUXILIARY/reference kinds (reference genome .fa→fasta,
+        gene model .gtf→annotation, ligand library .sdf→molecules, receptor .pdb→structure) is
+        MERGED with the prose kinds, NEVER replacing them — a user with prose-described FASTQ who
+        also attaches a reference .fa still "has" {fastq}, so the raw pipeline keeps its boost.
+      * Nothing profilable (or a design/sample sheet → no kind) → the prose value is returned
+        unchanged (None / [] / list preserved exactly, so the ``[]`` "states no input data" and the
+        "unknown shape" semantics in step 8 are untouched).
+
+    NEVER raises — perception must not block generation.
+    """
+    try:
+        data_kinds = infer_input_kinds(datasets)
+    except Exception:  # noqa: BLE001 — never block generation on perception
+        return prose_kinds
+    if not data_kinds:
+        return prose_kinds
+    if has_primary_input_kind(data_kinds):
+        return data_kinds  # attached primary data is authoritative — override the prose guess
+    # Auxiliary-only attachment: augment, do not discard, the prose primary shape.
+    return sorted(set(prose_kinds or []) | set(data_kinds))
+
+
 def _profile_structured(path: str, kind: str) -> DataProfile:
     """Structural validation, not a claim about scientific dataset quality."""
     p = DataProfile(quality="watch")
@@ -447,8 +685,13 @@ def _profile_table(path: str) -> DataProfile:
         p.notes.append("No columns parsed from table.")
         return p
     if n_rows == 0:
-        p.quality = "blocked"
-        p.notes.append("File parsed to 0 rows — header present but no data records.")
+        # Header present but no data rows: this is a readable (if empty) table,
+        # NOT an unprofilable file. Surface the columns so the Preview/Columns
+        # views and the stat grid show the real header (cols = n_cols, rows = 0)
+        # instead of "analyzer cannot read this dataset".
+        p.columns = [str(c) for c in header[:MAX_PREVIEW_COLS]]
+        p.sample_rows = []
+        p.notes.append("Header present; no data rows yet.")
         return p
 
     # Small tabular sample for the Preview tab (columns + first rows), capped.

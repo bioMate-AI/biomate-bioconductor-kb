@@ -1,6 +1,6 @@
 import { integrationFindings, integrationFindingsMarkdown } from "./integration-findings";
 import { stepFileDisposition } from "./step-file-disposition";
-import { waitForInteractiveSession } from "./interactive-session-readiness";
+import { waitForInteractiveSession, waitForDatasetReady } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
@@ -43,8 +43,10 @@ import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
-import { _isOwnerOrMember } from "./project-routes";
-import { appendComposerInstructions } from "./chat-context";
+import { _isOwnerOrMember, _isOwnerOrEditor } from "./project-routes";
+import { appendComposerInstructions, appendProjectOutputRequirements } from "./chat-context";
+import { loadProjectOutputRequirementsPrompt, loadProjectOutputRequirements, applyOutputRequirements } from "./project-instruction-settings";
+import { parseOutputRequirements, checkOutputConformance, type OutputRequirements } from "../client/src/lib/output-requirements";
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
@@ -235,6 +237,12 @@ function backendPassthrough(label: string) {
     }
   };
 }
+
+// NOTE: the IND report module is PAUSED (feature-flagged off, IND_REPORT_ENABLED) and
+// its document generator runs in the Galaxy backend, out of this proxy's reach — so it is
+// deliberately NOT wired into the output-requirements chokepoint. If IND is re-enabled,
+// thread the project's requirements into the forwarded doc-gen body and have the backend
+// LLM step consume them, the same way the in-process generators do.
 
 // Initialize state poller and SSE manager
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
@@ -1525,7 +1533,7 @@ async function stageLocalFilesForBatch(
   return staged;
 }
 
-function buildQCReportHtml(run: any, invocationId: string): string {
+function buildQCReportHtml(run: any, invocationId: string, reqs?: OutputRequirements | null): string {
   const now = new Date().toISOString();
   const status = run?.status ?? "unknown";
   const workflowName = run?.workflowName ?? run?.name ?? "BioMate Workflow";
@@ -1549,12 +1557,42 @@ function buildQCReportHtml(run: any, invocationId: string): string {
     return `Analysis was performed using BioMate AI (biomate.ai). QC thresholds are evidence-graded (GOLD/SILVER/BRONZE) and cited to peer-reviewed sources. All pipeline steps were executed via validated Nextflow DSL2 workflows. Full audit log: invocation ID ${invocationId}.`;
   }
 
-  const statusColor: Record<string, string> = { PASS: "#15803d", FAIL: "#dc2626", WARN: "#d97706" };
-  const badgeStyle: Record<string, string> = {
-    GOLD:   "background:#ffd700;color:#333;",
-    SILVER: "background:#c0c0c0;color:#333;",
-    BRONZE: "background:#cd7f32;color:white;",
-  };
+  // Deterministic parameterization from the project's structured output requirements
+  // (Instructions → Output formats). This generator is a pure HTML template — NOT an
+  // LLM call — so it honors only what it can apply with certainty: a greyscale-safe
+  // palette. Requirements it CANNOT deterministically apply to a fixed tabular report
+  // (a prose word cap, a figure DPI — the report has no figures) are surfaced as an
+  // explicit, honest note rather than silently ignored. undefined reqs ⇒ unchanged.
+  const grayscaleSafe = reqs?.grayscaleSafe === true;
+  const statusColor: Record<string, string> = grayscaleSafe
+    ? { PASS: "#1a1a1a", FAIL: "#000000", WARN: "#595959" }
+    : { PASS: "#15803d", FAIL: "#dc2626", WARN: "#d97706" };
+  const badgeStyle: Record<string, string> = grayscaleSafe
+    ? {
+        GOLD:   "background:#1a1a1a;color:white;",
+        SILVER: "background:#808080;color:white;",
+        BRONZE: "background:#d9d9d9;color:#1a1a1a;",
+      }
+    : {
+        GOLD:   "background:#ffd700;color:#333;",
+        SILVER: "background:#c0c0c0;color:#333;",
+        BRONZE: "background:#cd7f32;color:white;",
+      };
+
+  // Acknowledge the active requirements in the deliverable, and be honest about the
+  // ones a fixed tabular HTML report can't deterministically satisfy.
+  const activeReqFormats = reqs?.formats ?? [];
+  const reqUnhonored: string[] = [];
+  if (reqs?.lengthCapWords !== undefined) reqUnhonored.push(`a ≤${reqs.lengthCapWords}-word prose cap (this QC report is a fixed tabular/audit layout, not free prose)`);
+  if (reqs?.figureDpi !== undefined) reqUnhonored.push(`a ${reqs.figureDpi} dpi figure spec (this report renders no raster figures)`);
+  const outputRequirementsSection = activeReqFormats.length === 0 ? "" : `
+<h2>Project Output Requirements</h2>
+<table>
+  <tr><th>Kind</th><th>Name</th><th>Detail</th></tr>
+  ${activeReqFormats.map(f => `<tr><td>${f.kind}</td><td>${f.name}</td><td>${f.detail || "—"}</td></tr>`).join("")}
+</table>
+${grayscaleSafe ? `<p style="font-size:13px;color:#555;">Applied: greyscale-safe palette (status and evidence colors rendered without hue so this report is legible in greyscale print).</p>` : ""}
+${reqUnhonored.length ? `<p style="font-size:13px;color:#555;">Not applied deterministically to this report: ${reqUnhonored.join("; ")}.</p>` : ""}`;
 
   const metricsRows = Object.entries(metrics)
     .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
@@ -1654,6 +1692,7 @@ ${auditLog.length > 0 ? `
 <h2>Methods Section Text</h2>
 <p style="font-size:13px;color:#555;">Copy the paragraph below directly into your manuscript methods section.</p>
 <div class="methods-block">${domainMethodsText()}</div>
+${outputRequirementsSection}
 
 <h2>Audit Log Download</h2>
 <p style="font-size:13px;">To download the full JSON audit log, use the BioMate Run Manager → <em>View logs</em> → <em>Download audit log</em>. The log includes all tool versions, parameters, and AutoFix decisions.</p>
@@ -2385,7 +2424,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Notify the admin of every new registration (fire-and-forget; never fails the signup)
       try {
-        const _adminNotifyEmail = process.env.ADMIN_NOTIFY_EMAIL || 'contact@biomate.ai';
+        // Registration notices are PII (email/name), not PHI — delivered to the owner + team
+        // inboxes. Override with ADMIN_NOTIFY_EMAIL (comma-separated).
+        const _adminNotifyEmail = process.env.ADMIN_NOTIFY_EMAIL || 'xiaoni5122@gmail.com, yaoyun.zhang@biomate.ai';
         const _regSummary =
           `Email: ${result.user.email}\n` +
           `Name: ${result.user.fullName || '(none)'}\n` +
@@ -6596,6 +6637,19 @@ ${commonTail}
 N. REFERENCES — Relevant tool citations with PMIDs.`;
         }
 
+        // Honor the project's saved output-format requirements (Instructions →
+        // Output formats) so the DOWNLOADED report follows them (e.g. "findings
+        // first, ≤200 words, 300 dpi greyscale figures"). Routed through THE
+        // chokepoint (applyOutputRequirements) — same mechanism as findings / IND /
+        // chat, instead of a hand-rolled concat. No setting ⇒ prompt unchanged.
+        const _reportProjectId = (run as any)?.projectId;
+        try {
+          USER = await applyOutputRequirements(USER, _reportProjectId, 'report');
+        } catch { /* non-fatal — report still generates without the overrides */ }
+        // Structured requirements for the post-generation conformance check below.
+        let _reportReqs: ReturnType<typeof parseOutputRequirements> | null = null;
+        try { _reportReqs = parseOutputRequirements(await loadProjectOutputRequirements(_reportProjectId)); } catch { /* non-fatal */ }
+
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
         // ── Step-by-step report generation with Claude Sonnet 4.5 ─────────────
@@ -6634,6 +6688,13 @@ ${paramLines || '(none recorded)'}`;
         // Single call for all domains — SYSTEM and USER are set per-domain above
         console.log(`[Report] Generating ${isCryoEM ? 'CryoEM' : 'generic'} report via fallback chain`);
         reportText = await claudeCall(USER);
+
+        // Non-blocking conformance check: flag (never fix/fabricate) any requirement
+        // the output measurably deviates from (e.g. a word cap, findings-first order).
+        if (_reportReqs) {
+          const _dev = checkOutputConformance(reportText, _reportReqs);
+          if (_dev.length) console.warn(`[Report] output-requirements deviation(s) for ${invocationId}: ${_dev.join('; ')}`);
+        }
 
         const header = [
           `BioMate AI — Report`,
@@ -6848,7 +6909,7 @@ ${paramLines || '(none recorded)'}`;
         }).catch(() => {/* non-fatal */});
 
         // Return the refusal as an SSE event so the frontend renders it in-chat
-        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
         res.flushHeaders?.();
@@ -6878,7 +6939,7 @@ ${paramLines || '(none recorded)'}`;
         return;
       }
 
-      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("X-Accel-Buffering", "no");
@@ -7115,6 +7176,25 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Output-format requirements the user saved on the project (Instructions →
+      // Output formats). The browser composer threads these as composerInstructions,
+      // but MCP / programmatic / other callers never do — so read them server-side
+      // and merge them into the project context. appendProjectOutputRequirements
+      // dedupes against composerInstructions so the chat composer path is never
+      // double-injected. No setting ⇒ no change.
+      if (_resolvedProjectId) {
+        try {
+          const _outReqPrompt = await loadProjectOutputRequirementsPrompt(_resolvedProjectId);
+          _projectContext = appendProjectOutputRequirements(
+            _projectContext,
+            _outReqPrompt,
+            context?.composerInstructions,
+          );
+        } catch {
+          // Non-fatal — never break chat on an output-requirements lookup failure.
+        }
+      }
+
       // Composer instructions are deliberately request-scoped: a user can
       // steer one chat without silently overwriting the project's standing
       // instructions. Keep a bounded, normalized value before it reaches an
@@ -7148,7 +7228,19 @@ ${paramLines || '(none recorded)'}`;
       // OPENROUTER_API_KEY in server env enables cheap Chinese models for all users.
       if (!_openrouterKey && process.env.OPENROUTER_API_KEY) {
         _openrouterKey = process.env.OPENROUTER_API_KEY;
-        if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
+        if (!_selectedModel) {
+          // China-origin requests default to the best Chinese LLM per our routing benchmark:
+          // z-ai/glm-5.3-prime (top routing recall at lowest cost; function-calling capable, so
+          // it gets the full agentic pipeline). Origin is read from an upstream geo header when
+          // present, else inferred from a zh-CN Accept-Language. Only affects the managed default
+          // (a user's own selected model/provider always wins). Overridable via env.
+          const _cc = String(req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'] || req.headers['x-appengine-country'] || '').toUpperCase();
+          const _lang = String(req.headers['accept-language'] || '').toLowerCase();
+          const _fromChina = _cc ? _cc === 'CN' : /(^|,)\s*zh-cn\b/.test(_lang);
+          _selectedModel = _fromChina
+            ? (process.env.OPENROUTER_CN_DEFAULT_MODEL || 'z-ai/glm-5.3-prime')
+            : (process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat');
+        }
       }
 
       // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
@@ -7203,6 +7295,53 @@ ${paramLines || '(none recorded)'}`;
             sourceSessionId: r.sourceSessionId,
           }));
         const combined = [...direct, ...recovered];
+
+        // Awareness listing of the project's EXISTING files. Without this the
+        // chat only ever "saw" this-session uploads + explicitly-selected
+        // files, so the model called already-uploaded project files "missing"
+        // and asked the user to re-upload (missing_file_context). We list all
+        // files for the already-ownership-gated project (_resolvedProjectId is
+        // resolved through _isOwnerOrMember at ~6959), tagged as project files,
+        // deduped by id and name against what's already attached/recovered.
+        // These are merged into the fallback projection only (NOT into
+        // `combined` before selection), so the explicit-selection → Batch
+        // staging path above is untouched.
+        const _projectFileAwareness: Array<any> = [];
+        if (_resolvedProjectId) {
+          try {
+            const _seen = new Set<string>();
+            for (const d of combined) {
+              if (d?.id) _seen.add(`id:${String(d.id)}`);
+              if (d?.name) _seen.add(`name:${String(d.name).toLowerCase()}`);
+            }
+            const _pfRows = (await pool.query(
+              `SELECT id, name, s3_key FROM project_files WHERE project_id = $1`,
+              [_resolvedProjectId],
+            )).rows;
+            for (const r of _pfRows) {
+              if (!r?.id || !r?.name) continue;
+              if (_seen.has(`id:${String(r.id)}`)) continue;
+              if (_seen.has(`name:${String(r.name).toLowerCase()}`)) continue;
+              _seen.add(`id:${String(r.id)}`);
+              _seen.add(`name:${String(r.name).toLowerCase()}`);
+              _projectFileAwareness.push({
+                id: r.id,
+                projectFileId: r.id,
+                name: r.name,
+                type: 'project file',
+                file_path: null,
+                param_name: null,
+                s3_key: r.s3_key || undefined,
+              });
+            }
+            if (_projectFileAwareness.length) {
+              console.log(`[chat-stream] listed ${_projectFileAwareness.length} existing project file(s) for chat awareness`);
+            }
+          } catch (e: any) {
+            console.warn('[chat-stream] project-file awareness listing failed:', e?.message ?? e);
+          }
+        }
+
         const requestedReferences = Array.isArray(context?.datasetReferences)
           ? context.datasetReferences
               .filter((reference: any): reference is DatasetReference =>
@@ -7273,9 +7412,14 @@ ${paramLines || '(none recorded)'}`;
           (context as any).datasetReferenceUnresolvedIds = (selection.missingIds ?? [])
             .filter((id) => !projectFileResolved.has(id));
         }
+        // Fallback projection (no explicit reference selection): attached +
+        // recovered + the project's existing files, so the model never treats
+        // an already-uploaded file as missing. The explicit-selection branch
+        // is left exactly as resolved/staged above.
+        const _fallback = [...combined, ..._projectFileAwareness];
         return exactSelection?.length
           ? exactSelection
-          : (combined.length > 0 ? combined : undefined);
+          : (_fallback.length > 0 ? _fallback : undefined);
       })();
 
       const enrichedContext = {
@@ -7328,6 +7472,13 @@ ${paramLines || '(none recorded)'}`;
         galaxyAPIOverride: req.user ? userProxy(req) : undefined,
         // Never expose the shared admin's private skill namespace via proxy fallback.
         skillPrivateAccess: hasPersonalSkillAccess(req.user as any),
+        // Auth headers for authenticated self-calls from tool handlers (e.g.
+        // edit_report reconstructing a run's report from its findings endpoint).
+        // Same pattern as the /output_files self-fetch in this file.
+        selfRequestAuth: {
+          authorization: (req.headers as any)?.authorization || undefined,
+          cookie: (req.headers as any)?.cookie || undefined,
+        },
       };
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
@@ -7958,6 +8109,27 @@ ${paramLines || '(none recorded)'}`;
 
   // Get benchmark results for a scenario
   // Direct workflow lookup by name — used by LLM reselection path
+  // Ranked catalog search — proxies Galaxy's UnifiedWorkflowSearch for the
+  // Workflows library "Browse" tab. Returns { query, results:[{rank,name,
+  // display_name,description,domain,source,format,score,type}, …] }.
+  app.post("/api/ai_assistant/search_ranked", optionalAuth, async (req, res) => {
+    try {
+      const { query, limit, preferred_domains } = req.body || {};
+      if (!query || !String(query).trim()) {
+        return res.status(400).json({ error: "query is required" });
+      }
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/search_ranked', {
+        query: String(query),
+        limit: typeof limit === 'number' ? limit : 10,
+        preferred_domains: Array.isArray(preferred_domains) ? preferred_domains : null,
+      });
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[search_ranked API] Error:", error?.message || error);
+      res.status(500).json({ error: 'RankedSearchError', message: error?.message || 'Ranked search failed' });
+    }
+  });
+
   app.get("/api/ai_assistant/workflow_by_name", async (req, res) => {
     try {
       const name = req.query.name as string;
@@ -11216,8 +11388,8 @@ ${paramLines || '(none recorded)'}`;
   // we stage it into the user's history (the uploadFromUrl pattern that
   // /api/datasets/import-url uses) and launch the IT against the staged HDA.
   // Tool by file type (R/rds → RStudio, else Jupyter) or an explicit body.tool.
-  // NOTE: the HDA is staged async by Galaxy; the IT job queues until its input is
-  // ready, so we launch immediately (polling-to-ok is a documented refinement).
+  // NOTE: the HDA is staged async by Galaxy; we poll it to `ok` (bounded) before
+  // launching so the notebook never opens against a still-uploading input.
   app.post("/api/projects/:id/files/:fileId/open-in", authenticateToken, async (req, res) => {
     try {
       const uid = (req.user as any)?.id;
@@ -11245,6 +11417,13 @@ ${paramLines || '(none recorded)'}`;
         if (req.session) (req.session as any).galaxyHistoryId = targetHistoryId;
       }
       const hdaId = await userProxy(req).uploadFromUrl(fileUrl, targetHistoryId!, name);
+      // Wait for the staged HDA to reach `ok` before launching.
+      const _hdaReady = await waitForDatasetReady(hdaId, {
+        getState: async (did) => String((await userProxy(req).getDatasetMetadata(did))?.state || ''),
+      });
+      if (!_hdaReady.ready && _hdaReady.reason === 'failed') {
+        return res.status(503).json({ success: false, retriable: true, error: "We couldn't finish preparing this file for the notebook. Please try opening it again in a moment." });
+      }
       const result = await userProxy(req).launchInteractiveTool(toolId, targetHistoryId!, {
         input: { src: "hda", id: hdaId },
       });
@@ -11252,14 +11431,26 @@ ${paramLines || '(none recorded)'}`;
         getJob: id => userProxy(req).getJob(id), tokenForJob, targetForToken,
       });
       if (!readiness.ready) return res.status(503).json({
-        success: false, jobId: result.job_id,
-        error: readiness.reason === 'failed' ? "The notebook job stopped before the session became available." : "The file was staged, but the notebook session is not ready. This launch may still be active; check its status before launching another session.",
+        success: false, jobId: result.job_id, retriable: readiness.reason !== 'failed',
+        error: readiness.reason === 'failed' ? "The notebook job stopped before the session became available." : "Starting your notebook… the session is not ready yet. Give it a few seconds and try again; this launch may still be coming up.",
       });
       const entryPointUrl = readiness.url;
       res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
     } catch (error: any) {
-      console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
-      res.status(500).json({ success: false, error: error?.message || "Open-in failed" });
+      const _raw = String(error?.message ?? error ?? '');
+      console.error("[open-in] project file → interactive tool failed:", _raw);
+      // Never surface a raw internal connection error or backend IP to the user.
+      // A Galaxy connectivity blip (ECONNREFUSED/reset/timeout to the internal
+      // backend, e.g. "ECONNREFUSED 172.19.0.2:8080") is transient and retriable.
+      const _transient = /ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|fetch failed|ENOTFOUND|network|timed?\s*out|\b\d{1,3}(?:\.\d{1,3}){3}\b/i.test(_raw);
+      if (_transient) {
+        return res.status(503).json({
+          success: false,
+          error: "Starting your notebook environment… please try again in a few seconds.",
+          retriable: true,
+        });
+      }
+      res.status(500).json({ success: false, error: "We couldn't open this file in a notebook. Please try again." });
     }
   });
 
@@ -11443,6 +11634,16 @@ ${paramLines || '(none recorded)'}`;
           message: "This workflow was not generated successfully, so it cannot be run. No compute was launched.",
           detail: genFailure.detail,
           guidance: "Refine the request and regenerate the workflow; retry once a runnable workflow is produced.",
+        });
+      }
+
+      // Role gate: launching a run against a project (uses its context/files, bills
+      // compute, writes outputs back) requires owner/editor. Viewers are read-only on
+      // compute — they can view/chat about the project but not start runs in it.
+      if (request.projectId && req.user?.id && !(await _isOwnerOrEditor(String(request.projectId), String(req.user.id)))) {
+        return res.status(403).json({
+          error: "forbidden_viewer_run",
+          message: "You have view-only access to this project, so you cannot launch runs in it. Ask an editor or the owner.",
         });
       }
 
@@ -12535,6 +12736,18 @@ ${paramLines || '(none recorded)'}`;
           console.error('[Nextflow Direct] Execution error:', error);
           const rawErrorMsg = error instanceof Error ? error.message : String(error);
 
+          // Classify: a non-2xx from Galaxy's execute carrying a 4xx is a CLIENT-side
+          // rejection — the workflow was REFUSED and never ran — not an infra/
+          // execution failure. The canonical case is the 422 sandbox security
+          // pre-check block on an uploaded workflow (e.g. source that touches the
+          // cloud-metadata endpoint). Such a rejection must NOT page the admin
+          // (it is an expected guardrail, not actionable), and the user should get
+          // the specific reason as a 4xx, not a generic 500 "something went wrong".
+          const _statusM = rawErrorMsg.match(/Nextflow execution failed \((\d{3})\)/);
+          const _httpStatus = _statusM ? Number(_statusM[1]) : 0;
+          const _clientRejected = _httpStatus >= 400 && _httpStatus < 500;
+          const _securityBlock = _httpStatus === 422 && /security pre-check|violation/i.test(rawErrorMsg);
+
           if (executionRun) {
             await storage.updateExecutionRun(executionRun.id, {
               execution: {
@@ -12545,7 +12758,27 @@ ${paramLines || '(none recorded)'}`;
             });
           }
 
-          // Email admin with full error details (fire-and-forget)
+          if (_clientRejected) {
+            // Pull the human reason (and any security violations) out of the
+            // Galaxy error body for a clear message; fall back to a generic line.
+            let reason = '';
+            try {
+              const jm = rawErrorMsg.match(/\{[\s\S]*\}\s*$/);
+              if (jm) {
+                const d = JSON.parse(jm[0]);
+                reason = d?.detail?.violations || d?.detail?.error || d?.error || d?.message || '';
+              }
+            } catch { /* non-JSON body → generic message */ }
+            return res.status(_securityBlock ? 422 : _httpStatus).json({
+              error: _securityBlock ? 'workflow_blocked_security' : 'workflow_rejected',
+              message: _securityBlock
+                ? `This uploaded workflow was blocked by the security pre-check and was not run.${reason ? ` Reason: ${reason}` : ''}`
+                : `The workflow could not be started.${reason ? ` ${reason}` : ''}`,
+              runId: executionRun?.id,
+            });
+          }
+
+          // Real infra/execution failure (5xx, network, unexpected) — page the admin.
           emailService.sendAdminAlert('Nextflow Execution Failed', {
             time: new Date().toISOString(),
             runId: executionRun?.id || 'n/a',
@@ -12740,7 +12973,12 @@ ${paramLines || '(none recorded)'}`;
         return res.json({ invocationId, run });
       }
 
-      const html = buildQCReportHtml(run, invocationId);
+      // Thread the project's structured output requirements into the (non-LLM) QC
+      // HTML template so it honors what it deterministically can (e.g. greyscale-safe
+      // palette) via the same one mechanism. No setting ⇒ null ⇒ report unchanged.
+      let _qcReqs: OutputRequirements | null = null;
+      try { _qcReqs = parseOutputRequirements(await loadProjectOutputRequirements((run as any)?.projectId)); } catch { /* non-fatal */ }
+      const html = buildQCReportHtml(run, invocationId, _qcReqs);
       res.setHeader("Content-Type", "text/html");
       res.setHeader(
         "Content-Disposition",
@@ -14412,18 +14650,16 @@ Rules:
                 continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
               } while (continuationToken);
               if (listed.length > 0) {
-                // These are recovery artifacts: they are in the Nextflow work
-                // directory, not the run's registered publishDir list.  Do
-                // not advertise the normal `/api/runs/:id/output/:filename`
-                // endpoint for them: that endpoint deliberately authorizes
-                // against the registry and would return a misleading 404.
-                // A caller can still see that recovery found a file, but the
-                // UI must present it as unavailable until it is published.
-                for (const file of listed) {
-                  file.download_unavailable = true;
-                  file.download_unavailable_reason =
-                    'Recovered work-directory artifact is not yet published to the run output registry.';
-                }
+                // Recovery artifacts: they live in the Nextflow task work/ dir on
+                // S3, not the registered publishDir list — publishDir is disabled
+                // on the Batch head JVM (CRT SIGSEGV avoidance, see
+                // nextflow_executor.py), so declared outputs never reach the
+                // registry. The download endpoint (/api/runs/:id/output/:name)
+                // recovers them from THIS run's own work dir (scoped + already
+                // owner/member-authorized), so they ARE downloadable; the
+                // download_url injection below wires the link. (Before 2026-11-10
+                // these were marked download_unavailable because the download
+                // endpoint couldn't serve them — it now can.)
                 outputFiles = listed;
                 console.log(`[output_files] workDir fallback: found ${listed.length} files under ${storedWorkDir}`);
               }
@@ -14755,6 +14991,86 @@ Rules:
           });
         }
       }
+      // 3c. Work-directory recovery (Batch). publishDir is disabled on the Batch
+      //     head JVM (CRT SIGSEGV avoidance), so declared outputs land only in the
+      //     task work/ dir on S3 and never reach the registry matched above — the
+      //     /output_files listing already recovers them, so a listed-but-404 file
+      //     would be an inconsistency. Mirror that listing here: scan THIS run's
+      //     own stored work dir for an exact basename match and serve it. Auth is
+      //     already enforced (owner/member, above); the scan is scoped to the run's
+      //     own workDir prefix (no cross-run / arbitrary-key access); an ambiguous
+      //     basename is rejected rather than serving an arbitrary file.
+      // Restrict recovery to declared DATA outputs only — exactly the allowlist
+      // the /output_files listing uses. The work/ dir also holds Nextflow
+      // internals (.command.run/.sh/.err/.log, .exitcode) that expose backend
+      // internals (ECR image refs, S3 paths, injected env) and must never be
+      // downloadable. A requested name that is a dotfile / internal / non-data
+      // extension skips recovery and falls through to 404.
+      const _dlDataExts = new Set(['csv','tsv','txt','json','html','pdf','png','jpg','svg',
+        'xlsx','rds','vcf','bed','bam','fastq','fq','fa','fasta','gz','h5','h5ad']);
+      const _dlNfInternals = new Set(['.command.run','.command.sh','.command.out',
+        '.command.err','.command.log','.command.begin','.exitcode']);
+      const _dlExt = ((filename.includes('.') ? filename.split('.').pop() : '') || '').toLowerCase();
+      const _dlIsDataOutput = !filename.startsWith('.')
+        && !_dlNfInternals.has(filename)
+        && !!_dlExt && _dlDataExts.has(_dlExt);
+      if (!match && _dlIsDataOutput && !filename.includes('/') && !filename.includes('\\')) {
+        const storedWorkDir = (run as any)?.execution?.nextflowWorkDir as string | undefined;
+        const wdm = storedWorkDir && String(storedWorkDir).startsWith('s3://')
+          ? String(storedWorkDir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/)
+          : null;
+        if (wdm) {
+          const [, wdBucket, wdPrefix] = wdm;
+          const AWS = await import('@aws-sdk/client-s3');
+          const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+          const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+          const _wdS3Ep = process.env.S3_ENDPOINT_URL;
+          const wdS3 = new AWS.S3Client(_wdS3Ep ? {
+            endpoint: _wdS3Ep,
+            region: 'us-east-1',
+            forcePathStyle: S3_FORCE_PATH_STYLE,
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
+          } : {
+            region: 'us-east-1',
+            followRegionRedirects: true,
+            ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+          });
+          const hits: Array<{ key: string; size: number }> = [];
+          let wdToken: string | undefined;
+          try {
+            do {
+              const lr: any = await wdS3.send(new AWS.ListObjectsV2Command({
+                Bucket: wdBucket,
+                Prefix: `${wdPrefix}/`,
+                ContinuationToken: wdToken,
+                MaxKeys: 2000,
+              }));
+              for (const obj of (lr.Contents || [])) {
+                if (!obj.Key || obj.Key.endsWith('/')) continue;
+                if ((obj.Key.split('/').pop() || '') === filename) {
+                  hits.push({ key: obj.Key, size: obj.Size || 0 });
+                  if (hits.length > 1) break;
+                }
+              }
+              wdToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+            } while (wdToken && hits.length < 2);
+          } catch (e: any) {
+            console.warn(`[output_download] workDir recovery scan failed for ${runId}: ${e?.message || e}`);
+          }
+          if (hits.length === 1) {
+            match = { s3_uri: `s3://${wdBucket}/${hits[0].key}`, size: hits[0].size };
+          } else if (hits.length > 1) {
+            await writeAuditRow(409, null, runProjectId);
+            return res.status(409).json({
+              error: `Output filename ${filename} is ambiguous in the work directory; select a published output instead.`,
+            });
+          }
+        }
+      }
+
       if (!match) {
         await writeAuditRow(404, null, runProjectId);
         return res.status(404).json({ error: `File ${filename} not found in run ${runId}` });
@@ -16651,8 +16967,20 @@ Rules:
             `outputNumbers.size=${outputNumbers.size}`
           );
 
-          const SYSTEM = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
+          // Project output-format requirements (Instructions → Output formats),
+          // routed through THE chokepoint (applyOutputRequirements, 'findings-summary'
+          // scope) — same mechanism as the methods-report / IND / chat paths. Applied
+          // as soft guidance to the narrative `summary` prose; the chokepoint appends
+          // the requirements block to the HEAD, and the strict grounding rules below
+          // come AFTER it so they still win. No setting ⇒ prompt unchanged.
+          const _findingsProjectId = (run as any)?.projectId;
+          let _findingsReqs: ReturnType<typeof parseOutputRequirements> | null = null;
+          try { _findingsReqs = parseOutputRequirements(await loadProjectOutputRequirements(_findingsProjectId)); } catch { /* non-fatal */ }
 
+          let _findingsHead = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.`;
+          try { _findingsHead = await applyOutputRequirements(_findingsHead, _findingsProjectId, 'findings-summary'); } catch { /* non-fatal */ }
+
+          const SYSTEM = `${_findingsHead}
 STRICT GROUNDING RULES — violations will be rejected:
 1. Every numeric value in key_results MUST appear verbatim in the provided output files.
 2. Do NOT invent, estimate, or round values not present in the files.
@@ -16810,6 +17138,14 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
             // instruction (PMIDs the model invents are worse than none). Grounded
             // provenance lives in each key_result.source_file, validated above.
             delete parsed.citations;
+
+            // Non-blocking conformance check on the narrative summary (length cap /
+            // findings-first order). Logs a deviation — NEVER truncates or rewrites
+            // the grounded summary.
+            if (_findingsReqs && typeof parsed.summary === 'string') {
+              const _dev = checkOutputConformance(parsed.summary, _findingsReqs);
+              if (_dev.length) console.warn(`[Findings] output-requirements deviation(s) for ${runId}: ${_dev.join('; ')}`);
+            }
 
             // ── Proactive follow-up suggestions ────────────────────────────────
             // Inject domain-specific next-step offers based on workflow type and findings.
@@ -17067,8 +17403,8 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
     if (typeof markdown !== 'string' || !markdown.trim()) {
       return res.status(400).json({ error: 'markdown (non-empty string) required' });
     }
-    if (fmt !== 'pptx' && fmt !== 'pdf') {
-      return res.status(400).json({ error: `Unsupported format: ${fmt} (pptx|pdf)` });
+    if (fmt !== 'pptx' && fmt !== 'pdf' && fmt !== 'docx') {
+      return res.status(400).json({ error: `Unsupported format: ${fmt} (pptx|docx|pdf)` });
     }
     const { writeFileSync, readFileSync, mkdtempSync, rmSync, existsSync } = await import('node:fs');
     const os = await import('node:os');
@@ -17085,6 +17421,12 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         const ref = existsSync(refDoc) ? ` --reference-doc=${JSON.stringify(refDoc)}` : '';
         _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --slide-level=2${ref}`, { timeout: 60_000 });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      } else if (fmt === 'docx') {
+        // Word report — same bundled pandoc as the Methods DOCX export. Optional branded reference doc.
+        const refDoc = path.join(process.cwd(), 'dist', 'assets', 'biomate-reference.docx');
+        const ref = existsSync(refDoc) ? ` --reference-doc=${JSON.stringify(refDoc)}` : '';
+        _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --to=docx${ref}`, { timeout: 60_000 });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       } else {
         _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --pdf-engine=weasyprint`, { timeout: 90_000 });
         res.setHeader('Content-Type', 'application/pdf');
@@ -17221,11 +17563,25 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Get real-time workflow logs
    * Proxies to Galaxy backend's log streaming endpoint
    */
-  app.get("/api/workflows/runs/:id/logs", authenticateToken, requireLegacyRunRead, async (req, res) => {
+  app.get("/api/workflows/runs/:id/logs", authenticateToken, requireLegacyRunRead, async (req: any, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
-      if (!run) {
-        return res.status(404).json({ error: "Execution run not found" });
+      const run = await resolveAuthorizedRun(req, res, req.params.id);
+      if (!run) return;
+
+      // Direct Nextflow runs have no Galaxy workflow ID. The old proxy built
+      // /workflows/undefined/invocations/.../logs and failed while parsing HTML.
+      if (run.execution?.executionEngine === 'nextflow' || run.execution?.nextflowRunId) {
+        const id = run.execution.nextflowRunId || run.execution.galaxyInvocationId;
+        if (!id) return res.status(400).json({ error: 'No Nextflow execution associated with this run' });
+        const response = await fetch(
+          `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(id)}`,
+          { headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' }, signal: AbortSignal.timeout(15000) },
+        );
+        if (!response.ok) return res.status(response.status).json({ error: 'Nextflow execution diagnostics unavailable' });
+        const data = await response.json() as any;
+        return res.json({ run_id: id, source: 'nextflow', status: data.status,
+          logs: Array.isArray(data.log_tail) ? data.log_tail : [],
+          error: run.execution.errorMessage || run.execution.error || null });
       }
 
       // Direct Nextflow runs have no Galaxy workflow ID; preserve the existing
@@ -17717,6 +18073,20 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   // short viewer names the client uses. Fails closed (all false) on any error —
   // an honest "not available" beats a dead button.
   app.get("/api/interactive/available", optionalAuth, async (_req, res) => {
+    // HONEST availability (2026-11-10): the interactive tools are REGISTERED in the
+    // Galaxy toolbox even when the IT runtime cannot actually LAUNCH them — the
+    // Galaxy container has no docker socket, so every launch fails at the job with
+    // "the notebook/interactive job stopped before the session became available".
+    // Reporting a tool "available" purely because it's in the toolbox produces
+    // shown-but-dead buttons, which defeats this probe's whole purpose (hide a tool
+    // the environment can't run). So gate on INTERACTIVE_TOOLS_ENABLED — a signal the
+    // IT-enablement flow (sync_to_dev.sh enable_interactive_tools, or a real k8s/ECS
+    // IT destination) sets ONLY once the runtime is actually provisioned. Until then,
+    // report unavailable so the UI hides the buttons instead of launching a dead job.
+    const _runtimeReady = /^(1|true|yes)$/i.test(String(process.env.INTERACTIVE_TOOLS_ENABLED || ''));
+    if (!_runtimeReady) {
+      return res.json({ available: false, tools: { jupyter: false, rstudio: false, cellxgene: false } });
+    }
     const map: Record<string, string> = {
       jupyter: "interactive_tool_jupyter_notebook",
       rstudio: "interactive_tool_rstudio",
@@ -19818,13 +20188,19 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         return galaxyAPIProxy.downloadDataset(id);
       };
 
-      const result = await runCode({
+      // Bounded retry on a transient sandbox-sidecar connection blip (sidecar node
+      // recycling → ECONNREFUSED / "fetch failed" / 5xx). runCode returns exit_code=1
+      // with a "[sidecar …]" stderr rather than throwing, so retry on the RESULT; a
+      // genuine code error / execution timeout returns on the first attempt, and after
+      // retries the real sidecar error still surfaces to the user (honest fallback).
+      const { retryTransientRunCode } = await import('./transient-retry');
+      const result = await retryTransientRunCode(() => runCode({
         language: language as 'python' | 'r' | 'bash',
         code,
         input_datasets: datasetRefs,
         timeout_seconds: typeof timeout_seconds === 'number' ? Math.min(timeout_seconds, 300) : 30,
         downloadDataset: downloadDatasetFn,
-      });
+      }), { label: 'POST /api/code/run' });
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err?.message ?? String(err) });
@@ -19834,6 +20210,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   // ============================================================================
 
   // Error rate tracking middleware (must be last, after all routes)
+  // Throttle admin-alert emails for unhandled 5xx: dedup by method+path+message
+  // within a window so a recurring fault emails once, not on every request.
+  const _err5xxAlertAt = new Map<string, number>();
+  const ERR_5XX_ALERT_WINDOW_MS = 15 * 60 * 1000;
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     // A client error that carries its own 4xx status (e.g. UnsupportedUploadTypeError -> 415)
     // is the caller's problem, not a server fault: return that status and message, and don't
@@ -19848,13 +20228,42 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     console.error(`[ExpressError] ${req.method} ${req.path}:`, err.message);
     console.error(err.stack);
 
-    // Record 5xx as telemetry event (fire-and-forget)
+    // Correlation id so a PHI-free email can point at the full (secure) telemetry record.
+    const _errRef = `err_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Record 5xx as telemetry event (fire-and-forget). Telemetry is the SECURE sink that
+    // may hold PHI-bearing detail (raw path/message/stack); the alert email below must not.
     telemetryService.create('api_error_5xx', new Date(), {
+      ref: _errRef,
       path: req.path,
       method: req.method,
       error: err.message?.slice(0, 200),
       stack_top: err.stack?.split('\n')[1]?.trim()?.slice(0, 200),
     }).catch(() => {});
+
+    // Email the admin on unhandled 5xx (throttled, fire-and-forget; never fails the response).
+    // PHI-SAFE: the email carries only a non-identifying signal — error CLASS, HTTP method, the
+    // matched ROUTE PATTERN (e.g. /api/projects/:id, never the concrete values), timestamp, and
+    // the telemetry ref. It deliberately omits the raw request path, error message, and stack,
+    // any of which can contain PHI (patient/sample ids, payload fragments). Look up the ref in
+    // telemetry (inside the compliance boundary) for the full detail. See 20261109 session doc.
+    try {
+      const errType = (err?.name || err?.constructor?.name || 'Error').slice(0, 80);
+      const routePattern = ((req.route?.path ?? req.baseUrl) || '(unmatched)').toString().slice(0, 120);
+      const key = `${req.method} ${routePattern}: ${errType}`;
+      const now = Date.now();
+      if (now - (_err5xxAlertAt.get(key) ?? 0) > ERR_5XX_ALERT_WINDOW_MS) {
+        _err5xxAlertAt.set(key, now);
+        emailService.sendAdminAlert('Unhandled server error (5xx)', {
+          error_type: errType,
+          status: 500,
+          method: req.method,
+          route: routePattern,
+          ref: _errRef,
+          note: 'PHI-safe alert — full detail is in telemetry under this ref, not in email.',
+        }).catch(() => {});
+      }
+    } catch { /* alerting must never break the error path */ }
 
     // Default error response
     if (!res.headersSent) {

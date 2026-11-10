@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_generate_embeddings_with_state" name="Biomni: Generate Embeddings With State" version="1.0.0">
     <description>Generate State embeddings for single-cell RNA-seq data using the SE-600M model.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/generate_embeddings_with_state_wrapper.py' --output '$output'

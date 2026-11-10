@@ -1,0 +1,1598 @@
+{
+  "status": "ASSISTANT_SOURCE_CONTEXT_REVIEW_NOT_HUMAN_ADJUDICATION",
+  "sample": "frozen RAW sample",
+  "row_range_inclusive": [
+    13,
+    100
+  ],
+  "inputs": [
+    "/tmp/literature-audit/k2_audit_sample_raw.csv",
+    "/tmp/literature-audit/knowledge_kb_scaled_v1.jsonl",
+    "/tmp/literature-audit/corpus.jsonl.gz"
+  ],
+  "criteria": "Statement support is separate from correctness of endpoint, direction, scope, evidence, entities and effect-size fields. A descriptive no_effect label is not treated as a measured null. Repairs do not make original entries pass. Review-level summaries do not establish scientific effectiveness or method eligibility.",
+  "limitations": [
+    "Stored corpus context reviewed; original publisher pages and cited underlying primary reports were not independently reopened.",
+    "T1 research-article metadata alone does not confer experimental validation; computational evidence is identified in rationales.",
+    "No human adjudication, eligibility approval, numerical recomputation, statistical aggregation or resampling performed.",
+    "No long source quotations or raw patent material included."
+  ],
+  "judgments": [
+    {
+      "sample_row": 13,
+      "rule_id": "K2-83e6ada8ceb8",
+      "pmcid": "PMC13294901",
+      "source_title": "Synthesis, Structural Characterization and Reactivity of Macrocyclic Cyclo[2]malonates.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "accc52d3a0a1728d02bd19efe1c4907320cc0f8a3818323979ce86732543d50e",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "certainty",
+        "effect_size",
+        "entity_scope"
+      ],
+      "rationale": "Source offers a tentative explanation for two nonpeptide malonate yields. The stored 15 is one product yield, not a 15-percent decrease; causal certainty is overstated.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 14,
+      "rule_id": "K2-ab82f8563582",
+      "pmcid": "PMC13246153",
+      "source_title": "Peptides as programmable molecular scaffolds: from chemical synthesis and engineering to translational medicine.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "487de17cee8d31e0324a29d8111e0278dca59ecd626a68ad7557abfb9b14316f",
+      "statement_support": "unsupported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "unsupported_comparison",
+        "scope"
+      ],
+      "rationale": "Context lists liabilities of mostly linear peptides; it does not establish that macrocycles generally have greater permeability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 15,
+      "rule_id": "K2-c1723e0f99de",
+      "pmcid": "PMC10598797",
+      "source_title": "Molecular View on the <i>i</i>RGD Peptide Binding Mechanism: Implications for Integrin Activity and Selectivity Profiles.",
+      "source_pub_type": "research support, non-u.s. gov't; research-article; journal article",
+      "source_text_sha256": "54662008bf4117dec6dda5bae90f27ec139d141b5d1911eab43689d144adee1d",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction"
+      ],
+      "rationale": "Context supports iRGD cleavage and CendR release, not a no-effect binding-affinity result.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 16,
+      "rule_id": "K2-cd210107aefe",
+      "pmcid": "PMC13474152",
+      "source_title": "Protein-protein interaction inhibitors in the human proteome: lessons from 117 targeted interactions.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "2caa3ef0315b09fea28d52003523d8fa21a6a8f8c06ecaf2f962df8031b36e47",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "feature_mapping"
+      ],
+      "rationale": "Review describes a BH3 binding geometry; it supplies neither a null affinity comparison nor an intramolecular-hydrogen-bond design effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 17,
+      "rule_id": "K2-9e48087d40de",
+      "pmcid": "PMC13388690",
+      "source_title": "PeptiVerse: A unified platform for therapeutic peptide property prediction.",
+      "source_pub_type": "research-article; journal article; research support, n.i.h., extramural",
+      "source_text_sha256": "c76bd07baad4c2c11d8da6a6bda8f7c11dd7dde6a0dedffd9226a729db828562",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "The assay distinction is supported and useful methodological context, but no_effect incorrectly encodes it as a permeability effect estimate.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 18,
+      "rule_id": "K2-6ff9f8ba7bf2",
+      "pmcid": "PMC13361436",
+      "source_title": "Cyclic Peptides as Modulators of Protein-Protein Interactions: A Survival Guide from Discovery Platforms to AI-Driven Design.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "730e240d69643213c3817d85339ca4f461f22747b3de39c39cbfd173acf164ee",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "DNA barcode ligation and sequencing identify library hits. This platform description is not a null macrocyclization effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 19,
+      "rule_id": "K2-602e09825dca",
+      "pmcid": "PMC12990038",
+      "source_title": "Orally Bioavailable Cyclin A/B RxL Inhibitors: Optimization of a Novel Class of Macrocyclic Peptides That Target E2F-High and G1-S-Checkpoint-Compromised Cancers.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "47f3a708b063ffb6573425c5ec29b73753b26d705e03574a2d63a6749d819ba5",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "Cell proliferation effects of cyclin-selective compounds are not peptide proteolytic stability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 20,
+      "rule_id": "K2-d8d5e35df5ab",
+      "pmcid": "PMC13705407",
+      "source_title": "Peptides and Peptide Analogues Targeting Acetylcholinesterase-Associated Mechanisms in Alzheimer’s Disease and Dementias: Evidence Gaps, Design Strategies, and Translational Perspectives",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "95c147befee799b64d8cb2e85a8d0a3b085a1a4aa2b0bc6c69c34cf8e1305481",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_strength",
+        "scope"
+      ],
+      "rationale": "Review explicitly calls the glutamine association preliminary and docking-predicted, not a validated affinity-enhancing intervention.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 21,
+      "rule_id": "K2-0cfc1eddea42",
+      "pmcid": "PMC12043242",
+      "source_title": "Heuristic energy-based cyclic peptide design.",
+      "source_pub_type": "research-article; journal article; research support, n.i.h., extramural",
+      "source_text_sha256": "d4f44cebecd35d53edf8102693ab3dc59106ab841e9e79146b2bdf70e711f78a",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction"
+      ],
+      "rationale": "Rg-window comparisons assess simulation convergence; they do not establish unchanged chameleonicity or experimental stability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 22,
+      "rule_id": "K2-35e752b60f39",
+      "pmcid": "PMC13702101",
+      "source_title": "Artificial Intelligence for Therapeutic Peptide Discovery and Development",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "473e13c6e512ca27a40a2501c8c236f8ccd9cebbef6ebf18655910ef54858b96",
+      "statement_support": "unsupported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "unsupported_claim",
+        "endpoint"
+      ],
+      "rationale": "The cited table warns about structural assumptions of a binder-design method; it does not attribute enhanced chameleonicity to cyclic geometry.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 23,
+      "rule_id": "K2-2890046103a6",
+      "pmcid": "PMC13102247",
+      "source_title": "In search of novel PD1 inhibitor from natural products by high-throughput virtual screening and molecular dynamics simulation.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "a453ee62d4ff1d50e3233735f4471070c25480d1f2dcb0bdc5121f343d58a842",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_strength",
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "The identified natural-product candidate has a favorable simulated profile. This is a prediction, not a null binding-affinity effect or general peptide principle.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 24,
+      "rule_id": "K2-b061bd07741b",
+      "pmcid": "PMC9267021",
+      "source_title": "Novel Insights into Factor D Inhibition.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "3ad1f98d2393a5d266d626c639c10b860976e33bf6aed6a297da8d6a5bc6b59d",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "Contacts of a particular factor-D ligand are supported, but a structural contact description does not establish unchanged affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 25,
+      "rule_id": "K2-264150cb5e4b",
+      "pmcid": "PMC12464979",
+      "source_title": "Discovery of Macrocyclic Peptide Binders, Covalent Modifiers, and Degraders of a Structured RNA by mRNA Display.",
+      "source_pub_type": "research support, non-u.s. gov't; research-article; journal article; research support, n.i.h., extramural",
+      "source_text_sha256": "e5f6def71d8dc7cf4ae37c98c555aed0aaad79c7a46e0c0a9316b87ed8cb3cd2",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "The imidazole-bearing tag enables RNA degradation; that endpoint is unrelated to resistance of the peptide to proteases.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 26,
+      "rule_id": "K2-7e872b67f796",
+      "pmcid": "PMC12114740",
+      "source_title": "Exploring Macrocyclic Chemical Space: Strategies and Technologies for Drug Discovery.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "977f993ada98361ab84f62eadc8b4883f2045dd7085b5a3a5a4ae9e9647bed79",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "Macformer generation capability is supported as a computational-method description, not a no-effect synthesis result.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 27,
+      "rule_id": "K2-b7235ee3f1d7",
+      "pmcid": "PMC12669231",
+      "source_title": "Food-derived linear vs. rationally designed cyclic peptides as potent TNF-alpha inhibitors: an integrative computational study.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "3b6eaae4dd21ab916960c13cac831da2acef8a7748f7bc9dadb14ce30f746894",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "scope"
+      ],
+      "rationale": "One redesigned peptide has a simulated RMSD near the comparator. RMSD is not permeability, and the plural generalization exceeds the example.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 28,
+      "rule_id": "K2-c5ca8cc8209c",
+      "pmcid": "PMC13609706",
+      "source_title": "Anticancer Peptides: Design Principles, Translational Bottlenecks, and Emerging Opportunities.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "a405063106d01c1578ff1024d0843d8dec9a9181150bbeca247940ef3ce2a124",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "assay"
+      ],
+      "rationale": "The review explicitly preserves a possible stability-solubility tradeoff, but the stored binding assay is not evidence for this solubility statement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 29,
+      "rule_id": "K2-86e869efde62",
+      "pmcid": "PMC12643943",
+      "source_title": "Accurate de novo design of high-affinity protein-binding macrocycles using deep learning.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "7bf75513fd172210936d836bdad2d56b4bf67c76f2938b7298ecb17e1f6576c9",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "evidence_strength"
+      ],
+      "rationale": "The authors propose scaling structural generation and state they did not comprehensively enumerate it. This is not demonstrated synthesis improvement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 30,
+      "rule_id": "K2-99b9e6233369",
+      "pmcid": "PMC13511641",
+      "source_title": "The Influence of the Central Metal (Zn) in the Porphyrin Skeleton on the Mechanism Induced by Photodynamic Therapy.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "88c0ae2f8378456e8549dbc47c4a37756e7cf859bfa7c7061a27810773aa280e",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "entity_scope"
+      ],
+      "rationale": "The review discusses subcellular localization of zinc porphyrins; this is not a peptide permeability-effect measurement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 31,
+      "rule_id": "K2-160e950b24bd",
+      "pmcid": "PMC13549581",
+      "source_title": "Bioactive compounds from marine algae targeting MMP-9: A computational approach to rheumatoid arthritis treatment.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "aea519ac046506aaaa27e8045e93d3ce455f6ddf4a6bd2b7f8488d51b736bb7f",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_strength",
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "The statement retains tentative computational interpretation of marine small molecules. No-effect affinity is unsupported and peptide transfer is unjustified.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 32,
+      "rule_id": "K2-a3845cf81795",
+      "pmcid": "PMC13616177",
+      "source_title": "Advances of Peptide-Drug Conjugates in the Treatment of Digestive System Tumors.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "b3c2d208f7563bbfb2984f87e4307d2e11fdbe16cdd60debb26d591151ddfb33",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "Sphere formation is a tumor-cell phenotype, not proteolytic stability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 33,
+      "rule_id": "K2-d348c6558a86",
+      "pmcid": "PMC12643943",
+      "source_title": "Accurate de novo design of high-affinity protein-binding macrocycles using deep learning.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "7bf75513fd172210936d836bdad2d56b4bf67c76f2938b7298ecb17e1f6576c9",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction"
+      ],
+      "rationale": "Crystal/design agreement is supported for the named complexes, but it does not establish unchanged conformational chameleonicity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 34,
+      "rule_id": "K2-765013b09be4",
+      "pmcid": "PMC13702101",
+      "source_title": "Artificial Intelligence for Therapeutic Peptide Discovery and Development",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "473e13c6e512ca27a40a2501c8c236f8ccd9cebbef6ebf18655910ef54858b96",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "CamSol-PTM capability is accurately described; it is not a null solubility intervention result.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 35,
+      "rule_id": "K2-6dbd364509fb",
+      "pmcid": "PMC12669231",
+      "source_title": "Food-derived linear vs. rationally designed cyclic peptides as potent TNF-alpha inhibitors: an integrative computational study.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "3b6eaae4dd21ab916960c13cac831da2acef8a7748f7bc9dadb14ce30f746894",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_strength",
+        "endpoint",
+        "scope"
+      ],
+      "rationale": "The source frames improved pharmacokinetics as a computationally motivated possibility requiring experiments; it does not measure proteolytic stability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 36,
+      "rule_id": "K2-95c32663db92",
+      "pmcid": "PMC13498767",
+      "source_title": "Dual-Targeting, Hybrid Antifungal Agents Targeting Candida albicans-An Overview.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "61b1c7da9412fe4747de50701d87999acfcecb9a091c2182c6304c98fed2761c",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "entity_scope"
+      ],
+      "rationale": "The evidence concerns CRISPR antifungal efficacy from gene cotargeting, not peptide membrane permeability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 37,
+      "rule_id": "K2-5cbaf9b6cdce",
+      "pmcid": "PMC13288458",
+      "source_title": "Systematic Evaluation of Peptidomimetic Modifications in a Major Histocompatibility Complex Class I Model Epitope: A Framework for Immunogenic Antigen Design.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "7f553924e9ca5700d697620ab3573138694310a77cf28364e63eb96cecd919a0",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "endpoint",
+        "direction"
+      ],
+      "rationale": "A permissive anchor-modified epitope is supported, while many other positions impair T-cell activation. The broad anchor-site statement and null affinity label are not supported.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 38,
+      "rule_id": "K2-c3de147f85eb",
+      "pmcid": "PMC13511641",
+      "source_title": "The Influence of the Central Metal (Zn) in the Porphyrin Skeleton on the Mechanism Induced by Photodynamic Therapy.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "88c0ae2f8378456e8549dbc47c4a37756e7cf859bfa7c7061a27810773aa280e",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "entity_scope"
+      ],
+      "rationale": "The review links persistence and photosensitivity while warning about lipophilicity; the conditional porphyrin risk is not an established transferable peptide effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 39,
+      "rule_id": "K2-f51beb60c680",
+      "pmcid": "PMC13527846",
+      "source_title": "Bioinformatic analysis and characterization of the anti-CD20 scFv-conjugated Fe&lt;sub&gt;3&lt;/sub&gt;O&lt;sub&gt;4&lt;/sub&gt; nanoparticles for targeted therapy of CD20&lt;sup&gt;+&lt;/sup&gt; leukemia cells.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "8c4cb37648338372143e0f97e8034efc312938955d34bb51de165c40a370f233",
+      "statement_support": "contradicted",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "entity_assignment",
+        "direction"
+      ],
+      "rationale": "The light and heavy chains belong to the scFv, not CD20. The statement reverses molecular ownership; docking contacts also do not establish null affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 40,
+      "rule_id": "K2-e94178b4f33a",
+      "pmcid": "PMC9856412",
+      "source_title": "Molecular Modeling Insights into the Structure and Behavior of Integrins: A Review.",
+      "source_pub_type": "research support, non-u.s. gov't; review-article; review; journal article",
+      "source_text_sha256": "47e922ea8739bf30ed6f7d34550651abfe4a149adda4cea1781dac28621229e2",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "The review supports the proposed interaction roles for the scoped antagonist, not a no-effect affinity comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 41,
+      "rule_id": "K2-14ba9a4cdccf",
+      "pmcid": "PMC12314892",
+      "source_title": "Macrocyclic Phage Display for Identification of Selective Protease Substrates.",
+      "source_pub_type": "research-article; journal article; research support, n.i.h., extramural",
+      "source_text_sha256": "5b5a31cebdb2059b001dece0a7a92ad167229aa43cf6635189a260491009863c",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "feature_mapping"
+      ],
+      "rationale": "Selective substrates were obtained through selection and optimization. No isolated ring-topology intervention or quantified selectivity increase is identified by this platform-capability statement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 42,
+      "rule_id": "K2-2a3df82aec81",
+      "pmcid": "PMC13406010",
+      "source_title": "Engineering Protease-Resistant Peptides via Non-Canonical Amino Acids: Design Strategies and Biosynthetic Advances.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "1f07ab449a490a0036242aaff3f2ef782b33190fa61e3b5928fa8a22625576e3",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "direction"
+      ],
+      "rationale": "The review says most ncAA peptides still require injection; the statement removes that qualifier and incorrectly labels the route discussion no-effect oral bioavailability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 43,
+      "rule_id": "K2-8e8d92a7b937",
+      "pmcid": "PMC13006950",
+      "source_title": "Alkyne Nitro Tag Enables Stable and Efficient Protein Functionalization of Gold Nanoparticles.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "f8cf664bc1835a10cb18ded072ac0c448063f5a6ec6e9ef8c8ed836640025b34",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "effect_size",
+        "entity_scope"
+      ],
+      "rationale": "Lower antibody concentration in nanoparticle conjugation is supported. It is not macrocyclization, and the stored effect of one unit lacks a grounded comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 44,
+      "rule_id": "K2-29045061eea2",
+      "pmcid": "PMC13616177",
+      "source_title": "Advances of Peptide-Drug Conjugates in the Treatment of Digestive System Tumors.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "b3c2d208f7563bbfb2984f87e4307d2e11fdbe16cdd60debb26d591151ddfb33",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "scope"
+      ],
+      "rationale": "The specific conjugate improves accumulation, cytotoxicity and mouse efficacy; these are not binding-affinity measurements or a universal targeting-peptide effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 45,
+      "rule_id": "K2-8a1e9551d716",
+      "pmcid": "PMC12880534",
+      "source_title": "Isothiocyanate-mediated cyclization of phage-displayed peptides enables discovery of macrocyclic binders.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "566f120fbf5e2a62e0f338f4abbecbfd7d8269d4fb49d61980189b20158d6cad",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "unsupported_comparison"
+      ],
+      "rationale": "The quoted IC50 establishes inhibition by CD1, not a matched cyclization advantage, and not increased metabolic stability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 46,
+      "rule_id": "K2-75505cb99677",
+      "pmcid": "PMC13511641",
+      "source_title": "The Influence of the Central Metal (Zn) in the Porphyrin Skeleton on the Mechanism Induced by Photodynamic Therapy.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "88c0ae2f8378456e8549dbc47c4a37756e7cf859bfa7c7061a27810773aa280e",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "entity_scope"
+      ],
+      "rationale": "Triplet-state oxygen sensitization is porphyrin photophysics, not binding affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 47,
+      "rule_id": "K2-069e18f1686c",
+      "pmcid": "PMC13508093",
+      "source_title": "Chemoenzymatic Modification of Microcin J25 with Single-Residue Precision Provides New-to-Nature Lasso Peptides.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "d555d6bf03d5e4805d94d9f9aaafd77e54343cb358e95ce5bbf163c8e7e8fa7c",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "certainty"
+      ],
+      "rationale": "Activity recovery supports successful lasso restoration; the cited passage does not prove topology is universally essential, and MIC is not affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 48,
+      "rule_id": "K2-b3d97b204a9e",
+      "pmcid": "PMC13567725",
+      "source_title": "Chemistry and Biological Activity of 11&lt;i&gt;H&lt;/i&gt;-Indeno[1,2-&lt;i&gt;b&lt;/i&gt;]quinoxalin-11-ones and Tryptanthrins, Their Oximes, and Related Analogues.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "8147599de1083b7722bdbe5e283d0efa3237f74623c3fd35a85670da00ef028d",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "assay",
+        "entity_scope"
+      ],
+      "rationale": "The review discusses small-molecule EGFR mutant inhibition. Docking/affinity labels do not preserve the reported inhibitory endpoint or peptide scope.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 49,
+      "rule_id": "K2-5e336f9c1699",
+      "pmcid": "PMC13243568",
+      "source_title": "Massive barcode-free chemical screenings enable the discovery of bioactive macrocycles with passive membrane permeability.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "5a33e2244911b71b33b6c742f0b970f0b9fb75fe83199517a8b8dec3b572fcd2",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "The library-quality estimate is supported, explicitly distinct from total synthesis yield. It is a descriptive quality estimate, not a null-effect comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 50,
+      "rule_id": "K2-84520dba91be",
+      "pmcid": "PMC11565579",
+      "source_title": "Selection of Nucleotide-Encoded Mass Libraries of Macrocyclic Peptides for Inaccessible Drug Targets.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "a46e4edc2bf95e9c1fa597bab698af8a352e4274e65394faa31e63bc2e83ab19",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "unsupported_comparison"
+      ],
+      "rationale": "Potent inhibitors have been obtained with stapling; existence of potent examples does not demonstrate an affinity increase relative to matched unstapled controls.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 51,
+      "rule_id": "K2-0fa14215d118",
+      "pmcid": "PMC13406610",
+      "source_title": "Integrated Multi-Omics Identifies Core Molecular Targets in Cerebral Venous Sinus Thrombosis-Induced Brain Injury.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "9054d759faf4702d29756b66208c1ae50324fce59eed1d80700380d5e0b8ca11",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "evidence_strength"
+      ],
+      "rationale": "The proposed energetic drivers apply to one simulated methylprednisolone-CD44 complex. The statement generalizes them beyond that small-molecule calculation.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 52,
+      "rule_id": "K2-e27d3482357f",
+      "pmcid": "PMC12775822",
+      "source_title": "Lead radionuclides for theranostic applications in nuclear medicine: from atom to bedside.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "2c9030c4a439f36d7fc83d791b4634912c7f78bffc64eb5f4677c51d69a62548",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction",
+        "scope"
+      ],
+      "rationale": "Imaging concordance in one patient is not a peptide permeability measurement or null-effect result.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 53,
+      "rule_id": "K2-f5375ce003a1",
+      "pmcid": "PMC12699105",
+      "source_title": "Intrinsically Fluorescent Nano-Scaled Peptide Aggregates Upon Arginine to Citrulline Swap.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "52cb4c37afde66dc03e23c237b09af2cea43ff4e0f8b8d80327d9d55df630bf8",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "Arginine-to-citrulline replacement increases aggregate fluorescence; the property is not binding affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 54,
+      "rule_id": "K2-790bac4af4cd",
+      "pmcid": "PMC13511641",
+      "source_title": "The Influence of the Central Metal (Zn) in the Porphyrin Skeleton on the Mechanism Induced by Photodynamic Therapy.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "88c0ae2f8378456e8549dbc47c4a37756e7cf859bfa7c7061a27810773aa280e",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "The review describes localization-dependent photodamage, not a null binding-affinity effect of peptide topology.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 55,
+      "rule_id": "K2-202a587ae6c2",
+      "pmcid": "PMC12751008",
+      "source_title": "Discovery of Zilucoplan: A Complement C5 Inhibitor for Treatment of Anti-Acetylcholine Receptor (AChR) Antibody-Positive Generalized Myasthenia Gravis (gMG).",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "a99769b28cb7dd251668c301a6783c80443289a3e07d942e85fb19a6a3704345",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "certainty"
+      ],
+      "rationale": "Terminal Nvl truncation had little or no effect on inhibition potency in the stated series. Exact no-effect binding affinity is stronger and a different endpoint.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 56,
+      "rule_id": "K2-872ff0412c72",
+      "pmcid": "PMC13633766",
+      "source_title": "Recent Advances in Cyclic Peptide-Based Therapeutic Strategies for Renal Cell Carcinoma: A Focused Review.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "cddeaee91b509d38b2c893ff8d550e3f3fb6d1d905ec47d77c563005d1f2ecb8",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "scope"
+      ],
+      "rationale": "Sustained lesion signal is supported for the radiolabeled CAIX ligand; tumor uptake is not membrane permeability or a general cyclic-peptide property.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 57,
+      "rule_id": "K2-702d24aa4fc3",
+      "pmcid": "PMC12990040",
+      "source_title": "PEGASUS: Unlocking Polarity in Cell-Permeable Cyclic Peptides Using AI Models Built on Massively Parallel Biological Assays.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "0879bc2719c9aa05f25f1bf3578ee2b4ada99d7082bea1a2ee76551732c884a7",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "Generation of diverse calculated conformers is supported; it is not a no-effect chameleonicity comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 58,
+      "rule_id": "K2-c58dc814197d",
+      "pmcid": "PMC13406010",
+      "source_title": "Engineering Protease-Resistant Peptides via Non-Canonical Amino Acids: Design Strategies and Biosynthetic Advances.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "1f07ab449a490a0036242aaff3f2ef782b33190fa61e3b5928fa8a22625576e3",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "feature_mapping",
+        "assay"
+      ],
+      "rationale": "The review recommends alpha-methylation in helical peptides for protease resistance. The ring-topology classification and Table 1 assay label do not describe the intervention or assay.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 59,
+      "rule_id": "K2-a91629450a2e",
+      "pmcid": "PMC12990023",
+      "source_title": "The Biggest Challenge for Prediction of Membrane Permeability of Cyclic Peptides: Scarce Data Availability.",
+      "source_pub_type": "article-commentary; journal article",
+      "source_text_sha256": "44952664435fea6186464767a6ec96e5f47422b717327f52899cf6866ccc57ae",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_tier",
+        "scope"
+      ],
+      "rationale": "The source is a commentary offering general background, not primary evidence that macrocyclic structure increases selectivity across peptides.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 60,
+      "rule_id": "K2-1a357cf8991e",
+      "pmcid": "PMC13705407",
+      "source_title": "Peptides and Peptide Analogues Targeting Acetylcholinesterase-Associated Mechanisms in Alzheimer’s Disease and Dementias: Evidence Gaps, Design Strategies, and Translational Perspectives",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "95c147befee799b64d8cb2e85a8d0a3b085a1a4aa2b0bc6c69c34cf8e1305481",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "feature_mapping"
+      ],
+      "rationale": "The review recommends BChE profiling; it reports no null AChE-affinity effect and no charge/polarity intervention.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 61,
+      "rule_id": "K2-ee423b8bceeb",
+      "pmcid": "PMC12650660",
+      "source_title": "Novel Synthetic Strategies Towards Analogues of Cadaside and Malacidin Antibiotic Peptides.",
+      "source_pub_type": "research support, non-u.s. gov't; research-article; journal article",
+      "source_text_sha256": "9d3d4fbda66394b2d16f23c96bfa973b36c3092cbc63cbb3d9cccf7a82cb61ac",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "unsupported_comparison",
+        "effect_size"
+      ],
+      "rationale": "Complete conversion under microwave conditions is reported without a matched efficiency comparison. The stored one-unit efficiency effect is unsupported.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 62,
+      "rule_id": "K2-8b37b66256d7",
+      "pmcid": "PMC13511641",
+      "source_title": "The Influence of the Central Metal (Zn) in the Porphyrin Skeleton on the Mechanism Induced by Photodynamic Therapy.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "88c0ae2f8378456e8549dbc47c4a37756e7cf859bfa7c7061a27810773aa280e",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "The review says axial coordination alters porphyrin solubility among other properties; encoding no_effect contradicts that nonsigned alteration claim.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 63,
+      "rule_id": "K2-bb08efb3b900",
+      "pmcid": "PMC7913925",
+      "source_title": "Design and Evaluation of a Polypeptide that Mimics the Integrin Binding Site for EDA Fibronectin to Block Profibrotic Cell Activity.",
+      "source_pub_type": "research-article; evaluation study; journal article",
+      "source_text_sha256": "89ed80757ecfd776082122c04c53d0a9be30d6a3775f73900bcaab1094081d11",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "certainty",
+        "direction"
+      ],
+      "rationale": "The source and statement retain a speculative lower-affinity explanation. An unconditional decreases field loses the hypothesis status; no measured directional effect is established.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 64,
+      "rule_id": "K2-060e52af5d92",
+      "pmcid": "PMC13474152",
+      "source_title": "Protein-protein interaction inhibitors in the human proteome: lessons from 117 targeted interactions.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "2caa3ef0315b09fea28d52003523d8fa21a6a8f8c06ecaf2f962df8031b36e47",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "effect_size"
+      ],
+      "rationale": "Nanomolar hDM2 affinity is supported as an absolute property, not an improvement. The greater-than-one-nanomolar effect encoding is not the reported comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 65,
+      "rule_id": "K2-c5d817299bc8",
+      "pmcid": "PMC12308377",
+      "source_title": "Influence of Macrocyclization Strategies on DNA-Encoded Cyclic Peptide Libraries.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "cf482ccc557606928499350670d1e165f53dd76643d2b56083f9da785f390943",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction",
+        "effect_size"
+      ],
+      "rationale": "The 11 nM inhibition constant is reported for cmp-10, but an absolute Ki is not a demonstrated affinity increase or a specified lower-than comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 66,
+      "rule_id": "K2-92b61cfa7553",
+      "pmcid": "PMC13361338",
+      "source_title": "Functional Engineering of Bioactive Peptides: Chemical Modifications and Synthetic Biology Approaches.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "639efdca20e77bf03485f599f448660b97842c9b963fbc592e1b333bc91ef05c",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction"
+      ],
+      "rationale": "Side-chain functionalization can enable recognition and delivery functions; the review does not demonstrate a general affinity increase.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 67,
+      "rule_id": "K2-8b7dda3a35c0",
+      "pmcid": "PMC13576450",
+      "source_title": "Discovery of Highly Selective Noncovalent Macrocyclic Peptide Inhibitors Suppressing Both TMPRSS2 Protease Activity and Viral Receptor Function.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "21935e42ba9a169c238196d43e306aa036f6cd540807eff921e50cdb0c5cc2ef",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "assay",
+        "effect_size"
+      ],
+      "rationale": "Superior inhibition is supported, but the stored endpoint and magnitude mix assays. The substrate-assay table reports 3.9 and 0.85 nM for the two compounds; the explicit approximately tenfold comparison occurs in VLP uptake, not the quoted spike-cleavage comparison.",
+      "context_review": "Stored quoted paragraph, extended adjacent VLP context, and substrate-assay table inspected.",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 68,
+      "rule_id": "K2-2ca99edbcd9b",
+      "pmcid": "PMC13705407",
+      "source_title": "Peptides and Peptide Analogues Targeting Acetylcholinesterase-Associated Mechanisms in Alzheimer’s Disease and Dementias: Evidence Gaps, Design Strategies, and Translational Perspectives",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "95c147befee799b64d8cb2e85a8d0a3b085a1a4aa2b0bc6c69c34cf8e1305481",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "The source warns against assuming BBB improvement. Absence of justification is not evidence of no effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 69,
+      "rule_id": "K2-57e3dd135f0d",
+      "pmcid": "PMC12650660",
+      "source_title": "Novel Synthetic Strategies Towards Analogues of Cadaside and Malacidin Antibiotic Peptides.",
+      "source_pub_type": "research support, non-u.s. gov't; research-article; journal article",
+      "source_text_sha256": "9d3d4fbda66394b2d16f23c96bfa973b36c3092cbc63cbb3d9cccf7a82cb61ac",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "evidence_strength"
+      ],
+      "rationale": "The source explicitly treats turbidity changes and bactericidal rescue as tentative. This does not measure increased binding affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 70,
+      "rule_id": "K2-6d1bd0f482e5",
+      "pmcid": "PMC13492385",
+      "source_title": "Cyclic Peptides in Modern Drug Discovery: Trends and Therapeutic Directions.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "5157d83f12a5997740078c98ec5502fb05dda1b91e37c6d6f2ed4bb8afc0cdcc",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "endpoint"
+      ],
+      "rationale": "The review's reversible redox example is disulfide cyclization; extending it to side-to-side closures generally and calling it increased chameleonicity overstates scope.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 71,
+      "rule_id": "K2-66b4ca5b727a",
+      "pmcid": "PMC13566115",
+      "source_title": "Thiazole-Substituted Benzoylpiperazines with Anti-Cancer and Anti-Inflammatory Activities: Comparative Evaluation with Lercanidipine.",
+      "source_pub_type": "comparative study; research-article; journal article",
+      "source_text_sha256": "d41361af8647654960f7c36db37ac9656378acf6ef72c9060ea935ee8f7868b1",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_strength",
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "Specific small-molecule docking contacts are predicted, not experimentally established or a null-affinity comparison.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 72,
+      "rule_id": "K2-6408419b5ac0",
+      "pmcid": "PMC9267021",
+      "source_title": "Novel Insights into Factor D Inhibition.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "3ad1f98d2393a5d266d626c639c10b860976e33bf6aed6a297da8d6a5bc6b59d",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "The co-crystal pocket assignment is supported for the KLK7 ligand, not a no-effect affinity finding or generic peptide rule.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 73,
+      "rule_id": "K2-668691fdb0e6",
+      "pmcid": "PMC13243568",
+      "source_title": "Massive barcode-free chemical screenings enable the discovery of bioactive macrocycles with passive membrane permeability.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "5a33e2244911b71b33b6c742f0b970f0b9fb75fe83199517a8b8dec3b572fcd2",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "Library scaffold composition is accurately described but is not a null synthesis or macrocyclization effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 74,
+      "rule_id": "K2-96efda98a95d",
+      "pmcid": "PMC12114740",
+      "source_title": "Exploring Macrocyclic Chemical Space: Strategies and Technologies for Drug Discovery.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "977f993ada98361ab84f62eadc8b4883f2045dd7085b5a3a5a4ae9e9647bed79",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "endpoint",
+        "direction"
+      ],
+      "rationale": "Two-dimensional descriptors failed to distinguish specified isomers. The statement generalizes to all macrocycles, and prediction failure is not decreased permeability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 75,
+      "rule_id": "K2-44e4ae217207",
+      "pmcid": "PMC13234858",
+      "source_title": "Minimal &lt;i&gt;N&lt;/i&gt;-methylated and stapled peptide inhibitors of the autophagy protein GABARAP.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "0d64d1ec1a8cc2f76bba31960047b8bf8ee22cd5e9cbb75bfd9cb890e00798b2",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "Nonadditivity of combined stapling and methylation is supported. Nonadditivity does not by itself mean no binding effect relative to an explicit comparator.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 76,
+      "rule_id": "K2-12d317100c83",
+      "pmcid": "PMC11736853",
+      "source_title": "Peptide design to control protein-protein interactions.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "4696c5614fe640cd4d40d5b57354f44d7e38b92f522e70a84306e5f6dc16bdbc",
+      "statement_support": "contradicted",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "endpoint"
+      ],
+      "rationale": "In the scoped R6IP example charge neutralization improves uptake while affinity becomes weaker. The claimed affinity increase reverses the reported tradeoff.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 77,
+      "rule_id": "K2-cfed683dfb93",
+      "pmcid": "PMC12043242",
+      "source_title": "Heuristic energy-based cyclic peptide design.",
+      "source_pub_type": "research-article; journal article; research support, n.i.h., extramural",
+      "source_text_sha256": "d4f44cebecd35d53edf8102693ab3dc59106ab841e9e79146b2bdf70e711f78a",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "effect_size"
+      ],
+      "rationale": "The RMSD range concerns structural prediction accuracy, not toxicity. The stored strict less-than endpoint also fails to preserve the reported range.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 78,
+      "rule_id": "K2-398041183b53",
+      "pmcid": "PMC13516041",
+      "source_title": "Phage Display as a Promising Platform for Peptide Drug Discovery.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "a20073b4b33ef66ce32b4bd2bc689eb849be002510023b67d4b51f67d2316abe",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 1,
+      "error_categories": [],
+      "rationale": "The review explicitly reports improved proteolytic stability from alpha-helix stapling. Retain as a review-level scoped summary, not a universal guarantee or numerical prior.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 79,
+      "rule_id": "K2-2eadcb923807",
+      "pmcid": "PMC13625726",
+      "source_title": "Conformational Preference Classification of Integrin-Binding Ligands Using Free Energy Perturbation.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "a1bb30834b4cc220ff362b9cf71539ede336eddad2b158ce7621637a8aa6fb1e",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "Relative similarity of predicted affinities among integrin states does not imply a uniform affinity increase.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 80,
+      "rule_id": "K2-89883bc845e3",
+      "pmcid": "PMC13023937",
+      "source_title": "Natural Products Targeting PAD4 in NETosis: Structural and Mechanistic Insights into Direct and Indirect Inhibition.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "70a36c2ecdbb726998fcb8c0db6af176eaf22c9c67f5a35561f1889387b7ceff",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "entity_scope"
+      ],
+      "rationale": "The review preserves predicted curcumin contacts and cautions about indirect mechanisms. This is neither a null-affinity result nor a peptide design effect.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 81,
+      "rule_id": "K2-444902c93d74",
+      "pmcid": "PMC13184931",
+      "source_title": "Site-Specific Immobilization of ZNRF3 Reveals the Importance of Target Structural Integrity on Macrocyclic Peptide Selections.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "757374cb83ae0887c43412b03ed96a3b30bf617c6ef4cbcba98ddf49c48e2cc6",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "Selection enrichment/convergence changes are supported; these are not measured decreases in ligand affinity.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 82,
+      "rule_id": "K2-21274c4bb34e",
+      "pmcid": "PMC13246153",
+      "source_title": "Peptides as programmable molecular scaffolds: from chemical synthesis and engineering to translational medicine.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "487de17cee8d31e0324a29d8111e0278dca59ecd626a68ad7557abfb9b14316f",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 1,
+      "error_categories": [],
+      "rationale": "The review explicitly attributes improved proteolytic stability to the described TBMB-crosslinked bicyclic display platform. Retain at review level with that chemistry and scope.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 83,
+      "rule_id": "K2-89f0b1d50a55",
+      "pmcid": "PMC11829961",
+      "source_title": "Discovery of selective low molecular weight interleukin-36 receptor antagonists by encoded library technologies.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "3e761871bd1c7e64a354ee6a4ffbc00796b8b002cbe6130129f351273cdc7236",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "evidence_tier",
+        "unsupported_comparison"
+      ],
+      "rationale": "The introduction cites emerging oral-peptide strategies including permeation enhancers, not a demonstrated cyclization-driven oral-bioavailability increase in this study.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 84,
+      "rule_id": "K2-0d4e6cdeef08",
+      "pmcid": "PMC13618306",
+      "source_title": "Beyond Simple Mimicry: Next-Generation Geometric Architectures and Future Paradigms in Small-Molecule and Macrocyclic Peptidomimetics.",
+      "source_pub_type": "other; review; journal article",
+      "source_text_sha256": "cd1846e12408ba537038b4c0a896d6e0b9615667597331c09a005382f3dc7c6d",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "PCSK9 inhibition and cholesterol lowering concern pharmacology; oral availability does not turn this into a membrane-permeability effect measurement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 85,
+      "rule_id": "K2-694e007e24cb",
+      "pmcid": "PMC12650660",
+      "source_title": "Novel Synthetic Strategies Towards Analogues of Cadaside and Malacidin Antibiotic Peptides.",
+      "source_pub_type": "research support, non-u.s. gov't; research-article; journal article",
+      "source_text_sha256": "9d3d4fbda66394b2d16f23c96bfa973b36c3092cbc63cbb3d9cccf7a82cb61ac",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "direction",
+        "certainty"
+      ],
+      "rationale": "Stereochemical fidelity is implicated in antibacterial activity, with unresolved roles in simplified analogues. Increased affinity is neither measured nor a valid signed generalization.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 86,
+      "rule_id": "K2-e7075f6fdbe5",
+      "pmcid": "PMC13511641",
+      "source_title": "The Influence of the Central Metal (Zn) in the Porphyrin Skeleton on the Mechanism Induced by Photodynamic Therapy.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "88c0ae2f8378456e8549dbc47c4a37756e7cf859bfa7c7061a27810773aa280e",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "entity_scope",
+        "endpoint"
+      ],
+      "rationale": "The review concerns porphyrin substituents and multiple uptake/transport mechanisms. It cannot establish an unconditional passive-permeability rule for cyclic peptides.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 87,
+      "rule_id": "K2-fa6a03251b70",
+      "pmcid": "PMC12692123",
+      "source_title": "Structure-Guided Design of Cyclic Peptide: A Potent Inhibitor Targeting PD-1/PD-L1 Axis with Antitumor Activity.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "c3575b23d3b78e583ea0b30ea28b7cec14bec3885f2174db2f47de81c557d79b",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "causal_attribution",
+        "endpoint"
+      ],
+      "rationale": "Preserving binding residues is a design constraint while cyclization/substitutions aim to improve other properties; preservation itself is not shown to cause the claimed improvements.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 88,
+      "rule_id": "K2-b9d42bacf78e",
+      "pmcid": "PMC12071049",
+      "source_title": "&lt;sup&gt;68&lt;/sup&gt;Ga-Trivehexin: Current Status of αvβ6-Integrin Imaging and Perspectives.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "24457353e80e3eff36799c9bd55d67e9f2e22ed1c341dd68e6ea13a0dc7e1698",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope"
+      ],
+      "rationale": "The review supports improved selectivity upon trimerization in a particular Tyr2-modified tracer series. The extracted generic trimerized-peptide scope omits the essential series/comparator.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 89,
+      "rule_id": "K2-33cf3520f36e",
+      "pmcid": "PMC13334703",
+      "source_title": "HFGuidedDesign: &lt;i&gt;de novo&lt;/i&gt; design of cyclic peptide binders &lt;i&gt;via&lt;/i&gt; structure-guided discrete diffusion.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "7c9de12e6dd05cca2dd55a63527757c93ea19917b12337c431d71260de6e4807",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "effect_size",
+        "direction"
+      ],
+      "rationale": "The predicted-affinity statement is supported, but the effect field drops the negative sign and range structure; no_effect is not a result of these calculations.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 90,
+      "rule_id": "K2-b283c57c6b6a",
+      "pmcid": "PMC13531348",
+      "source_title": "Flexible molecular chameleons: structural adaptability and therapeutic applications.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "120857c7ab8c7ed0171c4fea67bf4f244c11c9c85db8ed47ac116efaccda2263",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "evidence_strength",
+        "endpoint"
+      ],
+      "rationale": "The source suggests design improvements and describes permeable macrocycles. It does not demonstrate a general drug-efficacy or binding-affinity improvement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 91,
+      "rule_id": "K2-fce8a45fea06",
+      "pmcid": "PMC12669231",
+      "source_title": "Food-derived linear vs. rationally designed cyclic peptides as potent TNF-alpha inhibitors: an integrative computational study.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "3b6eaae4dd21ab916960c13cac831da2acef8a7748f7bc9dadb14ce30f746894",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "entity_assignment",
+        "evidence_strength",
+        "endpoint"
+      ],
+      "rationale": "The named dual-anchor residues belong to the TNF-alpha interface in docking context. The statement assigns the motif to peptides and turns modeled stability into affinity improvement.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 92,
+      "rule_id": "K2-8ca1206cc439",
+      "pmcid": "PMC13325526",
+      "source_title": "Synthetic Ligands of Myeloid C-Type Lectin Receptors.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "b4d2e4e563139c941be595719f540fcddfdc7aa294b5871ff1da95c90e46e5a9",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "causal_attribution",
+        "entity_scope"
+      ],
+      "rationale": "The sixfold hydrolysis result is for a glycan analogue with additional substituent changes. It cannot isolate ring replacement or transfer to a peptide macrocycle rule.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 93,
+      "rule_id": "K2-64675f97da7a",
+      "pmcid": "PMC13587683",
+      "source_title": "Matching Helical and Supramolecular Chirality in a Perylene Diimide Dimer: Impact on (Chir)Optical Properties.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "af5221ef481c06ef22918434b0f6593f4a4db4b86f0426e2a1dbe1c4a0a807f5",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint",
+        "entity_scope"
+      ],
+      "rationale": "Perylene-diimide excited-state relaxation is photophysics, not metabolic stability.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 94,
+      "rule_id": "K2-8ec0111f7283",
+      "pmcid": "PMC13702101",
+      "source_title": "Artificial Intelligence for Therapeutic Peptide Discovery and Development",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "473e13c6e512ca27a40a2501c8c236f8ccd9cebbef6ebf18655910ef54858b96",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "The source describes environment-dependent hydrogen-bond shielding; it gives no uniformly decreasing permeability direction.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 95,
+      "rule_id": "K2-0d8f194f2e73",
+      "pmcid": "PMC12669231",
+      "source_title": "Food-derived linear vs. rationally designed cyclic peptides as potent TNF-alpha inhibitors: an integrative computational study.",
+      "source_pub_type": "research-article; journal article",
+      "source_text_sha256": "3b6eaae4dd21ab916960c13cac831da2acef8a7748f7bc9dadb14ce30f746894",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "evidence_tier"
+      ],
+      "rationale": "The docking study uses previously validated interface residues. This methods statement is not a null-effect result or new experimental validation in this source.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 96,
+      "rule_id": "K2-9fa4f1ce37cb",
+      "pmcid": "PMC9267021",
+      "source_title": "Novel Insights into Factor D Inhibition.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "3ad1f98d2393a5d266d626c639c10b860976e33bf6aed6a297da8d6a5bc6b59d",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction",
+        "assay",
+        "entity_scope"
+      ],
+      "rationale": "Essential scaffold geometry for factor-D inhibitor activity is not a no-effect comparison. The stored earlier KLK7 co-crystal assay does not establish this later medicinal-chemistry claim.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 97,
+      "rule_id": "K2-ed25817c49d3",
+      "pmcid": "PMC13266291",
+      "source_title": "The fourth controlled release society workshop on oral peptide administration.",
+      "source_pub_type": "brief-report; journal article",
+      "source_text_sha256": "57c3a9d02882ff2151061592cfa69832204a4d7b1d2634472825a54f67ab5e5a",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "scope",
+        "evidence_tier",
+        "certainty"
+      ],
+      "rationale": "A workshop report recounts a context-specific proposed SNAC membrane-fluidization mechanism. It is not general primary experimental proof of channels for all peptides.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 98,
+      "rule_id": "K2-6e93833aa821",
+      "pmcid": "PMC13474152",
+      "source_title": "Protein-protein interaction inhibitors in the human proteome: lessons from 117 targeted interactions.",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "2caa3ef0315b09fea28d52003523d8fa21a6a8f8c06ecaf2f962df8031b36e47",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "direction"
+      ],
+      "rationale": "The review's technology outlook is supported as commentary, not a measured no-effect property rule.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 99,
+      "rule_id": "K2-59bc86b04d5e",
+      "pmcid": "PMC10732398",
+      "source_title": "The V2 domain of HIV gp120 mimics an interaction between CD4 and integrin ⍺4β7.",
+      "source_pub_type": "research support, u.s. gov't, p.h.s.; research support, non-u.s. gov't; research-article; journal article",
+      "source_text_sha256": "9c325b27a52e8678b1de48d4b7da149e2d9cada1beed56cf14ca415274de936f",
+      "statement_support": "supported",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "endpoint"
+      ],
+      "rationale": "Competitive inhibition of ligand binding is supported; it does not demonstrate decreased intrinsic affinity of the peptides themselves.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    },
+    {
+      "sample_row": 100,
+      "rule_id": "K2-06ae7a7edf9a",
+      "pmcid": "PMC13659652",
+      "source_title": "BamA as a next-generation antibacterial target: mechanistic insights, inhibitor landscape, and rational drug design strategies",
+      "source_pub_type": "review-article; review; journal article",
+      "source_text_sha256": "2fbe4d2bbafc936a456786af0bd266d07a2a35138b7f9652b33ebaa6eedfdd67",
+      "statement_support": "partial",
+      "full_entry_correct_0_1": 0,
+      "error_categories": [
+        "certainty",
+        "endpoint",
+        "feature_mapping"
+      ],
+      "rationale": "The review proposes several possible interventions in substrate delivery. It does not establish a measured affinity decrease or a noncanonical-residue intervention.",
+      "context_review": "Stored source paragraph around quote; extended context additionally inspected for rows 23,67,76",
+      "original_rule_unchanged": true,
+      "method_eligible": false
+    }
+  ]
+}

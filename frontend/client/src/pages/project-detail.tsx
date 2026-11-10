@@ -1,4 +1,4 @@
-import { t } from "@/lib/i18n"
+import { t, tOr } from "@/lib/i18n"
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -75,6 +75,20 @@ import { cn } from "@/lib/utils"
 
 /** The three concrete project roles the server assigns (owner|editor|viewer). */
 export type ProjectRole = "owner" | "editor" | "viewer"
+
+/**
+ * Prettify a raw domain/tag token (e.g. "transcriptomics", "drug_discovery") for
+ * display: a localized `domains.*` label when one exists, else a Title-Cased
+ * version of the raw token — never the bare lowercase internal string.
+ */
+export function prettyTag(tag: string): string {
+  return tOr(`domains.${tag}`, tag.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()))
+}
+
+/** Localized label for a project lifecycle status (active|completed|archived|…). */
+export function prettyStatus(status: string): string {
+  return tOr(`projects.status_${status}`, status.charAt(0).toUpperCase() + status.slice(1))
+}
 
 // Rank so a role satisfies any capability requiring an equal-or-lower role.
 // owner ⊃ editor ⊃ viewer (owner can do everything an editor can, etc.).
@@ -198,14 +212,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null)
   // Ownership transfer — the member we're about to promote to owner (null = dialog closed).
   const [transferTarget, setTransferTarget] = useState<{ user_id: string; email: string; fullName?: string } | null>(null)
   const [transferring, setTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
-  // Share link
-  const [shareToken, setShareToken] = useState<string | null>(null)
-  const [shareLinkLoading, setShareLinkLoading] = useState(false)
-  const [shareLinkCopied, setShareLinkCopied] = useState(false)
 
   // Project lifecycle dialogs
   const [renameOpen, setRenameOpen] = useState(false)
@@ -261,61 +272,32 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
   useEffect(() => { loadMembers() }, [loadMembers])
 
-  // Load existing share token (owner only — 404 is fine for non-owners)
-  useEffect(() => {
-    if (!isOwner) return
-    fetch(`/api/projects/${projectId}/share-link`, { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.token) setShareToken(data.token) })
-      .catch(() => {})
-  }, [projectId, isOwner])
-
-  const handleGenerateShareLink = async () => {
-    setShareLinkLoading(true)
-    try {
-      const r = await fetch(`/api/projects/${projectId}/share-link`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ role: "viewer" }),
-      })
-      const data = await r.json()
-      if (r.ok) setShareToken(data.token)
-    } catch { /* ignore */ }
-    finally { setShareLinkLoading(false) }
-  }
-
-  const handleRevokeShareLink = async () => {
-    try {
-      await fetch(`/api/projects/${projectId}/share-link`, { method: "DELETE", credentials: "include" })
-      setShareToken(null)
-    } catch { /* ignore */ }
-  }
-
-  const handleCopyShareLink = () => {
-    if (!shareToken) return
-    const link = `${window.location.origin}/join/${shareToken}`
-    navigator.clipboard.writeText(link).then(() => {
-      setShareLinkCopied(true)
-      setTimeout(() => setShareLinkCopied(false), 2000)
-    })
-  }
+  // Share links are now created+emailed server-side on invite of a new address
+  // (POST /api/projects/:id/members), so the separate generate/copy/revoke UI
+  // and its mount-time fetch were removed.
 
   const handleInvite = async () => {
     if (!shareEmail.trim()) return
     setInviting(true)
     setInviteError(null)
+    setInviteNotice(null)
     try {
+      const invitedEmail = shareEmail.trim()
       const r = await fetch(`/api/projects/${projectId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email: shareEmail.trim(), role: shareRole }),
+        body: JSON.stringify({ email: invitedEmail, role: shareRole }),
       })
       const data = await r.json()
       if (!r.ok) { setInviteError(data.error ?? "Failed to invite"); return }
       setShareEmail("")
-      loadMembers()
+      if (data.pending) {
+        // New (unregistered) email: the server emailed them the join link.
+        setInviteNotice(t('project_members.invite_sent', { email: invitedEmail }))
+      } else {
+        loadMembers()
+      }
     } catch { setInviteError("Failed to invite") }
     finally { setInviting(false) }
   }
@@ -619,7 +601,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" ? { display: "none" } : undefined}>
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
-            <ArrowLeft className="w-4 h-4 mr-2" />All projects
+            <ArrowLeft className="w-4 h-4 mr-2" />{tOr('projects.all_projects', 'All projects')}
           </Button>
         </div>
         <div className="flex items-start justify-between gap-4">
@@ -629,19 +611,19 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{project.description}</p>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {project.category && <Badge variant="outline" className="text-xs">{project.category}</Badge>}
+              {project.category && <Badge variant="outline" className="text-xs">{prettyTag(project.category)}</Badge>}
               <Badge variant="secondary" className={cn(
                 "text-xs",
                 project.status === "completed" && "bg-green-100 text-green-700",
                 project.status === "archived" && "bg-gray-100 text-gray-600",
                 project.status === "active" && "bg-blue-100 text-blue-700",
-              )}>{project.status}</Badge>
+              )}>{prettyStatus(project.status)}</Badge>
               {editingTags.map(tag => (
                 <span
                   key={tag}
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary text-secondary-foreground px-2 py-0.5 text-xs"
                 >
-                  <Tag className="w-3 h-3 opacity-60" />{tag}
+                  <Tag className="w-3 h-3 opacity-60" />{prettyTag(tag)}
                   {canEdit && (
                   <button
                     onClick={() => removeTag(tag)}
@@ -677,9 +659,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button onClick={() => openChatWithProject()} data-testid="button-open-project-chat">
-              <MessageCircle className="w-4 h-4 mr-2" />Chat
-            </Button>
+            {/* Redundant top-right "Chat" entry point removed — the Chat tab navigates here
+                and the center "New Chat" panel is the single primary chat-start action. */}
             {isOwner && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -735,27 +716,27 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   data-testid="panel-new-project-chat"
                 >
                   <MessageCircle className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
-                  <p className="font-medium mb-1">Start a new chat about this project</p>
+                  <p className="font-medium mb-1">{tOr('projects.new_chat_title', 'Start a new chat about this project')}</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    BioMate tracks project files, workflow runs, and research context automatically.
+                    {tOr('projects.new_chat_desc', 'BioMate tracks project files, workflow runs, and research context automatically.')}
                   </p>
                   <Button
                     onClick={e => { e.stopPropagation(); openChatWithProject() }}
                     data-testid="button-new-project-chat"
                   >
-                    <Plus className="w-4 h-4 mr-2" />New Chat
+                    <Plus className="w-4 h-4 mr-2" />{tOr('projects.new_chat', 'New Chat')}
                   </Button>
                 </div>
 
                 {sessionsLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center py-4">
-                    <Loader2 className="w-4 h-4 animate-spin" />Loading sessions…
+                    <Loader2 className="w-4 h-4 animate-spin" />{tOr('projects.loading_sessions', 'Loading sessions…')}
                   </div>
                 ) : sessions.length > 0 ? (
                   <>
                     <div className="flex items-center justify-between shrink-0">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Recent chats ({sessions.length})
+                        {tOr('projects.recent_chats', 'Recent chats ({{count}})', { count: sessions.length })}
                       </p>
                       <button onClick={loadSessions} className="text-muted-foreground hover:text-foreground">
                         <RefreshCw className="w-3 h-3" />
@@ -825,7 +806,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
             <div data-testid="standing-instructions-card" className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : undefined}>
               <div className="flex items-center justify-between mb-1">
-                <h3 className="font-medium text-sm">Standing instructions</h3>
+                <h3 className="font-medium text-sm">{tOr('projects.standing_instructions', 'Standing instructions')}</h3>
                 {canEdit && !isEditingInstructions && (
                   <Button
                     variant="ghost" size="sm" className="h-7 w-7 p-0"
@@ -836,7 +817,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   </Button>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground mb-3">Read by the assistant on every chat in this project.</p>
+              <p className="text-[11px] text-muted-foreground mb-3">{tOr('projects.standing_instructions_hint', 'Read by the assistant on every chat in this project.')}</p>
 
               {isEditingInstructions ? (
                 <div className="space-y-2">
@@ -903,7 +884,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       <Button
                         variant="outline" size="sm" className="h-7 text-xs"
                         onClick={() => handlePromoteNote(newNote)}
-                        title="Append this text to Standing instructions"
+                        title={tOr('projects.promote_tooltip_text', 'Append this text to Standing instructions')}
                         data-testid="button-promote-new-note"
                       >
                         Promote to instruction ↑
@@ -930,7 +911,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           <button
                             onClick={() => handlePromoteNote(n.content)}
                             className="text-[11px] text-muted-foreground hover:text-primary"
-                            title="Append this note to Standing instructions"
+                            title={tOr('projects.promote_tooltip_note', 'Append this note to Standing instructions')}
                             data-testid={`button-promote-note-${n.id}`}
                           >
                             Promote to instruction ↑
@@ -1020,50 +1001,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </span>
             </div>
 
-            {/* Share link — owner only */}
-            {isOwner && (
-              <div className="mb-3 p-2.5 rounded-md bg-muted/40 border border-border">
-                <p className="text-xs font-medium mb-1.5">{t('project_members.invite_link')}</p>
-                {shareToken ? (
-                  <div className="space-y-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        readOnly
-                        value={`${window.location.origin}/join/${shareToken}`}
-                        className="flex-1 h-7 text-xs rounded border border-border bg-background px-2 font-mono truncate focus:outline-none"
-                        data-testid="input-share-link"
-                        onClick={e => (e.target as HTMLInputElement).select()}
-                      />
-                      <Button
-                        size="sm" variant="outline" className="h-7 text-xs px-2 shrink-0"
-                        onClick={handleCopyShareLink}
-                        data-testid="button-copy-share-link"
-                      >
-                        {shareLinkCopied ? t('project_members.copied') : t('project_members.copy')}
-                      </Button>
-                    </div>
-                    <button
-                      className="text-xs text-muted-foreground hover:text-destructive"
-                      onClick={handleRevokeShareLink}
-                      data-testid="button-revoke-share-link"
-                    >
-                      {t('project_members.revoke_link')}
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm" variant="outline" className="h-7 text-xs w-full gap-1.5"
-                    onClick={handleGenerateShareLink}
-                    disabled={shareLinkLoading}
-                    data-testid="button-generate-share-link"
-                  >
-                    {shareLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
-                    {t('project_members.generate_link')}
-                  </Button>
-                )}
-              </div>
-            )}
-
             {isOwner && (
               <div className="space-y-2 mb-3">
                 <div className="flex gap-1.5">
@@ -1095,6 +1032,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   {t('project_members.invite')}
                 </Button>
                 {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+                {inviteNotice && <p className="text-xs text-emerald-600 dark:text-emerald-400">{inviteNotice}</p>}
+                <p className="text-[11px] text-muted-foreground leading-snug">{t('project_members.invite_help')}</p>
               </div>
             )}
 

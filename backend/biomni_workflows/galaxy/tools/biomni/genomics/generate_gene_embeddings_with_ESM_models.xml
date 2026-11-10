@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_generate_gene_embeddings_with_ESM_models" name="Biomni: Generate Gene Embeddings With Esm Models" version="1.0.0">
     <description>Generate average protein embeddings for a list of Ensembl gene IDs.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/generate_gene_embeddings_with_ESM_models_wrapper.py' --output '$output'

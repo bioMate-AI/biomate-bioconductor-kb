@@ -2,7 +2,7 @@
 <tool id="biomni_literature_advanced_web_search_claude" name="Biomni: Advanced Web Search Claude" version="1.0.0">
     <description>Initiate an advanced web search by launching a specialized agent to collect relevant information and citations through multiple rounds of web searches for a given query.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/advanced_web_search_claude_wrapper.py' --output '$output'

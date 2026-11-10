@@ -28,4 +28,24 @@ describe("validateRemoteFileUrl", () => {
       expect.objectContaining({ ok: false }),
     );
   });
+
+  it.each([
+    "https://drive.google.com/file/d/1MEtESuHlAQxaKpBiVKYg6j9hnXA6PhBH/view?usp=drive_link",
+    "https://drive.google.com/open?id=1MEtESuHlAQxaKpBiVKYg6j9hnXA6PhBH",
+    "https://drive.google.com/uc?id=1MEtESuHlAQxaKpBiVKYg6j9hnXA6PhBH&export=download",
+  ])("rewrites a Google Drive share link to a direct large-file download: %s", (value) => {
+    const result = validateRemoteFileUrl(value);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.url.hostname).toBe("drive.usercontent.google.com");
+      expect(result.url.searchParams.get("id")).toBe("1MEtESuHlAQxaKpBiVKYg6j9hnXA6PhBH");
+      expect(result.url.searchParams.get("confirm")).toBe("t");
+    }
+  });
+
+  it("rewrites a Dropbox share link to a direct download (dl=1)", () => {
+    const result = validateRemoteFileUrl("https://www.dropbox.com/s/abc123/reads.fastq.gz?dl=0");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.url.searchParams.get("dl")).toBe("1");
+  });
 });

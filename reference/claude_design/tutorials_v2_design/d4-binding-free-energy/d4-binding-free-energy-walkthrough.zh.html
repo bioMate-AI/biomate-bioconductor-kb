@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 结合自由能 — 在合成之前为类似物排序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">相对结合自由能（FEP）— 在合成之前按活性为同系类似物排序</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">献给要决定下一个该做哪个类似物的药物化学家</div>
+    <h2>哪个类似物结合得更紧？FEP 在你上实验台之前就为它们排序。</h2>
+    <p class="caption lead">你有一个先导和若干相近的类似物。FEP 在你动手合成之前，排出谁结合得最紧。</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>先导 + 类似物</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>炼金术式 FEP</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>&Delta;&Delta;G &plusmn; 误差</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>按活性排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>合成赢家</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>Docking 是好闸门——却是衡量相近类似物的差尺子。</h2>
+    <p class="caption lead">Docking 能分开结合剂与非结合剂，却排不出相近类似物那种不足 1 kcal 的精细先后。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <div class="statrow">
+          <div class="stat"><div class="si">&#9678;</div><div class="sh">Docking 打分</div><div class="sp">快速的粗筛——在约 1&nbsp;kcal/mol 以下并不可靠，而类似物的差异恰在此处。</div></div>
+          <div class="stat" style="border-color:var(--blue); background:var(--blue-bg)"><div class="si" style="color:var(--blue)">&Delta;&Delta;G</div><div class="sh">FEP / RBFE</div><div class="sp">以物理为根基、不足 1 kcal 的排序——在你合成之前把系列排好。</div></div>
+        </div>
+        <div class="vlabel">选错一个，就是<b>数周的化学合成外加一次检测</b>——全花在错的分子上。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，整套方法就顺理成章。</h2>
+    <p class="caption lead">四个概念撑起整套方法——不需要统计力学。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="criteria">
+          <div class="crit"><span class="cn">01 · &Delta;G</span><span class="ct">结合自由能</span><span class="cd">越负 = 结合越紧</span></div>
+          <div class="crit"><span class="cn">02 · &Delta;&Delta;G</span><span class="ct">相对值，A 对 B</span><span class="cd">把它们排出先后的那个差值</span></div>
+          <div class="crit"><span class="cn">03 · 炼金术式</span><span class="ct">把 A 形变成 B</span><span class="cd">经由中间的 &lambda; 态</span></div>
+          <div class="crit"><span class="cn">04 · 热力学循环</span><span class="ct">闭合回路</span><span class="cd">口袋 + 溶剂——一次自校验</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 → 工作流 → GPU</div>
+    <h2>说出目标；BioMate 在云端 GPU 上打开真实的 FEP 引擎。</h2>
+    <p class="caption lead">用自然语言提出需求，BioMate 就在云端 GPU 上打开真实的 OpenFE RBFE 工作流。</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:58vh; margin-top:22px">
+      <figure class="shotcol" style="flex:1.35">
+        <span class="lbl">实时产品 · OpenFE Relative Binding Free Energy (RBFE)</span>
+        <div class="frame"><img src="../assets/live/fep-zh-panel.png" alt="BioMate 的结合自由能（FEP/RBFE）工作流面板"/></div>
+      </figure>
+      <div class="teachcol" style="flex:1">
+        <ul class="points">
+          <li><span class="b"></span><span><b>自然语言即可路由</b> &rarr; OpenFE RBFE 工作流。</span></li>
+          <li><span class="b"></span><span><b>三个输入：</b> <code>receptor</code>（需已验证的结合构象）+ <code>ligand_a/b</code>——其余选项收起。</span></li>
+          <li><span class="b gr"></span><span><b>一键提交</b> &rarr; 在云端 GPU Batch 上排队、每条边数小时采样的真实 OpenFE / OpenMM 运行。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 FEP 工作流，已为你配置就绪</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 你要带来什么</div>
+    <h2>一个靶点、一个参照配体，以及你要测试的类似物。</h2>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">受体</div>
+          <svg width="160" height="120" viewBox="0 0 160 120"><g class="mol" transform="translate(6,4)">
+            <path d="M12,106 L12,52 Q12,20 46,20 L58,20 Q64,42 84,42 Q104,42 110,20 L122,20 Q148,20 148,52 L148,106 Z" fill="#eef3fb" stroke-width="3.2"/>
+            <circle class="r" cx="84" cy="30" r="9"/><line x1="84" y1="39" x2="84" y2="56" stroke-width="3.2"/><circle class="r2" cx="84" cy="64" r="8"/>
+          </g></svg>
+          <div class="gl-lbl">靶点结构（PDB）</div></div>
+        <div class="glyph"><div class="n">配体 A &rarr; B</div>
+          <svg width="200" height="120" viewBox="0 0 200 120"><g class="mol" transform="translate(6,16)">
+            <path d="M22,10 L48,10 L61,32 L48,54 L22,54 L9,32 Z"/><circle class="r" cx="61" cy="32" r="8" transform="translate(6,0)"/>
+            <path class="gl-arrow" d="M86,32 L118,32"/><path class="gl-arrow" d="M110,25 L120,32 L110,39"/>
+            <g transform="translate(118,0)"><path d="M22,10 L48,10 L61,32 L48,54 L22,54 L9,32 Z"/><circle class="r2" cx="67" cy="32" r="8"/></g>
+          </g></svg>
+          <div class="gl-lbl">同系配对（换掉一处）</div></div>
+        <div class="glyph"><div class="n">网络</div>
+          <svg width="160" height="120" viewBox="0 0 160 120"><g class="mol" transform="translate(10,8)">
+            <line x1="70" y1="18" x2="22" y2="86" class="ar"/><line x1="70" y1="18" x2="118" y2="86" class="ar"/><line x1="22" y1="86" x2="118" y2="86" class="ar"/>
+            <circle class="r" cx="70" cy="18" r="11"/><circle class="r2" cx="22" cy="86" r="11"/><circle class="r2" cx="118" cy="86" r="11"/>
+          </g></svg>
+          <div class="gl-lbl">微扰图（LOMAP）</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE FEP CALCULATION -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">计算</span> · 它究竟在模拟什么</div>
+    <h2>跨 &lambda; 窗口把 A 形变成 B——再估计 &Delta;&Delta;G。</h2>
+    <p class="caption lead">跨 &lambda; 窗口把配体 A 形变成 B——GPU 上真实的 OpenMM 采样。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="svgwrap">
+        <svg viewBox="0 0 1040 200">
+          <line class="lam-track" x1="70" y1="104" x2="970" y2="104"/>
+          <text class="lam-end" x="70" y="46">A</text>
+          <text class="lam-end" x="970" y="46">B</text>
+          <g>
+            <circle cx="70"  cy="104" r="22" fill="#1d5fa6"/>
+            <circle cx="250" cy="104" r="22" fill="#2f5389"/>
+            <circle cx="430" cy="104" r="22" fill="#3c5b6f"/>
+            <circle cx="610" cy="104" r="22" fill="#356153"/>
+            <circle cx="790" cy="104" r="22" fill="#276541"/>
+            <circle cx="970" cy="104" r="22" fill="#1f6e43"/>
+          </g>
+          <text class="lam-lab" x="70"  y="168">&lambda;=0</text>
+          <text class="lam-lab" x="520" y="168">&middot;&middot;&middot;  11 个 &lambda; 窗口  &middot;&middot;&middot;</text>
+          <text class="lam-lab" x="970" y="168">&lambda;=1</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:26px">
+        <div class="stat"><div class="si">&#9881;</div><div class="sh">1 · 准备</div><div class="sp">RDKit 三维构象，CPU</div></div>
+        <div class="stat" style="border-color:var(--blue); background:var(--blue-bg)"><div class="si" style="color:var(--blue)">&#9889;</div><div class="sh">2 · 采样</div><div class="sp">GPU 上的 OpenMM 分子动力学</div></div>
+        <div class="stat"><div class="si">&#931;</div><div class="sh">3 · 估计</div><div class="sp">MBAR &rarr; &Delta;&Delta;G &plusmn; SEM</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">输出</span> · 一个排好序、站得住脚的数字</div>
+    <h2>每条边的 &Delta;&Delta;G 带一个误差——而且循环必须闭合。</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="netwrap">
+        <svg viewBox="0 0 720 420">
+          <line class="n-edge tight" x1="360" y1="86" x2="150" y2="330"/>
+          <line class="n-edge" x1="150" y1="330" x2="570" y2="330"/>
+          <line class="n-edge" x1="570" y1="330" x2="360" y2="86"/>
+          <g>
+            <rect x="178" y="178" width="150" height="36" rx="8" fill="var(--green-bg)" stroke="var(--green)"/>
+            <text class="n-elab" x="253" y="203" fill="var(--green)">&minus;1.2 &plusmn; 0.3</text>
+            <rect x="285" y="312" width="150" height="36" rx="8" fill="#fff" stroke="var(--line2)"/>
+            <text class="n-elab" x="360" y="337" fill="var(--ink2)">+0.8 &plusmn; 0.2</text>
+            <rect x="392" y="178" width="150" height="36" rx="8" fill="#fff" stroke="var(--line2)"/>
+            <text class="n-elab" x="467" y="203" fill="var(--ink2)">+0.5 &plusmn; 0.3</text>
+          </g>
+          <g>
+            <circle class="n-node" cx="360" cy="86" r="40"/><text class="n-node-t" x="360" y="95">L1</text>
+            <circle class="n-node" cx="150" cy="330" r="40"/><text class="n-node-t" x="150" y="339">L2</text>
+            <circle class="n-node" cx="570" cy="330" r="40"/><text class="n-node-t" x="570" y="339">L3</text>
+          </g>
+        </svg>
+      </div>
+      <div class="sc-note" style="margin-top:8px"><span class="vflag green">&Sigma; &asymp; 0.1 — 循环闭合 &#10003;</span> 每个数字都带着它的不确定度；误差小、收敛好的边，才是你拿来下手的那些。</div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">用好这个结果</span> · 先决策，再在实验台上确认</div>
+    <h2>负值结合更紧——去合成那些，其余的往后放。</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="scorecard">
+        <div class="sc-col"><div class="sc-name">类似物 B2</div><div class="sc-bar ok"><i style="width:88%"></i></div><div class="sc-val">&Delta;&Delta;G &minus;1.4 &rarr; 合成</div></div>
+        <div class="sc-col"><div class="sc-name">类似物 B5</div><div class="sc-bar ok"><i style="width:52%"></i></div><div class="sc-val">&Delta;&Delta;G &minus;0.6 &rarr; 合成</div></div>
+        <div class="sc-col"><div class="sc-name">类似物 B3</div><div class="sc-bar warn"><i style="width:22%"></i></div><div class="sc-val">&Delta;&Delta;G +0.9 &rarr; 往后放</div></div>
+      </div>
+      <div class="sc-note"><span class="vflag blue">验证</span> 把一条边与一个已发表的 &Delta;&Delta;G 作比较（如 Tyk2 / CDK2）——再用检测确认那些赢家。</div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+    <!-- ADDED PRODUCT SCENE -->
+  <section class="scene" data-kind="live" data-seconds="30.0" data-added="1">
+    <div class="kicker"><span class="st">真实产品</span> · 参数与输入 <span class="badge flow">产品</span></div>
+    <h2>运行前，核对真实的参数与输入</h2>
+    <p class="caption lead">必填项、输入文件、输出位置与权限，都集中在同一个面板里。</p>
+    <div class="scene-body shotwrap">
+      <figure class="shotcol">
+        <span class="lbl">真实产品 · BioMate 中的 FEP 结合自由能 · 工作流设置</span>
+        <div class="frame"><img src="../assets/live/fep-settings-zh.png" alt="真实产品 · BioMate 中的 FEP 结合自由能 · 工作流设置"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>用自然语言描述任务，BioMate 摆出真实参数</span></li>
+          <li><span class="b gr"></span><span>必填项清晰标注，可一键覆盖默认值</span></li>
+          <li><span class="b rd"></span><span>确认后在云端运行，无需本地安装</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+<section class="scene" data-seconds="44.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>一个有明示假设的物理工具——而非一个黑箱。</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si">&#8596;</div><div class="sh">相对，而非绝对</div><div class="sp">对着一个参照给系列排序——而非一个亲和力。</div></div>
+        <div class="stat"><div class="si">&#9888;</div><div class="sh">构象是废料，数字就是废料</div><div class="sp">需要正确的结构和足够的采样。</div></div>
+        <div class="stat"><div class="si">&#9201;</div><div class="sh">每条边在 GPU 上数小时</div><div class="sp">一项刻意为之的计算，而非一个快速过滤器。</div></div>
+      </div>
+      <div style="text-align:center; margin-top:30px"><span class="verdict open"><span class="mk"></span>具体而诚实——假设已明示，校验已内建</span></div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2>用物理排序。做出赢家。在实验台上确认。</h2>
+    <p class="caption lead" style="text-align:center; margin:0 auto 10px">在一轮合成开始之前，FEP 告诉你哪个类似物值得去做。</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <div class="recap">
+        <div class="rchip"><span class="rk">回答</span><span class="rv">哪个类似物结合更紧</span></div>
+        <div class="rchip"><span class="rk">引擎</span><span class="rv">OpenFE + OpenMM</span></div>
+        <div class="rchip"><span class="rk">输出</span><span class="rv">每条边的 &Delta;&Delta;G &plusmn; SEM</span></div>
+        <div class="rchip"><span class="rk">算力</span><span class="rv">云端 GPU Batch</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

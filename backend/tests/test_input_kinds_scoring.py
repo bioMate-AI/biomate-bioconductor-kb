@@ -147,3 +147,55 @@ def test_input_compatible_prefers_classifier_kinds(tmp_path):
     assert s.input_compatible("I have Thermo .raw files", 1) is True
     assert s.input_compatible("I have Thermo .raw files", 1, user_input_kinds=["protein_table"]) is False
     assert s.input_compatible(Q_TABLE, 1, user_input_kinds=[]) is None
+
+
+# ── Data-grounded input kinds (from the user's ACTUALLY-attached datasets) ──────
+# The principled processed-vs-raw fix: user_input_kinds derived from the profiled shape of attached
+# datasets (data_perception.infer_input_kinds, threaded from the generate_workflow endpoint) make
+# step 8a fire GENERALLY — not from the prose guess. The prose here is deliberately modality-only
+# ("DIA proteomics") with NO processed-table / raw-file wording, so text detection is silent and ONLY
+# the attached-data kinds drive the raw-vs-processed decision. docs 2026-11-09.
+Q_MODALITY_ONLY = "Analyse my DIA proteomics data and report the quantities."  # no raw/processed cue
+
+
+def test_attached_processed_table_demotes_raw_and_boosts_processed(tmp_path):
+    # (a) user with an abundance/protein TABLE attached → raw pipeline demoted, table method boosted.
+    s = _search(tmp_path)
+    attached = ["protein_table", "counts_matrix"]  # what infer_input_kinds() returns for an abundance table
+    neutral_raw = _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), None)
+    data_raw = _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), attached)
+    assert neutral_raw - data_raw == _PEN  # diaproteomics (raw_spectra) can't consume the table
+    neutral_tab = _score_k(s, Q_MODALITY_ONLY, frozenset({"counts_matrix", "h5ad"}), None)
+    data_tab = _score_k(s, Q_MODALITY_ONLY, frozenset({"counts_matrix", "h5ad"}), attached)
+    assert data_tab - neutral_tab == 3.0  # differentialabundance (counts_matrix) is compatible
+
+
+def test_attached_raw_files_do_not_demote_raw_pipeline(tmp_path):
+    # (b) user with raw FASTQ / spectra attached → the raw processing pipeline is NOT demoted.
+    s = _search(tmp_path)
+    q = "Run RNA-seq expression analysis."  # no file-type wording; kinds come from the attachment
+    neutral = _score_k(s, q, frozenset({"fastq"}), None)
+    data = _score_k(s, q, frozenset({"fastq"}), ["fastq"])
+    assert data - neutral == 3.0  # fastq attached → nf-core/rnaseq (fastq) matches, never penalised
+    # raw spectra attached → diaproteomics (raw_spectra) matches, not demoted
+    assert _score_k(s, q, frozenset({"raw_spectra"}), ["raw_spectra"]) \
+        == _score_k(s, q, frozenset({"raw_spectra"}), None) + 3.0
+
+
+def test_reference_attachment_does_not_discard_prose_fastq(tmp_path):
+    # Finding 3 (committee review 2026-11-09): a user with prose-described RNA-seq FASTQ reads who
+    # ALSO attaches a reference genome (.fa) + annotation (.gtf) must keep {fastq}. The auxiliary
+    # files are MERGED (resolve_effective_input_kinds), NOT allowed to override the prose primary —
+    # so the raw rnaseq pipeline keeps its +3 compatibility boost.
+    from galaxy.ai.data_perception import resolve_effective_input_kinds
+    s = _search(tmp_path)
+    datasets = [{"name": "GRCh38.primary_assembly.fa"}, {"name": "gencode.v44.annotation.gtf"}]
+    eff = resolve_effective_input_kinds(["fastq"], datasets)
+    assert "fastq" in eff  # prose fastq survives the reference attachment (not discarded)
+    q = "Run RNA-seq expression analysis."
+    assert _score_k(s, q, frozenset({"fastq"}), eff) == _score_k(s, q, frozenset({"fastq"}), None) + 3.0
+    # Contrast — an attached PRIMARY processed table IS authoritative and overrides the prose guess:
+    eff_tab = resolve_effective_input_kinds(["raw_spectra"], [{"name": "proteinGroups.txt"}])
+    assert set(eff_tab) == {"protein_table", "counts_matrix"}  # raw_spectra prose discarded
+    assert _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), eff_tab) \
+        == _score_k(s, Q_MODALITY_ONLY, frozenset({"raw_spectra"}), None) - _PEN  # raw demoted (McGill)

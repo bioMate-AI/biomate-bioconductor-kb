@@ -1,0 +1,237 @@
+--- 20261027_DrugDev_decision_benchmark.md
++++ drugdev.md
+@@ -1,156 +1,135 @@
+-# DrugDev-Bench: Open Decision Benchmarks for Phase-I Dose Selection and Pharmacokinetic Exposure, Anchored to a Mechanistic Reference
++# DrugDev-Bench probes dose-selection decisions and modeled pharmacokinetic exposure
+ 
+-### Version 1 — two measured decision tasks, with a designed cross-stage track
++**Authors:** [To be completed]
+ 
+-**Authors:** [Author names — to be completed]
+-**Affiliations:** [Affiliations — to be completed]
+-**Corresponding author:** [name, email — to be completed]
++**Affiliations:** [To be completed]
+ 
+-*Preprint, 2026. Benchmark items, references, deterministic scorers, the mechanistic baseline, and per-item predictions released under CC-BY-4.0; repository and archival DOI: [to be added].*
++**Correspondence:** [Name and email to be completed]
+ 
+-**Keywords:** benchmark; drug development; Phase-I dose selection; pharmacokinetics; mechanistic modeling; language-model evaluation.
+-
+-> **Scope and terminology.** The mechanistic **reference** in this paper is an *oracle*: the standard dose-selection rule applied to the benchmark's hidden true toxicity curve. It is **not** an end-to-end pipeline that derives the curve from the solver-visible inputs, and it is **not** guaranteed to be an upper bound (a different rule could agree with the benchmark's labels more often). Where we report it, we mean the oracle rule, and we state this at each use.
+-
+----
++*Preprint · author-review revision · 7 November 2026*
+ 
+ ## Abstract
+ 
+-The public benchmark landscape for AI in drug development is dominated by **single-stage prediction** (property/ADMET, docking and binding affinity, molecule generation, retrosynthesis). Two decisions that gate real programs — **Phase-I dose selection** and **pharmacokinetic exposure prediction** — have essentially no open, graded agent benchmark, and no existing benchmark grades whether a system carries a decision *correctly across consecutive development stages*. We introduce **DrugDev-Bench**, whose measured version-1 contribution is a pair of execution-relevant decision tasks graded against a mechanistic reference, and whose design includes a cross-stage, execution-grounded track reported here as a roadmap with a pilot, not as a measured headline. We report baselines unedited. On Phase-I dose selection, language models are weak (frontier 0.11–0.50); the **oracle reference — the standard selection rule applied to the hidden true toxicity curve — scores 0.85**, showing that the task is far from solved by any language model. The oracle's three misses of 20 reflect differences between the selection policy and the benchmark's author-defined answers (tie-handling and no-safe-dose criteria), which we discuss as a target-definition question rather than task difficulty. On pharmacokinetic prediction, once the target endpoint is specified unambiguously, capable models reach only ~0.40–0.47 within two-fold. We make no claim of a model capability win; the contribution is an open, mechanistically-anchored decision benchmark on development stages the field has left unmeasured — scored **end-to-end and multi-dimensionally** (the executed outcome alongside safety and exposure–response fidelity), so a wrong answer is localized to *where* the reasoning chain broke.
++Evaluating language models for drug-development decisions requires explicit decision policies and well-defined reference outcomes. Here we present DrugDev-Bench, a methodological benchmark comprising dose selection and pharmacokinetic exposure tasks. The available datasets contain 40 dose scenarios and 30 compound cases, divided equally between hand-authored and generated tiers. An oracle selection rule supplied with the hidden toxicity curve agrees with 17 of 20 hand-authored dose labels; its three disagreements expose differences between the rule and reference-label policy. In structured-response experiments, reported hand-tier dose accuracy is 0.25–0.30 for Claude Opus 5 and 0.10 for GPT-6.1-sol. Both models attain 1.00 in a generated-tier run with explicit exposure–response parameters, although an additional Opus run scores 0.95. On 15 hand-authored pharmacokinetic cases, the best recorded within-twofold agreement is 0.467. These results reveal sensitivity to problem specification and reference construction. They support evaluating decision accuracy alongside curve agreement and response completeness, while distinguishing simplified modeled tasks from validated pharmacokinetic prediction or clinical dose-finding performance.
+ 
+----
++## Introduction
+ 
+-## 1. Introduction
++Drug development combines predictive models with decisions about exposure, toxicity and dose. A benchmark of such decisions must specify what information is available to a solver, which policy defines a correct answer and whether the reference is modeled or experimentally measured. Without these distinctions, a disagreement can reflect incompatible assumptions rather than inadequate reasoning.
+ 
+-Most public benchmarks for computational drug development score a single predictive step: a property, a binding pose, an affinity, a generated molecule, a synthetic route. These are valuable, and we compete on and cite them. But two decisions that determine whether a program advances are largely unbenchmarked in the open:
++Therapeutics Data Commons provides datasets and evaluation tasks across therapeutic discovery and development [1]. TrialBench includes clinical-trial prediction tasks, explicitly including dose finding [2]. DrugDev-Bench is complementary to these resources: it studies structured decisions under specified modeled references rather than claiming that dose-finding benchmarks do not exist. Its diagnostic outputs also draw on the emphasis on observable task outcomes in ScienceAgentBench [3].
+ 
+-- **Phase-I dose selection** — choosing a maximum tolerated dose from an exposure–response model is a decision made in every oncology program; the design methodology is standard, yet there is no shared, graded agent benchmark for the *decision*.
+-- **Pharmacokinetic exposure prediction** — predicting peak plasma concentration from physicochemical and clearance inputs is a daily task with no open agent benchmark.
++The present study comprises hand-authored and generated dose-selection and pharmacokinetic (PK) tasks. We distinguish a solver that receives problem inputs from an oracle that receives a hidden reference toxicity curve (Fig. 1). The oracle is a reference-policy diagnostic, not a competing input-to-output system or a guaranteed upper bound on agreement with labels. A proposed cross-stage execution track remains outside the measured results.
+ 
+-And no benchmark grades the property that most distinguishes an agent from a predictor: whether it carries a decision **correctly across consecutive stages** (Figure 1).
++![Information supplied to model and oracle conditions.](figures/drugdev_design.png)
+ 
+-![Figure 1. DrugDev-Bench scope across the development pipeline.](figures/drugdev_fig1_design.png)
++**Figure 1. Information access and evaluation scope.** Language models receive the scenario inputs and dose grid; the oracle receives the reference toxicity curve. Both can be assessed against the selected-dose label, but their information differs. Generated-tier curves and labels follow the same explicit formula and decision policy, making oracle agreement correct by construction. The diagram describes dose selection only; the PK endpoint is evaluated separately.
+ 
+-**Figure 1. Study design.** Single-stage prediction tracks (left) compete with and cite external benchmarks. The measured version-1 contribution (right) is the decision and execution tracks — pharmacokinetic exposure and Phase-I dose selection — graded against a mechanistic reference. The cross-stage, execution-grounded track (bottom band) is designed and piloted, reported here as a roadmap.
++## Results
+ 
+-## 2. Scope and honesty statement
++### The oracle exposes reference-policy disagreements
+ 
+-This version reports the **measured** decision tasks: Phase-I dose selection (**40 scenarios**) and pharmacokinetic exposure prediction (**30 compounds**). Each task has two tiers. The **hand-authored tier** (20 dose scenarios, 15 compounds) is the set used for the oracle-versus-model comparison in §5. The **generated tier** (20 dose scenarios, 15 compounds) is produced from explicit models so that the ground truth is internally consistent: each dose scenario draws pharmacokinetic and Emax exposure–response parameters, derives the per-dose toxicity curve from those inputs, and sets the gold maximum tolerated dose by the *same* selection rule used for scoring — so the generated scenarios are mechanistically coherent and, by construction, free of the target-definition mismatch present in three hand-authored items (§5.1). Each generated PK compound draws physicochemical and volume parameters and sets a one-compartment modeled reference concentration. The generated tier therefore expands the **language-model** evaluation (the oracle is trivially correct on it by construction) and removes label-definition ambiguity, while the hand-authored tier carries the oracle-versus-model contrast. The single-stage prediction tracks (property, docking, binding free energy, structure–activity modeling, synthesis) exist to position against external work and are not the headline. The **cross-stage execution-grounded track is designed and piloted but not yet scored across a model roster**; we present it as the benchmark's roadmap, not a result.
++On the 20 hand-authored scenarios, the oracle reproduces 17 dose labels, for accuracy of 0.85. Its benchmark-defined safety score is 0.90 and its curve fidelity is 1.00, the latter following directly from access to the reference curve. Two disagreements concern no-safe-dose labels that are not triggered by the implemented elimination threshold; a third concerns closest-to-target selection and the reference's higher-dose choice. These cases require label-policy adjudication before they can be interpreted as solver errors.
+ 
+-## 3. Related work and positioning
++The original dose-only leaderboard and the structured-response evaluation use different denominators. The former excludes the two null-dose references and scores 18 scenarios; the latter includes all 20 and treats no-safe-dose decisions as outcomes. The earlier 0.11–0.50 model range therefore cannot be directly compared with the 17/20 oracle value as though both used an identical task definition. We retain structured-response results separately (Table 1) and do not combine the two protocols into a model ranking.
+ 
+-**Single-stage prediction with leakage-aware design.** The drug-discovery benchmark landscape is rich but
+-largely single-step. The **Therapeutics Data Commons** standardizes property/ADMET/toxicity datasets with
+-scaffold and cold-start splits (while cautioning that scaffold splitting does not remove all leakage).
+-**PLINDER** and **PINDER** (2024) provide *task-specific* leakage-aware splits for protein–ligand and
+-protein–protein prediction, because what counts as leakage differs by task. **PoseBusters** (2024) scores
+-*physical validity* (geometry, clashes) rather than a single accuracy number, and reports that classical,
+-mechanistic docking still beats deep-learning methods on validity and generalization. **Polaris** (industry-led,
+-2024–2025) runs rigorous blind challenges and meta-analyzes common pitfalls. We adopt from this line two
+-commitments: **leakage-aware, task-specific splits** for any structure/affinity task, and a **mechanistic
+-baseline** as a first-class reference — the PoseBusters finding that a mechanistic method beats a learned one is
+-precisely our result in a new domain (dose selection), not an anomaly.
++### Structured dose responses differ substantially between tiers
+ 
+-**Clinical-trial datasets.** The nearest public anchor for the dose decision is **TrialBench** (2024), a
+-collection of AI-ready clinical-trial datasets spanning eight prediction tasks *including drug dose-finding* —
+-and dose-finding is explicitly one of its hardest tasks. TrialBench is *predictive-dataset* in form; our
+-contribution is the complementary **decision-and-simulation** framing (choose and justify a dose under a
+-mechanistic model), not a duplicate dataset.
++On the hand-authored tier, the retained Claude Opus 5 runs score 0.25 and 0.30, with curve fidelity of approximately 0.60–0.68 and no empty responses. The direct-provider GPT-6.1-sol runs both score 0.10 with fidelity approximately 0.01; they contain four and one empty responses, respectively. These are run-level observations rather than precise estimates of a model's general dose-selection capability.
+ 
+-**Execution-grounded agent benchmarks.** The scoring form we adopt comes from the agent-benchmark line —
+-**ScienceAgentBench** (ICLR 2025) grading a runnable program by its execution output and cost, and **MLE-bench**
+-(OpenAI, 2024) grading on a held-out metric against a human baseline. DrugDev's measured tasks follow this
+-spirit: the headline is a computed, reference-anchored outcome, not a recalled fact.
++**Table 1. Recorded structured-response dose outcomes.** Each tier contains 20 scenarios. Ranges describe retained runs, not confidence intervals. Empty-response counts apply to the hand tier; an em dash denotes the oracle. Local models use reasoning-disabled serving. Recorded scores remain provisional pending the scorer and reference-policy reconciliation described in Methods.
+ 
+-**What is new here.** No open benchmark grades Phase-I dose selection or pharmacokinetic exposure as an
+-execution-relevant *decision* with a mechanistic reference, and the cross-stage, execution-grounded track we
+-design has no open counterpart. We make scoped-novelty claims only, and cite the benchmarks above as the
+-baselines and design sources we build on.
++| Model or reference | Hand outcome | Hand fidelity | Hand empties | Generated outcome |
++|---|---:|---:|---:|---:|
++| Oracle with hidden curve | 0.85 | 1.00 | — | 1.00 by construction |
++| Claude Opus 5 | 0.25–0.30 | 0.60–0.68 | 0 | 0.95–1.00 |
++| GPT-6.1-sol | 0.10 | ≈0.01 | 1–4 | 1.00 |
++| Stock Qwen3.5-9B | 0.30 | 0.58 | 0 | 0.30 |
++| BioMate 9B continued-pretrained | 0.50 | 0.74 | 0 | 0.05 |
++| BioMate 9B fine-tuned | 0.30 | 0.31 | 0 | 0.10 |
+ 
+-## 4. Methods
++With explicit generated-tier exposure–response parameters, a retained run of each of Claude Opus 5, GPT-6.1-sol and Gemini 3.1 Pro reaches 1.00 outcome and 1.00 fidelity with no empty responses. Three additional Opus runs have outcomes 1.00, 1.00 and 0.95. Thus, the generated task is not uniformly unsolved by language models. The tier contrast is consistent with sensitivity to specification, but differences in item construction and label consistency prevent attributing it solely to inferring an implicit exposure–response relation.
+ 
+-Each task is graded by one deterministic scorer. Language models are reported directly and, where a knowledge layer applies, with it. For context, every task is anchored to a **non-model mechanistic reference** so that a model's score is read against the right instrument, not only against other models.
++The continued-pretrained local 9B model scores 0.50 on the hand tier and 0.05 on the generated tier. This reversal argues against a simple capability ordering across the two item sets. Model scale, training and reasoning settings are not independently controlled, so these observations cannot establish which factor causes the difference.
+ 
+-- **Phase-I dose selection.** Each scenario provides pharmacokinetic and exposure–response inputs and a dose grid; the system must select the maximum tolerated dose. The grader holds the true per-dose toxicity curve, which the solver does not see. The **mechanistic reference** is the standard dose-selection rule (eliminate doses whose toxicity exceeds the target by more than the standard band; otherwise select the admissible dose whose rate is closest to target), applied to the true curve. This rule is the established methodology in the field (Liu & Yuan, 2015).
+-- **Pharmacokinetic exposure.** Each compound provides molecular weight, lipophilicity, ionization, plasma binding, and clearance inputs; the system predicts peak plasma concentration in micromolar, scored as the fraction of compounds within two-fold of the reference.
++### PK agreement remains limited on hand-authored cases
+ 
+-## 5. Results
++After the target endpoint was specified as peak concentration in micromolar, the stored leaderboard reports a maximum within-twofold agreement of 0.467 on 15 hand-authored compounds (Table 2). These results describe agreement with the benchmark reference values. They do not establish clinical accuracy, and the generated PK cases are not included in this table.
+ 
+-### 5.1 Phase-I dose selection: models versus the mechanistic rule
++**Table 2. PK endpoint agreement on the hand-authored tier.** The endpoint is the benchmark's peak-concentration reference in micromolar; a prediction succeeds when its ratio to the positive reference lies between 0.5 and 2.0 inclusive. The denominator is all 15 reference cases, with missing or unparseable predictions counted as failures. Stored rounded values are reproduced without changing the original predictions.
+ 
+-![Figure 2. Dose-selection accuracy.](figures/drugdev_fig2_boin.png)
++| Model | Within twofold |
++|---|---:|
++| Claude Opus 5 | 0.467 |
++| Gemini 3.1 Pro | 0.400 |
++| GPT-5.6 | 0.200 |
++| GPT-5.6-luna | 0.333 |
++| Qwen3.8-Max | 0.000 |
++| Qwen3.8-27B | 0.000 |
++| GLM-5.2 | 0.267 |
++| DeepSeek V4-pro | 0.067 |
++| Kimi K3 | 0.000 |
++| BioMate 9B (base) | 0.067 |
++| BioMate 9B (SFT) | 0.000 |
++| Biomni (A1 scaffold) | 0.000 |
+ 
+-**Figure 2.** Dose-selection (maximum-tolerated-dose) accuracy over 20 scenarios. Language models span 0.11–0.50 (frontier); the dashed line is the mechanistic rule applied to the true exposure–response curve (0.85).
++The earlier endpoint-ambiguous prompt is excluded from conclusions about model capability. The correction illustrates why exposure benchmarks need an explicit analyte, units, dose, route, sampling context and reference provenance. The current cases still require stronger source documentation for those assumptions.
+ 
+-Two readings:
++## Discussion
+ 
+-1. **The mechanistic rule, on the true curve, scores 0.85 (17/20).** Its three misses are not curve errors but selection-rule edge cases — two "no safe dose" declarations that a fixed elimination band does not trigger, and one closest-dose-versus-higher-dose tie. These mark scenarios where "the maximum tolerated dose" is itself a judgment call, a useful signal about the benchmark's own hardest items.
+-2. **Frontier language models are weak here (0.11–0.50).** Dose selection from an exposure–response model is not something they do reliably. The proper solution is the mechanistic exposure–response calculation, which the benchmark exists to motivate, not a language model's unaided guess.
++DrugDev-Bench provides an initial setting for evaluating modeled dose decisions and PK endpoints with transparent scoring. Its most informative result is the dependence of conclusions on reference construction: an oracle can disagree with author-defined labels, while models that struggle on implicitly specified scenarios can solve formula-defined scenarios. The oracle therefore diagnoses policy consistency; it does not demonstrate that a deployable mechanistic system outperforms models given the same inputs.
+ 
+-### 5.2 Pharmacokinetic exposure prediction
++The benchmark is small, with 20 dose scenarios and 15 PK cases per tier. Generated items provide internal consistency but do not replace external validation, independently authored scenarios or clinically grounded references. The current structured-response results also require stricter validation of missing and contradictory outputs before use in a definitive ranking. A future comparison should freeze the decision policy, rescore all systems with one validated scorer and separate response failures from wrong substantive answers without excluding either from task-level performance.
+ 
+-The originally reported near-zero scores came from a prompt that did not state **which** pharmacokinetic endpoint to predict (each compound has several reference values), so the grader matched the wrong one. With the endpoint specified unambiguously and the full roster re-run, the best models reach only **~0.40–0.47 within two-fold** (a frontier model at 0.47), **most of the roster scores below 0.33, and several models place no compound within two-fold (0.00)**. This is an honest construct-validity correction: the task is hard, but "near-useless" was partly a specification artifact; we do not claim a model wins, and no system reaches the two-fold bar reliably.
++Cross-stage decisions, docking, synthesis and ligand ranking are not measured contributions of this paper. The proposed cross-stage track requires its own execution protocol and results. An earlier three-ligand ranking probe has coarse rank-correlation resolution and is excluded from the main evaluation. The present results should be understood as methodological probes, not evidence of clinical utility or a completed end-to-end drug-development agent.
+ 
+-### 5.3 A metric caveat we surface rather than hide
++## Methods
+ 
+-An early ligand-ranking task reported a score that was nearly identical across every model. On inspection this was a **metric-resolution artifact**: the rankings had only three items, on which the rank-correlation metric can take just four values, and all models mis-ranked the same small subset. We report this transparently and demote that task to a low-resolution probe pending a rebuild with longer rankings; we do not fabricate longer reference rankings to inflate resolution.
++### Dataset composition and information access
+ 
+-### 5.4 End-to-end scorecard: scoring the outcome alongside the component dimensions
++The hand-authored tier contains 20 dose scenarios and 15 compounds. The generated tier adds 20 dose scenarios and 15 compound cases, giving 40 and 30 in total. Counts describe available datasets; they do not imply that every model was evaluated on both tiers. Dose inputs include a grid and a target probability of dose-limiting toxicity (DLT), with scenario-specific PK and exposure–response information. The reference toxicity curve is hidden from model solvers and supplied directly to the oracle.
+ 
+-The dose decision is also scored **end-to-end and multi-dimensionally**, in the spirit of execution-grounded
+-agent benchmarks that grade a program *and* its execution result. Here the system receives the inputs with the
+-true toxicity curve **hidden**, and must return the toxicity it models at each dose, the selected dose, and a
+-no-safe-dose flag. Three dimensions are scored (n = 20): **outcome** (**exact** selected-dose match to the
+-hidden reference — the primary, end-to-end score, identical to the benchmark's own dose scorer), **safety**
+-(correct no-safe-dose calls and no selection above the elimination band), and **fidelity** (did the system
+-actually model the exposure–response curve, or guess).
++### Benchmark dose-selection policy
+ 
+-The mechanistic oracle scores **0.85 / 0.90 / 1.00** on these three dimensions; language models trail it by a wide margin. We report the *gap to the oracle* and a qualitative decomposition rather than precise per-model scores, for two reasons given below.
++Let $p_j$ be the DLT probability at ordered dose $d_j$ and $\tau$ the target probability. The implemented benchmark rule declares no dose if $p_1>\tau+0.10$. Otherwise it selects the admissible dose minimizing $|p_j-\tau|$, where admissibility means $p_j\leq\tau+0.10$; ties select the higher indexed dose. The implementation uses a small numerical tolerance at the threshold.
+ 
+-**A measured harness requirement (empties).** This task demands a long structured output — a per-dose toxicity curve plus the selected dose. Reasoning models exhaust a small token budget on internal reasoning and return *empty* content, which a naive scorer records as a zero; a flat zero across items is therefore a harness failure, not a capability result. We budget very generously (20,000 completion tokens) and report the **empty-response count** alongside every result. Even at that budget the requirement is model-dependent: the heaviest reasoner we tested (GPT-6.1-sol) still returns 1–4 empty responses out of 20 on these items, so its scores are reported with that count and read as a lower bound.
++This is a deterministic reference-curve policy. It must not be described as the full Bayesian optimal interval (BOIN) trial design [4,5]: it does not simulate sequential patient allocation, estimate toxicity from accumulating patient outcomes or implement the full posterior elimination and final-selection procedure. The fixed 0.10 band is a benchmark choice, not a universal BOIN safety criterion.
+ 
+-**Hand-authored tier (implicit exposure–response).** Language models trail the oracle (0.85) by a wide margin and are noisy at n = 20. Measured via direct provider APIs with the empties count shown: Claude Opus 5 scores an outcome of 0.25–0.30 (0/20 empty) with partial curve fidelity (~0.60–0.68 — it reconstructs the curve in part but mis-selects); GPT-6.1-sol scores ~0.10 (1–4/20 empty) with near-zero fidelity (~0.01 — when it answers, its curve is far from the truth). The large and consistent gap to the oracle is the robust finding; the precise per-model values are noisy and should be pinned down by a larger evaluation.
++### Generated exposure and toxicity references
+ 
+-**Generated tier (explicit exposure–response parameters).** When the Emax parameters are provided explicitly, every frontier model tested reconstructs the curve and selects correctly: **Claude Opus 5, GPT-6.1-sol, and Gemini-3.1-Pro each reach an outcome of 1.0 with fidelity 1.0 and zero empties** (Opus is additionally stable across three runs: 0.95, 1.00, 1.00). This consistent three-model result localizes the hand-authored failure precisely — language models fail to *infer the exposure–response relationship from implicit clinical inputs*, not to do the arithmetic once the relationship is specified.
++Generated dose cases use bioavailability $F$, dose $D$, molecular weight $M$, distribution volume $V$ and specified Emax-response parameters. With $D$ in milligrams, $M$ in grams per mole and $V$ in litres, the numerical reference is
+ 
+-**A locally-served small open model (production configuration).** We also ran a small open model locally under its deployed on-premises configuration (reasoning disabled for latency), with per-item receipts and zero empty responses on both tiers. A continued-pretrained 9-billion-parameter model reached a hand-tier outcome of **0.50** with curve fidelity 0.74 — above the stock 9B (0.30, fidelity 0.58) and the lower end of the frontier band, and below the mechanistic oracle (0.85). On the explicit generated tier, however, it collapsed to **0.05** (fidelity 0.19), as did the stock model (0.30) and a supervised-fine-tuned variant (0.10) — far below the frontier models' 1.0. The small model therefore sharpens the main finding rather than overturning it: a 9B without reasoning does not reliably reconstruct the exposure–response curve or execute the multi-step arithmetic even when the parameters are given explicitly, which is precisely the step where the mechanistic reference and model scale matter. (These results use the deployed reasoning-disabled configuration; a reasoning-enabled run is reported separately when available.)
++$$C_{\mathrm{nM}} = 10^6\frac{FD}{MV}.$$
+ 
+-The **fidelity** dimension is what makes this diagnostic: a low outcome with *low* fidelity means the system never reconstructed the curve, whereas a low outcome with *high* fidelity would mean it reconstructed the curve but mis-applied the selection rule — different failures that a single outcome number would hide.
++$$p(C) = E_0+E_{\max}\frac{C}{EC_{50}+C}.$$
+ 
+-![Figure 3. End-to-end dose-decision scorecard.](figures/drugdev_fig3_e2e_scorecard.png)
++The generator rounds probabilities to three decimal places before applying the same dose-selection rule to create the label. Consequently, agreement of that oracle with generated labels is a construction property, not independent validation. The concentration equation describes a simplified instantaneous-distribution quantity; without a dosing interval, clearance dynamics or accumulation model, it should not be called a steady-state exposure.
+ 
+-**Figure 3.** Illustrative single-run scorecard (mechanistic oracle vs. language models). The language-model bars are a single earlier run at a smaller token budget and are superseded by the budget-verified ranges in the text above; the figure is retained to show the three-dimensional structure (outcome, safety, fidelity), not the exact per-model values.
++The generated PK cases use $C_{\mathrm{\mu M}}=10^3FD/(MV)$, rounded to three decimals. Although the data label this quantity as oral peak concentration, the formula does not model absorption kinetics, time to peak or elimination. It therefore defines a simplified concentration-calculation task rather than a validated oral peak-concentration model. Hand-authored PK references require separate source and unit verification; no experimental validation is inferred from the generated formula.
+ 
+-## 6. Limitations
++### Outcomes, safety and curve agreement
+ 
+-- **Statistical power.** Each task now has 40 and 30 items (a hand-authored tier and a generated tier); this is larger than a single-tier pilot but still modest, and we report the tasks as decision probes with the mechanistic anchor, not high-precision model rankings. The generated tier reduces label-definition ambiguity by construction but does not substitute for an independently-authored, externally-adjudicated test set.
+-- **No wet-lab ground truth.** Exposure and toxicity references are modeled; we are explicit that modeled references are not experimental validity.
+-- **Cross-stage track unmeasured.** The execution-grounded cross-stage track is design and pilot only; its results are future work, and the abstract and title are scoped accordingly.
+-- **Mechanistic reference as oracle.** The 0.85 dose-selection reference uses the true exposure–response curve, which the solver does not see; it is an upper bound on rule-based selection, not an end-to-end system score.
++The structured dose outcome is exact agreement with the reference dose, including no-dose cases. The safety score checks no-dose agreement and whether a selected dose remains within the reference-curve elimination band. It is a benchmark constraint check, not a measure of patient safety. Fidelity is the mean, across scenarios, of the fraction of dose levels whose predicted probability lies within twofold of the reference. Missing levels count as misses; the existing implementation uses a special tolerance when the reference is zero. High fidelity under this coarse metric does not prove a correct mechanistic derivation.
+ 
+-## 7. Discussion
++A scorer audit identifies a consequential validation limitation: in a no-dose reference case, an absent dose field can currently receive credit even without an explicit valid no-dose declaration. Probability bounds and contradictory output fields are not comprehensively validated. The recorded scores are preserved here rather than silently recalculated under a new policy. Final publication requires a versioned schema, regression cases and rescoring from retained raw responses; aggregate outcome receipts alone cannot resolve every malformed response.
+ 
+-DrugDev-Bench's contribution is to place two gate-keeping drug-development decisions — dose selection and pharmacokinetic exposure — into an open, deterministically-scored benchmark anchored to an oracle mechanistic reference, and to specify an execution-grounded cross-stage track as the next milestone. The measured finding is that on dose selection, language models trail the oracle selection rule by a wide margin; interpreting this requires first fixing the decision policy (target toxicity, tie-handling, no-safe-dose criteria), since the oracle itself disagrees with three of the author-defined answers. We release the items, references, scorers, generators, and the mechanistic baseline so every number can be reproduced and contested, and we present the result as an initial methodological demonstration on 40 dose scenarios and 30 compounds (a hand-authored and a generated tier each), not a broad benchmark claim.
++### Serving conditions and statistical reporting
+ 
+-## 8. Data and code availability
++The source draft reports a 20,000-token budget for later structured-response runs, whereas an earlier scorecard runner specifies 12,000 tokens. Per-run manifests are needed to verify the budget associated with each retained artifact. The superseded smaller-budget scorecard figure is excluded. Empty-response counts are reported explicitly; they describe performance under the recorded harness and are not automatically a lower bound on an unobserved intrinsic capability.
+ 
+-The dose scenarios and PK compounds, their references, the deterministic scorers, the mechanistic dose-selection baseline (with its exact selection algorithm), and the complete per-item predictions are released under CC-BY-4.0 at [repository URL — to be added], archived at [DOI — to be added]. The mechanistic reference implements the selection step of the Bayesian Optimal Interval design (ref. 1) applied to the hidden true toxicity curve; its relationship to the full sequential BOIN trial design is described in §4.
++The local-model experiment uses a deployment configuration with reasoning disabled. Model names follow the recorded artifacts, and similarly named provider variants are not merged. The results are descriptive: small denominators, nonuniform repeats and differing serving conditions do not support fine-grained model rankings or causal claims about scale and reasoning. Repeated-run variation and sampling uncertainty should be reported separately in a finalized analysis.
+ 
+-## Ethics and intended use
++## Data and code availability
+ 
+-The benchmark uses modeled (not experimental) toxicity and exposure references and synthetic scenarios; it contains no patient data. It is a nonclinical methodological benchmark and must not be used for clinical dosing decisions.
++Datasets, generators, scorers and retained predictions have been assembled for release. The source draft proposes CC-BY-4.0 for benchmark materials. Public repository and archival identifiers, the final code license and the complete run manifest require author confirmation; public release is not asserted before these are supplied.
+ 
+-## Author contributions, funding, and competing interests
++## Ethics and competing interests
+ 
+-Author contributions: [to be completed]. Funding: [to be completed]. Competing interests: the on-premises model and the mechanistic pipeline are developed by the authors; items, scorers, and the baseline are released for independent audit. [Formal declaration to be completed.]
++This is a nonclinical methodological benchmark using modeled references and synthetic scenarios, not a clinical dosing tool. The source manuscript reports no patient data. The authors developed the benchmark and an evaluated local model. Author contributions, funding and the formal competing-interest declaration remain to be completed.
+ 
+ ## References
+ 
+-1. Liu, S. & Yuan, Y. Bayesian optimal interval designs for phase I clinical trials. *J. R. Stat. Soc. C* 64, 507–523 (2015).
+-2. TrialBench: Multi-Modal AI-Ready Clinical Trial Datasets. 2024 (arXiv:2407.00631).
+-3. Therapeutics Data Commons (PyTDC): AI-ready therapeutic datasets and benchmarks with scaffold/cold-start splits.
+-4. PLINDER: The Protein–Ligand Interactions Dataset and Evaluation Resource. bioRxiv 2024.07.17.603955.
+-5. PINDER: The Protein Interaction Dataset and Evaluation Resource. bioRxiv 2024.07.17.603980.
+-6. PoseBusters: Are deep learning docking methods ready for production? *Chem. Sci.* 2024.
+-7. Polaris: an industry-led benchmarking platform for ML-based drug discovery (Valence Labs, 2024–2025).
+-8. ScienceAgentBench. ICLR 2025 (arXiv:2410.05080); MLE-bench. OpenAI, 2024 (arXiv:2410.07095).
++1. Huang, K. et al. Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development. *NeurIPS Datasets and Benchmarks* (2021). https://arxiv.org/abs/2102.09548
++2. Chen, J. et al. TrialBench: Multi-Modal Artificial Intelligence-Ready Clinical Trial Datasets. Preprint (2024; revised 2025). https://arxiv.org/abs/2407.00631
++3. Chen, Z. et al. ScienceAgentBench: Toward Rigorous Assessment of Language Agents for Data-Driven Scientific Discovery. *ICLR* (2025). https://arxiv.org/abs/2410.05080
++4. Liu, S. & Yuan, Y. Bayesian optimal interval designs for phase I clinical trials. *J. R. Stat. Soc. C* **64**, 507–523 (2015).
++5. Yuan, Y., Hess, K. R., Hilsenbeck, S. G. & Gilbert, M. R. Bayesian Optimal Interval Design: A Simple and Well-Performing Design for Phase I Oncology Trials. *Clin. Cancer Res.* **22**, 4291–4301 (2016). https://pmc.ncbi.nlm.nih.gov/articles/PMC5047439/

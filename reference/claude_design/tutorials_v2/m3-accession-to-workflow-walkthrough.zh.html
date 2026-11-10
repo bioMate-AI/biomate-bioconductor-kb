@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 从一个数据库登录号，到一条跑起来的流水线</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">登录号 → 数据集 → 工作流 —— 粘一个 ID，得到一条跑起来的流水线</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="33.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>编号直达工作流</b></div>
+    <div class="kicker">写给从已发表数据集起步的生物学家</div>
+    <h2>你手里有一个登录号。BioMate 把它变成一条跑起来的流水线。</h2>
+    <p class="caption">论文引用了一个数据集——一个 GEO 的 <code>GSE…</code>、一个 SRA 的 <code>SRR…</code>。通常，这只是一天工作的起点：找到它、弄清它是什么类型的数据、挑对流水线、把参数一一接好。<b>而 BioMate 从这个 ID 本身就把这些都做掉。</b>你粘进登录号，说清你想弄明白什么，它就取回数据，并把它路由到那条正确、且参数配置正确的工作流。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一个登录号</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>BioMate 识别出它</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>取回数据</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>路由到正确的工作流</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一次你拿得出手的运行</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">这个功能要解决的问题</div>
+    <h2>登录号不是数据集——在你动手之前，它意味着四步人工活。</h2>
+    <p class="caption">复用公开数据看着容易，实则很少如此。同一个 ID 可能是芯片、bulk RNA-seq，也可能是单细胞——而每一种都需要不同的流水线。把数据库、模态、工作流或参数搞错，你要么白跑一趟，要么悄无声息地算出了错误的答案。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">找到它</div><h4>哪个数据库？</h4><p>GEO、SRA、ENA——不同的归档库，不同的下载工具，不同的文件形态。</p></div>
+          <div class="tile"><div class="n">辨认它</div><h4>什么类型的数据？</h4><p>芯片还是测序？bulk 还是单细胞？光凭 ID 看不出来——但它决定了方法。</p></div>
+          <div class="tile"><div class="n">挑选它</div><h4>哪条工作流？</h4><p>DESeq2、limma、Seurat、GSEA……选对哪一个，取决于数据类型和你真正的问题。</p></div>
+          <div class="tile"><div class="n">接好它</div><h4>哪些参数？</h4><p>物种、实验类型、参考基因组。填错一个字段，运行就失败——或者更糟，它没失败。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>你需要的：把一个 ID 变成那次正确、参数配好的运行——而不必做这番人工考古</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker">开始前要先懂的几个概念</div>
+    <h2>四个大白话词，就能说清整段旅程。</h2>
+    <p class="caption">你不必懂那些下载工具——只要这四个词，其余的自然就跟上来了。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 登录号</div><h4>论文里那个 ID</h4><p>公开数据集的一个稳定标识符——一个 GEO 的 <code>GSE…</code>、一个 SRA 的 <code>SRR…</code> 或 <code>SRP…</code>。你的起点。</p></div>
+            <div class="tile"><div class="n">2 · 数据库</div><h4>它存放在哪</h4><p>收录它的归档库——GEO 收录经整理的系列，SRA/ENA/DDBJ 收录原始测序读段。每一个都需要用它自己的取数器。</p></div>
+            <div class="tile"><div class="n">3 · 模态</div><h4>什么类型的数据</h4><p>芯片、bulk RNA-seq，还是单细胞。模态决定了哪种分析才站得住脚。</p></div>
+            <div class="tile"><div class="n">4 · 路由</div><h4>那条合适的工作流</h4><p>把模态连同你的目标，对上那条正确的流水线，并把参数都填好。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套巧思，就是把 <b>ID → 数据库 → 模态 → 路由</b> 从四步小心翼翼的人工活，变成一次粘贴加确认。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — STAGE 1 CONCEPT -->
+  <section class="scene" data-seconds="27.0">
+    <div class="kicker"><span class="st">阶段一</span> · ID → 取数</div>
+    <h2>粘进 ID；BioMate 点名数据库，并挑好取数器。</h2>
+    <p class="caption">第一阶段又快又确定。BioMate 读一眼登录号的形态——<code>GSE…</code> 属于 GEO，<code>SRR…</code> 或 <code>SRP…</code> 属于 SRA——就把对应的取数工作流交回来，ID 已经填好，随时可跑。没有联网式的猜测，也不会用错工具。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"GSE52778" 或 "SRR1039508"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>识别出数据库 + ID 类型</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>取数工作流 + 预填的 ID</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>随时可跑</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">GEO 系列路由到 <b>GEO 数据连接器</b>；原始读段的归档库（SRA / ENA / DDBJ）路由到 <b>fetchngs</b>，由它拉取 FASTQ 文件和一张样本表。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>识别出登录号 → 正确的取数器，已预填</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — LIVE: RESOLVE TABLE -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">阶段一 · 实况</span> · resolve 会返回什么</div>
+    <h2>一条规则，适用每个 ID：数据库和取数器，替你点好名。</h2>
+    <p class="caption">这是真实的输出。GEO 标识符一律解析到 GEO 连接器；测序标识符一律解析到 fetchngs——每一个都已把登录号放进了那个正确的参数里。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实况产品 · resolve_accession</span>
+        <div class="frame"><img src="assets/live/accession-resolve.png" alt="登录号解析表：GEO 系列对应 GEO 数据连接器，SRA 运行对应 nf-core/fetchngs"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>GEO 系列 → GEO 连接器。</b><code>GSE…</code>、<code>GSM…</code>、<code>GDS…</code> 全都映射到 GEOquery 连接器。</span></li>
+          <li><span class="b"></span><span><b>测序 → fetchngs。</b><code>SRR/SRP</code>、<code>ERR/ERP</code>、<code>DRR</code>、项目 ID——全都拉取原始 FASTQ + 元数据。</span></li>
+          <li><span class="b gr"></span><span><b>已预填、可直接跑。</b>登录号被放进那个正确的参数里；下一步只需一次确认。</span></li>
+          <li><span class="b"></span><span>无法识别的 ID 会被老实地拒掉，而不是被悄悄地错误处理。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>按 ID 类型做的确定性识别</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — STAGE 2 CONCEPT: READS THE STUDY -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">阶段二</span> · 它去读这项研究</div>
+    <h2>在选择分析之前，BioMate 先弄清数据究竟是什么。</h2>
+    <p class="caption">光凭 ID 说不出一个 GEO 系列是芯片还是 RNA-seq——但这项研究自己的记录说得出。BioMate 直接读取 GEO 的元数据，从权威的系列类型和设计说明里推断出<b>模态</b>，于是分析贴着数据来，而不是靠猜。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">数据优先</div><h4>去读记录</h4><p>直接查询 GEO 系列的元数据——系列类型（芯片 vs 测序）和设计关键词。</p></div>
+          <div class="tile"><div class="n">模态</div><h4>芯片 · bulk · 单细胞</h4><p>从那条记录里，BioMate 推断出芯片、bulk RNA-seq 或单细胞——每一种都意味着一种不同的、站得住脚的方法。</p></div>
+          <div class="tile"><div class="n">不靠猜</div><h4>拿不准就老实说</h4><p>没有明确的单细胞信号，它不会擅自当成单细胞；看不分明的研究会交还给你，而不是胡乱路由。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">这里的模态推断是 GEO 专属的——它用的是 GEO 自己的机器可读记录。原始读段的归档库则直接去取读段。</p>
+        <div><span class="verdict ok"><span class="mk"></span>由数据决定方法——而不是文件名</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — LIVE: ROUTING TABLE (HEADLINE) -->
+  <section class="scene" data-seconds="37.0">
+    <div class="kicker"><span class="st">阶段二 · 实况</span> · 同一个 ID，你的目标挑中流水线</div>
+    <h2>一个 GEO 的 ID，三个问题，三条正确的流水线。</h2>
+    <p class="caption">这里是这套智能的一屏总览。同一族 GEO 数据，三个不同的既定目标——BioMate 既把每一个路由到合适的工作流，<i>又</i>自动填好模态相关的参数。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实况产品 · 情境感知路由</span>
+        <div class="frame"><img src="assets/live/accession-routing.png" alt="路由表：芯片目标对应 Affymetrix 差异表达，bulk RNA-seq 目标对应 DESeq2 链，富集目标对应 GSEA，参数均自动填好"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>芯片目标 → Affymetrix 差异表达。</b>它替你把 <code>study_type = affy</code> 设好。</span></li>
+          <li><span class="b"></span><span><b>bulk RNA-seq 目标 → DESeq2 链。</b>rnaseq → 差异表达 → 富集，并设好 <code>genome = GRCh38</code>。</span></li>
+          <li><span class="b gr"></span><span><b>富集目标 → GSEA。</b>fgsea + 通路数据库，并设好 <code>species</code> 和 <code>organism</code>。</span></li>
+          <li><span class="b"></span><span>路由出的每一条工作流、填好的每一个参数，都是这套真实系统自己的输出。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>同一个 ID，按你想弄明白什么来路由</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — FETCH & RUN -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">步骤</span> · 先取数，再运行</div>
+    <h2>从选定的工作流出发，它取数并运行——在云端算力上。</h2>
+    <p class="caption">工作流一旦选定，BioMate 就替你取回数据并把流水线跑起来。GEO 系列经由连接器进来；原始读段的研究被取成 FASTQ，汇入测序流水线。你只需确认一次；这份工作在云端跑着，你则可以去忙别的。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>登录号</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>取数（连接器 / fetchngs）</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>分析工作流</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>结果 + 一份记录</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">除测序之外，同样的编号感知取数还能处理结构（PDB、EMDB）、蛋白与参考序列（UniProt、Ensembl），以及化合物 ID（ChEMBL、PubChem）——当某条工作流需要时自动拉取。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>取数与分析，串成一链——只需一次确认</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">为发表而造 · 精确且可审计</div>
+    <h2>可写进方法部分、经得起核验的确定性识别。</h2>
+    <p class="caption">这份精确是真实的，也是有针对性的——正是这份精确，让你能放心把它用于发表。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">GEO RNA-SEQ 计数</div><h4>需要读段或矩阵</h4><p>一个 GEO 的 RNA-seq 系列，记录里并不带表达计数表。计数来自取回原始读段，或来自你自己提供的矩阵——始终可追溯到真实来源。</p></div>
+          <div class="tile"><div class="n">模态 = GEO</div><h4>测序归档库</h4><p>模态推断读的是 GEO 的记录。原始读段的归档库（SRA/ENA）会直接去取读段，不走模态推断。</p></div>
+          <div class="tile"><div class="n">适用范围</div><h4>它最擅长的地方</h4><p>在 GEO 和 SRA/ENA 测序上最为强大，并能按需取回多种文件类型。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>具体而诚实——不是一个假装无所不能的黑箱</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="30.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">粘进一个 ID。说出你的目标。得到一次路由正确的运行。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>一个登录号，本就应当变成一次正确、跑得起来的分析——而不必搭上一天去做准备。</b>BioMate 识别数据库，读懂数据是什么，把你的问题路由到合适的流水线并填好参数，取回数据，在云端把它跑起来——还给你留下一份拿得出手的记录。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>粘进登录号——GEO 的 <code>GSE…</code> 或 SRA 的 <code>SRR…</code></li>
+            <li><span class="k">2</span>说清你想弄明白什么——差异表达、富集、聚类</li>
+            <li><span class="k">3</span>确认路由好的工作流和它预填的参数</li>
+            <li><span class="k">4</span>它取数并运行；你拿到结果和一份可复现记录</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>识别 ID</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">GEO + SRA/ENA</span></td></tr>
+            <tr><td>读出模态</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">来自 GEO 的记录</span></td></tr>
+            <tr><td>按目标路由</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">正确工作流，自动参数</span></td></tr>
+            <tr><td>取数 + 运行</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">在云端算力上</span></td></tr>
+            <tr><td>覆盖范围</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">GEO + SRA/ENA，更多按需</span></td></tr>
+          </table>
+          <p class="footnote">从一个已发表的登录号，到一次跑着的、参数配好的、可复现的分析——那些人工考古活，都替你做掉了。公开数据，正确地复用。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

@@ -353,6 +353,18 @@ def _apply_connection_handoffs(
     steps = chain_state.get("steps") or []
     wired: Dict[str, Any] = {}
     warnings: List[str] = []
+
+    # Downstream .nf text, read once, so the format gate can resolve the expected format of a
+    # role-named file-param (e.g. `ligand` -> from its `params.ligand='x.sdf'` default).
+    _nf_text = None
+    try:
+        from galaxy.chain.binding_check import _resolve, _default_roots  # noqa: PLC0415
+        _dp = (steps[step_index].get("nextflow_path") if 0 <= step_index < len(steps) else "") or ""
+        _rp = _resolve(_dp, _default_roots()) if _dp else None
+        if _rp:
+            _nf_text = _rp.read_text(errors="ignore")
+    except Exception:
+        _nf_text = None
     target_step = step_index + 1  # catalog connections are 1-based
     if 0 <= step_index < len(steps):
         steps[step_index].pop("transform_error", None)  # stale from an earlier attempt
@@ -396,6 +408,19 @@ def _apply_connection_handoffs(
                 warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
                 continue
         value = artifact_value(picked)
+        # Format gate: a no-transform handoff must wire a file whose format matches what to_input
+        # expects, or the downstream launches and fails at runtime (e.g. a .smi into an SDF param, a
+        # .pdbqt into a GROMACS `ligand`). A declared transform is assumed to convert, so it is
+        # skipped. Conservative — only fires when both formats are known and differ.
+        if value and not conn.get("transform"):
+            try:
+                from galaxy.chain.format_check import mismatch_message  # noqa: PLC0415
+                _fmm = mismatch_message(str(picked.get("filename") or ""), to_input, _nf_text)
+            except Exception:
+                _fmm = None
+            if _fmm:
+                warnings.append(_fmm)
+                continue
         if value and conn.get("transform"):
             # Transform rule: the transform reads the artifact's file (local path, or S3/MinIO object downloaded first).
             # A str result is wired to to_input. A dict result wires result[to_input]
@@ -682,6 +707,25 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             if conn_warnings:
                 current["steps"][idx]["handoff_warnings"] = conn_warnings
                 _update_chain(current)
+            # Guard against a SILENT no-op handoff: a declared connection that produced no wiring
+            # (the upstream output was not found, even after the fallback) means this step would run
+            # on its defaults, not on the intended upstream value — and the chain would still report
+            # "succeeded". That is a false success. Fail the step before launch instead (same policy
+            # as transform_error below). Informational "wired via fallback" warnings are NOT failures.
+            _unresolved = [w for w in conn_warnings if (
+                w.startswith("No artifact '")
+                or "missing run_id for" in w
+                or w.startswith("Invalid from_step")
+                or w.startswith("format mismatch")
+            )]
+            if _unresolved:
+                msg = "unresolved input handoff(s): " + "; ".join(_unresolved)
+                log.error("workflow_chain: step %d not launched: %s", idx, msg)
+                current["steps"][idx]["status"] = "failed"
+                current["steps"][idx]["error"] = msg
+                current["status"] = "failed"
+                _update_chain(current)
+                return
             if current["steps"][idx].get("transform_error"):
                 msg = current["steps"][idx]["transform_error"]
                 log.error("workflow_chain: step %d not launched: %s", idx, msg)
@@ -774,6 +818,13 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
                 current["steps"][idx].setdefault("handoff_warnings", []).extend(tmpl_warnings)
                 _update_chain(current)
                 log.warning("workflow_chain: step %d scalar-template warnings: %s", idx, tmpl_warnings)
+
+        # Expose the fully-resolved params (handoffs + transforms + context + templates) for the
+        # status/UI, WITHOUT mutating step["params"]. step["params"] must stay the submitted params:
+        # resume/rehydrate resets status/run_id but not params, and each iteration seeds from it, so
+        # overwriting it would make a re-run reuse the first run's wired value instead of re-resolving.
+        current["steps"][idx]["resolved_params"] = params
+        _update_chain(current)
 
         # Launch Nextflow via the existing executor
         try:
@@ -904,10 +955,30 @@ def _run_dag_chain(state: Dict[str, Any]) -> None:
             _update_chain(state)
             return
 
+    # Format gate for the DAG path — same contract as the sequential _apply_connection_handoffs:
+    # a no-transform handoff whose resolved file format is incompatible with the downstream param
+    # fails the step before launch (bind_inputs raises -> run_plan marks it failed). Downstream nf
+    # text is read once per downstream step and cached so each connection reuses it.
+    _nf_cache: Dict[int, Optional[str]] = {}
+
+    def _dag_format_check(current, index, to_input, from_output):
+        try:
+            from galaxy.chain.format_check import mismatch_message  # noqa: PLC0415
+            if index not in _nf_cache:
+                from galaxy.chain.binding_check import _resolve, _default_roots  # noqa: PLC0415
+                steps = current.get("steps") or []
+                dp = (steps[index].get("nextflow_path") if 0 <= index < len(steps) else "") or ""
+                rp = _resolve(dp, _default_roots()) if dp else None
+                _nf_cache[index] = rp.read_text(errors="ignore") if rp else None
+            return mismatch_message(str(from_output or ""), to_input, _nf_cache[index])
+        except Exception:
+            return None
+
     try:
         run_plan(state, submit, poll, save,
                  lambda current, i: bind_inputs(current, i, _list_run_output_files,
-                                                 artifact_value, resolve_context_params))
+                                                 artifact_value, resolve_context_params,
+                                                 format_check=_dag_format_check))
     except Exception as exc:
         state.update(status="failed", error=str(exc))
         _update_chain(state)

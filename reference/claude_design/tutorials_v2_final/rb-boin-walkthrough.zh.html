@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · BOIN 剂量爬坡——经过验证的临床设计对比 LLM 的推理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">BOIN 剂量爬坡——经过验证的临床设计对比 LLM 现场推理</span>
+  <span class="spacer"></span>
+  <span class="counter">阶段 <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — THE TASK (title) -->
+  <section class="scene title" data-seconds="31.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>RealBio · BOIN 剂量探索</b></div>
+    <div class="kicker">任务 · I 期剂量爬坡</div>
+    <h2>下一档用什么剂量——哪一档又是最大耐受剂量？</h2>
+    <p class="caption">在一项 I 期试验里，患者每次只以寥寥数人给药，而每一组队列的毒性反应决定接下来怎么走：往上爬、原地不动，还是退回到更低一档——并在最后把哪一档剂量定为<b>最大耐受剂量</b>。这不是一次主观拍板。它是一条预先设定的、逐队列施行的序贯统计决策规则，一旦判错，就会直接以患者安全为代价。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>每组队列观测到的毒性反应</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一条预先设定的决策规则</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>往上爬 / 原地不动 / 往下降</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>最大耐受剂量</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker">BioMate 的做法 · 已发表的 BOIN 设计</div>
+    <h2>BioMate 运行贝叶斯最优区间设计，而不是靠猜。</h2>
+    <p class="caption">贝叶斯最优区间（BOIN）设计会预先从模型和目标毒性率出发，推导出它的爬坡与降档边界。BioMate 每次都以同样的方式把这些边界应用到观测数据上——是一条编码化的规则在被执行，而不是一个模型靠一通言说、给自己绕出个答案。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · 边界</div><h4>在试验开始前设定</h4><p>BOIN 从目标毒性率出发，预先定好低于某阈值就往上爬、高于某阈值就往下降的两条界线——规则在任何患者给药之前就已确定。</p></div>
+          <div class="tile"><div class="n">2 · 应用</div><h4>到观测数据上</h4><p>在每一组队列，把观测到的毒性率与这些边界相比较，以此确定性地选出下一档剂量，不再做任何重新解读。</p></div>
+          <div class="tile"><div class="n">3 · 选定 MTD</div><h4>以毫克计</h4><p>当入组结束，设计选出最大耐受剂量——以一个具体的毫克剂量档位报告，即临床上可付诸行动的答案。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">已发表的 BOIN 规则的概念示意——把预先设定的边界应用到试验数据上。这是用于试验设计的决策支持，而非医疗建议。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一个经过验证、可审计的临床设计——被执行，而非被推理</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT: SCORE vs LLM (bar chart) -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker">结果 · 正确选出 MTD</div>
+    <h2>在我们的剂量爬坡基准上：0.80 对比 0.24。</h2>
+    <p class="caption">衡量指标是：在多大比例的试验里，以毫克计的正确最大耐受剂量被选中。BioMate 运行 BOIN 设计，对比一个大语言模型直接回答同样的临床问题。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div style="display:flex; flex-direction:column; gap:26px">
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px; font-family:var(--ff-mono); font-size:14px; color:var(--ink); font-weight:600; text-align:right">BioMate</div>
+              <div style="flex:1; height:46px; background:var(--panel2); border:1px solid var(--line2); border-radius:6px; position:relative; overflow:hidden">
+                <div style="width:80%; height:100%; background:var(--green); display:flex; align-items:center; justify-content:flex-end; padding-right:16px; border-radius:5px 0 0 5px">
+                  <span style="font-family:var(--ff-mono); font-size:18px; color:#fff; font-weight:600">0.80</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px; font-family:var(--ff-mono); font-size:14px; color:var(--ink); font-weight:600; text-align:right">LLM 直答</div>
+              <div style="flex:1; height:46px; background:var(--panel2); border:1px solid var(--line2); border-radius:6px; position:relative; overflow:hidden">
+                <div style="width:24%; height:100%; background:var(--mut); display:flex; align-items:center; justify-content:flex-end; padding-right:14px; border-radius:5px 0 0 5px">
+                  <span style="font-family:var(--ff-mono); font-size:18px; color:#fff; font-weight:600">0.24</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="width:120px"></div>
+              <div style="flex:1; display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:11px; color:var(--mut)">
+                <span>0.0</span><span>0.5</span><span>1.0 — 以毫克计的正确 MTD</span>
+              </div>
+            </div>
+
+          </div>
+          <p class="footnote" style="margin-top:24px">以毫克计的正确 MTD 选择 · n = 60，跨测评（BioMate 自己的 BOIN 基准对比 RealBio 的 LLM 测试轮——并非同题逐一对比）。真实台账数据；未添加其他数字。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>在正确选出最大耐受剂量上，0.80 对比 0.24</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TAKEAWAY (title) -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">要点</div>
+    <h2 style="font-size:40px">运行一个经过验证的临床设计；别让模型去现场推理。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:19px">对于一次序贯的安全决策，执行已发表的 BOIN 设计，胜过让一个语言模型自己推理出一个剂量——在正确最大耐受剂量的选择上，<b>0.80 对比 0.24</b>。一条编码化的统计规则是可审计的，而一个模型的推理链条则不然。</p>
+          <p class="caption sub" style="margin-top:14px">BioMate 是一个用于试验设计的决策支持工具——而非医疗建议。</p>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>BioMate（BOIN）</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">0.80 以毫克计的正确 MTD</span></td></tr>
+            <tr><td>LLM 直答</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">0.24</span></td></tr>
+            <tr><td>证据</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">n = 60，跨测评</span></td></tr>
+            <tr><td>为何胜出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">经过验证且可审计的规则</span></td></tr>
+          </table>
+          <p class="footnote">一个预先设定的设计，每次运行都以同样的方式执行——可复现、可查验，并在模型推理无法立足之处依然站得住脚。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

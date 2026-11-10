@@ -68,14 +68,14 @@ params.fallback_mode        = 'auto'            // auto | nonmem_only | nlmixr2_
 // ============================================================================
 
 // NONMEM container: set NONMEM_CONTAINER env var for licensed installs.
-// Falls back to biomni-tools:x86 — the nlmixr2 Python fallback runs there.
+// Falls back to workflow-tools:x86 — the nlmixr2 Python fallback runs there.
 def _aws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def NONMEM_CONTAINER   = System.getenv('NONMEM_CONTAINER') ?:
-    (_aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest')
+    (_aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest')
 
-// nlmixr2 fallback container — also use biomni-tools (has Python + scipy)
+// nlmixr2 fallback container — also use workflow-tools (has Python + scipy)
 def NLMIXR2_CONTAINER  = System.getenv('NLMIXR2_CONTAINER') ?:
-    (_aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest')
+    (_aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest')
 
 // ============================================================================
 // Helper: detect execution mode at pipeline start
@@ -117,7 +117,7 @@ process GENERATE_SYNTHETIC_DATA {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     output:
     path "pk_data_synthetic.csv", emit: pk_data

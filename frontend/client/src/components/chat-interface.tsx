@@ -2443,11 +2443,9 @@ export function ChatInterface({
         </div>
       )}
       {/* Reference design chat input wrap — padding clamp like layout.css */}
-      <div style={{
-        padding: '14px 24px 18px',
-        borderTop: '1px solid var(--bm-border)',
-        background: 'var(--bm-bg-elev)',
-      }}>
+      {/* Composer sits on the chat canvas (no separate footer bar) — the
+          input card itself carries the border/elevation. */}
+      <div style={{ padding: '14px 24px 18px' }}>
         {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
         <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={displayTyping || preparingExample}
           reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}

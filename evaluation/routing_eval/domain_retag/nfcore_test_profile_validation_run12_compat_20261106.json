@@ -1,0 +1,20 @@
+[
+ {
+  "name": "nf-core/diseasemodulediscovery",
+  "runId": "dbd1a84e-36bb-40d6-926a-9bf3557b0188",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 62,
+  "error": "Process MODULEPARSER (entrez_seeds_1.entrez_ppi.diamond) failed: Could not synchronize with Container Task \u2014 [DEBUG] g=<Graph object, undirected, with 456 vertices and 2618 edges, 1 internal vertex property, at 0x7ff84d64e480> | [DEBUG] seeds={'411', '348', '4126', '2588', '175', '2629', '2717', '4669', '5836', '4125'}",
+  "minutes": 85.1
+ },
+ {
+  "name": "nf-core/imcyto",
+  "runId": "89731a00-f39e-489d-896f-b7e547af77c2",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 56,
+  "error": "",
+  "minutes": 19.3
+ }
+]

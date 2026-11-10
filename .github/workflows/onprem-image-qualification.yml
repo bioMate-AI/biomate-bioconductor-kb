@@ -1,0 +1,44 @@
+name: On-prem image qualification (no publication)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/onprem-image-qualification.yml'
+      - 'backend/docker/workflow-tools/Dockerfile.onprem'
+      - 'backend/docker/workflow-tools/smoke.py'
+      - 'backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  native-amd64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build public-base on-prem image (never push)
+        run: |
+          docker build --platform linux/amd64 --build-arg TARGETARCH=amd64 \
+            -t "biomate-workflow-tools-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            -f backend/docker/workflow-tools/Dockerfile.onprem .
+      - name: Run one-core offline native functional smoke
+        run: |
+          image="biomate-workflow-tools-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          container="biomate-workflow-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cpu="$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')"
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          timeout 300 docker run --rm --name "$container" --network none \
+            --mount "type=bind,source=${GITHUB_WORKSPACE}/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf,target=/canonical-workflow.nf,readonly" \
+            --cpus 1 --cpuset-cpus "$cpu" --memory 4g --memory-swap 4g \
+            --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 \
+            -e OMP_NUM_THREADS=1 -e MKL_NUM_THREADS=1 -e OPENBLAS_NUM_THREADS=1 \
+            -v "${GITHUB_WORKSPACE}/backend/docker/workflow-tools/smoke.py:/smoke.py:ro" \
+            "$image" python3 /smoke.py
+      - name: Record exact tested local image ID and dependency inventory
+        run: |
+          image="biomate-workflow-tools-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker image inspect --format '{{.Id}} {{.Architecture}} {{.Os}}' "$image"
+          docker run --rm --network none "$image" python3 -m pip freeze
+          echo 'Native amd64 rebuild and offline functional smoke passed. No image was published. Namespace/layer cleanup, ARM64 and clean-install acceptance remain separate gates.' >> "$GITHUB_STEP_SUMMARY"

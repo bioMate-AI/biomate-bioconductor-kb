@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Non-compartmental PK analysis (NCA)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:60px 104px 64px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; margin-top:34px}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+/* helpers reused from the v2 exemplars */
+.stat .si.tag{font-family:var(--ff-mono); font-size:15px; letter-spacing:.1em; color:var(--blue); font-weight:600}
+.sc-note .flag.amber{color:var(--amber); background:var(--amber-bg); border-color:var(--amber)}
+.crit .cn{font-family:var(--ff-mono)}
+
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">S1 · Non-compartmental PK analysis — a concentration-time curve becomes defensible exposure numbers</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Non-Compartmental PK</b></div>
+    <div class="kicker">For anyone who measures drug concentration over time</div>
+    <h2>You have a concentration-time curve. BioMate turns it into exposure numbers you can defend.</h2>
+    <p class="caption lead">A table of concentration over time becomes defensible exposure numbers — no model fitted.</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>Concentration-time CSV</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Nca Pknca</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Validate the curve</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>AUC · Cmax · t&frac12; · CL · Vd</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Report you can defend</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Exposure is the first question in PK — computed the standard way.</h2>
+    <p class="caption lead">How much drug the body saw, and for how long — read straight off the observed curve.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 820 384" style="width:100%; max-width:900px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- AUC shaded area -->
+          <path d="M90,340 C150,282 210,102 270,90 C360,78 440,172 540,232 C620,276 700,302 760,314 L760,340 Z" fill="#e7f0ff"/>
+          <!-- axes -->
+          <line x1="90" y1="40" x2="90" y2="340" stroke="#d5dae2" stroke-width="2"/>
+          <line x1="90" y1="340" x2="788" y2="340" stroke="#d5dae2" stroke-width="2"/>
+          <!-- terminal slope (dashed) -->
+          <line x1="500" y1="214" x2="802" y2="334" stroke="#8a5a12" stroke-width="2.6" stroke-dasharray="7 6"/>
+          <!-- concentration-time curve -->
+          <path d="M90,340 C150,282 210,102 270,90 C360,78 440,172 540,232 C620,276 700,302 760,314" fill="none" stroke="#1a4a9c" stroke-width="3.8"/>
+          <!-- Cmax / Tmax guides -->
+          <line x1="90" y1="90" x2="270" y2="90" stroke="#5a6474" stroke-width="1.6" stroke-dasharray="5 5"/>
+          <line x1="270" y1="90" x2="270" y2="340" stroke="#5a6474" stroke-width="1.6" stroke-dasharray="5 5"/>
+          <circle cx="270" cy="90" r="8.5" fill="#1a4a9c"/>
+          <!-- labels -->
+          <text x="300" y="268" text-anchor="middle" font-family="IBM Plex Mono" font-size="22" fill="#1a4a9c" font-weight="600">AUC</text>
+          <text x="284" y="80" font-family="IBM Plex Mono" font-size="18" fill="#1a4a9c" font-weight="600">Cmax</text>
+          <text x="270" y="364" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" fill="#5a6474">Tmax</text>
+          <text x="690" y="286" font-family="IBM Plex Mono" font-size="16" fill="#8a5a12" font-weight="600">slope &rarr; t&frac12;</text>
+          <text x="440" y="378" text-anchor="middle" font-family="IBM Plex Mono" font-size="15" fill="#5a6474">time (h)</text>
+          <text x="52" y="196" font-family="IBM Plex Mono" font-size="15" fill="#5a6474" transform="rotate(-90 52 196)">concentration</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:24px">
+        <div class="stat"><div class="si tag">HOW MUCH</div><div class="sh">AUC — total exposure</div><div class="sp">The shaded area under the curve.</div></div>
+        <div class="stat"><div class="si tag">HOW HIGH</div><div class="sh">Cmax at Tmax</div><div class="sp">The peak, and when it happened.</div></div>
+        <div class="stat"><div class="si tag">HOW LONG</div><div class="sh">Terminal t&frac12;</div><div class="sp">From the log-linear tail slope.</div></div>
+        <div class="stat"><div class="si tag">HOW FAST</div><div class="sh">CL/F · Vd/F</div><div class="sp">Clearance and apparent volume.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four plain ideas are the whole of NCA.</h2>
+    <p class="caption lead">No compartment model, no differential equation — four things read off the observed curve.</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">THE CURVE</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d5dae2" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1a4a9c" stroke-width="3.2"/>
+          </svg>
+          <div class="gl-lbl">Concentration vs. time — the raw measurement</div></div>
+        <div class="glyph"><div class="n">AUC</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82 L172,92 Z" fill="#e7f0ff"/>
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d5dae2" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1a4a9c" stroke-width="3.2"/>
+          </svg>
+          <div class="gl-lbl">Area under the curve — total exposure</div></div>
+        <div class="glyph"><div class="n">PEAK</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d5dae2" stroke-width="2"/>
+            <line x1="86" y1="24" x2="86" y2="92" stroke="#5a6474" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1a4a9c" stroke-width="3.2"/>
+            <circle cx="86" cy="24" r="6.5" fill="#1a4a9c"/>
+          </svg>
+          <div class="gl-lbl">Cmax &amp; Tmax — height and timing of the peak</div></div>
+        <div class="glyph"><div class="n">TAIL</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d5dae2" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1a4a9c" stroke-width="3.2"/>
+            <line x1="100" y1="40" x2="182" y2="98" stroke="#8a5a12" stroke-width="2.8" stroke-dasharray="6 5"/>
+          </svg>
+          <div class="gl-lbl">Terminal slope &rarr; half-life &amp; clearance</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">In BioMate</span> · goal + a CSV → a run</div>
+    <h2>Say the goal, attach a CSV; BioMate routes to Nca Pknca.</h2>
+    <p class="caption lead">A plain-English goal plus a concentration-time CSV — PKNCA runs on cloud compute.</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <figure class="shotcol">
+        <span class="lbl">Live product · the Nca Pknca workflow in BioMate</span>
+        <div class="frame"><img src="assets/live/nca-live-panel.png" alt="BioMate workflow panel for the Nca Pknca non-compartmental PK workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>Routes to <b>Nca Pknca</b> — tagged <b>Drug Discovery</b>, one phase.</span></li>
+          <li><span class="b"></span><span>One required input: the concentration-time CSV (<b>Input Csv</b>).</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run</b> launches PKNCA on the cloud — nothing to install.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real NCA workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">The input</span> · the concentration-time table</div>
+    <h2>A tidy concentration-time table, plus dose and route.</h2>
+    <p class="caption lead">One row per sample — validated before any computation, so a bad table fails fast.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 640 196" style="width:100%; max-width:720px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <rect x="20" y="12" width="600" height="44" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.6"/>
+          <rect x="20" y="60" width="600" height="40" fill="#fff" stroke="#e3e7ee" stroke-width="1.2"/>
+          <rect x="20" y="100" width="600" height="40" fill="#f7f8fa" stroke="#e3e7ee" stroke-width="1.2"/>
+          <rect x="20" y="140" width="600" height="40" fill="#fff" stroke="#e3e7ee" stroke-width="1.2"/>
+          <g font-family="IBM Plex Mono" font-size="17" fill="#1a4a9c" font-weight="600" text-anchor="middle">
+            <text x="80" y="40">subject_id</text><text x="200" y="40">time</text><text x="320" y="40">conc</text><text x="440" y="40">dose</text><text x="560" y="40">route</text>
+          </g>
+          <g font-family="IBM Plex Mono" font-size="16" fill="#20293a" text-anchor="middle">
+            <text x="80" y="85">S01</text><text x="200" y="85">0.5</text><text x="320" y="85">12.4</text><text x="440" y="85">100</text><text x="560" y="85">oral</text>
+            <text x="80" y="125">S01</text><text x="200" y="125">2.0</text><text x="320" y="125">48.1</text><text x="440" y="125">100</text><text x="560" y="125">oral</text>
+            <text x="80" y="165">S02</text><text x="200" y="165">1.0</text><text x="320" y="165">35.6</text><text x="440" y="165">100</text><text x="560" y="165">iv</text>
+          </g>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:24px">
+        <div class="stat"><div class="si tag">COLUMNS</div><div class="sh">One row per sample</div><div class="sp"><code>subject_id · time · conc · dose · route</code></div></div>
+        <div class="stat"><div class="si tag">DESIGN</div><div class="sh">Dose &amp; route</div><div class="sp">Route sets extravascular vs. intravascular.</div></div>
+        <div class="stat"><div class="si tag">UNITS</div><div class="sh">Labelled, not guessed</div><div class="sp">Defaults <code>h</code> and <code>ng/mL</code> label the axes.</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:22px; display:flex; align-items:center; justify-content:center; gap:14px"><span class="vflag green">VALIDATE</span> Step 1 floors negative concentrations to zero and rejects negative times.</div>
+    </div>
+  </section>
+
+  <!-- 5 — WHAT NCA COMPUTES -->
+  <section class="scene" data-seconds="52.0">
+    <div class="kicker"><span class="st">The computation</span> · PKNCA, per subject</div>
+    <h2>The standard exposure parameters, computed by convention.</h2>
+    <p class="caption lead">R/PKNCA over the validated curve — per subject, all derived from the data, none fitted.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si tag">AUClast / AUCinf</div><div class="sh">Total exposure</div><div class="sp">Observed, then extrapolated to infinity.</div></div>
+        <div class="stat"><div class="si tag">Cmax</div><div class="sh">The peak</div><div class="sp">Highest observed concentration.</div></div>
+        <div class="stat"><div class="si tag">Tmax</div><div class="sh">Time of peak</div><div class="sp">Read off the sampling points.</div></div>
+      </div>
+      <div class="statrow" style="margin-top:22px">
+        <div class="stat"><div class="si tag">t&frac12;</div><div class="sh">Persistence</div><div class="sp">Terminal half-life from the log-linear tail.</div></div>
+        <div class="stat"><div class="si tag">CL/F</div><div class="sh">Apparent clearance</div><div class="sp">Rate the body removes the drug.</div></div>
+        <div class="stat"><div class="si tag">Vd/F</div><div class="sh">Apparent volume</div><div class="sp">The space the drug spreads into.</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:24px">Method: <b>linear-up / log-down trapezoidal</b> · per subject in <code>nca_results.csv</code>, summarised in <code>nca_summary.json</code></div>
+    </div>
+  </section>
+
+  <!-- 6 — DOSE-RESPONSE CONTEXT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">In context</span> · from exposure to effect</div>
+    <h2>Exposure is half the story — the other half is what it does.</h2>
+    <p class="caption lead">NCA anchors the exposure numbers the dose-selection chain consumes next.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · OBSERVED</div><div class="pc">Concentration curve</div><div class="pt"><span>conc vs. time</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">NCA</span></div>
+        <div class="pstep"><div class="pn">2 · EXPOSURE</div><div class="pc">AUC · Cmax</div><div class="pt"><span class="eg">Nca Pknca</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">fit</span></div>
+        <div class="pstep"><div class="pn">3 · RESPONSE</div><div class="pc">Exposure vs. effect</div><div class="pt"><span class="eg">Exposure Response</span><span>Emax / Hill</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">select</span></div>
+        <div class="pstep"><div class="pn">4 · DOSE</div><div class="pc">A dose rationale</div><div class="pt"><span class="eg">Dose Response</span><span>LL.4 / LL.5</span></div></div>
+      </div>
+      <div class="ploop">&#8626; each link is a real BioMate workflow — NCA produces the exposure the others consume</div>
+    </div>
+  </section>
+
+  <!-- 7 — READING THE PARAMETERS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">Interpretation</span> · each number answers a dosing question</div>
+    <h2>Reading the parameters: each one sets a decision.</h2>
+    <p class="caption lead">The report pairs a log-linear plot and a per-subject table with stated assumptions.</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="criteria">
+        <div class="crit"><div class="cn">AUC</div><div class="ct">Is exposure adequate?</div><div class="cd">Against a target — and tests dose-proportionality.</div></div>
+        <div class="crit"><div class="cn">Cmax / Tmax</div><div class="ct">How fast, how high?</div><div class="cd">Sharp early peak vs. slow, extended absorption.</div></div>
+        <div class="crit"><div class="cn">t&frac12;</div><div class="ct">How often to dose?</div><div class="cd">Sets the interval and time to steady state.</div></div>
+        <div class="crit"><div class="cn">CL/F · Vd/F</div><div class="ct">Scaling the dose</div><div class="cd">Clearance drives the maintenance dose.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="56.0">
+    <div class="kicker">What NCA is for · the conventions that make it defensible</div>
+    <h2>Defensible because it follows explicit conventions — and gates every run.</h2>
+    <p class="caption lead">NCA summarises the data you have; it hands off to PBPK to predict beyond it.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si tag">SAMPLING</div><div class="sh">The schedule is the ceiling</div><div class="sp">Tmax can only be a sampled point.</div></div>
+        <div class="stat"><div class="si tag">METHOD</div><div class="sh">Stated assumptions</div><div class="sp">Linear PK, single dose, log-linear tail.</div></div>
+        <div class="stat"><div class="si tag">HANDOFF</div><div class="sh">NCA &rarr; PBPK (S2)</div><div class="sp">Summary first, mechanism when you predict forward.</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">EXTRAP &gt; 20%</span> AUCinf flagged unreliable — the FDA BA/BE convention bounds the extrapolated tail.</div>
+      <div class="sc-note" style="margin-top:16px"><span class="flag amber">&lt; 3 TERMINAL PTS</span> no half-life fitted — the subject is flagged, not guessed.</div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="42.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">A concentration-time curve in. Defensible exposure numbers out.</h2>
+    <p class="caption lead">Validate the curve, compute by convention, gate the result, render a report — on the cloud.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · INPUT</div><div class="pc">Concentration-time CSV</div><div class="pt"><span>subject · time · conc</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">check</span></div>
+        <div class="pstep"><div class="pn">2 · VALIDATE</div><div class="pc">Curve checked</div><div class="pt"><span class="eg">NCA_INPUT_VALIDATION</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">compute</span></div>
+        <div class="pstep"><div class="pn">3 · PKNCA</div><div class="pc">AUC · Cmax · t&frac12;</div><div class="pt"><span class="eg">trapezoidal</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">gate</span></div>
+        <div class="pstep"><div class="pn">4 · QC</div><div class="pc">Extrap · terminal slope</div><div class="pt"><span class="eg">FDA &le; 20%</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">report</span></div>
+        <div class="pstep"><div class="pn">5 · REPORT</div><div class="pc">Defensible, reproducible</div><div class="pt"><span class="eg">nca_report.html</span></div></div>
+      </div>
+      <div class="ploop">&#8634; model-independent — pairs with PBPK (S2) when you need to predict forward</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

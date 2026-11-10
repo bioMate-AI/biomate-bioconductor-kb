@@ -1,0 +1,9 @@
+{
+  "command_id": "7655d2a5-24fe-497e-bc92-74179b06d761",
+  "instance_id": "i-06696b0d91f4346e0",
+  "remote_directory": "/tmp/biomate-image-publish-20261107-phase1",
+  "repositories": 14,
+  "digests": 160,
+  "status": "launched",
+  "review": "Additive registry copy using the existing instance role and official regctl client; no source deletion, IAM/registry setting changes or application restart; expected exact target/source digest equality."
+}

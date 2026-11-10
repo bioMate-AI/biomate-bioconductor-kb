@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T2 — 模型与闭环</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t2">教程 2 · 模型与闭环</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">11</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">BioMate 如何越用越聪明——每一轮背后的那个循环</div>
+    <h2>真实的实验结果教会 BioMate 每一轮都设计出更好的分子。</h2>
+    <p class="caption"><b>模型</b>就是负责做预测的那部分——"它会结合得有多强？""是否可能有毒？"——让你不必每次都去做一次又慢的实验。<b>模型</b>板块保存这些可复用的预测器，也是<b>闭环</b>的所在地：把你真实的实验室结果回灌进来的那个循环，让下一轮设计更好。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>设计</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>合成</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>测试</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>学习</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>再设计</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — WHY MODELS MATTER -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">模型为什么重要</span> · 可信，以及与时俱进 <span class="badge concept">概念</span></div>
+    <h2>一个预测，只有当你知道该信任它到什么程度时才有用。</h2>
+    <p class="caption">用预测代替实验，会带来两个问题。BioMate 的模型板块就是为同时解决这两者而建——既把每个模型当作可检视的对象，又把你真实的结果回灌进来。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile"><div class="n">1 · 信任</div><h4>有多好，又好在哪里？</h4><p>一个从没被检验过的模型，可能一边给出错误答案、一边显得很自信——你的分子离它学过的东西越远，这个风险越大。</p></div>
+            <div class="tile"><div class="n">2 · 与时俱进</div><h4>你的结果才是真相</h4><p>一个从不用你的新测量来更新的模型，会慢慢偏离现实。闭环让它保持与时俱进。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">你的模型和测量数据<b>只保留在你自己的工作区里</b>——绝不会被用来训练共享模型。闭环从你自己真实的实验室测量中学习，并把它们直接回灌进下一轮设计。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>信任与时效——你的私有数据让每一个预测都更可靠</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — MODEL = REUSABLE EXPERTISE -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">核心概念</span> · 模型是可复用的"学到的经验" <span class="badge concept">概念</span></div>
+    <h2>学一次，处处复用——用一个预测代替一次实验。</h2>
+    <p class="caption">模型接受一个输入（一个分子、一段蛋白质序列），返回一个预测（一个分数、一个三维结构）。有些是研究社区在大型公开数据集上<b>预训练</b>好的；另一些是<b>定制</b>的，在<i>你的</i>数据上训练，用来给<i>你这一类</i>分子打分。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">ALPHAFOLD2 / OPENFOLD2</div><h4>蛋白质三维形状</h4><p>从序列预测蛋白质的结构。</p></div>
+            <div class="tile"><div class="n">BOLTZ-2</div><h4>形状 + 契合</h4><p>蛋白质结构，以及蛋白质和小分子如何契合。</p></div>
+            <div class="tile"><div class="n">EVO2</div><h4>基因组序列</h4><p>一个关于 DNA／基因组序列的模型。</p></div>
+            <div class="tile"><div class="n">推理</div><h4>使用，不改动</h4><p>用一个已训练好的模型做预测，不训练你自己的任何东西。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">这四个预训练模型都是开放、社区构建的；BioMate 把它们托管好，你可以直接用。<b>定制</b>模型则是你在自己的数据上训练出来的。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——预训练供复用，定制供你自己的分子</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — MODEL AS OBJECT, NOT SCOREBOARD -->
+  <section class="scene" data-seconds="54.0">
+    <div class="kicker"><span class="st">BioMate 的指导思想</span> · 模型是一个对象，不是排行榜 <span class="badge concept">概念</span></div>
+    <h2>以有据可查的事实呈现——对照底线而非名次来评判。</h2>
+    <p class="caption">与其把模型放到排行榜上比高低（那只会诱使人去钻空子），BioMate 把每个模型都展示成一个你可以在信任之前检视的、有据可查的对象。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">证据</div><h4>它表现如何——对照底线</h4><p>一个对照所需质量<b>底线</b>的实测分数，在<b>留出测试集</b>上测得——那是它没训练过的数据，所以分数无法靠死记硬背来注水。</p></div>
+            <div class="tile"><div class="n">血缘</div><h4>是什么造出了它</h4><p>造出这个模型的数据，以及那一次运行。</p></div>
+            <div class="tile"><div class="n">被谁用</div><h4>什么依赖它</h4><p>哪些分析依赖它——这样你就能看清改动它会带来什么影响。</p></div>
+            <div class="tile"><div class="n">版本</div><h4>任何版本都不被覆盖</h4><p>每一个版本都被保留，不被替换。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">超出底线再多，也不会换来更高的名次——这里没有排行榜可爬。对于还没被打过分的模型，它会显示<b>"未评估"</b>，而不是编一个数字——这样你就不会拿一个看似自信的猜测去押上一整个湿实验项目。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>默认给出诚实的证据——模型会说明它证明了什么，又还没证明什么</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — APPLICABILITY DOMAIN -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">过了底线还不算完</span> · 适用域 <span class="badge concept">概念</span></div>
+    <h2>能否为<i>你的</i>分子信任它，取决于这个模型见过什么。</h2>
+    <p class="caption">一个好的底线分数，说明模型在<b>与它学过的数据相似</b>的测试数据上是准的。但你能不能为<i>你那个具体的</i>分子信任它，还取决于<b>适用域</b>——也就是它学过的输入是哪一类。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile safe"><div class="n">域内</div><h4>接近训练数据</h4><p>问它一个它学过的那类分子，它的预测就站得住脚。</p></div>
+            <div class="tile hot"><div class="n">域外</div><h4>低置信度——视为尚未证实</h4><p>让一个激酶抑制剂模型去给一个多肽打分，它应该<b>降低自己的置信度</b>，而不是假装自己懂。把一个域外预测当成可靠，是很多本就不可能成功的湿实验的常见根源。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">就像超说明书用药：一个低置信度的预测，意味着你的输入与模型的训练数据不像——落在它被检验过的范围之外。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>域外 → 低置信度，而非虚假的笃定</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE FOUR TRACKS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">模型界面</span> · 让模型发挥作用的四种方式 <span class="badge concept">概念</span></div>
+    <h2>运行它、训练你自己的、贴合你的团队风格，并合上闭环。</h2>
+    <p class="caption">模型界面给了你四种使用模型的方式——从一次性的预测，到在你自己数据上训练的定制打分器，再到一轮接一轮累积准确度的闭环。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">运行模型</div><h4>立刻做一次预测</h4><p>用一个社区模型立刻做一次预测。这是推理——不训练你的任何东西。</p></div>
+            <div class="tile"><div class="n">训练</div><h4>你自己的打分器</h4><p>在你自己的数据上构建一个定制模型——一个针对你的靶点、你的化学调好的打分器。</p></div>
+            <div class="tile"><div class="n">适配 · 团队风格</div><h4>你团队的口吻</h4><p>贴合你团队写报告的习惯；每一条学到的规则都会展示出来，也可以关掉。（是文字风格，不是科学。）</p></div>
+            <div class="tile"><div class="n">优化 · 轮次</div><h4>闭环</h4><p>以轮次呈现的 设计→合成→测试→学习 循环——真实的实验室结果在这里累积成更好的设计。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">一次预测、一个在你数据上训练的定制打分器、你的团队风格，还是完整的闭环——背后都是同一批可检视、带版本的模型。</p>
+        </div>
+        <div class="tags">
+          <span class="verdict ok"><span class="mk"></span>使用模型的四种方式——从一次预测到完整闭环</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — LIVE: REGISTRY -->
+  <section class="scene live split" data-kind="flow" data-seconds="30.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">一步步来</span> · 模型注册表 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div><h2>你账户能用的每一个模型，汇成一份清单。</h2><p class="caption"><b>注册表</b>就是这份实时清单：每一行是一个模型——它的名字、家族、来源，以及有多少分析在用它。社区模型（AlphaFold2、Boltz-2、Evo2）与你团队注册的任何定制模型并排在一起。一个项目里训练的模型，可以在任何其他项目里使用；点开一行，就进入它的对象视图。</p><div class="tags"><span class="verdict ok"><span class="mk"></span>注册表——实时；浏览并复用任意模型</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-registry.png" alt="模型注册表——每一行是一个模型，带名字、家族、来源，以及有多少分析在用它"></div>
+          <figcaption><span class="lbl">注册表 · 实时</span>一个找到并复用模型的地方——无论是社区构建的还是你自己的。</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 8 — LIVE: MODEL OBJECT -->
+  <section class="scene live split" data-kind="flow" data-seconds="32.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">读懂一个模型</span> · 对象视图 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div><h2>打开一个模型，读清楚你将要信任的东西。</h2><p class="caption">打开一个模型，会把它展示成一个<b>对象</b>：<b>证据</b>（质量底线——实测分数、要求的底线、结论）、<b>血缘</b>（造出它的数据和运行）、<b>被谁用</b>（什么依赖它），以及<b>版本</b>（任何版本都不被覆盖）。这里证据显示为<b>"未评估"</b>——模型在如实地说，它还没被打过分，而不是摆出一个自己撑不起来、却看着很自信的数字。你在信任一个预测<i>之前</i>，就读完它完整的证据、血缘和版本历史。</p><div class="tags"><span class="verdict ok"><span class="mk"></span>每个模型都是一个可检视、带版本、附有证据的对象</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-model-object.png" alt="以对象形式展示的模型——证据、血缘、被谁用、版本——证据显示为未评估"></div>
+          <figcaption><span class="lbl">模型对象 · 实时</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 9 — LIVE: RUN A MODEL -->
+  <section class="scene live split" data-kind="flow" data-seconds="30.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">立刻做一次预测</span> · 运行模型（推理） <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div><h2>选一个领域，粘进一个输入，然后运行——无需训练。</h2><p class="caption">要立刻做一次预测，用<b>运行模型</b>：选一个领域（结构、基因组或化学），粘进一个输入——对于结构，就是蛋白质的单字母序列——然后运行。这是推理：模型不会被改动，而且结果会标明是由哪一个模型、哪一个版本产生的。</p><div class="tags"><span class="verdict ok"><span class="mk"></span>推理——在你的输入上即刻运行任意社区模型</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-run.png" alt="运行模型推理表单——选择一个领域并粘进一个输入"></div>
+          <figcaption><span class="lbl">运行模型 · 实时</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 10 — LIVE: ROUNDS + CLOSED LOOP IN PRACTICE -->
+  <section class="scene live split" data-kind="flow" data-seconds="57.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">闭环</span> · 轮次视图，以及它如何运转 <span class="badge flow">实时界面</span><span class="livebar"><span class="rec"></span>实际产品</span></div><h2>设计 → 合成 → 测试 → 学习——一轮接一轮地记录下来。</h2><p class="caption"><b>轮次</b>视图是闭环的所在地，下面就是它背后真正在跑的机制。一轮跑起来时，一个<b>安全／质控（QC）门会对照各自的阈值逐一检查每个候选</b>——一旦某个候选越线（比如预测的 hERG 风险超过了心脏安全上限），这个门就会拦下它，并<b>给出一条建议性的修正方案</b>由你确认，而不是自己重跑。接着，你<b>真实的台架结果会回灌进下一轮</b>：模型在合并后的数据上重新训练，再在它没训练过的数据上重新检验，所以每一轮都建立在实测的真值之上。这个视图会把每一个提案都交代清楚，把极限值仍然当作极限值（"&gt;30 µM" 绝不会被悄悄换成 30），被拒的候选也会连同原因一起保留可见。</p><div class="tags"><span class="verdict ok"><span class="mk"></span>安全／质控门在其阈值处触发，并给出一条你来确认的修正</span><span class="verdict ok"><span class="mk"></span>极限值仍作极限值 · 被拒候选保留可见</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/t2-rounds.png" alt="轮次闭环视图的空状态，陈述闭环的诚实规则"></div>
+          <figcaption><span class="lbl">轮次 · 实时</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 11 — CLOSING -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">一眼看懂这个习惯</div>
+    <h2>检视模型 → 在它的域内信任它 → 合上闭环。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">模型板块是 BioMate 保存可复用预测器、并从你真实结果中学习的地方。把模型当作对象打开，在信任之前先读它的证据；尊重适用域；用一个社区模型做一次即时预测；再让闭环把每一轮真实的实验数据变成更好的下一轮。价值会累加——闭环的设计目标，就是让每一轮都比上一轮更准。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>打开模型对象——读证据、血缘、被谁用、版本</li>
+            <li><span class="k">2</span>在信任一个预测之前，先核查适用域</li>
+            <li><span class="k">3</span>用一个社区模型做一次即时预测——无需训练</li>
+            <li><span class="k">4</span>把真实的实验结果回灌进来——安全门为每一轮把关，准确度不断累加</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>你的模型与数据</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">只保留在你自己的工作区</span></td></tr>
+            <tr><td>每一个模型</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">可检视、带版本、附证据的对象</span></td></tr>
+            <tr><td>尚未打分之处</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">显示"未评估"——绝不编造数字</span></td></tr>
+            <tr><td>安全／质控门</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">在其阈值处触发，给出修正建议</span></td></tr>
+            <tr><td>闭环</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">每一轮真实轮次都累积准确度</span></td></tr>
+          </table>
+          <p class="footnote">闭环从你真实的实验室测量中学习；你的模型和数据只保留在你自己的工作区。上面的 hERG 示例，是对闭环如何运转的一个通用说明。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

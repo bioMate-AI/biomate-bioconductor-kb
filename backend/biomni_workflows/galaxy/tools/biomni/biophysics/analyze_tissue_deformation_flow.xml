@@ -2,7 +2,7 @@
 <tool id="biomni_biophysics_analyze_tissue_deformation_flow" name="Biomni: Analyze Tissue Deformation Flow" version="1.0.0">
     <description>Quantify tissue deformation and flow dynamics from microscopy image sequence.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_tissue_deformation_flow_wrapper.py' --output '$output'

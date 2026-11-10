@@ -245,20 +245,39 @@ function resolveLaunch() {
     } catch { note("SKIP running — not observed"); }
 
     // ── TERMINAL ─────────────────────────────────────────────────────────
+    // Include Paused/Resume: a QC-gate / deliberate halt now surfaces as a
+    // resumable 'Paused' state (not 'Restart'/'Failed'), so without these the
+    // wait would hang 24 min on a paused run.
     await page.waitForFunction(
-      () => /Run again|COMPLETED|Completed|FAILED|Failed|Restart/.test(document.body.innerText || ""),
+      () => /Run again|COMPLETED|Completed|FAILED|Failed|Restart|Paused|Resume/.test(document.body.innerText || ""),
       undefined, { timeout: 24 * 60 * 1000 },
     );
     note("terminal reached");
     await sleep(4000);
+
+    // Dismiss the post-run "Quick feedback" survey if it popped up — it overlaps
+    // the output cards and ruins the outputs capture.
+    try {
+      const survey = page.getByTestId("run-survey");
+      if (await survey.count()) {
+        const skip = page.getByRole("button", { name: /^skip$/i });
+        if (await skip.count()) { await skip.first().click().catch(() => {}); }
+        else { await survey.locator("button").first().click().catch(() => {}); }
+        await sleep(800);
+        note("dismissed post-run survey");
+      }
+    } catch { /* non-fatal */ }
 
     // open After run tab
     const afterRunTab = page.getByTestId("panel-tab-after-run");
     if (await afterRunTab.count()) { await afterRunTab.first().click().catch(() => {}); await sleep(1500); }
 
     // ── COMPLETED (Summary / Findings) ──────────────────────────────────
-    const sumTab = page.getByTestId("after-tab-summary");
-    if (await sumTab.count()) { await sumTab.first().click().catch(() => {}); await sleep(1200); }
+    // The landing "Results" tab holds the merged Findings + Outputs. (The old
+    // separate "Summary"/"Outputs" tabs were merged into "results" — tab ids are
+    // now "results" and "record"; findings live in after-summary-tab within it.)
+    const resultsTab = page.getByTestId("after-tab-results");
+    if (await resultsTab.count()) { await resultsTab.first().click().catch(() => {}); await sleep(1200); }
     captured.completed_findings = await shotEl("completed-findings.png", '[data-testid="after-summary-tab"]');
     captured.completed_badge = await shotClip("completed-badge.png", {
       anchors: [{ testid: "workflow-overall-status-badge", padBottom: 0 }], tightX: true, padX: 10, padTop: 8, padB: 8,
@@ -269,9 +288,13 @@ function resolveLaunch() {
       padTop: 8, padB: 14,
     });
 
-    // ── OUTPUTS ─────────────────────────────────────────────────────────
-    const outTab = page.getByTestId("after-tab-outputs");
-    if (await outTab.count()) { await outTab.first().click().catch(() => {}); await sleep(1500); }
+    // ── OUTPUTS (now a SECTION inside the Results tab, not its own tab) ───
+    // "after-tab-outputs" was removed when Outputs merged into Results. The
+    // output-files-table lives below the findings in the results tab — scroll it
+    // into view and shoot it there instead of clicking a tab that no longer exists.
+    const outTable = page.getByTestId("output-files-table");
+    await outTable.first().scrollIntoViewIfNeeded().catch(() => {});
+    await sleep(1200);
     captured.outputs_table = await shotEl("outputs-table.png", '[data-testid="output-files-table"]');
     // outputs table + the "Download all … as ZIP" header row above it
     await shotClip("outputs-combo.png", {

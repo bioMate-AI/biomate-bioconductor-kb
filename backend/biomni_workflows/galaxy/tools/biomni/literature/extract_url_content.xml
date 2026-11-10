@@ -2,7 +2,7 @@
 <tool id="biomni_literature_extract_url_content" name="Biomni: Extract Url Content" version="1.0.0">
     <description>Extract the text content of a webpage using requests and BeautifulSoup.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/extract_url_content_wrapper.py' --output '$output'

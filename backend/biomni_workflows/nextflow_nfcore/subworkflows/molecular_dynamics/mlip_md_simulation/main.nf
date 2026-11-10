@@ -45,18 +45,18 @@ params.mock            = false       // true => deterministic, dependency-free d
 // No clean public biocontainer bundles OpenMM 8 + openmm-ml + a CUDA build +
 // the AIMNet2/MACE-OFF model weights, so this is a purpose-built image
 // (conda-forge env pinned in tests/README-style header below). On AWS it must
-// be mirrored to ECR, mirroring the biomni-admet pattern.
+// be mirrored to ECR, mirroring the admet pattern.
 //   conda create -n mlip -c conda-forge python=3.10 \
 //       "openmm>=8.1" openmm-ml openmm-torch nnpops \
 //       pytorch pytorch-cuda=12.1 aimnet2 mace-torch rdkit mdtraj
 // Verified in conda-forge (2026-07): openmm 8.3-8.5.2, openmm-torch 1.1-1.5.1,
 // openmm-ml 1.0-1.7 (noarch), nnpops 0.2-0.7 all exist; base image
 // condaforge/miniforge3:24.11.3-2 exists on Docker Hub (HTTP 200).
-params.mlip_container  = System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/mlip-md:x86' : 'biomate/mlip-md:latest'
+params.mlip_container  = System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/mlip-md:cuda12-x86' : 'biomate/mlip-md:latest'
 
 process MLIP_MD_SIMULATION {
     tag "$meta.id"
-    label 'process_high'                    // GPU: MLIP forces run on CUDA
+    label 'process_gpu'                     // GPU queue (g6 L4 / g4dn T4): MLIP forces run on CUDA; was process_high, which routed to the CPU hpc queue
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     container params.mlip_container
@@ -200,7 +200,7 @@ PYEOF
         openmm: \$(python3 -c "import openmm; print(openmm.version.version)" 2>/dev/null || echo "n/a(mock)")
         openmm-ml: \$(python3 -c "import openmmml; print(getattr(openmmml,'__version__','installed'))" 2>/dev/null || echo "n/a(mock)")
         potential: '${params.mlip}'
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

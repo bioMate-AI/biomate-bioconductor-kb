@@ -2,7 +2,7 @@
 <tool id="biomni_bioengineering_simulate_whole_cell_ode_model" name="Biomni: Simulate Whole Cell Ode Model" version="1.0.0">
     <description>Simulate a whole-cell model represented as a system of ordinary differential equations (ODEs).</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/simulate_whole_cell_ode_model_wrapper.py' --output '$output'

@@ -1,6 +1,61 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {parseEvents,toolResult,createdProjectId,reviewResult}=require('./verify_scientific_chat_tools.cjs');
+const {parseEvents,toolResult,createdProjectId,reviewResult,assertTargetReply,assertFinalReply}=require('./verify_scientific_chat_tools.cjs');
+const targetFixture={targets:[
+  {rank:1,target:'BRAF',score:0.8533,tier:'corroborated',conflict:false},
+  {rank:2,target:'NRAS',score:0.7794,tier:'corroborated',conflict:false},
+  {rank:3,target:'TP53',score:0.7178,tier:'nominated',conflict:true},
+]};
+const targetReply='Target identification completed successfully.\n\n'+
+  '| Rank | Target | Score | Evidence tier | Channel conflict |\n'+
+  '| --- | --- | --- | --- | --- |\n'+
+  '| 1 | BRAF | 0.8533 | corroborated | No |\n'+
+  '| 2 | NRAS | 0.7794 | corroborated | No |\n'+
+  '| 3 | TP53 | 0.7178 | nominated | Yes |';
+test('actual target scores must reach users; a successful tool event alone is insufficient',()=>{
+  assert.doesNotThrow(()=>assertTargetReply(targetFixture,targetReply));
+  assert.throws(()=>assertTargetReply(targetFixture,'BRAF and NRAS are associated with melanoma.'),/table/);
+});
+test('target rows bind rank, gene, score, tier and conflict rather than independent substrings',()=>{
+  const wrongRows=[
+    targetReply.replace('BRAF | 0.8533','BRAF | 0.7794').replace('NRAS | 0.7794','NRAS | 0.8533'),
+    targetReply.replace('| 1 | BRAF','| 2 | BRAF'),
+    targetReply.replace('TP53 | 0.7178 | nominated','TP53 | 0.7178 | corroborated'),
+    targetReply.replace('nominated | Yes','nominated | No'),
+    targetReply.replace('| 3 | TP53 | 0.7178 | nominated | Yes |',''),
+    targetReply+'\n| 3 | TP53 | 0.7178 | nominated | Yes |',
+  ];
+  for(const text of wrongRows) assert.throws(()=>assertTargetReply(targetFixture,text));
+});
+test('known three-target fixture rejects missing, extra and duplicate backend genes',()=>{
+  for(const targets of [targetFixture.targets.slice(0,1),
+    [...targetFixture.targets,{rank:4,target:'EGFR',score:0.5,tier:'nominated'}],
+    [targetFixture.targets[0],targetFixture.targets[0],targetFixture.targets[2]]]) {
+    assert.throws(()=>assertTargetReply({targets},targetReply),/exactly BRAF/);
+  }
+});
+test('successful tables do not conceal execution-denial variants',()=>{
+  for(const denial of [
+    'Target identification was not executed.',
+    'Target identification could not be executed.',
+    'I did not actually execute target identification.',
+    'I could not run target identification.',
+    "I couldn't execute target identification.",
+    'Target identification has never been performed.',
+    'I am unable to execute target identification.',
+    'This answer was written without running the live target channels.',
+  ]) assert.throws(()=>assertTargetReply(targetFixture,targetReply+'\n'+denial),/denied/);
+});
+test('streamed reply must match the actual final.response and any final.message',()=>{
+  assert.doesNotThrow(()=>assertFinalReply([{event:'final',data:{response:targetReply}}],targetReply));
+  assert.doesNotThrow(()=>assertFinalReply([{event:'final',data:{message:targetReply}}],targetReply));
+  assert.doesNotThrow(()=>assertFinalReply([{event:'final',data:{researchResponse:{}}}],targetReply));
+  for(const field of ['response','message']) {
+    assert.throws(()=>assertFinalReply([{event:'final',data:{[field]:targetReply}}],'Leaked preamble\n'+targetReply),/differs/);
+    assert.throws(()=>assertFinalReply([{event:'final',data:{[field]:{text:targetReply}}}],targetReply),/must be reply text/);
+  }
+  assert.throws(()=>assertFinalReply([{event:'final',data:{response:targetReply,message:'different'}}],targetReply),/final.message/);
+});
 test('automatic research needs a real successful cited artifact, not just fluent final prose',()=>{
   const end={event:'done',data:{ok:true}};
   assert.throws(()=>reviewResult([{event:'final',data:{message:'A convincing overview'}},end]),/no successful/);

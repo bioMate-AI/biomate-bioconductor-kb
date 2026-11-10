@@ -1,0 +1,32 @@
+# =====================================================================================================
+# pdl1_m2c_test_codesign.yaml — generate.py config for M2c DE-NOVO generation on the PD-L1 (5O45) target
+# WITH energy guidance (--energy d2). Use ONLY when a D2 TRAIN split is co-located so setup_latent_guidance
+# can fit consec-dist (the ring-geometry prior the M2c ckpt saw in training). sample_opt.energy_func:
+# default REQUIRES setup_latent_guidance.py to have run on the ckpt first (ldm.py:138-140 asserts
+# consec_dist_mean is set). pdl1_m2c_generate.py runs that step over --d2-guidance-index before generation.
+#
+# Provenance: copied from m2c_test_codesign.yaml; paths/n_samples filled by pdl1_m2c_generate.py via
+# overwrite_values (keys exist here so get_parent_dict does not KeyError).
+# =====================================================================================================
+
+dataset:
+  test:
+    class: CoDesignDataset
+    mmap_dir: ./data/pdl1_m2c_target/processed
+    specify_index: ./data/pdl1_m2c_target/processed/test_index.txt
+    backbone_only: false
+    use_covariance_matrix: true
+
+dataloader:
+  num_workers: 4
+  batch_size: 8
+
+backbone_only: false
+struct_only: false
+seq_only: false
+n_samples: 150
+
+# stock energy-guided sampling. REQUIRES setup_latent_guidance over the D2 TRAIN split (--energy d2).
+sample_opt:
+  energy_func: default
+  energy_lambda: 0.8

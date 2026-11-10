@@ -121,6 +121,18 @@ class PreferenceUpdater(Protocol):
         """One update of the generator's LoRA delta; returns metrics incl. `loss`, `kl`, `weight_delta_rel`."""
 
 
+@runtime_checkable
+class RoundObservingUpdater(Protocol):
+    """Optional learning-gate extension; called once even if no pair is retained.
+
+    round_idx is the zero-based search round, never the optimiser-step count.
+    step_metrics=None means no measured update; it must not be logged as zero KL.
+    """
+    def observe_round(self, round_idx: int, step_metrics: Optional[Dict[str, Any]] = None,
+                      pair_diag: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Return round gate diagnostics, retaining any actual update metrics."""
+
+
 # ------------------------------------------------------------------------------------------------ stop monitor
 @runtime_checkable
 class StopMonitorLike(Protocol):
@@ -167,6 +179,16 @@ class RoundRow:
     kl: Optional[float] = None
     weight_delta_rel: Optional[float] = None
     frac_zero_variance_groups: Optional[float] = None
+    frac_small_groups_dropped: Optional[float] = None
+    frac_groups_retained: Optional[float] = None
+    n_groups: Optional[int] = None
+    n_groups_kept: Optional[int] = None
+    preference_mean_margin: Optional[float] = None
+    loss: Optional[float] = None
+    update_gate: Optional[str] = None
+    update_gate_reason: Optional[str] = None
+    learning_gate_round: Optional[int] = None
+    optimizer_updated: Optional[bool] = None
     n_pairs: Optional[int] = None
     t_unix: float = 0.0
 

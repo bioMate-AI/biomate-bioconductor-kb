@@ -36,7 +36,7 @@ class GalaxyTool:
     domain: str
     function_name: str
     params: List[ToolParam]
-    container: str = "biomate/biomni-tools:latest"
+    container: str = "biomate/workflow-tools:latest"
 
 
 def fix_xml_attribute_quotes(content: str) -> str:
@@ -159,7 +159,7 @@ def parse_galaxy_xml(xml_path: Path) -> Optional[GalaxyTool]:
         description = desc_elem.text.strip() if desc_elem is not None and desc_elem.text else ''
 
         # Get container
-        container = "biomate/biomni-tools:latest"
+        container = "biomate/workflow-tools:latest"
         container_elem = root.find('.//container')
         if container_elem is not None and container_elem.text:
             container = container_elem.text.strip()
@@ -349,7 +349,7 @@ def generate_nextflow_workflow(tool: GalaxyTool) -> str:
  * {tool.tool_id}
  * {tool.description}
  * Generated from Galaxy tool definition
- * Docker: biomate/biomni-tools:latest
+ * Docker: biomate/workflow-tools:latest
  */
 
 nextflow.enable.dsl = 2
@@ -363,7 +363,7 @@ process {process_name} {{
     label 'process_medium'
     publishDir "${{params.outdir}}", mode: 'copy'
 
-    container 'biomate/biomni-tools:latest'
+    container 'biomate/workflow-tools:latest'
 
     input:
 {input_section}
@@ -515,7 +515,7 @@ process {
     }
 
     // Default container
-    container = 'biomate/biomni-tools:latest'
+    container = 'biomate/workflow-tools:latest'
 
     // Error handling
     errorStrategy = 'retry'

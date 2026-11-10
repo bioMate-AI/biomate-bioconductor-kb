@@ -1,0 +1,134 @@
+{
+  "testedAt": "2026-11-08T03:48:34.538Z",
+  "target": "https://dev-public.biomate.ai",
+  "scope": "HTTP drafts and authenticated workbench; not workflow execution or scientific accuracy",
+  "checks": [
+    {
+      "name": "service health",
+      "passed": true,
+      "detail": {
+        "status": "ok",
+        "timestamp": "2026-11-08T03:45:54.008Z",
+        "services": {
+          "api": "ok",
+          "galaxy": {
+            "connected": true,
+            "url": "http://biomate-galaxy-dev:8080"
+          },
+          "ai": "ok"
+        }
+      }
+    },
+    {
+      "name": "Galaxy API available",
+      "passed": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "anonymous project access denied",
+      "passed": true,
+      "detail": {
+        "status": 401
+      }
+    },
+    {
+      "name": "nonexistent project concealed",
+      "passed": true,
+      "detail": {
+        "status": 404
+      }
+    },
+    {
+      "name": "authenticated workbench visible",
+      "passed": true,
+      "detail": {
+        "screenshot": "authenticated-workbench.png"
+      }
+    },
+    {
+      "name": "small-molecule ADMET",
+      "passed": true,
+      "detail": {
+        "state": "workflow_ready",
+        "route": {
+          "name": "Predict ADMET Properties (AI)",
+          "type": "nextflow",
+          "nextflowPath": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+        },
+        "autoDispatched": false,
+        "responseExcerpt": "**Predict ADMET Properties (AI)** — Screens both compounds across 6 safety endpoints (hERG cardiac toxicity, DILI hepatotoxicity, Caco-2 permeability, blood-brain barrier penetration, aqueous solubility, Ames mutagenicity) and ranks by developability.\n\n- **Input:** Caffeine (CN1C=NC2=C1C(=O)N(C(=O)N2C)C) and aspirin (CC(=O)OC1=CC=CC=C1C(=O)O) — both provided as SMILES strings\n- **Key steps:** \n  - SMILES validation and featurization → ADMET endpoint prediction (hERG IC₅₀, DILI probability, Caco-2 Papp, BBB penetration, solubility, Ames mutagenicity)\n  - Composite scoring and developability ranking (GREEN/YELLOW/RED per safety liability)\n- **Expected output:** admet_results.csv (both compound",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "peptide properties",
+      "passed": false,
+      "detail": {
+        "state": "workflow_ready",
+        "route": {
+          "name": "nf-core/proteinfold",
+          "type": "nextflow",
+          "nextflowPath": "nfcore/proteinfold/main.nf"
+        },
+        "autoDispatched": false,
+        "responseExcerpt": "I need to route this to the correct workflow for peptide property calculation. The sequence you provided contains all 20 standard amino acids — this is perfect for physicochemical characterization.\n\n**peptide_properties** — Compute molecular weight, isoelectric point, hydrophobicity, aromaticity, and full amino acid composition for protein/peptide sequences.\n\n- **Input:** Amino acid sequence ACDEFGHIKLMNPQRSTVWY\n- **Key steps:** \n  - BioPython ProtParam → MW, pI, instability index, GRAVY\n  - Amino acid frequency analysis → composition table\n  - Summary report → CSV + JSON\n- **Expected output:** properties_summary.csv (MW, pI, aromaticity, aliphatic index, gravy, instability score), amino_aci",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "oncology target evidence",
+      "passed": false,
+      "detail": {
+        "state": "chat_only",
+        "route": null,
+        "autoDispatched": false,
+        "responseExcerpt": "Target identification completed successfully.\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n| 1 | EGFR | 0.5 | nominated | No |\n\nRanking: combined available channels; Open Targets-primary ordering was not established. Successful channels: AI-generated reasoning. Failed channels: Open Targets disease-association evidence, ppi_string.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "draft generation launches no runs",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "runCount": 0
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-e92d894b-5eb7-430e-9acb-0dd3167640b3",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-d094563b-efdd-463d-8b5b-1180ed230ab5",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-9fc2f077-830b-421c-bba1-99e105211e83",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup acceptance project",
+      "passed": true,
+      "detail": {
+        "status": 200
+      }
+    }
+  ]
+}

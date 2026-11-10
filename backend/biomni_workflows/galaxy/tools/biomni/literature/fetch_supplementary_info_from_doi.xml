@@ -2,7 +2,7 @@
 <tool id="biomni_literature_fetch_supplementary_info_from_doi" name="Biomni: Fetch Supplementary Info From Doi" version="1.0.0">
     <description>Fetches supplementary information for a paper given its DOI and returns a research log.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/fetch_supplementary_info_from_doi_wrapper.py' --output '$output'

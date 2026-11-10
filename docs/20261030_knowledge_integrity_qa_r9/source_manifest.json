@@ -1,0 +1,415 @@
+{
+  "excluded": [
+    "raw datasets",
+    "research model weights",
+    "credentials",
+    "git history",
+    "research result files"
+  ],
+  "files": [
+    {
+      "bytes": 10458,
+      "path": "cyclic_llm/allatom_paper/contracts.py",
+      "sha256": "286cfaf2dafb7df28eb9f39ec23e722c070659f241f3667a91af0d6255a33082"
+    },
+    {
+      "bytes": 76,
+      "path": "cyclic_llm/allatom_paper/feedback/__init__.py",
+      "sha256": "1545a1960d9c618ba1190dba541e6bc7acc16b7da7eaf5c913e894535fccdb79"
+    },
+    {
+      "bytes": 2760,
+      "path": "cyclic_llm/allatom_paper/feedback/hack_env.py",
+      "sha256": "9ac8067105e9cd90d36a6f4df954838ca1461b0125a778d86d4811ea24bca86f"
+    },
+    {
+      "bytes": 8430,
+      "path": "cyclic_llm/allatom_paper/feedback/preference_updater.py",
+      "sha256": "fed15eb17c6d2ffbfd7f315565300c63f1577ab12443b482a5cc8f2e473be0c9"
+    },
+    {
+      "bytes": 4230,
+      "path": "cyclic_llm/allatom_paper/feedback/stop_monitor.py",
+      "sha256": "dd24c25b8b023a0e9543d5eb1cf633e390d511d920058e7bb33490fa6133c321"
+    },
+    {
+      "bytes": 4056,
+      "path": "cyclic_llm/allatom_paper/feedback/test_preference_updater.py",
+      "sha256": "280cffa988d744005ba7570f4db3bb3a185e94440effdc6024f3d718967f5b37"
+    },
+    {
+      "bytes": 2731,
+      "path": "cyclic_llm/allatom_paper/feedback/test_stop_monitor.py",
+      "sha256": "c8c21178eb8271a37039fa9cfe7073bd291a9562700c27a6271499aeb790919a"
+    },
+    {
+      "bytes": 4388,
+      "path": "cyclic_llm/allatom_paper/feedback/toy_policy.py",
+      "sha256": "41cc2167b0ec89468b8c44cbc3a78daf9ac31508ee37a1a7ba89dbd15f5fd764"
+    },
+    {
+      "bytes": 84,
+      "path": "cyclic_llm/allatom_paper/hybrid/__init__.py",
+      "sha256": "60f075490ab6b27c7eb640027f6c107b544b1bb6e1b5a333a883c6c0876e9cab"
+    },
+    {
+      "bytes": 10770,
+      "path": "cyclic_llm/allatom_paper/hybrid/adapters.py",
+      "sha256": "2fddd6487e00b0d37e261fa7203f54ec04f6d66fe51758fbbd04bbb0fe7410e9"
+    },
+    {
+      "bytes": 4411,
+      "path": "cyclic_llm/allatom_paper/hybrid/ec2/qa_integration.sh",
+      "sha256": "43f57a874f076de04c32e854a9c089a2379ac5cbf72baadce8285a8a95fe25b6"
+    },
+    {
+      "bytes": 6967,
+      "path": "cyclic_llm/allatom_paper/hybrid/initialization.py",
+      "sha256": "a88b8e08778a961afe13a6aac690694f9edcc414be04383fe4d00ab371e92cc7"
+    },
+    {
+      "bytes": 6081,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_attention.py",
+      "sha256": "45dedc73a6400e421a06aa7388932de40f009110c84c1b8f27aac8a5680c7a63"
+    },
+    {
+      "bytes": 7319,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_bridge.py",
+      "sha256": "597fd7fd158caf8331af68c4e6dc950a154f6a748236dfb9a9c285753e0a466b"
+    },
+    {
+      "bytes": 13388,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_decoder.py",
+      "sha256": "1f0e1ccf28e457eb6b2c8b2dd24e433f7723dba390773b87506136cf184bdf1c"
+    },
+    {
+      "bytes": 2673,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_inputs.py",
+      "sha256": "90a6d15f74ec4ae141215324e472518bca035cf8654690909f3677c4fc3e45f8"
+    },
+    {
+      "bytes": 12496,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_memory.py",
+      "sha256": "b0b75f3e5636ec7656b348446156fa1ec13a426143afdaf48dfccb13f6863d5b"
+    },
+    {
+      "bytes": 11758,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_parent.py",
+      "sha256": "7a1f97d5163fdb08dc30ac65b6f1da906c5e20a69bc47688e024983928af82c7"
+    },
+    {
+      "bytes": 9120,
+      "path": "cyclic_llm/allatom_paper/hybrid/knowledge_projection.py",
+      "sha256": "216d2e9e1dc92e7fa7293b02235ecfce492c902526298377d415019d20308c7e"
+    },
+    {
+      "bytes": 9448,
+      "path": "cyclic_llm/allatom_paper/hybrid/learned_knowledge_inputs.py",
+      "sha256": "2f98a803c1402dfcd8b1de9ec5bea4e1980f3a33ccf7b93168157df29f93d620"
+    },
+    {
+      "bytes": 20146,
+      "path": "cyclic_llm/allatom_paper/hybrid/model.py",
+      "sha256": "e79770abf207279a79803f5c7453f6810ebf016dad75e89a8c2f668b5537f773"
+    },
+    {
+      "bytes": 5233,
+      "path": "cyclic_llm/allatom_paper/hybrid/peptide_encoder.py",
+      "sha256": "4bf87692536cbbf29df4256c8ca449fb65ef202bd756a885d544f039c0026721"
+    },
+    {
+      "bytes": 5464,
+      "path": "cyclic_llm/allatom_paper/hybrid/retrieval_inputs.py",
+      "sha256": "0dab862e8f7fb2359c4be05a3d9d13d6cdba868b9bdd0beec84da52e46c0d330"
+    },
+    {
+      "bytes": 1879,
+      "path": "cyclic_llm/allatom_paper/hybrid/run_guard.py",
+      "sha256": "359c61d98f140b7d2e0e7f6946927b37821114a020ed05efc80eda3198b2b920"
+    },
+    {
+      "bytes": 26538,
+      "path": "cyclic_llm/allatom_paper/hybrid/run_stage1.py",
+      "sha256": "4fafb536421be1533d7fc09309993622aa01410c2f9a3e5dcea0157fba9ff72c"
+    },
+    {
+      "bytes": 2714,
+      "path": "cyclic_llm/allatom_paper/hybrid/sampling.py",
+      "sha256": "c4236e1792a2951b7b8bc8fe06caf79fcc49baf13430b085b8d410802246a2ad"
+    },
+    {
+      "bytes": 6887,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_adapters.py",
+      "sha256": "b64f0e102cbfa4b55b6ddd3a341c7114f49b25281360fd2a8c87772c58897e0b"
+    },
+    {
+      "bytes": 1923,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_completed_result.py",
+      "sha256": "1d266c6a67f0fa8378d751d3e0065bc43eaae5d3ceed2120c91c852f5a97af63"
+    },
+    {
+      "bytes": 6372,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_frozen_parent_protocol.py",
+      "sha256": "b8c3281bc56e41d8e83ac248405a0df8340f3f3377c26c914723d3c92335e8d0"
+    },
+    {
+      "bytes": 8030,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_initialization.py",
+      "sha256": "87db51deec9f472426b50e706d9d99d17c3ad50052d44a73e2b62ab4f72b6bd7"
+    },
+    {
+      "bytes": 5928,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_attention.py",
+      "sha256": "72f795ddc65260b19952256887f893641ec5efb8e923ed0af33c9228f4639153"
+    },
+    {
+      "bytes": 1943,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_bridge_flow.py",
+      "sha256": "93ca67ee90f09efe6792d498b310ff9350bf5fcf159a46443a9537da7b26b66d"
+    },
+    {
+      "bytes": 8887,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_decoder.py",
+      "sha256": "93bb0ce4a1b77905a531098d219f4833a06b1c5de8cf7deb9c134411a9f75ba5"
+    },
+    {
+      "bytes": 13268,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_generator.py",
+      "sha256": "40a74cf952ef12120f236c5d07827c65e9c71a3959457bb9c5ad804f3dd79b47"
+    },
+    {
+      "bytes": 1989,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_inputs.py",
+      "sha256": "00d803adf7b2e7e54dd338168951dce13d20feaacfa5a209f90e6e9c9fc42184"
+    },
+    {
+      "bytes": 6551,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_memory.py",
+      "sha256": "551c2b3d0880fc10c2f7b394022cba5e3cf291b9fb27f8e4de0cf54f2c80ebd6"
+    },
+    {
+      "bytes": 7423,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_parent.py",
+      "sha256": "7f0e497122bf2e07949aaef26c2e097c2656e784b98f2c3dfd586ed39cca27e5"
+    },
+    {
+      "bytes": 6590,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_projection.py",
+      "sha256": "b02a04ba245adc381338e34a69ab68a493852bdbe060ab61c9baca262b9fcf86"
+    },
+    {
+      "bytes": 4439,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_knowledge_reference_identity.py",
+      "sha256": "c30fc8b7dd8f7c37a897a052ecd87549b386ee59a89f05b02c0983966cf93e5d"
+    },
+    {
+      "bytes": 12299,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_learned_knowledge_inputs.py",
+      "sha256": "a5aeabfa9e5cfc900cf19f570cfe5b27b3f7a41714f9796ce56ff4a9a708e8f2"
+    },
+    {
+      "bytes": 1831,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_m1_identity.py",
+      "sha256": "0029c17b17a2d99f560d8ae0d2c16c276c9b2d4b27dfa7d068e76b1202687908"
+    },
+    {
+      "bytes": 1689,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_peptide_encoder.py",
+      "sha256": "63137c356ec518518869d561b8c98071b258f05e93008d1364f52b28506193a5"
+    },
+    {
+      "bytes": 2873,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_policy_math.py",
+      "sha256": "40f54b10c43a8aea773136dff916f28c58d5f07189e5903e5a5b20dc96c528b8"
+    },
+    {
+      "bytes": 2814,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_retrieval_inputs.py",
+      "sha256": "ba907bf6324dddd56ef057f33098de7dddce046572b9d22c58863d056aa9a3dc"
+    },
+    {
+      "bytes": 1287,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_run_guard.py",
+      "sha256": "a2809243fc1f26dcfc716805367f7c939a373b0a17a116057d034b0d78d027b4"
+    },
+    {
+      "bytes": 1359,
+      "path": "cyclic_llm/allatom_paper/hybrid/test_verify_restore.py",
+      "sha256": "bc4ba258355f3b02d430855d662288d08ed9bcb6ef95b9155127f316f5432ad0"
+    },
+    {
+      "bytes": 6224,
+      "path": "cyclic_llm/allatom_paper/hybrid/verify_restore.py",
+      "sha256": "b1a84b028f809a493f0acd5a317bda98a6c2559abe8f5fd6c2e7e0fd9df7d7ed"
+    },
+    {
+      "bytes": 6981,
+      "path": "cyclic_llm/allatom_paper/knowledge_scale/config.py",
+      "sha256": "98ca43567afc72595a8c3956f76b3775a14dfc09498efbd758f0437392e7363b"
+    },
+    {
+      "bytes": 4307,
+      "path": "cyclic_llm/allatom_paper/knowledge_scale/eligibility.py",
+      "sha256": "5442cd256cb3a21dbd0fee9b59d0452f51661546c64ee63d88badd43677cfcbf"
+    },
+    {
+      "bytes": 5691,
+      "path": "cyclic_llm/allatom_paper/knowledge_scale/test_k2.py",
+      "sha256": "095e4eb299a0086b5047da0ecf727d2a0dc3b5d2717a2032a9b218955159f172"
+    },
+    {
+      "bytes": 3480,
+      "path": "cyclic_llm/allatom_paper/knowledge_scale/test_semantic_eligibility.py",
+      "sha256": "986551d927e9557c3fcb306094df3d4fb5faff29f072585b9ade03c353228d0a"
+    },
+    {
+      "bytes": 8699,
+      "path": "cyclic_llm/allatom_paper/knowledge_scale/verify.py",
+      "sha256": "71753bf126618f87559c99ba646605a81da1ed1750a7fb8f7b7707b5dc266899"
+    },
+    {
+      "bytes": 0,
+      "path": "cyclic_llm/allatom_paper/orchestrator/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 16790,
+      "path": "cyclic_llm/allatom_paper/orchestrator/loop.py",
+      "sha256": "6acf1e2bab67955026303be6869409a33ccd09cb05ec213b439f6002c70cfdfc"
+    },
+    {
+      "bytes": 8972,
+      "path": "cyclic_llm/allatom_paper/orchestrator/toy.py",
+      "sha256": "2927de46b626d0edeabefd430b2eb7a84ff29a9939f849c4efff5e468ce61e50"
+    },
+    {
+      "bytes": 1539,
+      "path": "cyclic_llm/allatom_paper/patent_mining/config.py",
+      "sha256": "9939aa2f7b2b8127ca77822c4561e2bc91c59f8b984718f64ec3ee5f32e957ad"
+    },
+    {
+      "bytes": 9008,
+      "path": "cyclic_llm/allatom_paper/patent_mining/extract_patents.py",
+      "sha256": "df78804627495ab02cba2b90967272dbf0d4b62ed41a6c64fff11e2533fa9ebe"
+    },
+    {
+      "bytes": 2422,
+      "path": "cyclic_llm/allatom_paper/patent_mining/gp_parse.py",
+      "sha256": "44a341084bc191fc3f5ea012735e76b8ef9063a266a9eb05e1262e17d1afba66"
+    },
+    {
+      "bytes": 1015,
+      "path": "cyclic_llm/allatom_paper/patent_mining/pm_filter.py",
+      "sha256": "cb649a1536b499a082211cb13f9b5b545bfacb2090400892bf74167d2afb950e"
+    },
+    {
+      "bytes": 3348,
+      "path": "cyclic_llm/allatom_paper/patent_mining/repair_sidecar.py",
+      "sha256": "081c25552c23a86ac1dfec8bf5fd15332ad5c6eccb1dcbdff3642a331e0bbb33"
+    },
+    {
+      "bytes": 6847,
+      "path": "cyclic_llm/allatom_paper/patent_mining/seq2smiles.py",
+      "sha256": "ed228ce7158e95e1c00301525d1ea62b1899b09af3fdcff01d4013ce8921db4f"
+    },
+    {
+      "bytes": 4545,
+      "path": "cyclic_llm/allatom_paper/patent_mining/test_k4.py",
+      "sha256": "401a2fdf89d9d0058799060b1a3a41555280e927e26b6499ef37377df76354e8"
+    },
+    {
+      "bytes": 5579,
+      "path": "cyclic_llm/allatom_paper/patent_mining/test_sequence_repairs.py",
+      "sha256": "c68f45fa5dc921dea761d310523bfaec39634153825bb1517e0fe25b88181053"
+    },
+    {
+      "bytes": 3905,
+      "path": "cyclic_llm/allatom_paper/patent_mining/verify_patent.py",
+      "sha256": "f1f8d6bb80ad735f9074de3844efb4ea0dda2a9e5d5b112b1685971cd5419379"
+    },
+    {
+      "bytes": 17502,
+      "path": "cyclic_llm/allatom_paper/pmo_harness.py",
+      "sha256": "83196f4dfac4880b2e23591ca2dac0542359eb5685620af545a017e0d384c201"
+    },
+    {
+      "bytes": 387,
+      "path": "cyclic_llm/allatom_paper/retrieval/__init__.py",
+      "sha256": "15b5dffa7dd2d4cff1aae55f56be18cb15ce991d419b2d5c70208391d42f0bff"
+    },
+    {
+      "bytes": 2061,
+      "path": "cyclic_llm/allatom_paper/retrieval/blind.py",
+      "sha256": "9ce4401407231bf8c494263174b5038e6d51faa34796a8191fcb73cf18e36542"
+    },
+    {
+      "bytes": 5425,
+      "path": "cyclic_llm/allatom_paper/retrieval/index.py",
+      "sha256": "23f9d6443d865e6a14c61c146eb7d77630c75e2a7770c2ed55d6fe61958aaf5f"
+    },
+    {
+      "bytes": 3237,
+      "path": "cyclic_llm/allatom_paper/retrieval/prompt.py",
+      "sha256": "5b7642656f319f6305ac99428adfafc0660c27ce3ceb089db3e3ebb4d79f5197"
+    },
+    {
+      "bytes": 4568,
+      "path": "cyclic_llm/allatom_paper/retrieval/retriever.py",
+      "sha256": "3c33839761eea706d4a5ef60c95101b19e9be5c286f849e053b16e4882675fe5"
+    },
+    {
+      "bytes": 6223,
+      "path": "cyclic_llm/allatom_paper/retrieval/store.py",
+      "sha256": "b07e51038b2a0021662c9f27757bee81bfc92109db5414b0626211268fca5887"
+    },
+    {
+      "bytes": 7451,
+      "path": "cyclic_llm/allatom_paper/retrieval/test_retrieval.py",
+      "sha256": "89852d9538bbeba32e1818e1c82dc0eb4bb2a05830651c572b0178dbc489c07e"
+    },
+    {
+      "bytes": 9347,
+      "path": "cyclic_llm/allatom_paper/test_orchestrator_ia.py",
+      "sha256": "3070d691f912dd77b2291aa19138ba8ce481cae41e620c37cd91698b2e136ea2"
+    },
+    {
+      "bytes": 11464,
+      "path": "cyclic_llm/allatom_paper/test_pmo_harness.py",
+      "sha256": "a86c5f8a3e096960f414373fa34aea30197d1b2eab4208544fca5e96ff4f6b17"
+    },
+    {
+      "bytes": 3030,
+      "path": "cyclic_llm/allatom_paper/tier0_rules.py",
+      "sha256": "78f668d586f4527d52fc4898cd7c103a195768da10a9013a45b68389b340ca75"
+    },
+    {
+      "bytes": 2094,
+      "path": "cyclic_llm/ihlm_backbone/NOTICE.md",
+      "sha256": "6fee674f5931d2dd686b305775ee2cd79ef283f0de117c3d617f1ab4d3800080"
+    },
+    {
+      "bytes": 0,
+      "path": "cyclic_llm/ihlm_backbone/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 5188,
+      "path": "cyclic_llm/ihlm_backbone/pclm_encoder.py",
+      "sha256": "ea680aaf5080c5148f33c636640ae12abffba28dcc9fd3f819f23ad9144a7d86"
+    },
+    {
+      "bytes": 2650,
+      "path": "cyclic_llm/ihlm_backbone/pclm_tokenizer.py",
+      "sha256": "68ab7bdd84542e7367134e2d0767061426a1a94bac2f21e8a53f6604dc7611c4"
+    },
+    {
+      "bytes": 7173,
+      "path": "cyclic_llm/pharmacophore_knowledge.py",
+      "sha256": "02b198b2501ff40031be5e9b9e141e2820388289aa56bebdadeb59d1b66e7ccf"
+    }
+  ],
+  "fixtures": "All JSON/tensor fixtures are generated by tests in temporary directories on the approved EC2 host; none bundled.",
+  "purpose": "Source-only synthetic CPU integration QA, not a scientific study or real-model validation",
+  "schema": "method_synthetic_cpu_qa_sources_v1",
+  "source_root": "research/guangzhou_all_atom/cyclic_llm"
+}

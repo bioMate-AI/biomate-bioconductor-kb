@@ -72,6 +72,8 @@ export type AnalyticsEvent =
   | 'personal_workflow_opened'
   | 'personal_workflow_deleted'
   | 'workflow_imported'
+  // Workflows library — ranked catalog "Browse" → seed chat to run
+  | 'catalog_workflow_seeded'
   // Spec 02 §2.2 — redo an instant/compute answer as a validated Cloud run
   | 'redo_as_validated_run';
 

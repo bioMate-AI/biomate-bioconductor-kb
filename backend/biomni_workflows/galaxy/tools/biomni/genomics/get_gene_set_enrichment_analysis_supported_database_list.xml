@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_get_gene_set_enrichment_analysis_supported_database_list" name="Biomni: Get Gene Set Enrichment Analysis Supported Database List" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_gene_set_enrichment_analysis_supported_database_list_wrapper.py' --output '$output'

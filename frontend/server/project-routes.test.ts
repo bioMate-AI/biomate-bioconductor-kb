@@ -29,6 +29,80 @@ describe("project-routes — contract", () => {
     expect(SRC.match(/app\.get\("\/api\/projects\/:id\/sessions"/)?.length).toBe(1);
   });
 
+  it("invite of a NEW (unregistered) email auto-emails the share link instead of 404", () => {
+    // One invite box serves both existing members and new people: an existing
+    // user is added directly; an unregistered email gets the project share link
+    // emailed to it (no separate "generate link" step).
+    expect(SRC.includes("sendProjectInviteEmail")).toBe(true);
+    // the no-user branch creates/reuses a share token and returns pending, not 404.
+    // Window widened to 2800: the branch now mints a PER-INVITE token (longer than
+    // the old "reuse the single row" path) — see the per-invite-token test below.
+    expect(/if \(!invitee\.rows\.length\)\s*\{[\s\S]{0,2800}pending:\s*true/.test(SRC)).toBe(true);
+    expect(SRC.includes("FROM project_share_tokens WHERE project_id")).toBe(true);
+    // the old hard 404 for a new email must be gone
+    expect(SRC.includes('"No user found with that email"')).toBe(false);
+  });
+
+  it("new-email invite mints a PER-INVITE token (invited_email), never mutating the generic link", () => {
+    // PROPER FIX for the committee privilege-escalation finding: each new-email
+    // invite carries its OWN token keyed on invited_email + its own role. The
+    // invite branch must NOT reuse/mutate the owner's generic share link.
+    const inviteBranch =
+      SRC.split("if (!invitee.rows.length)")[1]?.split("const inviteeId")[0] ?? "";
+    // schema: nullable invited_email column distinguishes generic vs per-invite
+    expect(SRC.includes("invited_email TEXT")).toBe(true);
+    expect(SRC.includes("ADD COLUMN IF NOT EXISTS invited_email")).toBe(true);
+    // looks up a PRIOR pending invite for THIS email (not the generic LIMIT 1 row)
+    expect(inviteBranch.includes("WHERE project_id = $1 AND invited_email = $2")).toBe(true);
+    // mints a fresh per-email token row (invited_email is set, not NULL)
+    expect(/INSERT INTO project_share_tokens \(project_id, token, role, created_by, invited_email\)/.test(inviteBranch)).toBe(true);
+    // re-invite to same email updates THAT row's role in place (no duplicate, no generic mutate)
+    expect(/UPDATE project_share_tokens SET role = \$1, created_by = \$2 WHERE project_id = \$3 AND invited_email = \$4/.test(inviteBranch)).toBe(true);
+    // must NOT fall back to the old generic "SELECT token ... WHERE project_id = $1 LIMIT 1" reuse
+    expect(/SELECT token FROM project_share_tokens WHERE project_id = \$1 LIMIT 1/.test(inviteBranch)).toBe(false);
+  });
+
+  it("/share-link GET/POST/DELETE are scoped to the generic link (invited_email IS NULL)", () => {
+    // Setting or revoking the owner's single share link must never touch a
+    // pending per-invite token — that collision is what caused the escalation.
+    const shareBlock =
+      SRC.split('app.get("/api/projects/:id/share-link"')[1]
+        ?.split('app.post("/api/projects/:id/plans"')[0] ?? "";
+    // GET returns the generic link only
+    expect(/SELECT token, role, created_at, expires_at FROM project_share_tokens WHERE project_id = \$1 AND invited_email IS NULL/.test(shareBlock)).toBe(true);
+    // POST selects + updates ONLY the generic row
+    expect(/SELECT token, role FROM project_share_tokens WHERE project_id = \$1 AND invited_email IS NULL/.test(shareBlock)).toBe(true);
+    expect(/UPDATE project_share_tokens SET role = \$1 WHERE project_id = \$2 AND invited_email IS NULL/.test(shareBlock)).toBe(true);
+    // DELETE revokes ONLY the generic link (pending invites survive)
+    expect(/DELETE FROM project_share_tokens WHERE project_id = \$1 AND invited_email IS NULL/.test(shareBlock)).toBe(true);
+    // the old project-wide (unscoped) DELETE that nuked every token must be gone
+    expect(/DELETE FROM project_share_tokens WHERE project_id = \$1`/.test(shareBlock)).toBe(false);
+  });
+
+  it("escalation scenario: invite A viewer then B editor — A's token stays viewer", () => {
+    // Walkthrough of the committee finding, enforced structurally (this is a
+    // source-contract suite; no live DB):
+    //   1. Invite A (viewer): INSERT a row {token: tA, role: 'viewer',
+    //      invited_email: 'a@x'} — a per-email row, NOT the generic link.
+    //   2. Invite B (editor): the branch looks up invited_email = 'b@x' (finds
+    //      none), so it INSERTs a DISTINCT row {token: tB, role: 'editor',
+    //      invited_email: 'b@x'}. It does NOT UPDATE any WHERE project_id-only
+    //      row, so tA is never touched → A still joins as viewer.
+    //   3. Accept reads pst.role for the SPECIFIC clicked token, so tA → viewer
+    //      and tB → editor independently.
+    // The guarantees that make this hold:
+    const inviteBranch =
+      SRC.split("if (!invitee.rows.length)")[1]?.split("const inviteeId")[0] ?? "";
+    // (a) per-invite writes are always keyed by invited_email — no project-wide mutate
+    expect(/UPDATE project_share_tokens[\s\S]{0,120}WHERE project_id = \$3 AND invited_email = \$4/.test(inviteBranch)).toBe(true);
+    expect(/UPDATE project_share_tokens SET role = \$1 WHERE project_id = \$2`/.test(inviteBranch)).toBe(false);
+    // (b) accept still reads the clicked token's own role (per-token, email-agnostic)
+    const acceptBlock = SRC.split('app.post("/api/join/:token/accept"').pop() ?? "";
+    expect(acceptBlock.includes("pst.role")).toBe(true);
+    expect(/const \{ project_id, role, expires_at, owner_id \} = row\.rows\[0\]/.test(acceptBlock)).toBe(true);
+    expect(/VALUES \(\$1, \$2, \$3, \$4\)/.test(acceptBlock)).toBe(true); // inserts member at that token's role
+  });
+
   it("project-scoped URL import — authed, SSRF-validated, owner/editor, size-capped, records source='url'", () => {
     // Paste-a-URL ingest (spec 04 §4.6): fetches into the project's S3 prefix and
     // inserts a project_files row so it shows in the hub tree (unlike the
@@ -65,6 +139,23 @@ describe("project-routes — contract", () => {
     expect(/restore[\s\S]{0,900}project_file_versions WHERE file_id/.test(SRC)).toBe(true); // reads the target version's bytes
   });
 
+  it("version Compare/diff (§4.4) — authed endpoint reads both versions, column + cell diff", () => {
+    expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/diff",\s*authenticateToken/.test(SRC)).toBe(true);
+    expect((SRC.match(/readTextPrefix\(/g) ?? []).length).toBeGreaterThanOrEqual(2);  // both versions read
+    expect(SRC.includes("_parseTabular(")).toBe(true);
+    expect(SRC.includes("changedCells")).toBe(true);
+    expect(/columns:\s*\{\s*added,\s*removed\s*\}/.test(SRC)).toBe(true);
+  });
+
+  it("edit-in-place → new version (§4.3/§4.4) — authed, tabular-only, size-capped, applies to FULL file, versions", () => {
+    expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/edit",\s*authenticateToken/.test(SRC)).toBe(true);
+    expect(/edit[\s\S]{0,700}_isOwnerOrEditor/.test(SRC)).toBe(true);                 // editor gate
+    expect(SRC.includes("Only tabular files (csv/tsv) can be edited")).toBe(true);     // tabular-only
+    expect(SRC.includes("10 * 1024 * 1024")).toBe(true);                              // 10 MiB cap
+    expect(/edit[\s\S]{0,1400}readTextPrefix/.test(SRC)).toBe(true);                   // reads the FULL file (not just the sample)
+    expect(/edit[\s\S]{0,2600}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true); // append-only new version
+  });
+
   it("every endpoint goes through authenticateToken", () => {
     // The regex only matches handlers whose path is immediately followed by
     // authenticateToken, so this count IS the authed-endpoint count. It must
@@ -72,7 +163,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(30); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST)
+    expect(authed.length).toBe(32); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {
@@ -123,6 +214,11 @@ describe("project-routes — registered into main router", () => {
   it("the main router imports + calls registerProjectRoutes", () => {
     expect(/registerProjectRoutes\s*\}\s*=\s*await\s+import\("\.\/project-routes"\)/.test(ROUTES)).toBe(true);
     expect(/registerProjectRoutes\(app\)/.test(ROUTES)).toBe(true);
+  });
+  it("launching a project-scoped run is editor-gated (viewers cannot start runs)", () => {
+    expect(ROUTES.includes("_isOwnerOrEditor")).toBe(true);
+    // the /api/workflows/execute path rejects a viewer with a 403 when request.projectId is set
+    expect(/request\.projectId[\s\S]{0,160}_isOwnerOrEditor[\s\S]{0,160}forbidden_viewer_run/.test(ROUTES)).toBe(true);
   });
 });
 

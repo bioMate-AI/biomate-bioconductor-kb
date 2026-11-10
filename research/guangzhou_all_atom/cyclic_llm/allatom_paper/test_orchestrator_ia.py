@@ -137,3 +137,47 @@ def test_three_way_independence_violations_are_caught():
     s2 = Verifier(name="st", fn=lambda x: 0.0, role="stop", trained_on=frozenset({"labA"}))
     with pytest.raises(HeldOutVerifierError):
         check_three_way([t2], [s2], [])
+
+
+def test_learning_gate_observes_empty_rounds_and_stops_without_top_molecules(tmp_path):
+    from hybrid.adapters import RealPreferenceUpdater
+    class EmptyGenerator:
+        def __init__(self):self.extra_state={}
+        def sample(self,n,*args):return ['']*n
+        def dpo_step(self,*args):raise AssertionError('empty rounds must not train')
+    generator=EmptyGenerator(); updater=RealPreferenceUpdater(generator,None)
+    logger=JsonlLogger(str(tmp_path/'empty.jsonl'))
+    result=run_loop(LoopConfig(run_id='empty',budget=100,n_per_round=2,rounds_max=20),generator,
+                    planted_verifier(L=L),updater=updater,logger=logger)
+    assert result['rounds']==6 and result['calls']==0 and result['stop_reason']=='learning_gate'
+    rows=[json.loads(x) for x in (tmp_path/'empty.jsonl').read_text().splitlines()]
+    assert [row['learning_gate_round'] for row in rows]==list(range(6))
+    assert all(row['n_pairs']==0 and row['kl'] is None and row['loss'] is None for row in rows)
+    assert rows[-1]['update_gate']=='stop' and rows[-1]['update_gate_reason']=='no_preference_pairs'
+    assert all(row['frac_groups_retained']==0 for row in rows)
+
+
+def test_resume_preserves_stop_cache_and_retriever_provenance(tmp_path):
+    from hybrid.adapters import ChemicalRetriever
+    from dataclasses import asdict
+    class FixedGenerator:
+        def sample(self,n,*args):return ['CCO','CCN']
+        def lora_state(self):return b'fixed'
+        def load_lora(self,path):assert open(path,'rb').read()==b'fixed'
+    class NeverStop:
+        def update(self,*args):return {'should_stop':False,'gap':0.0}
+    n_stop=[]
+    train=Verifier(name='train',fn=lambda s:float(len(s)),role='train')
+    stop=Verifier(name='stop',fn=lambda s:n_stop.append(s) or 0.0,role='stop')
+    cfg=LoopConfig(run_id='resume-cache',budget=20,n_per_round=2,rounds_max=3)
+    initial=[dict(smiles='CCC',scores={'known':0.5},doc='paper',doc_year=2020,target='T',source='lab')]
+    retriever=ChemicalRetriever(initial)
+    part=run_loop(cfg,FixedGenerator(),train,stop_verifier=stop,monitor=NeverStop(),retriever=retriever,
+                  ckpt_dir=str(tmp_path/'ck'),stop_after_rounds=1)
+    assert part['n_stop_calls']==2 and len(n_stop)==2
+    resumed_retriever=ChemicalRetriever(initial)
+    result=run_loop(cfg,FixedGenerator(),train,stop_verifier=stop,monitor=NeverStop(),retriever=resumed_retriever,
+                    ckpt_dir=str(tmp_path/'ck'))
+    assert result['n_stop_calls']==2 and len(n_stop)==2
+    assert len(resumed_retriever.inner.store.rows)==3
+    assert asdict(resumed_retriever.inner.store.rows[0])['source']=='lab'

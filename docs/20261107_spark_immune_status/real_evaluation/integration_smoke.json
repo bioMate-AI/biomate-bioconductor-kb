@@ -1,0 +1,62 @@
+{
+  "protocol": "integration_only_one_group_fold_1024_cells_one_epoch_not_biological_evaluation",
+  "checkpoint_sha256": "04da405dcdd8f4a2cf3ffca3058a3dd03804caae4e50a9c14db19f272ea637a7",
+  "results": [
+    {
+      "input": "rna",
+      "arm": "pretrained_frozen",
+      "n_train": 514,
+      "n_test": 510,
+      "auroc": 0.41356634939033904,
+      "cuda_peak_allocated_bytes": 78722560,
+      "cuda_peak_reserved_bytes": 81788928
+    },
+    {
+      "input": "rna",
+      "arm": "pretrained",
+      "n_train": 514,
+      "n_test": 510,
+      "auroc": 0.5727023472503956,
+      "cuda_peak_allocated_bytes": 116188160,
+      "cuda_peak_reserved_bytes": 130023424
+    },
+    {
+      "input": "rna",
+      "arm": "scratch",
+      "n_train": 514,
+      "n_test": 510,
+      "auroc": 0.8798288045295468,
+      "cuda_peak_allocated_bytes": 116188160,
+      "cuda_peak_reserved_bytes": 130023424
+    },
+    {
+      "input": "rna_protein",
+      "arm": "pretrained_frozen",
+      "n_train": 514,
+      "n_test": 510,
+      "auroc": 0.4500568422460489,
+      "cuda_peak_allocated_bytes": 78796288,
+      "cuda_peak_reserved_bytes": 81788928
+    },
+    {
+      "input": "rna_protein",
+      "arm": "pretrained",
+      "n_train": 514,
+      "n_test": 510,
+      "auroc": 0.625264706537973,
+      "cuda_peak_allocated_bytes": 116486144,
+      "cuda_peak_reserved_bytes": 130023424
+    },
+    {
+      "input": "rna_protein",
+      "arm": "scratch",
+      "n_train": 514,
+      "n_test": 510,
+      "auroc": 0.9301174739751676,
+      "cuda_peak_allocated_bytes": 116486144,
+      "cuda_peak_reserved_bytes": 130023424
+    }
+  ],
+  "elapsed_seconds": 3.2591774463653564,
+  "process_maxrss_kib": 2017628
+}

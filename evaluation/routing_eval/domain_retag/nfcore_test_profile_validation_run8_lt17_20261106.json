@@ -1,0 +1,38 @@
+[
+ {
+  "name": "nf-core/rnaseq",
+  "runId": "a905972a-da40-4eee-b95a-b0db91d4c630",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 861,
+  "error": "",
+  "minutes": 27.0
+ },
+ {
+  "name": "nf-core/diaproteomics",
+  "runId": "984f9d73-6d4a-428b-9b6a-71a648b83481",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 40,
+  "error": "",
+  "minutes": 11.1
+ },
+ {
+  "name": "nf-core/slamseq",
+  "runId": "3bf70edb-0e8b-4e73-819a-f71376d7235a",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 148,
+  "error": "",
+  "minutes": 13.2
+ },
+ {
+  "name": "nf-core/eager",
+  "runId": "234b6fd1-2b1d-4831-b550-fb3f34ae4ef3",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 205,
+  "error": "",
+  "minutes": 8.1
+ }
+]

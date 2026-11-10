@@ -91,26 +91,26 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
   return (
     <div data-testid="step-deep" data-v2-ui style={{
       display: "flex", flexDirection: "column", gap: 14,
-      fontFamily: "var(--font-ui)", color: "var(--text)", fontSize: 13,
+      fontFamily: "var(--font-ui)", color: "var(--text)", fontSize: 'var(--fs-meta)',
     }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          <div style={{ fontSize: 'var(--fs-micro)', color: "var(--text-muted)" }}>
             {tOr("stepdeep.pos", "step {{i}} of {{n}}", { i: step.index, n: step.total })}
             {step.phase ? ` · ${step.phase}` : ""}
             {status === "skipped" ? " · not run" : ""}
           </div>
-          <div style={{ fontWeight: 600, fontSize: 14, marginTop: 2 }}>{step.name}</div>
+          <div style={{ fontWeight: 600, fontSize: 'var(--fs-body)', marginTop: 2 }}>{step.name}</div>
           {(step.tool || step.version) && (
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)", marginTop: 2 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 'var(--fs-micro)', color: "var(--text-muted)", marginTop: 2 }}>
               {step.tool}{step.version ? ` · ${step.version}` : ""}
             </div>
           )}
         </div>
         <span data-testid="step-deep-status" style={{
           display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-          padding: "3px 9px", borderRadius: 999, fontSize: 11.5, fontWeight: 500,
+          padding: "3px 9px", borderRadius: 999, fontSize: 'var(--fs-micro)', fontWeight: 500,
           color: st.c, background: st.bg,
         }}>
           <span style={{ width: 6, height: 6, borderRadius: 999, background: "currentColor" }} />
@@ -171,10 +171,10 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
           <pre data-testid="step-deep-log" style={{
             margin: 0, padding: "10px 12px", borderRadius: 8, maxHeight: 220, overflow: "auto",
             background: "var(--surface-2)", border: "1px solid var(--border)",
-            fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.5, color: "var(--text)",
+            fontFamily: "var(--font-mono)", fontSize: 'var(--fs-micro)', lineHeight: 1.5, color: "var(--text)",
           }}>{step.logTail.join("\n")}</pre>
         ) : (
-          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+          <div style={{ fontSize: 'var(--fs-meta)', color: "var(--text-muted)" }}>
             {status === "running"
               ? tOr("stepdeep.log_follow", "Follows the tail while the step runs.")
               : tOr("stepdeep.log_none", "No step log recorded.")}
@@ -189,7 +189,7 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
           <div style={{ ...sectionLabel, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ flex: 1 }}>{tOr("stepdeep.params", "Parameters this step actually ran with")}</span>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 'var(--fs-meta)' }}>
             <tbody>
               {params.map((p, i) => {
                 const v = edits[p.label] ?? p.value;
@@ -202,7 +202,7 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
                         value={v}
                         onChange={e => setEdits(prev => ({ ...prev, [p.label]: e.target.value }))}
                         style={{
-                          width: "100%", fontSize: 12.5, fontFamily: "var(--font-mono)",
+                          width: "100%", fontSize: 'var(--fs-meta)', fontFamily: "var(--font-mono)",
                           padding: "3px 7px", borderRadius: 6,
                           border: `1px solid ${changed ? "var(--accent)" : "var(--border)"}`,
                           background: "var(--bg-elev, #fff)", color: "var(--text)",
@@ -238,7 +238,7 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
           {dirty && (
             <div data-testid="step-deep-diff" style={{ marginBottom: 8 }}>
               {diff.map(d => (
-                <div key={d.label} style={{ fontSize: 12, fontFamily: "var(--font-mono)" }}>
+                <div key={d.label} style={{ fontSize: 'var(--fs-meta)', fontFamily: "var(--font-mono)" }}>
                   <span style={{ color: "var(--text-muted)" }}>{d.label}: </span>
                   <span style={{ color: "var(--err)", textDecoration: "line-through" }}>{d.was}</span>
                   <span style={{ color: "var(--text-dim)" }}> → </span>
@@ -253,7 +253,7 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
               onClick={() => onRerunFromHere(edits)}
               style={{ ...primaryBtn, opacity: dirty ? 1 : 0.5, cursor: dirty ? "pointer" : "not-allowed" }}
             >{tOr("stepdeep.apply_rerun", "Apply & re-run from here")}</button>
-            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
+            <span style={{ fontSize: 'var(--fs-micro)', color: "var(--text-dim)" }}>
               {tOr("stepdeep.cache_note", "Upstream is reused from cache — only this step and what depends on it run again.")}
             </span>
           </div>
@@ -275,15 +275,15 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
 }
 
 const sectionLabel: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase",
+  fontSize: 'var(--fs-micro)', fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase",
   color: "var(--text-muted)", marginBottom: 6,
 };
 const chip: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px",
-  borderRadius: 999, fontSize: 11.5, background: "var(--neutral-badge)", color: "var(--text-muted)",
+  borderRadius: 999, fontSize: 'var(--fs-micro)', background: "var(--neutral-badge)", color: "var(--text-muted)",
 };
 const pillBtn: React.CSSProperties = {
-  padding: "4px 11px", borderRadius: 999, fontSize: 12, border: "1px solid var(--border)",
+  padding: "4px 11px", borderRadius: 999, fontSize: 'var(--fs-meta)', border: "1px solid var(--border)",
   background: "var(--bg-elev, #fff)", color: "var(--text)", cursor: "pointer",
 };
 const pillBtnOn: React.CSSProperties = {
@@ -291,12 +291,12 @@ const pillBtnOn: React.CSSProperties = {
 };
 const primaryBtn: React.CSSProperties = {
   height: 30, padding: "0 14px", borderRadius: 6, border: "1px solid var(--accent)",
-  background: "var(--accent)", color: "#fff", fontSize: 12.5, fontWeight: 500,
+  background: "var(--accent)", color: "#fff", fontSize: 'var(--fs-meta)', fontWeight: 500,
 };
 const ghostBtn: React.CSSProperties = {
-  border: "none", background: "transparent", color: "var(--text-muted)", fontSize: 14, cursor: "pointer", padding: 4,
+  border: "none", background: "transparent", color: "var(--text-muted)", fontSize: 'var(--fs-body)', cursor: "pointer", padding: 4,
 };
 const ghostNavBtn: React.CSSProperties = {
   height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--border)",
-  background: "transparent", color: "var(--text)", fontSize: 12, cursor: "pointer",
+  background: "transparent", color: "var(--text)", fontSize: 'var(--fs-meta)', cursor: "pointer",
 };

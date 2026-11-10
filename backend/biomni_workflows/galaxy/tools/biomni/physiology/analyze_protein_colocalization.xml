@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_analyze_protein_colocalization" name="Biomni: Analyze Protein Colocalization" version="1.0.0">
     <description>Analyze colocalization between two fluorescently labeled proteins in microscopy images.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_protein_colocalization_wrapper.py' --output '$output'

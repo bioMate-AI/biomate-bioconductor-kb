@@ -278,6 +278,21 @@ class ChatHistoryService {
     return this.updateSession(sessionId, { datasets: updatedDatasets });
   }
   
+  /**
+   * Remove a session from the local cache only (no backend call).
+   * Used by callers that perform their own explicit backend DELETE (e.g. the
+   * sidebar delete control) and just need localStorage kept truthful so the
+   * row is not resurrected on the next getAllSessions() re-derivation.
+   * Returns true if a session was removed.
+   */
+  removeSessionLocal(sessionId: string): boolean {
+    const sessions = this.getAllSessions();
+    const filteredSessions = sessions.filter(s => s.id !== sessionId);
+    if (filteredSessions.length === sessions.length) return false;
+    this.saveSessions(filteredSessions);
+    return true;
+  }
+
   // Delete a session
   async deleteSession(sessionId: string): Promise<boolean> {
     const sessions = this.getAllSessions();

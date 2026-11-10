@@ -1,0 +1,12 @@
+{
+  "realbio": {
+    "docx_pages": 6,
+    "pdf_pages": 7,
+    "abstract_words": 174
+  },
+  "drugdev": {
+    "docx_pages": 6,
+    "pdf_pages": 7,
+    "abstract_words": 157
+  }
+}

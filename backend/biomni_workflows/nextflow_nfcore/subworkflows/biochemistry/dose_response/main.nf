@@ -42,7 +42,7 @@ process DOSE_RESPONSE {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // R + drc (drc is CRAN; bootstrapped below via Posit PPM binaries if missing)
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim' : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(data_file, stageAs: 'input_data.*')

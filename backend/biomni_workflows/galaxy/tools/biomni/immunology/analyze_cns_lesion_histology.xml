@@ -2,7 +2,7 @@
 <tool id="biomni_immunology_analyze_cns_lesion_histology" name="Biomni: Analyze Cns Lesion Histology" version="1.0.0">
     <description>Analyzes histological images of CNS lesions to quantify immune cell infiltration,</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_cns_lesion_histology_wrapper.py' --output '$output'

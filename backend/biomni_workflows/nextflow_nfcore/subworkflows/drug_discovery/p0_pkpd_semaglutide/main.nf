@@ -19,7 +19,7 @@
  *   - Predicted body weight change at 30 weeks: -3.0 to -6.0 kg
  *     (SUSTAIN-1 observed: -4.53 kg, 95% CI -5.34 to -3.72 kg; +/-1.5 kg model tolerance)
  *
- * Container: biomate/biomni-drug-discovery-nf (scipy + numpy + matplotlib present)
+ * Container: biomate/drug-discovery-nf (scipy + numpy + matplotlib present)
  */
 
 nextflow.enable.dsl = 2
@@ -57,8 +57,8 @@ params.wt_loss_max_kg    = -3.0     // upper bound for weight loss at 30 weeks
 process P0_PKPD_SEMAGLUTIDE {
     tag "p0_pkpd_semaglutide"
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' \
-        : 'biomate/biomni-drug-discovery-nf:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' \
+        : 'biomate/drug-discovery-nf:latest'
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
     output:

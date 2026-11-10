@@ -1,0 +1,47 @@
+name: On-prem release contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/onprem-release-contracts.yml'
+      - '.github/workflows/build-workflow-tools-onprem-image.yml'
+      - 'scripts/*onprem*'
+      - 'scripts/*release_payload*'
+      - 'scripts/*github_env*'
+      - 'scripts/test_workflow_image_build_gates.py'
+      - 'scripts/remote-access.sh'
+      - 'scripts/test_remote_access_safety.py'
+      - 'backend/docker/workflow-tools/**'
+      - 'docker-compose.onprem.yml'
+      - '.env.onprem.example'
+      - 'scripts/release/*manual*'
+      - 'docs/qa/20261107-onprem-readiness/revised-manuals/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test-only YAML and Word parsers
+        run: python -m pip install 'PyYAML==6.0.2' 'python-docx==1.2.0'
+      - name: Payload, privacy, configuration and build-failure contracts
+        run: |
+          python -m unittest discover -s scripts -p test_release_payload.py -v
+          python -m unittest discover -s scripts -p test_onprem_diag_privacy.py -v
+          python -m unittest discover -s scripts -p test_onprem_configuration_contract.py -v
+          python -m unittest discover -s scripts -p test_onprem_installer_gates.py -v
+          python -m unittest discover -s scripts -p test_github_env_privacy.py -v
+          python -m unittest discover -s scripts -p test_workflow_image_build_gates.py -v
+          python -m unittest discover -s scripts -p test_remote_access_safety.py -v
+          python -m unittest discover -s scripts/release -p test_revised_manuals.py -v
+      - name: Qualification scope
+        run: |
+          echo 'Contract checks are not rebuilt-image, native ARM64, scientific-accuracy or clean-install qualification.' >> "$GITHUB_STEP_SUMMARY"

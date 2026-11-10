@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-11-08T07:10:22.896Z",
+  "build": {
+    "commit": "e06ade54e1bc8cae058fcd52c8895cc946e1b45c"
+  },
+  "availability": {
+    "available": false,
+    "liveAvailable": false
+  },
+  "anonymousStatus": 401,
+  "uiMatchesAvailability": true,
+  "audioFlow": "not exercised by readiness check"
+}

@@ -1,0 +1,107 @@
+{
+ "protocol": "labelled-train-only-scaling-v2",
+ "device": "cuda",
+ "dataset": "gse261278",
+ "ckpt": "/workspace/fs_long/work/hybrid_model.pt",
+ "n_cells": 15000,
+ "epochs": 3,
+ "lr": 0.0003,
+ "results": [
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.8395,
+   "auprc": 0.4679
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9695,
+   "auprc": 0.9034
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.9138,
+   "auprc": 0.773
+  },
+  {
+   "input": "rna",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9649,
+   "auprc": 0.9008
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.3703,
+   "auprc": 0.1108
+  },
+  {
+   "input": "rna",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9182,
+   "auprc": 0.7284
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.865,
+   "auprc": 0.5467
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9723,
+   "auprc": 0.9088
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.9322,
+   "auprc": 0.8278
+  },
+  {
+   "input": "rna_protein",
+   "arm": "scratch",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9696,
+   "auprc": 0.9138
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 0.1,
+   "seed": 0,
+   "auroc": 0.433,
+   "auprc": 0.1293
+  },
+  {
+   "input": "rna_protein",
+   "arm": "pretrained_frozen",
+   "budget": 1.0,
+   "seed": 0,
+   "auroc": 0.9155,
+   "auprc": 0.7309
+  }
+ ]
+}

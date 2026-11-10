@@ -1,0 +1,1687 @@
+{
+  "protocol": "approximate_corpus_scaler_preserved_knowledge_fixed_grid",
+  "results": [
+    {
+      "key": "raw__0__C0.01",
+      "auroc": 0.95683466407595,
+      "auprc": 0.8719519691196927
+    },
+    {
+      "key": "raw__0__C0.1",
+      "auroc": 0.9552026563104827,
+      "auprc": 0.8669404540062458
+    },
+    {
+      "key": "raw__0__C1.0",
+      "auroc": 0.9540601310102942,
+      "auprc": 0.8632193127357267
+    },
+    {
+      "key": "raw__0__C10.0",
+      "auroc": 0.9533588881730524,
+      "auprc": 0.8602500674932395
+    },
+    {
+      "key": "pretrained_z__0__C0.01",
+      "auroc": 0.9195750089199064,
+      "auprc": 0.8107812935368367
+    },
+    {
+      "key": "pretrained_z__0__C0.1",
+      "auroc": 0.8805060193884601,
+      "auprc": 0.738654753028149
+    },
+    {
+      "key": "pretrained_z__0__C1.0",
+      "auroc": 0.8557807984484757,
+      "auprc": 0.6979305910623428
+    },
+    {
+      "key": "pretrained_z__0__C10.0",
+      "auroc": 0.843700486711056,
+      "auprc": 0.6799290244349622
+    },
+    {
+      "key": "pretrained_z_knowledge__0__C0.01",
+      "auroc": 0.9176092333914943,
+      "auprc": 0.802901421377297
+    },
+    {
+      "key": "pretrained_z_knowledge__0__C0.1",
+      "auroc": 0.8784058504850456,
+      "auprc": 0.737141296649448
+    },
+    {
+      "key": "pretrained_z_knowledge__0__C1.0",
+      "auroc": 0.8602845020574718,
+      "auprc": 0.7083627404003998
+    },
+    {
+      "key": "pretrained_z_knowledge__0__C10.0",
+      "auroc": 0.8537033129674098,
+      "auprc": 0.6992952621369394
+    },
+    {
+      "key": "random_z_knowledge__0__C0.01",
+      "auroc": 0.8899815150993318,
+      "auprc": 0.7110039564105738
+    },
+    {
+      "key": "random_z_knowledge__0__C0.1",
+      "auroc": 0.8571702080107968,
+      "auprc": 0.6177702407535434
+    },
+    {
+      "key": "random_z_knowledge__0__C1.0",
+      "auroc": 0.8412379097268077,
+      "auprc": 0.5547086923302958
+    },
+    {
+      "key": "random_z_knowledge__0__C10.0",
+      "auroc": 0.8358751055487429,
+      "auprc": 0.5213231782168474
+    },
+    {
+      "key": "raw__1__C0.01",
+      "auroc": 0.9578672773889065,
+      "auprc": 0.8987416133553879
+    },
+    {
+      "key": "raw__1__C0.1",
+      "auroc": 0.9572280371168349,
+      "auprc": 0.8987663779890893
+    },
+    {
+      "key": "raw__1__C1.0",
+      "auroc": 0.9566555939843927,
+      "auprc": 0.8976089564803794
+    },
+    {
+      "key": "raw__1__C10.0",
+      "auroc": 0.9563086048191503,
+      "auprc": 0.8966071872772878
+    },
+    {
+      "key": "pretrained_z__1__C0.01",
+      "auroc": 0.9346979685061112,
+      "auprc": 0.8441447698901045
+    },
+    {
+      "key": "pretrained_z__1__C0.1",
+      "auroc": 0.8990022890097565,
+      "auprc": 0.7551232868257995
+    },
+    {
+      "key": "pretrained_z__1__C1.0",
+      "auroc": 0.8729885261837704,
+      "auprc": 0.6998179818794183
+    },
+    {
+      "key": "pretrained_z__1__C10.0",
+      "auroc": 0.863436862119553,
+      "auprc": 0.6749194542374113
+    },
+    {
+      "key": "pretrained_z_knowledge__1__C0.01",
+      "auroc": 0.9287188072522587,
+      "auprc": 0.8203470580245037
+    },
+    {
+      "key": "pretrained_z_knowledge__1__C0.1",
+      "auroc": 0.8769830241916428,
+      "auprc": 0.7023614802704656
+    },
+    {
+      "key": "pretrained_z_knowledge__1__C1.0",
+      "auroc": 0.8399484234549275,
+      "auprc": 0.6331074476249939
+    },
+    {
+      "key": "pretrained_z_knowledge__1__C10.0",
+      "auroc": 0.8248217589702764,
+      "auprc": 0.6005431990386292
+    },
+    {
+      "key": "random_z_knowledge__1__C0.01",
+      "auroc": 0.862893331724003,
+      "auprc": 0.6595749669427576
+    },
+    {
+      "key": "random_z_knowledge__1__C0.1",
+      "auroc": 0.8417266657414106,
+      "auprc": 0.5993603514806078
+    },
+    {
+      "key": "random_z_knowledge__1__C1.0",
+      "auroc": 0.8373867404372484,
+      "auprc": 0.5599925435603981
+    },
+    {
+      "key": "random_z_knowledge__1__C10.0",
+      "auroc": 0.8370939444924125,
+      "auprc": 0.5365638080072705
+    },
+    {
+      "key": "raw__2__C0.01",
+      "auroc": 0.9543207451901974,
+      "auprc": 0.8763394589908481
+    },
+    {
+      "key": "raw__2__C0.1",
+      "auroc": 0.9531238813794674,
+      "auprc": 0.872288929311621
+    },
+    {
+      "key": "raw__2__C1.0",
+      "auroc": 0.9524093444948606,
+      "auprc": 0.8702886425999243
+    },
+    {
+      "key": "raw__2__C10.0",
+      "auroc": 0.9518785996312027,
+      "auprc": 0.8685865549676932
+    },
+    {
+      "key": "pretrained_z__2__C0.01",
+      "auroc": 0.9279366741322793,
+      "auprc": 0.8494335542996534
+    },
+    {
+      "key": "pretrained_z__2__C0.1",
+      "auroc": 0.9017003994643299,
+      "auprc": 0.7870676349382593
+    },
+    {
+      "key": "pretrained_z__2__C1.0",
+      "auroc": 0.8836035505857935,
+      "auprc": 0.729941840398184
+    },
+    {
+      "key": "pretrained_z__2__C10.0",
+      "auroc": 0.8743920833730007,
+      "auprc": 0.6920098845693459
+    },
+    {
+      "key": "pretrained_z_knowledge__2__C0.01",
+      "auroc": 0.9241041019800176,
+      "auprc": 0.8446752917839067
+    },
+    {
+      "key": "pretrained_z_knowledge__2__C0.1",
+      "auroc": 0.8962253586568711,
+      "auprc": 0.7775055339158543
+    },
+    {
+      "key": "pretrained_z_knowledge__2__C1.0",
+      "auroc": 0.8750071509988389,
+      "auprc": 0.7125425193311906
+    },
+    {
+      "key": "pretrained_z_knowledge__2__C10.0",
+      "auroc": 0.8641006019406622,
+      "auprc": 0.6709445367483371
+    },
+    {
+      "key": "random_z_knowledge__2__C0.01",
+      "auroc": 0.8683140703434538,
+      "auprc": 0.6734659148083891
+    },
+    {
+      "key": "random_z_knowledge__2__C0.1",
+      "auroc": 0.8362854775354391,
+      "auprc": 0.5888646185835348
+    },
+    {
+      "key": "random_z_knowledge__2__C1.0",
+      "auroc": 0.8244542475734458,
+      "auprc": 0.5441429791716138
+    },
+    {
+      "key": "random_z_knowledge__2__C10.0",
+      "auroc": 0.8213790728956567,
+      "auprc": 0.5241079821821536
+    }
+  ],
+  "fit_records": [
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 27,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 40,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 40,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 71,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 108,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 113,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 60,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 97,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 112,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 35,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 63,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 103,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 125,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 29,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 34,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 40,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 80,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 114,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 110,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 37,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 73,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 104,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 111,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 58,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 91,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 112,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 39,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 48,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 53,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 49,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 53,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 82,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 122,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 137,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 52,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 81,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 118,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 146,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 49,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 68,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 106,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 94,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 35,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 72,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 92,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 121,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 34,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 73,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 103,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 117,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 27,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 54,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 74,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 90,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 28,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 37,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 41,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 44,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 35,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 87,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 124,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 149,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 75,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 130,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 152,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 68,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 121,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 130,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 35,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 34,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 44,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 52,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 84,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 93,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 110,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 50,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 84,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 112,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 111,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 68,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 80,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 75,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 27,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 70,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 98,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 129,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 65,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 103,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 124,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 32,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 68,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 115,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 113,
+      "converged": true,
+      "n_labelled": 989,
+      "n_test": 5108
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 27,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 35,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 40,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 33,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 75,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 100,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 122,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 36,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 61,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 105,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 117,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 29,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 60,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 85,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 96,
+      "converged": true,
+      "n_labelled": 1003,
+      "n_test": 4971
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "raw",
+      "C": 0.01,
+      "iterations": 38,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "raw",
+      "C": 0.1,
+      "iterations": 45,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "raw",
+      "C": 1.0,
+      "iterations": 37,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "raw",
+      "C": 10.0,
+      "iterations": 35,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 0.01,
+      "iterations": 43,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 0.1,
+      "iterations": 78,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 1.0,
+      "iterations": 104,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z",
+      "C": 10.0,
+      "iterations": 119,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.01,
+      "iterations": 44,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 0.1,
+      "iterations": 72,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 1.0,
+      "iterations": 120,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "pretrained_z_knowledge",
+      "C": 10.0,
+      "iterations": 121,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 0.01,
+      "iterations": 45,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 0.1,
+      "iterations": 74,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 1.0,
+      "iterations": 92,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "feature": "random_z_knowledge",
+      "C": 10.0,
+      "iterations": 113,
+      "converged": true,
+      "n_labelled": 1008,
+      "n_test": 4921
+    }
+  ]
+}

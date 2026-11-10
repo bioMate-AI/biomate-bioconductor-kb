@@ -1,0 +1,50 @@
+{
+  "case": "cll_snf_mfa_real_20261010",
+  "split": "development",
+  "planning_pass": false,
+  "state": "chat_only",
+  "workflow": null,
+  "metadata": {
+    "intentType": "research_question",
+    "inlineParameters": {
+      "mrna": "s3://biomate-nextflow-work/cll_test/mrna.csv",
+      "methylation": "s3://biomate-nextflow-work/cll_test/methylation.csv",
+      "ground_truth": "s3://biomate-nextflow-work/cll_test/ighv_labels.csv",
+      "n_clusters": "2",
+      "metrics": "ARI,NMI"
+    },
+    "workflowSuggestion": {
+      "shouldGenerate": false,
+      "userIntent": "Prepare an executable comparison plan, but do not launch jobs yet. Compare SNF and MFA on the same CLL cohort: omics inputs s3://biomate-nextflow-work/cll_test/mrna.csv and s3://biomate-nextflow-work/cll_test/methylation.csv. Use n_clusters=2 for both methods. Ground-truth IGHV labels: s3://biomate-nextflow-work/cll_test/ighv_labels.csv. Both methods must execute independently on the same inputs. Compare ARI and NMI on exactly the same shared labeled samples and retain failed methods in the report. Return an executable plan for both methods, not merely a literature comparison.",
+      "confidence": 0,
+      "reasoning": "Intent type \"research_question\" \u2014 workflow generation not flagged"
+    },
+    "sources": {
+      "toolSearchUsed": true,
+      "datasetRAGUsed": false,
+      "workflowGenerated": false,
+      "thinkingUsed": false,
+      "researchAgentUsed": true,
+      "benchmarkAgentUsed": false
+    },
+    "memoryUsed": false,
+    "workflowGenerationDiagnostics": null,
+    "llm_usage": {
+      "model": "gpt-5.6-luna",
+      "input_tokens": 146,
+      "output_tokens": 1003,
+      "cost_usd": 0.015483,
+      "duration_ms": 97418
+    }
+  },
+  "manual_bridge": {
+    "endpoint": "POST /api/workflows/benchmark",
+    "reason": "Assistant returned chat_only and no executable artifact; direct API execution tests execution separately, not automatic end-to-end success."
+  },
+  "scientific_review": [
+    "Narrative proposes unverified quantile/log2 preprocessing and factor-retention choices not bound to workflow code.",
+    "Labels should be reserved for evaluation; narrative proposes restricting fit cohort to labeled samples. Actual submitted workflows receive omics only.",
+    "Retrieved citations are not evidence of execution or of comparative performance."
+  ],
+  "training_eligibility": "Failure-analysis example only; not a verified successful execution trajectory."
+}

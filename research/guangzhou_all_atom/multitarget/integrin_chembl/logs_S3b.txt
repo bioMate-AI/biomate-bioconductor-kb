@@ -1,0 +1,3 @@
+S3b folds 1 train rows (first) 4212 test rows 64
+[Parallel(n_jobs=7)]: Using backend LokyBackend with 7 concurrent workers.
+done S3b 31 s (64, 16) (87, 17)

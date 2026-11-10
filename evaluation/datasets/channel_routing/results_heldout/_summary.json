@@ -1,0 +1,8 @@
+[
+  {
+    "model": "qwen/qwen3.5-9b",
+    "bare": 0.6531,
+    "harness": 0.9796,
+    "dividend": 0.3265
+  }
+]

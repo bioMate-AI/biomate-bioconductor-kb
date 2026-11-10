@@ -11,12 +11,12 @@ on:
         description: 'Only check ECS status — skip transfer and restart'
         type: boolean
         default: false
-      pull_biomni_tools:
-        description: 'Pull biomni-tools from GHCR → ECS (~800MB, run once). Required for ADMET + pharmacology workflows.'
+      pull_workflow_tools:
+        description: 'Pull workflow-tools from GHCR → ECS (~800MB, run once). Required for ADMET + pharmacology workflows.'
         type: boolean
         default: false
       mirror_admet_to_acr:
-        description: 'Mirror biomni-admet:x86 from AWS ECR → Alibaba ACR (run once; ~4GB, ~15 min). Requires ACR_USERNAME + ACR_PASSWORD secrets.'
+        description: 'Mirror admet:x86 from AWS ECR → Alibaba ACR (run once; ~4GB, ~15 min). Requires ACR_USERNAME + ACR_PASSWORD secrets.'
         type: boolean
         default: false
       build_frontend:
@@ -43,7 +43,7 @@ env:
   ACR_NAMESPACE: biomate
 
 jobs:
-  # ─── One-time step: mirror biomni-admet:x86 from AWS ECR → Alibaba ACR ─────
+  # ─── One-time step: mirror admet:x86 from AWS ECR → Alibaba ACR ─────
   # Run manually with inputs.mirror_admet_to_acr=true.  Once done the image
   # lives in ACR forever; every subsequent deploy pulls it from there for free.
   # Prerequisites: ACR_USERNAME and ACR_PASSWORD must be set as GHA repo secrets.
@@ -76,10 +76,10 @@ jobs:
             -u "$ACR_USERNAME" --password-stdin
           echo "Logged in to ${{ env.ACR_REGISTRY }}"
 
-      - name: Mirror biomni-admet:x86 ECR → ACR
+      - name: Mirror admet:x86 ECR → ACR
         run: |
-          ECR_IMG="${{ env.ECR_REGISTRY }}/biomate/biomni-admet:x86"
-          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomni-admet:x86"
+          ECR_IMG="${{ env.ECR_REGISTRY }}/biomate/admet:x86"
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/admet:x86"
 
           echo "Source: $ECR_IMG"
           echo "Target: $ACR_IMG"
@@ -254,12 +254,12 @@ jobs:
              chmod 755 /app/biomate/backend/config && \
              echo "backend/config perms: $(ls -la /app/biomate/backend/ | grep config)"'
 
-      - name: Set BIOMATE_ADMET_CONTAINER — ACR image if available, biomni-tools fallback
+      - name: Set BIOMATE_ADMET_CONTAINER — ACR image if available, workflow-tools fallback
         # Priority:
-        #   1. ACR image (registry.cn-beijing.aliyuncs.com/biomate/biomni-admet:x86):
+        #   1. ACR image (registry.cn-beijing.aliyuncs.com/biomate/admet:x86):
         #      real ADMET-AI + Chemprop, full predictions. Used when image is already
         #      cached on ECS (from a previous mirror run) or ACR credentials let us pull.
-        #   2. biomni-tools:latest fallback: has RDKit structural estimates only.
+        #   2. workflow-tools:latest fallback: has RDKit structural estimates only.
         #      Used when ACR image is not available.
         # main.nf respects BIOMATE_ADMET_CONTAINER via Elvis operator — no sed patching needed.
         env:
@@ -267,7 +267,7 @@ jobs:
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
         run: |
-          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomni-admet:x86"
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/admet:x86"
           ACR_USER="${ACR_USERNAME}"
           ACR_PASS="${ACR_PASSWORD}"
 
@@ -283,23 +283,23 @@ jobs:
 
           # Check if image is already cached on ECS
           if docker image inspect "\$ACR_IMG" >/dev/null 2>&1; then
-            echo "biomni-admet:x86 already cached on ECS — using ACR URL"
+            echo "admet:x86 already cached on ECS — using ACR URL"
             ADMET_CONTAINER="\$ACR_IMG"
           elif [ -n "\$ACR_USER" ] && [ -n "\$ACR_PASS" ]; then
-            echo "Pulling biomni-admet:x86 from ACR (Beijing internal traffic)..."
+            echo "Pulling admet:x86 from ACR (Beijing internal traffic)..."
             if docker login ${{ env.ACR_REGISTRY }} -u "\$ACR_USER" -p "\$ACR_PASS" >/dev/null 2>&1 && \
                docker pull "\$ACR_IMG" 2>&1; then
               echo "Pull from ACR successful"
               ADMET_CONTAINER="\$ACR_IMG"
             else
-              echo "WARNING: ACR pull failed — falling back to biomni-tools (RDKit estimates only)"
-              ADMET_CONTAINER="biomate/biomni-tools:latest"
+              echo "WARNING: ACR pull failed — falling back to workflow-tools (RDKit estimates only)"
+              ADMET_CONTAINER="biomate/workflow-tools:latest"
             fi
           else
-            echo "No ACR credentials configured — using biomni-tools fallback"
+            echo "No ACR credentials configured — using workflow-tools fallback"
             echo "  → To enable real ADMET-AI: set ACR_USERNAME + ACR_PASSWORD secrets,"
             echo "    then run with mirror_admet_to_acr=true once to push image to ACR"
-            ADMET_CONTAINER="biomate/biomni-tools:latest"
+            ADMET_CONTAINER="biomate/workflow-tools:latest"
           fi
 
           grep -q "^BIOMATE_ADMET_CONTAINER=" "\$ENV_FILE" && \
@@ -330,19 +330,19 @@ jobs:
              echo "Galaxy DB set to PostgreSQL" && \
              grep "^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=" "$ENV_FILE" | sed "s/:.*@/:***@/"'
 
-      - name: Pull biomni-tools image from GHCR and transfer to ECS
-        # biomate/biomni-tools:latest is the image Nextflow uses for ADMET and other
-        # pharmacology workflows. It lives on GHCR (ghcr.io/biomate-ai/biomni-tools:latest)
+      - name: Pull workflow-tools image from GHCR and transfer to ECS
+        # biomate/workflow-tools:latest is the image Nextflow uses for ADMET and other
+        # pharmacology workflows. It lives on GHCR (ghcr.io/biomate-ai/workflow-tools:latest)
         # and must be pulled once and retagged on ECS. Without it every workflow run
         # fails with "image not found" (exit 1). Run this step once; image is then cached.
-        if: ${{ inputs.pull_biomni_tools == true }}
+        if: ${{ inputs.pull_workflow_tools == true }}
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Checking if biomate/biomni-tools:latest already exists on ECS..."
+          echo "Checking if biomate/workflow-tools:latest already exists on ECS..."
           EXISTS=$(sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
-            'docker image inspect biomate/biomni-tools:latest >/dev/null 2>&1 && echo yes || echo no')
+            'docker image inspect biomate/workflow-tools:latest >/dev/null 2>&1 && echo yes || echo no')
           if [ "$EXISTS" = "yes" ]; then
             echo "Image already present on ECS — skipping transfer"
             exit 0
@@ -351,18 +351,18 @@ jobs:
           echo "Logging in to GHCR on GHA runner..."
           echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-          echo "Pulling ghcr.io/biomate-ai/biomni-tools:latest..."
-          docker pull ghcr.io/biomate-ai/biomni-tools:latest
+          echo "Pulling ghcr.io/biomate-ai/workflow-tools:latest..."
+          docker pull ghcr.io/biomate-ai/workflow-tools:latest
 
           echo "Saving + piping to ECS (expect 3–8 min for ~800MB)..."
-          docker save ghcr.io/biomate-ai/biomni-tools:latest | gzip | \
+          docker save ghcr.io/biomate-ai/workflow-tools:latest | gzip | \
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
               root@${{ env.ECS_IP }} \
               'gunzip | docker load && \
-               docker tag ghcr.io/biomate-ai/biomni-tools:latest biomate/biomni-tools:latest && \
-               echo "=== biomate/biomni-tools:latest installed on ECS ===" && \
-               docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}}"'
+               docker tag ghcr.io/biomate-ai/workflow-tools:latest biomate/workflow-tools:latest && \
+               echo "=== biomate/workflow-tools:latest installed on ECS ===" && \
+               docker image inspect biomate/workflow-tools:latest --format "ID={{.Id}}"'
 
       - name: Pre-compile server bundle (if build_frontend=true)
         # Compile server/index.ts → /tmp/server_index.js on the GHA runner so it's
@@ -512,7 +512,7 @@ jobs:
             -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             root@${{ env.ECS_IP }} \
             'ADMET_IMG=$(grep "^BIOMATE_ADMET_CONTAINER=" /app/biomate/.env 2>/dev/null | cut -d= -f2- | tr -d "\"") && \
-             if [ -z "$ADMET_IMG" ]; then ADMET_IMG="biomate/biomni-tools:latest"; fi && \
+             if [ -z "$ADMET_IMG" ]; then ADMET_IMG="biomate/workflow-tools:latest"; fi && \
              VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
              NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf" && \
              if [ -f "$NF_FILE" ]; then
@@ -684,8 +684,8 @@ jobs:
              echo "=== galaxy inspect ===" && \
              docker inspect biomate-galaxy --format "RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}" 2>/dev/null || echo "container missing" && \
              echo "" && \
-             echo "=== biomni-tools image ===" && \
-             docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}} Size={{.Size}}" 2>/dev/null || echo "biomate/biomni-tools:latest NOT found — workflows will fail" && \
+             echo "=== workflow-tools image ===" && \
+             docker image inspect biomate/workflow-tools:latest --format "ID={{.Id}} Size={{.Size}}" 2>/dev/null || echo "biomate/workflow-tools:latest NOT found — workflows will fail" && \
              echo "" && \
              echo "=== frontend logs (last 100 lines) ===" && \
              docker logs biomate-frontend --tail 100 2>&1 || echo "(no frontend logs)" && \
@@ -717,7 +717,7 @@ jobs:
                || echo "AI assistant returned non-JSON or error"'
 
       - name: Run end-to-end workflow tests (ADMET + PBPK + hERG)
-        # Tests 3 pharmacology workflows that all use biomni-tools:latest (no ECR images needed).
+        # Tests 3 pharmacology workflows that all use workflow-tools:latest (no ECR images needed).
         # Login once, reuse token across all 3 cases.  Each case is fired and polled
         # independently; results collected at the end.
         env:
@@ -783,7 +783,7 @@ jobs:
 
           # ── Case 2: PBPK simulation (aspirin SMILES, all defaults) ─────────────
           # Use nextflow_path directly — search routing returns wrong workflow.
-          # Workflow: drug_discovery/pbpk_simulation — uses biomni-tools:latest.
+          # Workflow: drug_discovery/pbpk_simulation — uses workflow-tools:latest.
           echo ""
           echo "=== [PBPK] direct execute (pbpk_simulation) ==="
           D2='{"workflowDefinition":{"name":"PBPK Simulation","domain":"drug_discovery","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pbpk_simulation/main.nf","parameters":{"SMILES":"CC(=O)Oc1ccccc1C(=O)O","dose_mg":"500","dose_route":"oral","population":"healthy_adult"}}}'
@@ -798,7 +798,7 @@ jobs:
 
           # ── Case 3: hERG cardiac safety ─────────────────────────────────────────
           # Use nextflow_path directly — search returns wrong workflow (CIPA ODE).
-          # Workflow: pharmacology/herg_cardiac_safety_qsar — uses biomni-tools:latest.
+          # Workflow: pharmacology/herg_cardiac_safety_qsar — uses workflow-tools:latest.
           echo ""
           echo "=== [hERG] direct execute (herg_cardiac_safety_qsar) ==="
           D3='{"workflowDefinition":{"name":"hERG Cardiac Safety QSAR","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf","parameters":{"smiles_list":"[\"CC(=O)Oc1ccccc1C(=O)O\"]","dose_mg":"500","dose_route":"oral"}}}'
@@ -812,7 +812,7 @@ jobs:
           echo "[hERG] final=$R3"
 
           # ── Case 4: physicochemical properties (cached image — fast path) ─────
-          # Uses biomate/biomni-tools:latest (already on ECS). Demonstrates that
+          # Uses biomate/workflow-tools:latest (already on ECS). Demonstrates that
           # pre-cached workflows start immediately with no pull wait.
           echo ""
           echo "=== [PhysChem] direct execute (calculate_physicochemical_properties) ==="
@@ -827,7 +827,7 @@ jobs:
           echo "[PhysChem] final=$R4"
 
           # ── Case 5: CNS penetration (cached image — fast path) ─────────────────
-          # Uses biomate/biomni-tools:latest. Tests BBB permeability prediction.
+          # Uses biomate/workflow-tools:latest. Tests BBB permeability prediction.
           echo ""
           echo "=== [CNS] direct execute (cns_penetration_prediction) ==="
           D5='{"workflowDefinition":{"name":"CNS Penetration Prediction","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/cns_penetration_prediction/main.nf","parameters":{"smiles_list":"[\"CCc1nn(C)c2cc(-c3ccc(S(=O)(=O)N4CCN(C)CC4)cc3)cnc12\"]"}}}'

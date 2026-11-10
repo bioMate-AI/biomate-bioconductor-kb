@@ -1,0 +1,28 @@
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+............................................................             [100%]
+=============================== warnings summary ===============================
+hybrid/test_initialization.py::test_real_peft_merge_preserves_adapted_logits_and_reference
+hybrid/test_knowledge_generator.py::test_bridge_absent_preserves_actual_generator_dpo_and_legacy_checkpoint
+hybrid/test_knowledge_generator.py::test_checkpoint_restores_actual_bridge_optimizer_and_identical_next_step
+hybrid/test_knowledge_generator.py::test_corrupt_memory_checkpoint_fails_before_mutating_live_parameters
+hybrid/test_knowledge_generator.py::test_bridge_enablement_mismatch_rejects_checkpoint
+hybrid/test_knowledge_generator.py::test_resume_rejects_different_preinstalled_round_memory_without_mutation
+  /w/out/integration-qa/venv/lib64/python3.11/site-packages/peft/utils/save_and_load.py:236: UserWarning: Could not find a config file in  - will assume that the vocabulary was not modified.
+    warnings.warn(
+
+hybrid/test_initialization.py::test_real_peft_merge_preserves_adapted_logits_and_reference
+  /w/out/integration-qa/venv/lib64/python3.11/site-packages/peft/peft_model.py:569: UserWarning: Found missing adapter keys while loading the checkpoint: ['base_model.model.model.layers.0.self_attn.k_proj.lora_A.default.weight'].
+    warnings.warn(warn_message)
+
+hybrid/test_initialization.py::test_real_peft_merge_preserves_adapted_logits_and_reference
+  /w/out/integration-qa/venv/lib64/python3.11/site-packages/peft/tuners/tuners_utils.py:167: UserWarning: Already found a `peft_config` attribute in the model. This will lead to having multiple adapters in the model. Make sure to know what you are doing!
+    warnings.warn(
+
+hybrid/test_knowledge_generator.py::test_candidate_digest_mismatch_fails_before_update_and_reference_scope_restores
+  /w/code/cyclic_llm/allatom_paper/hybrid/test_knowledge_generator.py:159: DeprecationWarning: __array_wrap__ must accept context and return_scalar arguments (positionally) in the future. (Deprecated NumPy 2.0)
+    assert np.isfinite(g._logp('chosen'))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+------------- generated xml file: /w/out/integration-qa/junit.xml --------------
+204 passed, 9 warnings in 13.83s

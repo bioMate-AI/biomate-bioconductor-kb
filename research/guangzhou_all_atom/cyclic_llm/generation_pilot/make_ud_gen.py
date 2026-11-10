@@ -44,6 +44,22 @@ cd /w; export CHEMFM_DIR=/w/chemfm OMP_NUM_THREADS=32
 PIDS=($!)
 for p in "${PIDS[@]}"; do wait $p; done
 """
+B1_BODY = """mkdir -p /w/chemfm && cd /w/chemfm
+SHA=__SHA__
+for f in config.json generation_config.json special_tokens_map.json tokenizer.json tokenizer_config.json model.safetensors; do curl -sL -o $f https://huggingface.co/ChemFM/ChemFM-1B/resolve/$SHA/$f; done
+echo "24686705d779db6876acc09c81d64d432262ef8b5dbfccc385212587079ce419  model.safetensors" | sha256sum -c - || { echo CHEMFM_SHA_MISMATCH; aws s3 cp /var/log/ud.log $B/logs/FAILED___SET__.log --only-show-errors; shutdown -h now; exit 3; }
+cd /w; export CHEMFM_DIR=/w/chemfm OMP_NUM_THREADS=32
+aws s3 cp $B/out_b/dev_L-CHEMFM.json /w/out/dev_L-CHEMFM.json --only-show-errors
+python3.11 $G/gen_pilot.py dev2 /w/out --gens L-CHEMFM --n-dev 300 > /w/dev2_chemfm.log 2>&1; aws s3 cp /w/dev2_chemfm.log $B/logs/dev2_chemfm.log --only-show-errors
+"""
+B2_BODY = """mkdir -p /w/chemfm && cd /w/chemfm
+SHA=__SHA__
+for f in config.json generation_config.json special_tokens_map.json tokenizer.json tokenizer_config.json model.safetensors; do curl -sL -o $f https://huggingface.co/ChemFM/ChemFM-1B/resolve/$SHA/$f; done
+echo "24686705d779db6876acc09c81d64d432262ef8b5dbfccc385212587079ce419  model.safetensors" | sha256sum -c - || { echo CHEMFM_SHA_MISMATCH; aws s3 cp /var/log/ud.log $B/logs/FAILED___SET__.log --only-show-errors; shutdown -h now; exit 3; }
+cd /w; export CHEMFM_DIR=/w/chemfm OMP_NUM_THREADS=32
+aws s3 cp $B/frozen_b2.json /w/frozen.json --only-show-errors || { echo NO_FROZEN; shutdown -h now; exit 4; }
+python3.11 $G/gen_pilot.py test /w/out --gens L-CHEMFM --cfg /w/frozen.json --seeds __SEEDS__ > /w/test_chemfm.log 2>&1; aws s3 cp /w/test_chemfm.log $B/logs/test_chemfm_b2.log --only-show-errors
+"""
 TAIL = """aws s3 sync /w/out $B/out___SET__/ --only-show-errors
 echo DONE > /w/done.flag; aws s3 cp /w/done.flag $B/flags/done___SET__.flag --only-show-errors
 kill $SYNC $BOOTSYNC; aws s3 cp /var/log/ud.log $B/logs/ud___SET___final.log --only-show-errors; shutdown -h now
@@ -63,7 +79,9 @@ def proc(gens):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("set"); ap.add_argument("out"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--chemfm-sha", default=""); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("set"); ap.add_argument("out"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--chemfm-sha", default=""); ap.add_argument("--seeds", type=int, default=3); a = ap.parse_args()
     if a.set == "a": body = CPU_BODY.replace("__PROCS__", "\n".join("OMP_NUM_THREADS=4 " + proc(g) if False else proc(g) for g in CPU_GROUPS))
+    elif a.set == "b1": body = B1_BODY.replace("__SHA__", a.chemfm_sha)
+    elif a.set == "b2": body = B2_BODY.replace("__SHA__", a.chemfm_sha).replace("__SEEDS__", str(a.seeds))
     else: body = CHEMFM_BODY.replace("__SHA__", a.chemfm_sha)
     s = (HEAD + ("export OMP_NUM_THREADS=4\n" if a.set == "a" else "") + body + TAIL).replace("__B__", B).replace("__SET__", a.set).replace("__CAP__", str(a.cap_min)); open(a.out, "w").write(s); print("wrote", a.out)

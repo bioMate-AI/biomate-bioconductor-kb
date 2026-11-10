@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Filling workflow parameters from a sentence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">RealBio · param_prefill — a free-text request becomes correct workflow parameters</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — THE TASK -->
+  <section class="scene title" data-seconds="38.0">
+    <div class="kicker">The task · param_prefill</div>
+    <h2>A sentence of science. Dozens of parameters — every one exactly right.</h2>
+    <p class="caption">A scientist writes one request: <b>"RNA-seq differential expression, human GRCh38, dUTP strand-specific, treated vs control, FDR 0.05."</b> The job is to fill the workflow's parameters correctly — convert units, honor negations, set boolean flags, and normalize the aliases a schema actually accepts. This is exactly where a raw language model is least reliable: arithmetic unit conversions, deterministic boolean mapping, and schema-constrained enums.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>"human" → <code>genome = GRCh38</code></span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>"dUTP" → <code>strandedness = reverse</code></span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>"FDR 0.05" → <code>padj_threshold = 0.05</code></span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>one wrong field = a wrong run</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene title" data-seconds="38.0">
+    <div class="kicker">BioMate doing it · hybrid rule + LLM, then validated</div>
+    <h2>Rules do the exact work. The model does only the free-text work.</h2>
+    <p class="caption">BioMate extracts parameters with deterministic rules first and the language model as a fallback — then validates every value against the workflow's schema.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">RULES — EXACT</div><h4>Conversions, negations, aliases</h4><p>Unit conversions (<code>ns → n_steps</code>, <code>fs → dt</code>), negations ("remove adapters" → <code>keep=false</code>), boolean flags ("single-end" → <code>single_end=true</code>), canonical aliases ("human" → <code>GRCh38</code>, "dUTP" → <code>reverse</code>).</p></div>
+          <div class="tile"><div class="n">LLM — FREE TEXT</div><h4>The genuinely open fields</h4><p>Free-text values a rule can't enumerate — SMILES strings, PDB IDs, gene names — and ambiguous enum or multi-parameter inference from prose.</p></div>
+          <div class="tile"><div class="n">GUARDRAIL — VALIDATE</div><h4>Checked against the schema</h4><p>Every extracted value is validated against the workflow's <code>allowed_values</code>; anything that violates a constraint is dropped or normalized before the run.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Rules are exact, zero-cost and testable; the model is reserved for the parts that are genuinely open-ended. Concept view — not a product screenshot.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Rule-first, LLM-fallback, schema-validated</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT: SCORE VS LLMs -->
+  <section class="scene title" data-seconds="28.0">
+    <div class="kicker">The result · parameter-extraction F1</div>
+    <h2>0.848 F1 — well clear of a language model asked directly.</h2>
+    <p class="caption">On the RealBio param_prefill task, BioMate's hybrid extractor scores <b>0.848</b>. A frontier language model prompted directly for the same parameters lands in the <b>0.62–0.76</b> range — losing marks exactly on the conversions, booleans and enums the rules handle deterministically.</p>
+    <div class="scene-body" style="align-items:center">
+      <div style="width:100%; max-width:760px; display:flex; flex-direction:column; gap:26px">
+
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px">
+            <span style="font-weight:600; color:var(--ink)">BioMate — hybrid rule + LLM</span>
+            <span style="font-weight:600; color:var(--green)">0.848</span>
+          </div>
+          <div style="height:34px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; overflow:hidden">
+            <div style="height:100%; width:84.8%; background:var(--green); border-radius:0 7px 7px 0"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px">
+            <span style="font-weight:600; color:var(--ink)">LLM-direct (prompted for the same parameters)</span>
+            <span style="font-weight:600; color:var(--mut)">0.62 – 0.76</span>
+          </div>
+          <div style="height:34px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; overflow:hidden; display:flex">
+            <div style="height:100%; width:62%; background:var(--mut)"></div>
+            <div style="height:100%; width:14%; background:var(--line2)" title="range to best case 0.76"></div>
+          </div>
+          <p style="color:var(--mut); margin:7px 0 0">Solid bar = typical (0.62) · lighter extension = best observed (0.76)</p>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:16px; margin-top:4px">
+          <span class="verdict ok" style="margin:0"><span class="mk"></span>+0.09 to +0.23 F1 over LLM-direct</span>
+          <span style="color:var(--mut)">Metric: parameter-extraction F1 (0–1), RealBio param_prefill. Real figures.</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TAKEAWAY -->
+  <section class="scene title" data-seconds="21.0">
+    <div class="kicker">The takeaway</div>
+    <h2>The rules make extraction exact. The model only fills in the free text.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption">Unit conversions, negations, boolean flags and canonical aliases are handled by rules that are <b>exact, zero-cost and testable</b> — so they don't drift run to run. The language model is reserved for the genuinely free-text fields a rule can't enumerate, and a schema guardrail checks everything before it runs. That is why BioMate reaches <b>0.848</b> where a model asked directly stays at <b>0.62–0.76</b>.</p>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Conversions &amp; negations</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Rules — exact</span></td></tr>
+            <tr><td>Boolean flags &amp; aliases</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">Rules — exact</span></td></tr>
+            <tr><td>Free-text values</td><td><span class="verdict plain" style="margin:0; padding:3px 8px">LLM fallback</span></td></tr>
+            <tr><td>Schema validation</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">allowed_values</span></td></tr>
+            <tr><td>Parameter-extraction F1</td><td><span class="verdict ok" style="margin:0; padding:3px 8px">0.848 vs 0.62–0.76</span></td></tr>
+          </table>
+          <p class="footnote">RealBio param_prefill. Real leaderboard figures; no fabricated data or screenshots.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

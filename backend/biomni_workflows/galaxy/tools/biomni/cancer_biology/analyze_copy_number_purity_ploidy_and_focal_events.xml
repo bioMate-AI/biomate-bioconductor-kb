@@ -2,7 +2,7 @@
 <tool id="biomni_cancer_biology_analyze_copy_number_purity_ploidy_and_focal_events" name="Biomni: Analyze Copy Number Purity Ploidy And Focal Events" version="1.0.0">
     <description>CNVkit-based copy number workflow: CNV segmentation, purity/ploidy &amp; HRD approximation, focal events.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_copy_number_purity_ploidy_and_focal_events_wrapper.py' --output '$output'

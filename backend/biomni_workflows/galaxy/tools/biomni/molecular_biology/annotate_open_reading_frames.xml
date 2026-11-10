@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_annotate_open_reading_frames" name="Biomni: Annotate Open Reading Frames" version="1.0.0">
     <description>Find all Open Reading Frames (ORFs) in a DNA sequence using Biopython.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/annotate_open_reading_frames_wrapper.py' --output '$output'

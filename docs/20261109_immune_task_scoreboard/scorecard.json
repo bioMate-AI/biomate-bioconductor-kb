@@ -1,0 +1,73 @@
+{
+  "generated": "2026-11-09 04:32",
+  "tasks": {
+    "stim_state_classification": {
+      "metric": "AUPRC (pooled OOF, mean/3 seeds)",
+      "split": "cell-type-holdout (3 folds)",
+      "baseline_raw": 0.8822214493359124,
+      "baseline_pca": 0.7435858407294599,
+      "model_knowledge": 0.8461129481496473,
+      "model_fm_z": 0.8347862319567695,
+      "null_shuffled_label": 0.14219013375783535,
+      "model_fm_z_beats_raw": false,
+      "model_knowledge_beats_raw": false,
+      "detail": {
+        "raw": {
+          "auprc_mean": 0.8822214493359124,
+          "auprc_sd": 0.011791723292197274
+        },
+        "pca": {
+          "auprc_mean": 0.7435858407294599,
+          "auprc_sd": 0.0838767287282824
+        },
+        "know": {
+          "auprc_mean": 0.8461129481496473,
+          "auprc_sd": 0.011921147575749223
+        },
+        "fm_z": {
+          "auprc_mean": 0.8347862319567695,
+          "auprc_sd": 0.017211337321655577
+        }
+      }
+    },
+    "celltype_annotation": {
+      "metric": "macro-F1 (stratified 3-fold)",
+      "split": "stratified random (SINGLE DONOR D534 \u2014 not donor-disjoint)",
+      "n_classes": 18,
+      "baseline_raw": 0.49044455283502764,
+      "baseline_pca": 0.5138271502900637,
+      "model_knowledge": 0.3950790553579849,
+      "model_fm_z": 0.5355733495716083,
+      "null_majority_class": 0.017472891735490756,
+      "model_fm_z_beats_raw": true,
+      "model_knowledge_beats_raw": false,
+      "detail": {
+        "raw": {
+          "macroF1": 0.49044455283502764
+        },
+        "pca": {
+          "macroF1": 0.5138271502900637
+        },
+        "know": {
+          "macroF1": 0.3950790553579849
+        },
+        "fm_z": {
+          "macroF1": 0.5355733495716083
+        }
+      }
+    },
+    "unseen_perturbation_prediction": {
+      "metric": "Pearson on top-50 residual-DE genes (leave-KO-out)",
+      "split": "leave-one-KO-out, 300-KO subset",
+      "model_knowledge_neighbor": -0.028060543947282864,
+      "null_random_neighbor": -0.10160501505380692,
+      "null_degree_matched": -0.07662871793852476,
+      "model_beats_nulls": true,
+      "note": "Full-scale (33,983 contrasts, ~7k KOs/context) this session: know_r +0.078 Rest / +0.035-0.039 Stim, know-rand t=+13.7..+28.5 (STRONGER positive)."
+    },
+    "target_id_virtual_ko": {
+      "status": "EXCLUDED",
+      "reason": "code_20261004/test_virtual_ko.py is a SYNTHETIC unit test (planted-effect) requiring torch (broken on Spark); no distinct real-data input. The real measured screen is gated leave-KO-out against CZI Perturb-seq = Task 2's data. Degree-null control folded into Task 2."
+    }
+  }
+}

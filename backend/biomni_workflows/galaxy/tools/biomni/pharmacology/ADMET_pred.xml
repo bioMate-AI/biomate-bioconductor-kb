@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_ADMET_pred" name="Biomni: Admet Pred" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/ADMET_pred_wrapper.py' --output '$output'

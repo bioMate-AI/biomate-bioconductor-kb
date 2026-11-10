@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_analyze_arsenic_speciation_hplc_icpms" name="Biomni: Analyze Arsenic Speciation Hplc Icpms" version="1.0.0">
     <description>Analyzes arsenic speciation in liquid samples using HPLC-ICP-MS technique.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_arsenic_speciation_hplc_icpms_wrapper.py' --output '$output'

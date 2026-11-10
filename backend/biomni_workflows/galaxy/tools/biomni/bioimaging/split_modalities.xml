@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_split_modalities" name="Biomni: Split Modalities" version="1.0.0">
     <description>Split a 4D NIfTI file into separate modality files for nnUNet</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/split_modalities_wrapper.py' --output '$output'

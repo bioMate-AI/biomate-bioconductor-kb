@@ -85,8 +85,8 @@ absolute affinity; entropy is omitted. **Trust only `ring_closed=true` rows.**
   (local fallback `biomate/ai-tools/boltz:latest` via the `NEXTFLOW_USE_AWS`
   ternary). It **must** carry `boltz` + `cuequivariance-torch`.
 - **mmgbsa → CPU image.** Reuses
-  `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86`
-  (local fallback `biomate/biomni-tools:latest`). It **must** carry the
+  `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86`
+  (local fallback `biomate/workflow-tools:latest`). It **must** carry the
   conda-forge stack `openmm` + `psfgen` + `parmed` + `gemmi`.
 
 No new ECR URIs are invented — both reuse images the existing modules already
@@ -97,7 +97,7 @@ reference.
 - **Container images are not guaranteed to be built/pushed yet.** The cofold
   image must actually contain a `--no_kernels`-capable boltz + cuequivariance-torch,
   and the mmgbsa image must contain openmm/psfgen/parmed/gemmi. If the current
-  `biomni-tools` image lacks that conda stack, a **dedicated MM-GBSA image must
+  `workflow-tools` image lacks that conda stack, a **dedicated MM-GBSA image must
   be built and pushed to ECR before this runs** (peptide_mmgbsa_run.sh provisions
   it via `conda create -c conda-forge openmm psfgen parmed gemmi`). These images
   were **not** built/verified as part of writing these files.

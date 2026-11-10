@@ -1,0 +1,3 @@
+raw on-prem 9B (leaderboard shows this) : P=0.785 R=0.636 F1=0.703 must_not_fill_viol=53
+rule layer ALONE (no LLM)               : P=0.960 R=0.311 F1=0.470 must_not_fill_viol=4
+PRODUCTION rule layer + 9B fallback     : P=0.900 R=0.793 F1=0.843 must_not_fill_viol=27

@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_analyze_genomic_region_overlap" name="Biomni: Analyze Genomic Region Overlap" version="1.0.0">
     <description>Analyze overlaps between two or more sets of genomic regions.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_genomic_region_overlap_wrapper.py' --output '$output'

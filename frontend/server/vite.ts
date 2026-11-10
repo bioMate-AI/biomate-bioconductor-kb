@@ -104,36 +104,52 @@ export function serveStatic(app: Express) {
 
   const indexPath = path.join(distPath, "index.html");
 
-  // Serve static assets
-  app.use(express.static(distPath));
+  serveStaticDirectory(app, distPath, indexPath);
+}
 
-  // Serve reference design prototypes as static files (demo / design-review use)
-  const referencePath = path.resolve(__dirname, "..", "..", "reference");
-  if (fs.existsSync(referencePath)) {
-    app.use("/reference", express.static(referencePath));
+/** Production static serving, with an explicit asset directory for reuse/tests. */
+export function serveStaticDirectory(app: Express, distPath: string, indexPath = path.join(distPath, "index.html")) {
+  const disableGoogle = process.env.DISABLE_GOOGLE_FONTS === "true" || process.env.VITE_ONPREM === "true";
+
+  // Register before express.static: otherwise / and /index.html bypass the
+  // filtering handler through static middleware's automatic index response.
+  if (disableGoogle) {
+    const sendFilteredIndex = (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+      fs.readFile(indexPath, "utf-8", (error, html) => {
+        if (error) return next(error); // no fallback to the unfiltered document
+        html = html.replace(/<link\b[^>]*(?:fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>/gi, "")
+          .replace(/<script\b[^>]*googletagmanager\.com[^>]*>[\s\S]*?<\/script\s*>/gi, "")
+          .replace(/<script\b[^>]*>\s*window\.dataLayer[\s\S]*?<\/script\s*>/gi, "");
+        res.set("Cache-Control", "no-store").type("html").send(html);
+      });
+    };
+    app.use((req, res, next) => {
+      let pathname: string;
+      try { pathname = path.posix.normalize(decodeURIComponent(req.path)); }
+      catch { return res.status(400).end(); }
+      if ((req.method === "GET" || req.method === "HEAD") && (pathname === "/" || pathname === "/index.html")) {
+        return sendFilteredIndex(req, res, next);
+      }
+      return next();
+    });
+    app.use(express.static(distPath, { index: false }));
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api")) return res.status(404).json({ error: "NotFound" });
+      return sendFilteredIndex(req, res, next);
+    });
+    return;
   }
 
-  // Serve index.html for all non-API routes (SPA fallback).
-  // When DISABLE_GOOGLE_FONTS=true (on-prem / behind GFW), strip CDN links at runtime
-  // so the browser never stalls waiting for fonts.googleapis.com.
-  const stripCdn = process.env.DISABLE_GOOGLE_FONTS === "true" || process.env.VITE_ONPREM === "true";
+  app.use(express.static(distPath));
+  // Design prototypes are development-only (setupVite), not release assets.
+
+  // Serve index.html for all non-API routes (SPA fallback)
   app.get("*", (req, res) => {
     if (req.path.startsWith("/api")) {
       return res.status(404).json({
         error: "NotFound",
         message: `API route ${req.path} not found`,
       });
-    }
-    if (stripCdn) {
-      try {
-        let html = fs.readFileSync(indexPath, "utf-8");
-        html = html.replace(/<link[^>]*fonts\.googleapis\.com[^>]*>/g, "");
-        html = html.replace(/<link[^>]*fonts\.gstatic\.com[^>]*>/g, "");
-        html = html.replace(/<script[^>]*googletagmanager\.com[^>]*><\/script>/g, "");
-        return res.set("Content-Type", "text/html").send(html);
-      } catch {
-        // fall through to sendFile if read fails
-      }
     }
     res.sendFile(indexPath);
   });

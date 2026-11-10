@@ -2,7 +2,7 @@
 <tool id="biomni_pathology_analyze_thrombus_histology" name="Biomni: Analyze Thrombus Histology" version="1.0.0">
     <description>Analyze histological images of thrombus samples stained with H&amp;E to identify and quantify</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_thrombus_histology_wrapper.py' --output '$output'

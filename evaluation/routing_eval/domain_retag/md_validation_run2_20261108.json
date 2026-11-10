@@ -1,0 +1,20 @@
+[
+ {
+  "name": "GROMACS Protein-Ligand MD + MM-GBSA",
+  "runId": "8beba16b-931a-4287-9d20-36ba031ea055",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 28,
+  "error": "",
+  "minutes": 48.8
+ },
+ {
+  "name": "AMBER pmemd GPU Molecular Dynamics",
+  "runId": "e3973865-59ed-4c0e-82b9-95db4536b460",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 8,
+  "error": "Process EQUILIBRATION (equilibration) failed: Essential container in task exited \u2014 .command.sh: line 3: [path]: No such file or directory | .command.sh: line 21: pmemd.cuda: command not found",
+  "minutes": 15.2
+ }
+]

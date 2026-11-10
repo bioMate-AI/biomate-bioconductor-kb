@@ -1,7 +1,7 @@
 # Nextflow Biomni Workflow Testing Documentation
 
 **Test Date:** 2026-01-23
-**Docker Image:** biomate/biomni-tools:latest
+**Docker Image:** biomate/workflow-tools:latest
 **Nextflow Version:** 25.10.0
 **Total Workflows:** 237
 
@@ -12,7 +12,7 @@ The workflows are designed to call functions from the `biomni.tool` Python modul
 
 ## Test Environment
 
-- **Container:** biomate/biomni-tools:latest
+- **Container:** biomate/workflow-tools:latest
 - **Python Path:** /usr/bin/python3
 - **Biomni Module:** /opt/biomni/src/biomni/
 
@@ -25,7 +25,7 @@ The workflows are designed to call functions from the `biomni.tool` Python modul
 nextflow run subworkflows/molecular_biology/design_primer.nf \
   --sequence "ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG" \
   --start_pos 10 \
-  -with-docker biomate/biomni-tools:latest
+  -with-docker biomate/workflow-tools:latest
 ```
 
 **Output:**

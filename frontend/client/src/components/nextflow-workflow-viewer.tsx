@@ -308,6 +308,32 @@ export function qcWorkflowDomain(definition: any, profile?: { domain_hint?: stri
   return aliases[explicit] || explicit;
 }
 
+// Sequencing-alignment QC metrics — only meaningful for workflows that consume
+// raw reads and perform trimming/alignment. Count-matrix differential-expression
+// workflows never produce these numbers, so they must not inherit these gates.
+const ALIGNMENT_QC_METRICS = new Set<string>([
+  'reads_surviving_pct', 'alignment_rate', 'mito_fraction_pct',
+  'mapped_pct', 'duplicate_rate', 'assigned_reads_pct',
+]);
+
+/**
+ * True for count-matrix differential-expression workflows — ones that start from
+ * a pre-computed count matrix (+ contrasts / samplesheet CSVs) and declare NO
+ * alignment or trimming steps (nf-core/differentialabundance, standalone
+ * DESeq2 / limma / edgeR). These are a transcriptomics-domain workflow, so the
+ * domain alias (transcriptomics → rnaseq) would otherwise make them inherit the
+ * sequencing-alignment QC family. We identify them conservatively by workflow
+ * identity (name / nextflow_path) so real sequencing pipelines — including
+ * single-cell sequencing like scdownstream — are untouched.
+ */
+export function isCountMatrixDeWorkflow(definition: any): boolean {
+  const identity = `${definition?.name || ''} ${definition?.nextflow_path || ''} ${definition?.workflow_name || ''}`.toLowerCase();
+  if (!identity.trim()) return false;
+  // Letter-only boundaries so separators (_, -, /, digits, spaces) delimit the
+  // token — "limma_voom" / "deseq2" match, "ledger" does not.
+  return /differential[_-]?abundance|(?:^|[^a-z])(?:deseq2?|limma|edger)(?=$|[^a-z])/.test(identity);
+}
+
 export function reportedStepDetails(process: any): { workDir?: string; jobId?: string; errorMessage?: string } {
   const text = (...values: unknown[]) => values.find(value => typeof value === 'string' && value.trim()) as string | undefined;
   const details = {
@@ -398,8 +424,12 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
   if (reqList.length > 0 || optList.length > 0) {
     // Build structured params from required/optional lists
     const structuredNames = new Set([...reqList, ...optList].map((p: any) => p?.name).filter(Boolean));
+    // A param declared in BOTH required_params and optional_params must render
+    // once, not twice (reqList first → the required entry wins the dedup).
+    const seenStructured = new Set<string>();
     const structured = [...reqList, ...optList]
       .filter((p: any) => p?.name && !String(p.name).startsWith("__"))
+      .filter((p: any) => { if (seenStructured.has(p.name)) return false; seenStructured.add(p.name); return true; })
       .map((p: any) => {
         const userValue = currentParams[p.name];
         const defaultVal = p.default ?? null;
@@ -802,7 +832,7 @@ function PhaseGroupSection({
           {phaseRenderedParams.length > 0 && (
             <div className="phase-params">
               <div className="phase-params-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ fontSize: 'var(--fs-micro)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {tOr('panel.parameters', 'Parameters')}
                   <span style={{ fontWeight: 400, marginLeft: 4, color: 'var(--text-dim)' }}>
                     ({phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0
@@ -821,15 +851,20 @@ function PhaseGroupSection({
               </div>
               {/* Compact summary row when collapsed */}
               {!phaseParamsOpen && (
-                <div style={{ padding: '4px 14px 6px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                <div style={{ padding: '4px 14px 6px', fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   {phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0 ? (
                     <span style={{ color: 'var(--warn)' }}>
                       {tOr('panel.required_suffix', '{{labels}} — required', { labels: phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).map(p => p.label).join(', ') })}
                     </span>
                   ) : (
-                    phaseRenderedParams.slice(0, 4).map(p =>
-                      `${p.label}: ${p.value ?? p.defaultValue ?? '—'}`
-                    ).join(' · ')
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {phaseRenderedParams.slice(0, 4).map(p => (
+                        <div key={p.id} style={{ display: 'flex', gap: 6, minWidth: 0 }}>
+                          <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{p.label}:</span>
+                          <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{p.value ?? p.defaultValue ?? '—'}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -840,7 +875,7 @@ function PhaseGroupSection({
                     const missing = p.required && (!p.value || p.value === '');
                     const labelCol = missing ? 'var(--warn)' : 'var(--text-muted)';
                     const borderCol = missing ? 'var(--warn)' : 'var(--border)';
-                    const label = <span className="k" style={{ fontSize: 11, color: labelCol }}>{p.label}{p.required ? ' *' : ''}</span>;
+                    const label = <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>{p.label}{p.required ? ' *' : ''}</span>;
 
                     // Multi-value input of the same type (e.g. a multi-compound
                     // smiles_list) → a named-entity list editor, full-width: one
@@ -852,7 +887,7 @@ function PhaseGroupSection({
                       const commit = (next: string[]) => onParamChange(p.id, serializeListParam(next, fmt));
                       return (
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="list">
-                          <span className="k" style={{ fontSize: 11, color: labelCol }}>
+                          <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>
                             {p.label}{p.required ? ' *' : ''}
                             <span className="hint" style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-dim)' }}>
                               {items.length} {items.length === 1 ? tOr('panel.item', 'item') : tOr('panel.items', 'items')}
@@ -867,13 +902,13 @@ function PhaseGroupSection({
                                   value={it}
                                   spellCheck={false}
                                   placeholder={p.required ? tOr('panel.required', 'required') : ''}
-                                  style={{ width: '100%', fontSize: 11, padding: '3px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
+                                  style={{ width: '100%', fontSize: 'var(--fs-micro)', padding: '3px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
                                   onChange={e => { const next = items.slice(); next[i] = e.target.value; commit(next); }}
                                 />
-                                <button type="button" className="btn ghost sm" title={tOr('panel.remove', 'Remove')} style={{ fontSize: 11, padding: '1px 7px', lineHeight: 1 }} onClick={() => commit(items.filter((_, j) => j !== i))}>✕</button>
+                                <button type="button" className="btn ghost sm" title={tOr('panel.remove', 'Remove')} style={{ fontSize: 'var(--fs-micro)', padding: '1px 7px', lineHeight: 1 }} onClick={() => commit(items.filter((_, j) => j !== i))}>✕</button>
                               </div>
                             ))}
-                            <button type="button" className="btn ghost sm" data-testid={`param-add-${p.id}`} style={{ alignSelf: 'flex-start', fontSize: 11, padding: '2px 8px' }} onClick={() => commit([...items, ''])}>
+                            <button type="button" className="btn ghost sm" data-testid={`param-add-${p.id}`} style={{ alignSelf: 'flex-start', fontSize: 'var(--fs-micro)', padding: '2px 8px' }} onClick={() => commit([...items, ''])}>
                               + {tOr('panel.add_item', 'Add')}
                             </button>
                           </div>
@@ -896,7 +931,7 @@ function PhaseGroupSection({
                             placeholder={p.required ? tOr('panel.required', 'required') : ''}
                             rows={Math.min(6, Math.max(2, Math.ceil(strVal.length / 60)))}
                             spellCheck={false}
-                            style={{ marginTop: 4, width: '100%', fontSize: 11, padding: '4px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
+                            style={{ marginTop: 4, width: '100%', fontSize: 'var(--fs-micro)', padding: '4px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
                             onChange={e => onParamChange(p.id, e.target.value)}
                           />
                         </div>
@@ -918,7 +953,7 @@ function PhaseGroupSection({
                           <select
                             className="v"
                             value={String(p.value ?? p.defaultValue ?? '')}
-                            style={{ fontSize: 11, padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
+                            style={{ fontSize: 'var(--fs-micro)', padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
                             onChange={e => onParamChange(p.id, e.target.value)}
                           >
                             {p.options.map((o: any) => {
@@ -933,7 +968,7 @@ function PhaseGroupSection({
                             className="v"
                             value={strVal}
                             placeholder={p.required ? tOr('panel.required', 'required') : ''}
-                            style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
+                            style={{ fontSize: 'var(--fs-micro)', padding: '2px 6px', width: 140, background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
                             onChange={e => onParamChange(p.id, e.target.value)}
                           />
                         )}
@@ -1087,7 +1122,7 @@ function PhaseGroupSection({
                     <input
                       type="number"
                       className="v"
-                      style={{ width: 60, textAlign: 'right', fontSize: 11,
+                      style={{ width: 60, textAlign: 'right', fontSize: 'var(--fs-micro)',
                         background: t.modified ? 'var(--accent-soft)' : 'var(--surface)',
                         border: `1px solid ${t.modified ? 'var(--accent)' : 'var(--border)'}`,
                         borderRadius: 3, padding: '1px 4px', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
@@ -1176,7 +1211,7 @@ function PhaseGroupSection({
             {allDone && (
               <button
                 className="linkish"
-                style={{fontSize:12}}
+                style={{fontSize: 'var(--fs-meta)'}}
                 onClick={() => {
                   setOpen(true);
                   setTimeout(() => {
@@ -1897,10 +1932,17 @@ export function NextflowWorkflowViewer({
   const displayedQcThresholds = React.useMemo(() => {
     const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
     const wfDomain = qcWorkflowDomain(workflowDefinition, activeQcProfile);
+    const countMatrixOnly = isCountMatrixDeWorkflow(workflowDefinition);
     Object.entries(qcDefaults).forEach(([k, meta]) => {
       // Skip domain-specific metrics that don't apply to this workflow
       const allowedDomains = (meta as any).domains as string[] | undefined;
       if (allowedDomains && !allowedDomains.includes(wfDomain)) return;
+      // Count-matrix differential-expression workflows (differentialabundance,
+      // DESeq2/limma/edgeR) consume a count matrix, not raw reads — they do no
+      // alignment/trimming, so the sequencing-alignment QC family doesn't apply
+      // even though their transcriptomics domain aliases to rnaseq. Drop just
+      // those metrics; real sequencing workflows keep them.
+      if (countMatrixOnly && ALIGNMENT_QC_METRICS.has(k)) return;
       merged[k] = { bound: meta.bound, direction: meta.direction, rationale: meta.rationale, source: 'default' };
     });
     if (activeQcProfile) {
@@ -1917,7 +1959,7 @@ export function NextflowWorkflowViewer({
       value: qcOverrides[key] !== undefined ? qcOverrides[key] : meta.bound,
       modified: qcOverrides[key] !== undefined,
     }));
-  }, [qcDefaults, activeQcProfile, qcOverrides]);
+  }, [qcDefaults, activeQcProfile, qcOverrides, workflowDefinition]);
 
   const handleParamChange = (id: string, value: any) => {
     setParams((prev: any) => ({ ...prev, [id]: value }));
@@ -2242,12 +2284,16 @@ export function NextflowWorkflowViewer({
     : renderedParameters
         .filter((p: any) => p.required === true)
         .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
-  // Block Run if file-type params have no value — even when schema marks them optional, the
-  // workflow will fail at runtime without them (e.g. samplesheet/matrix in differentialabundance).
+  // Block Run only for REQUIRED file-type params with no value and no default.
+  // Blocking optional file inputs too contradicted the per-row "optional — empty"
+  // label (which keys off p.required); the run gate must use the same required
+  // flag so the footer and the row agree (cf. commit 5e812ef429 — a param is
+  // required only when the workflow enforces it). A workflow that truly needs a
+  // file it marks optional is a schema bug to fix in its definition, not here.
   const missingFileInputs = prereqChecklist?.overrideAllowed
     ? []
     : renderedParameters.filter(
-        (p: any) => p.type === 'file' && !p.value && !p.default
+        (p: any) => p.type === 'file' && p.required === true && !p.value && !p.default
       );
   const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired || missingFileInputs.length > 0;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
@@ -3050,13 +3096,13 @@ export function NextflowWorkflowViewer({
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                 {onToggleExpand && <button type="button" className="iconbtn" aria-label={expanded ? 'Restore split view' : 'Expand workflow panel'} onClick={onToggleExpand} data-testid="workflow-panel-expand">{expanded ? <Minimize2 style={{ width: 13, height: 13 }} /> : <Maximize2 style={{ width: 13, height: 13 }} />}</button>}
-                {onClose && <button type="button" className="iconbtn" aria-label="Close workflow panel" data-testid="workflow-panel-close" onClick={onClose}><span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>×</span></button>}
+                {onClose && <button type="button" className="iconbtn" aria-label="Close workflow panel" data-testid="workflow-panel-close" onClick={onClose}><span aria-hidden style={{ fontSize: 'var(--fs-section)', lineHeight: 1 }}>×</span></button>}
                 {projectId && (
                   <button
                     onClick={() => navigate(`/projects?project=${projectId}`)}
                     data-testid="viewer-goto-project"
                     title={t('panel.go_to_project')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-meta)',
                              padding: '2px 8px', borderRadius: 4, border: '1px solid var(--bm-border, hsl(var(--border)))',
                              background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-muted)',
                              flexShrink: 0 }}
@@ -3140,7 +3186,7 @@ export function NextflowWorkflowViewer({
               border: 'none',
               padding: '8px 14px',
               cursor: 'pointer',
-              fontSize: 13,
+              fontSize: 'var(--fs-meta)',
               fontWeight: activeTab === key ? 600 : 500,
               color: activeTab === key ? 'var(--text)' : 'var(--text-muted)',
               borderBottom: activeTab === key ? '2px solid var(--text)' : '2px solid transparent',
@@ -3156,7 +3202,7 @@ export function NextflowWorkflowViewer({
         const countBadge = (n: number) =>
           n > 0 ? (
             <span style={{
-              fontSize: 11,
+              fontSize: 'var(--fs-micro)',
               fontWeight: 500,
               padding: '1px 7px',
               borderRadius: 999,
@@ -3214,17 +3260,17 @@ export function NextflowWorkflowViewer({
                 <Loader2 style={{ width: 14, height: 14, flexShrink: 0 }} className="animate-spin" />
               )}
               {containerPullStatus.status === 'ready' && (
-                <span style={{ fontSize: 14 }}>✓</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>✓</span>
               )}
               {containerPullStatus.status === 'failed' && (
-                <span style={{ fontSize: 14 }}>⚠</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>⚠</span>
               )}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)' }}>
                   {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
                    containerPullStatus.status === 'ready' ? '环境就绪' : '镜像下载失败'}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                   {containerPullStatus.message}
                 </div>
               </div>
@@ -3245,8 +3291,8 @@ export function NextflowWorkflowViewer({
               gap: 10,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16 }}>⚡</span>
-                <span style={{ fontSize: 13, color: 'oklch(0.35 0.03 230)', fontWeight: 500 }}>
+                <span style={{ fontSize: 'var(--fs-body)' }}>⚡</span>
+                <span style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.35 0.03 230)', fontWeight: 500 }}>
                   检测到后台重启，{autoResumeCountdown}秒后自动恢复运行…
                 </span>
               </div>
@@ -3257,7 +3303,7 @@ export function NextflowWorkflowViewer({
                   setAutoResumeDelay(null);
                 }}
                 style={{
-                  fontSize: 12, padding: '3px 10px', borderRadius: 5, cursor: 'pointer',
+                  fontSize: 'var(--fs-meta)', padding: '3px 10px', borderRadius: 5, cursor: 'pointer',
                   background: 'transparent', border: '1px solid oklch(0.72 0.05 230)',
                   color: 'oklch(0.42 0.04 230)', whiteSpace: 'nowrap', flexShrink: 0,
                 }}
@@ -3286,28 +3332,28 @@ export function NextflowWorkflowViewer({
                 gap: 8,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>{isArchCompat ? '⚙️' : '🔍'}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
+                  <span style={{ fontSize: 'var(--fs-body)' }}>{isArchCompat ? '⚙️' : '🔍'}</span>
+                  <span style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
                     AI Diagnosis
                   </span>
                 </div>
-                <p style={{ fontSize: 13, color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
                   {failureDiagnosisMessage(diag.user_message, canResumeFailed)}
                 </p>
                 {failureRecoveryAdvice(diag.suggested_action, canResumeFailed) && (
-                  <p data-testid="failure-recovery-advice" style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                  <p data-testid="failure-recovery-advice" style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
                     {failureRecoveryAdvice(diag.suggested_action, canResumeFailed)}
                   </p>
                 )}
                 {snippet ? (
                   <details open style={{ marginTop: 4 }}>
-                    <summary style={{ fontSize: 12, color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
+                    <summary style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
                       Error details
                     </summary>
                     <pre style={{
                       marginTop: 6, padding: '8px 10px',
                       background: 'oklch(0.13 0.01 260)', color: 'oklch(0.85 0.01 260)',
-                      borderRadius: 6, fontSize: 11, lineHeight: 1.5,
+                      borderRadius: 6, fontSize: 'var(--fs-micro)', lineHeight: 1.5,
                       overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
                       maxHeight: 200, overflowY: 'auto',
                     }}>
@@ -3315,7 +3361,7 @@ export function NextflowWorkflowViewer({
                     </pre>
                   </details>
                 ) : (diag.suggested_action === 'resume') ? (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                  <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
                     ℹ️ No error log captured — the process was killed before it could write output. If Resume keeps failing, check server logs: <code>docker logs biomate-galaxy --tail 100</code>
                   </p>
                 ) : null}
@@ -3465,17 +3511,17 @@ export function NextflowWorkflowViewer({
                 <Loader2 style={{ width: 16, height: 16, flexShrink: 0 }} className="animate-spin" />
               )}
               {containerPullStatus.status === 'ready' && (
-                <span style={{ fontSize: 16 }}>✓</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>✓</span>
               )}
               {containerPullStatus.status === 'failed' && (
-                <span style={{ fontSize: 16 }}>⚠</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>⚠</span>
               )}
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)' }}>
                   {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
                    containerPullStatus.status === 'ready' ? '环境就绪，正在启动…' : '镜像下载失败'}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                   {containerPullStatus.message}
                 </div>
               </div>
@@ -3485,7 +3531,7 @@ export function NextflowWorkflowViewer({
           {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
             <div
               data-testid="workflow-step-controls-hint"
-              style={{ fontSize: 11, color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
+              style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
             >
               {tOr('panel.phase_hint', 'Click a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.')}
             </div>
@@ -3512,12 +3558,12 @@ export function NextflowWorkflowViewer({
                         const fail = f as QCGateFailure;
                         return (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: i < qcGateData.failures.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                            <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)' }}>{fail.metric}</span>
-                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--err)', fontSize: 13 }} data-testid="qc-gate-measured">
+                            <span style={{ flex: 1, fontSize: 'var(--fs-meta)', color: 'var(--text-2)' }}>{fail.metric}</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--err)', fontSize: 'var(--fs-meta)' }} data-testid="qc-gate-measured">
                               {typeof fail.value === 'number' ? fail.value.toFixed(fail.value < 10 ? 2 : 0) : fail.value}
                             </span>
-                            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{fail.operator}</span>
-                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ok)', fontSize: 13 }} data-testid="qc-gate-threshold">
+                            <span style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-micro)' }}>{fail.operator}</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ok)', fontSize: 'var(--fs-meta)' }} data-testid="qc-gate-threshold">
                               {typeof fail.threshold === 'number' ? fail.threshold.toFixed(fail.threshold < 10 ? 2 : 0) : fail.threshold}
                             </span>
                           </div>
@@ -3533,7 +3579,7 @@ export function NextflowWorkflowViewer({
                     </div>
                   )}
                   {qcGateSecondsLeft !== null && (
-                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-dim)' }} data-testid="qc-gate-countdown">
+                    <div style={{ marginTop: 6, fontSize: 'var(--fs-micro)', color: 'var(--text-dim)' }} data-testid="qc-gate-countdown">
                       {tOr('panel.qc_gate_countdown', 'Pipeline continues in {{time}} unless you act', { time: `${Math.floor(qcGateSecondsLeft / 60)}:${String(qcGateSecondsLeft % 60).padStart(2, '0')}` })}
                     </div>
                   )}
@@ -3579,17 +3625,17 @@ export function NextflowWorkflowViewer({
                 border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
                 background: 'var(--bg-elev)',
               }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 'var(--fs-micro)', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase' }}>
                   {tOr('panel.qc_results', 'QC Results')}
                 </div>
                 {allMetrics.map((m: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, padding: '3px 0', borderBottom: i < allMetrics.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 'var(--fs-meta)', padding: '3px 0', borderBottom: i < allMetrics.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                     <span style={{ flex: 1, color: 'var(--text-2)' }}>{m.name}</span>
                     <span style={{ fontVariantNumeric: 'tabular-nums', color: m.pass ? 'var(--ok)' : 'var(--err)', fontWeight: 600 }}>
                       {typeof m.measured === 'number' ? m.measured.toFixed(m.measured < 10 ? 2 : 0) : m.measured}
                       {m.unit ? ` ${m.unit}` : ''}
                     </span>
-                    <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>
+                    <span style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-micro)' }}>
                       {m.pass ? '✓' : '✗'} {tOr('panel.threshold_short', 'thresh')} {m.threshold}
                     </span>
                   </div>
@@ -3627,10 +3673,10 @@ export function NextflowWorkflowViewer({
             if (fileParams.length === 0 && styleAInputs.length === 0) {
               return (
                 <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600 }}>
                     <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                  <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)', marginTop: 4 }}>
                     {tOr('panel.params_only_no_inputs', 'This workflow takes parameters only — no data inputs to bind.')}
                   </div>
                 </div>
@@ -3639,10 +3685,10 @@ export function NextflowWorkflowViewer({
             if (fileParams.length === 0 && styleAInputs.length > 0) {
               return (
                 <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600 }}>
                     <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                  <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)', marginTop: 4 }}>
                     {!styleAInputs.some((p: any) => p.value != null && String(p.value).trim() !== '')
                       ? tOr('panel.styleA_attach_hint', 'This workflow needs a data file. Attach it with the paperclip (📎) in the message box below — BioMate wires your uploaded file into the workflow automatically.')
                       : tOr('panel.inputs_linked_review', 'Input references are set. Review the mapping below.')}
@@ -3651,7 +3697,7 @@ export function NextflowWorkflowViewer({
                     {styleAInputs.map((p: any, i: number) => {
                       const bound = p.value != null && String(p.value).trim() !== '';
                       return (
-                        <div key={p.id || p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
+                        <div key={p.id || p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 500 }}>{p.label || p.name}</span>
                           <span style={{ color: 'var(--text-dim)' }}>→</span>
                           <span style={{ color: bound ? 'var(--text)' : 'var(--text-dim)' }}>
@@ -3675,25 +3721,24 @@ export function NextflowWorkflowViewer({
             const basename = (v: any) => String(v).split('/').pop() || String(v);
             return (
               <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600 }}>
                   <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
-                  <span className="hint" style={{ fontWeight: 400, fontSize: 11 }}>({tOr('panel.inputs_count', '{{n}} input{{s}}', { n: rows.length, s: rows.length !== 1 ? 's' : '' })})</span>
+                  <span className="hint" style={{ fontWeight: 400, fontSize: 'var(--fs-micro)' }}>({tOr('panel.inputs_count', '{{n}} input{{s}}', { n: rows.length, s: rows.length !== 1 ? 's' : '' })})</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {rows.map((r, i) => (
-                    <div key={r.p.id || r.p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
+                    <div key={r.p.id || r.p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
                       <span style={{ minWidth: 0, fontWeight: 500 }}>{r.p.label || r.p.name}</span>
                       <span style={{ color: 'var(--text-dim)' }}>→</span>
                       <span style={{ minWidth: 0, flex: 1 }}>
                         {r.empty ? (
                           <span style={{ color: 'var(--text-dim)' }}>{tOr('panel.not_set', 'not set')}</span>
                         ) : (
-                          <>
-                            <span>{r.ds?.name || basename(r.val)}</span>
-                            <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-dim)', wordBreak: 'break-all' }}>
-                              {r.ds?.id ? tOr('panel.id_prefix', 'id {{id}}', { id: r.ds.id }) : String(r.val)}
-                            </span>
-                          </>
+                          // Show the clean basename only; the full value (S3 URI
+                          // or dataset id) stays available on hover, never inline.
+                          <span title={r.ds?.id ? String(r.ds.id) : String(r.val)}>
+                            {r.ds?.name || basename(r.val)}
+                          </span>
                         )}
                       </span>
                       {r.status === 'resolved' && (
@@ -3721,12 +3766,12 @@ export function NextflowWorkflowViewer({
                         </button>
                       )}
                       {r.mismatch && (
-                        <div className="hint" style={{ flexBasis: '100%', color: 'var(--warn, #b45309)', fontSize: 11 }}>⚠️ {r.mismatch}</div>
+                        <div className="hint" style={{ flexBasis: '100%', color: 'var(--warn, #b45309)', fontSize: 'var(--fs-micro)' }}>⚠️ {r.mismatch}</div>
                       )}
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: blocking.length > 0 ? 'var(--warn, #b45309)' : 'var(--text-dim)' }}>
+                <div style={{ fontSize: 'var(--fs-micro)', color: blocking.length > 0 ? 'var(--warn, #b45309)' : 'var(--text-dim)' }}>
                   {blocking.length > 0
                     ? tOr('panel.inputs_blocking', 'Nothing will run until {{n}} input{{verb}} resolved — pick the file or fix the mapping above.', { n: blocking.length, verb: blocking.length !== 1 ? 's are' : ' is' })
                     : tOr('panel.inputs_all_bound', 'These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.')}
@@ -3759,9 +3804,13 @@ export function NextflowWorkflowViewer({
             const requiredUnfilled = requiredParams.filter(p => p.required && (!p.value || p.value === ''));
 
             if (globalParams.length === 0 && !mismatch) return (
-              <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-                <div style={{ marginBottom: 6 }}>{tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
-                <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
+              <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>
+                {/* Don't claim "no parameters" when params exist but are pinned to
+                    individual phases — point the user to the Phases tab instead. */}
+                <div style={{ marginBottom: 6 }}>{allPhaseParamNames.size > 0
+                  ? tOr('panel.params_in_phases', 'Parameters are configured per phase — open the Phases tab to adjust them.')
+                  : tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
+                <div style={{ fontSize: 'var(--fs-meta)', opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
               </div>
             );
             return (
@@ -3993,14 +4042,14 @@ export function NextflowWorkflowViewer({
 
             {/* ── Loading state when steps are being lazily fetched ────────── */}
             {groupedPhases.length === 0 && lazyStepsFetching && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>
                 <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
                 {tOr('panel.loading_steps', 'Loading workflow steps…')}
               </div>
             )}
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
-              <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
+              <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 'var(--fs-meta)', textAlign: 'center' }}>
                 {wasCancelled
                   ? tOr('panel.run_cancelled_no_phases', 'Run was cancelled before any phases completed.')
                   : status === 'failed'
@@ -4010,9 +4059,9 @@ export function NextflowWorkflowViewer({
             )}
             {/* ── Idle / no nextflow_path — personal workflow not yet run ─── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps === null && status === 'idle' && (
-              <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+              <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>
                 <div style={{ marginBottom: 6 }}>{tOr('panel.no_phases', 'No phases defined yet.')}</div>
-                <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}</div>
+                <div style={{ fontSize: 'var(--fs-meta)', opacity: 0.75 }}>{tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}</div>
               </div>
             )}
 
@@ -4032,7 +4081,7 @@ export function NextflowWorkflowViewer({
                     onStopPhase={onCancel}
                     onPreviewFile={(file, step) => { setPreviewFile(file); setPreviewStep(step ?? null); }}
                     onOpenFullStepView={(step) => setFullViewStep(buildStepDetailStep(step))}
-                    qcThresholds={displayedQcThresholds}
+                    qcThresholds={idx === 0 ? displayedQcThresholds : []}
                     qcOverrides={qcOverrides}
                     onQcChange={(key, val) => {
                       if (val === null) setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; });
@@ -4083,16 +4132,8 @@ export function NextflowWorkflowViewer({
                     qcAdvisoryByStep={qcAdvisoryByStep}
                   />
                 ))}
-                <button
-                  className="suggest-step-row linkish"
-                  data-testid="button-suggest-step"
-                  onClick={() => {
-                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || tOr('panel.last_step', "last step");
-                    onAdjustViaChat?.(tOr('panel.add_step_msg', 'Add a step after "{{step}}" that ', { step: lastStep }));
-                  }}
-                >
-                  {tOr('panel.suggest_step', '+ Suggest a new step via chat')}
-                </button>
+                {/* "Suggest a new step via chat" removed — step authoring is not a
+                    supported action here; it only produced a free-text chat nudge. */}
               </div>
             )}
 
@@ -4117,19 +4158,33 @@ export function NextflowWorkflowViewer({
                 }, {});
               const skipPhases: PhaseSkipInfo[] = realGroups.map((g: any) => {
                 const real = byId[g.key];
-                const whyNotDeclared = tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key }) });
-                if (real) {
-                  // The backend sends `why` as free-form English prose. For the common
-                  // "not declared skippable" case it's a fixed template, so localize it
-                  // client-side; keep the backend's structured blocks/warn otherwise.
-                  if (!real.skippable && !(real.blocks && real.blocks.length)) {
-                    return { ...real, why: whyNotDeclared };
+                const phaseLabel = g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key });
+                // The backend sends `why` as free-form English prose. It's built from
+                // a fixed set of templates keyed on the same structured fields the
+                // viewer already has (skippable / blocks / warn / param), so we
+                // regenerate it localized here instead of rendering the raw English
+                // next to the Chinese chrome. Covers every case, not just the simple
+                // "not declared" one.
+                const localizeWhy = (info: PhaseSkipInfo): string => {
+                  if (info.skippable) {
+                    const param = info.param || '';
+                    return (info.warn && info.warn.length)
+                      ? tOr('panel.skip.why_skippable_reduced', '{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped. Downstream phases still run but with reduced input.', { phase: phaseLabel, param })
+                      : tOr('panel.skip.why_skippable', '{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped without affecting downstream phases.', { phase: phaseLabel, param });
                   }
-                  return real;
+                  return (info.blocks && info.blocks.length)
+                    ? tOr('panel.skip.why_blocked', '{{phase}} — this workflow does not declare a skip parameter for this phase, and its output feeds downstream phases, so it always runs.', { phase: phaseLabel })
+                    : tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: phaseLabel });
+                };
+                if (real) {
+                  return { ...real, why: localizeWhy(real) };
                 }
-                return { id: g.key, skippable: false, why: whyNotDeclared };
+                return { id: g.key, skippable: false, why: localizeWhy({ id: g.key, skippable: false, why: '' }) };
               });
-              if (skipPhases.length === 0) return null;
+              // Only surface the skip UI when at least one phase is actually
+              // skippable. When nothing is skippable the section is pure noise
+              // (four disabled rows + "cannot skip" warnings), so hide it.
+              if (!skipPhases.some((p) => p.skippable)) return null;
               return (
                 <div style={{ padding: '4px 18px 10px' }}>
                   <SkipDependency phases={skipPhases} />
@@ -4372,7 +4427,7 @@ export function NextflowWorkflowViewer({
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <XCircle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
                 {tOr('panel.workflow_failed', 'Workflow Failed')}
-                {errorExplaining && <span style={{ fontWeight: 400, fontSize: 11, opacity: 0.7 }}>{tOr('panel.analyzing_error', 'Analyzing error…')}</span>}
+                {errorExplaining && <span style={{ fontWeight: 400, fontSize: 'var(--fs-micro)', opacity: 0.7 }}>{tOr('panel.analyzing_error', 'Analyzing error…')}</span>}
               </div>
               {errorExplanation ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
@@ -4389,7 +4444,7 @@ export function NextflowWorkflowViewer({
 
           {activeTab === 'after-run' && (invocationId || runId) && showResults && (
             <div style={{ padding: '8px 0 0' }}>
-              <div style={{ padding: '0 18px 6px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>{tOr('panel.output_results', 'Output Results')}</div>
+              <div style={{ padding: '0 18px 6px', fontSize: 'var(--fs-micro)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>{tOr('panel.output_results', 'Output Results')}</div>
               <ChatOutputAttachments
                 invocationId={invocationId || runId || ''}
                 sessionId={sessionId}
@@ -4450,7 +4505,7 @@ export function NextflowWorkflowViewer({
                   {analysisResult.quality_assessment && (
                     <div className="f-section">
                       <div className="f-section-lbl">{tOr('panel.quality_assessment', 'Quality Assessment')}</div>
-                      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{analysisResult.quality_assessment}</div>
+                      <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-muted)', lineHeight: 1.5 }}>{analysisResult.quality_assessment}</div>
                     </div>
                   )}
 
@@ -4517,7 +4572,7 @@ export function NextflowWorkflowViewer({
           color: 'oklch(0.98 0.005 260)',
           border: '1px solid oklch(0.28 0.005 260)',
           borderRadius: 6,
-          fontSize: 14,
+          fontSize: 'var(--fs-body)',
           fontWeight: 500,
           cursor: 'pointer',
           display: 'inline-flex',
@@ -4581,7 +4636,7 @@ export function NextflowWorkflowViewer({
             <div className="body">
               <strong>{tOr('panel.execution_blocked', 'Execution blocked')}</strong> — {executionBlockedReason}
               {lowConfSecondsLeft !== null && (
-                <div data-testid="low-confidence-countdown" style={{ marginTop: 4, fontSize: 11, color: 'var(--text-dim)' }}>
+                <div data-testid="low-confidence-countdown" style={{ marginTop: 4, fontSize: 'var(--fs-micro)', color: 'var(--text-dim)' }}>
                   {tOr('panel.auto_confirming', 'Auto-confirming in {{n}}s unless you act.', { n: lowConfSecondsLeft })}
                 </div>
               )}
@@ -4655,27 +4710,27 @@ export function NextflowWorkflowViewer({
               Only shown for the pre-run idle state so post-run states aren't cluttered. */}
           {!executionBlockedReason && (status === 'idle' || status === 'pending_review') && (
             isLicenseBlocked ? (
-              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span>⚠</span>
-                <span>License required — see <strong>Tool Credentials</strong> in Workflow settings</span>
+                <span dangerouslySetInnerHTML={{ __html: tOr('panel.footer.license_required', 'License required — see <strong>Tool Credentials</strong> in Workflow settings') }} />
               </div>
             ) : globalRequiredUnfilledCount > 0 ? (
-              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
-                Fill in {globalRequiredUnfilledCount} required parameter{globalRequiredUnfilledCount > 1 ? 's' : ''} above before running
+              <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
+                {tOr('panel.footer.fill_required_params', 'Fill in {{n}} required parameter{{s}} above before running', { n: globalRequiredUnfilledCount, s: globalRequiredUnfilledCount > 1 ? 's' : '' })}
               </div>
             ) : (missingFileInputs.length > 0) ? (
-              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+              <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
                 <span>⚠</span>
                 <span>
-                  Input files required:{' '}
+                  {tOr('panel.footer.input_files_required_prefix', 'Input files required:')}{' '}
                   <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
-                  {' '}— upload via the file button in chat or paste an S3 path in the parameter field above
+                  {' '}{tOr('panel.footer.input_files_required_suffix', '— upload via the file button in chat or paste an S3 path in the parameter field above')}
                 </span>
               </div>
             ) : (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ? (
-              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span>⚠</span>
-                <span>Prerequisites not met — see checklist above</span>
+                <span>{tOr('panel.footer.prereqs_not_met', 'Prerequisites not met — see checklist above')}</span>
               </div>
             ) : null
           )}
@@ -4685,13 +4740,13 @@ export function NextflowWorkflowViewer({
               data-testid="button-start-over-failed"
               onClick={() => { analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
               title={t('panel.footer.start_over_tip')}
-              style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              style={{ marginLeft: 8, fontSize: 'var(--fs-micro)', color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
             >
               {t('panel.footer.start_over')}
             </button>
           )}
           {showingSubmittedParams && (status === 'completed' || status === 'failed') && (
-            <button type="button" data-testid="button-reset-params-to-defaults" onClick={() => { analytics.track('reset_to_defaults_clicked'); resetToDefaults(); }} title={t('panel.footer.reset_defaults_tip')} style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>{t('panel.footer.reset_defaults')}</button>
+            <button type="button" data-testid="button-reset-params-to-defaults" onClick={() => { analytics.track('reset_to_defaults_clicked'); resetToDefaults(); }} title={t('panel.footer.reset_defaults_tip')} style={{ marginLeft: 8, fontSize: 'var(--fs-micro)', color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>{t('panel.footer.reset_defaults')}</button>
           )}
         </div>
         <div className="run-foot-meta">
@@ -4701,7 +4756,7 @@ export function NextflowWorkflowViewer({
             </button>
           )}
           {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
-            <span data-testid="usage-meter" style={{ fontSize: 11 }}>
+            <span data-testid="usage-meter" style={{ fontSize: 'var(--fs-micro)' }}>
               {tOr('panel.vcpu_hrs', '{{used}} / {{limit}} vCPU-hrs', { used: usageMeter.used.toFixed(1), limit: usageMeter.limit })}
             </span>
           )}

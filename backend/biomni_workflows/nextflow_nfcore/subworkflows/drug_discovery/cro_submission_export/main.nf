@@ -42,9 +42,9 @@ process VALIDATE_COMPOUNDS {
     label 'process_low'
     publishDir "${params.outdir}/01_validated", mode: params.publish_dir_mode
 
-    // local (ARM dev placeholder): biomate/biomni-tools:latest
-    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // local (ARM dev placeholder): biomate/workflow-tools:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     val(compound_csv_content)
@@ -144,9 +144,9 @@ process FORMAT_CRO_SUBMISSION {
     label 'process_low'
     publishDir "${params.outdir}/02_formatted", mode: params.publish_dir_mode
 
-    // local (ARM dev placeholder): biomate/biomni-tools:latest
-    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // local (ARM dev placeholder): biomate/workflow-tools:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     path(validated_csv)
@@ -247,9 +247,9 @@ process EXPORT_CSV {
     label 'process_low'
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
-    // local (ARM dev placeholder): biomate/biomni-tools:latest
-    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // local (ARM dev placeholder): biomate/workflow-tools:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     path(cro_csv)

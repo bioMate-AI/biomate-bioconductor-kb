@@ -47,7 +47,7 @@ jobs:
              NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf" && \
              echo "=== ADMET main.nf on nfcore volume ===" && \
              echo "Lines: $(wc -l < "$NF_FILE" 2>/dev/null || echo MISSING)" && \
-             echo "Container lines (should be biomni-tools:latest):" && \
+             echo "Container lines (should be workflow-tools:latest):" && \
              grep -n "container" "$NF_FILE" 2>/dev/null | head -10 && \
              echo "" && \
              echo "=== except ImportError block (Python syntax check) ===" && \
