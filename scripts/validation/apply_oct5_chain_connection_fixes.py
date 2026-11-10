@@ -17,7 +17,7 @@ FIXES = [
  ("methylation_450k_array_analysis",1,3,"GenomicMethylSet","gmsetex"),
  ("cytof_mass_cytometry_analysis",2,3,"cluster_assignments","flowsom_assignments"),
  ("cytof_mass_cytometry_analysis",2,4,"cluster_assignments","flowsom_assignments"),
- ("geomx_spatial_transcriptomics",2,3,"norm_set","normalized_target"),
+ ("geomx_spatial_transcriptomics",2,3,"norm_set","geomxset"),
  ("cnv_consensus_pipeline",2,3,"cnv_segments","copy_number_estimates"),
  ("lcms_metabolomics_consensus",1,2,"xcms_set","xcms_preprocessed"),
  ("lcms_metabolomics_consensus",2,3,"annotated_features","xsannotated"),

@@ -145,3 +145,20 @@ was the wrong `ligand_sdf`).
 - Single-cell `.rds`-not-emitted gaps (`scrna_pseudobulk_de_bioc`, `scrna_consensus_de_bioc`): scater/scran wrappers emit only plots; must `saveRDS` the (normalised/clustered) SCE. Separate (single-cell) domain; not done here.
 
 Net: the drug-dev multi-phase chains now hand off real data at the ADMET→CiPA, ADMET→docking, and DiffDock→GROMACS steps; the two SMILES/SDF/pdbqt format conversions and the single-cell `.rds` gap remain as scoped convert-step work.
+
+---
+
+## Committee audit (2026-11-09) — findings fixed
+
+A 3-agent adversarial audit of this session's chain work. CONFIRMED defects, all now fixed:
+
+- **status-params fix caused a resume regression** — storing merged params in `step["params"]` meant a resumed/rehydrated re-run would reuse the first run's wired value instead of re-resolving. Now stored in a separate `resolved_params` field; `step["params"]` stays pristine.
+- **hERG transform provenance over-claim (scientific)** — I'd stated `herg_ic50_uM` is a "clean IC50, not a probability→IC50 guess." It IS prob-derived (`herg_ic50_method="admet_ai_prob_powerlaw_terfenadine_anchor"`): an ADMET-AI hERG classification probability through a terfenadine-anchored power law, expect several-fold error (the 12.4 nM estimate vs terfenadine's measured ~56–350 nM). The ×1000 conversion is correct; the docstring and the record are corrected. It also uses the **worst-case (minimum) IC50 across the whole compound set** fed into a single-drug CiPA model — a conservative gate, now documented.
+- **`format_check.py` regex false-positives** — `bed_padding→bed`, `bam_sort_threads→bam`, `tsv_delimiter→tsv`. Replaced with last-segment tokenization (drop role suffixes; a format token only as a prefix of a scalar name no longer matches). Verified: the two real gaps (`.smi`→`ligand_sdf`, `.pdbqt`→`ligand`) fire, the two fixed ones (`.smi`→`smiles_list`, `rank1_*.sdf`→`ligand`) pass.
+- **`geomx_spatial_transcriptomics` rename resolved to the wrong format** — `normalized_target` matched `normalized_target_counts.csv` (sorts first) but geodiff `readRDS`s the `..._geomxset.rds`. Changed to `geomxset`.
+- **Over-reporting validator** — `validate_chain_templates.py` uses the `to_input`-declared check (secondary signal); added a prominent note that the count is an upper bound and `from_output` resolvability is authoritative.
+- **Minor** — ADMET zero-pass now warns explicitly; DILI env default aligned to 0.9; stale "antibody not yet executed" doc line corrected.
+
+**Honest limitation (NOT fixed by renames):** the Bioc-chain renames (`multiomic`, `bp4`, `rnaseq_dtu`, `methylation`, `cytof`, `geomx`, `lcms`, `bioc_bulk_rnaseq_de_v2`, `cnv`) correct the `from_output` *name*, but those downstream R wrappers consume inputs via a staged `path(...)` channel, **not** `params.<to_input>` — so the param handoff still doesn't deliver the file. These need the HDA-staging bridge, not a rename. The drug-dev rewires (ADMET→CiPA, ADMET→docking, DiffDock→GROMACS) do NOT have this problem and were verified sound.
+
+**Gaps still open** (committee-noted): the silent-no-op guard, status-params, and (once wired) the format gate live only in `_run_chain`, not `_run_dag_chain` — DAG chains remain uncovered.

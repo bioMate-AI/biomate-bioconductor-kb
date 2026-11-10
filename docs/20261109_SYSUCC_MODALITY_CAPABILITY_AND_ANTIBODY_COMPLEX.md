@@ -59,7 +59,7 @@ It upgrades three SYSUCC-relevant paths at once with an image we already ship: s
 
 ### Validation done / pending
 - **Done (static):** `nextflow lint` shows only the file's pre-existing strict-syntax classes (the `import groovy.json.JsonSlurper` warning is identical to the known-good `cyclic_peptide_cofold`); both embedded Python blocks parse after Groovy-escape rendering.
-- **Pending (runtime):** not yet executed on dev. First real run should fold a known antibody–antigen pair (e.g. an anti-HER2 Fv vs the HER2 ECD fragment) and confirm `interface_iptm` is populated and the CIF is emitted. Deploy carries the `.nf` (workflows layer) and the DB row (db layer — the DB is gitignored, synced by md5, so this sync uploads the ~300 MB DB once).
+- **Runtime:** executed on dev — interface_iptm 0.964 on the FMC63 Fv vs a demo CD19 fragment (a pipeline/wiring verification, not a validated epitope). First real run should fold a known antibody–antigen pair (e.g. an anti-HER2 Fv vs the HER2 ECD fragment) and confirm `interface_iptm` is populated and the CIF is emitted. Deploy carries the `.nf` (workflows layer) and the DB row (db layer — the DB is gitignored, synced by md5, so this sync uploads the ~300 MB DB once).
 
 ---
 

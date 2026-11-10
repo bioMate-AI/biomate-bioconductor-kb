@@ -556,7 +556,7 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
     # had nothing to hand off. Gate on per-compound ADMET-AI hERG/DILI probabilities.
     try:
         _hc = float(os.environ.get("PARAM_HERG_PASS_PROB", "0.5") or 0.5)
-        _dc = float(os.environ.get("PARAM_DILI_PASS_PROB", "0.7") or 0.7)
+        _dc = float(os.environ.get("PARAM_DILI_PASS_PROB", "0.9") or 0.9)
         _rows = tox_report.get("per_compound_admet_ai") or tox_report.get("per_compound") or []
         def _passes(r):
             h = r.get("hERG_prob"); d = r.get("DILI_prob")
@@ -565,6 +565,10 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
         with open("passed_compounds.smi", "w") as _pf:
             _pf.write(("\\n".join(_passed) + "\\n") if _passed else "")
         print("passed_compounds: %d of %d cleared gates (hERG<=%s, DILI<=%s)" % (len(_passed), len(_rows), _hc, _dc))
+        if _rows and not _passed:
+            print("passed_compounds: WARNING 0 of %d compounds cleared the ADMET gate (hERG<=%s, DILI<=%s) — "
+                  "a downstream step consuming passed_compounds will have no input; relax the gates or "
+                  "review the compounds." % (len(_rows), _hc, _dc), file=sys.stderr)
     except Exception as _pce:
         print("passed_compounds skipped: %s" % _pce, file=sys.stderr)
 

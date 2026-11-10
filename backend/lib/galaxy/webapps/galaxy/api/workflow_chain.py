@@ -793,10 +793,11 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
                 _update_chain(current)
                 log.warning("workflow_chain: step %d scalar-template warnings: %s", idx, tmpl_warnings)
 
-        # Record the fully-resolved params (handoffs + transforms + context + templates) on the step,
-        # so the chain status reflects what the run actually received — not the pre-wiring params.
-        # (Without this, a transform-wired value like herg_ic50_nM shows in the run but not the status.)
-        current["steps"][idx]["params"] = params
+        # Expose the fully-resolved params (handoffs + transforms + context + templates) for the
+        # status/UI, WITHOUT mutating step["params"]. step["params"] must stay the submitted params:
+        # resume/rehydrate resets status/run_id but not params, and each iteration seeds from it, so
+        # overwriting it would make a re-run reuse the first run's wired value instead of re-resolving.
+        current["steps"][idx]["resolved_params"] = params
         _update_chain(current)
 
         # Launch Nextflow via the existing executor

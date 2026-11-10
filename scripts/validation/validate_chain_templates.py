@@ -64,7 +64,12 @@ def main():
     if args.json:
         print(json.dumps(report, indent=2))
     else:
-        print(f"Checked {len(rows)} chain templates; {n_bad} have broken connections.\n")
+        print("NOTE: this uses check_connections (is `to_input` a declared param) — a SECONDARY signal.\n"
+              "Per docs/20261005_CHAIN_CONNECTION_AUDIT.md only ~5/137 to_input names are literal params\n"
+              "(many wrappers ingest via params.input / staged HDA), so this OVER-REPORTS. The authoritative\n"
+              "soundness signal is `from_output` RESOLVABILITY (does it match a published filename). Treat the\n"
+              "count below as an upper bound, not the real breakage count.\n")
+        print(f"Checked {len(rows)} chain templates; {n_bad} flagged (to_input undeclared — upper bound).\n")
         for r in report:
             print(f"✗ {r['chain']} ({r['domain']}):")
             for m in r["problems"]:

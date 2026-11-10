@@ -171,10 +171,13 @@ def pocket_json_to_box_center(path: str, args: Dict[str, Any]) -> Dict[str, Any]
 def admet_toxicity_to_herg_ic50_nM(path: str, args: Dict[str, Any]) -> str:
     """ADMET ``toxicity_report.json`` -> worst-case hERG IC50 in **nM** for CiPA cardiac models.
 
-    ``predict_admet_properties`` writes ``toxicity.herg_ic50_uM`` — the worst-case (lowest) IC50
-    across the compound set (Sander 2009 heuristic / ADMET-AI power-law anchor). CiPA ODE models
-    (``cipa_cardiac_safety_ode``) take ``herg_ic50_nM``; this is a pure unit conversion (uM -> nM,
-    x1000), NOT a probability->IC50 guess. The single scalar string wires to ``params.herg_ic50_nM``.
+    ``predict_admet_properties`` writes ``toxicity.herg_ic50_uM`` as the **worst-case (minimum, most
+    potent) IC50 across the whole compound set**. That IC50 is itself an ESTIMATE derived from the
+    ADMET-AI hERG *classification probability* via a terfenadine-anchored power law
+    (``herg_ic50_method="admet_ai_prob_powerlaw_terfenadine_anchor"``), NOT a measured/assayed IC50 —
+    expect it to be off by several-fold from experiment. This transform only does the unit conversion
+    (uM -> nM, x1000) and surfaces that estimate to ``cipa_cardiac_safety_ode`` as a conservative
+    worst-case gate input (``params.herg_ic50_nM``); it is not a validated affinity.
     """
     text = _read_text(path)
     try:
