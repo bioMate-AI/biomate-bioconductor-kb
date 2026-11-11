@@ -118,10 +118,9 @@ confidence_files = glob.glob("${results_dir}/**/confidence_*.json", recursive=Tr
 # or OOM with no prediction. A silent "completed" with zero structures is the
 # pitfall the antibody workflow's loud-fail guard already closes.
 if not structures:
-    import sys as _sys
-    _sys.stderr.write("FATAL: Boltz produced no structure (empty or failed fold). "
-                      "Check the BOLTZ_PREDICT task log for a parse error / OOM.\n")
-    raise SystemExit(1)
+    # Plain text only (this Python runs inside a Groovy script block, so avoid
+    # backslash escapes, which Groovy would process before Python sees them).
+    raise SystemExit("FATAL: Boltz produced no structure; check the BOLTZ_PREDICT task log.")
 
 confidence_data = []
 for f in confidence_files:
