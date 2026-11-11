@@ -345,16 +345,16 @@ test.describe("After-run comprehensive audit", () => {
     // Citations/QC fold INTO Report).
     const summary = tabEvidence.find((t) => t.tabId === "summary");
     const outputs = tabEvidence.find((t) => t.tabId === "outputs");
-    const report = tabEvidence.find((t) => t.tabId === "report");
+    const reportTab = tabEvidence.find((t) => t.tabId === "report");
     expect(summary?.visible, "Summary tab present").toBeTruthy();
     expect(outputs?.visible, "Outputs tab present").toBeTruthy();
-    expect(report?.visible, "Report tab present").toBeTruthy();
+    expect(reportTab?.visible, "Report tab present").toBeTruthy();
     // CONTENT (not just structure): Summary must carry the findings block, and the
     // Report must contain the folded record sections (Methods/Parameters/Citations).
     expect((summary?.contentLength ?? 0), "Summary has findings content").toBeGreaterThan(0);
-    const reportText = (report?.textSample ?? "").toLowerCase();
+    const reportText = (reportTab?.textSample ?? "").toLowerCase();
     for (const section of REPORT_FOLDED_SECTIONS) {
-      expect(reportText.includes(section) || (report?.contentLength ?? 0) > 200,
+      expect(reportText.includes(section) || (reportTab?.contentLength ?? 0) > 200,
         `Report contains folded '${section}' section (or non-trivial content)`).toBeTruthy();
     }
   });
