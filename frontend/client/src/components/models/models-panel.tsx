@@ -20,7 +20,7 @@
  */
 
 import { useState } from "react"
-import { t } from "@/lib/i18n"
+import { t, tOr } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -169,10 +169,10 @@ function notRecorded(value: string): string {
   return value === "Not recorded" ? t("models.not_recorded") : value
 }
 
-/** "accuracy 0.896" — metric names are model vocabulary (kept as-is in both locales). */
+/** "准确率 0.896" / "Accuracy 0.896" — the same metric names the launcher's 验证指标 uses. */
 function metricLabel(r: TrainRun): string {
   return r.metricName && typeof r.metricValue === "number"
-    ? t("models.run_metric", { metric: r.metricName, value: r.metricValue.toFixed(3) })
+    ? t("models.run_metric", { metric: tOr(`models.metric_${r.metricName}`, r.metricName), value: r.metricValue.toFixed(3) })
     : t("models.not_recorded")
 }
 
