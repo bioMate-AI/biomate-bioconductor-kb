@@ -706,6 +706,46 @@ def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
     return results
 
 
+# ── Entity-claim validation helpers (spec: docs/20261111_ENTITY_CLAIM_VALIDATION_SPEC.md) ──
+_AA3TO1 = {'ala': 'A', 'arg': 'R', 'asn': 'N', 'asp': 'D', 'cys': 'C', 'gln': 'Q',
+           'glu': 'E', 'gly': 'G', 'his': 'H', 'ile': 'I', 'leu': 'L', 'lys': 'K',
+           'met': 'M', 'phe': 'F', 'pro': 'P', 'ser': 'S', 'thr': 'T', 'trp': 'W',
+           'tyr': 'Y', 'val': 'V'}
+
+
+def _normalize_protein_variant(v):
+    """Canonicalise a protein SNV string to (pos:int, from_aa1, to_aa1); None if not one.
+    Handles G2019S, p.Gly2019Ser, Gly2019Ser, p.G2019S — so a legacy mention matches HGVS."""
+    s = re.sub(r'^p\.', '', (v or "").strip(), flags=re.I)
+    m = re.fullmatch(r'([A-Za-z]{3})(\d+)([A-Za-z]{3})', s)
+    if m:
+        a, b = _AA3TO1.get(m.group(1).lower()), _AA3TO1.get(m.group(3).lower())
+        if a and b:
+            return (int(m.group(2)), a, b)
+    m = re.fullmatch(r'([A-Za-z])(\d+)([A-Za-z])', s)
+    if m:
+        return (int(m.group(2)), m.group(1).upper(), m.group(3).upper())
+    return None
+
+
+def _variant_in_clinvar_titles(claimed, titles):
+    """True if the claimed protein variant matches any ClinVar esummary title, comparing
+    canonical (pos, from, to) forms (legacy G2019S == HGVS p.Gly2019Ser)."""
+    want = _normalize_protein_variant(claimed)
+    joined = " \n ".join(t or "" for t in (titles or []))
+    if not want:  # non-SNV (indel/dup/fs) — fall back to substring
+        return bool(claimed) and claimed.lower() in joined.lower()
+    for cand in re.findall(r'p\.([A-Za-z]{3}\d+[A-Za-z]{3}|[A-Za-z]\d+[A-Za-z])', joined):
+        if _normalize_protein_variant(cand) == want:
+            return True
+    return False
+
+
+def _entity_validation_enabled():
+    import os as _os
+    return _os.environ.get("BIOMATE_ENTITY_VALIDATION", "").strip().lower() in ("1", "true", "yes")
+
+
 def lookup_omim_gene(gene_symbol: str) -> List[dict]:
     """NCBI Gene → MIM IDs via mygene.info (OMIM API key not required this way)."""
     result = _http_get(
@@ -2278,6 +2318,19 @@ class ResearchAgent:
             answer_text = parsed.get('answer', response)
             answer_text, evidence_verdict = self._split_evidence_verdict(answer_text)
 
+            # ── Entity-claim validation (flag-gated, inert by default) ─────────
+            # Strip the model's own CLAIMS list (always — keeps it out of the answer)
+            # and, when enabled, validate each asserted entity against its authoritative
+            # source so a fabricated variant can't read as established.
+            answer_text, _entity_claims = self._split_claims(answer_text)
+            _claim_rows = []
+            if _entity_validation_enabled() and _entity_claims:
+                try:
+                    _claim_rows = await asyncio.get_event_loop().run_in_executor(
+                        None, lambda: self._validate_entity_claims(_entity_claims))
+                except Exception as _cve:
+                    log.warning(f"entity-claim validation skipped (non-fatal): {_cve}")
+
             # ── Conflict extraction ───────────────────────────────────────────
             # Pull the optional machine-parseable conflicts block BEFORE citation
             # grounding, so its embedded [N] tokens don't pollute the grounding
@@ -2373,6 +2426,21 @@ class ResearchAgent:
                 elif _v:
                     _n_db_channels += 1
             confidence = self._grounding_confidence(evidence_verdict, len(citations), _n_db_channels)
+            # Entity-validation outcome: flag unconfirmed claims in a footnote and penalise
+            # confidence — a confident fabrication (a variant not in ClinVar) must read
+            # "limited", never "reasonable".
+            if _claim_rows:
+                _flagged = [r for r in _claim_rows if r["status"] != "verified"]
+                _n_not_found = sum(1 for r in _claim_rows if r["status"] == "not_found")
+                if _flagged:
+                    _foot = ["\n\n**Entity validation** — asserted items that could not be confirmed "
+                             "against authoritative databases (treat as reported-but-unconfirmed):"]
+                    for r in _flagged:
+                        _subj = f" ({r['subject']})" if r.get("subject") else ""
+                        _foot.append(f"- {r['text']}{_subj} — {r['status']}: {r['note']}")
+                    answer_text = answer_text.rstrip() + "\n" + "\n".join(_foot)
+                if _n_not_found:
+                    confidence = min(confidence, 0.3)  # fabricated/unconfirmed entity → limited
             answer_text = self._ensure_evidence_boundary(answer_text, len(citations), confidence)
 
             return ResearchResponse(
@@ -3059,6 +3127,19 @@ class ResearchAgent:
                 "unreferenced background clearly marked as not literature-grounded."
             )
 
+        # Entity-claim validation (flag-gated): ask the model to list its own asserted
+        # checkable entities so each can be validated against an authoritative DB. Only
+        # added when enabled, so default behaviour is unchanged.
+        if _entity_validation_enabled():
+            prompt_parts.append(
+                "After the answer, output one final line, exactly: 'CLAIMS: ' followed by a "
+                "compact JSON array of the SPECIFIC checkable biomedical entities you asserted "
+                "as fact — each {\"text\":<as written>, \"type\":\"variant|gene|compound|structure|disease\", "
+                "\"subject\":<gene/target if applicable>}. Include every named variant (e.g. G2019S), "
+                "compound, and PDB id; omit prose and general concepts. "
+                "Example: CLAIMS: [{\"text\":\"G2019S\",\"type\":\"variant\",\"subject\":\"LRRK2\"}]"
+            )
+
         # Rigor-adaptive instructions. A quick factual question wants a brief answer;
         # an evidence-review request ("evidence table", "verify every DOI", "separate
         # the evidence", "systematic") wants a thorough, structured, honestly-hedged
@@ -3202,6 +3283,67 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
         if not m:
             return answer, None
         return answer[m.end():].lstrip(), m.group(1).lower() == 'addresses'
+
+    @staticmethod
+    def _split_claims(answer):
+        """Strip the trailing 'CLAIMS: [json]' line (entity-validation mode) and return
+        (answer_without_claims, [claim dicts]). Fail-soft; empty list when absent."""
+        import re as _re_c, json as _json_c
+        if not answer:
+            return answer, []
+        m = _re_c.search(r'\n\s*[#*_\s]*CLAIMS\s*:\s*(\[.*\])\s*$', answer, _re_c.I | _re_c.S)
+        if not m:
+            return answer, []
+        try:
+            claims = _json_c.loads(m.group(1))
+            claims = claims if isinstance(claims, list) else []
+        except Exception:
+            claims = []
+        return answer[:m.start()].rstrip(), claims
+
+    def _validate_entity_claims(self, claims):
+        """Validate each asserted entity against its authoritative source — variants via
+        ClinVar (lookup_clinvar_gene), other types via the federated_query existence check
+        over the same ENTITY_SOURCES map. Labels: verified / not_found / unverified
+        (citation_check taxonomy). Non-fatal + cached. Returns [{text,type,subject,status,note}]."""
+        rows = []
+        for c in (claims or [])[:20]:
+            if not isinstance(c, dict):
+                continue
+            text = str(c.get("text") or "").strip()
+            ctype = str(c.get("type") or "").strip().lower()
+            subject = str(c.get("subject") or "").strip()
+            if not text:
+                continue
+            status, note = "unverified", "could not check"
+            try:
+                if ctype == "variant":
+                    gene = subject or (text.split()[0] if text.split() else "")
+                    hits = lookup_clinvar_gene(gene, max_results=20) if gene else []
+                    titles = [h.get("title", "") for h in (hits or [])]
+                    if hits is None:
+                        status, note = "unverified", "ClinVar unreachable"
+                    elif _variant_in_clinvar_titles(text, titles):
+                        sig = next((h.get("clinical_significance", "") for h in hits
+                                    if _variant_in_clinvar_titles(text, [h.get("title", "")])), "")
+                        status, note = "verified", (f"ClinVar: {sig}" if sig else "in ClinVar")
+                    elif titles:
+                        status, note = "not_found", f"{gene} has ClinVar variants but not {text}"
+                    else:
+                        status, note = "not_found", f"no pathogenic ClinVar variants for {gene}"
+                else:
+                    from galaxy.ai.federated_query import federated_query as _fq
+                    _r = _fq(subject or text, entity_type=(ctype or None))
+                    if _r is None:
+                        status, note = "unverified", "lookup unreachable"
+                    elif _r.get("merged"):
+                        status, note = "verified", "found in " + ", ".join((_r.get("sources_succeeded") or [])[:3])
+                    else:
+                        status, note = "not_found", "no record in the authoritative sources"
+            except Exception as _e:
+                status, note = "unverified", f"check error: {type(_e).__name__}"
+            rows.append({"text": text, "type": ctype, "subject": subject, "status": status, "note": note})
+        return rows
 
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse the LLM response to extract structured data."""
