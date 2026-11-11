@@ -1286,19 +1286,12 @@ export function ChatMessage({
               </Button>
             )}
             <ReadAloud text={message.content || ""} disabled={isStreaming} />
-            {isComputeResultMessage && onRedoAsValidatedRun && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRedoAsValidatedRun(message)}
-                data-testid="button-redo-as-validated-run"
-                title={t('chat_msg.rerun_validated_tip')}
-                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <FlaskConical className="h-3.5 w-3.5" />
-                {t('chat_msg.redo_as_validated')}
-              </Button>
-            )}
+            {/* "Redo as a validated run" removed 2026-11-10: re-running an instant
+                run_code answer as a validated Cloud workflow cannot faithfully
+                reproduce it (run_code parameters are per-call and have no stable
+                workflow mapping), so the button misled users. Deferred — see
+                docs/20261110_DEMO_UI_REFINEMENTS.md. The handler/prop plumbing is
+                retained (unused) so re-enabling is a one-line render restore. */}
           </div>
         )}
 
