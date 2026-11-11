@@ -61,3 +61,26 @@ was wrong:
 - **Models → 训练:** choosing contrasts.csv shows "该文件只有 1 行数据，训练至少需要 10 行……" and 开始训练 is disabled. counts_matrix.csv is not refused.
   - The first deploy (`e5dd8c3b`) did NOT show this message: the launcher read `body.rows`, while `DataProfile.to_dict()` emits `shape.rows`. Fixed in `279d6d27`, and the unit test now uses the real shape.
 
+
+## Overnight session (2026-11-11, autonomous)
+
+Dev line: `279d6d27 → 42234e2a → 27e93b96 → c7ab2b79 → 276e4e79`, all through the guarded sync. One sync was blocked by the lock while another session (`fix/coldstart-search-examples-dev`) deployed. That session had merged this branch first. Its branch was merged back here (clean) before the next sync.
+
+| # | Defect found (live) | Root cause | Fix | Live check |
+|---|---|---|---|---|
+| 1 | 训练运行 showed "Not recorded" for a completed run with accuracy 0.896 | The `biomate-nextflow-work` bucket is in us-east-1. The metrics reader used a us-west-2 client, got `PermanentRedirect`, and swallowed it. | Use `_s3ClientForBucket`, which resolves the region and is MinIO-aware. Unreadable metrics are logged. | `/api/model-tracks/train`: `accuracy 0.896 · pass · 0.6` |
+| 2 | "Adaptation retrain" rows in 训练运行 | The house-style prompt-rules compile was registered as `workflow_type: training`. | New runs use `adaptation`. Legacy rows are recognised by the `adapt_compile` step. They stay in Run Manager. | Rows gone |
+| 3 | Metric name in English in zh (`accuracy 0.896`) | Raw metric id was shown | `models.metric_*` names; added f1/rmse/pr_auc | 准确率 0.896 |
+| 4 | An interrupted run showed 排队中 | Unknown status fell back to `queued` | `interrupted` → 已中断 (terminal). Unknown → 状态未知. | unit |
+| 5 | Raw ISO time in 训练运行 | No formatting | Local date-time in the UI language | unit |
+| 6 | Run Manager in English (bucket titles, status, CTAs, readiness, "4m ago", run/inv) | Hard-coded strings | `runs_ui.*`. Identifiers are unchanged. A failed card says 查看失败原因, not "Retry Search". | screenshot: fully zh |
+| 7 | 需要关注 = 46, mostly successful runs | `getOutputCount` ignored `s3_output_files` (AWS Batch) | Count them | 需要关注 46 → 25; cards say 查看输出 (5) |
+| 8 | URL import: `数据.csv` and `样本.csv` → one `__.csv` object; same name with new bytes overwrote the old | Lossy basename key, no versioning | Shared `_storeProjectInput` with upload: `projectInputPath` key and versioning | route tests |
+| 9 | Project page in English (tabs, instructions empty state, plan card, Details, dialogs, "6 messages · 6d ago"); Notes card marked for removal | Hard-coded strings | `projects.page.*`; Notes card hidden (API kept); 404 page localized | pending sync |
+
+Live journeys: 4/4 on `279d6d27` and 4/4 on `42234e2a`. Journey (e) now also asserts that a 1-row table gets `dataset_too_small` at plan time, and that the completed run carries its score and gate in API and UI.
+
+Left for the founder:
+- The workspace-level 新对话 (blue box in `removenewchat_remove_sidebar.png`) is still there. Removing it leaves no entry point for an unfiled chat other than the landing, and ~10 e2e specs click it. This needs a decision.
+- The leaked test project "live-journeys 2026-11-11T04:35:27.433Z (auto-deleted)" belongs to an interrupted run before the state-file move. Delete it on approval.
+- Two diagnosis boxes on a failed run (still to merge into one).
