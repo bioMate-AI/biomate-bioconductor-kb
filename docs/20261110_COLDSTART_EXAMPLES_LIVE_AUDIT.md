@@ -369,3 +369,42 @@ A stale remote deploy lock was cleared earlier with the founder's approval.
 - **Deploys drop live chats:** the frontend container is replaced mid-request with no drain (the source of the structure-prediction "Bad Gateway"). The client now retries 502/503/504 at 1, 2, 4 and 8 s.
 - **Disambiguation card never renders:** `awaitsWorkflowInput` returns true for `workflow_type === 'disambiguation'`, and `onAdjustViaChat` is never passed in.
 - **Slow follow-up turn:** the ~55–60 s between text and card is parameter grounding (`param_ground_*` status events). Worth a separate look.
+- **Agent loop cannot create a workflow card:** on the compute path, the agent can find a pipeline with `search_workflows` but has no tool that produces a card, so it narrates ("pipeline configured"). The routing rules below keep pipeline-scale requests off that path. A card-producing agent tool (via the `selectedWorkflow` mechanism) is the remaining structural fix; it touches response plumbing and was not done unreviewed.
+- **Proteomics differential abundance** still routed live to Chemoproteomics Pulldown, with a clarification question, despite the operation-phrase ranking fix (Pass-0 LLM ranking or dense retrieval can outweigh it, as predicted). Open.
+
+### 10.5 Full live pass on dev `e04ec5f2` (2026-11-11 07:16–07:55Z, 39 rows, 3 workers)
+
+- **Attachments:** 36/36 recorded rows attached exactly their own bundle.
+- **Lost cards fixed:** Try-sample-data rows ending in a stored workflow card went from **1/12 to 10/11** recorded.
+- **Workflow cards now produced for:**
+  - ADMET ×2, docking
+  - MAGeCK ×2, seqvartools (relatedness)
+  - mixOmics ×2, MOFA2
+  - CryoSPARC ×2, AlphaFold
+  - scdownstream, DE chain ×3, sarek
+  - differentialabundance (MG), metaboanalystr, flow cytometry, CAR-T, ChIP MACS, WSI nuclei segmentation, ATAC, chemoproteomics QC
+- **Computed inline with real numbers** (valid direct compute on the attached data; the harness's "must be a card" expectation was too strict here):
+  - variant burden on the Rizvi cohort (DCB vs NDB, Mann-Whitney)
+  - PBC trial arms (log-rank p = 0.75, HR 0.944)
+  - Cox flare model
+  - CRISPR QC (Gini 0.297)
+  - hERG series
+  - biomarker panel
+  - subtype classifier
+  - proteomics batch QC
+- **Defects found, and fixed in `7026189dfb`:**
+  - **EBV simulated data:** EBV ran `run_code` that **simulated ELISA readings** and reported them as results.
+    - Fix 1: `workflowNamedInRunRequest` pins a workflow the user names to run.
+    - Fix 2: `generatesSyntheticData` detects run_code with no inputs that draws random values, and the reply gets an explicit "simulated, not a real analysis" note.
+    - Fix 3: the `run_code` tool now forbids inventing input data.
+    - A single-row rerun in the browser on `27e93b96` produced the EBV card, so the failure is classifier-nondeterministic, which is exactly what the pin removes.
+  - **Call variants with FASTQ attached:** went to run_code and claimed "pipeline configured" with no card. Raw instrument data is now pipeline-scale: `direct_compute` is not honoured.
+  - **Cryo-EM reply echoed `s3://…/Micrographs/`:** reply prose now passes through `redactStoragePaths`.
+
+### 10.6 Deploy status at hand-off
+
+- Dev runs `276e4e79` (`integration/tracks-20261111`; another session merged this branch up to `e04ec5f2` and deployed it). Healthy (HTTP 200).
+- Branch head `c794bd6c` (adds `16b106a9ef` and `7026189dfb` on top of dev's line) is pushed to PR #365 but **not yet deployed**.
+- **The full sync at 02:13 CST failed:** the SSH transport dropped during the nf-core check ("Bad packet length … Connection corrupted") before any files changed, and the script hung until its 90-minute limit.
+  - The script's own remote lease (created 08:13:26Z, owner `fd6dfc01…`) was left behind and blocks every dev deploy.
+  - It must be released (guarded on that owner id), then re-run `scripts/sync_to_dev.sh` from `/Users/kky/biomate-coldstart-dev`.
