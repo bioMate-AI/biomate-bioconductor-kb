@@ -2800,9 +2800,25 @@ export function replyLanguageNote(message: string): string {
     : "[Reply language: the language of the user's own words above, not of attached file names, tool output or retrieved papers]";
 }
 
-/** Name for a DAG plan card: the integration step's task when there is one (it names the goal),
- *  else the first branch; never a generic placeholder. */
-export function dagPlanName(tasks: Array<{ description: string; depends_on: number[] }>): string {
+/** The goal clause of the user's own request: the first line that is not a bracketed context
+ *  block or the "Prepared demo context" preamble, cut at its first sentence end. */
+export function requestGoal(message: string): string {
+  const line = (message || '').split('\n').map(l => l.trim())
+    .find(l => l && !l.startsWith('[') && !/^prepared demo context/i.test(l)) || '';
+  return line.split(/(?<=[.;!?。；！？])\s*/)[0].replace(/[.;!?。；！？]$/, '').trim();
+}
+
+/** Name for a DAG plan card. Prefer the goal of the user's own request (the demo card was titled
+ *  after its fan-in step, "Integrate docking scores and ADMET…", for a request to adapt a generative
+ *  model); else the integration step's task, else the first branch; never a generic placeholder. */
+export function dagPlanName(tasks: Array<{ description: string; depends_on: number[] }>, goal?: string): string {
+  const fit = (text: string) => {
+    const clause = text.replace(/\s+/g, ' ').trim();
+    const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+  const g = goal ? requestGoal(goal) : '';
+  if (g && (g.split(/\s+/).length >= 3 || /[一-鿿]{4,}/.test(g))) return fit(g);
   // Named after the combining step; a plan with no dependent step is not "about" its last branch.
   if (tasks.length > 1 && tasks.every(t => !t.depends_on.length)) return `${tasks.length} parallel analyses`;
   const sink = [...tasks].reverse().find(t => t.depends_on.length > 1) || tasks[tasks.length - 1] || tasks[0];
@@ -2810,6 +2826,28 @@ export function dagPlanName(tasks: Array<{ description: string; depends_on: numb
   const clause = text.split(/(?<=[.;:。；])\s*/)[0].replace(/[.;:。；]$/, '');
   const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/** Closing lines of a DAG plan message: what was filled from the user's files and what is still
+ *  needed, per step (from /plan_dag's bound_from_uploads / missing_inputs). A backend that does not
+ *  report inputs gets the previous generic instruction — never a claim that inputs are complete. */
+export function dagInputStatus(steps: any[], hasUnwired: boolean): string[] {
+  if (!steps.some(s => Array.isArray(s?.missing_inputs))) {
+    return ['Fill in each branch\'s input files in the plan, then click **Confirm & Run**.'];
+  }
+  const per = (key: string) => steps
+    .map((s, k) => ({ k: k + 1, names: (Array.isArray(s?.[key]) ? s[key] : []) as string[] }))
+    .filter(x => x.names.length)
+    .map(x => `step ${x.k} — ${x.names.join(', ')}`);
+  const filled = per('bound_from_uploads');
+  const needed = per('missing_inputs');
+  return [
+    filled.length ? `Filled from your files: ${filled.join('; ')}.` : '',
+    needed.length ? `Still needed before running: ${needed.join('; ')}. Without its data files a step runs on the workflow's built-in sample data, not yours.` : '',
+    needed.length || hasUnwired
+      ? 'Fill these in the plan, then click **Confirm & Run**.'
+      : 'Inputs are set — review the plan, then click **Confirm & Run**.',
+  ].filter(Boolean);
 }
 
 /** Closed input-kind vocabulary — kept equal to backend chain_composer/input_kinds_classifier.INPUT_KINDS. */
@@ -2992,6 +3030,17 @@ export function attachedDatasetsFromMessage(message: string): Array<{ name: stri
     const galaxyId = /\bgalaxy_dataset_id=([^,\s]+)/.exec(entry)?.[1];
     return { name, datasetId: datasetId && datasetId !== 'n/a' ? datasetId : undefined, galaxyId };
   }).filter(d => d.name && (d.datasetId || d.galaxyId));
+}
+
+/** This turn's uploaded files with their runnable S3 location, for binding to a plan's declared
+ *  inputs (POST /plan_dag). Entries without an s3_uri are omitted: a bare file name is not runnable. */
+export function uploadedRefsFromMessage(message: string): Array<{ name: string; s3_uri: string }> {
+  const m = /\[Uploaded datasets?:\s*([^\]]+)\]/i.exec(message || '');
+  if (!m) return [];
+  return m[1].split(/;\s*/).map(entry => ({
+    name: entry.split(':')[0].trim(),
+    s3_uri: /\bs3_uri=([^,\s;\]]+)/.exec(entry)?.[1] || '',
+  })).filter(d => d.name && d.s3_uri.startsWith('s3://'));
 }
 
 /** The id run_code stages an attached dataset under: its Galaxy id (durable), else BioMate's dataset id. */
@@ -6687,7 +6736,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       depends_on: (i.dependsOn || []).map(d => idx.get(d)).filter((n): n is number => typeof n === 'number' && n <= k),
       ...(routedPaths.get(i.id) ? { nextflow_path: routedPaths.get(i.id) } : {}),
     }));
-    const { data } = await this._api().client.post('/api/ai_assistant/plan_dag', { tasks, name: dagPlanName(tasks) }, { timeout: 60000 });
+    const { data } = await this._api().client.post('/api/ai_assistant/plan_dag', {
+      tasks, name: dagPlanName(tasks, message), uploaded_datasets: uploadedRefsFromMessage(message),
+    }, { timeout: 60000 });
     if (!data?.success || !data.workflow) {
       log(`DAG plan not assembled (${data?.reason || 'no response'}) — per-intent cards`);
       return null;
@@ -6698,7 +6749,8 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const lines = steps.map((s, k) => {
       const deps = (s.depends_on || []) as number[];
       const wired = !data.order_only;
-      return `  ${k + 1}. **${s.description || s.workflow_name}** — \`${s.nextflow_path}\`` +
+      return `  ${k + 1}. **${s.description || s.workflow_name}** — ` +
+        (s.workflow_label ? `runs **${s.workflow_label}** (\`${s.nextflow_path}\`)` : `\`${s.nextflow_path}\``) +
         (deps.length
           ? ` (${wired ? 'uses the results of' : 'runs after'} step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})`
           : ' (runs in parallel)');
@@ -6717,7 +6769,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           ? `Step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} runs after step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')}, but their result files are not connected to it automatically (the workflows do not declare matching input/output types) — select those results as its inputs when the earlier steps finish.`
           : `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`)
         : '',
-      'Fill in each branch\'s input files in the plan, then click **Confirm & Run**.',
+      ...dagInputStatus(steps, unwired.length > 0),
     ].filter(Boolean).join('\n');
     return {
       message: message_,

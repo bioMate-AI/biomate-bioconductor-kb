@@ -18,3 +18,12 @@ inherits what we already learned instead of re-hitting it.
 1. Pick a ~150–300 aa monomer → expect a non-empty CIF + pLDDT within a few minutes.
 2. Confirm `boltz_structure_prediction` reports **no_structure / fails loudly** on an OOM (pitfall 2/3), not a silent empty success.
 3. If a ~600–1000 aa fold OOMs on the landed GPU, that confirms the ≥24 GB routing need (pitfall 2).
+
+## Found during live validation of the fold path (2026-11-11)
+
+| # | Pitfall | Status |
+|---|---|---|
+| 8 | **Boltz FASTA needs a chain id, not a free-text record id.** `>query` → `ValueError: Invalid record id: query`; boltz exits 0 with no structure. | ✅ Fixed: `model-fold.ts` builds the Boltz **YAML** (one `protein` entity, chain `A`) and passes `input_yaml`, the format the working cofold workflows use. |
+| 3b | **`boltz_structure_prediction` reports "completed" with zero structures** (exit 0, empty `boltz_summary.json`, no CIF). Same class as the antibody `.nf` before its loud-fail guard (`49422cce21`). | ⚠️ Open: that `.nf`'s summary step should exit non-zero when `n_structures==0` / no CIF, so a no-structure run surfaces as failed, not a silent "completed". Needs a GPU run to validate the failing path. |
+
+**Validation protocol confirmed:** a run that reaches "completed" at the Batch level is NOT proof of a structure — always check `boltz_summary.json` `n_structures` and that a `*.cif` exists (this is exactly why the loud-fail guard matters, and why "pass = live outcome" caught the FASTA bug that unit tests could not).

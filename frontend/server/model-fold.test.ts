@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cleanSequence, foldFasta, planModelFold, BOLTZ_FOLD_NEXTFLOW_PATH } from './model-fold';
+import { cleanSequence, foldYaml, planModelFold, BOLTZ_FOLD_NEXTFLOW_PATH } from './model-fold';
 
 describe('cleanSequence', () => {
   it('strips FASTA headers and whitespace and upper-cases', () => {
@@ -18,9 +18,12 @@ describe('cleanSequence', () => {
   });
 });
 
-describe('foldFasta', () => {
-  it('writes one query record', () => {
-    expect(foldFasta('MKTAYIAK')).toBe('>query\nMKTAYIAK\n');
+describe('foldYaml', () => {
+  it('writes a Boltz YAML with a valid chain id (not a FASTA >query header)', () => {
+    const y = foldYaml('MKTAYIAK');
+    expect(y).toContain('id: A');
+    expect(y).toContain('sequence: MKTAYIAK');
+    expect(y).not.toContain('>query');
   });
 });
 
@@ -48,9 +51,9 @@ describe('planModelFold', () => {
   it('returns a boltz_structure_prediction launch request on our own Batch', async () => {
     const r = await planModelFold({ userId: 'u', body: { sequence: 'mkt ayiak qrq', name: 'my fold' } }, okDeps);
     expect(r.status).toBe(200);
-    expect(okDeps.stageFasta).toHaveBeenCalledWith('>query\nMKTAYIAKQRQ\n', 'query.fasta');
+    expect(okDeps.stageFasta).toHaveBeenCalledWith(expect.stringContaining('id: A'), 'query.yaml');
     expect(r.body.workflow_ga.nextflow_path).toBe(BOLTZ_FOLD_NEXTFLOW_PATH);
-    expect(r.body.workflow_ga.parameters.input_fasta).toMatch(/^s3:\/\//);
+    expect(r.body.workflow_ga.parameters.input_yaml).toMatch(/^s3:\/\//);
     expect(r.body.workflow_ga.name).toBe('my fold');
     expect(r.body.workflow_ga.domain).toBe('structural_biology');
   });

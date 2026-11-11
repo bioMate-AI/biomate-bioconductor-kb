@@ -883,13 +883,20 @@ deploy_workflows() {
     log "[workflows] Resolve them (likely a stray 'git stash apply') then re-run. ABORTING sync."
     return 1
   fi
-  tar -czf "$tar_file" \
-    --exclude='*/.nextflow' \
-    --exclude='*/.nextflow.log*' \
-    backend/biomni_workflows/ \
-    backend/nf-core-workflows/modules/biomate-ai-tools/ \
-    backend/nf-core-modules/ 2>/dev/null
-  log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
+  # Ship the COMMITTED tree (HEAD), NOT the working tree. A sparse or stale
+  # worktree shipped an OLD .nf for a commit the ledger recorded as deployed
+  # (2026-11-11 boltz_structure_prediction: dev's commit contained the fix but
+  # /app still ran the old file). The ancestry gate verifies the COMMIT while
+  # deploy_workflows ships FILES, so a working-tree tar let the two diverge.
+  # git archive is content-addressed to HEAD — same guarantee deploy_backend_python
+  # gets from `git show HEAD:`. All workflow source is committed (0 untracked .nf),
+  # and .nextflow/.nextflow.log are gitignored so HEAD never carries them.
+  git archive --format=tar.gz -o "$tar_file" HEAD -- \
+    backend/biomni_workflows \
+    backend/nf-core-workflows/modules/biomate-ai-tools \
+    backend/nf-core-modules 2>/dev/null \
+    || { log "[workflows] FATAL: git archive HEAD failed (detached/corrupt HEAD?). ABORTING."; return 1; }
+  log "[workflows] Archive (git HEAD ${CURRENT_COMMIT:0:8}): $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
 
@@ -2226,6 +2233,20 @@ _ANCESTRY_ARGS=(--repo "$REPO_ROOT")
 if [[ -n "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}" ]]; then
   log "WARNING: explicit emergency ancestry override requested; retain the incident reason"
   _ANCESTRY_ARGS+=(--emergency-override-reason "$BIOMATE_EMERGENCY_DEPLOY_REASON")
+fi
+# The public build-info.json is baked only into the FRONTEND image, so a
+# backend/db/workflow-only deploy leaves it stale and the gate above (build-info
+# only) could let a later full deploy silently overwrite that backend-only work.
+# The ledger records every deploy's full HEAD; read its last commit (over the
+# lease we already hold) and make the gate require HEAD to contain it too.
+_LEDGER_HEAD="$(ec2_ssh "tail -n 1 $DEPLOY_LEDGER 2>/dev/null" 2>/dev/null | python3 -c 'import json,sys,re
+try:
+  c=(json.loads(sys.stdin.read() or "{}") or {}).get("commit","")
+  print(c if c and re.fullmatch(r"[0-9a-f]{40}", c) else "")
+except Exception:
+  print("")' 2>/dev/null || true)"
+if [[ -n "$_LEDGER_HEAD" ]]; then
+  _ANCESTRY_ARGS+=(--ledger-head "$_LEDGER_HEAD")
 fi
 _ANCESTRY_JSON="$(python3 "$REPO_ROOT/scripts/dev_deploy_ancestry.py" "${_ANCESTRY_ARGS[@]}")" || exit 2
 _DEPLOYED_COMMIT="$(printf '%s' "$_ANCESTRY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["deployedCommit"])')"

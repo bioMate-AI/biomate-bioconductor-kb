@@ -1700,5 +1700,13 @@
     "title": "Page not found",
     "body": "We couldn’t find the page you were looking for. It may have moved, or the link is out of date.",
     "back": "Back to BioMate"
+  },
+  "plan_step": {
+    "runs": "Runs",
+    "catalog_workflow": "catalog workflow",
+    "after": "after",
+    "inputs_needed": "Needed before running: {{names}}",
+    "map_inputs": "Map inputs from earlier steps",
+    "filled": "Filled from your files: {{names}}"
   }
 }

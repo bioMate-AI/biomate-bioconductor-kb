@@ -961,6 +961,11 @@ export function ChatMessage({
                   errorMessage: s.errorMessage || s.error,
                   usesStepId: s.uses_step_id || s.input_from,
                   usesDescription: s.uses_description || s.input_type,
+                  resolution: s.resolution,
+                  workflowLabel: s.workflow_label,
+                  missingInputs: s.missing_inputs,
+                  boundFromUploads: s.bound_from_uploads,
+                  needsInputMapping: s.needs_input_mapping,
                 }))
                 return (
                   <div
