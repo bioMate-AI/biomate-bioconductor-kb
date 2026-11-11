@@ -19,6 +19,12 @@ class AncestryTests(unittest.TestCase):
  def test_diverged_branch_refuses(self):
   self.g('checkout','-q','--detach',self.first);self.commit('diverged')
   with self.assertRaisesRegex(ValueError,'Stale'):m.preflight(self.repo,self.second)
+ def test_refusal_lists_the_work_that_would_be_removed(self):
+  # Deploying an older image (e.g. a stale next-phase build via the GitHub Action) must name
+  # the live commits it would drop, so the deployer merges them instead of overwriting.
+  with self.assertRaisesRegex(ValueError,r'(?s)REMOVE 1 commit.*second'):m.preflight(self.repo,self.second,head_ref=self.first)
+ def test_head_option_checks_a_given_commit_not_the_checkout(self):
+  self.assertFalse(m.preflight(self.repo,self.first,head_ref=self.second)['emergencyOverride'])
  def test_unknown_identity_cannot_be_overridden(self):
   with self.assertRaisesRegex(ValueError,'unknown'):m.preflight(self.repo,'f'*40,'Emergency rollback reviewed')
  def test_emergency_requires_reason_and_remains_explicit(self):
