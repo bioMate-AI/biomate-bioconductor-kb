@@ -92,6 +92,25 @@ def _known_live_ids() -> set:
     return ids
 
 
+# Explicit cues that a question wants a RANKED list of candidate targets/genes —
+# the job of the target_id engine (fuse_channels across Open Targets / STRING /
+# LLM), not a literature synthesis. Kept conservative on purpose: a false positive
+# fires the (costly, live) orchestrator, so match only clear ranking intent.
+_TARGET_RANKING_CUES: Sequence[str] = (
+    "which targets", "which genes", "identify targets", "identify drug targets",
+    "drug targets for", "therapeutic targets for", "prioriti", "rank targets",
+    "rank the targets", "best targets", "candidate targets", "target identification",
+    "actionable targets", "top targets", "nominate targets",
+)
+
+
+def is_target_ranking_question(question: str) -> bool:
+    """True when the question asks to RANK/identify candidate targets — route these
+    to the target_id engine (fuse_channels) rather than literature synthesis."""
+    q = (question or "").lower()
+    return any(cue in q for cue in _TARGET_RANKING_CUES)
+
+
 def detect_facets(question: str) -> List[str]:
     """Return the evidence facets a question needs, in priority order.
 

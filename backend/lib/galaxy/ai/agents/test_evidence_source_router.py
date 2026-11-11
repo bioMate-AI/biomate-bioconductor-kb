@@ -4,7 +4,23 @@ The core guarantee: a SAR / potency question about a target reaches the
 bioactivity + structure sources (ChEMBL/BindingDB/PDB/Pharos), not just the
 gene sources an entity-type router would pick. Pure logic, no network.
 """
-from galaxy.ai.evidence_source_router import detect_facets, select_sources
+from galaxy.ai.evidence_source_router import (
+    detect_facets,
+    is_target_ranking_question,
+    select_sources,
+)
+
+
+def test_target_ranking_detection():
+    for q in ("Which targets should we pursue for melanoma?",
+              "Identify drug targets for triple-negative breast cancer",
+              "Prioritize candidate targets for NAFLD"):
+        assert is_target_ranking_question(q), q
+    # NOT ranking questions — these want explanation/structure, not a ranked list
+    for q in ("What drives ABL1 potency?",
+              "What is the DFG-out conformation?",
+              "Is T315I a resistance variant?"):
+        assert not is_target_ranking_question(q), q
 
 
 def test_sar_question_selects_bioactivity_sources():

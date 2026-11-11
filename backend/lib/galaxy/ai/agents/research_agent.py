@@ -1782,6 +1782,33 @@ class ResearchAgent:
             except Exception as _fe:
                 log.warning(f"federated evidence fan-out skipped (non-fatal): {_fe}")
 
+            # ── Target-ranking questions → the target_id engine (fuse_channels) ──
+            # "which targets for disease X" wants a RANKED candidate list, not a
+            # literature narrative. Reuse the implemented orchestrator (Open Targets
+            # / STRING / LLM channels fused by the arbiter) instead of re-deriving it.
+            # FLAG-GATED + inert by default: it does live network + an LLM-channel
+            # call, so it stays OFF until explicitly enabled
+            # (BIOMATE_TARGETID_IN_RESEARCH=1), and is non-fatal when on.
+            try:
+                import os as _os_tid
+                if (_os_tid.environ.get("BIOMATE_TARGETID_IN_RESEARCH", "").strip().lower()
+                        in ("1", "true", "yes")):
+                    from galaxy.ai.evidence_source_router import is_target_ranking_question as _is_tr
+                    if _is_tr(question):
+                        from galaxy.ai.target_id import TargetIDOrchestrator, default_channels
+                        _tid_llm = getattr(self, "llm_client", None)
+                        _channels = default_channels(disease_id=None, llm_client=_tid_llm,
+                                                     include_network=True)
+                        if _channels:
+                            _orch = TargetIDOrchestrator(_channels, llm_client=_tid_llm)
+                            _tid = await asyncio.get_event_loop().run_in_executor(
+                                None, lambda: _orch.identify(question, context={"query": question}))
+                            if _tid:
+                                db_facts["target_ranking"] = _tid
+                                log.info("target-id ranking attached for a target-ranking question")
+            except Exception as _te:
+                log.warning(f"target-id ranking skipped (non-fatal): {_te}")
+
             # ENSG IDs → gene symbols + descriptions (Ensembl REST)
             if ids["ensg_ids"]:
                 ensembl_info = lookup_ensembl_ids(ids["ensg_ids"])
@@ -2734,6 +2761,25 @@ class ResearchAgent:
                         db_section.append(
                             f"- [{_src}] {str(_label)[:90]}"
                             f"{(' — ' + str(_detail)[:140]) if _detail else ''}")
+
+            # ── Ranked candidate targets (target_id fuse_channels), when attached ─
+            if df.get('target_ranking'):
+                _tr = df['target_ranking']
+                _rows = []
+                if isinstance(_tr, dict):
+                    _rows = _tr.get('targets') or _tr.get('ranked') or _tr.get('results') or []
+                if _rows:
+                    db_section.append("### Ranked candidate targets (target_id engine — evidence channels fused + z-gated)")
+                    for _t in _rows[:12]:
+                        if not isinstance(_t, dict):
+                            continue
+                        _sym = _t.get('target') or _t.get('symbol') or _t.get('entity') or _t.get('gene') or '?'
+                        _sc = _t.get('score', _t.get('gate_score', ''))
+                        _tier = _t.get('tier') or ''
+                        db_section.append(
+                            f"- {_sym}"
+                            f"{(' [' + str(_tier) + ']') if _tier else ''}"
+                            f"{(' score=' + str(_sc)[:8]) if _sc != '' else ''}")
 
             # ── GWAS Catalog associations — for SNP prioritization tasks ──────────
             if df.get('gwas_catalog'):
