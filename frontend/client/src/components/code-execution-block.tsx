@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,8 +89,18 @@ interface Props {
 
 export function CodeExecutionBlock({ block }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { call, result } = block;
   const name = block.name;
+
+  const copyCode = async (text?: string) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard unavailable (insecure context) — no-op */ }
+  };
 
   // Extract code for run_code tool
   const code = call?.input?.code as string | undefined;
@@ -102,7 +112,10 @@ export function CodeExecutionBlock({ block }: Props) {
   const isError = !!result?.error || (result?.output as any)?.exit_code > 0;
   const exitCode = (result?.output as any)?.exit_code as number | undefined;
   const stdout = (result?.output as any)?.stdout as string | undefined;
-  const outputFiles = (result?.output as any)?.output_files as Array<{ name: string; size: number; preview: string }> | undefined;
+  const outputFiles = (result?.output as any)?.output_files as Array<{ name: string; size: number; preview: string; image_data_uri?: string }> | undefined;
+  // Generated figures (plots) — surfaced inline so they are visible without
+  // expanding the tool card (founder feedback 2026-11-10: "where is the plot?").
+  const imageFiles = outputFiles?.filter(f => f.image_data_uri) ?? [];
 
   // For read_file / query_domain_knowledge: show a compact result
   const isCodeTool = name === 'run_code';
@@ -135,6 +148,23 @@ export function CodeExecutionBlock({ block }: Props) {
         {expanded ? <ChevronDown size={12} className="text-muted-foreground" /> : <ChevronRight size={12} className="text-muted-foreground" />}
       </button>
 
+      {/* ── Generated figures — always visible (not hidden behind expand) ── */}
+      {imageFiles.length > 0 && (
+        <div className="px-3 py-2 border-t border-border space-y-2">
+          {imageFiles.map(f => (
+            <figure key={f.name} className="m-0">
+              <img
+                src={f.image_data_uri}
+                alt={f.name}
+                data-testid="run-code-figure"
+                className="max-w-full h-auto rounded border border-border bg-white"
+              />
+              <figcaption className="mt-1 text-xs text-muted-foreground">{f.name}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+
       {/* ── Collapsed preview (code or summary) ────────────────────────── */}
       {!expanded && isCodeTool && code && (
         <div className="px-3 pb-2 border-t border-border">
@@ -153,10 +183,25 @@ export function CodeExecutionBlock({ block }: Props) {
       {/* ── Expanded detail ─────────────────────────────────────────────── */}
       {expanded && (
         <div className="border-t border-border">
-          {/* Full code — conventional dark code surface (readable in both themes) */}
+          {/* Full code — conventional dark code surface (readable in both themes).
+              Copy button + scrollable viewport (max-height + overflow) so long
+              scripts are both copyable and scrollable inside the card. */}
           {isCodeTool && code && (
-            <div className="bg-gray-900 text-gray-100 px-3 py-2">
-              <pre className="text-xs whitespace-pre-wrap overflow-x-auto">{code}</pre>
+            <div className="bg-gray-900 text-gray-100">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-700/60">
+                <span className="text-[10px] uppercase tracking-wide text-gray-400">{language}</span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); copyCode(code); }}
+                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-300 hover:text-white hover:bg-gray-700/60 transition-colors"
+                  aria-label="Copy code"
+                  data-testid="copy-code-button"
+                >
+                  {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{code}</pre>
             </div>
           )}
 
@@ -197,7 +242,9 @@ export function CodeExecutionBlock({ block }: Props) {
                         <div>
                           <div className="text-xs font-semibold text-accent-foreground">{f.name}</div>
                           <div className="text-xs text-primary">{(f.size / 1024).toFixed(1)} KB</div>
-                          {f.preview && (
+                          {/* Image files are rendered as figures above — don't repeat
+                              their useless "(binary)" text preview here. */}
+                          {f.preview && !f.image_data_uri && (
                             <pre className="text-xs text-muted-foreground whitespace-pre-wrap max-h-20 overflow-hidden">
                               {f.preview}
                             </pre>
