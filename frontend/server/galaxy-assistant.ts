@@ -24,7 +24,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
-import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, shouldRequireExecution, simulatedDataNote, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, shouldRequireExecution, SYNTHETIC_DATA_REFUSAL, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
 import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
@@ -832,8 +832,8 @@ export interface ChatContext {
   runCodeHistory?: { turn: string; codes: string[] };
   /** $OUTPUT_DIR artifacts run_code produced in this turn — the only files a reply may present as produced. */
   runCodeOutputFiles?: { turn: string; names: string[] };
-  /** run_code generated synthetic input data in this turn (no staged inputs) — see generatesSyntheticData. */
-  runCodeSimulated?: { turn: string };
+  /** run_code refused a simulated-input attempt this turn — the turn must end on real data (the workflow card). */
+  syntheticDataRefused?: { turn: string };
   /** Set by the authenticated server route, never inferred from proxy fallback. */
   skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
@@ -5614,6 +5614,37 @@ Rules:
       onResponseDelta?.(response.message);
     }
     log('Step 6 complete');
+
+    // Step 6r: a simulated-input attempt was refused (run_code would have invented the data). The
+    // turn must not END on that refusal: build the real workflow — the one the user named, else
+    // normal routing — so the reply finishes on a card that runs on real (built-in or attached)
+    // data. The user is told the simulation was detected, then given the real result path.
+    if (context.syntheticDataRefused?.turn === message && !workflowGenerated) {
+      const named = workflowNamedInRunRequest(message);
+      log(`Step 6r: simulated-data attempt refused — building the real workflow${named ? ` "${named.name}"` : ''}`);
+      const build = (selection?: SelectedWorkflow) => regenerateWorkflowFor
+        ? regenerateWorkflowFor(message, selection)
+        : this.generateWorkflow(message, [], intent.inlineParameters, context, decomposition.preferredDomains,
+            decomposition.keyTerms, context.sessionDatasets?.length ? context.sessionDatasets : undefined,
+            decomposition.penalizedDomains, intent.inputKinds ?? decomposition.inputKinds, selection);
+      try {
+        let recovered = await build(named ?? undefined);
+        if (!recovered?.success && named) recovered = await build();
+        if (recovered?.success && !recovered?.error && (recovered.workflow_ga || recovered.nextflow_path || recovered.workflow_type === 'chain')) {
+          generatedWorkflow = recovered;
+          workflowGenerated = true;
+          const name = cardWorkflowName(recovered) || named?.name || 'the workflow';
+          response.message = /[\u4e00-\u9fff]/.test(message)
+            ? `检测到一次模拟数据的尝试，已阻止——不会用编造的数值作为结果。\n\n**${name}** 已就绪（见下方工作流），它使用真实数据运行（工作流自带的示例数据或您提供的数据）。请检查参数后点击运行。`
+            : `A simulated-data attempt was detected and stopped — no made-up numbers are reported.\n\n**${name}** is ready below and runs on real data (the workflow's built-in sample data or yours). Review the parameters and click Run.`;
+          onResponseDelta?.(response.message);
+        } else {
+          log(`Step 6r: no workflow could be built (${recovered?.error || 'no match'}) — the reply asks for data`);
+        }
+      } catch (e: any) {
+        log('Step 6r failed: ' + (e?.message || e));
+      }
+    }
 
     // Step 6b: LLM reselection — confirm or override FTS workflow choice.
     // The text-generating LLM (Step 6) has full routing rules and domain knowledge;
@@ -10949,6 +10980,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     // on that — it returns exit_code=1 with a "[sidecar …]" stderr — so retry on
     // the RESULT. A genuine code error or an execution timeout is returned on the
     // first attempt; after retries the real error still surfaces (honest fallback).
+    // Made-up input data never becomes a result: refuse (do not run) code that generates its own values
+    // when nothing was staged and the user did not ask for a simulation (EBV, dev 2026-11-11).
+    if (generatesSyntheticData(String(input.code || ''), datasetRefs.length) && !requestAsksForSimulation(context?.turnMessage || '')) {
+      console.warn('[GalaxyAssistant] run_code refused: synthetic input data with no staged inputs and no simulation request');
+      if (context) context.syntheticDataRefused = { turn: context.turnMessage || '' };
+      return { exit_code: 1, stdout: '', stderr: SYNTHETIC_DATA_REFUSAL, output_files: [], refused: 'synthetic_input_data' };
+    }
+
     const { retryTransientRunCode } = await import('./transient-retry');
     const result = await retryTransientRunCode(() => runCode({
       language: input.language,
@@ -10964,10 +11003,6 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (context) {
       if (context.runCodeOutputFiles?.turn !== turn) context.runCodeOutputFiles = { turn, names: [] };
       context.runCodeOutputFiles.names.push(...(result.output_files || []).map(f => f.name));
-      if (result.exit_code === 0 && generatesSyntheticData(String(input.code || ''), datasetRefs.length)) {
-        console.warn('[GalaxyAssistant] run_code generated synthetic data with no staged inputs');
-        context.runCodeSimulated = { turn };
-      }
     }
     return autoStaged
       ? { ...result, note: 'input_datasets was empty; staged the datasets attached to this message — open them via INPUT_FILES / staged_inputs.' }
@@ -10978,12 +11013,11 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   private _unbackedFilesNote(text: string, message: string, context: ChatContext): string {
     const turn = context?.turnMessage || '';
     const zh = /[\u4e00-\u9fff]/.test(message);
-    const simulated = context?.runCodeSimulated?.turn === turn ? simulatedDataNote(zh) : '';
     const produced = context?.runCodeOutputFiles?.turn === turn ? context.runCodeOutputFiles.names : [];
     const inputs = attachedInputNames(message, ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : ''));
     const unbacked = unbackedOutputFileClaims(text, produced, inputs);
     if (unbacked.length) console.warn(`[GalaxyAssistant] reply claims files not produced this turn: ${unbacked.join(', ')}`);
-    return simulated + unbackedFilesNote(unbacked, zh);
+    return unbackedFilesNote(unbacked, zh);
   }
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */

@@ -251,3 +251,35 @@ describe('workflowNamedInRunRequest — the user names the workflow to run (EBV,
     expect(workflowNamedInRunRequest(message)).toBeNull();
   });
 });
+
+describe('Step 6r — a refused simulation never ends the turn: the real workflow card does (founder 2026-11-11)', () => {
+  const EBV = card('analyze_ebv_antibody_titers', 'biomni_workflows/immunology/analyze_ebv_antibody_titers/main.nf');
+  const refusingReply = (text: string) => vi.fn(async (msg: string, _i: any, _t: any, _d: any, _s: any, _g: any, ctx: any) => {
+    ctx.syntheticDataRefused = { turn: msg }; // run_code refused a simulated-input attempt during this reply
+    return { message: text, suggestions: [] };
+  });
+  it('builds the real workflow and replaces the refusal-era text with a detection notice + the card', async () => {
+    const { a, proxy } = harness({
+      decomposition: decomposition({ type: 'general_question', actions: inferActionsFromType('general_question'), inlineParameters: {}, facts: [], execution: 'direct_compute' }),
+      searchResult: EBV, replyText: '',
+    });
+    a.generateResponse = refusingReply('I could not compute this without data.');
+    const message = 'Quantify EBV antibody titers across the sample groups using the default sample data.';
+    const { res } = await run(a, message, { turnMessage: message });
+    expect(res.generatedWorkflow?.workflow_ga?.name).toBe('analyze_ebv_antibody_titers');
+    expect(res.message).toMatch(/simulated-data attempt was detected and stopped/);
+    expect(res.message).toMatch(/Analyze Ebv Antibody Titers/); // the card's own title (cardWorkflowName)
+    expect(res.message).not.toMatch(/could not compute/);
+    expect(proxy.generateWorkflow).toHaveBeenCalled();
+  });
+  it('when no workflow can be built, the reply stands (asks for data) and nothing throws', async () => {
+    const { a } = harness({
+      decomposition: decomposition({ type: 'general_question', actions: inferActionsFromType('general_question'), inlineParameters: {}, facts: [], execution: 'direct_compute' }),
+      searchResult: { success: false, error: 'no match' }, replyText: '',
+    });
+    a.generateResponse = refusingReply('Please attach your ELISA readings.');
+    const message = 'Quantify these titers.';
+    const { res } = await run(a, message, { turnMessage: message });
+    expect(res.message).toBe('Please attach your ELISA readings.');
+  });
+});
