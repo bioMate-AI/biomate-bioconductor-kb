@@ -221,9 +221,13 @@ const FILE_WORD_RE =
 export function isFilePathParam(p: BindableParam): boolean {
   const name = String(p.name || '').trim();
   if (!name || name.startsWith('__')) return false;
-  if (p.type === 'file' || p.data_input === true) return true;
+  // Base type with any list suffix removed: a multi-file input declares itself
+  // as "file[]" (e.g. SNF/MOFA2 `omics`), which is still a file parameter — the
+  // per-file assembly below binds every attachment to it.
+  const baseType = String(p.type || '').toLowerCase().replace(/\[\]$/, '');
+  if (baseType === 'file' || p.data_input === true) return true;
   if (p.format === 'file-path' || !!p.mimetype) return true;
-  if (p.type && !['string', 'text', 'path'].includes(String(p.type).toLowerCase())) return false;
+  if (p.type && !['string', 'text', 'path'].includes(baseType)) return false;
   if (defaultLooksInline(p)) return false;
   if (/_(file|path|dir|sheet|csv|tsv|fasta|fastq|bam|vcf|json)$/i.test(name)) return true;
   if (FILE_WORD_RE.test(paramText(p).replace(/_/g, ' '))) return true;
