@@ -31,7 +31,7 @@ const MIN_LEN = 10;
 const MAX_LEN = 1000;
 
 export interface ModelFoldDependencies {
-  /** Write `content` as an object under the Batch bucket and return its s3:// URI
+  /** Write `content` (a Boltz input YAML) as an object under the Batch bucket and return its s3:// URI
    *  (undefined on failure). The key is server-chosen; never from the client. */
   stageFasta(content: string, basename: string): Promise<string | undefined>;
 }
@@ -68,9 +68,11 @@ export function cleanSequence(raw: unknown): { seq: string } | { error: string }
   return { seq };
 }
 
-/** Build the FASTA body for a single query chain. */
-export function foldFasta(seq: string): string {
-  return `>query\n${seq}\n`;
+/** Build the Boltz-2 input YAML for a single protein chain. Boltz rejects a plain
+ *  FASTA header like ">query" ("Invalid record id"); it wants a chain id. The YAML
+ *  form is what the working cofold workflows use (one `protein` entity, chain A). */
+export function foldYaml(seq: string): string {
+  return `version: 1\nsequences:\n  - protein:\n      id: A\n      sequence: ${seq}\n`;
 }
 
 export async function planModelFold(
@@ -91,7 +93,7 @@ export async function planModelFold(
 
   let inputUri: string | undefined;
   try {
-    inputUri = await deps.stageFasta(foldFasta(cleaned.seq), 'query.fasta');
+    inputUri = await deps.stageFasta(foldYaml(cleaned.seq), 'query.yaml');
   } catch {
     inputUri = undefined;
   }
@@ -106,7 +108,9 @@ export async function planModelFold(
       nextflow_path: BOLTZ_FOLD_NEXTFLOW_PATH,
       steps: {}, // lazily fetched by the viewer from /api/nextflow/steps
       parameters: {
-        input_fasta: inputUri,
+        // Boltz YAML (one protein chain) — input_yaml overrides input_fasta in the
+        // boltz_structure_prediction workflow; a plain FASTA header is rejected.
+        input_yaml: inputUri,
         output_format: 'mmcif',
         use_msa_server: true,
         sampling_steps: 200,
