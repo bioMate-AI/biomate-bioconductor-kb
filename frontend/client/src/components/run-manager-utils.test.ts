@@ -181,3 +181,12 @@ describe("run manager display labels (UI language, not identifiers)", () => {
     expect(outputReadinessLabel(run)).toBeTruthy()
   })
 })
+
+describe("AWS Batch outputs count as outputs", () => {
+  it("a completed Batch run with s3_output_files is not 'needs attention'", () => {
+    const run = { id: "b1", execution: { status: "completed", nextflowStatus: { s3_output_files: [{ name: "metrics.json" }, { name: "model.pkl" }] } } } as any
+    expect(describeOutputReadiness(run)).toEqual({ code: "detected", n: 2 })
+    expect(isRunNeedsAttention(run)).toBe(false)
+    expect(getRunPrimaryCta(run)).toBe("View Outputs")
+  })
+})

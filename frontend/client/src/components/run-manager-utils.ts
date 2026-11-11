@@ -39,6 +39,8 @@ export interface RunListItem {
       outputs?: unknown[]
       results?: unknown[]
       output_files?: unknown[]
+      /** AWS Batch runs record their published outputs here (Galaxy status). */
+      s3_output_files?: unknown[]
     }
   }
   updatedAt?: string
@@ -58,7 +60,10 @@ function getOutputCount(run: RunListItem): number {
   return (
     (Array.isArray(run.execution?.nextflowStatus?.outputs) ? run.execution?.nextflowStatus?.outputs.length : 0) +
     (Array.isArray(run.execution?.nextflowStatus?.results) ? run.execution?.nextflowStatus?.results.length : 0) +
-    (Array.isArray(run.execution?.nextflowStatus?.output_files) ? run.execution?.nextflowStatus?.output_files.length : 0)
+    (Array.isArray(run.execution?.nextflowStatus?.output_files) ? run.execution?.nextflowStatus?.output_files.length : 0) +
+    // Batch runs: without these every completed Batch run read as "0 outputs →
+    // check artifacts" and filled 需要关注 with successful runs.
+    (Array.isArray(run.execution?.nextflowStatus?.s3_output_files) ? run.execution?.nextflowStatus?.s3_output_files.length : 0)
   )
 }
 
