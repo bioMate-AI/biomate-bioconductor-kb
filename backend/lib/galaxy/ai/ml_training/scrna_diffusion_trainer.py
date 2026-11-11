@@ -72,12 +72,15 @@ def load_h5ad(path: str):
 def resolve_h5ad_path(cfg: TrainingConfig) -> str:
     """The local h5ad path the trainer reads.
 
-    On Batch the executor stages the s3_uri/name into a local work dir before
-    the container runs (mirrors datasets._load_s3's note), so by the time the
-    trainer runs the dataset is a local path. `path` is used directly.
+    The .nf wrapper passes params.dataset as a plain value (nothing stages it),
+    so an ``s3://`` h5ad is staged here via datasets.resolve_local_dataset_path.
+    `path` is used directly; `name` is a named fixture pointer.
     """
     ds = cfg.dataset
-    value = ds.path or ds.s3_uri or ds.name
+    if ds.s3_uri:
+        from .datasets import resolve_local_dataset_path
+        return resolve_local_dataset_path(ds)
+    value = ds.path or ds.name
     if not value:
         raise ValueError("no h5ad dataset source resolvable for scrna_diffusion")
     return str(value)

@@ -33,7 +33,10 @@ export function toModelTrainingActivityRow(run: TrainingActivityRun): ModelTrain
   // Resource/runtime metrics do not establish training quality or registry identity.
   gate: 'Not recorded', metric: 'Not recorded',
   registrationEligible: !!run.execution.trainingLaunchParameters && ['completed', 'failed'].includes(run.execution.status),
-  dataset: run.inputBindings?.map(b => b.name || b.datasetId).join(', ') || 'Not recorded' };
+  dataset: run.inputBindings?.map(b => b.name || b.datasetId).join(', ')
+   // Panel-launched runs bind their dataset as a staged s3 param; the plan records the project file name.
+   || (typeof (run.workflowDefinition as any)?.source_dataset_name === 'string' && (run.workflowDefinition as any).source_dataset_name)
+   || 'Not recorded' };
 }
 export async function readModelTrainingActivity(
  input: { userId?: string | null; project?: unknown }, dependencies: ModelTrainingActivityDependencies,

@@ -1,0 +1,324 @@
+/**
+ * TrainingLauncher — configure and START a training run from the Models panel.
+ *
+ * No chat draft anywhere:
+ *   project + project file → POST /api/perception/profile (real columns)
+ *   → model type (filtered by what this file can actually train)
+ *   → POST /api/model-training/plan (server stages the file; Galaxy validates
+ *     the TrainingConfig and returns workflow_ga + container)
+ *   → POST /api/workflows/execute (ordinary run: run record, SSE, billing,
+ *     Run Manager) → inline run card polling the run status.
+ *
+ * family="general" is the 训练 tab (tabular ML/DL, LLM fine-tuning, scRNA /
+ * protein diffusion); family="molecular" is the 分子学习 tab (SMILES models).
+ * Every visible string comes from the models.* i18n namespace.
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useActiveProjectSafe } from '@/contexts/active-project-context';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Play } from 'lucide-react';
+import { t } from '@/lib/i18n';
+import {
+  availableModelTypes, backendModelType, columnValues, defaultModelName, detectSmilesColumns,
+  fileKind, isSupervised, LLM_TYPES, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
+  type LauncherFamily, type PanelModelType, type TaskType,
+} from './training-logic';
+import { launchTraining, TrainingLaunchError, useRunStatus, type TrainingPlan } from './models-api';
+import { SPEC_DEFAULTS, SPEC_FIELDS, specPayload, type SpecValues } from './training-specs';
+
+interface ProjectFile { id: string; name: string; s3_key: string }
+
+const FIELD = 'block w-full rounded border bg-background px-2 py-1.5 text-sm';
+
+export function TrainingLauncher({ family }: { family: LauncherFamily }) {
+  const context = useActiveProjectSafe();
+  const queryClient = useQueryClient();
+  const [project, setProject] = useState(context?.activeProjectId ?? '');
+  const [files, setFiles] = useState<ProjectFile[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [fileId, setFileId] = useState('');
+  const [columns, setColumns] = useState<string[]>([]);
+  const [sampleRows, setSampleRows] = useState<unknown[][]>([]);
+  const [profileState, setProfileState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [modelType, setModelType] = useState<PanelModelType | ''>('');
+  const [target, setTarget] = useState('');
+  const [smilesCol, setSmilesCol] = useState('');
+  const [task, setTask] = useState<TaskType>('classification');
+  const [taskTouched, setTaskTouched] = useState(false);
+  const [metric, setMetric] = useState('');
+  const [gate, setGate] = useState('');
+  const [modelName, setModelName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
+  const [epochs, setEpochs] = useState('');
+  const [spec, setSpec] = useState<SpecValues>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [runId, setRunId] = useState<string | null>(null);
+  const [launched, setLaunched] = useState<TrainingPlan | null>(null);
+
+  const file = files.find(f => f.id === fileId);
+  const kind = file ? fileKind(file.name) : 'other';
+
+  // Project files.
+  useEffect(() => {
+    setFiles([]); setFileId(''); setError('');
+    if (!project) { setFilesLoading(false); return; }
+    const controller = new AbortController();
+    setFilesLoading(true);
+    fetch(`/api/projects/${encodeURIComponent(project)}/files`, { credentials: 'include', signal: controller.signal })
+      .then(async r => { if (!r.ok) throw new Error(t('models.setup_files_error')); return r.json(); })
+      .then(body => { if (!controller.signal.aborted) setFiles(body.files ?? []); })
+      .catch(cause => { if (!controller.signal.aborted) setError(cause.message); })
+      .finally(() => { if (!controller.signal.aborted) setFilesLoading(false); });
+    return () => controller.abort();
+  }, [project]);
+
+  // Real columns for the selected file (tables only).
+  useEffect(() => {
+    setColumns([]); setSampleRows([]); setTarget(''); setSmilesCol(''); setModelType('');
+    setTaskTouched(false); setNameTouched(false); setSpec({});
+    if (!file) { setProfileState('idle'); return; }
+    if (fileKind(file.name) !== 'table') { setProfileState('ready'); return; }
+    const controller = new AbortController();
+    setProfileState('loading');
+    fetch('/api/perception/profile', {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ datasetRef: file.s3_key }), signal: controller.signal,
+    })
+      .then(async r => { if (!r.ok) throw new Error(t('models.columns_error')); return r.json(); })
+      .then(body => {
+        if (controller.signal.aborted) return;
+        const cols: string[] = Array.isArray(body?.columns) ? body.columns.map(String) : [];
+        setColumns(cols);
+        setSampleRows(Array.isArray(body?.sampleRows) ? body.sampleRows : []);
+        setProfileState(cols.length ? 'ready' : 'error');
+      })
+      .catch(cause => { if (!controller.signal.aborted) { setProfileState('error'); setError(cause.message); } });
+    return () => controller.abort();
+  }, [fileId]);
+
+  const smilesColumns = useMemo(() => detectSmilesColumns(columns, sampleRows), [columns, sampleRows]);
+  const modelTypes = useMemo(
+    () => availableModelTypes(family, kind, columns, smilesColumns),
+    [family, kind, columns, smilesColumns],
+  );
+
+  // Default the model type to the first one this dataset supports.
+  useEffect(() => {
+    if (modelTypes.length && !modelTypes.includes(modelType as PanelModelType)) setModelType(modelTypes[0]);
+    if (!modelTypes.length) setModelType('');
+  }, [modelTypes]);
+
+  useEffect(() => {
+    if (modelType && SPEC_DEFAULTS[modelType]) setSpec({ ...SPEC_DEFAULTS[modelType] });
+    else setSpec({});
+  }, [modelType]);
+
+  useEffect(() => {
+    if (smilesColumns.length && !smilesCol) setSmilesCol(smilesColumns[0]);
+  }, [smilesColumns]);
+
+  // Auto-suggest the task type from the chosen column's real values (editable).
+  useEffect(() => {
+    if (!target || taskTouched) return;
+    setTask(suggestTaskType(columnValues(columns, sampleRows, target)));
+  }, [target, columns, sampleRows, taskTouched]);
+
+  const metrics = modelType && isSupervised(modelType) ? metricsFor(modelType, task) : [];
+  useEffect(() => { if (metrics.length && !metrics.includes(metric)) setMetric(metrics[0]); }, [metrics.join()]);
+
+  // Auto-fill the model name (user edits win).
+  useEffect(() => {
+    if (nameTouched || !file) return;
+    setModelName(defaultModelName(file.name, isSupervised(modelType as PanelModelType) ? target : ''));
+  }, [file, target, modelType, nameTouched]);
+
+  const supervised = !!modelType && isSupervised(modelType);
+  const needsSmiles = !!modelType && (family === 'molecular' || modelType === 'ludwig_molecular');
+  const gateValue = gate.trim() === '' ? undefined : Number(gate);
+  const gateValid = gateValue === undefined || Number.isFinite(gateValue);
+  const valid = !!project && !!file && !!modelType && gateValid
+    && (!supervised || (!!target && !!metric))
+    && (!needsSmiles || (!!smilesCol && smilesCol !== target))
+    && (epochs.trim() === '' || Number(epochs) > 0);
+
+  const runStatus = useRunStatus(runId, s => TERMINAL_STATUSES.has(String(s).toLowerCase()));
+
+  async function submit(event: { preventDefault: () => void }) {
+    event.preventDefault();
+    if (!valid || !file || !modelType) return;
+    setBusy(true); setError(''); setRunId(null); setLaunched(null);
+    try {
+      const mapped = backendModelType(modelType);
+      const { runId: id, plan } = await launchTraining({
+        projectId: project, fileId: file.id,
+        ...mapped,
+        ...(supervised ? { task_type: task, target_col: target, metric } : {}),
+        ...(needsSmiles ? { smiles_col: smilesCol } : {}),
+        ...(gateValue !== undefined ? { gate_threshold: gateValue } : {}),
+        ...(epochs.trim() ? { epochs: Number(epochs) } : {}),
+        ...(modelName.trim() ? { model_name: modelName.trim() } : {}),
+        ...specPayload(modelType, spec),
+      });
+      setRunId(id); setLaunched(plan);
+      queryClient.invalidateQueries({ queryKey: ['/api/model-tracks/train'] });
+    } catch (cause) {
+      const stage = cause instanceof TrainingLaunchError ? cause.stage : 'plan';
+      const detail = cause instanceof Error ? cause.message : String(cause);
+      setError(stage === 'execute' ? t('models.launch_execute_failed', { detail }) : t('models.launch_plan_failed', { detail }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="space-y-3 rounded border p-3" data-testid={`training-launcher-${family}`} onSubmit={submit}>
+      <p className="text-sm font-semibold">
+        {family === 'molecular' ? t('models.launch_heading_molecular') : t('models.launch_heading_general')}
+      </p>
+      <p className="text-xs text-muted-foreground">{t('models.launch_intro')}</p>
+
+      <label className="block text-xs">{t('models.setup_project')}
+        <select className={FIELD} value={project} onChange={e => setProject(e.target.value)} required
+          data-testid="launcher-project">
+          <option value="">{t('models.setup_choose_project')}</option>
+          {context?.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </label>
+
+      <label className="block text-xs">{t('models.setup_dataset')}
+        <select className={FIELD} value={fileId} disabled={filesLoading || !project}
+          onChange={e => setFileId(e.target.value)} required data-testid="launcher-dataset">
+          <option value="">{filesLoading ? t('models.setup_loading') : t('models.setup_choose_dataset')}</option>
+          {files.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </label>
+      {project && !filesLoading && !files.length && <p className="text-xs">{t('models.setup_no_files')}</p>}
+      {profileState === 'loading' && <p role="status" className="text-xs">{t('models.columns_loading')}</p>}
+      {profileState === 'error' && <p className="text-xs text-destructive">{t('models.columns_unavailable')}</p>}
+
+      {file && !modelTypes.length && profileState !== 'loading' && (
+        <p className="text-xs text-destructive" data-testid="launcher-no-model-types">
+          {family === 'molecular' ? t('models.launch_needs_smiles_file') : t('models.launch_unsupported_file')}
+        </p>
+      )}
+
+      {!!modelTypes.length && (
+        <>
+          <label className="block text-xs">{t('models.setup_type')}
+            <select className={FIELD} value={modelType} onChange={e => setModelType(e.target.value as PanelModelType)}
+              data-testid="launcher-model-type">
+              {modelTypes.map(mt => <option key={mt} value={mt}>{t(`models.mt_${mt}`)}</option>)}
+            </select>
+          </label>
+          <p className="text-fs-xs text-muted-foreground">{modelType && t(`models.mtd_${modelType}`)}</p>
+
+          {supervised && (
+            <>
+              <label className="block text-xs">{t('models.setup_target')}
+                <select className={FIELD} value={target} onChange={e => setTarget(e.target.value)} required
+                  data-testid="launcher-target">
+                  <option value="">{t('models.choose_column')}</option>
+                  {columns.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+              {needsSmiles && (
+                <label className="block text-xs">{t('models.smiles_column')}
+                  <select className={FIELD} value={smilesCol} onChange={e => setSmilesCol(e.target.value)} required
+                    data-testid="launcher-smiles">
+                    <option value="">{t('models.choose_column')}</option>
+                    {columns.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              )}
+              <label className="block text-xs">{t('models.setup_task')}
+                <select className={FIELD} value={task} data-testid="launcher-task"
+                  onChange={e => { setTaskTouched(true); setTask(e.target.value as TaskType); }}>
+                  <option value="classification">{t('models.setup_classification')}</option>
+                  <option value="regression">{t('models.setup_regression')}</option>
+                </select>
+              </label>
+              <label className="block text-xs">{t('models.setup_metric')}
+                <select className={FIELD} value={metric} onChange={e => setMetric(e.target.value)}
+                  data-testid="launcher-metric">
+                  {metrics.map(m => <option key={m} value={m}>{t(`models.metric_${m}`)}</option>)}
+                </select>
+              </label>
+              <label className="block text-xs">
+                {metricIsCeiling(metric) ? t('models.gate_max') : t('models.gate_min')}
+                <input className={FIELD} type="number" step="any" value={gate} data-testid="launcher-gate"
+                  onChange={e => setGate(e.target.value)} />
+              </label>
+              <p className="text-fs-xs text-muted-foreground">{t('models.gate_optional')}</p>
+            </>
+          )}
+
+          {(SPEC_FIELDS[modelType as PanelModelType] ?? []).map(field => (
+            <label key={field.key} className={field.kind === 'bool' ? 'flex items-center gap-2 text-xs' : 'block text-xs'}>
+              {field.kind === 'bool' ? (
+                <>
+                  <input type="checkbox" checked={!!spec[field.key]} data-testid={`launcher-spec-${field.key}`}
+                    onChange={e => setSpec(s => ({ ...s, [field.key]: e.target.checked }))} />
+                  {t(`models.spec_${field.key}`)}
+                </>
+              ) : (
+                <>
+                  {t(`models.spec_${field.key}`)}
+                  {field.kind === 'select' ? (
+                    <select className={FIELD} value={String(spec[field.key] ?? '')} data-testid={`launcher-spec-${field.key}`}
+                      onChange={e => setSpec(s => ({ ...s, [field.key]: e.target.value }))}>
+                      {(field.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <input className={FIELD} type={field.kind === 'number' ? 'number' : 'text'}
+                      step={field.kind === 'number' ? 'any' : undefined} min={field.min}
+                      value={String(spec[field.key] ?? '')} data-testid={`launcher-spec-${field.key}`}
+                      onChange={e => setSpec(s => ({ ...s, [field.key]: e.target.value }))} />
+                  )}
+                </>
+              )}
+            </label>
+          ))}
+
+          <label className="block text-xs">{t('models.setup_name')}
+            <input className={FIELD} value={modelName} data-testid="launcher-name"
+              onChange={e => { setNameTouched(true); setModelName(e.target.value); }} />
+          </label>
+          <label className="block text-xs">{t('models.spec_epochs_optional')}
+            <input className={FIELD} type="number" min="1" step="1" value={epochs} data-testid="launcher-epochs"
+              onChange={e => setEpochs(e.target.value)} />
+          </label>
+          {LLM_TYPES.includes(modelType as PanelModelType) && (
+            <p className="text-fs-xs text-muted-foreground">{t('models.llm_gpu_note')}</p>
+          )}
+        </>
+      )}
+
+      {error && <p role="alert" className="text-xs text-destructive break-words" data-testid="launcher-error">{error}</p>}
+
+      <Button type="submit" disabled={!valid || busy} data-testid="launcher-submit">
+        {busy ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" />{t('models.launch_starting')}</>
+          : <><Play className="mr-1 h-3 w-3" />{t('models.launch_start')}</>}
+      </Button>
+
+      {runId && (
+        <div className="rounded border px-2 py-1.5 text-xs space-y-1" data-testid="launcher-run">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">{launched?.workflow_ga?.name}</span>
+            <Badge variant="outline" className="text-fs-xs" data-testid="launcher-run-status">
+              {runStatusLabel(String(runStatus.data?.status ?? 'queued'))}
+            </Badge>
+            <button type="button" className="ml-auto text-primary hover:underline" onClick={() => openRunManager()}
+              data-testid="launcher-run-link">{t('models.open_in_run_manager')}</button>
+          </div>
+          <p className="font-mono text-fs-xs text-muted-foreground break-all">{runId}</p>
+          {runStatus.data?.errorMessage && (
+            <p className="text-destructive break-words" data-testid="launcher-run-error">{runStatus.data.errorMessage}</p>
+          )}
+        </div>
+      )}
+    </form>
+  );
+}

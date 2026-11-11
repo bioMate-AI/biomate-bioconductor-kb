@@ -23,7 +23,27 @@ import type {
   InferResponse,
   InferenceResult,
 } from "./types"
-import type { TrainData, AdaptData, OptimiseData } from "./models-panel"
+import type { TrainData, OptimiseData } from "./models-panel"
+
+/**
+ * House-style (adaptation) shapes. The tab is hidden (models-panel
+ * HOUSE_STYLE_HIDDEN) because its only data source is the IND regulatory pair
+ * recorder, which is itself hidden — the read/mutate hooks and these types stay
+ * so re-enabling it is one tab registration, not a rewrite.
+ */
+export interface AdaptPair {
+  id: string
+  learned: string
+  scope: string
+  before: string
+  after: string
+  source: string
+  on: boolean
+}
+export interface AdaptData {
+  pendingCount?: number
+  pairs: AdaptPair[]
+}
 
 // ── GET /api/models ──────────────────────────────────────────────────────────
 export function useModels(): UseQueryResult<ModelSummary[]> {
@@ -233,6 +253,94 @@ export function useAdaptRetrain() {
       // A queued retrain becomes a training run — refresh both tracks.
       qc.invalidateQueries({ queryKey: ["/api/model-tracks/adapt", vars.project ?? null] })
       qc.invalidateQueries({ queryKey: ["/api/model-tracks/train", vars.project ?? null] })
+    },
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Training launch (Models panel) — plan → ordinary workflow execution.
+// POST /api/model-training/plan resolves + stages the project file server-side
+// and returns a validated workflow_ga; POST /api/workflows/execute runs it like
+// any workflow (run record, SSE, billing, Run Manager). No chat draft.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface TrainingPlanRequest {
+  projectId: string
+  fileId: string
+  model_type: string
+  featurizer?: string
+  task_type?: string
+  target_col?: string
+  smiles_col?: string
+  metric?: string
+  gate_threshold?: number
+  model_name?: string
+  epochs?: number
+  learning_rate?: number
+  llm?: Record<string, unknown>
+  sc?: Record<string, unknown>
+  diffusion?: Record<string, unknown>
+}
+
+export interface TrainingPlan {
+  workflow_ga: Record<string, any> & { name: string }
+  nextflow_path: string
+  compute_config: Record<string, unknown>
+  projectId: string
+  fileId: string
+}
+
+/** A launch failure: `stage` says which step failed; `detail` is the server text. */
+export class TrainingLaunchError extends Error {
+  constructor(public stage: "plan" | "execute", public detail: string) {
+    super(detail)
+  }
+}
+
+async function errorText(res: Response): Promise<string> {
+  const body = await res.json().catch(() => ({}))
+  const value = body?.message ?? body?.error ?? body?.detail
+  return typeof value === "string" ? value : `HTTP ${res.status}`
+}
+
+export async function launchTraining(req: TrainingPlanRequest): Promise<{ runId: string; plan: TrainingPlan }> {
+  const planRes = await fetch("/api/model-training/plan", {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(req),
+  })
+  if (!planRes.ok) throw new TrainingLaunchError("plan", await errorText(planRes))
+  const plan = (await planRes.json()) as TrainingPlan
+  const execRes = await fetch("/api/workflows/execute", {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workflowDefinition: plan.workflow_ga,
+      workflowName: plan.workflow_ga.name,
+      executionConfig: { mode: "production", executionEngine: "nextflow", computeConfig: plan.compute_config },
+      inputs: [],
+      projectId: req.projectId,
+    }),
+  })
+  if (!execRes.ok) throw new TrainingLaunchError("execute", await errorText(execRes))
+  const body = await execRes.json()
+  if (typeof body?.runId !== "string" || !body.runId) throw new TrainingLaunchError("execute", "missing runId")
+  return { runId: body.runId, plan }
+}
+
+export interface RunStatus { runId: string; status: string; errorMessage?: string }
+
+/** Poll a launched run until it reaches a terminal state. */
+export function useRunStatus(runId: string | null, terminal: (s: string) => boolean): UseQueryResult<RunStatus> {
+  return useQuery<RunStatus>({
+    queryKey: ["/api/workflows/runs", runId, "status"],
+    enabled: !!runId,
+    refetchInterval: (query) => {
+      const data = query.state.data as RunStatus | undefined
+      return data && terminal(data.status) ? false : 5000
+    },
+    queryFn: async () => {
+      const res = await fetch(`/api/workflows/runs/${encodeURIComponent(runId as string)}/status`, { credentials: "include" })
+      if (!res.ok) throw new Error(`${res.status}`)
+      return (await res.json()) as RunStatus
     },
   })
 }

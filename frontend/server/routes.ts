@@ -7,6 +7,7 @@ import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalMod
 import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
+import { planModelTraining } from "./model-training-plan";
 import { authorizeDatasetReference } from "./dataset-reference-access";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
@@ -5825,6 +5826,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
       getUserProjects: uid => memoryService.projects.getUserProjects(uid),
       getExecutionRuns: (uid, project) => storage.getExecutionRuns(uid, project, undefined, 500),
+    });
+    res.status(result.status).json(result.body);
+  });
+  // Models panel → structured training plan (no chat draft). The returned
+  // workflow_ga is submitted by the client through POST /api/workflows/execute.
+  app.post("/api/model-training/plan", authenticateToken, async (req: any, res) => {
+    const result = await planModelTraining({ userId: req.user?.id, body: req.body }, {
+      getProjectFile: async (projectId, fileId, uid) => {
+        const rows = await pool.query(`SELECT f.id, f.name, f.s3_key FROM project_files f JOIN projects p ON p.id = f.project_id
+          WHERE f.id::text = $1 AND f.project_id::text = $2 AND (p.user_id::text = $3 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $3
+          )) LIMIT 1`, [fileId, projectId, uid]);
+        const row = rows.rows[0];
+        return row ? { id: String(row.id), name: String(row.name), s3_key: String(row.s3_key) } : null;
+      },
+      stageForBatch: async (file, projectId) => {
+        const bucket = process.env.S3_BUCKET_NAME || '';
+        if (!bucket) return undefined;
+        return _stageProjectFileToNextflow(bucket, file.s3_key, projectId, file.name);
+      },
+      requestGalaxyPlan: async (uid, body) => {
+        const response = await fetchOwnedModelSurface(uid, '/api/model-training/plan', {
+          method: 'POST', body: JSON.stringify(body),
+        });
+        return { status: response.status, body: await response.json().catch(() => ({ error: 'Invalid training service response' })) };
+      },
     });
     res.status(result.status).json(result.body);
   });

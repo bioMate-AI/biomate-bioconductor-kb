@@ -292,6 +292,21 @@ def extract_training_config(
     ).validate()
 
 
+def nextflow_path_for(model_type: str) -> str:
+    """The Nextflow wrapper that runs a model_type.
+
+    Each diffusion family runs in its own wrapper (distinct GPU image); every
+    other model type shares the generic training wrapper (dispatch is by
+    --model-type in the CLI). Single source of truth for chat routing and the
+    Models-panel plan endpoint.
+    """
+    if model_type == "protein_diffusion":
+        return "ml_training/diffusion_train.nf"
+    if model_type == "scrna_diffusion":
+        return "ml_training/scrna_diffusion_train.nf"
+    return "ml_training/chemprop_train.nf"
+
+
 def route_ml_training(
     text: str,
     *,
@@ -309,16 +324,7 @@ def route_ml_training(
         cfg = extract_training_config(text, dataset_s3_uri=dataset_s3_uri, llm_fill=llm_fill)
     except ValueError:
         return None  # ambiguous → let the normal router try
-    # Each diffusion family runs in its own Nextflow wrapper (distinct GPU image);
-    # other model types share the molecular wrapper (dispatch is by --model-type
-    # in the CLI).
-    if cfg.model_type == "protein_diffusion":
-        nf_path = "ml_training/diffusion_train.nf"
-    elif cfg.model_type == "scrna_diffusion":
-        nf_path = "ml_training/scrna_diffusion_train.nf"
-    else:
-        nf_path = "ml_training/chemprop_train.nf"
-    ga = cfg.to_workflow_ga(nextflow_path=nf_path)
+    ga = cfg.to_workflow_ga(nextflow_path=nextflow_path_for(cfg.model_type))
     ga["scientific_rationale"] = (
         f"Detected a model-training request; routing to the ml_training pipeline "
         f"({cfg.model_type}, {cfg.task_type}) on dataset "
