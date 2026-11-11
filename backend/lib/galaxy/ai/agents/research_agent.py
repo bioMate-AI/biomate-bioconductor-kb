@@ -1750,6 +1750,38 @@ class ResearchAgent:
             ids = extract_biomedical_identifiers(question)
             db_facts: Dict[str, Any] = {}
 
+            # ── Intent-selected multi-source federated fan-out ────────────────
+            # Source choice follows the QUESTION'S INTENT, not just the detected
+            # entity type: a SAR / potency / target question reaches ChEMBL /
+            # BindingDB / PDB / Pharos / Open Targets — the sources the entity-type
+            # map skips when the target reads as a plain "gene". This is what lets
+            # "research" draw on ALL relevant sources for every evidence task
+            # (selector: galaxy.ai.evidence_source_router; human/LLM-readable
+            # companion: skills/evidence-source-selection.md). Non-fatal + cached.
+            try:
+                from galaxy.ai.evidence_source_router import select_sources as _select_sources
+                from galaxy.ai.federated_query import federated_query as _federated_query
+                _fed_entities = [e for e in (ids.get("gene_symbols") or []) if e][:2]
+                if _fed_entities:
+                    _fed_sources = _select_sources(question, entities=_fed_entities)
+                    _fed_out: Dict[str, Any] = {}
+                    for _ent in _fed_entities:
+                        _r = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda e=_ent, s=_fed_sources: _federated_query(str(e)[:80], sources=s),
+                        )
+                        if _r and _r.get("merged"):
+                            _fed_out[_ent] = {
+                                "sources_queried": _r.get("sources_queried", []),
+                                "merged": _r["merged"][:8],
+                            }
+                    if _fed_out:
+                        db_facts["federated_evidence"] = _fed_out
+                        log.info("federated evidence: %s via %s",
+                                 list(_fed_out.keys()), _fed_sources)
+            except Exception as _fe:
+                log.warning(f"federated evidence fan-out skipped (non-fatal): {_fe}")
+
             # ENSG IDs → gene symbols + descriptions (Ensembl REST)
             if ids["ensg_ids"]:
                 ensembl_info = lookup_ensembl_ids(ids["ensg_ids"])
@@ -2633,6 +2665,29 @@ class ResearchAgent:
             db_section = ["## Live Database Facts (retrieved from GWAS Catalog / Open Targets / Ensembl / Monarch / MyGene / ClinVar)"]
             db_section.append("Use these EXACT values in your answer — do not substitute from memory.\n")
             df = evidence['db_facts']
+
+            # ── Intent-selected federated multi-source evidence ──────────────────
+            # The sources chosen by evidence_source_router for THIS question
+            # (structure/bioactivity/target/pathway/variant → PDB/ChEMBL/BindingDB/
+            # Pharos/Open Targets/STRING/KEGG …). Real records, not model memory.
+            if df.get('federated_evidence'):
+                db_section.append(
+                    "### Federated multi-source evidence "
+                    "(UniProt/PDB/AlphaFold/ChEMBL/BindingDB/Pharos/Open Targets/STRING/KEGG/Reactome …)")
+                for _ent, _blk in df['federated_evidence'].items():
+                    _qs = ", ".join((_blk.get('sources_queried') or [])[:14])
+                    db_section.append(f"**{_ent}** — queried: {_qs}")
+                    for _m in (_blk.get('merged') or [])[:8]:
+                        if not isinstance(_m, dict):
+                            continue
+                        _src = _m.get('source') or _m.get('db') or _m.get('database') or '?'
+                        _label = (_m.get('name') or _m.get('title') or _m.get('id')
+                                  or _m.get('accession') or _m.get('chembl_id') or '')
+                        _detail = (_m.get('summary') or _m.get('description')
+                                   or _m.get('activity') or _m.get('value') or _m.get('type') or '')
+                        db_section.append(
+                            f"- [{_src}] {str(_label)[:90]}"
+                            f"{(' — ' + str(_detail)[:140]) if _detail else ''}")
 
             # ── GWAS Catalog associations — for SNP prioritization tasks ──────────
             if df.get('gwas_catalog'):
