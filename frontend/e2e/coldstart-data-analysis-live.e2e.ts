@@ -109,8 +109,15 @@ for (const r of ROWS) {
     const label = (await row.innerText()).split("\n")[0].trim().replace(/^[“"]|[”"]$/g, "");
     const sent: { url: string; body: string }[] = [];
     page.on("request", (req) => {
-      if (req.method() === "POST" && /chat|stream|upload|files/.test(req.url())) sent.push({ url: req.url(), body: (req.postData() || "").slice(0, 4000) });
+      if (req.method() === "POST" && /chat|stream|upload|files/.test(req.url())) sent.push({ url: req.url(), body: req.postData() || "" });
     });
+    // Diagnostics: the raw SSE the browser received + the client's own chat logs.
+    const sse: string[] = [];
+    const consoleLog: string[] = [];
+    page.on("response", async (res) => {
+      if (/\/api\/chat\/stream/.test(res.url())) sse.push(await res.text().catch((e) => `<<unreadable: ${e}>>`));
+    });
+    page.on("console", (m) => { const t = m.text(); if (/ChatInterface|workflow|Workflow|stream|SSE/.test(t)) consoleLog.push(`${m.type()}: ${t.slice(0, 400)}`); });
     await row.click();
 
     const composer = page.getByTestId("chat-input");
@@ -140,11 +147,25 @@ for (const r of ROWS) {
     }
     const answer = (await page.locator('[data-role="assistant"]').allInnerTexts()).join("\n---\n");
     const userText = (await page.locator('[data-role="user"]').allInnerTexts()).join("\n");
-    const workflowNames = await page.locator('.wf-chip-name, [data-testid="workflow-artifact-panel"] .panel-name').allInnerTexts();
+    // Ground truth for "did this produce a workflow card": the stored session's
+    // assistant message metadata.workflow (anchors render as empty divs, and the
+    // card can land after the text). Poll the real session API for up to 90 s.
+    const chatReq = sent.find((x) => /\/api\/chat\/stream/.test(x.url));
+    const sessionId = chatReq ? (() => { try { return JSON.parse(chatReq.body).context?.sessionId as string | undefined; } catch { return chatReq.body.match(/"sessionId":"([^"]+)"/)?.[1]; } })() : undefined;
+    let workflowNames: string[] = [];
+    for (let i = 0; sessionId && i < 18; i++) {
+      const res = await page.request.get(`${BASE_URL}/api/sessions/${sessionId}`);
+      if (res.ok()) {
+        const msgs: any[] = (await res.json()).messages ?? [];
+        workflowNames = msgs.filter((m) => m.role === "assistant" && m.metadata?.workflow).map((m) => String(m.metadata.workflow.name ?? m.metadata.workflow.display_name ?? m.metadata.workflow.workflow_type ?? "unnamed"));
+        if (workflowNames.length) break;
+      }
+      await page.waitForTimeout(5_000);
+    }
     await page.screenshot({ path: path.join(OUT, `${rowId(r)}-answer.png`), fullPage: true }).catch(() => {});
 
     const result = {
-      row: rowId(r), label, prompt, attached, expectedFiles: want,
+      row: rowId(r), sessionId, label, prompt, attached, expectedFiles: want,
       userText, workflowNames: workflowNames.map((t) => t.slice(0, 200)), answer: answer.slice(0, 6000),
       clarifying: CLARIFY.exec(answer)?.[0] ?? null,
       leaks: answer.match(/s3:\/\/[^\s)]+|\/uploads\/[0-9a-f-]{36}/g) ?? [],
@@ -152,6 +173,8 @@ for (const r of ROWS) {
       requests: sent.map((s) => s.url),
     };
     fs.writeFileSync(path.join(OUT, `${rowId(r)}.json`), JSON.stringify(result, null, 2));
+    fs.writeFileSync(path.join(OUT, `${rowId(r)}.sse.txt`), sse.join("\n=====\n"));
+    fs.writeFileSync(path.join(OUT, `${rowId(r)}.console.txt`), consoleLog.join("\n"));
 
     expect.soft(want, `A: no bundle resolved for "${label}"`).not.toBeNull();
     if (want) expect.soft([...attached].sort(), `A: attachments for "${label}"`).toEqual([...want].sort());
