@@ -1,4 +1,3 @@
-import { tOr } from "@/lib/i18n";
 /**
  * Benchmark Evidence Component
  *
@@ -24,14 +23,9 @@ import {
   TrendingUp,
   Clock,
   Zap,
-  Save,
-  FlaskConical,
-  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { api } from "@/lib/api";
-import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
 import { CitationPanel } from "@/components/citation-panel";
 import type { EvidenceCitation } from "@/components/source-reader-pane";
 
@@ -405,8 +399,6 @@ export interface ResearchResponseData {
   follow_up_questions?: string[];
   methods_used?: string[];
   benchmark_evidence?: BenchmarkComparison;
-  /** What this answer is NOT evidence for (spec 01: boundary is always present). */
-  boundary?: string;
   /**
    * Retrieval transparency ("How this was searched"), keyed per source that was
    * genuinely queried. Emitted by the backend ONLY when real per-source counts
@@ -425,31 +417,7 @@ interface ResearchResponseDisplayProps {
   response: ResearchResponseData;
   onFollowUpClick?: (question: string) => void;
   onToolClick?: (toolName: string, galaxyToolId?: string) => void;
-  /** Research-to-analysis exit — prepares a composer draft for user review.
-   *  Only rendered when supplied, so we never show an exit that does nothing. */
-  onCheckAgainstData?: (answer: string) => void;
   className?: string;
-}
-
-/** Build the saved-answer document: the answer plus its cited sources, so the
- *  saved object carries its own provenance (not a bare paragraph). */
-function buildAnswerMarkdown(response: ResearchResponseData): string {
-  const lines: string[] = [response.answer?.trim() || ""];
-  if (response.citations?.length) {
-    lines.push("", "## Sources");
-    response.citations.forEach((c, i) => {
-      const bits = [
-        `${i + 1}. ${c.title}`,
-        c.authors?.length ? c.authors.slice(0, 3).join(", ") + (c.authors.length > 3 ? " et al." : "") : "",
-        c.journal || "",
-        c.year ? `(${c.year})` : "",
-        c.doi ? `doi:${c.doi}` : "",
-      ].filter(Boolean);
-      lines.push(bits.join(" · "));
-    });
-  }
-  if (response.boundary) lines.push("", `_Boundary: ${response.boundary}_`);
-  return lines.join("\n").trim();
 }
 
 /**
@@ -482,46 +450,12 @@ export function ResearchResponseDisplay({
   response,
   onFollowUpClick,
   onToolClick,
-  onCheckAgainstData,
   className,
 }: ResearchResponseDisplayProps) {
   // Evidence-forward: the sources/retrieval panel is the trustworthy surface for a
   // research answer (the chat prose is re-synthesised and can drift), so surface it
   // expanded by default on a research turn rather than hiding it behind a click.
   const [showCitations, setShowCitations] = useState(true);
-  const activeProjectId = useActiveProjectIdSafe();
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
-  // Save the answer (with its sources) as a persistent, reusable project object
-  // via the real project-knowledge endpoint — the same one the workflow methods
-  // panel uses. Makes an evidence answer non-ephemeral (L1), not lost with the chat.
-  const handleSaveToProject = async () => {
-    if (!activeProjectId || saveState === "saving") return;
-    const content = buildAnswerMarkdown(response);
-    if (!content) { setSaveState("error"); return; }
-    setSaveState("saving");
-    try {
-      await api.request(`/memory/projects/${activeProjectId}/knowledge`, {
-        method: "POST",
-        body: JSON.stringify({
-          knowledgeType: "notes_synthesis",
-          title: `Saved answer — ${new Date().toISOString().slice(0, 10)}`,
-          content,
-          source: "user_saved",
-        }),
-      });
-      setSaveState("saved");
-    } catch (e: any) {
-      console.error("[research] save to project failed:", e?.message ?? e);
-      setSaveState("error");
-    }
-  };
-
-  // Boundary is ALWAYS present (spec 01): a specific caveat when the agent
-  // supplies one, else an honest standing caveat — never silently omitted.
-  const boundaryText =
-    response.boundary?.trim() ||
-    "Synthesizes retrieved literature only — not validated against your project's data. Check against your own data before relying on it.";
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -550,44 +484,6 @@ export function ResearchResponseDisplay({
           isCollapsed={!showCitations}
         />
       )}
-
-      {/* Boundary — always present (spec 01): what this answer is NOT evidence for. */}
-      <div
-        data-testid="research-answer-boundary"
-        className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-2 text-xs text-amber-800 dark:text-amber-300"
-      >
-        <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-        <span><span className="font-medium">Boundary:</span> {boundaryText}</span>
-      </div>
-
-      {/* Exits — make the answer a reusable object, and turn it into a run. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          className="text-xs"
-          data-testid="research-answer-save"
-          disabled={!activeProjectId || saveState === "saving" || saveState === "saved"}
-          title={!activeProjectId ? "Open a project to save this answer" : "Save this answer and its sources to the project"}
-          onClick={handleSaveToProject}
-        >
-          <Save className="h-3.5 w-3.5 mr-1" />
-          {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved to project ✓" : saveState === "error" ? "Save failed — retry" : "Save to project"}
-        </Button>
-        {onCheckAgainstData && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs"
-            data-testid="research-answer-check-data"
-            onClick={() => onCheckAgainstData(response.answer)}
-            title={tOr('research_plan.hint', 'Prepare a draft with this question and answer. Add your dataset and analysis goal, then send when ready.')}
-          >
-            <FlaskConical className="h-3.5 w-3.5 mr-1" />
-            {tOr('research_plan.action', 'Plan analysis with my data')}
-          </Button>
-        )}
-      </div>
 
       {/* Follow-up questions */}
       {response.follow_up_questions && response.follow_up_questions.length > 0 && (

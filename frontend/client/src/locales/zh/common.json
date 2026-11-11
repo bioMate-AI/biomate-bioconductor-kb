@@ -1396,16 +1396,6 @@
     "no_abstract_excerpt": "此来源未提供摘要或摘录。",
     "no_source_link": "此来源未提供链接。"
   },
-  "research_plan": {
-    "action": "规划我的数据分析",
-    "hint": "将此问题和回答填入草稿。请添加数据集和分析目标，准备好后再发送。",
-    "introduction": "请帮助我规划如何分析我的数据。",
-    "question": "先前的问题：",
-    "evidence": "文献背景（尚未使用我的数据验证）：",
-    "request": "我的数据集和分析问题：",
-    "unavailable_title": "无法准备分析草稿",
-    "unavailable": "输入框或原始问题暂不可用。请重新打开此聊天后重试。"
-  },
   "project_instructions": {
     "instructions": "项目指令",
     "applies": "适用于此项目中的所有对话和运行。",

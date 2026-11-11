@@ -1,4 +1,3 @@
-import { stageAnalysisPlanDraft } from "@/lib/analysis-plan-draft"
 import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { awaitsWorkflowInput, hasGeneratedWorkflow } from "@/lib/workflow-response-state"
 import { LiveVoicePanel } from "./live-voice-panel"
@@ -2114,22 +2113,6 @@ export function ChatInterface({
     handleSendMessage(source.content, undefined, { intentOverride: 'workflow_generation' })
   }, [chatSession?.messages, chatSession?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handlePlanAnalysisWithData = useCallback((message: Message) => {
-    const result = stageAnalysisPlanDraft(chatSession?.messages ?? [], message, localSetDraftRef.current, {
-      introduction: tOr('research_plan.introduction', 'Help me plan an analysis using my data.'),
-      questionLabel: tOr('research_plan.question', 'Previous question:'),
-      evidenceLabel: tOr('research_plan.evidence', 'Literature context (not validated against my data):'),
-      requestLabel: tOr('research_plan.request', 'My dataset and analysis question:'),
-    });
-    if (!result) toast({
-      title: tOr('research_plan.unavailable_title', 'Could not prepare the analysis draft'),
-      description: tOr('research_plan.unavailable', 'The composer or original question is unavailable. Reopen this chat and try again.'),
-      variant: 'destructive',
-    });
-    // The registered draft setter focuses the composer. Sending, selecting data
-    // and choosing an analysis remain explicit user actions.
-  }, [chatSession?.messages])
-
   useEffect(() => {
     if (!externalPromptRequest) return
     if (displayTyping) return
@@ -2262,7 +2245,6 @@ export function ChatInterface({
                   onRegenerate={handleRegenerate}
                   onSuggestionClick={handleSuggestionClick}
                   onRedoAsValidatedRun={handleRedoAsValidatedRun}
-                  onPlanAnalysisWithData={handlePlanAnalysisWithData}
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}

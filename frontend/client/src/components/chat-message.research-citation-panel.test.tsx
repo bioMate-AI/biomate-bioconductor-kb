@@ -95,8 +95,8 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
       "Sources disagree — 1 conflicting finding"
     )
 
-    // The always-present boundary is not regressed.
-    expect(screen.getByTestId("research-answer-boundary")).toBeInTheDocument()
+    // The Boundary banner was removed from research answers (2026-11-10).
+    expect(screen.queryByTestId("research-answer-boundary")).toBeNull()
   })
 
   it("renders neither section (no crash) when retrieval/conflicts are absent", () => {
@@ -106,9 +106,9 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
     expect(screen.queryByTestId("retrieval-transparency")).toBeNull()
     expect(screen.queryByTestId("conflict-row")).toBeNull()
 
-    // The source list still renders (both citations), and the boundary persists.
+    // The source list still renders (both citations); no Boundary banner.
     expect(screen.getByText("Aligner benchmark A")).toBeInTheDocument()
-    expect(screen.getByTestId("research-answer-boundary")).toBeInTheDocument()
+    expect(screen.queryByTestId("research-answer-boundary")).toBeNull()
   })
 
   it("does not fabricate retrieval from the citation list (empty array → no section)", () => {
