@@ -657,11 +657,23 @@ export function ChatMessage({
                   {visibleText && <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleText}</p>}
                   {attachedNames.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {attachedNames.map(name => (
-                        <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 text-xs text-current/80">
-                          📎 {name}
+                      {/* Collapse many attachments to a single compact chip — a demo with 5 input
+                          files rendered 5 chips (founder: "tons of dataset input, confusing"). Names
+                          remain in the tooltip; ≤3 files still show individually. */}
+                      {attachedNames.length <= 3 ? (
+                        attachedNames.map(name => (
+                          <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 text-xs text-current/80">
+                            📎 {name}
+                          </span>
+                        ))
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 text-xs text-current/80"
+                          title={attachedNames.join(', ')}
+                        >
+                          📎 {attachedNames.length} files attached
                         </span>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
