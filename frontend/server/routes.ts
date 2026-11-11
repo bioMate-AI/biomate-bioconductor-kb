@@ -5737,7 +5737,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           workflowDefinition: {
             name: 'Adaptation retrain',
-            workflow_type: 'training',
+            // Not model training (no model, no metrics): kept out of the Models
+            // panel's training-runs list, still a first-class run in Run Manager.
+            workflow_type: 'adaptation',
             description:
               typeof galaxyJson?.message === 'string' && galaxyJson.message
                 ? galaxyJson.message
@@ -5842,8 +5844,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const uris = files.map(uriOf).filter((u) => u.startsWith(`s3://${bucket}/`) && /\/metrics\.json$/.test(u));
         const uri = uris.find((u) => /\/results\/metrics\.json$/.test(u)) || uris[0];
         if (!uri) return null;
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        // The work bucket is in us-east-1, not the app region: a us-west-2 client
+        // got PermanentRedirect on every read, so no run ever showed its score.
+        const client = await _s3ClientForBucket(bucket);
         const obj = await client.send(new GetObjectCommand({ Bucket: bucket, Key: uri.slice(`s3://${bucket}/`.length) }));
         const text = await (obj.Body as any)?.transformToString?.('utf-8');
         return text && text.length < 512 * 1024 ? JSON.parse(text) : null;

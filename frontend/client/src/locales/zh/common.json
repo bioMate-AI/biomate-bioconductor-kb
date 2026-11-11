@@ -211,7 +211,28 @@
     "undo": "撤销",
     "dismiss": "忽略",
     "drag_resize": "拖动以调整面板宽度",
-    "close_panel": "关闭工作流面板"
+    "close_panel": "关闭工作流面板",
+    "time_unknown": "—",
+    "fresh_unknown": "时间未知",
+    "fresh_just_now": "刚刚",
+    "fresh_minutes": "{{n}} 分钟前",
+    "fresh_hours": "{{n}} 小时前",
+    "fresh_days": "{{n}} 天前",
+    "untitled_run": "未命名运行",
+    "id_run": "运行",
+    "id_invocation": "调用",
+    "no_runs": "暂无运行",
+    "cta_resolve_inputs": "补全输入",
+    "cta_view_failure": "查看失败原因",
+    "cta_view_outputs": "查看输出",
+    "cta_open_logs": "查看日志",
+    "readiness_stdout_only": "已完成（结果在日志输出中）",
+    "readiness_artifact_unavailable": "已完成，但结果文件不可用",
+    "readiness_ready": "输出就绪（可视化 {{viz}} / 可下载 {{dl}}）",
+    "readiness_partial": "部分输出（{{n}}）",
+    "readiness_not_ready": "输出未就绪",
+    "readiness_detected": "检测到输出（{{n}}）",
+    "readiness_check_artifacts": "已完成，请检查输出"
   },
   "cold_start": {
     "describe_goal_placeholder": "描述目标 — 例如：筛选这些分子的 hERG，再按成药性排序",
@@ -1690,7 +1711,12 @@
     "run_gate_fail": "质量门未通过",
     "run_gate_pass_threshold": "质量门通过 · 阈值 {{threshold}}",
     "run_gate_fail_threshold": "质量门未通过 · 阈值 {{threshold}}",
-    "launch_too_few_rows": "该文件只有 {{rows}} 行数据，训练至少需要 {{min}} 行——每行一个样本，包含特征列和要预测的列。请选择训练用的数据表。"
+    "launch_too_few_rows": "该文件只有 {{rows}} 行数据，训练至少需要 {{min}} 行——每行一个样本，包含特征列和要预测的列。请选择训练用的数据表。",
+    "metric_f1": "F1",
+    "metric_rmse": "均方根误差",
+    "metric_pr_auc": "精确率-召回率曲线下面积",
+    "run_status_interrupted": "已中断",
+    "run_status_unknown": "状态未知"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",

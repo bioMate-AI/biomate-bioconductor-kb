@@ -355,6 +355,22 @@ test('b+c. chat: "不用工作流" computes directly with the true count; refres
 // reach `completed` (not merely be accepted) and appear in the panel's run list.
 test('e. training: a tabular classifier trains to completion from the panel path', async () => {
   test.setTimeout(45 * 60_000);
+
+  // e0. A table too small to train on is refused BEFORE a Batch job is spent
+  // (dev run c0d27792: a 1-row contrasts.csv crashed 5-fold CV on Batch).
+  const tiny = await api.post(`/api/projects/${projectId}/files/upload`, {
+    multipart: { file: { name: 'one_row.csv', mimeType: 'text/csv',
+      buffer: Buffer.from('id,variable,reference,target\nA_vs_B,condition,B,A\n') } },
+  });
+  expect(tiny.status(), `tiny upload: ${(await tiny.text()).slice(0, 200)}`).toBeLessThan(400);
+  const tinyId = ((await tiny.json()).file || {}).id;
+  const refused = await api.post('/api/model-training/plan', {
+    data: { projectId, fileId: tinyId, model_type: 'sklearn_tabular', task_type: 'classification',
+            target_col: 'variable', metric: 'accuracy' },
+  });
+  expect(refused.status(), 'a 1-row table must be refused at plan time').toBe(400);
+  expect(String((await refused.json().catch(() => ({}))).error), 'refusal must carry the localisable code').toMatch(/^dataset_too_small:1:/);
+
   const csv = path.join(HERE, 'fixtures', 'train_tabular.csv');
   const up = await api.post(`/api/projects/${projectId}/files/upload`, {
     multipart: { file: { name: 'train_tabular.csv', mimeType: 'text/csv', buffer: readFileSync(csv) } },
@@ -392,8 +408,17 @@ test('e. training: a tabular classifier trains to completion from the panel path
   }
   expect(last.status, `training run ${runId} ended ${last.status}: ${last.errorMessage ?? ''}`).toBe('completed');
 
-  // The panel lists it.
+  // The panel lists it WITH its result: the score read from the run's own
+  // metrics.json and the quality-gate verdict (was 'Not recorded' until 2026-11-11).
+  const act = await api.get(`/api/model-tracks/train?project=${encodeURIComponent(projectId)}`);
+  const rows: any[] = (await act.json().catch(() => ({}))).runs || [];
+  const row = rows.find((r) => r.name === 'live-journey-tabular' && r.status === 'completed');
+  expect(row, `no completed live-journey-tabular row: ${JSON.stringify(rows).slice(0, 300)}`).toBeTruthy();
+  expect(row.metricName, `score not recorded: ${JSON.stringify(row)}`).toBe('accuracy');
+  expect(row.metricValue).toBeGreaterThanOrEqual(0.6);
+  expect(row.gateStatus).toBe('pass');
   await page.goto(`${BASE}/models`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('live-journey-tabular').first(), 'trained run missing from 训练运行').toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/(?:准确率|Accuracy) 0\.\d{3}/).first(), 'score not shown in 训练运行').toBeVisible({ timeout: 30_000 });
   await shot('e1_training_completed');
 });
