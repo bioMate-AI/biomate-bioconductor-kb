@@ -127,7 +127,7 @@ cd frontend && BIOMATE_URL=https://dev-public.biomate.ai \
   - Drug discovery: "Screen these SMILES" and "Why might this hit series be failing on hERG" share `admet`.
   - Genomics: "Call variants" and "Check contamination/relatedness" share `reads`.
 
-### 4.4 Internal scaffolding shown to the user — MEDIUM
+### 4.4 Internal scaffolding shown to the user — MEDIUM (fixed in `6ad8247755`, not yet deployed)
 
 - **User bubble:** every catalog-backed example sends and displays `Prepared demo context: These are prepared public tutorial inputs, not new experimental results. Use demo_notes.md…`, followed by the bundle's internal instructions. This is the same class of problem as the project ID: context meant for the model is shown as the user's own words. A `demo_notes.md` attachment is also added to every row.
 - **Assistant answers:** raw storage paths sometimes appear, e.g. `s3://biomate-nextflow-work/uploads/<uuid>/pilot_compounds.csv`. They come from the `[Uploaded datasets: … s3_uri=…]` block the client appends to the message (`chat-interface.tsx` ~1773–1792), which the model then quotes.
@@ -139,6 +139,17 @@ cd frontend && BIOMATE_URL=https://dev-public.biomate.ai \
 - **Attachments:** 36 of 36 rows from the first full pass attached exactly their own bundle. No wrong or shared-default datasets.
 - **Ad-hoc compute:** real, numerically correct answers (BACE1 potency vs logP, r = 0.117; predicted vs measured IC50, Pearson 0.383 on 1,310 compounds; 8×12 plate → 96-row long table).
 - **Workflow cards observed** (any pass): DESeq2 chain, sarek, scdownstream, MAGeCK, CryoSPARC, AutoDock Vina, Predict ADMET, cart_construct_design. The per-row pass/fail table will be appended when the current pass (stored-session ground truth) completes.
+
+
+### 5.1 Stored-session ground truth (partial pass, dev `401e23e8`, 2026-11-11 04:49–05:00Z, 3 workers)
+
+| Track | Rows | Workflow card stored | Notes |
+|---|---|---|---|
+| Ad-hoc compute | 3 | n/a (Instant by design) | Correct computed answers |
+| Validated workflows | 3 | 2 | sarek reply in workflow format but no card |
+| Try sample data | 12 | **1** (wsi nuclei seg) | 9 replies use the "**Workflow** — Input / Key steps / Expected output" format (used only when a workflow *was* generated) but have no card. This includes metaboanalystr, which has no attachments, so 4.1 is **not attachment-specific** and is frequent, not rare. The Cox row ran inline R; the two hospital rows started with file reads. |
+
+All 18 rows attached exactly their own files. One reply mentioned storage (flow cytometry).
 
 ---
 
@@ -183,3 +194,25 @@ Remove the "**Boundary:** Synthesizes retrieved literature only — not validate
   - `User intent: SRR1039508 … Inline parameters: {"accession":"SRR1039508","domain_hint":"rna_seq"}` → `source: template_reuse` → `Found workflow: nf-core/differentialabundance` (confidence 54);
   - then `Step 6c: text mentions "nf-core/rnaseq", not a search candidate for this request — keeping "nf-core/differentialabundance"`.
 - **Root cause:** a turn that supplies the missing input for the workflow open in the panel is routed as a brand-new request. `context.currentWorkflow` is sent by the client but used only for domain inference (`galaxy-assistant.ts` ~9429) and panel parameter edits (`routes.ts` ~7630), never to bind the follow-up to the open workflow. The Step 6c guard then keeps the wrong card over the text that names the right one.
+
+---
+
+## 8. Fixes in progress (2026-11-10 late)
+
+- **`6ad8247755` (S3 and scaffolding, 4.4):**
+  - Examples seed only the goal; bundle notes travel as a hidden `[Prepared inputs: …]` block, stripped from the bubble.
+  - `demo_notes.md` is no longer attached.
+  - The LLM prompt no longer offers "S3 URIs" and forbids storage paths in replies.
+  - The panel hint is fixed (en/zh).
+  - Regression tests added.
+  - Founder directive recorded: no S3 anywhere in user-facing text.
+- **Parallel branches** (each from `6ad8247755`):
+  - `fix/research-answer-clutter` (7.1)
+  - `fix/known-workflow-routing` (7.2 + 7.4)
+  - `fix/prerun-state-clarity` (7.3)
+  - `fix/lost-workflow-card` (4.1)
+  - `fix/example-routing-failures` (4.2)
+  - `fix/data-analysis-example-catalog` (4.3)
+
+  They will be merged into #365, then pre-sync checks, dev sync and a full re-run of the live harness.
+- **Left for the founder to decide:** UI that belongs to the real S3 connector feature still says "S3": "复制 S3 路径" (copy path), "我的 S3 存储桶" (output destination), and the URL importer's "AWS S3 单个文件 / S3 文件夹". These name a working feature rather than leak storage.
