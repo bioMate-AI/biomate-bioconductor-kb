@@ -333,6 +333,36 @@ export const COLD_MODULES: ColdModule[] = [
         },
       },
       {
+        // Fold the candidate (or its complex with the target) and read where to
+        // trust it — Boltz-2 cofold on Cloud GPU. Separate from "Predict & filter"
+        // (affinity/dock): this produces the 3D structure + confidence, the input
+        // the downstream pose/affinity steps read. Routes to the Structure
+        // prediction domain (DOMAIN_RULES).
+        k: "Fold & complex",
+        ex: [
+          "Predict the structure of this protein\u2013ligand complex and show me the pose.",
+          "Model this complex and tell me where the model is unsure.",
+          "Predict the fold of this candidate and flag the low-pLDDT regions.",
+        ],
+        exBy: {
+          sm: [
+            "Predict the structure of this protein\u2013ligand complex and show me the pose.",
+            "Model this complex and tell me where the model is unsure.",
+            "Predict the fold of this candidate and flag the low-pLDDT regions.",
+          ],
+          pep: [
+            "Predict the structure of this cyclic peptide bound to my target.",
+            "Model this complex for a macrocycle against my target, with interface confidence.",
+            "Predict the fold of this stapled peptide and where to trust it.",
+          ],
+          bio: [
+            "Predict the structure of this antibody\u2013antigen complex and report interface confidence.",
+            "Model this complex for a nanobody and its antigen.",
+            "Predict the fold of this designed binder against its target.",
+          ],
+        },
+      },
+      {
         // The evaluate step of the design chain: a ladder from fast (dock) to
         // rigorous (relative binding free energy / ΔΔG, a Cloud · GPU-hours run).
         k: "Predict & filter",

@@ -19,7 +19,7 @@ import { COLD_DOMAINS } from "@/components/cold-start-dashboard"
 const SAMPLE_REFS = COLD_DOMAINS.flatMap((d) => d.shapes.map((sh) => sh.sampleDataset?.ref).filter(Boolean)) as string[]
 
 /** Proper nouns, product names, file names and scientific identifiers. */
-const ALLOWED = new Set(`BioMate PubMed Europe PMC DOI PMID SMILES SDF ADMET hERG logP IC50 GO RNA seq DESeq2 ChIP ATAC MACS CTCF EBV VCA EA EBNA1 MiniLibCas9 Brunello LFQ Analyst Mayo
+const ALLOWED = new Set(`BioMate PubMed Europe PMC DOI PMID SMILES SDF ADMET hERG logP pLDDT IC50 GO RNA seq DESeq2 ChIP ATAC MACS CTCF EBV VCA EA EBNA1 MiniLibCas9 Brunello LFQ Analyst Mayo
 CAR CD19 Cox LFQ proteinGroups SNF CRISPR AChR PBMC PBMCs counts_matrix csv contrasts SAR FTO APA BibTeX h5ad x cryo EM airway CDR CDRs
 QC FDR µM IgG IgM nf core rnaseq EPAR STAR HISAT2 Genome Biology Love MI T
 GMT UTC MG IC h ad GSE EBNA CD`.split(/\s+/))

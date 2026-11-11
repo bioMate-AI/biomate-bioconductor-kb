@@ -373,7 +373,17 @@
       "lfq_analyst_example_batch": "LFQ-Analyst example batch",
       "compare_trial_arms_and_test_the_primary_endpoint": "Compare trial arms and test the primary endpoint",
       "sample_provided_a_randomised_trial_cohort": "sample provided — a randomised trial cohort",
-      "mayo_pbc_trial_cohort": "Mayo PBC trial cohort"
+      "mayo_pbc_trial_cohort": "Mayo PBC trial cohort",
+      "fold_complex": "Fold & complex",
+      "predict_the_structure_of_this_protein_ligand_complex_and_show_me": "Predict the structure of this protein–ligand complex and show me the pose.",
+      "model_this_complex_and_tell_me_where_the_model_is_unsure": "Model this complex and tell me where the model is unsure.",
+      "predict_the_fold_of_this_candidate_and_flag_the_low_plddt_region": "Predict the fold of this candidate and flag the low-pLDDT regions.",
+      "predict_the_structure_of_this_cyclic_peptide_bound_to_my_target": "Predict the structure of this cyclic peptide bound to my target.",
+      "model_this_complex_for_a_macrocycle_against_my_target_with_inter": "Model this complex for a macrocycle against my target, with interface confidence.",
+      "predict_the_fold_of_this_stapled_peptide_and_where_to_trust_it": "Predict the fold of this stapled peptide and where to trust it.",
+      "predict_the_structure_of_this_antibody_antigen_complex_and_repor": "Predict the structure of this antibody–antigen complex and report interface confidence.",
+      "model_this_complex_for_a_nanobody_and_its_antigen": "Model this complex for a nanobody and its antigen.",
+      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target."
     },
     "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },
