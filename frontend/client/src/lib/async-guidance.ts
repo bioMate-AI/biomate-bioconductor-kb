@@ -163,6 +163,24 @@ export function isTransientChatError(
   );
 }
 
+/** HTTP 502/503/504 from the reverse proxy: the app server did not answer at all. */
+export function isGatewayError(error: string | null | undefined, httpStatus?: number | null): boolean {
+  if (httpStatus === 502 || httpStatus === 503 || httpStatus === 504) return true;
+  return /\b(502|503|504)\b|bad gateway|service unavailable|gateway time-?out/i.test(normalizeError(error));
+}
+
+/**
+ * Backoff schedule (ms) for retrying a failed chat stream; its length is the number of retries.
+ * A gateway error is an app-server restart/overload window: the dev frontend was down ~5 s during a
+ * container replacement (2026-11-11 04:04:19–04:04:24 UTC), and the old 0.8 s + 1.6 s schedule
+ * spent both retries inside that window, so the user got a hard error for a request that would
+ * have succeeded 3 s later. Retry gateway errors across ~15 s; other transient failures (which
+ * include 120 s timeouts) keep the short schedule.
+ */
+export function chatRetryDelaysMs(error: string | null | undefined, httpStatus?: number | null): number[] {
+  return isGatewayError(error, httpStatus) ? [1000, 2000, 4000, 8000] : [800, 1600];
+}
+
 export function getChatAsyncGuidance(
   rawError: string | null | undefined,
   options: { isOnline?: boolean } = {}
@@ -192,6 +210,22 @@ export function getChatAsyncGuidance(
       retry: "Retry with a narrower request or simpler input context.",
       escalation: "If timeouts persist, report issue with timestamp and prompt summary.",
       isTimeout: true,
+      isNetworkRelated: false,
+    };
+  }
+
+  // A gateway error (HTTP 502/503/504) means the app server was unreachable — restarting during a
+  // deploy, or overloaded — so the request was never answered. It says nothing about the prompt:
+  // "rephrase the request" (the generic advice below) is wrong for it (dev 2026-11-11 04:04 UTC:
+  // the frontend container was replaced mid-request and the user saw "Chat API error: Bad Gateway
+  // — Rephrase the request…").
+  if (isGatewayError(error)) {
+    return {
+      title: "BioMate was briefly unavailable",
+      reason: "The server did not answer (it was restarting or overloaded), so your message was not processed.",
+      retry: "Send the same message again in a few seconds — no need to change it.",
+      escalation: "If this keeps happening, report issue with the timestamp.",
+      isTimeout: false,
       isNetworkRelated: false,
     };
   }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getChatAsyncGuidance, getExecutionAsyncGuidance, isTransientChatError } from './async-guidance'
+import { chatRetryDelaysMs, getChatAsyncGuidance, getExecutionAsyncGuidance, isGatewayError, isTransientChatError } from './async-guidance'
 
 describe('getChatAsyncGuidance', () => {
   // DB / infra errors must NOT be "Connection error"
@@ -188,5 +188,27 @@ describe('getExecutionAsyncGuidance', () => {
     const g = getExecutionAsyncGuidance('ETIMEDOUT')
     expect(g.title).toBe('Execution timed out')
     expect(g.isTimeout).toBe(true)
+  })
+})
+
+// Dev 2026-11-11 04:04:19–04:04:24 UTC: the frontend container was replaced mid-request; nginx returned
+// 502 for ~5 s. The client's two retries (0.8 s, 1.6 s) both landed in that window and the user saw
+// "Chat API error: Bad Gateway — Rephrase the request…" for a request that would have succeeded.
+describe('gateway errors (app server restarting)', () => {
+  it('detects 502/503/504 by status or message', () => {
+    expect(isGatewayError('Chat API error: Bad Gateway')).toBe(true)
+    expect(isGatewayError('Chat API error: 502')).toBe(true)
+    expect(isGatewayError('x', 504)).toBe(true)
+    expect(isGatewayError('Chat API error: Not Found', 404)).toBe(false)
+  })
+  it('retries a gateway error across a restart window (> 5 s), others keep the short schedule', () => {
+    const gw = chatRetryDelaysMs('Chat API error: Bad Gateway', 502)
+    expect(gw.reduce((a, b) => a + b, 0)).toBeGreaterThan(5000)
+    expect(chatRetryDelaysMs('No final payload received', null)).toEqual([800, 1600])
+  })
+  it('tells the user to resend unchanged, not to rephrase', () => {
+    const g = getChatAsyncGuidance('Chat API error: Bad Gateway')
+    expect(g.title).toBe('BioMate was briefly unavailable')
+    expect(g.retry).not.toMatch(/rephrase/i)
   })
 })

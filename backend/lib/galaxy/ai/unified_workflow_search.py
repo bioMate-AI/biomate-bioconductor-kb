@@ -150,6 +150,27 @@ _INTEGRATION_RAW_PENALTY: float = _env_float("BIOMATE_INTEGRATION_RAW_PENALTY", 
 _INTEGRATION_WF_BOOST: float = _env_float("BIOMATE_INTEGRATION_WF_BOOST", 6.0)
 
 
+# The analysis OPERATION a query asks for must be matched under all of its surface forms, or the
+# ranker falls back to matching the INPUT format alone. "differential protein abundance",
+# "differentially abundant proteins", "differentially expressed genes" and "differential protein
+# expression" all name the same operation (a between-group differential test), but the phrase
+# bonus only knew the literal 'differential expression' — so for "Quantify differential protein
+# abundance between my two groups" + a MaxQuant proteinGroups.txt, no DE workflow (DEqMS/DEP/proDA)
+# got the operation bonus and a pulldown enrichment-QC workflow won on the shared input terms
+# (MaxQuant, proteinGroups.txt) — docs/20261110_COLDSTART_EXAMPLES_LIVE_AUDIT.md §4.2. ~120 catalog
+# descriptions use "differential(ly) … abundance/abundant/expressed" wording.
+_DIFFERENTIAL_TEST_RE = re.compile(
+    r"\bdifferential(?:ly)?\s+(?:[a-z0-9]+\s+){0,2}?(?:expression|expressed|abundance|abundant)\b"
+)
+
+
+def canonicalize_operation_phrases(text: str) -> str:
+    """Rewrite surface forms of a between-group differential test to the canonical
+    'differential expression' KEY_PHRASE, so the phrase bonus matches the operation regardless of
+    the measured entity (gene / protein / taxon) or the wording (expression / abundance)."""
+    return _DIFFERENTIAL_TEST_RE.sub("differential expression", text or "")
+
+
 def _enforce_executable() -> bool:
     """executable=0 rows are excluded from search results when on. Default OFF until the stale flags are corrected
     from execution evidence (9 nf-core pipelines disabled for a 2026-10-01 stub that no longer runs — §15.3);
@@ -1974,9 +1995,9 @@ class UnifiedWorkflowSearch:
         # Normalize description too (remove hyphens so "rna-seq" matches query "rna seq").
         # Use word-boundary check (' phrase ') to avoid false substring matches
         # (e.g. 'rna seq' inside 'scrna seq').
-        desc_norm = (description or '').lower().replace('-', ' ')
-        phrase_haystack = ' ' + name_lower + ' ' + desc_norm + ' '
-        padded_query = ' ' + query_expanded + ' '
+        desc_norm = canonicalize_operation_phrases((description or '').lower().replace('-', ' '))
+        phrase_haystack = ' ' + canonicalize_operation_phrases(name_lower) + ' ' + desc_norm + ' '
+        padded_query = ' ' + canonicalize_operation_phrases(query_expanded) + ' '
         phrase_matches = 0
         for phrase in self.KEY_PHRASES:
             padded = ' ' + phrase + ' '
