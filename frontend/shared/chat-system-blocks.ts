@@ -36,6 +36,32 @@ export function stripSystemBlocks(text: string | null | undefined): string {
     .trim();
 }
 
+/**
+ * Redact internal storage references the model must never surface to a user —
+ * the Galaxy dataset id and its "galaxy" keyword, in the JSON, key=value and
+ * prose forms the model tends to echo from the "[Uploaded datasets: …]" context
+ * into its run_code and replies. DISPLAY-ONLY: the wire protocol still carries
+ * galaxy_dataset_id; this only hides it from anything shown to the user. Apply
+ * to assistant content at render, and to anything copied/downloaded.
+ */
+export function redactInternalRefs(text: string | null | undefined): string {
+  if (!text) return "";
+  return String(text)
+    // JSON:  "galaxy_dataset_id": "uuid"  (drop the whole pair + a leading comma)
+    .replace(/,?\s*"galaxy_dataset_id"\s*:\s*"[^"]*"/gi, "")
+    // key=value:  galaxy_dataset_id=uuid
+    .replace(/,?\s*\bgalaxy_dataset_id\s*=\s*[^\s,}\])]+/gi, "")
+    // prose colon:  galaxy_dataset_id: uuid
+    .replace(/,?\s*\bgalaxy_dataset_id\s*:\s*[^\s,}\])]+/gi, "")
+    // any bare keyword left over → neutral, never the word "galaxy"
+    .replace(/\bgalaxy_dataset_id\b/gi, "data_id")
+    // tidy JSON wreckage the removals can leave: {} / {, / ,} / ,,
+    .replace(/\{\s*\}/g, "")
+    .replace(/\{\s*,/g, "{")
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*,/g, ",");
+}
+
 /** File / dataset names referenced by the system blocks (for attachment chips). */
 export function attachedNamesFromBlocks(text: string | null | undefined): string[] {
   const raw = String(text || "");

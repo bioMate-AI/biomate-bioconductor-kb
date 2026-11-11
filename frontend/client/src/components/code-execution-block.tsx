@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check } from 'lucide-react';
+import { redactInternalRefs } from '@shared/chat-system-blocks';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -169,7 +170,7 @@ export function CodeExecutionBlock({ block }: Props) {
       {!expanded && isCodeTool && code && (
         <div className="px-3 pb-2 border-t border-border">
           <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-hidden max-h-12">
-            {previewLines.join('\n')}
+            {redactInternalRefs(previewLines.join('\n'))}
             {codeLines.length > 3 && <span className="text-muted-foreground/70"> …+{codeLines.length - 3} lines</span>}
           </pre>
         </div>
@@ -192,7 +193,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 <span className="text-[10px] uppercase tracking-wide text-gray-400">{language}</span>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); copyCode(code); }}
+                  onClick={(e) => { e.stopPropagation(); copyCode(redactInternalRefs(code)); }}
                   className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-300 hover:text-white hover:bg-gray-700/60 transition-colors"
                   aria-label="Copy code"
                   data-testid="copy-code-button"
@@ -201,7 +202,7 @@ export function CodeExecutionBlock({ block }: Props) {
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{code}</pre>
+              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{redactInternalRefs(code)}</pre>
             </div>
           )}
 
@@ -210,7 +211,7 @@ export function CodeExecutionBlock({ block }: Props) {
             <div className="px-3 py-2 bg-background border-b border-border">
               <div className="text-xs text-muted-foreground mb-1">Input</div>
               <pre className="text-xs text-foreground whitespace-pre-wrap">
-                {JSON.stringify(call.input, null, 2)}
+                {redactInternalRefs(JSON.stringify(call.input, null, 2))}
               </pre>
             </div>
           )}
@@ -228,7 +229,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 <div>
                   <div className="text-xs text-muted-foreground mb-0.5">stdout</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
-                    {truncate(stdout, 2000)}
+                    {truncate(redactInternalRefs(stdout), 2000)}
                   </pre>
                 </div>
               )}
@@ -246,7 +247,7 @@ export function CodeExecutionBlock({ block }: Props) {
                               their useless "(binary)" text preview here. */}
                           {f.preview && !f.image_data_uri && (
                             <pre className="text-xs text-muted-foreground whitespace-pre-wrap max-h-20 overflow-hidden">
-                              {f.preview}
+                              {redactInternalRefs(f.preview)}
                             </pre>
                           )}
                         </div>
@@ -260,7 +261,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 <div>
                   <div className="text-xs text-muted-foreground mb-0.5">Result</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
-                    {truncate(typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2), 2000)}
+                    {truncate(redactInternalRefs(typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2)), 2000)}
                   </pre>
                 </div>
               )}

@@ -9,7 +9,7 @@ import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
 import { FindingsCard } from "./findings-card"
 import { t, locale } from "@/lib/i18n"
-import { stripSystemBlocks, attachedNamesFromBlocks } from "@shared/chat-system-blocks"
+import { stripSystemBlocks, attachedNamesFromBlocks, redactInternalRefs } from "@shared/chat-system-blocks"
 
 /**
  * Pre-processes assistant markdown to:
@@ -344,7 +344,7 @@ export function ChatMessage({
   const handleCopyResponse = async () => {
     onCopy()
     try {
-      await navigator.clipboard.writeText(message.content || "")
+      await navigator.clipboard.writeText(redactInternalRefs(message.content) || "")
       toast({ title: t('chat_msg.copied') })
     } catch {
       toast({ title: t('chat_msg.copy_failed'), description: t('chat_msg.clipboard_unavailable'), variant: "destructive" })
@@ -413,7 +413,7 @@ export function ChatMessage({
           <div className="flex flex-col gap-2 max-w-[80%]">
             <div className="rounded-2xl rounded-tl-sm bg-muted/60 dark:bg-muted/30 px-4 py-2.5 text-sm leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                {message.content}
+                {redactInternalRefs(message.content)}
               </ReactMarkdown>
             </div>
             {quickReplies.length > 0 && (
@@ -504,7 +504,7 @@ export function ChatMessage({
         }}
       >
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
-        <span style={{ flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{message.content}</span>
+        <span style={{ flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{redactInternalRefs(message.content)}</span>
         {/* "(why?)" rationale anchor — commented out 2026-10-20 (UI refinement).
             WhyAnchor renders the "(why?)" link whenever a workflow_name+phase_id
             (or rationaleId) is present, BEFORE confirming a curated rationale
@@ -561,13 +561,13 @@ export function ChatMessage({
                     ),
                   }}
                 >
-                  {addCitationLinks(
+                  {addCitationLinks(redactInternalRefs(
                     // Strip trailing References section when structured citations are rendered below
                     (message.metadata?.type === 'research_response' &&
                       (message.metadata?.research_response as any)?.citations?.length > 0)
                       ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
                       : (message.content || '')
-                  )}
+                  ))}
                 </ReactMarkdown>
               </div>
   )
@@ -1237,21 +1237,21 @@ export function ChatMessage({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem
-                  onClick={() => downloadAsTxt(message.content || '', message.content)}
+                  onClick={() => downloadAsTxt(redactInternalRefs(message.content) || '', message.content)}
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
                   {t('chat_msg.save_as_txt')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => downloadAsMd(message.content || '', message.content)}
+                  onClick={() => downloadAsMd(redactInternalRefs(message.content) || '', message.content)}
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
                   {t('chat_msg.save_as_md')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => downloadAsDocx(message.content || '', message.content)}
+                  onClick={() => downloadAsDocx(redactInternalRefs(message.content) || '', message.content)}
                   className="gap-2"
                 >
                   <FileDown className="h-4 w-4" />

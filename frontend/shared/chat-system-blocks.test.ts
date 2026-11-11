@@ -32,3 +32,27 @@ describe("chat system blocks → user-facing text", () => {
     expect(titleHasSystemBlock("EPAR approvals")).toBe(false)
   })
 })
+
+import { redactInternalRefs } from './chat-system-blocks';
+describe('redactInternalRefs — never show galaxy dataset id/keyword to the user', () => {
+  it('removes the JSON form the model echoes', () => {
+    expect(redactInternalRefs('{"galaxy_dataset_id":"ac170aeb-1659-4c81-a7cf-b14cc2ab598e"}')).toBe('');
+  });
+  it('removes the key=value form, keeping the rest', () => {
+    expect(redactInternalRefs('counts.csv: dataset_id=abc, galaxy_dataset_id=ac170aeb, s3_uri=x'))
+      .toBe('counts.csv: dataset_id=abc, s3_uri=x');
+  });
+  it('removes the prose colon form', () => {
+    expect(redactInternalRefs('Use galaxy_dataset_id: ac170aeb for run_code'))
+      .toBe('Use for run_code');
+  });
+  it('neutralizes a bare keyword (never the word "galaxy")', () => {
+    const out = redactInternalRefs('pass the galaxy_dataset_id');
+    expect(out).toBe('pass the data_id');
+    expect(out.toLowerCase()).not.toContain('galaxy');
+  });
+  it('leaves ordinary text untouched', () => {
+    expect(redactInternalRefs('Here are the DESeq2 results.')).toBe('Here are the DESeq2 results.');
+    expect(redactInternalRefs('')).toBe('');
+  });
+});
