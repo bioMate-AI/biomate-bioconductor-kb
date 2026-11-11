@@ -1,0 +1,13 @@
+{
+  "source": "Mayo Clinic primary biliary cholangitis (PBC) trial, R survival::pbc (Therneau; Fleming & Harrington 1991, appendix D)",
+  "rows": 418,
+  "id": "case number",
+  "time": "days from registration to the earlier of death, liver transplantation, or study analysis (July 1986)",
+  "status": {"0": "censored", "1": "liver transplant", "2": "dead"},
+  "trt": {"1": "D-penicillamine", "2": "placebo", "NA": "not randomised (cases 313-418)"},
+  "sex": {"m": "male", "f": "female"},
+  "clinical_signs": {"ascites": "presence of ascites", "hepato": "hepatomegaly", "spiders": "blood vessel malformations in the skin", "edema": "0 none; 0.5 untreated or successfully treated; 1 despite diuretic therapy"},
+  "serum_and_urine_biomarkers": {"bili": "serum bilirubin (mg/dl)", "chol": "serum cholesterol (mg/dl)", "albumin": "serum albumin (g/dl)", "copper": "urine copper (ug/day)", "alk.phos": "alkaline phosphatase (U/liter)", "ast": "aspartate aminotransferase (U/ml)", "trig": "triglycerides (mg/dl)", "platelet": "platelet count", "protime": "standardised blood clotting time"},
+  "stage": "histologic stage (needs biopsy)",
+  "data_policy": "Published deidentified trial cohort; the first 312 cases are the randomised trial with largely complete data"
+}
