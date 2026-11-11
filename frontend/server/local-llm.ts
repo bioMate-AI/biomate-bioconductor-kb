@@ -72,7 +72,7 @@ function textBlocks(content: any): string {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) throw new Error('Unsupported local message content');
   return content.map(b => {
-    // This path is text-only: an image block (an attached image read by read_file, a run_code plot)
+    // Text-only rendering: an image block (an attached image read by read_file, a run_code plot)
     // becomes a short note instead of throwing and aborting the whole agent turn.
     if (b.type === 'image') return `[image (${b.source?.media_type || 'image'}) — not visible to this model]`;
     if (b.type !== 'text') throw new Error(`Local text trial does not support ${b.type} content`);
@@ -80,9 +80,30 @@ function textBlocks(content: any): string {
   }).join('\n');
 }
 
-/** Translate the Messages API subset used by GalaxyAssistant, retaining tool IDs. */
-export function localMessages(params: any): any[] {
+/** Anthropic base64 image block → OpenAI `image_url` content part (data URI). */
+function imagePart(b: any): any {
+  if (b?.source?.type !== 'base64' || !b.source.media_type || !b.source.data) return null;
+  return { type: 'image_url', image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` } };
+}
+
+function hasImages(params: any): boolean {
+  const walk = (c: any): boolean => Array.isArray(c) && c.some((b: any) => b?.type === 'image'
+    || (b?.type === 'tool_result' && walk(b.content)));
+  return (params.messages || []).some((m: any) => walk(m.content));
+}
+
+/** Translate the Messages API subset used by GalaxyAssistant, retaining tool IDs.
+ *  With `vision`, images reach the model as OpenAI `image_url` parts. The OpenAI `tool` role
+ *  carries text only, so a tool result's images follow the turn's tool messages as one user
+ *  message (tool messages must stay contiguous after the assistant's tool_calls). Without it,
+ *  each image becomes a text note. */
+export function localMessages(params: any, opts: { vision?: boolean } = {}): any[] {
   const messages: any[] = [];
+  const split = (content: any) => {
+    if (!opts.vision || !Array.isArray(content)) return { text: textBlocks(content), images: [] as any[] };
+    const images = content.filter((b: any) => b.type === 'image').map(imagePart).filter(Boolean);
+    return { text: textBlocks(content.filter((b: any) => b.type !== 'image' || !imagePart(b))), images };
+  };
   if (params.system) messages.push({ role: 'system', content: textBlocks(params.system) });
   for (const message of params.messages) {
     if (typeof message.content === 'string') { messages.push(message); continue; }
@@ -95,13 +116,40 @@ export function localMessages(params: any): any[] {
           function: { name: b.name, arguments: JSON.stringify(b.input) } })) } : {}) });
     } else {
       const results = content.filter((b: any) => b.type === 'tool_result');
-      for (const b of results) messages.push({ role: 'tool', tool_call_id: b.tool_use_id,
-        content: textBlocks(b.content) });
+      const toolImages: any[] = [];
+      for (const b of results) {
+        const { text, images } = split(b.content);
+        messages.push({ role: 'tool', tool_call_id: b.tool_use_id, content: text });
+        if (images.length) toolImages.push({ type: 'text', text: `Image output of tool call ${b.tool_use_id}:` }, ...images);
+      }
       const other = content.filter((b: any) => b.type !== 'tool_result');
-      if (other.length) messages.push({ role: 'user', content: textBlocks(other) });
+      const { text, images } = split(other.length ? other : []);
+      const parts = [...toolImages, ...(other.length ? [{ type: 'text', text }, ...images] : [])];
+      if (!parts.length) continue;
+      messages.push({ role: 'user', content: toolImages.length || images.length ? parts : text });
     }
   }
   return messages;
+}
+
+const _imageInputCache = new Map<string, boolean>();
+/** Whether an OpenAI-compatible model accepts image input, from the provider's model listing
+ *  (OpenRouter: `architecture.input_modalities`). Unknown or unreachable → false (text note). */
+export async function modelAcceptsImages(cfg: { url: string; model: string; key?: string }): Promise<boolean> {
+  const cacheKey = `${cfg.url}|${cfg.model}`;
+  const hit = _imageInputCache.get(cacheKey);
+  if (hit !== undefined) return hit;
+  let ok = false;
+  try {
+    const r = await fetch(`${cfg.url.replace(/\/$/, '')}/models`, { redirect: 'error', signal: AbortSignal.timeout(10000),
+      headers: cfg.key ? { Authorization: `Bearer ${cfg.key}` } : {} });
+    if (r.ok) {
+      const m = ((await r.json())?.data || []).find((x: any) => x?.id === cfg.model);
+      ok = Array.isArray(m?.architecture?.input_modalities) && m.architecture.input_modalities.includes('image');
+      _imageInputCache.set(cacheKey, ok);
+    }
+  } catch { /* not cached: retried on the next image-bearing turn */ }
+  return ok;
 }
 
 /** Validate the object/string/number/array schemas used by BioMate's agent tools. */
@@ -224,7 +272,8 @@ export function openaiCompatMessagesClient(cfg: { url: string; model: string; ke
       if (!t.input_schema || !t.name) throw new Error('Unsupported tool definition');
       return { type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } };
     });
-    const result = await openaiCompatCompletion(cfg, { messages: localMessages(params),
+    const vision = hasImages(params) && await modelAcceptsImages(cfg);
+    const result = await openaiCompatCompletion(cfg, { messages: localMessages(params, { vision }),
       max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
       ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
