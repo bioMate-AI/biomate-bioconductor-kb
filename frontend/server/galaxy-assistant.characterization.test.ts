@@ -53,17 +53,15 @@ describe("characterization: inferActionsFromType (router action table)", () => {
   });
 });
 
-// ── B. The named _isX detectors (the regex routing patches P3 deletes) ──────────
+// ── B. The named _isX detectors. 2026-11-10: they no longer ROUTE (the classifier is the single
+// authority — docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md); the remaining three only pick the
+// empty-reply fallback text for an already-generated card. _isClusterProfilerQuery and
+// _isDirectCodeExecutionQuery were deleted with their overrides. ──────────
 // Pure methods (they read only `message`, never `this`) → callable off the prototype.
 const detect = (name: string, msg: string): boolean =>
   (GalaxyAssistant.prototype as unknown as Record<string, (m: string) => boolean>)[name].call(null as unknown as GalaxyAssistant, msg);
 
 const GOLDEN: Array<{ name: string; fires: string[]; notFires: string[] }> = [
-  {
-    name: "_isClusterProfilerQuery",
-    fires: ["Run clusterProfiler enrichGO on my DEGs", "clusterProfiler GSEA with KEGG"],
-    notFires: ["run DESeq2 on my counts", "open clusterProfiler"],
-  },
   {
     name: "_isPocketDetectionQuery",
     fires: ["fpocket on 1IEP", "binding pocket detection druggability on this PDB"],
@@ -78,12 +76,6 @@ const GOLDEN: Array<{ name: string; fires: string[]; notFires: string[] }> = [
     name: "_isPlanAEpitopeQuery",
     fires: ["run nf-core/epitopeprediction", "epitope prediction with mhcnuggets"],
     notFires: ["epitope prediction with mhcquant"],
-  },
-  {
-    name: "_isDirectCodeExecutionQuery",
-    fires: ["use run_code to compute the mean", "do not create a workflow, just run_code this snippet"],
-    // explicit run_code BUT names a pipeline keyword (deseq2) → guarded off; and a plain ADMET ask.
-    notFires: ["use run_code to run DESeq2", "screen these compounds for ADMET"],
   },
 ];
 
