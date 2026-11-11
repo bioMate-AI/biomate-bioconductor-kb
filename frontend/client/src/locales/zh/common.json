@@ -429,7 +429,17 @@
       "lfq_analyst_example_batch": "LFQ-Analyst 示例批次",
       "compare_trial_arms_and_test_the_primary_endpoint": "比较各试验组并检验主要终点",
       "sample_provided_a_randomised_trial_cohort": "提供样例 — 随机对照试验队列",
-      "mayo_pbc_trial_cohort": "Mayo PBC 试验队列"
+      "mayo_pbc_trial_cohort": "Mayo PBC 试验队列",
+      "fold_complex": "折叠与复合物",
+      "predict_the_structure_of_this_protein_ligand_complex_and_show_me": "预测这个蛋白–配体复合物的结构，并展示结合构象。",
+      "model_this_complex_and_tell_me_where_the_model_is_unsure": "为这个复合物建模，并指出模型不确定的区域。",
+      "predict_the_fold_of_this_candidate_and_flag_the_low_plddt_region": "预测该候选分子的折叠结构，并标出 pLDDT 较低的区域。",
+      "predict_the_structure_of_this_cyclic_peptide_bound_to_my_target": "预测这个环肽与我的靶点结合后的结构。",
+      "model_this_complex_for_a_macrocycle_against_my_target_with_inter": "为大环分子与我的靶点建模复合物，并给出界面置信度。",
+      "predict_the_fold_of_this_stapled_peptide_and_where_to_trust_it": "预测这个订书肽的折叠结构，并指出可信区域。",
+      "predict_the_structure_of_this_antibody_antigen_complex_and_repor": "预测这个抗体–抗原复合物的结构，并报告界面置信度。",
+      "model_this_complex_for_a_nanobody_and_its_antigen": "为纳米抗体与其抗原建模复合物。",
+      "predict_the_fold_of_this_designed_binder_against_its_target": "预测这个设计结合物针对靶点的折叠结构。"
     },
     "sample_title_inline": "使用目标中附带的示例运行。编辑目标即可改用您自己的数据。"
   },

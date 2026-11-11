@@ -332,6 +332,18 @@ describe("<ColdStartDashboard>", () => {
       const pepEx = design.tracks[0].exBy!.pep[0];
       expect(readIntent(pepEx)!.lane).toBe("cloud");
     });
+
+    it("surfaces the Fold & complex track (Boltz-2 cofold) and every variant reads as Structure prediction", () => {
+      const design = COLD_MODULES.find((m) => m.id === "design")!;
+      const fold = design.tracks.find((t) => t.k === "Fold & complex");
+      expect(fold, "design module is missing the Fold & complex track").toBeTruthy();
+      const variants = [...fold!.ex, ...Object.values(fold!.exBy!).flat()];
+      for (const ex of variants) {
+        const r = readIntent(ex);
+        expect(r?.lane, `fold example not cloud: ${ex}`).toBe("cloud");
+        expect(r?.domain, `fold example not Structure prediction: ${ex}`).toBe("Structure prediction");
+      }
+    });
   });
 
   describe("readIntent()", () => {
