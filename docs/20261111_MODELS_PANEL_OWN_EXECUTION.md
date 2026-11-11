@@ -38,3 +38,18 @@ execution move.
 
 Holding the build for the founder's go-ahead because it spends GPU and (for
 Evo2/OpenFold2) touches standing infra.
+
+## VALIDATED on dev (2026-11-11) — Boltz-2 runs on our own Batch
+
+The Models "Run a model" → structure path now folds on **our AWS Batch**, proven end to end:
+- `POST /api/models/fold/plan` validates the sequence, stages a Boltz **YAML** (one `protein` chain), returns the `boltz_structure_prediction` launch request.
+- `POST /api/workflows/execute` launches a **tracked Batch run** (run record, SSE, Run Manager). Zero NVIDIA.
+- Live result (ubiquitin, run 2b212f04): `boltz_input_model_0.cif` — **601 atoms**, confidence_score **0.932**, pTM 0.916, pLDDT **0.936**.
+
+Two bugs the live run caught (unit tests could not):
+1. Boltz rejects a `>query` FASTA header (`Invalid record id`) → use the chain-id YAML. Fixed in `model-fold.ts`.
+2. The `boltz_structure_prediction` summary globbed only `*.mmcif` but Boltz writes `*.cif` → reported 0 structures on a successful fold. Fixed glob + added loud-fail on no-structure.
+
+Route-order fix: `/api/models/fold/plan` had to be registered before the `/api/models/*` catch-all (else proxied to Galaxy). Regression test added.
+
+Deploy-gate hardening (same session): the ancestry gate now also requires HEAD to contain the deploy ledger's last commit, closing the backend-only-deploy silent-overwrite window (`dev_deploy_ancestry.py` + `sync_to_dev.sh`, 14 tests).
