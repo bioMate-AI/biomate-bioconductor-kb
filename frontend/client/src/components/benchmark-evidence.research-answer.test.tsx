@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { ResearchResponseDisplay, type ResearchResponseData } from "./benchmark-evidence";
 
 const base: ResearchResponseData = {
@@ -9,37 +9,33 @@ const base: ResearchResponseData = {
   confidence: 0.8,
 };
 
-describe("ResearchResponseDisplay — evidence answer as an object (L1)", () => {
-  it("ALWAYS renders a boundary, even when the response supplies none", () => {
+// Founder decision (2026-11-10): a research/literature answer renders its
+// sources and follow-ups only — no "Boundary:" caveat banner, no "Save to
+// project" button, and no "Plan analysis with my data" exit.
+describe("ResearchResponseDisplay — no clutter under a research answer", () => {
+  it("does not render the Boundary banner, even when the server sends a boundary", () => {
+    const withBoundary = { ...base, boundary: "Not evidence for dosing in humans." } as ResearchResponseData;
+    const { container } = render(<ResearchResponseDisplay response={withBoundary} />);
+    expect(screen.queryByTestId("research-answer-boundary")).toBeNull();
+    expect(container.textContent).not.toMatch(/Boundary:/);
+    expect(container.textContent).not.toContain("Not evidence for dosing in humans.");
+    expect(container.textContent).not.toMatch(/not validated against your project/i);
+  });
+
+  it("does not render a Save to project button", () => {
     render(<ResearchResponseDisplay response={base} />);
-    const b = screen.getByTestId("research-answer-boundary");
-    expect(b).toBeInTheDocument();
-    // Falls back to an honest standing caveat, not an empty element.
-    expect(b.textContent).toMatch(/not validated against your project/i);
+    expect(screen.queryByTestId("research-answer-save")).toBeNull();
+    expect(screen.queryByRole("button", { name: /save to project/i })).toBeNull();
   });
 
-  it("shows the response's specific boundary when provided", () => {
-    render(<ResearchResponseDisplay response={{ ...base, boundary: "Not evidence for dosing in humans." }} />);
-    expect(screen.getByTestId("research-answer-boundary").textContent).toContain("Not evidence for dosing in humans.");
-  });
-
-  it("offers Save to project, disabled when there is no active project", () => {
+  it("does not render a Plan analysis with my data button", () => {
     render(<ResearchResponseDisplay response={base} />);
-    const save = screen.getByTestId("research-answer-save");
-    expect(save).toBeInTheDocument();
-    // No ActiveProjectProvider in the test → useActiveProjectIdSafe() is null →
-    // the save is honestly disabled rather than silently no-op.
-    expect(save).toBeDisabled();
-  });
-
-  it('only renders "Check against our data" when a handler is supplied, and fires it with the answer', () => {
-    const { rerender } = render(<ResearchResponseDisplay response={base} />);
     expect(screen.queryByTestId("research-answer-check-data")).toBeNull();
+    expect(screen.queryByRole("button", { name: /plan analysis with my data|规划我的数据分析/i })).toBeNull();
+  });
 
-    const onCheck = vi.fn();
-    rerender(<ResearchResponseDisplay response={base} onCheckAgainstData={onCheck} />);
-    const btn = screen.getByTestId("research-answer-check-data");
-    fireEvent.click(btn);
-    expect(onCheck).toHaveBeenCalledWith(base.answer);
+  it("still renders follow-up questions", () => {
+    render(<ResearchResponseDisplay response={{ ...base, follow_up_questions: ["What about Z?"] }} />);
+    expect(screen.getByRole("button", { name: /What about Z\?/ })).toBeInTheDocument();
   });
 });

@@ -239,8 +239,6 @@ interface ChatMessageProps {
    * message and re-sends it with intentOverride='workflow_generation'.
    */
   onRedoAsValidatedRun?: (message: Message) => void
-  /** Draft a data-analysis question for review; never executes or selects a workflow. */
-  onPlanAnalysisWithData?: (message: Message) => void
 }
 
 export function ChatMessage({
@@ -275,7 +273,6 @@ export function ChatMessage({
   isInPanel = false,
   onOpenInPanel,
   onRedoAsValidatedRun,
-  onPlanAnalysisWithData,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
 
@@ -728,9 +725,6 @@ export function ChatMessage({
                   onToolClick({ tool: { tool_id: galaxyToolId, name: toolName }, relevanceScore: 1, reasoning: 'From research' })
                 }
               }}
-              // Research follow-up only prepares a reviewable composer draft.
-              // Compute-result "Redo as a validated run" remains a separate action.
-              onCheckAgainstData={onPlanAnalysisWithData ? () => onPlanAnalysisWithData(message) : undefined}
               className="mt-3"
             />
           )}

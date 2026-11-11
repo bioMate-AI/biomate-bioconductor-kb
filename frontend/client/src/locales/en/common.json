@@ -878,16 +878,6 @@
     "no_abstract_excerpt": "No abstract or excerpt was supplied for this source.",
     "no_source_link": "No source link was supplied."
   },
-  "research_plan": {
-    "action": "Plan analysis with my data",
-    "hint": "Prepare a draft with this question and answer. Add your dataset and analysis goal, then send when ready.",
-    "introduction": "Help me plan an analysis using my data.",
-    "question": "Previous question:",
-    "evidence": "Literature context (not validated against my data):",
-    "request": "My dataset and analysis question:",
-    "unavailable_title": "Could not prepare the analysis draft",
-    "unavailable": "The composer or original question is unavailable. Reopen this chat and try again."
-  },
   "project_instructions": {
     "instructions": "Instructions",
     "applies": "Applies to every chat and run in this project.",
