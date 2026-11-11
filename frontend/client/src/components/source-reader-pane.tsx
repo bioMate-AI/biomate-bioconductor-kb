@@ -74,7 +74,7 @@ export function readerQuery(c: EvidenceCitation): string | null {
   const doi = cleanDoi(c.doi)
   if (pmcid && /^(PMC)?\d+$/i.test(pmcid)) params.set("pmcid", pmcid)
   if (pmid && /^\d+$/.test(pmid)) params.set("pmid", pmid)
-  if (doi && /^10\.\d{4,9}\//.test(doi)) params.set("doi", doi)
+  if (doi && /^10\.\d{1,9}\//.test(doi)) params.set("doi", doi)
   const qs = params.toString()
   return qs || null
 }

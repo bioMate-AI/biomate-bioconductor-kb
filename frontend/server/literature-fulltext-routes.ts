@@ -73,7 +73,7 @@ export function normaliseIds(q: Record<string, unknown>): SourceIds | null {
   }
   // DOI syntax is permissive; we only refuse characters that would break the
   // quoted Europe PMC query (quotes, whitespace, control chars).
-  if (doi && doi.length <= 200 && /^10\.\d{4,9}\/[^\s"\\]+$/.test(doi)) out.doi = doi;
+  if (doi && doi.length <= 200 && /^10\.\d{1,9}\/[^\s"\\]+$/.test(doi)) out.doi = doi;
   return out.pmid || out.pmcid || out.doi ? out : null;
 }
 

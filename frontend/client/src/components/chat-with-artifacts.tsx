@@ -36,6 +36,7 @@ import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
 import { t } from "@/lib/i18n"
 import { ChatHeaderTitle } from "./chat-header-title"
+import { useApplyInitialDraft } from "@/lib/one-shot-url-param"
 import {
   getOutputReadinessHint,
   getRunPrimaryCta,
@@ -596,13 +597,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Pre-fill (but do NOT send) a draft message into the chat input. onRegisterSetDraft
   // is registered alongside the sender, so senderReady also signals draft-setter readiness.
-  const draftAppliedRef = useRef(false)
-  useEffect(() => {
-    if (!initialDraft || draftAppliedRef.current || !setChatDraftRef.current) return
-    draftAppliedRef.current = true
-    setChatDraftRef.current(initialDraft)
-    onInitialDraftConsumed?.()
-  }, [senderReady, initialDraft]) // eslint-disable-line react-hooks/exhaustive-deps
+  useApplyInitialDraft(initialDraft, () => setChatDraftRef.current, senderReady, onInitialDraftConsumed)
 
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string

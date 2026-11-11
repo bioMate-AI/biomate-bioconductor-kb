@@ -95,3 +95,29 @@ describe('chatHistoryService.setUserId — pre-auth session migration', () => {
     expect(ids).not.toContain('chat-empty');
   });
 });
+
+import { cleanSessionTitle } from './chat-history'
+import { it as it2, expect as expect2 } from 'vitest'
+it2('cleans legacy titles that captured a raw system block', () => {
+  expect2(cleanSessionTitle('[BioMate dataset: epar.jsonl (id:')).toBe('epar.jsonl')
+  expect2(cleanSessionTitle('Summarise EPAR [Uploaded datasets: x')).toBe('Summarise EPAR')
+  expect2(cleanSessionTitle('Plain title')).toBe('Plain title')
+})
+
+it2('derives a new chat title from the user words, never from the [BioMate dataset: …] block', () => {
+  installLocalStorageShim();
+  localStorage.clear();
+  chatHistoryService.setUserId('title-fixture');
+  const key = 'biomate-chat-history-title-fixture';
+  localStorage.setItem(key, JSON.stringify([{
+    id: 'chat-title-1', title: 'New Chat', timestamp: new Date().toISOString(), lastActivity: new Date().toISOString(),
+    messages: [], workflows: [], datasets: [], status: 'active',
+  }]));
+  const updated = chatHistoryService.updateSession('chat-title-1', {
+    messages: [
+      { id: 'u1', role: 'user', content: '[BioMate dataset: epar.jsonl (id: 1b2c)]\n[Uploaded datasets: epar.jsonl: dataset_id=9]', timestamp: new Date() },
+      { id: 'a1', role: 'assistant', content: 'ok', timestamp: new Date() },
+    ] as any,
+  });
+  expect2(updated?.title).toBe('epar.jsonl');
+});
