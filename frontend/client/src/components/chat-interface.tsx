@@ -1000,7 +1000,7 @@ export function ChatInterface({
               if (stage && !accumulatedText) {
                 const label =
                   stage === 'intent' ? tOr('chat.progress.intent', 'Understanding your goal…') :
-                  stage === 'search' ? tOr('chat.progress.search', 'Searching 4,000+ workflows…') :
+                  stage === 'search' ? tOr('chat.progress.search', 'Searching…') :
                   stage === 'matched' ? tOr('chat.progress.matched', 'Matched a workflow') :
                   stage === 'plan' ? tOr('chat.progress.plan', 'Preparing the plan…') :
                   stage

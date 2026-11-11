@@ -115,7 +115,7 @@
       "intent": "正在理解您的目标…",
       "matched": "已匹配到工作流",
       "plan": "正在准备方案…",
-      "search": "正在检索 4,000+ 个工作流…"
+      "search": "正在检索…"
     },
     "delete_chat": "删除对话",
     "delete_confirm": "确认删除",
