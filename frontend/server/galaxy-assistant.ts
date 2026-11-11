@@ -139,6 +139,8 @@ dataset of this conversation: the user gets a download link, and its dataset_id 
 output_files. $OUTPUT_DIR persists for the whole conversation — a file written in an earlier call or
 turn is still at os.path.join(os.environ['OUTPUT_DIR'], '<name>'), so read it from there instead of
 recomputing it. Only files actually written there exist; never describe a file you did not write.
+When telling the user about files, name the files and say they are saved (to the project, in a project
+chat) — never mention $OUTPUT_DIR, /work or other internal paths.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
 Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2), set timeout_seconds=120.`,
     input_schema: {

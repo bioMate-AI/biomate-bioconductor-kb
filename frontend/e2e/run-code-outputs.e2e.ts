@@ -94,6 +94,14 @@ test.describe("run_code generated files are kept", () => {
     expect(projectId, "project id").toBeTruthy();
     try {
       await loginAsFixture(page);
+      // loginAsFixture adds Authorization/x-e2e headers to EVERY browser request; a real browser does
+      // not send them to S3, and S3 rejects a presigned URL that also carries an Authorization header
+      // ("Only one auth mechanism allowed"). Strip them for S3 only (same as admet-step-verify.e2e.ts).
+      await page.route(/amazonaws\.com/, async (route) => {
+        const h = { ...route.request().headers() };
+        delete h["authorization"]; delete h["Authorization"]; delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
+        await route.continue({ headers: h });
+      });
       await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
       await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
       // New chats start inside a project (sidebar: project → New Chat).
@@ -108,7 +116,10 @@ test.describe("run_code generated files are kept", () => {
       await input.click(); await input.fill(reportPrompt(s));
       const btn = page.locator('[data-testid="chat-send-button"]:not([disabled])');
       await btn.waitFor({ state: "visible", timeout: 60_000 });
-      await btn.click({ timeout: 15_000 }).catch(async () => { await btn.click({ force: true }); });
+      // The button disables itself while the reply streams: click once, then confirm the message was
+      // sent (no retry against a now-disabled button).
+      await btn.click({ timeout: 15_000, noWaitAfter: true }).catch(() => {});
+      await expect(page.getByText(s, { exact: false }).first(), "prompt must be sent").toBeVisible({ timeout: 30_000 });
 
       const chip = page.locator('[data-testid="run-code-file-download"]', { hasText: "QC_Report.txt" }).first();
       await chip.waitFor({ state: "visible", timeout: 240_000 });
@@ -130,6 +141,7 @@ test.describe("run_code generated files are kept", () => {
       expect(f.source).toBe("run_code");
       await page.getByTestId(`project-link-files-${projectId}`).click({ timeout: 15_000 }).catch(() => {});
       await page.waitForFunction(() => /Analysis outputs|分析结果/.test(document.body.innerText || ""), undefined, { timeout: 30_000 });
+      await page.getByText(/^(Analysis outputs|分析结果)$/).first().click();   // folder starts collapsed
       await page.waitForTimeout(1500);
       await page.screenshot({ path: "e2e/screenshots/run-code-outputs-project-2-files.png", fullPage: true });
       expect(await page.getByText("QC_Report.txt").first().isVisible(), "file listed in the project files view").toBe(true);
