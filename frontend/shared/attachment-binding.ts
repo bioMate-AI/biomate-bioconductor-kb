@@ -378,7 +378,12 @@ export function bindAttachmentsToParams(
   if (usableFiles.length === 0) return [];
   const candidates: AttachmentBinding[] = [];
   for (const p of params) {
-    if (isBound(p.value)) continue;
+    // A multi-file input (SNF/MOFA2 `omics`, type file[]) is topped up even when an
+    // earlier single-file extractor already set it to ONE file — otherwise the other
+    // modality tables are dropped and the panel still asks "Which omics?" (dev 2026-11-11:
+    // omics pre-bound to rna.csv, protein/methyl never added). A single-value param keeps
+    // its binding.
+    if (isBound(p.value) && !paramAcceptsMultipleFiles(p)) continue;
     // An optional parameter already carrying a default is an override, not an
     // empty input — leave the pipeline default in place.
     if (!p.required && isBound(p.default ?? p.defaultValue)) continue;

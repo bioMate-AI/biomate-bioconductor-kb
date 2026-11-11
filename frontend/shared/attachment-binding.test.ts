@@ -332,3 +332,18 @@ describe('file[] multi-file params (SNF/MOFA2 omics) bind every attachment', () 
     expect(out[0].files.map((x: any) => x.name)).toEqual(['rna.csv', 'protein.csv', 'methyl.csv']);
   });
 });
+
+describe('multi-file param pre-bound to one file is topped up with the rest', () => {
+  const f = (name: string) => ({ name, datasetId: name, s3Uri: `s3://b/${name}` } as any);
+  it('omics already set to rna.csv gains protein.csv + methyl.csv', () => {
+    const omics = { name: 'omics', type: 'file[]', required: true, value: 's3://b/rna.csv', autoFilled: true, description: 'One features×samples CSV per modality.' } as any;
+    const out = bindAttachmentsToParams([f('rna.csv'), f('protein.csv'), f('methyl.csv')], [omics]);
+    expect(out.length).toBe(1);
+    expect(out[0].value.split(',').length).toBe(3);
+  });
+  it('a single-value param that is already bound is left alone', () => {
+    const inp = { name: 'input_smiles', type: 'file', required: true, value: 's3://b/a.smi', autoFilled: true } as any;
+    const out = bindAttachmentsToParams([f('a.smi'), f('b.smi')], [inp]);
+    expect(out.length).toBe(0);
+  });
+});
