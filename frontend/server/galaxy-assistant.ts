@@ -80,6 +80,13 @@ import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure
 import { attachedNamesFromBlocks, stripSystemBlocks } from '../shared/chat-system-blocks';
 import { decideWorkflowReplyState } from '../shared/workflow-response-state';
 import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk } from '../shared/workflow-data-inputs';
+import {
+  parseAttachedFiles,
+  bindAttachmentsToParams,
+  rebindFilenameValues,
+  attachmentsNotUsed,
+  isNonInputAttachment,
+} from '../shared/attachment-binding';
 
 // ─── Agent tool infrastructure ────────────────────────────────────────────────
 
@@ -1576,6 +1583,25 @@ export function stripDatasetReferenceParams(
 }
 
 /**
+ * The parameters the attachment binding filled on this generated workflow
+ * ({param → dataset reference}). They are already on `workflow_ga`; the chat
+ * response has to carry them too, because the panel's overlay and the
+ * clarification list are built from the response, not from the workflow object.
+ */
+export function attachmentBoundParams(generatedWorkflow: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  const bound: Array<{ param?: string }> = generatedWorkflow?._attachmentBinding?.bound || [];
+  const inline = generatedWorkflow?.workflow_ga?.inline_parameters || generatedWorkflow?.inline_parameters;
+  if (!inline || typeof inline !== 'object') return out;
+  for (const b of bound) {
+    const name = String(b?.param || '');
+    const value = name ? (inline as Record<string, unknown>)[name] : undefined;
+    if (name && typeof value === 'string' && value.trim() !== '') out[name] = value;
+  }
+  return out;
+}
+
+/**
  * Remap an LLM-extracted inlineParameters dict to the workflow's expected
  * required_params keys. Unknown keys pass through (forwards-compat for new
  * workflows). Keys mapped to '__drop__' are removed.
@@ -1670,7 +1696,27 @@ export async function groundInlineParameters(args: {
     ...(requiredParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
     ...(optionalParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
   ]);
-  const rawParams = stripDatasetReferenceParams(args.rawParams as any, userQuery, _schemaKeys);
+  const _strippedParams = stripDatasetReferenceParams(args.rawParams as any, userQuery, _schemaKeys);
+  // An upstream extractor that saw "[Attached files: nanobody_candidates.fasta]"
+  // can emit the bare FILE NAME as a value ("antibodies": "nanobody_candidates.fasta").
+  // A bare name resolves to nothing at run time and renders as a phantom value in
+  // the panel, so rewrite it to the file's dataset reference when the parameter
+  // really takes a file — and drop it when the parameter takes inline content.
+  const _attachedForParams = parseAttachedFiles(userQuery);
+  let rawParams: Record<string, any> = _strippedParams;
+  if (_attachedForParams.length > 0) {
+    const _specs = [
+      ...(requiredParams || []).map((p) => (typeof p === 'string' ? { name: p, required: true } : { ...p, required: p.required ?? true })),
+      ...(optionalParams || []).map((p) => (typeof p === 'string' ? { name: p, required: false } : { ...p, required: p.required ?? false })),
+    ];
+    const _rb = rebindFilenameValues(_strippedParams, _attachedForParams, _specs as any);
+    rawParams = _rb.params;
+    if (_rb.rebound.length || _rb.dropped.length) {
+      console.log(
+        `[groundInlineParameters] attachment filename values — rebound: ${_rb.rebound.join(',') || 'none'}; dropped (not a file parameter): ${_rb.dropped.join(',') || 'none'}`,
+      );
+    }
+  }
   if (!workflowName) {
     return { params: (rawParams as any) || {}, path: 'noop' };
   }
@@ -2515,6 +2561,23 @@ export function textWorkflowName(text: string): string | null {
   if (/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/.test(name)) return name;
   if (/^[A-Z0-9][\w+-]*(?:\s+\(?[A-Z0-9][\w+-]*\)?){1,7}$/.test(name)) return name;
   return null;
+}
+
+/** Rewrite the header's workflow name to the card's title, keeping the " — one-line description"
+ *  that follows it. Used when the reply opens on a name that is NOT the card and NOT a workflow the
+ *  search retrieved (an invented/renamed title): the card is right, so the TEXT is what must change —
+ *  CLAUDE.md requires the chat name to be the card title exactly. Returns the text unchanged when the
+ *  header is already the card, when there is no bold header, or when the header is not `named`. */
+export function relabelWorkflowHeader(text: string, named: string, cardName: string): string {
+  if (!text || !named || !cardName) return text;
+  if (workflowSlug(named) === workflowSlug(cardName)) return text;
+  const m = /\*\*([^*\n]{3,120}?)\*\*/.exec(text);
+  if (!m) return text;
+  const sep = /\s+[—–-]\s+/.exec(m[1]);
+  const head = sep ? m[1].slice(0, sep.index) : m[1];
+  const rest = sep ? m[1].slice(sep.index) : '';
+  if (workflowSlug(head.replace(/[:.]+$/, '').trim()) !== workflowSlug(named)) return text;
+  return `${text.slice(0, m.index)}**${cardName}${rest}**${text.slice(m.index + m[0].length)}`;
 }
 
 /** Catalog identity of a workflow the user has chosen — sent to the backend as
@@ -5408,7 +5471,8 @@ Rules:
           context.sessionDatasets?.length ? context.sessionDatasets : undefined,
           decomposition.penalizedDomains,
           userInputKinds,
-          selection
+          selection,
+          message
         );
         if (pinnedWorkflow) {
           generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent, pinnedWorkflow);
@@ -5626,7 +5690,7 @@ Rules:
         ? regenerateWorkflowFor(message, selection)
         : this.generateWorkflow(message, [], intent.inlineParameters, context, decomposition.preferredDomains,
             decomposition.keyTerms, context.sessionDatasets?.length ? context.sessionDatasets : undefined,
-            decomposition.penalizedDomains, intent.inputKinds ?? decomposition.inputKinds, selection);
+            decomposition.penalizedDomains, intent.inputKinds ?? decomposition.inputKinds, selection, message);
       try {
         let recovered = await build(named ?? undefined);
         if (!recovered?.success && named) recovered = await build();
@@ -5798,6 +5862,19 @@ Rules:
             || (_isOpenWorkflow(_named) ? openWorkflow!.name : undefined);
           if (!_candidate) {
             log(`Step 6c-2: text presents "${_named}", not a search candidate for this request — keeping "${_card}"`);
+            // The card stays, but the reply must not introduce it under another name. Dev 2026-11-11:
+            // "Design nanobody candidates against this epitope." answered "**Nanobody Design Against
+            // SARS-CoV-2 Spike RBD**" over a bispecific_antibody_design card — an invented title is
+            // never a search candidate, so this branch used to leave text and panel disagreeing.
+            // CLAUDE.md: the chat name must be the card title exactly, so relabel the header in place.
+            const _display = cardWorkflowName(generatedWorkflow);
+            if (_display) {
+              const _relabelled = relabelWorkflowHeader(response.message, _named, _display);
+              if (_relabelled !== response.message) {
+                response.message = _relabelled;
+                log(`Step 6c-2: reply header relabelled to the card name "${_display}"`);
+              }
+            }
           } else {
             log(`Step 6c-2: text presents candidate "${_candidate}" but card shows "${_card}"`);
             const _open = _isOpenWorkflow(_candidate) && regenerateWorkflowFor
@@ -5942,14 +6019,31 @@ Rules:
             })
         : undefined,
     });
-    const _remappedInlineParams = stringifyParamValues(_groundResult.params);
+    const _groundedInlineParams = stringifyParamValues(_groundResult.params);
+    // The parameter extractor reads the message, not the workflow object, so a
+    // required input the attachment binding already filled still came back as
+    // "missing_required" — the founder saw "1 required parameter need to be
+    // filled" plus a "Which input_smiles?" card with the file already attached.
+    // Carry the bound values into the overlay and withdraw their questions.
+    const _attachmentBoundParams = attachmentBoundParams(generatedWorkflow);
+    const _remappedInlineParams = { ..._groundedInlineParams, ..._attachmentBoundParams };
+    const _clarifications = (_groundResult.details?.clarifications || []).filter(
+      (c) => !_attachmentBoundParams[c.paramName],
+    );
+    if (Object.keys(_attachmentBoundParams).length > 0) {
+      console.log(
+        '[InlineParam Ground] attachment-bound params kept:', Object.keys(_attachmentBoundParams).join(','),
+        '— clarifications withdrawn:',
+        (_groundResult.details?.clarifications || []).length - _clarifications.length,
+      );
+    }
     if (_groundResult.path !== 'noop') {
       console.log(
         '[InlineParam Ground]',
         _workflowNameForRemap,
         'path:', _groundResult.path,
         'confidence:', _groundResult.details?.confidence?.toFixed(2),
-        'clarifications:', _groundResult.details?.clarifications?.length || 0,
+        'clarifications:', _clarifications.length,
       );
     }
 
@@ -5958,9 +6052,7 @@ Rules:
       intentType: intent.type,
       intentConfidence: intent.confidence,
       inlineParameters: Object.keys(_remappedInlineParams).length > 0 ? _remappedInlineParams : undefined,
-      paramClarifications: (_groundResult.details?.clarifications?.length || 0) > 0
-        ? _groundResult.details!.clarifications
-        : undefined,
+      paramClarifications: _clarifications.length > 0 ? _clarifications : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
@@ -6288,7 +6380,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         decomposition.preferredDomains,
         decomposition.keyTerms,
         context.sessionDatasets?.length ? context.sessionDatasets : undefined,
-        decomposition.penalizedDomains
+        decomposition.penalizedDomains,
+        undefined,
+        undefined,
+        message
       );
       if (tier1Workflow?.success && tier1Workflow?.nextflow_path) {
         const _t1Name = tier1Workflow.workflow_name || tier1Workflow.workflow_ga?.name || tier1Workflow.name || tier1Workflow.nextflow_path?.split('/').pop() || 'workflow';
@@ -6806,16 +6901,23 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
             })
         : undefined,
     });
-    const _multiRemappedInlineParams = stringifyParamValues(_multiGroundResult.params);
+    // Same as the single-intent path: parameters the attachment binding already
+    // filled are carried into the overlay and no longer asked about.
+    const _multiAttachmentBound = attachmentBoundParams(_multiGeneratedWorkflow);
+    const _multiRemappedInlineParams = {
+      ...stringifyParamValues(_multiGroundResult.params),
+      ..._multiAttachmentBound,
+    };
+    const _multiClarifications = (_multiGroundResult.details?.clarifications || []).filter(
+      (c) => !_multiAttachmentBound[c.paramName],
+    );
 
     const multiIntentResult: GalaxyAssistantResponse = {
       message: response.message,
       intentType: primaryIntent.type,
       intentConfidence: primaryIntent.confidence,
       inlineParameters: Object.keys(_multiRemappedInlineParams).length > 0 ? _multiRemappedInlineParams : undefined,
-      paramClarifications: (_multiGroundResult.details?.clarifications?.length || 0) > 0
-        ? _multiGroundResult.details!.clarifications
-        : undefined,
+      paramClarifications: _multiClarifications.length > 0 ? _multiClarifications : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
@@ -6917,7 +7019,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           keyTerms,
           context.sessionDatasets?.length ? context.sessionDatasets : undefined,
           penalizedDomains,
-          intent.inputKinds  // this branch's own data, not the whole message's
+          intent.inputKinds,  // this branch's own data, not the whole message's
+          undefined,
+          originalMessage || intent.subQuery
         );
         baseResult.generatedWorkflow = workflow;
       }
@@ -9242,7 +9346,10 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     sessionDatasets?: Array<{ id: string; name: string; type: string }>,
     penalizedDomains?: string[],
     userInputKinds?: string[],
-    selectedWorkflow?: SelectedWorkflow
+    selectedWorkflow?: SelectedWorkflow,
+    /** The raw user message, so the attached files can be bound to this
+     *  workflow's schema once we know it (see the binding block below). */
+    attachmentMessage?: string
   ): Promise<any> {
     // Build context text for domain inference (active workflow + recent turns)
     const currentWorkflowText = String(
@@ -9371,6 +9478,58 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
           console.log(`[GalaxyAssistant] InlineOverride positional fallback: ${_uk} → ${_emptyRequired[0].name} = ${_uv}`);
           _emptyRequired[0].value = _uv;
           _emptyRequired[0].autoFilled = true;
+        }
+      }
+
+      // ── Attachment → input binding (schema-driven) ───────────────────────
+      // The name-based mapping above only knows canonical parameter names
+      // (samplesheet / matrix / reads / …). A workflow whose input is called
+      // `input_smiles`, `ligand_file`, `structure_pdb`, … never received the
+      // user's upload, so the panel showed "1 required parameter need to be
+      // filled" while the right file was already attached. Bind here, where the
+      // chosen workflow's schema is known: a file may only land on a parameter
+      // that really takes a file, and only when its extension matches the kind
+      // of data the parameter asks for (shared/attachment-binding.ts, rule-only).
+      // This is the one chokepoint the panel, the reply state and the execute
+      // payload all read, so binding here fixes all three.
+      {
+        const _attached = parseAttachedFiles(attachmentMessage || userIntent);
+        if (_attached.length > 0) {
+          const _wfGaA: any = (response as any).workflow_ga || (response as any);
+          const _specs: any[] = [
+            ...(_wfGaA.required_params || []),
+            ...(_wfGaA.optional_params || []),
+          ];
+          const _bindings = bindAttachmentsToParams(_attached, _specs);
+          for (const b of _bindings) {
+            const _p = _specs.find((p: any) => String(p?.name) === b.param);
+            if (!_p) continue;
+            _p.value = b.value;
+            _p.autoFilled = true;
+            if (!_wfGaA.inline_parameters || typeof _wfGaA.inline_parameters !== 'object') {
+              _wfGaA.inline_parameters = {};
+            }
+            _wfGaA.inline_parameters[b.param] = b.value;
+            console.log(
+              `[GalaxyAssistant] AttachmentBind ${b.param} ← ${b.files.map((f) => f.name).join(', ')} (score ${b.score}: ${b.reason})`,
+            );
+          }
+          // Record what we could and could not bind so the reply never claims a
+          // workflow was built from data it does not actually read.
+          const _boundNames = new Set(_bindings.flatMap((b) => b.files.map((f) => f.name)));
+          // Bundle documentation (README, provenance) is not data the workflow
+          // was supposed to read, so it is not reported as unused data either.
+          const _dataAttached = _attached.filter((f) => !isNonInputAttachment(f));
+          (response as any)._attachmentBinding = {
+            attached: _dataAttached.map((f) => f.name),
+            bound: _bindings.map((b) => ({ param: b.param, file: b.files.map((f) => f.name).join(', ') })),
+            unbound: _dataAttached.filter((f) => !_boundNames.has(f.name)).map((f) => f.name),
+          };
+          if (_bindings.length === 0) {
+            console.log(
+              `[GalaxyAssistant] AttachmentBind: none of ${_attached.length} attached file(s) fits "${_wfGaA?.name || 'workflow'}" inputs`,
+            );
+          }
         }
       }
 
@@ -9746,6 +9905,17 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       .map(i => `${i.label}${i.description ? ` (${i.description.replace(/s3:\/\/\S+/gi, '').trim()})` : ''}`)
       .join('; ');
 
+    // Attached data the chosen workflow does not read. The binding pass in
+    // generateWorkflow() records what fitted a real file input; when nothing did
+    // and the workflow has no waiting data input, the workflow genuinely takes no
+    // data — so the reply must NOT present it as built from the user's files
+    // (founder report: five files attached, panel said "parameters only").
+    const attachmentsUnusedList = attachmentsNotUsed((generatedWorkflow as any)?._attachmentBinding, {
+      runnableWorkflow,
+      unboundRequiredInputs: unboundDataInputs.length,
+    });
+    const attachmentsUnused = attachmentsUnusedList.length > 0;
+
     const RESEARCH_INTENT_TYPES_FOR_PROMPT = new Set([
       'research_question', 'troubleshooting', 'parameter_optimization',
       'experiment_design', 'data_interpretation', 'protocol_guidance',
@@ -9946,6 +10116,7 @@ Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
 ${needsDataInput ? `- Workflow generated; its required data input is not provided yet (${needsInputList}) — use the "generated but required data input not provided yet" format` : runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
+${attachmentsUnused ? `- ATTACHED DATA NOT USED: the user attached ${attachmentsUnusedList.join(', ')}, but this workflow reads none of them — it is configured by parameters only. Do NOT say it was built from, uses, or analyses their data, and do NOT list their files as its inputs. State in one plain sentence that this workflow does not take those files, say what it does run on, and offer to find a workflow that does read that data.` : ''}
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
   if (!_mfi.length) return '';
@@ -9990,6 +10161,7 @@ ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.to
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
 
 ${needsDataInput ? `\nA workflow has been generated and is shown in the panel. It is waiting only for its required data input: ${needsInputList}.` : runnableWorkflow ? '\nA runnable workflow has been generated and is ready to run.' : ''}
+${attachmentsUnused ? `\nThe workflow in the panel reads none of the attached files (${attachmentsUnusedList.join(', ')}) — it takes parameters only. Say so plainly; never describe those files as its inputs.` : ''}
 ${workflowGenerationFailed && hasInlineData ? `\nWorkflow generation failed (inline data was present — do NOT ask for it again).\nFailure details: ${JSON.stringify(workflowFailureSignals, null, 2).slice(0, 800)}` : ''}
 ${workflowGenerationFailed && !hasInlineData ? `\nWorkflow generation diagnostics:\n${JSON.stringify(workflowFailureSignals, null, 2).slice(0, 1600)}` : ''}${researchSection}${benchmarkSection}
 

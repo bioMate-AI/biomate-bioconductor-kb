@@ -131,13 +131,63 @@ type ViewerParameter = {
   rationale?: string;
 };
 
-/** Backend labels may already include their phase prefix. Render it once. */
-export function phaseGroupLabel(key: string, semantic: string): string {
-  const prefix = `Phase ${key.toUpperCase()}`;
-  if (!semantic.trim()) return prefix;
-  if (semantic.trim().toLowerCase() === prefix.toLowerCase()
-      || semantic.trim().toLowerCase().startsWith(`${prefix.toLowerCase()} —`)) return semantic.trim();
-  return `${prefix} — ${semantic.trim()}`;
+/** Matches a "Phase X" / "Phase X — Name" prefix a backend label may carry. */
+const PHASE_PREFIX_RE = /^phase\s+[a-z0-9]+\s*(?:[—–:-]\s*|$)/i;
+
+/** Backend labels may already include their own phase prefix (possibly with a
+ *  different letter — e.g. a `// [Phase B]` source annotation on a
+ *  single-phase workflow). Strip it and render the display letter once. */
+export function phaseGroupLabel(letter: string, semantic: string): string {
+  const prefix = `Phase ${letter.toUpperCase()}`;
+  const name = semantic.trim().replace(PHASE_PREFIX_RE, '').trim();
+  return name ? `${prefix} — ${name}` : prefix;
+}
+
+/** Display letter for the Nth (0-based) lettered phase actually shown:
+ *  A, B, C … Z, then 27, 28 … Phase letters are positional, never taken from
+ *  the backend group key, so they always start at A and never skip. */
+export function phaseDisplayLetter(index: number): string {
+  return index < 26 ? String.fromCharCode(65 + index) : String(index + 1);
+}
+
+type PhaseGroupStep = { phase_group?: unknown; phase_label?: unknown; parameters?: Record<string, unknown> | null };
+
+/** Group steps by their backend `phase_group` id, in first-seen order. The
+ *  backend id stays the group `key` (autoloop gate matching, skip analysis,
+ *  test ids); the user-visible `letter`/`label` are assigned by position among
+ *  the lettered phases displayed. Ungrouped steps ('other') get no letter. */
+export function groupStepsIntoPhases<T extends PhaseGroupStep>(
+  steps: T[],
+  allStepsLabel: string,
+): Array<{ key: string; letter: string; label: string; steps: T[]; phaseParams: string[] }> {
+  if (steps.length === 0) return [];
+  if (!steps.some(p => p.phase_group)) {
+    const uniqueParams = Array.from(new Set(steps.flatMap(p => Object.keys(p.parameters || {}))));
+    return [{ key: 'all', letter: String(Math.min(steps.length, 9)), label: allStepsLabel, steps, phaseParams: uniqueParams }];
+  }
+  const groupMap = new Map<string, { steps: T[]; semantic: string; phaseParams: string[] }>();
+  for (const step of steps) {
+    const key = (step.phase_group as string) || 'other';
+    if (!groupMap.has(key)) groupMap.set(key, { steps: [], semantic: '', phaseParams: [] });
+    const group = groupMap.get(key)!;
+    if (!group.semantic && typeof step.phase_label === 'string') group.semantic = step.phase_label;
+    group.steps.push(step);
+    for (const pName of Object.keys(step.parameters || {})) {
+      if (!group.phaseParams.includes(pName)) group.phaseParams.push(pName);
+    }
+  }
+  let lettered = 0;
+  return Array.from(groupMap.entries()).map(([key, g]) => {
+    // Render convention (per #23):
+    //   - "Other Steps"                 when no annotation matched (key === 'other')
+    //   - "Phase A — Motion Correction" when the backend supplied a semantic label
+    //   - "Phase A"                     when only the group id is present
+    if (key === 'other') {
+      return { key, letter: '·', label: 'Other Steps', steps: g.steps, phaseParams: g.phaseParams };
+    }
+    const letter = phaseDisplayLetter(lettered++);
+    return { key, letter, label: phaseGroupLabel(letter, g.semantic), steps: g.steps, phaseParams: g.phaseParams };
+  });
 }
 
 /** Recovery advice must describe the same action the footer can actually perform. */
@@ -648,7 +698,10 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
 // Reference design (PhaseCard.jsx + Step): uses .phase / .phase-head / .phase-body / .step CSS classes
 
 interface PhaseGroup {
+  /** Backend phase_group id ('A'…, 'other', or 'all') — identity only. */
   key: string;
+  /** Positional display letter (A, B, C…); see groupStepsIntoPhases. */
+  letter: string;
   label: string;
   steps: any[];
   phaseParams: string[];
@@ -793,7 +846,7 @@ function PhaseGroupSection({
 
   // Phase status and letter badge
   const phaseStatus = anyFailed ? 'failed' : anyRunning ? 'running' : allDone ? 'completed' : 'pending';
-  const letter = group.key === 'all' ? String(Math.min(steps.length, 9)) : group.key.toUpperCase().charAt(0);
+  const letter = group.letter;
   const dashIdx = label.indexOf('—');
   const phaseTitle = dashIdx > -1 ? label.slice(0, dashIdx).trim() : label;
   const phaseSub   = dashIdx > -1 ? label.slice(dashIdx + 1).trim() : '';
@@ -1896,39 +1949,12 @@ export function NextflowWorkflowViewer({
   });
 
   // Group updatedPhases by their phase_group field (A/B/C/D/E for cryo-EM, etc.)
-  const groupedPhases = React.useMemo<PhaseGroup[]>(() => {
-    // No steps loaded yet — return empty so the empty-state message renders
-    // instead of a phantom phase card with "0 steps".
-    if (updatedPhases.length === 0) return [];
-    const hasGroups = updatedPhases.some((p: any) => p.phase_group);
-    if (!hasGroups) {
-      const allParams = updatedPhases.flatMap((p: any) => Object.keys(p.parameters || {}));
-      const uniqueParams = Array.from(new Set(allParams)) as string[];
-      return [{ key: 'all', label: tOr('panel.phase.all_steps', 'Steps'), steps: updatedPhases, phaseParams: uniqueParams }];
-    }
-    const groupMap = new Map<string, { steps: any[]; label: string; phaseParams: string[] }>();
-    for (const phase of updatedPhases) {
-      const key = (phase.phase_group as string) || 'other';
-      // Render convention (per #23):
-      //   - "Other Steps"               when no annotation matched (key === 'other')
-      //   - "Phase A — Motion Correction" when backend supplied group letter + semantic label
-      //   - "Phase A"                    when only the group letter is present
-      const semantic = (phase.phase_label as string) || '';
-      let label: string;
-      if (key === 'other') {
-        label = 'Other Steps';
-      } else {
-        label = phaseGroupLabel(key, semantic);
-      }
-      if (!groupMap.has(key)) groupMap.set(key, { steps: [], label, phaseParams: [] });
-      const group = groupMap.get(key)!;
-      group.steps.push(phase);
-      for (const pName of Object.keys(phase.parameters || {})) {
-        if (!group.phaseParams.includes(pName)) group.phaseParams.push(pName);
-      }
-    }
-    return Array.from(groupMap.entries()).map(([key, g]) => ({ key, ...g }));
-  }, [updatedPhases]);
+  const groupedPhases = React.useMemo<PhaseGroup[]>(
+    // No steps loaded yet → [] so the empty-state message renders instead of a
+    // phantom phase card with "0 steps".
+    () => groupStepsIntoPhases(updatedPhases as any[], tOr('panel.phase.all_steps', 'Steps')),
+    [updatedPhases],
+  );
 
   // QC: derive display thresholds from defaults + auto-detected profile + user edits
   const activeQcProfile = React.useMemo(
@@ -3741,6 +3767,21 @@ export function NextflowWorkflowViewer({
                   <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)', marginTop: 4 }}>
                     {tOr('panel.params_only_no_inputs', 'This workflow takes parameters only — no data inputs to bind.')}
                   </div>
+                  {/* The user uploaded data but this workflow reads none of it —
+                      say so here instead of leaving them to infer it from an
+                      empty Inputs card (founder report: 5 files attached, panel
+                      said "parameters only"). */}
+                  {sessionDatasets.length > 0 && (
+                    <div
+                      data-testid="prerun-attachments-unused"
+                      style={{ fontSize: 'var(--fs-micro)', color: 'var(--warn, #b45309)', marginTop: 6 }}
+                    >
+                      {tOr(
+                        'panel.attachments_not_used',
+                        'Files you uploaded in this session are not used by this workflow. Ask in the chat for a workflow that reads them.',
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             }

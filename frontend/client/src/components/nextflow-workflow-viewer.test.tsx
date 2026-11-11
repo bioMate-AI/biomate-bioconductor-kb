@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain, isCountMatrixDeWorkflow } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, groupStepsIntoPhases, phaseDisplayLetter, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain, isCountMatrixDeWorkflow } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -665,6 +665,82 @@ it('renders a backend phase prefix once', () => {
   expect(phaseGroupLabel('a', 'Phase A — Input Download')).toBe('Phase A — Input Download');
   expect(phaseGroupLabel('b', 'Normalisation')).toBe('Phase B — Normalisation');
   expect(phaseGroupLabel('c', '')).toBe('Phase C');
+  // A backend prefix carrying a DIFFERENT letter is replaced, not kept.
+  expect(phaseGroupLabel('A', 'Phase B — Bispecific Antibody Design')).toBe('Phase A — Bispecific Antibody Design');
+  expect(phaseGroupLabel('A', 'Phase B')).toBe('Phase A');
+});
+
+describe('phase lettering is positional among displayed phases', () => {
+  it('letters A, B … Z then numbers', () => {
+    expect([0, 1, 2, 25, 26].map(phaseDisplayLetter)).toEqual(['A', 'B', 'C', 'Z', '27']);
+  });
+
+  it('a single-phase workflow annotated `[Phase B]` renders as Phase A', () => {
+    // bispecific_antibody_design main.nf: `// [Phase B] Bispecific Antibody Design`
+    const groups = groupStepsIntoPhases([
+      { phase_group: 'B', phase_label: 'Bispecific Antibody Design', parameters: { format: {} } },
+    ], 'Steps');
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toEqual(expect.objectContaining({
+      key: 'B', letter: 'A', label: 'Phase A — Bispecific Antibody Design', phaseParams: ['format'],
+    }));
+  });
+
+  it('multi-phase workflows letter A, B, C in display order and never skip', () => {
+    const groups = groupStepsIntoPhases([
+      { phase_group: 'B', phase_label: 'Docking' },
+      { phase_group: 'B', phase_label: 'Docking' },
+      { phase_group: 'D', phase_label: 'Phase D — Rescoring' },
+      { phase_group: 'other' },
+      { phase_group: 'E', phase_label: '' },
+    ], 'Steps');
+    expect(groups.map(g => [g.key, g.letter, g.label])).toEqual([
+      ['B', 'A', 'Phase A — Docking'],
+      ['D', 'B', 'Phase B — Rescoring'],
+      ['other', '·', 'Other Steps'],
+      ['E', 'C', 'Phase C'],
+    ]);
+    expect(groups[0].steps).toHaveLength(2);
+  });
+
+  it('keeps already-contiguous phases (e.g. cryo-EM A–C) and their semantic names unchanged', () => {
+    const groups = groupStepsIntoPhases([
+      { phase_group: 'A', phase_label: 'Phase A — Motion Correction & CTF' },
+      { phase_group: 'B', phase_label: 'Phase B — Particle Picking' },
+      { phase_group: 'C', phase_label: 'Phase C — Refinement' },
+    ], 'Steps');
+    expect(groups.map(g => g.label)).toEqual([
+      'Phase A — Motion Correction & CTF', 'Phase B — Particle Picking', 'Phase C — Refinement',
+    ]);
+  });
+
+  it('ungrouped workflows keep the single "Steps" group', () => {
+    const groups = groupStepsIntoPhases([{ parameters: {} }, { parameters: {} }], 'Steps');
+    expect(groups.map(g => [g.key, g.letter, g.label])).toEqual([['all', '2', 'Steps']]);
+    expect(groupStepsIntoPhases([], 'Steps')).toEqual([]);
+  });
+
+  it('renders the phase card badge and title as Phase A for a single `[Phase B]` phase', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => '',
+    } as Response));
+    render(<NextflowWorkflowViewer {...({
+      workflowId: 'wf-bsab',
+      workflowDefinition: {
+        id: 'wf-bsab', name: 'bispecific_antibody_design',
+        steps: { '0': { name: 'Bispecific Antibody Design', tool_id: 'BISPECIFIC_ANTIBODY_DESIGN',
+          phase_group: 'B', phase_label: 'Bispecific Antibody Design' } },
+        required_params: [], optional_params: [], inline_parameters: {},
+      },
+      progress: 0, onExecute: vi.fn(),
+    } as any)} status="idle" />);
+    const card = await screen.findByTestId('phase-group-B');
+    expect(card.querySelector('.letter')?.textContent).toBe('A');
+    expect(card.querySelector('.title')?.textContent).toBe('Phase A');
+    expect(card.querySelector('.sub')?.textContent).toBe('Bispecific Antibody Design');
+    expect(card.textContent).not.toContain('Phase B');
+    vi.restoreAllMocks();
+  });
 });
 
 describe('recorded step detail propagation', () => {

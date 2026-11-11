@@ -424,3 +424,40 @@ A stale remote deploy lock was cleared earlier with the founder's approval.
 |---|---|
 | 1. Library pick | PASS. No search stage; nf-core/rnaseq card. The reply leads with "**nf-core/rnaseq** — …", names the one input it needs (a sample sheet) and how to give it (📎 or an SRR/GSE accession). No "无法生成" / "缺少输入数据", no airway, no S3 |
 | 2. "SRR1039508" | PASS. No search stage (value-only binding pinned the open workflow); the card stays rnaseq with SRR1039508 as the input |
+
+### 10.8 Simulation is blocked, never disclosed as an ending (`baf85d3d05`, live on `a856c613`)
+
+- **Founder direction:** telling the user a simulation was detected is fine, but it must not be the ending, and simulated numbers lower confidence even when disclosed.
+- **Prevention:** `run_code` that would generate its own input values (no staged inputs, random draws or assumed distributions) is **refused before it runs**, unless the user explicitly asked for a simulation (power analysis, Monte Carlo, bootstrap, "simulate…", 模拟/蒙特卡洛…). The model receives a refusal that tells it to use real data, so no simulated number can reach a reply.
+- **Recovery (Step 6r):** if that refusal happened and no workflow card exists, the real workflow is built: the one the user named, otherwise normal routing.
+  - The turn ends on that **workflow card**, with one line: "A simulated-data attempt was detected and stopped."
+  - If no workflow fits, the reply asks for the data.
+  - `run_code` itself never has a card; it answers inline with real numbers, code and output files.
+- **Deploy note:** the first frontend-only sync (`5744952d`) auto-rolled back. The smoke test's 25 s limit on Galaxy workflow generation was shorter than measured generation times (9.5 s, 11 s, 40 s). Raised to 90 s per CLAUDE.md rule 6 (`a856c613`); the re-sync passed.
+
+**Live check on `a856c613`: EBV example × 5 (real chat API)**
+
+| Run | Card | Search stage | run_code | Simulated numbers | S3 |
+|---|---|---|---|---|---|
+| 1–5 | Analyze Ebv Antibody Titers (`workflow_ready`) | no (pinned by name) | none | none | none |
+
+### 10.9 Full live pass, 39 rows (dev `a856c613` → `d303eca6`, redeployed mid-run by another session; both contain all fixes through `a856c613`)
+
+- **All 39 rows recorded.**
+  - Attachments correct: 39/39.
+  - Storage-path leaks: 0.
+  - Simulated results or clarification bounce-backs: none.
+- **Try sample data:** 11/12 end on a workflow card. EBV and Cox are now pinned by name. The classifier-training row computes inline.
+- **Call variants with FASTQ attached:** nf-core/sarek card (the raw-reads rule); no "configured" claim without a card.
+- **Remaining real defects** (in progress on agent branches):
+  - Proteomics differential abundance still routes to Chemoproteomics Pulldown.
+  - Hospital SNF multi-omics: a MOFA2 card was chosen although SNF was requested, and a "Which omics?" clarify card appeared although rna/protein/methyl CSVs were attached (the multi-file input was not bound).
+- **Harness false positives (fixed in the harness):** "still in progress" matched words like "Analyzing" anywhere in a finished answer, so it now checks only the reply's ending. For proteomics batch QC, the stored session and screenshot show a complete answer (5 run_code calls + full QC table); the text capture was taken before the final text replaced the narration.
+
+### 10.10 Dev ↔ git alignment (founder rule 2026-11-11)
+
+- PR #365 was merged at `e04ec5f2`. Commits pushed to the branch afterwards were deployed while no open PR contained them; they are all on `integration/tracks-20261111` now, which dev runs.
+- **Follow-up PR #374** (into `integration/tracks-20261111`) holds everything not yet on dev: the Gemini key-in-header fix, phase lettering, and the in-progress binding and routing fixes.
+- **Rule from now on:**
+  1. Sync only the pushed head of a branch in an **open** PR, after confirming dev's commit is an ancestor.
+  2. After the sync, verify `build-info.json` equals that commit.

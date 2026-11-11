@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
+import { applyClarificationAnswer } from "@/lib/clarify-param-bridge"
 import { type Message } from "./chat-message"
 import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
@@ -212,6 +213,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       onWorkflowPanelOpenChange?.(true)
     } catch {}
   }, [currentChatSession?.id, currentChatSession?.messages, panelOpen, onWorkflowPanelOpenChange])
+
+  // Live view of this session's messages for window-event handlers registered
+  // once for the component lifetime (the clarification bridge below reads the
+  // attachments off the user's turns).
+  const sessionMessagesRef = useRef<Array<{ role?: string; content?: unknown }>>([])
+  useEffect(() => {
+    sessionMessagesRef.current = (currentChatSession?.messages ?? []) as Array<{ role?: string; content?: unknown }>
+  }, [currentChatSession?.messages])
+
   // True while the AI is streaming a response — used to show a skeleton in the panel.
   const [panelGenerating, setPanelGenerating] = useState(false)
   // Set to true just before a message with file attachments is submitted so
@@ -499,13 +509,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (!paramName) return
       setPanelWorkflow((prev: any) => {
         if (!prev) return prev
-        return {
-          ...prev,
-          inline_parameters: {
-            ...((prev as any).inline_parameters || {}),
-            [paramName]: value,
-          },
+        // An answer that refers to an attachment ("use the attached file",
+        // "用附件", or the file's name) binds THAT FILE's dataset reference, not
+        // the sentence the user typed — otherwise the panel keeps showing the
+        // required input as unset (founder report: "Confirm and configure" did
+        // nothing). Any other answer is a real value and passes through.
+        const applied = applyClarificationAnswer(prev, { paramName, value }, sessionMessagesRef.current)
+        if (applied.file) {
+          console.log(`[clarify-bridge] ${paramName} ← attached file "${applied.file.name}"`)
         }
+        return applied.workflow
       })
     }
     const onSkipped = (_e: Event) => {
