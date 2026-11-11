@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n"
 export interface RunListItem {
   id: string
   workflowName: string
@@ -83,6 +84,44 @@ export function mapRunBucket(status?: string): Exclude<RunBucket, "needs_attenti
     default:
       return "completed"
   }
+}
+
+/** Output readiness as a code + numbers, for display in the UI language.
+ *  `getOutputReadinessHint` (English) stays the identifier the bucket logic and
+ *  tests compare against. */
+export type OutputReadiness =
+  | { code: "stdout_only" | "artifact_unavailable" | "not_ready" | "check_artifacts" }
+  | { code: "ready"; viz: number; dl: number }
+  | { code: "partial"; n: number }
+  | { code: "detected"; n: number }
+
+export function describeOutputReadiness(run: RunListItem): OutputReadiness | null {
+  const readiness = getReadiness(run)
+  if (readiness) {
+    if (readiness.completionContract?.state === "stdout_only") return { code: "stdout_only" }
+    if (readiness.completionContract?.state === "artifact_unavailable") return { code: "artifact_unavailable" }
+    if (readiness.meetsContract === true) return { code: "ready", viz: readiness.visualizableCount ?? 0, dl: readiness.downloadableCount ?? 0 }
+    if (readiness.hasOutputs) return { code: "partial", n: readiness.totalOutputs ?? 0 }
+    if (readiness.meetsContract === false) return { code: "not_ready" }
+  }
+  const outputCount = getOutputCount(run)
+  if (outputCount > 0) return { code: "detected", n: outputCount }
+  if (run.execution?.status === "completed") return { code: "check_artifacts" }
+  return null
+}
+
+/** Localized readiness line for the Run Manager card. */
+export function outputReadinessLabel(run: RunListItem): string | null {
+  const d = describeOutputReadiness(run)
+  return d ? t(`runs_ui.readiness_${d.code}`, d as unknown as Record<string, string | number>) : null
+}
+
+/** Localized label for a primary-CTA identifier from `getRunPrimaryCta`. The
+ *  whole card opens the run, so a failed run's label says what it shows (the
+ *  failure), not "Retry Search", which the card never did. */
+export function runPrimaryCtaLabel(cta: string): string {
+  const key = ({ "Resolve Inputs": "resolve_inputs", "Retry Search": "view_failure", "View Outputs": "view_outputs", "Open Logs": "open_logs" } as Record<string, string>)[cta]
+  return key ? t(`runs_ui.cta_${key}`) : cta
 }
 
 export function getOutputReadinessHint(run: RunListItem): string | null {
