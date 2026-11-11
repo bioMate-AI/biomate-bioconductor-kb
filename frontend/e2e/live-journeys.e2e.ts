@@ -157,6 +157,13 @@ test('d. models: Boltz-2 folds a protein and Evo2-7B generates — real payloads
     await page.locator('[data-testid="domain-structure"]').click().catch(() => {});
     const box = page.locator('[data-testid="run-pretrained-input"]').or(page.getByRole('textbox')).first();
     await box.fill(PROTEIN);
+    // Capture the result the PAGE received: a "completed" badge alone is not an
+    // outcome (2026-11-10: the UI showed "completed" with a 1-point pLDDT).
+    const uiResult = page.waitForResponse(async (res) => {
+      if (!/\/api\/inference\/[^/]+\/result/.test(res.url())) return false;
+      const j = await res.json().catch(() => ({}));
+      return j.status === 'completed' || j.status === 'failed';
+    }, { timeout: 300_000 }).then((r) => r.json()).catch(() => null);
     await page.locator('[data-testid="run-pretrained-submit"]').or(page.getByRole('button', { name: /Run inference|运行推理/ })).first().click();
     await shot('d1_models_running');
     const done = page.locator('[data-testid="result-status-completed"]').or(page.getByText(/^completed$|已完成/));
@@ -164,6 +171,10 @@ test('d. models: Boltz-2 folds a protein and Evo2-7B generates — real payloads
     await expect(done.or(failed).first()).toBeVisible({ timeout: 300_000 });
     await shot('d2_models_result');
     expect(await failed.count(), `UI inference failed: ${await failed.allInnerTexts()}`).toBe(0);
+    const ui = await uiResult;
+    expect(ui, 'the page never received a terminal inference result').toBeTruthy();
+    expect(ui.status, `UI inference: ${ui.error ?? ''}`).toBe('completed');
+    expect(Array.isArray(ui.plddt) ? ui.plddt.length : -1, `UI-run Boltz-2 pLDDT is not per-residue (got ${JSON.stringify(ui.plddt).slice(0, 80)})`).toBe(PROTEIN.length);
     test.info().annotations.push({ type: 'ui-path', description: 'Run-a-model tab drove a real Boltz-2 inference to completed' });
   } else {
     // The page is being restructured: still require that it renders the live catalog.
