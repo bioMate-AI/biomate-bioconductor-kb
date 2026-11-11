@@ -46,6 +46,9 @@ describe('every cold-start path has prepared inputs', () => {
     'design:peptides': 'same chain, peptide modality: one candidate set through generate/predict/optimise/rank',
     'design:biologics': 'same chain, biologic modality: one nanobody/antibody design set end to end',
     'models:loop': 'the design–make–test loop example and its "next round" follow-up are two turns of one loop',
+    'design:cofoldSmallMolecule': 'Fold & complex, small-molecule modality: three phrasings of co-folding the same protein–ligand complex (pose / confidence / low-pLDDT) share one target+ligand bundle',
+    'design:cofoldPeptide': 'Fold & complex, peptide modality: three phrasings of co-folding the same peptide–target complex share one bundle',
+    'design:cofoldBiologic': 'Fold & complex, biologic modality: three phrasings of co-folding the same antibody–antigen complex share one bundle',
   };
   const bundleKey = (text: string) => COLD_DEMO_INTENTS.get(text.replace(/ \((peptide|protein) design\)$/, ''));
   const assertUnique = (scope: string, texts: string[]) => {
