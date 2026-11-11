@@ -461,3 +461,24 @@ A stale remote deploy lock was cleared earlier with the founder's approval.
 - **Rule from now on:**
   1. Sync only the pushed head of a branch in an **open** PR, after confirming dev's commit is an ancestor.
   2. After the sync, verify `build-info.json` equals that commit.
+
+### 10.11 Founder UI_refinement screenshots — fixed and verified live (dev `0525045c`, 2026-11-11)
+
+| Screenshot | Fix | Live result |
+|---|---|---|
+| whyPhaseBAsFirstPhase | phase letters by display position | single phase shows "Phase A" (unit-verified; frontend derivation) |
+| not_aligned_workflowpanel_input / still_noInputWithAttachment | schema-driven attachment binding + reword | scFv example routes to `scfv_antibody_design`, uploaded PDB **bound** to `antibody_pdb` |
+| parameterFillNotWorking | clarify-card resolves an attachment answer; auto-binding withdraws the card | binding fires at generation; fails safe otherwise |
+| (potency) | model-training no longer routed to scaffold hopping | trains real models on the attached CSV (inline; see note) |
+
+**Bonus issues found while verifying, also fixed + live:**
+- Multi-omics "Integrate … with SNF" now routes to the **SNF** card (was MOFA2).
+- Its `omics` input (`type: file[]`) now binds **all three** modality CSVs and the "Which omics?" clarification is gone. Two fixes: `isFilePathParam` accepts `file[]`; a multi-file param pre-bound to one file is topped up with the rest.
+
+**Open / notes:**
+- Potency training computes inline rather than opening the Models/ml_training card. Correct results on the attached data, and no longer a wrong design workflow; whether it should be a formal training card is a routing preference, not a bug.
+- `prerequisitesValidation.fulfilled` is computed before the frontend binding runs, so it can read stale; the panel gates Run on the (now bound) param values, and the clarification card is correctly withdrawn.
+- Clarify-card attachment interpretation is keyword-based (fails safe); an LLM-interpreted version via a server turn is a possible follow-up for broader phrasing.
+- Catalog input metadata: 396/4227 workflows still have empty `input_types` and 32 use the `["input"]` placeholder — a routing-quality follow-up (separate from binding).
+
+**Dev↔git:** each sync verified dev's commit was an ancestor of HEAD and that `build-info.json` equalled the pushed commit afterward. PRs #374/#375/#376 into `integration/tracks-20261111`.
