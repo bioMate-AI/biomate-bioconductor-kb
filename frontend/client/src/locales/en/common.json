@@ -202,13 +202,7 @@
     "sample_chip": "sample: {{label}}",
     "copy": {
       "literature": "Literature",
-      "what_is_the_evidence_linking_this_target_to_disease": "What is the evidence linking this target to disease?",
-      "known_sar_for_this_chemotype_what_drives_potency": "Known SAR for this chemotype — what drives potency?",
-      "why_do_inhibitors_of_this_target_usually_fail_on_selectivity": "Why do inhibitors of this target usually fail on selectivity?",
       "databases": "Databases",
-      "pull_every_reported_structure_for_this_target": "Pull every reported structure for this target.",
-      "known_off_targets_for_this_chemotype": "Known off-targets for this chemotype?",
-      "which_trials_targeted_this_pathway_and_what_were_their_endpoints": "Which trials targeted this pathway, and what were their endpoints?",
       "patents": "Patents",
       "who_holds_composition_of_matter_claims_on_this_scaffold": "Who holds composition-of-matter claims on this scaffold?",
       "freedom_to_operate_picture_for_this_series": "Freedom-to-operate picture for this series.",
@@ -354,7 +348,14 @@
       "discover_a_biomarker_panel_and_build_a_risk_model": "Discover a biomarker panel and build a risk model",
       "sample_provided_a_cohort_table_labels": "sample provided — a cohort table + labels",
       "assemble_the_analysis_section_of_a_submission": "Assemble the analysis section of a submission",
-      "sample_provided_inputs_for_a_first_run": "sample provided — inputs for a first run"
+      "sample_provided_inputs_for_a_first_run": "sample provided — inputs for a first run",
+      "what_is_the_evidence_linking_lrrk2_to_parkinson_s_disease": "What is the evidence linking LRRK2 to Parkinson's disease?",
+      "known_sar_for_imatinib_like_phenylaminopyrimidines_what_drives_a": "Known SAR for imatinib-like phenylaminopyrimidines — what drives ABL1 potency?",
+      "why_do_jak2_inhibitors_usually_fail_on_selectivity": "Why do JAK2 inhibitors usually fail on selectivity?",
+      "pull_every_reported_structure_for_kras_g12c": "Pull every reported structure for KRAS G12C.",
+      "known_off_targets_for_the_celecoxib_diarylpyrazole_sulfonamide_c": "Known off-targets for the celecoxib diarylpyrazole sulfonamide chemotype?",
+      "which_trials_targeted_pd_1_pd_l1_in_non_small_cell_lung_cancer_a": "Which trials targeted PD-1/PD-L1 in non-small-cell lung cancer, and what were their endpoints?",
+      "who_holds_composition_of_matter_claims_on_the_sotorasib_scaffold": "Who holds composition-of-matter claims on the sotorasib scaffold?"
     },
     "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },

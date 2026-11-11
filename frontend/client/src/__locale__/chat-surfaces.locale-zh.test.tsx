@@ -24,7 +24,12 @@ describe("chat surfaces — zh locale", () => {
     let text = await renderChatSurfaces("中文回答。", "按年份统计 EPAR 审批")
     expect(text).not.toMatch(/⟦MISSING:[^⟧]+⟧/)
     for (const d of DATA_STRINGS) text = text.split(d).join(" ")
-    const words = (text.match(/[A-Za-z][A-Za-z_]*/g) || []).filter((w) => !ALLOWED.has(w))
+    // All-caps identifiers (gene symbols LRRK2/ABL1/KRAS, mutations G12C, PD-1/PD-L1,
+    // acronyms) are proper nouns in Chinese scientific text, not untranslated UI English —
+    // a fixed word list cannot enumerate every gene a user or example names. Untranslated UI
+    // copy ("Open", "Training runs") is mixed-case and is still caught.
+    const words = (text.match(/[A-Za-z][A-Za-z0-9_]*/g) || [])
+      .filter((w) => !ALLOWED.has(w) && !/^[A-Z][A-Z0-9_]*$/.test(w))
     expect([...new Set(words)]).toEqual([])
     for (const s of ["1 个来源", "检索 · 保留 4 / 24", "阅读", "运行中", "打开", "新对话", "哪里有问题？", "您想做什么？"]) {
       expect(text).toContain(s)

@@ -237,13 +237,7 @@
     "sample_chip": "样例：{{label}}",
     "copy": {
       "literature": "文献",
-      "what_is_the_evidence_linking_this_target_to_disease": "有哪些证据将该靶点与疾病联系起来？",
-      "known_sar_for_this_chemotype_what_drives_potency": "该化学类型已知的构效关系 — 活性由什么决定？",
-      "why_do_inhibitors_of_this_target_usually_fail_on_selectivity": "为什么该靶点的抑制剂通常在选择性上失败？",
       "databases": "数据库",
-      "pull_every_reported_structure_for_this_target": "获取该靶点所有已报道的结构。",
-      "known_off_targets_for_this_chemotype": "该化学类型有哪些已知脱靶？",
-      "which_trials_targeted_this_pathway_and_what_were_their_endpoints": "哪些临床试验针对该通路？终点指标是什么？",
       "patents": "专利",
       "who_holds_composition_of_matter_claims_on_this_scaffold": "谁持有该骨架的化合物专利权利要求？",
       "freedom_to_operate_picture_for_this_series": "该系列的自由实施（FTO）情况。",
@@ -389,7 +383,14 @@
       "discover_a_biomarker_panel_and_build_a_risk_model": "发现生物标志物组合并构建风险模型",
       "sample_provided_a_cohort_table_labels": "提供样例 — 队列数据表 + 标签",
       "assemble_the_analysis_section_of_a_submission": "整理申报材料的分析部分",
-      "sample_provided_inputs_for_a_first_run": "提供样例 — 首次运行所需输入"
+      "sample_provided_inputs_for_a_first_run": "提供样例 — 首次运行所需输入",
+      "what_is_the_evidence_linking_lrrk2_to_parkinson_s_disease": "有哪些证据将 LRRK2 与帕金森病联系起来？",
+      "known_sar_for_imatinib_like_phenylaminopyrimidines_what_drives_a": "类伊马替尼苯氨基嘧啶类的已知构效关系——哪些因素决定 ABL1 活性？",
+      "why_do_jak2_inhibitors_usually_fail_on_selectivity": "为什么 JAK2 抑制剂常在选择性上失败？",
+      "pull_every_reported_structure_for_kras_g12c": "检索 KRAS G12C 的全部已报道结构。",
+      "known_off_targets_for_the_celecoxib_diarylpyrazole_sulfonamide_c": "塞来昔布类二芳基吡唑磺酰胺化学型有哪些已知脱靶？",
+      "which_trials_targeted_pd_1_pd_l1_in_non_small_cell_lung_cancer_a": "哪些临床试验在非小细胞肺癌中靶向 PD-1/PD-L1？其终点指标是什么？",
+      "who_holds_composition_of_matter_claims_on_the_sotorasib_scaffold": "谁持有索托拉西布骨架的化合物专利权利要求？"
     },
     "sample_title_inline": "使用目标中附带的示例运行。编辑目标即可改用您自己的数据。"
   },
