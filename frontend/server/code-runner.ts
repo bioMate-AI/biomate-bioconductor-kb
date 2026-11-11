@@ -124,6 +124,8 @@ const IMAGE_MEDIA: Record<string, string> = {
 // Cap the per-image base64 we push through the SSE stream. A 300-dpi matplotlib
 // figure is ~0.1–0.5 MB; 4 MB covers large plots while keeping the event sane.
 const IMAGE_MAX_BYTES = 4_000_000;
+// Total preview bytes per run: the SSE event and the persisted message carry these.
+const IMAGE_TOTAL_MAX_BYTES = 8_000_000;
 
 function imageMediaType(name: string): string | undefined {
   return IMAGE_MEDIA[name.split('.').pop()?.toLowerCase() ?? ''];
@@ -163,6 +165,7 @@ async function previewFile(filePath: string): Promise<string> {
 
 export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
   const results: OutputFile[] = [];
+  let imageBytes = 0;
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -172,9 +175,10 @@ export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
       if (!stat.isFile()) continue;
       const mediaType = imageMediaType(entry.name);
       const preview = isTextFile(entry.name) ? await previewFile(filePath) : '(binary)';
-      const image_data_uri = mediaType && stat.size <= IMAGE_MAX_BYTES
+      const image_data_uri = mediaType && stat.size <= IMAGE_MAX_BYTES && imageBytes + stat.size <= IMAGE_TOTAL_MAX_BYTES
         ? await imageDataUri(filePath, mediaType)
         : undefined;
+      if (image_data_uri) imageBytes += stat.size;
       results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri });
     }
   } catch { /* dir may not exist */ }
