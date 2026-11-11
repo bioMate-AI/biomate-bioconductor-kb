@@ -302,3 +302,109 @@ and is not an HTML SPA fallback, no default dataset for a custom goal.
 - One existing dashboard assertion was widened: the Drug discovery domain now
   shows two sample badges (ADMET example SMILES and the hERG series), so the test
   asserts one badge per shape that names a dataset, in shape order.
+
+---
+
+## 10. Integration, deploy and live verification (2026-11-11)
+
+### 10.1 What was merged (PR #365, now based on `integration/tracks-20261111`)
+
+| Branch | Fixes | Key root cause |
+|---|---|---|
+| `fix/research-answer-clutter` | 7.1 | Research answer rendered Boundary banner, Save to project and Plan-analysis button |
+| `fix/known-workflow-routing` | 7.2, 7.4 | The library run seeded plain text (identity dropped); `context.currentWorkflow` was used only for domain inference |
+| `fix/prerun-state-clarity` | 7.3 | The response format had no "identified, needs input" state; the panel listed only `type:'file'` params |
+| `fix/lost-workflow-card` | 4.1 | Card arrives ~60 s after the text; the UI looked done; a disconnect partial save blocked the final save; reload ignored the server copy |
+| `fix/example-routing-failures` | 4.2 | `direct_compute` trusted with no data (EBV); the agentic loop ended on its tool budget with no final answer; 502 retries fell inside the deploy gap; operation-phrase synonyms were missed in ranking |
+| `fix/data-analysis-example-catalog` | 4.3 | Shared bundles and labels the attached data could not support |
+
+**Merge with the line dev runs.** Dev had moved to `integration/tracks-20261111` (47, then 52 commits ahead), so syncing the fix branch alone would have removed other sessions' work. That line was merged in and 9 conflicts were resolved:
+
+- **Research answers:** took the tracks redesign and also removed its Boundary banner.
+- **Message building:** kept the extracted `buildAssistantMessageFromFinal`, with tracks' `toolBlocks` ported into it.
+- **Bubble stripping:** `[Prepared inputs]` was added to the shared `stripSystemBlocks`.
+- **Routing:** took `routing-authority.ts`; the direct_compute-needs-data guard was ported into `reconcileExecutionMode(intent, conversationHasData)`.
+- **Locales:** both sides kept; added en/zh copy for the reworked examples.
+
+Also added: `.ped` uploads are now allowed (relatedness example).
+
+**Additional founder directive:** the search progress line reads just "Searching…" / "正在检索…", with no workflow count.
+
+**Deploys** (ancestry guard passed; health gate and smoke passed each time):
+- `a1c53df0`: full sync, frontend and backend.
+- `e04ec5f2`: frontend-only sync for the progress label.
+
+A stale remote deploy lock was cleared earlier with the founder's approval.
+
+### 10.2 Founder rnaseq flow — live on dev (`e04ec5f2`), real chat API
+
+| Turn | Check | Result |
+|---|---|---|
+| 1. Library pick, "运行 nf-core/rnaseq 工作流。" with `selectedWorkflow` | No search stage | **PASS**. Stages were intent → matched → plan. Log: `Step 1: workflow pinned → "nf-core/rnaseq" (user selection)`, `source: user_selected` |
+| | Card | **PASS**: nf-core/rnaseq, `workflow_ready` |
+| | Reply | No "无法生成" and no S3, **but** it led with "缺少输入数据" and suggested "airway (Bioconductor dataset)" as an input (wrong for a FASTQ pipeline). See 10.3 |
+| 2. "SRR1039508" with rnaseq open | Card stays rnaseq | **PASS** (not differentialabundance) |
+| | Mechanism | **Not via binding.** The classifier attached an `analysis_goal` carried over from history at confidence 0.95, so the binding rule refused and the turn searched (Step 4 took 55 s). See 10.3 |
+
+### 10.3 Root-cause fixes from the live check
+
+- **Follow-up binding.** The classifier's confidence does not separate "stated by the user" from "carried over from history".
+  - Added `isValueOnlyReply(message)`, a deterministic and language-neutral check: after removing public data identifiers, attached-file blocks, file names and numbers, no letter or CJK character is left.
+  - A value-only reply cannot state a new analysis, so it binds to the open workflow. Replies with any words still use the classifier rule.
+  - Tests cover the dev case ("SRR1039508" with goal@0.95 binds) and counter-cases ("run variant calling on SRR1039508", "用 DESeq2 分析 SRR1039508" do not bind).
+- **Required data input missing from the definition.** The live rnaseq `workflow_ga` had **no `input` param**: `input` is in `_NEXTFLOW_INTERNAL_PARAMS` (`backend/lib/galaxy/ai/ai_assistant.py` ~2439), which is correct because the executor builds it (fetchngs samplesheet for accessions, upload wiring for files). As a result, chat could not say what the workflow needs, and the panel showed only reference overrides.
+  - **Fix:** the schema parser now records required executor-owned data inputs as `workflow_ga.data_inputs` (label "Samplesheet (sequencing reads)", schema description). They are never editable params, so the run path is unchanged.
+  - `_return_nextflow_match` marks an input `bound` (and sets `bound_value` to the accession) when the request carries an accession or attached files.
+  - `unboundRequiredDataInputs` reads `data_inputs`, which drives the "identified, needs input" reply state.
+  - The panel lists the input as the one required row, with no file picker, because the executor fills it.
+  - Tests:
+    - backend pytest with an nf-core-shaped schema: `input` is described, `outdir` is not, reference overrides stay optional;
+    - shared unit tests;
+    - viewer render tests with the live payload shape (unbound shows "1 required, not set"; with SRR1039508 the row shows the accession).
+- **Follow-up (not changed):** the browse/search endpoints (`/api/ai_assistant/search_nextflow_workflow`, `webapps/.../ai_assistant.py` ~2799) build `workflow_ga` from DB parameter metadata and do not emit `data_inputs`. Chat cards, including library picks, go through `_return_nextflow_match` and are covered.
+
+### 10.4 Founder notes (not acted on)
+
+- **Security:** Galaxy dev logs print the Gemini API key in request URLs (httpx INFO). Recommend rotating the key and setting httpx logging to WARNING.
+- **Deploys drop live chats:** the frontend container is replaced mid-request with no drain (the source of the structure-prediction "Bad Gateway"). The client now retries 502/503/504 at 1, 2, 4 and 8 s.
+- **Disambiguation card never renders:** `awaitsWorkflowInput` returns true for `workflow_type === 'disambiguation'`, and `onAdjustViaChat` is never passed in.
+- **Slow follow-up turn:** the ~55–60 s between text and card is parameter grounding (`param_ground_*` status events). Worth a separate look.
+- **Agent loop cannot create a workflow card:** on the compute path, the agent can find a pipeline with `search_workflows` but has no tool that produces a card, so it narrates ("pipeline configured"). The routing rules below keep pipeline-scale requests off that path. A card-producing agent tool (via the `selectedWorkflow` mechanism) is the remaining structural fix; it touches response plumbing and was not done unreviewed.
+- **Proteomics differential abundance** still routed live to Chemoproteomics Pulldown, with a clarification question, despite the operation-phrase ranking fix (Pass-0 LLM ranking or dense retrieval can outweigh it, as predicted). Open.
+
+### 10.5 Full live pass on dev `e04ec5f2` (2026-11-11 07:16–07:55Z, 39 rows, 3 workers)
+
+- **Attachments:** 36/36 recorded rows attached exactly their own bundle.
+- **Lost cards fixed:** Try-sample-data rows ending in a stored workflow card went from **1/12 to 10/11** recorded.
+- **Workflow cards now produced for:**
+  - ADMET ×2, docking
+  - MAGeCK ×2, seqvartools (relatedness)
+  - mixOmics ×2, MOFA2
+  - CryoSPARC ×2, AlphaFold
+  - scdownstream, DE chain ×3, sarek
+  - differentialabundance (MG), metaboanalystr, flow cytometry, CAR-T, ChIP MACS, WSI nuclei segmentation, ATAC, chemoproteomics QC
+- **Computed inline with real numbers** (valid direct compute on the attached data; the harness's "must be a card" expectation was too strict here):
+  - variant burden on the Rizvi cohort (DCB vs NDB, Mann-Whitney)
+  - PBC trial arms (log-rank p = 0.75, HR 0.944)
+  - Cox flare model
+  - CRISPR QC (Gini 0.297)
+  - hERG series
+  - biomarker panel
+  - subtype classifier
+  - proteomics batch QC
+- **Defects found, and fixed in `7026189dfb`:**
+  - **EBV simulated data:** EBV ran `run_code` that **simulated ELISA readings** and reported them as results.
+    - Fix 1: `workflowNamedInRunRequest` pins a workflow the user names to run.
+    - Fix 2: `generatesSyntheticData` detects run_code with no inputs that draws random values, and the reply gets an explicit "simulated, not a real analysis" note.
+    - Fix 3: the `run_code` tool now forbids inventing input data.
+    - A single-row rerun in the browser on `27e93b96` produced the EBV card, so the failure is classifier-nondeterministic, which is exactly what the pin removes.
+  - **Call variants with FASTQ attached:** went to run_code and claimed "pipeline configured" with no card. Raw instrument data is now pipeline-scale: `direct_compute` is not honoured.
+  - **Cryo-EM reply echoed `s3://…/Micrographs/`:** reply prose now passes through `redactStoragePaths`.
+
+### 10.6 Deploy status at hand-off
+
+- Dev runs `276e4e79` (`integration/tracks-20261111`; another session merged this branch up to `e04ec5f2` and deployed it). Healthy (HTTP 200).
+- Branch head `c794bd6c` (adds `16b106a9ef` and `7026189dfb` on top of dev's line) is pushed to PR #365 but **not yet deployed**.
+- **The full sync at 02:13 CST failed:** the SSH transport dropped during the nf-core check ("Bad packet length … Connection corrupted") before any files changed, and the script hung until its 90-minute limit.
+  - The script's own remote lease (created 08:13:26Z, owner `fd6dfc01…`) was left behind and blocks every dev deploy.
+  - It must be released (guarded on that owner id), then re-run `scripts/sync_to_dev.sh` from `/Users/kky/biomate-coldstart-dev`.

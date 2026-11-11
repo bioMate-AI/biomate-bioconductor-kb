@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FINAL_ANSWER_INSTRUCTION, claimsProducedOutputFile, conversationHasComputableData, finalAnswerRequest, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
+import { FINAL_ANSWER_INSTRUCTION, claimsProducedOutputFile, conversationHasComputableData, conversationHasPipelineScaleData, finalAnswerRequest, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
 import { reconcileExecutionMode } from './routing-authority';
 
 // External-user replay on dev (2026-11-04): ad-hoc analysis of the user's own data — a Chinese
@@ -154,5 +154,21 @@ describe('finalAnswerRequest (tool budget exhausted)', () => {
     const req = finalAnswerRequest(api, [{ role: 'assistant', content: 'x' }], null);
     expect(req.tool_choice).toBeUndefined();
     expect(req.messages.at(-1)).toEqual({ role: 'user', content: FINAL_ANSWER_INSTRUCTION });
+  });
+});
+
+describe('raw instrument data is pipeline-scale: direct_compute is not honoured (call variants, dev 2026-11-11)', () => {
+  const READS = 'Call variants on these samples and flag the clinically relevant ones.\n\n[Attached files: normal_R1.fastq.gz, normal_R2.fastq.gz, reference_grch37.fasta, sequencing_samples.csv]';
+  const route = (message: string, context: any = {}) => {
+    const intent: any = { execution: 'direct_compute', actions: { needsWorkflowGeneration: true, needsLLMReasoning: false } };
+    reconcileExecutionMode(intent, conversationHasComputableData(message, context) && !conversationHasPipelineScaleData(message, context));
+    return intent.actions.needsWorkflowGeneration ? 'workflow card' : 'direct compute';
+  };
+  it('FASTQ attached → workflow card', () => { expect(route(READS)).toBe('workflow card'); });
+  it('FASTQ attached in an earlier turn → workflow card', () => {
+    expect(route('go ahead', { previousMessages: [{ role: 'user', content: READS }] })).toBe('workflow card');
+  });
+  it('a table attached → direct compute stays allowed', () => {
+    expect(route('Summarise this.\n\n[Attached files: bace_assays.csv]\n[Uploaded datasets: bace_assays.csv: dataset_id=x]')).toBe('direct compute');
   });
 });

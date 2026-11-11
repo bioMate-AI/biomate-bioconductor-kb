@@ -16,6 +16,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   GalaxyAssistant,
   followUpFillsCurrentWorkflow,
+  isValueOnlyReply,
+  workflowNamedInRunRequest,
   normalizeSelectedWorkflow,
   workflowIdentityOf,
   inferActionsFromType,
@@ -178,6 +180,16 @@ describe('followUpFillsCurrentWorkflow — the binding rule (classifier output o
       facts: [{ category: 'analysis_goal', value: 'RNA-seq quantification', confidence: 0.6 }],
     }), 'SRR1039508')).toBe(true);
   });
+  it('binds a bare accession even when the classifier carries the goal over at high confidence (dev 2026-11-11)', () => {
+    const carried = decomposition({ facts: [{ category: 'analysis_goal', value: 'RNA-seq alignment and quantification', confidence: 0.95 }] });
+    expect(followUpFillsCurrentWorkflow(carried, 'SRR1039508')).toBe(true);
+  });
+  it('does not bind when the reply also states a new analysis or tool, even with an accession', () => {
+    const goal = decomposition({ facts: [{ category: 'analysis_goal', value: 'variant calling', confidence: 0.95 }] });
+    expect(followUpFillsCurrentWorkflow(goal, 'run variant calling on SRR1039508')).toBe(false);
+    const tool = decomposition({ facts: [{ category: 'tool_preference', value: 'DESeq2', confidence: 0.9 }] });
+    expect(followUpFillsCurrentWorkflow(tool, '用 DESeq2 分析 SRR1039508')).toBe(false);
+  });
   it.each([
     ['multi-intent', decomposition({}, true)],
     ['stated analysis goal', decomposition({ facts: [{ category: 'analysis_goal', value: 'variant calling', confidence: 0.95 }] })],
@@ -188,6 +200,16 @@ describe('followUpFillsCurrentWorkflow — the binding rule (classifier output o
   ])('does not bind: %s', (_label, d) => {
     expect(followUpFillsCurrentWorkflow(d, 'whatever')).toBe(false);
   });
+});
+
+describe('isValueOnlyReply — deterministic: only identifiers, files, numbers left', () => {
+  it.each([
+    'SRR1039508', 'GSE52778', 'SRR1039508, SRR1039509', 'PXD012345', 'E-MTAB-1234',
+    'sample_R1.fastq.gz sample_R2.fastq.gz',
+    '[Attached files: counts.csv]\n[Uploaded datasets: counts.csv: dataset_id=abc]',
+  ])('value-only: %s', (m) => { expect(isValueOnlyReply(m)).toBe(true); });
+  it.each(['', 'hello', 'use SRR1039508', 'SRR1039508 please align to mouse', '用 SRR1039508', 'counts.csv 做差异表达'])(
+    'not value-only: %s', (m) => { expect(isValueOnlyReply(m)).toBe(false); });
 });
 
 describe('selection / identity normalization', () => {
@@ -203,5 +225,29 @@ describe('selection / identity normalization', () => {
       .toEqual({ name: 'nf-core/rnaseq', nextflow_path: RNASEQ_PATH });
     expect(workflowIdentityOf({ workflow_type: 'chain', chain_name: 'x' })).toBeNull();
     expect(workflowIdentityOf(null)).toBeNull();
+  });
+});
+
+describe('workflowNamedInRunRequest — the user names the workflow to run (EBV, dev 2026-11-11)', () => {
+  it.each([
+    ['Run analyze_ebv_antibody_titers on its built-in ELISA OD readings and standard-curve data', 'analyze_ebv_antibody_titers'],
+    ['Run perform_chipseq_peak_calling_with_macs2 on its built-in MACS3 CTCF ChIP and control chr22 BED files', 'perform_chipseq_peak_calling_with_macs2'],
+    ['Run survival_cox_proportional_hazards_regression on the attached autoimmune-cohort clinical data', 'survival_cox_proportional_hazards_regression'],
+    ['Run the metaboanalystr workflow on its built-in human_cachexia dataset', 'metaboanalystr'],
+    ['Run the chemoproteomics_pulldown workflow on its built-in LFQ-Analyst proteinGroups.txt dataset', 'chemoproteomics_pulldown'],
+    ['运行 nf-core/rnaseq 工作流。', 'nf-core/rnaseq'],
+    ['Run cart_construct_design to design a CD19-targeting CAR', 'cart_construct_design'],
+  ])('pins: %s', (message, name) => {
+    expect(workflowNamedInRunRequest(message)?.name).toBe(name);
+  });
+  it.each([
+    'Run DESeq2 differential expression on the airway dataset (treated vs control), then GO enrichment.',
+    'Summarise this assay table and plot potency against logP.',
+    'Run differential expression on the attached AChR-positive myasthenia gravis PBMC data',
+    'Call variants on these samples and flag the clinically relevant ones.',
+    'What is the evidence linking LRRK2 to Parkinson\'s disease?',
+    'run the analysis on human_cachexia',
+  ])('does not pin: %s', (message) => {
+    expect(workflowNamedInRunRequest(message)).toBeNull();
   });
 });

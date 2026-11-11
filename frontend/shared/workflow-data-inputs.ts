@@ -114,6 +114,16 @@ export function unboundRequiredDataInputs(
       description: String(p.description || '').slice(0, 200),
     });
   }
+  // Executor-owned required data inputs the backend describes but never exposes as editable
+  // params (nf-core `input`: the executor builds the samplesheet from files or an accession).
+  const described: any[] = Array.isArray(ga.data_inputs) ? ga.data_inputs
+    : Array.isArray(generatedWorkflow?.data_inputs) ? generatedWorkflow.data_inputs : [];
+  for (const d of described) {
+    const name = String(d?.name || '');
+    if (!name || !d?.required || d?.bound || seen.has(name) || alsoBound.has(name)) continue;
+    seen.add(name);
+    out.push({ name, label: String(d.label || name), description: String(d.description || '').slice(0, 200) });
+  }
   const mfi: unknown[] = Array.isArray(generatedWorkflow?.missing_file_inputs) ? generatedWorkflow.missing_file_inputs : [];
   for (const m of mfi) {
     const name = String(m || '');

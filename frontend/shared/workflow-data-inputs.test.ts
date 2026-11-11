@@ -80,3 +80,14 @@ describe('message data signals', () => {
     expect(messageWaivesDataAsk('运行 nf-core/rnaseq')).toBe(false);
   });
 });
+
+describe('unboundRequiredDataInputs — executor-owned data_inputs (live rnaseq shape)', () => {
+  const live = (bound: boolean) => ({ success: true, workflow_ga: { name: 'nf-core/rnaseq', required_params: [], optional_params: [],
+    data_inputs: [{ name: 'input', label: 'Samplesheet (sequencing reads)', required: true, executor_bound: true, bound }] } });
+  it('reports the described samplesheet as the unbound required input', () => {
+    expect(unboundRequiredDataInputs(live(false)).map(i => i.label)).toEqual(['Samplesheet (sequencing reads)']);
+  });
+  it('is satisfied when the request carried data (bound)', () => {
+    expect(unboundRequiredDataInputs(live(true))).toEqual([]);
+  });
+});

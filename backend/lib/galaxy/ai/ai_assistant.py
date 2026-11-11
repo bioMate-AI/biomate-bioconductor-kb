@@ -2558,6 +2558,30 @@ Respond with a single JSON object — no other text:
         'awsbatch job resources',
     ])
 
+    # User-facing names for executor-owned data inputs (the param itself is never editable).
+    _EXECUTOR_DATA_INPUT_LABELS: dict = {
+        'input': 'Samplesheet (sequencing reads)',
+    }
+
+    @staticmethod
+    def _is_schema_data_input(name: str, param_def: dict) -> bool:
+        """A schema param that carries the run's input DATA (not a setting): file-path/path
+        format, a mimetype, or a pattern ending in a data-file extension."""
+        if name.startswith('out') or name in ('publish_dir', 'tracedir'):
+            return False  # output locations are not input data
+        fmt = str(param_def.get('format', '')).lower()
+        if fmt in ('file-path', 'file-path-pattern'):
+            return True
+        if param_def.get('mimetype') or param_def.get('schema'):
+            return True
+        return name in ('input', 'samplesheet', 'reads')
+
+    _RUN_DATA_RE = re.compile(
+        r'\[(?:Uploaded datasets?|Attached files?|Galaxy dataset)\s*:'
+        r'|\b(?:[SED]RR\d{6,9}|[SED]RX\d{6,9}|PRJ[NED][A-Z]?\d{4,9}|GSE\d{3,9}|GSM\d{3,9}|E-[A-Z]{4}-\d{1,9}|PXD\d{4,9})\b',
+        re.IGNORECASE,
+    )
+
     # Parameter names that represent input data files — these get type="file" so the
     # frontend renders a dataset browser instead of a plain text box.
     _INPUT_FILE_PARAM_NAMES: frozenset = frozenset([
@@ -2812,6 +2836,7 @@ Respond with a single JSON object — no other text:
 
         defs = schema.get('$defs') or schema.get('definitions') or {}
         required_params = []
+        data_inputs: list = []  # executor-owned required data inputs (see below)
         optional_params = []
 
         for group_def in defs.values():
@@ -2829,6 +2854,17 @@ Respond with a single JSON object — no other text:
                 if param_def.get('hidden', False):
                     continue
                 if param_name in self._NEXTFLOW_INTERNAL_PARAMS:
+                    # Executor-owned, but a REQUIRED data input is still a requirement the user
+                    # must meet (files or an accession). Describe it — never as an editable
+                    # param: the executor builds it (fetchngs samplesheet / upload wiring).
+                    if param_name in group_required and self._is_schema_data_input(param_name, param_def):
+                        data_inputs.append({
+                            'name': param_name,
+                            'label': self._EXECUTOR_DATA_INPUT_LABELS.get(param_name, param_name.replace('_', ' ').title()),
+                            'description': (param_def.get('description') or param_def.get('help_text') or '')[:200],
+                            'required': True,
+                            'executor_bound': True,
+                        })
                     continue
 
                 ptype = self._schema_type_to_param_type(param_name, param_def)
@@ -2867,7 +2903,7 @@ Respond with a single JSON object — no other text:
 
         if not required_params and not optional_params:
             return None  # schema was empty or all groups skipped — fall back
-        return {'required': required_params, 'optional': optional_params}
+        return {'required': required_params, 'optional': optional_params, 'data_inputs': data_inputs}
 
     def _get_workflow_params(self, filename: str) -> dict:
         """Get parameter metadata for a workflow.
@@ -3697,6 +3733,14 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         nf_params = self._get_workflow_params(match.filename)
         req = nf_params['required']
         opt = nf_params['optional']
+        # Executor-owned required data inputs: satisfied when this request carries data the
+        # executor binds (an accession it fetches, or attached/uploaded files).
+        _data_match = self._RUN_DATA_RE.search(user_intent or '')
+        # bound_value: the public accession when that is what satisfies it (shown in the panel);
+        # None for attached files (the panel says "provided in chat" in the UI language).
+        _bound_value = _data_match.group(0) if _data_match and not _data_match.group(0).startswith('[') else None
+        data_inputs = [{**d, 'bound': bool(_data_match), 'bound_value': _bound_value}
+                       for d in nf_params.get('data_inputs', [])]
         log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
         sra = self._extract_sra_accession(user_intent)
         if sra:
@@ -3832,12 +3876,14 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'hardware_requirements': hardware_requirements,
                 'required_params': req,
                 'optional_params': opt,
+                **({'data_inputs': data_inputs} if data_inputs else {}),
                 **({'parameters': _exec_params} if _exec_params else {}),
                 **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             },
             'datasets_assigned': any(p.get('type') == 'file' and p.get('value') not in (None, '') for p in req + opt),
             'required_params': req,
             'optional_params': opt,
+            **({'data_inputs': data_inputs} if data_inputs else {}),
             'generated_parameters': req + opt,
             **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             'validation': {'is_valid': True, 'issues': [], 'warnings': warnings, 'suggestions': []},

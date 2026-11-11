@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims, generatesSyntheticData, redactStoragePaths, simulatedDataNote } from './execution-integrity';
 import { requireNonEmptyResponse, stripDatasetReferenceParams, parseUploadedDatasetRefs, groundInlineParameters } from './galaxy-assistant';
 
 describe('structural execution guard', () => {
@@ -72,5 +72,37 @@ describe('W4: dataset references are never workflow params', () => {
     expect(JSON.stringify(noSchema.params)).not.toContain('6f1c2a9e');
     const withSchema = await groundInlineParameters({ workflowName: 'some_wf', rawParams: raw, userQuery: msg, requiredParams: ['alpha'] });
     expect(withSchema.params).toEqual({ alpha: '0.1' });
+  });
+});
+
+describe('generatesSyntheticData — run_code that invents its input (EBV, dev 2026-11-11)', () => {
+  it('flags random/simulated values when nothing was staged', () => {
+    expect(generatesSyntheticData('import numpy as np\nod = np.random.normal(0.8, 0.2, 30)', 0)).toBe(true);
+    expect(generatesSyntheticData('rng = np.random.default_rng(1)', 0)).toBe(true);
+    expect(generatesSyntheticData('set.seed(1); x <- rnorm(30)', 0)).toBe(true);
+    expect(generatesSyntheticData('# simulate OD readings from literature distributions', 0)).toBe(true);
+  });
+  it('does not flag real computation on staged inputs, or plain code without generation', () => {
+    expect(generatesSyntheticData('df = pd.read_csv(INPUT_FILES["a.csv"]); np.random.seed(0)', 1)).toBe(false);
+    expect(generatesSyntheticData('import math\nprint(math.log10(2500))', 0)).toBe(false);
+  });
+  it('the note says plainly the numbers are simulated, in both languages', () => {
+    expect(simulatedDataNote(false)).toMatch(/simulated/);
+    expect(simulatedDataNote(true)).toMatch(/模拟数据/);
+  });
+});
+
+describe('redactStoragePaths — no storage URIs in reply prose', () => {
+  it('folder prefixes become "the staged dataset"; file URIs become their file name', () => {
+    expect(redactStoragePaths('Using the movies at s3://biomate-cryo-data/empiar-10028/Micrographs/ (20 files).'))
+      .toBe('Using the movies at the staged dataset (20 files).');
+    expect(redactStoragePaths('Input: `s3://biomate-nextflow-work/uploads/ab12/pilot_compounds.csv`'))
+      .toBe('Input: pilot_compounds.csv');
+    expect(redactStoragePaths('数据位于 s3://b/x/', true)).toBe('数据位于 已准备好的数据集');
+  });
+  it('leaves code blocks and ordinary text untouched', () => {
+    const code = '```python\npath = "s3://b/x/a.csv"\n```';
+    expect(redactStoragePaths(code)).toBe(code);
+    expect(redactStoragePaths('No storage here.')).toBe('No storage here.');
   });
 });

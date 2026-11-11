@@ -957,6 +957,7 @@
     "reference_overrides": "Reference overrides",
     "reference_overrides_hint": "optional — defaults come from the selected genome or pipeline",
     "not_set_default_used": "not set — default used",
+    "provided_in_chat": "provided in chat",
     "uses_default": "default",
     "not_set": "not set",
     "required_not_set": "required — not set",

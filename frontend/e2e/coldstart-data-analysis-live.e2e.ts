@@ -109,7 +109,7 @@ test("card layout matches the declared rows", async ({ page }) => {
 
 for (const r of ROWS) {
   test(`live ${rowId(r)}`, async ({ page }) => {
-    test.setTimeout(ANSWER_TIMEOUT + 120_000);
+    test.setTimeout(ANSWER_TIMEOUT + 240_000); // answer wait + up to 90 s stored-session polling
     await loginAsFixture(page);
     await openAnalysis(page);
     const row = await rowLocator(page, r);

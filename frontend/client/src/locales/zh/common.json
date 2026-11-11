@@ -1166,6 +1166,7 @@
     "reference_overrides": "参考文件覆盖",
     "reference_overrides_hint": "可选——默认取自所选基因组或流程",
     "not_set_default_used": "未设置——使用默认值",
+    "provided_in_chat": "已在对话中提供",
     "uses_default": "默认",
     "diag": {
       "title": "AI 诊断",

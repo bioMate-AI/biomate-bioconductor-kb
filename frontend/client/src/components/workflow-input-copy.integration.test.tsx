@@ -97,3 +97,36 @@ describe('nf-core/rnaseq-like pre-run inputs (audit 20261110 §7.3)', () => {
     expect(within(overrides).getAllByText('not set — default used')).toHaveLength(8);
   });
 });
+
+describe('nf-core/rnaseq as the live catalog sends it: input is executor-owned (data_inputs)', () => {
+  // The real dev payload (2026-11-11) has NO `input` param — the executor builds the samplesheet —
+  // so the requirement arrives as workflow_ga.data_inputs from the backend schema parser.
+  const REFS = ['fasta','gtf','gff','gene_bed','transcript_fasta','additional_fasta','splicesites','bbsplit_fasta_list']
+    .map(name => ({ name, type: 'file', required: false, default: null }));
+  function show(dataInput: Record<string, unknown>) {
+    render(<NextflowWorkflowViewer status="idle" onExecute={vi.fn()} workflowDefinition={{
+      id: 'rnaseq-live', name: 'nf-core/rnaseq', domain: 'transcriptomics',
+      steps: { s1: { name: 'Alignment', tool_id: 'star' } },
+      required_params: [], optional_params: REFS,
+      data_inputs: [{ name: 'input', label: 'Samplesheet (sequencing reads)', required: true, executor_bound: true, ...dataInput }],
+    } as any} />);
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    return screen.getByTestId('prerun-inputs-mapped');
+  }
+  it('shows the samplesheet as the one required input, not set, with no file picker', () => {
+    const card = show({ bound: false });
+    expect(within(card).getByTestId('prerun-inputs-header').textContent).toContain('1 required, not set');
+    const rows = within(card).getAllByTestId('prerun-input-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('Samplesheet (sequencing reads)');
+    expect(rows[0].getAttribute('data-status')).toBe('unresolved');
+    expect(within(rows[0]).queryByText('Choose file')).toBeNull();
+    expect(card.textContent).not.toMatch(/\bS3\b|s3:\/\//);
+  });
+  it('shows the accession once the user gave one', () => {
+    const card = show({ bound: true, bound_value: 'SRR1039508' });
+    const header = within(card).getByTestId('prerun-inputs-header').textContent || '';
+    expect(header).not.toContain('required, not set');
+    expect(within(card).getAllByTestId('prerun-input-row')[0].textContent).toContain('SRR1039508');
+  });
+});
