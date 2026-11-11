@@ -1692,7 +1692,9 @@
     "launch_too_few_rows": "该文件只有 {{rows}} 行数据，训练至少需要 {{min}} 行——每行一个样本，包含特征列和要预测的列。请选择训练用的数据表。",
     "metric_f1": "F1",
     "metric_rmse": "均方根误差",
-    "metric_pr_auc": "精确率-召回率曲线下面积"
+    "metric_pr_auc": "精确率-召回率曲线下面积",
+    "run_status_interrupted": "已中断",
+    "run_status_unknown": "状态未知"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",

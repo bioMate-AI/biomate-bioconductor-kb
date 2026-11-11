@@ -32,7 +32,7 @@ import { ModelObjectLoader } from "./model-object"
 import { OwnedTrainingRegistry } from "./owned-training-registry"
 import { RunPretrained } from "./run-pretrained"
 import { TrainingLauncher } from "./training-launcher"
-import { openRunManager, runStatusLabel } from "./training-logic"
+import { formatRunTime, openRunManager, runStatusLabel } from "./training-logic"
 import { TrainingRegistration } from "./training-registration"
 import type { ModelSummary } from "./types"
 
@@ -160,7 +160,7 @@ export interface TrainData { runs: TrainRun[] }
 
 function trainStatusColor(status: string): string {
   if (status === "completed") return "#22c55e"
-  if (status === "failed") return "#ef4444"
+  if (status === "failed" || status === "interrupted") return "#ef4444"
   if (status === "running") return "#3b82f6"
   return "#94a3b8"
 }
@@ -205,7 +205,7 @@ export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenMo
                 <Badge variant="outline" className="text-fs-xs">
                   {r.family === "ml_training" ? t("models.training_workflow") : t("models.adaptation_workflow")}
                 </Badge>
-                <span className="ml-auto text-fs-xs text-muted-foreground">{notRecorded(r.when)}</span>
+                <span className="ml-auto text-fs-xs text-muted-foreground" title={r.when}>{r.when === "Not recorded" ? notRecorded(r.when) : formatRunTime(r.when)}</span>
                 <Badge
                   variant="outline"
                   className="gap-1 text-fs-xs"

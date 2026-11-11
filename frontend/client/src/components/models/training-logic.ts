@@ -7,7 +7,7 @@
  * that is never produced. The backend re-validates every field.
  */
 
-import { t } from '@/lib/i18n';
+import { locale, t } from '@/lib/i18n';
 
 export type LauncherFamily = 'general' | 'molecular';
 export type FileKind = 'table' | 'h5ad' | 'structure' | 'other';
@@ -124,16 +124,27 @@ export function defaultModelName(fileName: string, target: string): string {
   return target ? `${stem}-${target}` : stem;
 }
 
-export const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'canceled', 'succeeded', 'error']);
+export const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'canceled', 'succeeded', 'error', 'interrupted']);
 
-/** Known run states; anything else is treated as queued. */
+/** Known run states. 'interrupted' is written by the orphan finalizer when a
+ *  run's process vanished (not in the run-status schema, but on real records). */
 const RUN_STATUSES = ['queued', 'configuring', 'running', 'paused', 'completed', 'succeeded',
-  'failed', 'cancelled', 'canceled', 'error'];
+  'failed', 'cancelled', 'canceled', 'error', 'interrupted'];
 
-/** A run status string → its localized label (unknown states fall back to queued). */
+/** A run status string → its localized label. An unrecognised state is shown as
+ *  unknown — never as "queued", which claimed a dead run was about to start. */
 export function runStatusLabel(status: string): string {
   const key = String(status || '').toLowerCase();
-  return t(`models.run_status_${RUN_STATUSES.includes(key) ? key : 'queued'}`);
+  return t(`models.run_status_${RUN_STATUSES.includes(key) ? key : 'unknown'}`);
+}
+
+/** "2026-11-11T07:24:09.433Z" → the viewer's local date-time in the UI language. */
+export function formatRunTime(value: string, lang: string = locale): string {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(lang === 'zh' ? 'zh-CN' : lang, {
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
 }
 
 /**

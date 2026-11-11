@@ -1186,7 +1186,9 @@
     "launch_too_few_rows": "This file has only {{rows}} data row(s); training needs at least {{min}} — one row per sample, with feature columns and the column to predict. Pick a training table instead.",
     "metric_f1": "F1",
     "metric_rmse": "RMSE",
-    "metric_pr_auc": "PR AUC"
+    "metric_pr_auc": "PR AUC",
+    "run_status_interrupted": "Interrupted",
+    "run_status_unknown": "Unknown status"
   },
   "instructions_formats": {
     "edit_title": "Edit output format",
