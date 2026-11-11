@@ -75,7 +75,9 @@ describe("DatasetObject preview — full rows", () => {
   it("scrolling to the bottom loads the next page", async () => {
     renderObj()
     await waitFor(() => expect(rowCalls).toHaveLength(1))
-    const box = screen.getByTestId("dataset-preview-scroll")
+    // The scroll box renders after the first rows response is processed — wait for it
+    // (getBy raced the render under full-suite load).
+    const box = await screen.findByTestId("dataset-preview-scroll")
     Object.defineProperty(box, "scrollHeight", { value: 5200, configurable: true })
     Object.defineProperty(box, "clientHeight", { value: 600, configurable: true })
     box.scrollTop = 4700
