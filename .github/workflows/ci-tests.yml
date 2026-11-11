@@ -99,7 +99,9 @@ jobs:
           # Mirror the backend image (backend/Dockerfile installs rdkit on top
           # of requirements.txt); SMILES QC gates need it in-process.
           pip install --quiet rdkit==2024.3.5
-          pip install --quiet pytest pytest-cov flake8 black mypy
+          # Test-only deps: test_connector_sandbox validates the connector
+          # OpenAPI/tool schemas offline against the real SDK types.
+          pip install --quiet pytest pytest-cov flake8 black mypy openapi-spec-validator anthropic openai
 
       - name: Run Python 3.9 compatibility test
         run: |

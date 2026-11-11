@@ -22,6 +22,10 @@ from backend.lib.galaxy.ai.retrievers.wired_workflow_search import (  # noqa: E4
     WiredWorkflowSearch,
 )
 
+from _ci_markers import requires_workflow_db  # noqa: E402
+
+pytestmark = requires_workflow_db
+
 
 @pytest.fixture(scope="module")
 def base_search():
