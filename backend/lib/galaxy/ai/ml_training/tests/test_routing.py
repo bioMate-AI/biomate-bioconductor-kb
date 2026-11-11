@@ -110,3 +110,71 @@ def test_molecular_request_is_not_hijacked_by_tabular_branch():
     cfg = extract_training_config("train a hERG blocker classifier")
     assert cfg.model_type != "sklearn_tabular"
     assert cfg.dataset.name == "tdc:hERG"
+
+
+# ── Attached training data (dev 2026-11-11) ─────────────────────────────────────────────────────
+# "Train a potency predictor on our in-house assay data." + bace_assays.csv produced a
+# SCAFFOLD-HOPPING card (required param `input_smiles`, "the compound series to hop"): the router
+# never saw the attachment, could not resolve a dataset, returned None, and the request fell
+# through to the catalog search. The user's attached table IS the dataset.
+POTENCY = ("Train a potency predictor on our in-house assay data.\n"
+           "[Attached files: bace_assays.csv]\n"
+           "[Prepared inputs: Train a BACE1 potency predictor on the real published BACE assays, "
+           "using SMILES and pIC50. The Train/Valid/Test splits are supplied.]")
+ATTACHED_CSV = [{"name": "bace_assays.csv", "datasetId": "ebb2b218",
+                 "s3Uri": "s3://bucket/uploads/ebb2b218/bace_assays.csv"}]
+
+
+def test_training_request_without_data_still_falls_through():
+    # unchanged behaviour: nothing to train on, no recognised public assay → normal search
+    assert route_ml_training(POTENCY) is None
+
+
+def test_attached_table_resolves_the_training_dataset():
+    ga = route_ml_training(POTENCY, uploaded_datasets=ATTACHED_CSV)
+    assert ga is not None, "a training request with an attached assay table must route to training"
+    assert ga["domain"] == "ml_training"
+    assert ga["nextflow_path"] == "ml_training/chemprop_train.nf"
+    required = {p["name"]: p["value"] for p in ga["required_params"]}
+    assert required["dataset"] == "s3://bucket/uploads/ebb2b218/bace_assays.csv"
+    # the label column the request names, not a neutral "y" the user would have to correct
+    assert required["target_col"] == "pIC50"
+    # the card title says what was built
+    assert ga["name"] == "potency predictor"
+
+
+@pytest.mark.parametrize("attached,resolved", [
+    ([{"name": "reads_R1.fastq.gz"}, {"name": "reads_R2.fastq.gz"}], None),   # raw reads are not training data
+    ([{"name": "sample.bam"}], None),
+    ([{"name": "notes.txt"}, {"name": "assays.csv", "s3Uri": "s3://b/assays.csv"}], "s3://b/assays.csv"),
+    ([{"name": "corpus.jsonl", "path": "/data/corpus.jsonl"}], "/data/corpus.jsonl"),
+    ([], None),
+    (None, None),
+])
+def test_only_readable_training_tables_qualify(attached, resolved):
+    from galaxy.ai.ml_training.routing import select_training_dataset
+    assert select_training_dataset(attached) == resolved
+
+
+def test_raw_reads_attachment_keeps_the_normal_search_path():
+    assert route_ml_training("Train a model on these reads",
+                             uploaded_datasets=[{"name": "r1.fastq.gz"}]) is None
+
+
+@pytest.mark.parametrize("text,col", [
+    ("train a model on SMILES and pIC50", "pIC50"),
+    ("fit a regressor on the IC50_nM column", "IC50_nM"),
+    ("train on measured logP", "logP"),
+    ("train a model on our compounds", None),
+])
+def test_target_column_is_read_from_the_request(text, col):
+    from galaxy.ai.ml_training.routing import _infer_target_col
+    assert _infer_target_col(text) == col
+
+
+def test_attached_file_wins_over_the_public_alias():
+    # "train an hERG classifier" + THEIR hERG table → train on their file, not tdc:hERG
+    ga = route_ml_training("Train an hERG classifier and gate the design loop on it",
+                           uploaded_datasets=[{"name": "herg.csv", "s3Uri": "s3://b/herg.csv"}])
+    required = {p["name"]: p["value"] for p in ga["required_params"]}
+    assert required["dataset"] == "s3://b/herg.csv"
