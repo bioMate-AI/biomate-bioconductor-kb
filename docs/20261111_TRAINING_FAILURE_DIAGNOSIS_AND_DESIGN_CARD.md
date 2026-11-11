@@ -52,4 +52,12 @@ was wrong:
 ## Open
 
 - There are two diagnosis surfaces for one failed run: the panel "AI 诊断" card (Galaxy verdict) and the AfterRunReport 运行失败 block (TS classifier). Both now agree and are localized, but they should become one surface.
-- Live verification on dev after sync: re-open c0d27792. Expect `tool_error` / "too few rows" in zh, with the traceback excerpt. Try launching on `contrasts.csv`: expect the panel to refuse before submit.
+
+## Live verification on dev (2026-11-11, dev = `279d6d27`, guarded syncs `3b329654 → e5dd8c3b → 279d6d27`, both healthy)
+
+- **Landing:** 4 cards, `search`, `analysis`, `design` (分子设计与生成) and `models`; `/design` renders.
+- **Galaxy status for c0d27792:** `failure.category=tool_error`, `suggested_action=check_input`, `error_detail="cannot make 5 folds from 1 rows"`. The snippet ends at the ValueError traceback (it was `unknown`/`resume` with a noise-only snippet).
+- **`POST /api/model-training/plan` with contrasts.csv:** HTTP 400 `dataset_too_small:1:10`.
+- **Models → 训练:** choosing contrasts.csv shows "该文件只有 1 行数据，训练至少需要 10 行……" and 开始训练 is disabled. counts_matrix.csv is not refused.
+  - The first deploy (`e5dd8c3b`) did NOT show this message: the launcher read `body.rows`, while `DataProfile.to_dict()` emits `shape.rows`. Fixed in `279d6d27`, and the unit test now uses the real shape.
+
