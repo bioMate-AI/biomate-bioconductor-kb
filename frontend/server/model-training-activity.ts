@@ -41,9 +41,18 @@ export interface ModelTrainingActivityRow {
  /** Structured result for the panel to format in the active language (absent → not recorded). */
  metricName?: string; metricValue?: number; gateStatus?: 'pass' | 'fail' | null; gateThreshold?: number | null;
 }
+function isAdaptationCompileRun(wf: Record<string, unknown>): boolean {
+ if (wf.workflow_type === 'adaptation') return true;
+ const steps = wf.steps && typeof wf.steps === 'object' ? Object.values(wf.steps as Record<string, any>) : [];
+ return steps.some(step => step && typeof step === 'object' && step.tool_id === 'adapt_compile');
+}
 export function isModelTrainingRun(run: TrainingActivityRun): boolean {
  const wf = run.workflowDefinition as Record<string, unknown> | undefined;
  if (!wf || typeof wf !== 'object' || Array.isArray(wf)) return false;
+ // House-style "Adaptation retrain" (prompt-rules compile over edit pairs) was
+ // registered as workflow_type 'training' but trains no model and writes no
+ // metrics — it only ever showed "Not recorded" here. It stays in Run Manager.
+ if (isAdaptationCompileRun(wf)) return false;
  if (wf.workflow_type === 'training') return true;
  if (wf.domain === 'ml_training' || wf.workflow_domain === 'ml_training') return true;
  return typeof wf.nextflow_path === 'string' && !/[?#\0]/.test(wf.nextflow_path) && /(?:^|\/)ml_training\/[^/]+\.nf$/.test(wf.nextflow_path);
@@ -90,7 +99,11 @@ export async function readModelTrainingActivity(
   if (dependencies.loadTrainingMetrics) {
    const pending = owned.filter(r => r.execution.status === 'completed' && r.execution.trainingSummary === undefined).slice(0, 8);
    await Promise.all(pending.map(async (r) => {
-    const doc = await dependencies.loadTrainingMetrics!(r).catch(() => null);
+    const doc = await dependencies.loadTrainingMetrics!(r).catch((error) => {
+     // Not fatal for the list, but never silent: a failing reader hid every score.
+     console.warn(`[model-training-activity] metrics for run ${r.id} unreadable:`, error instanceof Error ? error.message : error);
+     return null;
+    });
     const summary = summarizeTrainingMetrics(doc);
     if (!summary) return;
     r.execution = { ...r.execution, trainingSummary: summary };
