@@ -2,7 +2,7 @@ import { responseLanguageDirective } from "./response-language";
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
-import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
+import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
 import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
@@ -2935,11 +2935,12 @@ export async function decomposeViaOpenRouter(model: string, key: string, system:
       const r = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'BioMate' },
-        body: JSON.stringify({ model, max_tokens: 4096, temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        body: JSON.stringify({ model, ...reasoningBudgetBody('https://openrouter.ai/api/v1', 4096), temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
         signal: AbortSignal.timeout(45000),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
       const j: any = await r.json();
+      assertNotReasoningExhausted(j);
       const text = j?.choices?.[0]?.message?.content;
       if (typeof text !== 'string' || !text.trim()) throw new Error('empty response');
       return text;
