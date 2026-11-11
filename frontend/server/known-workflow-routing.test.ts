@@ -16,6 +16,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   GalaxyAssistant,
   followUpFillsCurrentWorkflow,
+  isValueOnlyReply,
   normalizeSelectedWorkflow,
   workflowIdentityOf,
   inferActionsFromType,
@@ -178,6 +179,16 @@ describe('followUpFillsCurrentWorkflow — the binding rule (classifier output o
       facts: [{ category: 'analysis_goal', value: 'RNA-seq quantification', confidence: 0.6 }],
     }), 'SRR1039508')).toBe(true);
   });
+  it('binds a bare accession even when the classifier carries the goal over at high confidence (dev 2026-11-11)', () => {
+    const carried = decomposition({ facts: [{ category: 'analysis_goal', value: 'RNA-seq alignment and quantification', confidence: 0.95 }] });
+    expect(followUpFillsCurrentWorkflow(carried, 'SRR1039508')).toBe(true);
+  });
+  it('does not bind when the reply also states a new analysis or tool, even with an accession', () => {
+    const goal = decomposition({ facts: [{ category: 'analysis_goal', value: 'variant calling', confidence: 0.95 }] });
+    expect(followUpFillsCurrentWorkflow(goal, 'run variant calling on SRR1039508')).toBe(false);
+    const tool = decomposition({ facts: [{ category: 'tool_preference', value: 'DESeq2', confidence: 0.9 }] });
+    expect(followUpFillsCurrentWorkflow(tool, '用 DESeq2 分析 SRR1039508')).toBe(false);
+  });
   it.each([
     ['multi-intent', decomposition({}, true)],
     ['stated analysis goal', decomposition({ facts: [{ category: 'analysis_goal', value: 'variant calling', confidence: 0.95 }] })],
@@ -188,6 +199,16 @@ describe('followUpFillsCurrentWorkflow — the binding rule (classifier output o
   ])('does not bind: %s', (_label, d) => {
     expect(followUpFillsCurrentWorkflow(d, 'whatever')).toBe(false);
   });
+});
+
+describe('isValueOnlyReply — deterministic: only identifiers, files, numbers left', () => {
+  it.each([
+    'SRR1039508', 'GSE52778', 'SRR1039508, SRR1039509', 'PXD012345', 'E-MTAB-1234',
+    'sample_R1.fastq.gz sample_R2.fastq.gz',
+    '[Attached files: counts.csv]\n[Uploaded datasets: counts.csv: dataset_id=abc]',
+  ])('value-only: %s', (m) => { expect(isValueOnlyReply(m)).toBe(true); });
+  it.each(['', 'hello', 'use SRR1039508', 'SRR1039508 please align to mouse', '用 SRR1039508', 'counts.csv 做差异表达'])(
+    'not value-only: %s', (m) => { expect(isValueOnlyReply(m)).toBe(false); });
 });
 
 describe('selection / identity normalization', () => {

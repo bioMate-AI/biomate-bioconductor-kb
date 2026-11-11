@@ -77,6 +77,7 @@ import type {
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
+import { stripSystemBlocks } from '../shared/chat-system-blocks';
 import { decideWorkflowReplyState } from '../shared/workflow-response-state';
 import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk } from '../shared/workflow-data-inputs';
 
@@ -2564,13 +2565,36 @@ export function workflowIdentityOf(wf: any): SelectedWorkflow | null {
  *      needsWorkflowModification) and not direct_compute (ad-hoc compute is not this workflow);
  *   3. the turn SUPPLIES something: inline parameter values, an uploaded-file binding, or a
  *      file_reference / parameter fact;
- *   4. the turn states no analysis of its own: no analysis_goal or tool_preference fact the
+ *   4. the turn states no analysis of its own: the reply is value-only (isValueOnlyReply — the
+ *      classifier may still attach a carried-over goal at high confidence), or there is no analysis_goal or tool_preference fact the
  *      classifier marked as explicitly stated (confidence >= 0.8 — its prompt reserves 0.9+ for
  *      direct mentions and 0.5-0.7 for inferred facts, e.g. the open workflow's goal carried
  *      over from earlier turns).
  * Anything else (a question, a new goal or tool, several tasks) routes normally. Conservative by
  * design: a miss costs one ordinary routing turn; a false bind would ignore a new request.
  */
+/** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA… */
+const DATA_IDENTIFIER_RE = /\b(?:[A-Z]{1,6}-)?[A-Z]{2,6}[-_]?\d{3,}\b/g;
+/** File names a user might paste (sample_R1.fastq.gz, counts.csv). */
+const FILE_NAME_RE = /[^\s,;，；、]+\.[A-Za-z][A-Za-z0-9]{0,7}(?:\.gz)?\b/g;
+
+/**
+ * True when the user's own text is ONLY input values — public data identifiers, attached-file
+ * blocks, file names, numbers and separators — with no words left over. Such a reply cannot
+ * state a new analysis, whatever goal the classifier carries over from the conversation
+ * (dev 2026-11-11: for the reply "SRR1039508" with nf-core/rnaseq open, the classifier emitted
+ * analysis_goal "RNA-seq alignment and quantification" at confidence 0.95, inferred from history).
+ * Deterministic and language-neutral: any leftover letter or CJK character means "not value-only".
+ */
+export function isValueOnlyReply(message: string): boolean {
+  const rest = stripSystemBlocks(message)
+    .replace(DATA_IDENTIFIER_RE, ' ')
+    .replace(FILE_NAME_RE, ' ')
+    .replace(/\d+/g, ' ');
+  const hadValue = rest !== stripSystemBlocks(message) || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
+  return hadValue && !/[A-Za-z\u3400-\u9fff]/.test(rest);
+}
+
 export function followUpFillsCurrentWorkflow(decomposition: IntentDecomposition, message: string): boolean {
   if (decomposition.isMultiIntent) return false;
   const intent = decomposition.primaryIntent;
@@ -2584,6 +2608,8 @@ export function followUpFillsCurrentWorkflow(decomposition: IntentDecomposition,
     Object.keys(extractUploadedFileParams(message)).length > 0 ||
     facts.some(f => f.category === 'file_reference' || f.category === 'parameter');
   if (!suppliesValues) return false;
+  // A value-only reply states no analysis of its own; the classifier's goal for it is carried over.
+  if (isValueOnlyReply(message)) return true;
   const statesNewAnalysis = facts.some(f =>
     (f.category === 'analysis_goal' || f.category === 'tool_preference') && (f.confidence ?? 1) >= 0.8);
   return !statesNewAnalysis;

@@ -3676,7 +3676,16 @@ export function NextflowWorkflowViewer({
             // file overrides still on their genome/pipeline default. Overrides are
             // not "mapped inputs", so they render collapsed and never inflate the
             // header count. Same classifier as the chat reply state.
-            const model = derivePrerunInputs(renderedParameters as any, sessionDatasets as any, paramDefs);
+            // Executor-owned required data inputs (nf-core `input`): described by the backend,
+            // never editable params — the executor builds them from attached files or an accession.
+            const executorInputs: any[] = (Array.isArray(workflowDefinition?.data_inputs) ? workflowDefinition.data_inputs : [])
+              .filter((d: any) => d?.name && d?.required)
+              .map((d: any) => ({
+                id: `__data_input__${d.name}`, name: d.name, label: d.label || d.name, type: 'file', required: true,
+                data_input: true, executor_bound: true,
+                value: d.bound ? (d.bound_value || tOr('panel.provided_in_chat', 'provided in chat')) : '',
+              }));
+            const model = derivePrerunInputs([...executorInputs, ...renderedParameters] as any, sessionDatasets as any, [...executorInputs, ...paramDefs]);
             if (model.primary.length === 0 && model.overrides.length === 0) {
             // Style-A workflows declare their input via a `// Input:` code header,
             // which surfaces as ordinary OPTIONAL STRING params ("Input Csv", "Dataset Id",
@@ -3772,7 +3781,7 @@ export function NextflowWorkflowViewer({
                   {!isOverride && r.status === 'optional-empty' && (
                     <span className="chip" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
                   )}
-                  {(r.status === 'unresolved' || r.status === 'needs-mapping') && (
+                  {(r.status === 'unresolved' || r.status === 'needs-mapping') && !p.executor_bound && (
                     <button
                       type="button"
                       className="btn sm ghost"
