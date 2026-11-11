@@ -23,7 +23,8 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
  */
 
 import { resolveChainHintNames } from './chain-hint-fallback';
-import { isInterpretationOnlyRequest, prohibitsWorkflowExecution, prohibitsWorkflowGeneration } from './execution-intent-guard';
+import { routingExamplesPrompt } from './routing-examples';
+import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -1507,6 +1508,57 @@ export function normalizeAdmetSmiles(
   return out;
 }
 
+/** Upload references in the UI's "[Uploaded datasets: name: dataset_id=…, galaxy_dataset_id=…, s3_uri=…]"
+ *  block: every id → that file's {name, s3Uri}. */
+export function parseUploadedDatasetRefs(message: string): Map<string, { name: string; s3Uri?: string }> {
+  const refs = new Map<string, { name: string; s3Uri?: string }>();
+  for (const block of (message || '').matchAll(/\[Uploaded datasets:\s*([^\]]+)\]/gi)) {
+    for (const entry of block[1].split(/;\s*/)) {
+      const name = entry.match(/^([^:]+):/)?.[1]?.trim();
+      if (!name) continue;
+      const s3Uri = entry.match(/s3_uri=(s3:\/\/[^\s,;\]]+)/i)?.[1];
+      for (const m of entry.matchAll(/(?:galaxy_)?dataset_id=([A-Za-z0-9-]+)/gi)) refs.set(m[1], { name, s3Uri });
+    }
+  }
+  return refs;
+}
+
+const DATASET_REF_KEY_RE = /^(?:galaxy[_\s-]?)?dataset[_\s-]?ids?$|^s3[_\s-]?uris?$|^uploaded[_\s-]?datasets?$|^dataset[_\s-]?(?:ref|reference)s?$/i;
+
+/**
+ * Dataset references are never workflow parameters (W4: the intent LLM copied the upload block's
+ * dataset_id UUID into inlineParameters, it passed through as an unknown key, and the panel showed
+ * "Dataset Id: <uuid>" as a required param). Rules:
+ *  - a dataset-reference KEY (dataset_id, galaxy_dataset_id, s3_uri, …) is dropped unless the chosen
+ *    workflow's schema declares it (`allowedKeys`);
+ *  - a VALUE that is an upload id is rebound to that file's s3 URI (what the executor reads and what
+ *    the panel shows as a file name), or dropped when no URI is known;
+ *  - with a known schema, only schema keys survive (done by the callers' schema filter).
+ * Files are bound by extractUploadedFileParams, not by copying ids.
+ */
+export function stripDatasetReferenceParams(
+  params: Record<string, any> | null | undefined,
+  message: string,
+  allowedKeys?: Set<string>,
+): Record<string, any> {
+  if (!params) return {};
+  const refs = parseUploadedDatasetRefs(message);
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (DATASET_REF_KEY_RE.test(k) && !allowedKeys?.has(k)) continue;
+    if (typeof v === 'string') {
+      const token = v.trim().replace(/^.*dataset_id=/, '').split(/[\s,;\]]/)[0];
+      const ref = refs.get(token);
+      if (ref) {
+        if (ref.s3Uri) out[k] = ref.s3Uri;
+        continue;
+      }
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
 /**
  * Remap an LLM-extracted inlineParameters dict to the workflow's expected
  * required_params keys. Unknown keys pass through (forwards-compat for new
@@ -1597,7 +1649,12 @@ export async function groundInlineParameters(args: {
   details?: ExtractorResult;
   path: 'schema-grounded' | 'legacy-alias' | 'noop';
 }> {
-  const { workflowName, rawParams, userQuery, requiredParams, optionalParams, onStatus } = args;
+  const { workflowName, userQuery, requiredParams, optionalParams, onStatus } = args;
+  const _schemaKeys: Set<string> = new Set([
+    ...(requiredParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
+    ...(optionalParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
+  ]);
+  const rawParams = stripDatasetReferenceParams(args.rawParams as any, userQuery, _schemaKeys);
   if (!workflowName) {
     return { params: (rawParams as any) || {}, path: 'noop' };
   }
@@ -1938,6 +1995,10 @@ export interface DecomposedIntent {
    *  conversation; 'pipeline' = launch a workflow. Set by the classifier from what the request
    *  needs, in any language. */
   execution?: 'pipeline' | 'direct_compute' | null;
+  /** Explicit user constraint the classifier read from the message (any language): 'no_workflow' =
+   *  do not create/use a workflow (interpretation only, or compute directly); 'no_launch' = prepare
+   *  the plan but do not launch it. Consumed by routing-authority.applyUserConstraintGate. */
+  userConstraint?: UserConstraint;
   /** LLM-written routing specification for a workflow intent: method + data type + input format +
    *  expected output, no experimental-design labels. The catalog search for this branch uses it. */
   taskSpec?: string;
@@ -2617,6 +2678,12 @@ export async function decomposeViaOpenRouter(model: string, key: string, system:
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+/** Provider-chain contract: a reply with no text is a failure so the chain fails over. */
+export function requireNonEmptyResponse(text: string | null | undefined, provider: string): string {
+  if (typeof text !== 'string' || !text.trim()) throw new Error(`${provider} returned an empty response`);
+  return text;
 }
 
 export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
@@ -3759,6 +3826,19 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
       }
     }
 
+    // No tools and no text (empty candidate): retry the turn once on a fresh chat before reporting
+    // empty — the caller's provider chain treats '' as a failure (requireNonEmptyResponse).
+    if (!rawResponse && !toolContext) {
+      try {
+        const retry = await model.startChat({ history }).sendMessage(lastMessage);
+        rawResponse = retry.response.text() || '';
+        if (rawResponse) onResponseDelta?.(rawResponse);
+        console.warn(`[GeminiLoop] empty reply — retried once (${rawResponse.length} chars)`);
+      } catch (e: any) {
+        console.warn('[GeminiLoop] empty-reply retry failed:', e?.message);
+      }
+    }
+
     return rawResponse;
   }
 
@@ -4433,67 +4513,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     );
   }
 
-  /**
-   * Bioconductor enrichment workflows — clusterProfiler family (enrichGO,
-   * enrichKEGG, GSEA). Explicit mention of `clusterprofiler` (or its
-   * dispatch names) should always land a workflow card, not a run_code R
-   * script (BC-04 regression, 2026-06-18). Workflows ids 11122, 12955, 12956.
-   */
-  private _isClusterProfilerQuery(message: string): boolean {
-    if (!/\bclusterprofiler\b/i.test(message)) return false;
-    // Common dispatch verbs accompanying the package name
-    return /\b(enrich[a-z]*|gsea|gseGO|gseKEGG|gse[a-z]*|dotplot|cnetplot|emapplot)\b/i.test(message)
-        || /\bgene\s+set\s+enrichment\b/i.test(message)
-        || /\b(GO|KEGG|Reactome|MSigDB)\b/.test(message);
-  }
 
-  /**
-   * Explicit direct-code-execution request — the user wants an ad-hoc
-   * run_code computation, NOT a Nextflow pipeline. If such a request is
-   * (mis)classified as workflow_generation, generateWorkflow() produces a
-   * workflow card which sets hasRunnableWorkflow=true, which DISABLES the
-   * run_code tool at the agent-tools gate — so the model can no longer call
-   * run_code and instead FABRICATES output (prints a <run_code> block as
-   * prose and claims "executed in the sandbox" while nothing runs). Keeping
-   * needsWorkflowGeneration=false leaves the run_code tool enabled so the
-   * code actually executes in the sandbox. Conservative: only fires on an
-   * explicit run_code ask AND when no real-pipeline keyword is present, so it
-   * never hijacks a genuine workflow request.
-   * (QA 2026-08-17: chat fabricated run_code output — root cause was this
-   * mis-route + the tool-gate; see docs/20260813 roadmap.)
-   */
-  private _isDirectCodeExecutionQuery(message: string): boolean {
-    // An explicit "do NOT launch a workflow/pipeline" directive is the STRONGEST direct-compute
-    // signal a user can give. Capture it separately so the words it contains ("nextflow",
-    // "workflow", "pipeline") cannot later trip the pipeline exclusion AGAINST that very sentence.
-    const noWorkflowDirective =
-      /\bdo\s+not\s+(launch|generate|create|build|run)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message);
-    const explicit =
-      /\b(use\s+run_?code|via\s+run_?code|with\s+run_?code|run_?code\b|run\s+this\s+(python|r|bash|code|script|snippet)|execute\s+this\s+(python|r|bash|code|script|snippet))\b/i.test(message)
-      || noWorkflowDirective
-      // Chinese: 运行/执行这段代码, 帮我运行, 请运行以下
-      || /(?:运行|执行|跑一下|帮我跑|帮我运行|请运行|请执行)(?:这段|以下|下面|如下)?(?:代码|脚本|程序|python|Python|R语言|bash)/u.test(message)
-      // Message contains an explicit code block to run (triple-backtick with code)
-      || /```(?:python|r|bash|sh|javascript|js)?\s*\n[\s\S]{10,}?```/i.test(message);
-    if (!explicit) return false;
-    // An explicit no-workflow directive overrides the pipeline guard outright — the user has
-    // disclaimed a pipeline, so a method name like "deseq2" or the word "nextflow" inside that
-    // very directive must not re-route to workflow generation. This is the confirmed
-    // BixBench-exec / run_code fabrication bug: "Use run_code … Do NOT launch a Nextflow workflow"
-    // was misread as a pipeline request because the sentence contains the word "nextflow", so the
-    // direct-compute override never fired → a workflow card was generated → hasRunnableWorkflow
-    // disabled run_code → the model printed code as text and fabricated the answer.
-    if (noWorkflowDirective) return true;
-    // Otherwise scrub NEGATED pipeline mentions ("not a pipeline", "without a workflow") so a
-    // disclaimer cannot count as a pipeline request, then guard genuine pipeline/named-workflow asks.
-    const scrubbed = message.replace(
-      /\b(?:not|no|without|avoid|don'?t|do\s+not)\s+(?:a\s+|an\s+|the\s+)?(?:nextflow\s+)?(?:workflow|pipeline)\b/gi,
-      ' ',
-    );
-    const pipeline =
-      /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|epitope|docking|autodock|codon|pocket|target\s+evidence)\b/i.test(scrubbed);
-    return !pipeline;
-  }
 
   /**
    * Returns the Galaxy interactive-tool type the message is requesting,
@@ -4590,10 +4610,10 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
   }
 
   /**
-   * Post-classifier routing policy for the single-intent path: everything that runs between
-   * analyzeIntent() and workflow generation and may change actions.needsWorkflowGeneration.
-   * Extracted verbatim from _generateResponse (behaviour-preserving) so it can be measured by the
-   * routing replay harness (scripts/routing_replay.ts).
+   * Post-classifier routing for the single-intent path. The classifier decided workflow-vs-not; this
+   * only (1) reconciles its execution mode with its action flags, (2) adds retrieval hints, and
+   * (3) applies the explicit-prohibition and BOIN-prerequisite gates. See routing-authority.ts and
+   * docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md. Measured by scripts/routing_replay/run.ts.
    */
   _applyPostClassifierRouting(
     intent: DecomposedIntent,
@@ -4601,459 +4621,19 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     message: string,
     opts: { paperContentResult?: unknown; originalUserQuery?: string } = {},
   ): { boinDoseLevelsMissing?: boolean; pathwayEnrichment?: boolean } {
-    const log = (step: string) => console.log(`[GalaxyAssistant] [routing] ${step}`);
-    const actions = intent.actions;
-    const paperContentResult = opts.paperContentResult;
-    const originalUserQuery = opts.originalUserQuery ?? message;
-
-    // Direct-code-execution override (QA 2026-08-17): when the user EXPLICITLY
-    // asks to run ad-hoc code (run_code) rather than a pipeline, do NOT
-    // generate a workflow — a generated workflow disables the run_code tool at
-    // the agent-tools gate and makes the model fabricate output instead of
-    // actually executing. Flip to the direct-compute path so run_code stays
-    // enabled and really runs in the sandbox. Conservative guard (explicit ask
-    // + no pipeline keyword) so genuine workflow requests are untouched.
-    // The classifier's execution decision is authoritative (it is an LLM — any language, and it sees
-    // the history). Its prompt already restricts direct_compute to data that is in the conversation,
-    // so no second regex check on the CURRENT message: that check silently discarded every
-    // follow-up turn ("先做第一步", "不用工作流") because the dataset block lives in an earlier turn
-    // (dev logs 2026-11-10: execution=direct_compute + needsWorkflowGeneration=false, 3/3 turns,
-    // all overridden into workflow generation).
-    const _directCompute = (intent as any).execution === 'direct_compute';
-    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute || isSimpleSequencePropertyRequest(message))) {
-      if (_directCompute) log('Direct-compute override: classifier execution=direct_compute with data in the conversation');
-      log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
-      actions.needsWorkflowGeneration = false;
-      actions.needsLLMReasoning = true;
+    const userText = opts.originalUserQuery ?? message;
+    reconcileExecutionMode(intent);
+    const { pathwayEnrichment } = applyRetrievalHints(intent, decomposition, userText);
+    const gate = applyUserConstraintGate(intent, userText);
+    if (gate !== 'none') console.log(`[GalaxyAssistant] [routing] user-constraint gate: ${gate}`);
+    if (boinDoseLevelsMissing(intent, userText)) {
+      console.log('[GalaxyAssistant] [routing] BOIN prereq gate: dose levels missing — returning clarification');
+      intent.actions.needsWorkflowGeneration = false;
+      return { boinDoseLevelsMissing: true, pathwayEnrichment };
     }
-
-    // ml_training intent override (flag-gated on ML_TRAINING_ROUTING):
-    // "train/build/fine-tune a classifier/model/…" is a MODEL-TRAINING request.
-    // The intent classifier tends to bucket it as tool_search (→ the LLM
-    // recommends an indexed tool like deepFPlearn and asks for a data upload),
-    // so generateWorkflow() never runs and the backend ml_training route never
-    // fires. Force workflow_generation so generateWorkflow() calls
-    // /api/ai_assistant/generate_workflow, where the backend hook
-    // (route_ml_training_result) returns the ml_training training card.
-    // Backend still gates the actual routing on its own ML_TRAINING_ROUTING flag.
-    if (!actions.needsWorkflowGeneration && process.env.ML_TRAINING_ROUTING === '1') {
-      const _isMlTrainingRequest = /\b(train|build|fit|re-?train|fine-?tune|instruction[- ]?tune)\b[\s\S]*\b(model|classifier|regressor|predictor|qsar|gnn|neural\s*net(?:work)?|network|llm|large\s*language\s*model|language\s*model|chat\s*model)\b/i.test(message);
-      if (_isMlTrainingRequest) {
-        log('ml_training intent override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // Target evidence & genetic association override:
-    // "Show target evidence for CHRNA1 in MG" / "genetic associations for [gene]" /
-    // "disease association strength for [target]" → target_evidence_positioning workflow.
-    // The intent classifier routes these as research_question because they look like
-    // database lookups. They ARE workflow execution: the target_evidence_positioning
-    // workflow queries OpenTargets, GWAS catalog, and eQTL databases programmatically.
-    if (!actions.needsWorkflowGeneration) {
-      const _isTargetEvidenceQuery =
-        /\b(target\s+evidence|genetic\s+association[s]?\s+for|disease\s+association\s+(strength|score)|evidence\s+positioning|opentargets?\s+(evidence|score|association)|gwas\s+(association[s]?|evidence)\s+for|eqtl.{0,20}target|target\s+(tractability|prioriti[sz]ation|validation\s+evidence)|association\s+score[s]?\s+for\s+[A-Z])/i.test(message)
-        && /\b([A-Z][A-Z0-9]{1,8})\b/.test(message); // gene/target name present
-      if (_isTargetEvidenceQuery) {
-        log('Target-evidence override: forcing needsWorkflowGeneration=true → target_evidence_positioning');
-        actions.needsWorkflowGeneration = true;
-        actions.needsResearchAgent = false; // prevent research agent from masking the workflow chip
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // Patient recruitment feasibility & trial power override:
-    // "Estimate recruitment feasibility for MG Phase 3" / "patient recruitment feasibility" /
-    // "sample size for Phase 3 trial" → patient_recruitment_feasibility or
-    // rare_disease_power_calculator workflows. Intent classifier sees these as
-    // experiment_design or research_question; they are workflow execution tasks.
-    if (!actions.needsWorkflowGeneration) {
-      const _isTrialFeasibilityQuery =
-        /\b(recruitment\s+feasibility|patient\s+recruitment\s+(feasibility|estimate|timeline|projection)|enrollment\s+(feasibility|window|timeline|estimate)|rare\s+disease\s+power|sample\s+size\s+(for\s+a?\s*(phase|clinical|rare)|calculator|calculation)|power\s+(analysis|calculation)\s+for\s+a?\s*(phase|clinical|rare|trial)|calculate\s+(the\s+)?required\s+sample|required\s+sample\s+size|mg.?adl|clinical\s+trial\s+(power|design\s+with\s+power)|two.arm\s+parallel)/i.test(message);
-      if (_isTrialFeasibilityQuery) {
-        log('Trial-feasibility override: forcing needsWorkflowGeneration=true → patient_recruitment_feasibility or rare_disease_power_calculator');
-        actions.needsWorkflowGeneration = true;
-        actions.needsResearchAgent = false;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // Pathway enrichment / clusterProfiler override:
-    // "Run pathway enrichment on complement genes C3, C5, CFB" → clusterProfiler/enrichGO workflow.
-    // This check runs regardless of whether needsWorkflowGeneration is already true — the LLM
-    // may have already set it (e.g., from prior-turn DESeq2 context) but directed the search
-    // toward differentialabundance instead of clusterProfiler. We must inject clusterProfiler
-    // keyTerms in both cases so the FTS search returns the right workflow.
-    // Lifted to outer scope so Step 6c text-guardrail can skip nf-core overrides when this fires.
-    const _isPathwayEnrichmentQuery =
-      /\b(pathway\s+enrichment|run\s+pathway|enrichment\s+analysis|clusterprofiler|enrichgo|enrichkegg|gsea|gene\s+set\s+enrichment|pathway\s+activation\s+(analysis|in|from)|enriched\s+pathways?|over.?representation\s+analysis|ora\b|fgsea|GO\s+(enrichment|terms?|biological\s+process)|gene\s+ontology\s+enrich)\b/i.test(message)
-      && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|concept|overview)\b/i.test(message);
-    {
-      if (_isPathwayEnrichmentQuery) {
-        if (!actions.needsWorkflowGeneration) {
-          log('Pathway-enrichment override: forcing needsWorkflowGeneration=true → clusterProfiler/enrichGO');
-          actions.needsWorkflowGeneration = true;
-          actions.needsResearchAgent = false;
-          intent.type = 'workflow_generation';
-        }
-        // When the LLM misclassifies Turn 2 as data_provision, intent.subQuery becomes a
-        // context summary ("I have your counts matrix...") rather than the enrichment request.
-        // generateWorkflow uses intent.subQuery || message as userIntent — the wrong subQuery
-        // sends "counts matrix contrasts" to FTS which returns differentialabundance, not clusterprofiler.
-        // Reset to the original message so FTS receives the actual pathway enrichment intent.
-        intent.subQuery = message;
-        // Always inject clusterProfiler keyTerms when enrichment is explicitly requested,
-        // even if needsWorkflowGeneration was already true from prior-turn context.
-        // This prevents DESeq2/differentialabundance context from hijacking the FTS search.
-        if (!decomposition.keyTerms) decomposition.keyTerms = [];
-        for (const t of ['clusterprofiler', 'ORA', 'pathway enrichment', 'gene set', 'enrichGO', 'enrichKEGG', 'GO terms']) {
-          if (!decomposition.keyTerms.includes(t)) decomposition.keyTerms.push(t);
-        }
-        // Remove any differentialabundance keyTerms that crept in from prior-turn context
-        // so they don't outrank clusterprofiler in the FTS search.
-        decomposition.keyTerms = decomposition.keyTerms.filter(
-          t => !/(differentialabundance|differential.abundance|nf.?core.*diff)/i.test(t)
-        );
-        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
-        if (!decomposition.preferredDomains.includes('genomics')) decomposition.preferredDomains.push('genomics');
-        // Penalize transcriptomics so nf-core/differentialabundance (which also has enrichment
-        // steps) doesn't out-score clusterprofiler in the FTS search when prior-turn context
-        // includes a DESeq2/differentialabundance run.
-        if (!decomposition.penalizedDomains) decomposition.penalizedDomains = [];
-        if (!decomposition.penalizedDomains.includes('transcriptomics')) {
-          decomposition.penalizedDomains.push('transcriptomics');
-          log('Pathway-enrichment override: penalizing transcriptomics → bias away from differentialabundance');
-        }
-
-        // Complement-specific signal: push complement cascade keyTerms so the FTS search
-        // scores clusterprofiler (which now has complement annotation) above reactomepa.
-        const _isComplementQuery =
-          /\b(complement\s+(cascade|pathway|activation|gene[s]?|factor[s]?)|C3\b|C5\b|CFH\b|CFB\b|CFD\b|C3AR1\b|C5AR1\b|SERPING1\b|CD55\b|CD59\b|CR1\b|GO:0006958|hsa04610|complement.{0,20}(enrich|ORA|over.?repres))\b/i.test(message);
-        if (_isComplementQuery) {
-          log('Complement cascade detected: injecting complement enrichment keyTerms → clusterprofiler');
-          for (const t of ['complement cascade', 'GO:0006958', 'complement activation', 'C3', 'C5', 'CFH', 'CFB', 'CFD', 'enrichGO complement', 'hsa04610']) {
-            if (!decomposition.keyTerms.includes(t)) decomposition.keyTerms.push(t);
-          }
-        }
-      }
-    }
-
-    // GWAS→scRNA→eQTL target-chain override:
-    // Queries about mapping a target gene's genetic evidence across multiple diseases
-    // (indication expansion, eQTL colocalization, cell-type specificity) are workflow
-    // execution requests, not research questions. The gwas_scrna_eqtl_target_chain
-    // workflow queries GWAS Catalog + OpenTargets + GTEx + CellxGene programmatically.
-    // The intent classifier routes these as research_question because the inputs are
-    // gene/disease identifiers with no user data files. Override here.
-    if (!actions.needsWorkflowGeneration) {
-      const _isGwasChainQuery =
-        /\b(gwas\s+(hits?|loci|signal[s]?|evidence|data)\s+(near|for|around|at)|map\s+.{0,40}genetic\s+evidence|indication\s+expansion\s+(for|of)|eqtl\s+colocali[sz]ation|pull\s+gwas\s+hits?|gwas.{0,30}(cd40|tnfsf|chrna|ptpn|fcgr|ighg|baff|april|tnfsf13b)|scRNA.{0,30}cell.?type.{0,30}(express|specif|enriched)|target.{0,20}(prioriti[sz]ation|chain|across\s+(diseases?|indications?))|genetic\s+evidence.{0,30}across\s+.{0,30}(mg|cidp|gbs|myasthenia|neuropath)|gwas.{0,30}eqtl|eqtl.{0,30}gwas)\b/i.test(message)
-        && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept|define)\b/i.test(message);
-      if (_isGwasChainQuery) {
-        log('GWAS→eQTL chain override: forcing needsWorkflowGeneration=true → gwas_scrna_eqtl_target_chain');
-        actions.needsWorkflowGeneration = true;
-        actions.needsResearchAgent = false;
-        intent.type = 'workflow_generation';
-        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
-        if (!decomposition.preferredDomains.includes('drug_discovery')) decomposition.preferredDomains.push('drug_discovery');
-      }
-    }
-
-    // Multi-omics integration override:
-    // Queries combining two or more omics data types (RNA-seq + proteomics, RNA + metabolomics,
-    // scRNA + ATAC, etc.) should route to rnaseq_proteomics_multiomics_integration.
-    // The intent classifier often returns research_question when no user files are named
-    // explicitly. The presence of multiple omics terms together is the signal.
-    if (!actions.needsWorkflowGeneration) {
-      const _rnaTerms = /\b(rna.?seq|transcriptomics?|gene\s+expression|bulk\s+rna|count\s+matrix|rnaseq)\b/i;
-      const _proteinTerms = /\b(proteomics?|olink|somascan|elisa\s+panel|protein\s+biomarker|npx|protein\s+expression|mass\s+spec|lc.?ms|plasma\s+protein)\b/i;
-      const _metabolomicsTerms = /\b(metabolomics?|metabolites?|gc.?ms|lc.?ms\s+metabol|nmr\s+metabol|metabolic\s+profil|lipidomics?|untargeted\s+metabol)\b/i;
-      const _atacTerms = /\b(atac.?seq|chromatin\s+access|open\s+chromatin|atac\s+data)\b/i;
-      const _methylTerms = /\b(methylation\s+array|dna\s+methylation|bisulfite|epic\s+array|850k|beta\s+value[s]?)\b/i;
-      const _integrationVerbs = /\b(integrat|combin|joint|multi.?omics?|mofa|mofa2|merge.{0,20}omics|layer.{0,30}data|cross.?omics|multi.?modal)\b/i;
-      const _hasMultiModal =
-        (_integrationVerbs.test(message) && (_rnaTerms.test(message) || _proteinTerms.test(message))) ||
-        (_rnaTerms.test(message) && _proteinTerms.test(message)) ||
-        (_rnaTerms.test(message) && _metabolomicsTerms.test(message)) ||
-        (_atacTerms.test(message) && _rnaTerms.test(message)) ||
-        (_methylTerms.test(message) && _rnaTerms.test(message));
-      const _notExplanation = !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept|describe|difference\s+between)\b/i.test(message);
-      if (_hasMultiModal && _notExplanation) {
-        log('Multi-omics override: forcing needsWorkflowGeneration=true → rnaseq_proteomics_multiomics_integration');
-        actions.needsWorkflowGeneration = true;
-        actions.needsResearchAgent = false;
-        intent.type = 'workflow_generation';
-        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
-        if (!decomposition.preferredDomains.includes('multi_omics')) decomposition.preferredDomains.push('multi_omics');
-      }
-    }
-
-    // Macrophage metabolic scRNA-seq override:
-    // Queries about macrophage metabolic states, M1/M2 polarization, lipid-associated
-    // macrophages (TREM2/LAM), or macrophage trajectory in nerve/CIDP context are
-    // scRNA-seq workflow execution requests. Route to macrophage_metabolic_state_scrna.
-    if (!actions.needsWorkflowGeneration) {
-      const _isMacrophageMetabolicQuery =
-        /\b(macrophage\s+(metabolic|polariz|subtype|cluster|state|transit|trajec|M1|M2|LAM|lipid)|M1.{0,20}(macrophage|glycolytic)|M2.{0,20}(macrophage|oxidative)|TREM2.{0,20}macrophage|lipid.?associated\s+macrophage|macrophage.{0,20}(glycolytic|oxidative|warburg|itaconate|succinate)|endoneurial\s+macrophage|macrophage.{0,20}(cidp|nerve\s+repair|neuropath)|macrophage\s+immunometabol|macrophage\s+reprogramm)\b/i.test(message)
-        && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept)\b/i.test(message);
-      if (_isMacrophageMetabolicQuery) {
-        log('Macrophage metabolic override: forcing needsWorkflowGeneration=true → macrophage_metabolic_state_scrna');
-        actions.needsWorkflowGeneration = true;
-        actions.needsResearchAgent = false;
-        intent.type = 'workflow_generation';
-        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
-        if (!decomposition.preferredDomains.includes('single_cell')) decomposition.preferredDomains.push('single_cell');
-      }
-    }
-
-    // When the workflow generation path is active AND the query is target-evidence,
-    // trial-feasibility, GWAS chain, multi-omics, or macrophage metabolic in nature,
-    // suppress the research agent so it cannot generate a long text answer that masks
-    // the workflow chip. This applies even when the classifier already set
-    // needsWorkflowGeneration=true (so the per-override needsResearchAgent=false above
-    // wouldn't run).
-    if (actions.needsWorkflowGeneration) {
-      const _isTargetOrTrialWorkflowQuery =
-        /\b(target\s+evidence|evidence\s+positioning|genetic\s+association[s]?\s+for|disease\s+association\s+strength|opentargets?\s+(evidence|score|association)|gwas\s+(association[s]?|evidence)\s+for|target\s+(tractability|prioriti[sz]ation|validation\s+evidence)|recruitment\s+feasibility|patient\s+recruitment|rare\s+disease\s+power|sample\s+size\s+(for\s+a?\s*(phase|clinical|rare))|power\s+(analysis|calculation)\s+for\s+a?\s*(phase|clinical|rare|trial)|mg.?adl|gwas.{0,30}eqtl|eqtl.{0,30}gwas|indication\s+expansion|macrophage\s+(metabolic|M1|M2|TREM2)|multi.?omics\s+integrat|integrat.{0,20}(rna|olink|proteomics?))\b/i.test(message)
-        && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept)\b/i.test(message);
-      if (_isTargetOrTrialWorkflowQuery && actions.needsResearchAgent) {
-        log('Target/trial/chain override: unsetting needsResearchAgent to prevent research text masking workflow chip');
-        actions.needsResearchAgent = false;
-      }
-    }
-
-    // Canonical-fixture intent override (Plan C):
-    // When the user names a built-in fixture or accession (airway, pasilla,
-    // pbmc3k, SRR\d+, etc.) the input is resolved — they want a workflow,
-    // not a chat about it. The intent classifier sometimes returns chat_only
-    // because the verbose phrasing ("treated vs untreated; export CSV + MA
-    // plot") triggers heuristics that look like missing-data signals. Force
-    // workflow_generation so the chat doesn't go down the "I need files"
-    // path. See docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md.
-    if (!actions.needsWorkflowGeneration) {
-      const _fixture = matchesCanonicalFixture(message);
-      const _isExplanationQuery = /\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe)\b/i.test(message);
-      if (_fixture && !_isExplanationQuery) {
-        log(`Canonical-fixture override: ${_fixture} present — forcing needsWorkflowGeneration=true`);
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // AutoDock Vina / site-directed docking override (ANDV inhibitor step 4 and similar).
-    if (!actions.needsWorkflowGeneration) {
-      const _isNamedDockingToolQuery =
-        /\b(autodock\s*vina|docking_autodock_vina|site[- ]directed\s+docking|vina\s+docking|molecular\s+docking\s+with\s+vina)\b/i.test(
-          message
-        ) && !/\b(diffdock|blind\s+dock)\b/i.test(message);
-      if (_isNamedDockingToolQuery) {
-        log('Named docking tool override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // Plan B / Plan A named-workflow overrides (ANDV stepwise E2E).
-    if (!actions.needsWorkflowGeneration) {
-      if (this._isPlanBCodonQuery(message)) {
-        log('Plan B codon optimization override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      } else if (this._isPlanAEpitopeQuery(message)) {
-        log('Plan A epitopeprediction override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      } else if (this._isPocketDetectionQuery(message)) {
-        log('Pocket detection override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // ADMET / pharmacology drug-screening override:
-    // Queries that combine an ADMET keyword (admet, herg, dili, ames, solubility, bbb, caco-2,
-    // drug-like, safety endpoints) with a molecular structure input (SMILES string or .sdf file)
-    // are always predict_admet_properties workflow executions — not research questions or
-    // tool searches. The intent classifier sometimes returns research_question when project
-    // context already mentions ADMET goals (it sees the goal as "already answered"). Force
-    // workflow_generation and reset subQuery to the original message so the Python ADMET
-    // fast-path receives the exact SMILES-bearing text it regex-matches against (bypassing
-    // any Gemini rephrasing that strips "ADMET" or "SMILES" from the subQuery).
-    {
-      const _isAdmetScreeningQuery =
-        /\b(admet|herg|dili|ames\s+(mutagenicity|test)|caco.?2|bbb\s+(penetration|permeab)|blood.brain.barrier|drug.like(ness)?|solubility\s+(aqueous|prediction)|toxicity\s+(prediction|screening)|safety\s+(endpoint|screen)|admet\s+propert|screen.*admet|admet.*screen)\b/i.test(message) &&
-        // Requires a molecular structure input signal
-        (/\bSMILES\s*[=:]/i.test(message) || /\.sdf\b/i.test(message) ||
-         /\b([A-Z][a-z]?\([A-Za-z=]\)|c1[a-z]|CC\(|n1|O=C|Cl[^a-z]|Br[^a-z]|[a-z]{1,2}\d{1,2})[A-Za-z0-9@\[\]()=#\/\\\.+\-]{6,}/.test(message)) &&
-        !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe|difference)\b/i.test(message);
-      if (_isAdmetScreeningQuery) {
-        if (!actions.needsWorkflowGeneration) {
-          log('ADMET screening override: forcing needsWorkflowGeneration=true → predict_admet_properties');
-          actions.needsWorkflowGeneration = true;
-          actions.needsResearchAgent = false;
-          intent.type = 'workflow_generation';
-        }
-        // Always reset subQuery to the original message so the Python ADMET fast-path
-        // regex-matches against the literal "ADMET" keyword and "SMILES:" token.
-        // Gemini may drop these when project context already describes the ADMET goal,
-        // causing the fast-path to miss and fall through to the disambiguation gate.
-        intent.subQuery = message;
-        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
-        if (!decomposition.preferredDomains.includes('drug_discovery')) {
-          decomposition.preferredDomains.push('drug_discovery');
-        }
-        // Suppress research agent — the workflow panel is the output; a research text
-        // response would mask the panel card.
-        actions.needsResearchAgent = false;
-      }
-    }
-
-    // HPO + ENSG candidate gene override:
-    // Messages containing HPO phenotype codes (HP:XXXXXXX) AND ENSG gene IDs are patient gene
-    // detection tasks — they query ClinVar/OMIM/Monarch to find the causal gene from a candidate
-    // list. These are NEVER pipeline execution tasks. Override any workflow_generation
-    // misclassification back to clinical_genomics + needsResearchAgent.
-    if (actions.needsWorkflowGeneration) {
-      const _hasHpoTerms = /\bHP:\d{7}\b/.test(message);
-      const _hasEnsgGenes = /\bENSG\d{11}\b/.test(message);
-      if (_hasHpoTerms && _hasEnsgGenes) {
-        log('HPO+ENSG override: patient_gene_detection task — forcing clinical_genomics, needsWorkflowGeneration=false, needsResearchAgent=true');
-        actions.needsWorkflowGeneration = false;
-        actions.needsResearchAgent = true;
-        intent.type = 'clinical_genomics';
-      }
-
-    }
-
-    // Explicit user controls must win over the classifier and every
-    // domain-specific workflow override above. In particular, a PK/PBPK prompt
-    // often contains units, model names, and numeric values that look like a
-    // runnable simulation even when the user asked only for interpretation.
-    // Do this immediately before prerequisite/generation gates so no workflow
-    // card, prerequisite clarification, or compute launch can be produced.
-    if (actions.needsWorkflowGeneration && prohibitsWorkflowExecution(message)) {
-      const interpretationOnly = isInterpretationOnlyRequest(message);
-      const generationProhibited = prohibitsWorkflowGeneration(message);
-      if (interpretationOnly || generationProhibited) {
-        // The user wants NO plan produced — a pure interpretation request, or an
-        // explicit "do not generate a workflow". Suppress generation and route to
-        // interpretation/research (unchanged behaviour for these cases).
-        log(`Execution-prohibition guard: routing to ${interpretationOnly ? 'data_interpretation' : 'research_question'} without workflow generation`);
-        actions.needsWorkflowGeneration = false;
-        actions.needsWorkflowModification = false;
-        actions.needsResearchAgent = true;
-        actions.needsLLMReasoning = true;
-        intent.type = interpretationOnly ? 'data_interpretation' : 'research_question';
-      } else {
-        // Launch is prohibited but a plan/draft IS wanted ("draft the plan, but do
-        // not launch the jobs yet"). KEEP workflow generation: it only produces a
-        // DRAFT card — launching requires a separate, explicit user action (Confirm
-        // & Run), so no job can start here (verified: no auto-launch on generation).
-        // Separating draft intent from launch permission is the fix for the
-        // prepare-a-plan-but-don't-launch gap. See
-        // docs/20261011_CODEX_WORK_REVIEW_AND_CONSOLIDATION.md (reconciliation #1).
-        log('Execution-prohibition guard: launch prohibited but a plan/draft was requested — producing a draft workflow card (no auto-launch; Confirm & Run required to execute).');
-      }
-    }
-
-    // Paper-question guard (FINAL gate):
-    // When the user has uploaded a PDF and is asking a question ABOUT it
-    // (summarize, what is this about, explain, findings, etc.) — never route
-    // to workflow generation. The paper content has already been extracted and
-    // will be used to answer directly via the LLM response synthesizer.
-    // This runs LAST so it overrides any earlier workflow_generation misclassification.
-    if (paperContentResult && actions.needsWorkflowGeneration) {
-      // Test against the ORIGINAL user query, not the paper-injected message —
-      // bioinformatics papers contain words like "pipeline", "run", "workflow"
-      // which would falsely match the negative condition and suppress the guard.
-      const _isPaperQuestion = /\b(what\s+(is|does|are|do)|tell\s+me|summarize|summary|explain|describe|findings?|abstract|key\s+points?|main\s+(finding|result|point|conclusion)|overview|about\s+this|this\s+paper|the\s+paper)\b/i.test(originalUserQuery)
-        && !/\b(run|execute|process|align|map|call|quantify|trim|filter|differential\s+expression|variant|genotype|assemble|pipeline|workflow)\b/i.test(originalUserQuery);
-      if (_isPaperQuestion) {
-        log('Paper-question guard: PDF attached + question about paper — routing to research_response, not workflow');
-        actions.needsWorkflowGeneration = false;
-        intent.type = 'research_question';
-      }
-    }
-
-    // Data-attach guard:
-    // A pure "add/attach these files" action is dataset management, NOT an
-    // analysis request — but a bare "also add the other two files" was being
-    // misrouted into workflow-card generation (un_expected_workflow_otherintent).
-    // Suppress generation only when the message reads as an attach/add-files
-    // action AND carries no genuine analysis/workflow verb. Real requests like
-    // "run rnaseq on the other two files" keep their analysis verb and are
-    // unaffected, so this stays narrow. Runs on the ORIGINAL user query so
-    // injected context (paper text, dataset blocks) can't dilute the match.
-    if (actions.needsWorkflowGeneration) {
-      const _attachQuery = originalUserQuery || message;
-      const _isAttachAction =
-        // attach verb followed (within a short span) by a files noun or pronoun
-        /\b(?:also\s+)?(?:add|attach|include|upload)\b[^.?!\n]{0,40}\b(?:files?|datasets?|samples?|attachments?|docs?|documents?|pdfs?|csvs?|them|these|those|it)\b/i.test(_attachQuery)
-        // strong signal: "the other/remaining/rest/both ... files"
-        || /\b(?:the\s+)?(?:other|remaining|rest|both|two|three|four|additional|more)\s+(?:two|three|four|\d+\s+)?(?:files?|datasets?|samples?|attachments?|documents?)\b/i.test(_attachQuery);
-      const _hasAnalysisVerb =
-        /\b(run|execute|process|analy[sz]e|align|map|call|quantify|trim|filter|normali[sz]e|cluster|assemble|annotate|predict|screen|dock|simulate|differential\s+expression|variant|genotyp\w*|workflow|pipeline|rna-?seq|atac|chip-?seq|admet|docking|align\w*|deseq|enrich\w*)\b/i.test(_attachQuery);
-      if (_isAttachAction && !_hasAnalysisVerb) {
-        log('Data-attach guard: add/attach-files action with no analysis verb — suppressing workflow generation, routing to plain/dataset response');
-        actions.needsWorkflowGeneration = false;
-        actions.needsWorkflowModification = false;
-      }
-    }
-
-    // PBPK: NO prereq gate. pbpk_simulation has a default for every param
-    // (SMILES=aspirin, CLint=45 µL/min/mg, fu_plasma=0.05, population=healthy_adult,
-    // dose=500 mg), so a bare "run a PBPK simulation" must one-click with defaults and
-    // let the user edit params in the panel — matching ADMET-from-SMILES and the
-    // data-first demo philosophy. The former gate here set needsWorkflowGeneration=false
-    // and returned a "please provide SMILES/CLint/fu_plasma" clarification whenever those
-    // were absent from the message, which contradicted the workflow's own defaults and
-    // produced chat_only (no card) for every plain PBPK request. User-supplied
-    // SMILES/CLint/fu_plasma are still extracted by normal param-prefill downstream, so
-    // removing the block loses nothing. See docs/20261006_BIOMATE_E2E_WORKFLOW_ISSUES.md §2.
-
-    // BOIN prereq gate: if the message asks for a Phase I dose escalation trial but does NOT
-    // provide dose levels, ask for them before generating the workflow.
-    // This prevents the LLM from generating a generic BOIN design without key inputs.
-    if (actions.needsWorkflowGeneration) {
-      const _isBoInIntent = /\b(boin|phase\s*i\s*(dose\s*escalation|trial)|dose.escalation.trial|dose.finding.trial|mtd.estimation|bayesian.optimal.interval|clinical.dose.escalation|phase.i.oncology|dlt.based.escalation)\b/i.test(message);
-      if (_isBoInIntent) {
-        // Dose levels present: explicit list like [10,20,40] or "dose levels: X"
-        const _hasDoseLevels = /\[\s*\d[\d,\s\.]+\]/.test(message)
-          || /\b(dose[- ]levels?|doses?)[:\s]+[\d\[,]/.test(message)
-          || /\bstarting.dose\b.+\bmax.dose\b/i.test(message);
-        if (!_hasDoseLevels) {
-          log('BOIN prereq gate: dose levels missing — returning clarification');
-          actions.needsWorkflowGeneration = false;
-          return { boinDoseLevelsMissing: true, pathwayEnrichment: _isPathwayEnrichmentQuery };
-        }
-      }
-    }
-    return { pathwayEnrichment: _isPathwayEnrichmentQuery };
+    return { pathwayEnrichment };
   }
 
-  /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
-  private _applyNamedWorkflowOverridesToDecomposition(
-    decomposition: IntentDecomposition,
-    message: string
-  ): void {
-    const forceWf =
-      this._isPlanBCodonQuery(message) ||
-      this._isPlanAEpitopeQuery(message) ||
-      this._isPocketDetectionQuery(message) ||
-      this._isClusterProfilerQuery(message) ||
-      /\b(autodock\s*vina|docking_autodock_vina|registry\s+id\s+12824)\b/i.test(message);
-    if (!forceWf) return;
-
-    const apply = (intent: DecomposedIntent) => {
-      if (!intent.actions.needsWorkflowGeneration) {
-        intent.actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    };
-    apply(decomposition.primaryIntent);
-    for (const i of decomposition.intents) apply(i);
-  }
 
   /**
    * ClarificationGate (S1): Check if the intent is ambiguous and, if so, return a clarifying
@@ -5424,7 +5004,6 @@ Rules:
     log('Step 1: Analyzing intent');
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
-    this._applyNamedWorkflowOverridesToDecomposition(decomposition, message);
 
     // Apply intentOverride from a prior IntentClarificationCard chip click.
     if (context.intentOverride) {
@@ -5609,7 +5188,7 @@ Rules:
         // the filename→paramname mapping from the response-generation prompt.
         const _uploadedFileParams = extractUploadedFileParams(message);
         const _mergedInline: Record<string, string> = {
-          ...(intent.inlineParameters || {}),
+          ...stripDatasetReferenceParams(intent.inlineParameters, message),
           ..._uploadedFileParams,
         };
         if (Object.keys(_uploadedFileParams).length > 0) {
@@ -6432,7 +6011,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       };
       const _t1UploadedParams = extractUploadedFileParams(message);
       const _t1MergedInline: Record<string, string> = {
-        ...(decomposition.intents[0]?.inlineParameters || {}),
+        ...stripDatasetReferenceParams(decomposition.intents[0]?.inlineParameters, message),
         ..._t1UploadedParams,
       };
       const tier1Workflow = await this.generateWorkflow(
@@ -6458,7 +6037,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         // HIGH confidence threshold (≥0.8): auto-collapse to single workflow without asking.
         if (coverage.confidence >= 0.8 && coverage.coversAll) {
           // Merge all inline params into the workflow
-          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
+          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => stripDatasetReferenceParams(i.inlineParameters, message)));
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           log(`Tier 1 MATCH: returning single workflow card`);
           const allFacts = decomposition.intents.flatMap(i => i.facts);
@@ -6486,7 +6065,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         if (coverage.confidence >= 0.65 && coverage.coversAll) {
           // MEDIUM confidence: show workflow but note it needs user confirmation
           log(`Tier 1 MEDIUM confidence: show single workflow with confirmation note`);
-          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
+          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => stripDatasetReferenceParams(i.inlineParameters, message)));
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
@@ -7007,54 +6586,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     return multiIntentResult;
   }
 
-  /** Post-classifier routing policy for one sub-intent of a multi-intent message (see
-   *  _applyPostClassifierRouting for the single-intent path). */
-  _applySubIntentRouting(intent: DecomposedIntent, originalMessage: string): void {
-    const actions = intent.actions;
-    // Named docking tool override (multi-intent fan-out when collapse did not run).
-    if (!actions.needsWorkflowGeneration) {
-      const _dockMsg = `${intent.subQuery} ${originalMessage}`;
-      const _isNamedDockingToolQuery =
-        /\b(autodock\s*vina|docking_autodock_vina|site[- ]directed\s+docking|vina\s+docking|molecular\s+docking\s+with\s+vina)\b/i.test(
-          _dockMsg
-        ) && !/\b(diffdock|blind\s+dock)\b/i.test(_dockMsg);
-      if (_isNamedDockingToolQuery) {
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // Plan B / Plan A overrides (multi-intent fan-out when collapse did not run).
-    if (!actions.needsWorkflowGeneration) {
-      const _namedMsg = `${intent.subQuery} ${originalMessage}`;
-      if (
-        this._isPlanBCodonQuery(_namedMsg) ||
-        this._isPlanAEpitopeQuery(_namedMsg) ||
-        this._isPocketDetectionQuery(_namedMsg)
-      ) {
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // ADMET / drug-screening override (multi-intent fan-out path).
-    // Mirrors the single-intent override in processChat (lines 3652-3688).
-    // When project context causes Gemini to decompose a SMILES+ADMET request into
-    // multiple sub-intents (e.g. research_question + workflow_generation), the ADMET
-    // sub-intent may be mis-classified as research_question with needsWorkflowGeneration=false.
-    // Same condition as the single-intent gate so both paths behave identically.
-    if (!actions.needsWorkflowGeneration) {
-      const _admetMsg = `${intent.subQuery} ${originalMessage}`;
-      const _isAdmetScreeningSubIntent =
-        /\b(admet|herg|dili|ames\s+(mutagenicity|test)|caco.?2|bbb\s+(penetration|permeab)|blood.brain.barrier|drug.like(ness)?|solubility\s+(aqueous|prediction)|toxicity\s+(prediction|screening)|safety\s+(endpoint|screen)|admet\s+propert|screen.*admet|admet.*screen)\b/i.test(_admetMsg) &&
-        (/\bSMILES\s*[=:]/i.test(_admetMsg) || /\.sdf\b/i.test(_admetMsg) ||
-         /\b([A-Z][a-z]?\([A-Za-z=]\)|c1[a-z]|CC\(|n1|O=C|Cl[^a-z]|Br[^a-z]|[a-z]{1,2}\d{1,2})[A-Za-z0-9@\[\]\(\)=#\/\\\.+\-]{6,}/.test(_admetMsg)) &&
-        !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe|difference)\b/i.test(originalMessage);
-      if (_isAdmetScreeningSubIntent) {
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
+  /** Post-classifier routing for one sub-intent of a multi-intent message: the classifier decided;
+   *  only reconcile its execution mode with its action flags (see _applyPostClassifierRouting). */
+  _applySubIntentRouting(intent: DecomposedIntent, _originalMessage: string): void {
+    reconcileExecutionMode(intent);
   }
 
   /**
@@ -7104,7 +6639,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         }
         const _subUploadedParams = extractUploadedFileParams(originalMessage || intent.subQuery);
         const _subMergedInline: Record<string, string> = {
-          ...(intent.inlineParameters || {}),
+          ...stripDatasetReferenceParams(intent.inlineParameters, originalMessage || intent.subQuery),
           ..._subUploadedParams,
         };
         const workflow = await this.generateWorkflow(
@@ -7185,34 +6720,6 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     context: ChatContext,
     sessionMemoryBlock: string = ''
   ): Promise<IntentDecomposition> {
-    // Short-circuit: inline tabular data + known analysis tool → always workflow_generation.
-    // The LLM intent classifier unreliably returns tool_search for pasted CSV/count-matrix
-    // messages because the R/Bioconductor priority note says run_code for small datasets.
-    // This deterministic rule fires before the LLM call and is not affected by prompt drift.
-    const _ANALYSIS_TOOLS_RE = /\b(deseq2|edger|limma|seurat|scanpy|clusterProfiler|enrichGO|minfi|macs2|star|hisat2|bowtie|salmon|kallisto|cellranger|monocle|harmony|scvi|magma|ldsc|plink|gatk|deepvariant|varscan|mutect|freebayes|cuffdiff|htseq|featurecounts|dseq|glmgampoi)\b/i;
-    const _HAS_TABULAR_DATA = (msg: string) => {
-      const lines = msg.split('\n');
-      // 3+ lines where at least 2 contain comma or tab-separated numbers
-      const dataLines = lines.filter(l => /(\d+[,\t]\s*\d+[,\t]\s*\d+)/.test(l));
-      return dataLines.length >= 2;
-    };
-    if (_HAS_TABULAR_DATA(message) && _ANALYSIS_TOOLS_RE.test(message)) {
-      const wgIntent: DecomposedIntent = {
-        id: 'intent_inline_data_forced',
-        type: 'workflow_generation',
-        subQuery: message,
-        keywords: [],
-        inlineParameters: {},
-        needsToolSearch: false,
-        needsDatasets: false,
-        confidence: 0.95,
-        facts: [],
-        dependsOn: [],
-        actions: inferActionsFromType('workflow_generation'),
-      };
-      return { intents: [wgIntent], isMultiIntent: false, primaryIntent: wgIntent };
-    }
-
     // Short-circuit: "KNOWLEDGE QUESTION" prefix from eval harness forces research_question
     // routing without calling Haiku, preventing workflow hijack on benchmark tasks.
     if (message.startsWith('KNOWLEDGE QUESTION')) {
@@ -7336,6 +6843,8 @@ Decide from what the request NEEDS, whatever language it is written in:
 - **direct_compute** — the data is ALREADY in the conversation (an attached/uploaded file, a project dataset, or a table/list pasted in the message) and the task is an ad-hoc computation on it: summary statistics, means/fold changes, a statistical test, reshaping/merging tables, a plot, a correlation, a small differential-expression or clustering run on that table. BioMate computes it now with run_code and returns the numbers/figures.
 - **pipeline** — the input must be fetched or processed by a workflow: raw reads/FASTQ/BAM, accessions (GSE/SRR/PDB…), SMILES for ADMET/docking models, structures, long-running or GPU tools, or the user asks for a workflow/pipeline.
 Examples: "计算每个基因 treated/control 的 fold change 并按降序输出" + attached CSV → direct_compute. "Compare the two groups' cell viability and plot each sample" + attached table → direct_compute. "Cluster these pasted single-cell counts and draw a UMAP" (counts pasted) → direct_compute. "Run nf-core/rnaseq on SRR1234567" → pipeline. "Screen these SMILES for ADMET" → pipeline.
+
+${routingExamplesPrompt()}
 
 ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
 
@@ -7908,6 +7417,12 @@ input_kinds: the kinds of data the user HAS and wants analysed (the workflow's i
   one ("I have FASTQ but only want DE on my count matrix"), list the one to be analysed (["counts_matrix"]).
   [] when the user states no input data. In a multi-intent response, give "input_kinds" on EACH intent (that
   branch's own input).
+
+user_constraint: "no_workflow" when the user explicitly says not to build/use/run a workflow or pipeline, or wants
+  interpretation/explanation only ("不用工作流", "不要运行", "只做解读", "no pipeline", "don't run anything") — then
+  needsWorkflowGeneration MUST be false (execution=direct_compute if they still want a computation on their data);
+  "no_launch" when they want the workflow prepared but not launched yet ("先别运行", "don't launch yet") — still a
+  workflow_generation draft; null otherwise.
 
 key_terms: up to 8 specific technical terms that boost workflow search recall. Prioritise:
   1. The ASSAY TYPE / SEQUENCING TECHNOLOGY — e.g. "ATAC-seq", "ChIP-seq", "16S amplicon",
@@ -8812,7 +8327,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         }));
     };
 
-    const parseActions = (raw: any, type: string): ActionCategories => {
+    const parseActions = (raw: any, type: string, execution?: unknown): ActionCategories => {
       const base = inferActionsFromType(type);
       if (raw && typeof raw === 'object') {
         // For types that require the research agent, the LLM classifier must NOT be able
@@ -8826,26 +8341,29 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           'clinical_genomics', 'genomics_knowledge', 'database_lookup',
         ]);
         const mustUseResearch = researchAgentTypes.has(type);
-        // For types that require workflow generation, the LLM classifier must NOT be able
-        // to disable it by returning needsWorkflowGeneration: false — that skips generateWorkflow()
-        // entirely and returns an empty Gemini response, causing the "having trouble" fallback.
-        const workflowTypes = new Set([
-          'workflow_generation', 'data_format_conversion', 'external_db_retrieval',
-          'visualization', 'multi_step_procedure',
-        ]);
-        const mustGenerateWorkflow = workflowTypes.has(type);
+        // needsWorkflowGeneration is the classifier's own decision. The former "mustGenerateWorkflow"
+        // guard forced it true for every workflow_generation type, which silently discarded the
+        // classifier's run_code branch (type=workflow_generation + needsWorkflowGeneration=false /
+        // execution=direct_compute — the prompt's documented direct-compute shape). It existed because a
+        // no-workflow reply once came back empty from Gemini; that root cause is fixed in the response
+        // provider chain (an empty reply now fails over — see firstNonEmptyResponse). Its execution mode
+        // is authoritative over the flag (docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md).
+        const nwg = parseExecutionMode(execution) === 'direct_compute'
+          ? false
+          : (typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration);
         return {
           needsToolSearch: typeof raw.needsToolSearch === 'boolean' ? raw.needsToolSearch : base.needsToolSearch,
-          needsWorkflowGeneration: mustGenerateWorkflow ? true : (typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration),
+          needsWorkflowGeneration: nwg,
           needsWorkflowModification: typeof raw.needsWorkflowModification === 'boolean' ? raw.needsWorkflowModification : base.needsWorkflowModification,
           // If type requires research agent, always enable it regardless of what the classifier returns
           needsResearchAgent: mustUseResearch ? true : (typeof raw.needsResearchAgent === 'boolean' ? raw.needsResearchAgent : base.needsResearchAgent),
           needsBenchmarkAgent: typeof raw.needsBenchmarkAgent === 'boolean' ? raw.needsBenchmarkAgent : base.needsBenchmarkAgent,
           needsDatasetAccess: typeof raw.needsDatasetAccess === 'boolean' ? raw.needsDatasetAccess : base.needsDatasetAccess,
-          needsLLMReasoning: typeof raw.needsLLMReasoning === 'boolean' ? raw.needsLLMReasoning : base.needsLLMReasoning,
+          needsLLMReasoning: nwg ? (typeof raw.needsLLMReasoning === 'boolean' ? raw.needsLLMReasoning : base.needsLLMReasoning) : true,
           needsChainProposal: typeof raw.needsChainProposal === 'boolean' ? raw.needsChainProposal : (base.needsChainProposal ?? false),
         };
       }
+      if (parseExecutionMode(execution) === 'direct_compute') return { ...base, needsWorkflowGeneration: false, needsLLMReasoning: true };
       return base;
     };
 
@@ -8874,8 +8392,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         confidence: intent.confidence || 0.5,
         facts: parseFacts(intent.facts),
         dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
-        actions: parseActions(intent.actions, intent.type || 'general_question'),
+        actions: parseActions(intent.actions, intent.type || 'general_question', intent.execution),
         execution: parseExecutionMode(intent.execution),
+        userConstraint: parseUserConstraint(intent.user_constraint ?? result.user_constraint),
         taskSpec: typeof intent.task_spec === 'string' && intent.task_spec.trim() ? intent.task_spec.trim() : undefined,
         domain: typeof intent.domain === 'string' && intent.domain.trim() ? intent.domain.trim() : undefined,
         inputKinds: parseInputKinds(intent.input_kinds) ?? parseInputKinds(result.input_kinds),
@@ -8931,9 +8450,10 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       confidence: result.confidence || 0.5,
       facts: parseFacts(result.facts),
       dependsOn: [],
-      actions: parseActions(result.actions, intentType),
+      actions: parseActions(result.actions, intentType, result.execution),
       workflowAmbiguity: typeof result.workflowAmbiguity === 'string' ? result.workflowAmbiguity : null,
       execution: parseExecutionMode(result.execution),
+      userConstraint: parseUserConstraint(result.user_constraint),
       inputKinds: parseInputKinds(result.input_kinds),
     };
 
@@ -10481,7 +10001,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
         for (const provider of providers.filter(p => p.available)) {
           try {
-            rawResponse = await provider.fn();
+            // An empty reply is a provider FAILURE, not a success: it used to end the chain with ''
+            // (→ "having trouble…"), which is why parseActions once forced every workflow_generation
+            // turn into workflow generation. Fail over to the next provider instead.
+            rawResponse = requireNonEmptyResponse(await provider.fn(), provider.name);
             console.log(`[GalaxyAssistant] Response generated by ${provider.name}`);
             // Sync responseModel so llm_usage.model reflects the actual provider used
             if (provider.name === 'OpenAI-compatible') {
