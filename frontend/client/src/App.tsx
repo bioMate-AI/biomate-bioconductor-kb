@@ -74,7 +74,7 @@ import "@/v2/research-tokens.css";
 import "@/v2/layout.css";
 import "@/v2/research-layout.css";
 import "@/v2/tour.css";
-import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
+import { IND_REPORT_ENABLED, DESIGN_GENERATE_ENABLED } from "@/lib/feature-flags";
 
 interface ToolItem {
   id: string
@@ -145,7 +145,7 @@ function RootRoute({
   // Consume pending use-case query passed via ?q= from the marketing hero input.
   // Cross-domain localStorage doesn't work (biomate.ai vs dev-public.biomate.ai),
   // so register.tsx passes the query through as a URL param → /?q=<encoded>.
-  const [initialMessage] = useState<string | undefined>(() => {
+  const [initialMessage, setInitialMessage] = useState<string | undefined>(() => {
     const urlQ = new URLSearchParams(window.location.search).get('q')
     if (urlQ) {
       window.history.replaceState(null, '', window.location.pathname)
@@ -173,7 +173,7 @@ function RootRoute({
 
   // Pre-filled draft (?draft=) from the project "Analyze with BioMate" flow. Unlike ?q=,
   // this populates the chat input for review/edit and is NOT auto-submitted.
-  const [initialDraft] = useState<string | undefined>(() => {
+  const [initialDraft, setInitialDraft] = useState<string | undefined>(() => {
     const params = new URLSearchParams(window.location.search)
     const urlDraft = params.get('draft')
     if (urlDraft) {
@@ -236,6 +236,13 @@ function RootRoute({
         initialMessage={initialMessage}
         initialDemoFiles={initialDemoFiles}
         initialDraft={initialDraft}
+        // One-shot URL payloads (?q= auto-send, ?draft= prefill) are consumed
+        // HERE, at their source. ChatWithArtifacts is keyed by session id, so the
+        // first send (new chat → real session) remounts it; if these props were
+        // still set, the fresh instance re-applied the draft into the composer
+        // the user had just sent from (and would re-send ?q=).
+        onInitialMessageConsumed={() => setInitialMessage(undefined)}
+        onInitialDraftConsumed={() => setInitialDraft(undefined)}
       />
     </PlatformLayout>
   )
@@ -315,10 +322,16 @@ function MobileBanner() {
 }
 
 /** Thin bar shown at the top of the main content area when a project is active. */
+/** Routes that render the chat surface. Its own header already carries the
+ *  project chip, so the project banner would be a second, redundant line. */
+export function isChatRoute(path: string): boolean {
+  return path === '/' || path === ''
+}
+
 function ActiveProjectBanner() {
   const { activeProject, setActiveProjectId } = useActiveProject()
-  const [, navigate] = useLocation()
-  if (!activeProject) return null
+  const [location, navigate] = useLocation()
+  if (!activeProject || isChatRoute(location)) return null
   return (
     <div
       style={{
@@ -703,7 +716,7 @@ function Router({
       </Route>
 
       <Route path="/design">
-        <PlatformLayout
+        {!DESIGN_GENERATE_ENABLED ? <NotFound /> : <PlatformLayout
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
           onNewChat={onNewChat}
@@ -718,7 +731,7 @@ function Router({
           <div className="max-w-5xl mx-auto p-4">
             <DesignGenerate />
           </div>
-        </PlatformLayout>
+        </PlatformLayout>}
       </Route>
 
       {/* Tier-1 data surface — the data hub. Datasets as first-class objects

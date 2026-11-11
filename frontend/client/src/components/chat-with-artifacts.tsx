@@ -35,6 +35,7 @@ import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
 import { t } from "@/lib/i18n"
+import { ChatHeaderTitle } from "./chat-header-title"
 import {
   getOutputReadinessHint,
   getRunPrimaryCta,
@@ -69,6 +70,10 @@ interface ChatWithArtifactsProps {
   /** Pre-filled draft for the chat input — populated once ready but NOT auto-submitted
    *  (used by the project "Analyze with BioMate" flow so the user can edit before sending). */
   initialDraft?: string
+  /** Called once the initial ?q= message has been sent — the owner must clear it. */
+  onInitialMessageConsumed?: () => void
+  /** Called once the initial ?draft= has been placed in the composer — the owner must clear it. */
+  onInitialDraftConsumed?: () => void
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
@@ -114,7 +119,7 @@ function persistedActiveProjectId(): string | undefined {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft, onInitialMessageConsumed, onInitialDraftConsumed }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -574,6 +579,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   useEffect(() => {
     if (!initialMessage || sentInitialRef.current || !sendChatMessageRef.current) return
     sentInitialRef.current = true
+    onInitialMessageConsumed?.()
     const sender = sendChatMessageRef.current
     if (initialDemoFiles === 'mg_demo') {
       const base = '/demo/mg_demo'
@@ -595,6 +601,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!initialDraft || draftAppliedRef.current || !setChatDraftRef.current) return
     draftAppliedRef.current = true
     setChatDraftRef.current(initialDraft)
+    onInitialDraftConsumed?.()
   }, [senderReady, initialDraft]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
@@ -2006,25 +2013,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         padding: '0 18px',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
-          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--bm-text-dim)' }}>{activeProject?.name || 'Unfiled'} / {currentChatSession ? 'chat' : 'new chat'}</span>
-          <span style={{
-            fontWeight: 600, fontSize: 'var(--fs-base)',
-            color: 'var(--bm-text, hsl(var(--foreground)))',
-            fontFamily: 'var(--bm-font-ui)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {currentChatSession?.title || t('New chat')}
-          </span>
-          {isConnected && (
-            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
-              live
-            </span>
-          )}
-        </div>
+        {/* One line: chat title + small project chip (no "Unfiled / new chat"
+            breadcrumb, no separate project banner on chat routes). */}
+        <ChatHeaderTitle
+          title={currentChatSession?.title}
+          projectId={activeProject?.id}
+          projectName={activeProject?.name}
+          live={isConnected}
+        />
         <div className="flex items-center gap-2 shrink-0">
-          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 'var(--fs-sm)', height: 28 }}>{chatHidden ? 'Show chat' : 'Hide chat'}</Button>}
+          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 'var(--fs-sm)', height: 28 }}>{chatHidden ? t('chat.show_chat') : t('chat.hide_chat')}</Button>}
           <Button
             variant="ghost"
             size="sm"

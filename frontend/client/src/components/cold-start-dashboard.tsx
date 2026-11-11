@@ -45,10 +45,24 @@
  */
 
 import { useState } from "react";
-import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES, HOSPITAL_EXAMPLES } from "./cold-start-examples";
+import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from "./cold-start-examples";
 import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 import { t } from "@/lib/i18n";
+import { DESIGN_GENERATE_ENABLED } from "@/lib/feature-flags";
+
+/**
+ * Display copy for the card catalogue below. The catalogue stays canonical
+ * English (it is the router self-test surface and the prepared-example lookup
+ * key); what the user SEES goes through i18n, keyed by a slug of the English
+ * text: cold_start.copy.<slug> in both locale bundles.
+ */
+export function coldCopyKey(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64);
+}
+export function coldCopy(text: string): string {
+  return t(`cold_start.copy.${coldCopyKey(text)}`);
+}
 
 // ── A validated-workflow SHAPE. Title + what it needs + how long. No pipeline
 //    name, no count — a shape a scientist recognises, not a catalogue row.
@@ -556,7 +570,7 @@ function ExampleRow({ text, onSeed }: ExampleRowProps) {
         color: "var(--bm-text, oklch(0.22 0.01 260))",
       }}
     >
-      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{text === HOSPITAL_EXAMPLES[0].label ? t('cold_start.hospital_integration') : text === HOSPITAL_EXAMPLES[1].label ? t('cold_start.hospital_prediction') : text}”</span>
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{coldCopy(text)}”</span>
       <span style={{ flex: 1 }} />
       <ChevronRight size={12} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
     </button>
@@ -588,16 +602,16 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
       }}
     >
       <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-        <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{shape.t}</span>
+        <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{coldCopy(shape.t)}</span>
         <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
-          {shape.needs} · {shape.time}
+          {coldCopy(shape.needs)} · {coldCopy(shape.time)}
         </span>
       </span>
       <span style={{ flex: 1 }} />
       {shape.sampleDataset && (
         <span
           data-testid="cold-shape-sample"
-          title={`Runs on a provided sample dataset (${shape.sampleDataset.ref}). Edit the goal to use your own.`}
+          title={t('cold_start.sample_title', { ref: shape.sampleDataset.ref })}
           style={{
             flexShrink: 0,
             fontSize: 'var(--fs-xs)',
@@ -608,7 +622,7 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
             color: "var(--bm-accent, oklch(0.5 0.14 245))",
           }}
         >
-          ▶ sample: {shape.sampleDataset.label}
+          ▶ {t('cold_start.sample_chip', { label: coldCopy(shape.sampleDataset.label) })}
         </span>
       )}
       <ChevronRight size={13} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
@@ -762,7 +776,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                     cursor: "pointer",
                   }}
                 >
-                  {tr.k}
+                  {coldCopy(tr.k)}
                 </button>
               );
             })}
@@ -835,7 +849,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                       cursor: "pointer",
                     }}
                   >
-                    {d.name}
+                    {coldCopy(d.name)}
                   </button>
                 );
               })}
@@ -863,9 +877,20 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
   );
 }
 
+/**
+ * The cards shown on the landing. The molecule design & generate module stays
+ * in the catalogue (router self-test) but is hidden unless
+ * DESIGN_GENERATE_ENABLED — founder review 2026-11-10 (it over-claimed).
+ */
+export function landingModules(designEnabled: boolean = DESIGN_GENERATE_ENABLED): ColdModule[] {
+  return COLD_MODULES.filter((m) => m.id !== "design" || designEnabled);
+}
+
 export interface ColdStartDashboardProps {
   /** Seed the composer with a goal / example intent. Does not send. */
   onSeed: (text: string) => void;
+  /** Cards to show; defaults to the landing set (design gated by flag). */
+  modules?: ColdModule[];
 }
 
 /**
@@ -873,7 +898,7 @@ export interface ColdStartDashboardProps {
  * four function-module cards below. Cards expand/collapse with single-open
  * logic; all the dashboard does is seed the composer.
  */
-export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
+export function ColdStartDashboard({ onSeed, modules = landingModules() }: ColdStartDashboardProps) {
   // Single-open: at most one module card open at a time (spec 00 §0.4.2).
   const [openId, setOpenId] = useState<string | null>(null);
   return (
@@ -910,7 +935,7 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
           alignItems: "start",
         }}
       >
-        {COLD_MODULES.map((m) => (
+        {modules.map((m) => (
           <ModuleCard
             key={m.id}
             m={m}

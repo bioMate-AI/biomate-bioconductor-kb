@@ -9,6 +9,7 @@ import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
 import { FindingsCard } from "./findings-card"
 import { t, locale } from "@/lib/i18n"
+import { stripSystemBlocks, attachedNamesFromBlocks } from "@shared/chat-system-blocks"
 
 /**
  * Pre-processes assistant markdown to:
@@ -141,6 +142,17 @@ function deriveSpeaker(kind: string | undefined): string {
   return 'wf'
 }
 
+/** Localized run-status label for the in-chat workflow chip (null = no chip). */
+export function wfChipLabel(runStatus: string | undefined | null): string | null {
+  if (!runStatus) return null
+  if (['completed', 'succeeded', 'ok'].includes(runStatus)) return t('chat.run_status.completed')
+  const key = ({
+    running: 'running', failed: 'failed', paused: 'paused', cancelled: 'cancelled',
+    pending: 'ready', configuring: 'ready', queued: 'queued',
+  } as Record<string, string>)[runStatus]
+  return t(`chat.run_status.${key ?? 'unknown'}`)
+}
+
 /**
  * IntentClarifyBridge — renders intent (cross-intent) clarification through the
  * typed ClarifyCard (spec 06 §6.4) while preserving the existing intentOverride
@@ -239,8 +251,8 @@ interface ChatMessageProps {
    * message and re-sends it with intentOverride='workflow_generation'.
    */
   onRedoAsValidatedRun?: (message: Message) => void
-  /** Draft a data-analysis question for review; never executes or selects a workflow. */
-  onPlanAnalysisWithData?: (message: Message) => void
+  /** A research answer's suggested follow-up was picked — pre-fill the composer (never auto-send). */
+  onFollowUpQuestion?: (question: string) => void
 }
 
 export function ChatMessage({
@@ -275,7 +287,7 @@ export function ChatMessage({
   isInPanel = false,
   onOpenInPanel,
   onRedoAsValidatedRun,
-  onPlanAnalysisWithData,
+  onFollowUpQuestion,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
 
@@ -425,7 +437,7 @@ export function ChatMessage({
 
     // Chain suggestion — render as a rich card, not a dim progress dot
     if (kind === "chain_suggestion" && Array.isArray(tech?.suggestions) && tech.suggestions.length > 0) {
-      const triggerWf = String(tech.trigger_workflow || "").split("/").pop() || "your workflow"
+      const triggerWf = String(tech.trigger_workflow || "").split("/").pop() || t('chat.your_workflow')
       return (
         <div
           data-testid="chain-suggestion-card"
@@ -435,7 +447,7 @@ export function ChatMessage({
           id={`chat-message-anchor-${message.id}`}
         >
           <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-            Suggested next steps after {triggerWf}
+            {t('chat.next_steps_after', { name: triggerWf })}
           </div>
           <div className="flex flex-col gap-2">
             {(tech.suggestions as Array<{ name: string; display_name: string; steps: number; description: string; required_inputs?: string[] }>).map((s) => (
@@ -447,7 +459,7 @@ export function ChatMessage({
                 <span className="text-primary mt-0.5">→</span>
                 <div>
                   <span className="font-medium">{s.display_name}</span>
-                  <span className="text-muted-foreground ml-2 text-xs">({s.steps} steps)</span>
+                  <span className="text-muted-foreground ml-2 text-xs">{t('chat.step_count', { count: s.steps })}</span>
                   {s.description && (
                     <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
                   )}
@@ -562,7 +574,7 @@ export function ChatMessage({
 
   return (
     <div
-      className={cn("msg", isUser ? "user" : "assistant")}
+      className={cn("msg group/msg", isUser ? "user" : "assistant")}
       id={`chat-message-anchor-${message.id}`}
       data-testid={`chat-message-${message.id}`}
       data-role={message.role}
@@ -578,7 +590,7 @@ export function ChatMessage({
         fontFamily: 'var(--bm-font-mono)',
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
-        {isUser ? `You${timeLabel ? ` · ${timeLabel}` : ''}` : (
+        {isUser ? `${t('chat.you')}${timeLabel ? ` · ${timeLabel}` : ''}` : (
           <>
             BioMate
             {!isUser && (() => {
@@ -636,22 +648,10 @@ export function ChatMessage({
         } : { lineHeight: 1.65 }}>
             {isUser ? (() => {
               const raw = message.content || ''
-              // Extract attached file names from metadata blocks before stripping them
-              const attachedNames: string[] = []
-              const attachedBlock = raw.match(/\[Attached files:\s*([^\]]+)\]/i)?.[1] ?? ''
-              if (attachedBlock) {
-                attachedNames.push(...attachedBlock.split(',').map(s => s.trim()).filter(Boolean))
-              }
-              const datasetBlock = raw.match(/\[(?:BioMate dataset|Uploaded datasets?|Dataset):\s*([^\]]+)\]/gi) ?? []
-              datasetBlock.forEach(b => {
-                const name = b.match(/\[(?:BioMate dataset|Uploaded datasets?|Dataset):\s*([^:(]+)/i)?.[1]?.trim()
-                if (name && !attachedNames.includes(name)) attachedNames.push(name)
-              })
-              // Strip all metadata blocks from the visible text
-              const visibleText = raw
-                .replace(/\n?\[(?:BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?)[^\]]*\]/gi, '')
-                .replace(/\n?\[Paper content:[^\]]*\][\s\S]*$/i, '')
-                .trim()
+              // System blocks ([BioMate dataset: …], [Uploaded datasets: …]) are
+              // machine context: show their file names as chips, never the raw block.
+              const attachedNames = attachedNamesFromBlocks(raw)
+              const visibleText = stripSystemBlocks(raw)
               return (
                 <div>
                   {visibleText && <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleText}</p>}
@@ -722,15 +722,12 @@ export function ChatMessage({
           {!isUser && !awaitingWorkflowInput && message.metadata?.type === 'research_response' && message.metadata?.research_response && (
             <ResearchResponseDisplay
               response={message.metadata.research_response}
-              onFollowUpClick={(question) => console.log('Follow-up:', question)}
+              onFollowUpClick={onFollowUpQuestion}
               onToolClick={(toolName, galaxyToolId) => {
                 if (onToolClick && galaxyToolId) {
                   onToolClick({ tool: { tool_id: galaxyToolId, name: toolName }, relevanceScore: 1, reasoning: 'From research' })
                 }
               }}
-              // Research follow-up only prepares a reviewable composer draft.
-              // Compute-result "Redo as a validated run" remains a separate action.
-              onCheckAgainstData={onPlanAnalysisWithData ? () => onPlanAnalysisWithData(message) : undefined}
               className="mt-3"
             />
           )}
@@ -741,7 +738,7 @@ export function ChatMessage({
               const runStatus = currentExecutionRun?.execution?.status;
               const completed = ['completed', 'succeeded', 'ok'].includes(runStatus || '');
               const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : completed ? 'chip-ok' : 'chip';
-              const chipLabel = completed ? 'Completed' : ({ running:'Running', failed:'Failed', paused:'Paused', cancelled:'Cancelled', pending:'Ready', configuring:'Ready', queued:'Queued' } as Record<string,string>)[runStatus || ''] || (runStatus ? runStatus.charAt(0).toUpperCase() + runStatus.slice(1) : null);
+              const chipLabel = wfChipLabel(runStatus);
               return (
                 <>
                   <div className="wf-chip" data-tour="chat-handoff">
@@ -749,24 +746,20 @@ export function ChatMessage({
                       <FlaskConical size={16} />
                     </div>
                     <div className="wf-chip-body">
-                      <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
+                      <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || t('chat.workflow')}</div>
                     </div>
                     {chipLabel && <span className={chipClass}>
                       <span className="dot" />
                       {chipLabel}
                     </span>}
-                    {isInPanel && (
-                      <span className="chip-ok" data-testid="wf-chip-in-panel">
-                        <span className="dot" />
-                        {t('chat.in_panel')}
-                      </span>
-                    )}
+                    {/* No "In panel" chip: the open panel already says so. */}
                     {!isInPanel && onOpenInPanel && (
                       <button
                         onClick={() => onOpenInPanel()}
+                        data-testid="wf-chip-open"
                         style={{ marginLeft: 8, fontSize: 'var(--fs-xs)', padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                       >
-                        Open
+                        {t('chat.open')}
                       </button>
                     )}
                   </div>
@@ -799,9 +792,9 @@ export function ChatMessage({
                   wf-chip above, so the answer block does not repeat them (avoids a
                   redundant second "Completed" hint). */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 'var(--fs-sm)' }}>
-                <button type="button" data-testid="answer-link-summary" onClick={() => onOpenInPanel?.({ tab: 'summary' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>Full table in Summary →</button>
-                <button type="button" data-testid="answer-link-outputs" onClick={() => onOpenInPanel?.({ tab: 'outputs' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>Files in Outputs →</button>
-                <button type="button" data-testid="answer-link-report" onClick={() => onOpenInPanel?.({ tab: 'report' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>Full report →</button>
+                <button type="button" data-testid="answer-link-summary" onClick={() => onOpenInPanel?.({ tab: 'summary' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>{t('chat.answer_link_summary')}</button>
+                <button type="button" data-testid="answer-link-outputs" onClick={() => onOpenInPanel?.({ tab: 'outputs' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>{t('chat.answer_link_outputs')}</button>
+                <button type="button" data-testid="answer-link-report" onClick={() => onOpenInPanel?.({ tab: 'report' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)', borderBottom: '1px dotted var(--border-strong)' }}>{t('chat.answer_link_report')}</button>
               </div>
             </div>
           )}
@@ -880,11 +873,11 @@ export function ChatMessage({
                 message.metadata?.domainGuard?.blocked
                   ? message.metadata?.domainGuard?.reason
                   : message.metadata?.needsUserFeedback
-                  ? message.metadata?.feedbackPrompt || "Please review and confirm before execution."
+                  ? message.metadata?.feedbackPrompt || t('chat.review_before_run')
                   : workflowLevelDomainGuard?.blocked
                   ? workflowLevelDomainGuard?.reason
                   : workflowNeedsFeedback
-                  ? workflowFeedbackPrompt || "Please review and confirm before execution."
+                  ? workflowFeedbackPrompt || t('chat.review_before_run')
                   : undefined;
               const prereqChecklist = normalizePrereqChecklist(
                 message.metadata?.prerequisitesValidation,
@@ -923,7 +916,7 @@ export function ChatMessage({
                     data-testid={`workflow-artifact-anchor-${message.id}`}
                   >
                     <WorkflowDisambiguationCard
-                      message={wf.message || 'Which workflow best fits what you need?'}
+                      message={wf.message || t('chat.which_workflow')}
                       candidates={candidates}
                       onSelect={(c) => {
                         // A pick that differs from the system's top-scored guess is a
@@ -945,7 +938,7 @@ export function ChatMessage({
                 const steps = (wf.pipeline_steps || []).map((s: any, idx: number) => ({
                   id: s.id || `step-${idx}`,
                   stepNumber: idx + 1,
-                  workflowName: s.workflow_name || s.name || `Step ${idx + 1}`,
+                  workflowName: s.workflow_name || s.name || t('chat.step_n', { n: idx + 1 }),
                   workflowPath: s.workflow_path || s.nextflow_path,
                   nextflowPath: s.nextflow_path || s.workflow_path,
                   params: s.params || s.parameters || {},
@@ -988,7 +981,7 @@ export function ChatMessage({
                   >
                     <WorkflowChainPlan
                       chainName={wf.chain_name || wf.name || ''}
-                      displayName={wf.chain_display_name || wf.display_name || wf.name || 'Pipeline Plan'}
+                      displayName={wf.chain_display_name || wf.display_name || wf.name || t('chat.pipeline_plan')}
                       domain={wf.chain_domain || wf.domain || ''}
                       description={wf.chain_description || wf.description || ''}
                       steps={wf.chain_steps || []}
@@ -1159,8 +1152,8 @@ export function ChatMessage({
             const isCompleted = currentExecutionRun?.execution?.status === "completed"
             if (!IND_REPORT_ENABLED || !isAdmetOrPbpk || !isCompleted) return null  // IND paused
             const label = wfName.includes("pbpk")
-              ? "PBPK qualification complete"
-              : "ADMET screening complete"
+              ? t('chat.ind_pbpk_complete')
+              : t('chat.ind_admet_complete')
             const invId = effectiveInvocationId
             return (
               <a
@@ -1178,9 +1171,20 @@ export function ChatMessage({
           })()}
         </div>
 
-        {/* Action buttons — only shown when there is actual response content */}
+        {/* The ONE action row under every assistant answer (research, compute,
+            workflow, plain text): copy · save as file · regenerate · 👍 · 👎.
+            Quiet by design — muted icons; on older answers it only appears on
+            hover/focus so the thread reads as prose, not toolbars. Research
+            answers get no second button row (no "Save to project" / "Plan
+            analysis" — removed 2026-11-10 per founder review). */}
         {!hideActions && !isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div
+            data-testid="message-action-row"
+            className={cn(
+              "chat-action-row -ml-1.5 flex items-center gap-0.5 flex-wrap text-muted-foreground transition-opacity duration-150",
+              !isLatestAssistantMessage && "opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100",
+            )}
+          >
             <DownloadOutcomePrompt
               open={downloadPromptOpen}
               onOpenChange={setDownloadPromptOpen}
@@ -1192,25 +1196,26 @@ export function ChatMessage({
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               onClick={handleCopyResponse}
               data-testid="button-copy-response-icon"
               title={t('chat_msg.copy_response')}
               aria-label={t('chat_msg.copy_response')}
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-3.5 w-3.5" />
             </Button>
-            <ReadAloud text={message.content || ""} disabled={isStreaming} />
             {/* Save response as file */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
                   title={t('chat_msg.save_as_file')}
                   aria-label={t('chat_msg.save_as_file')}
                   data-testid="button-save-response"
                 >
-                  <FileDown className="h-4 w-4" />
+                  <FileDown className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
@@ -1240,13 +1245,35 @@ export function ChatMessage({
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               onClick={onRegenerate}
               data-testid="button-regenerate-message-icon"
               title={t('chat_msg.regenerate_response')}
               aria-label={t('chat_msg.regenerate_response')}
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3.5 w-3.5" />
             </Button>
+            <InlineFeedbackWidget
+              messageId={message.id}
+              sessionId={sessionId}
+              runId={currentExecutionRun?.id}
+              invocationId={effectiveInvocationId}
+              workflowId={message.metadata?.workflow?.id ?? undefined}
+            />
+            {effectiveInvocationId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={handleDownloadOutputs}
+                data-testid="button-download-outputs-icon"
+                title={t('chat_msg.download_outputs')}
+                aria-label={t('chat_msg.download_outputs')}
+              >
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <ReadAloud text={message.content || ""} disabled={isStreaming} />
             {isComputeResultMessage && onRedoAsValidatedRun && (
               <Button
                 variant="ghost"
@@ -1254,32 +1281,11 @@ export function ChatMessage({
                 onClick={() => onRedoAsValidatedRun(message)}
                 data-testid="button-redo-as-validated-run"
                 title={t('chat_msg.rerun_validated_tip')}
-                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
               >
                 <FlaskConical className="h-3.5 w-3.5" />
                 {t('chat_msg.redo_as_validated')}
               </Button>
-            )}
-            {effectiveInvocationId && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDownloadOutputs}
-                data-testid="button-download-outputs-icon"
-                title={t('chat_msg.download_outputs')}
-                aria-label={t('chat_msg.download_outputs')}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            )}
-            {(message.metadata?.type === 'workflow' || message.invocationId || hasGalaxyMetadata) && (
-              <InlineFeedbackWidget
-                messageId={message.id}
-                sessionId={sessionId}
-                runId={currentExecutionRun?.id}
-                invocationId={effectiveInvocationId}
-                workflowId={message.metadata?.workflow?.id ?? undefined}
-              />
             )}
           </div>
         )}

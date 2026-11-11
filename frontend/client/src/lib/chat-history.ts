@@ -1,5 +1,14 @@
 import type { ChatSession, Message, DatasetConfig, WorkflowStepWithDatasets } from '@shared/schema';
 import { fetchWithRetry } from './fetch-retry';
+import { fallbackTitle, titleHasSystemBlock } from '@shared/chat-system-blocks';
+
+/** Titles saved before the system-block sanitizer existed may read
+ *  "[BioMate dataset: x.jsonl (id:" — re-derive those from their own text. */
+export function cleanSessionTitle(title: string | null | undefined): string {
+  const raw = String(title ?? '');
+  if (!titleHasSystemBlock(raw)) return raw;
+  return fallbackTitle(raw) || 'New Chat';
+}
 
 // Backend sync configuration
 const BACKEND_SYNC_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_SYNC !== 'false';
@@ -66,7 +75,8 @@ class ChatHistoryService {
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (!stored) return this.getDefaultSessions();
-      return JSON.parse(stored);
+      const sessions: ChatSession[] = JSON.parse(stored);
+      return sessions.map(s => (titleHasSystemBlock(s.title) ? { ...s, title: cleanSessionTitle(s.title) } : s));
     } catch (error) {
       console.error('Error loading chat history:', error);
       return this.getDefaultSessions();
@@ -106,7 +116,7 @@ class ChatHistoryService {
       const bs = await response.json();
       const session: ChatSession = {
         id: bs.session_id,
-        title: bs.title,
+        title: cleanSessionTitle(bs.title),
         timestamp: new Date(bs.created_at),
         lastActivity: new Date(bs.last_activity),
         status: bs.status as 'active' | 'archived',
@@ -339,10 +349,9 @@ class ChatHistoryService {
   }
   
   private generateTitleFromMessage(content: string): string {
-    // Extract a meaningful title from the first user message
-    const words = content.trim().split(' ');
-    const title = words.slice(0, 6).join(' ');
-    return title.length > 50 ? title.substring(0, 47) + '...' : title;
+    // Title from the user's own words — composer system blocks
+    // ([BioMate dataset: …], [Uploaded datasets: …]) are stripped first.
+    return fallbackTitle(content) || 'New Chat';
   }
   
   // ============================================================================
@@ -457,7 +466,7 @@ class ChatHistoryService {
       // Convert backend format to frontend format
       const convertedSessions: ChatSession[] = backendSessions.map((bs: any) => ({
         id: bs.session_id,
-        title: bs.title,
+        title: cleanSessionTitle(bs.title),
         timestamp: new Date(bs.created_at),
         lastActivity: new Date(bs.last_activity),
         status: bs.status as 'active' | 'archived',

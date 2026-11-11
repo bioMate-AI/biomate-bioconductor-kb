@@ -15,6 +15,8 @@ import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
 import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
 import { registerVoiceRoutes } from "./voice-routes";
+import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
+import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
 import { readConnectorSession } from "./connector-session";
@@ -1707,6 +1709,8 @@ ${outputRequirementsSection}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   registerVoiceRoutes(app, authenticateToken);
+  // Citation reader: abstract + open-access full text from Europe PMC (chat "Read").
+  registerLiteratureFulltextRoutes(app, authenticateToken);
   /** Resolve either BioMate's run ID or the Galaxy invocation alias and apply
    * the single owner/project-member policy used by every output surface. */
   const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
@@ -14001,27 +14005,27 @@ Rules:
 
   // ── Session title generation via LLM ─────────────────────────────────────
   app.post("/api/sessions/generate-title", optionalAuth, express.json(), async (req, res) => {
-    const text: string = String(req.body?.text || '').slice(0, 600);
+    // Title from the user's words only: strip the composer's system blocks
+    // ([BioMate dataset: …], [Uploaded datasets: …], [Paper content: …]) BEFORE
+    // slicing, so a block can neither become the title nor be cut mid-way.
+    const text: string = titleSourceText(String(req.body?.text || '')).slice(0, 600);
     if (!text) return res.json({ title: 'New Chat' });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey && !localOnly()) {
-      // Fallback: take first 6 words
-      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
-      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+      return res.json({ title: fallbackTitle(text) });
     }
     try {
       const raw = await callGeminiFlash({
         messages: [{ role: 'user', content: `Query: ${text}` }],
-        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
+        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. Write the title in the same language as the query. No quotes, no punctuation at end, no filler words like "user wants to".',
         maxTokens: 1024,
         temperature: 0,
       });
-      const title = raw.trim().replace(/^["']|["']$/g, '').slice(0, 60) || text.split(/\s+/).slice(0, 6).join(' ');
+      const title = stripSystemBlocks(raw.trim().replace(/^["'“”]|["'“”]$/g, '')).slice(0, 60) || fallbackTitle(text);
       return res.json({ title });
     } catch {
-      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
-      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+      return res.json({ title: fallbackTitle(text) });
     }
   });
 
