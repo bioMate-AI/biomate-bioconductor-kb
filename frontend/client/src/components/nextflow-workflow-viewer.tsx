@@ -142,16 +142,28 @@ export function phaseGroupLabel(key: string, semantic: string): string {
 /** Recovery advice must describe the same action the footer can actually perform. */
 export function failureRecoveryAdvice(action: string | undefined, canResume: boolean): string | null {
   if (action === 'resume' || action === 'resume_more_resources') {
-    return canResume ? 'Resume from last step to reuse completed work.'
-      : 'No completed step is available to resume. Review the error and restart after correcting the cause.';
+    return canResume ? tOr('panel.diag.advice_resume', 'Resume from last step to reuse completed work.')
+      : tOr('panel.diag.advice_no_resume', 'No completed step is available to resume. Review the error and restart after correcting the cause.');
   }
-  if (action === 'fix_and_resume') return 'Adjust your parameters or input files, then run again with edits.';
-  if (action === 'check_input') return 'Check your input files for format issues, then retry.';
+  if (action === 'fix_and_resume') return tOr('panel.diag.advice_fix', 'Adjust your parameters or input files, then run again with edits.');
+  if (action === 'check_input') return tOr('panel.diag.advice_check_input', 'Check your input data and parameters against the error, then run again.');
   return null;
 }
 
+/** Galaxy failure categories with a locale sentence (panel.diag.cat_*). The
+ *  sentences make no resume promise — the advice line below says whether a
+ *  resume is possible. arch_compat keeps the server's bilingual message. */
+const LOCALIZED_FAILURE_CATEGORIES = new Set([
+  'infra_transient', 'resource_memory', 'resource_time', 'config_param',
+  'input_data', 'tool_error', 'workflow_code', 'unknown',
+]);
+
 /** Server diagnosis cannot promise a checkpoint the recorded run does not have. */
-export function failureDiagnosisMessage(message: string, canResume: boolean): string {
+export function failureDiagnosisMessage(message: string, canResume: boolean, category?: string, detail?: string): string {
+  if (category && LOCALIZED_FAILURE_CATEGORIES.has(category)) {
+    const key = category === 'tool_error' && detail ? 'panel.diag.cat_tool_error_detail' : `panel.diag.cat_${category}`;
+    return tOr(key, message, { detail: detail || '' });
+  }
   if (canResume) return message;
   return message.replace(/\s*(?:You|It|The run) (?:can|may) resume[^.!?]*(?:[.!?]|$)/gi, '').trim()
     || tOr('panel.run_stopped', 'The run stopped before completing.');
@@ -3334,11 +3346,11 @@ export function NextflowWorkflowViewer({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 'var(--fs-body)' }}>{isArchCompat ? '⚙️' : '🔍'}</span>
                   <span style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
-                    AI Diagnosis
+                    {tOr('panel.diag.title', 'AI diagnosis')}
                   </span>
                 </div>
                 <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
-                  {failureDiagnosisMessage(diag.user_message, canResumeFailed)}
+                  {failureDiagnosisMessage(diag.user_message, canResumeFailed, (diag as any).category, (diag as any).error_detail)}
                 </p>
                 {failureRecoveryAdvice(diag.suggested_action, canResumeFailed) && (
                   <p data-testid="failure-recovery-advice" style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
@@ -3348,7 +3360,7 @@ export function NextflowWorkflowViewer({
                 {snippet ? (
                   <details open style={{ marginTop: 4 }}>
                     <summary style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
-                      Error details
+                      {tOr('panel.diag.error_details', 'Error details')}
                     </summary>
                     <pre style={{
                       marginTop: 6, padding: '8px 10px',
@@ -3362,7 +3374,7 @@ export function NextflowWorkflowViewer({
                   </details>
                 ) : (diag.suggested_action === 'resume') ? (
                   <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    ℹ️ No error log captured — the process was killed before it could write output. If Resume keeps failing, check server logs: <code>docker logs biomate-galaxy --tail 100</code>
+                    ℹ️ {tOr('panel.diag.no_log', 'No error log was captured for this run. If resuming keeps failing, report the run to BioMate.')}
                   </p>
                 ) : null}
               </div>

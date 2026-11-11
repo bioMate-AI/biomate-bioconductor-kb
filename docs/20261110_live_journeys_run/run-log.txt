@@ -1,0 +1,94 @@
+
+Running 4 tests using 1 worker
+
+  ✘  1 [live-chromium] › e2e/live-journeys.e2e.ts:136:1 › d. models: Boltz-2 folds a protein and Evo2-7B generates — real payloads (3.9s)
+  ✓  2 [live-chromium] › e2e/live-journeys.e2e.ts:189:1 › a. dataset: JSONL upload opens as 5-column records with scrollable preview (9.4s)
+  -  3 [live-chromium] › e2e/live-journeys.e2e.ts:234:1 › e. training: plan a tabular classifier from the data panel
+  ✘  4 [live-chromium] › e2e/live-journeys.e2e.ts:253:1 › b+c. chat: "不用工作流" computes directly with the true count; refresh keeps the chat (58.1s)
+
+
+  1) [live-chromium] › e2e/live-journeys.e2e.ts:136:1 › d. models: Boltz-2 folds a protein and Evo2-7B generates — real payloads 
+
+    Error: pLDDT must be per-residue
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 33
+    Received: 1
+
+      140 |   expect(boltz.status, `Boltz-2: ${boltz.error ?? ''}`).toBe('completed');
+      141 |   expect(String(boltz.structureFileRef || ''), 'Boltz-2 structure ref').toMatch(/\.(cif|pdb)$/);
+    > 142 |   expect(Array.isArray(boltz.plddt) ? boltz.plddt.length : -1, 'pLDDT must be per-residue').toBe(PROTEIN.length);
+          |                                                                                             ^
+      143 |
+      144 |   const evo = await infer('bionemo:evo2_7b', { sequence: DNA, num_tokens: EVO2_TOKENS });
+      145 |   expect(evo.status, `Evo2-7B: ${evo.error ?? ''}`).toBe('completed');
+        at /Users/kky/bm-track-e/frontend/e2e/live-journeys.e2e.ts:142:93
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/live-journeys/live-journeys.e2e.ts-d-mod-a8349-B-generates-—-real-payloads-live-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/live-journeys/live-journeys.e2e.ts-d-mod-a8349-B-generates-—-real-payloads-live-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/live-journeys/live-journeys.e2e.ts-d-mod-a8349-B-generates-—-real-payloads-live-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [live-chromium] › e2e/live-journeys.e2e.ts:253:1 › b+c. chat: "不用工作流" computes directly with the true count; refresh keeps the chat › b. "不用工作流" → run_code executes, no workflow, answer outside the progress log 
+
+    Error: run_code executed (SSE tool_event) but no run_code tool block is rendered in the chat
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      331 |
+      332 |     // User-visible presentation (soft — fails the run, does not hide step c).
+    > 333 |     expect.soft(renderedRunCode, 'run_code executed (SSE tool_event) but no run_code tool block is rendered in the chat').toBeGreaterThan(0);
+          |                                                                                                                           ^
+      334 |     expect.soft(composer, 'composer still holds the sent question after send').toBe('');
+      335 |   });
+      336 |
+        at /Users/kky/bm-track-e/frontend/e2e/live-journeys.e2e.ts:333:123
+        at /Users/kky/bm-track-e/frontend/e2e/live-journeys.e2e.ts:258:3
+
+    Error: composer still holds the sent question after send
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "你可以直接编程统计吗 不用工作流"
+
+      332 |     // User-visible presentation (soft — fails the run, does not hide step c).
+      333 |     expect.soft(renderedRunCode, 'run_code executed (SSE tool_event) but no run_code tool block is rendered in the chat').toBeGreaterThan(0);
+    > 334 |     expect.soft(composer, 'composer still holds the sent question after send').toBe('');
+          |                                                                                ^
+      335 |   });
+      336 |
+      337 |   await test.step('c. refresh keeps the chat (?session= survives reload, question still visible)', async () => {
+        at /Users/kky/bm-track-e/frontend/e2e/live-journeys.e2e.ts:334:80
+        at /Users/kky/bm-track-e/frontend/e2e/live-journeys.e2e.ts:258:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/live-journeys/live-journeys.e2e.ts-b-c-c-8b6ca-ount-refresh-keeps-the-chat-live-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/live-journeys/live-journeys.e2e.ts-b-c-c-8b6ca-ount-refresh-keeps-the-chat-live-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/live-journeys/live-journeys.e2e.ts-b-c-c-8b6ca-ount-refresh-keeps-the-chat-live-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/live-journeys/live-journeys.e2e.ts-b-c-c-8b6ca-ount-refresh-keeps-the-chat-live-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [live-chromium] › e2e/live-journeys.e2e.ts:136:1 › d. models: Boltz-2 folds a protein and Evo2-7B generates — real payloads 
+    [live-chromium] › e2e/live-journeys.e2e.ts:253:1 › b+c. chat: "不用工作流" computes directly with the true count; refresh keeps the chat 
+  1 skipped
+  1 passed (1.7m)

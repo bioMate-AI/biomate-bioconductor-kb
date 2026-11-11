@@ -948,6 +948,109 @@ def _collect_failed_task_errors(work_dir: Path, max_tasks: int = 3, max_chars: i
     return "\n---\n".join(snippets)
 
 
+_S3_TASK_ERR_CACHE: Dict[str, str] = {}
+
+
+def _collect_failed_task_errors_s3(work_dir_uri: str, max_tasks: int = 3, max_chars: int = 2000,
+                                   max_keys: int = 10000) -> str:
+    """AWS Batch counterpart of `_collect_failed_task_errors`: the task work dirs
+    live under an s3:// prefix, so the real error (.command.err) is only reachable
+    through S3. Without this every Batch failure was classified from the
+    orchestrator log alone — a Python ValueError surfaced as "unknown, resume"
+    (dev run c0d27792, 2026-11-10).
+
+    Prefers task dirs whose `.exitcode` is non-zero; falls back to the most
+    recently written `.command.err`. Cached per work dir: a failed run is terminal.
+    """
+    uri = str(work_dir_uri or "").rstrip("/")
+    if not uri.startswith("s3://") or "/" not in uri[5:]:
+        return ""
+    if uri in _S3_TASK_ERR_CACHE:
+        return _S3_TASK_ERR_CACHE[uri]
+    try:
+        import boto3 as _boto3
+        bucket, prefix = uri[5:].split("/", 1)
+        client = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = client.get_bucket_location(Bucket=bucket).get("LocationConstraint") or "us-east-1"
+            client = _boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        errs: Dict[str, Any] = {}
+        exitcodes: Dict[str, str] = {}
+        seen = 0
+        for page in client.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=prefix + "/"):
+            for obj in page.get("Contents", []) or []:
+                seen += 1
+                key = obj["Key"]
+                task_dir, _, name = key.rpartition("/")
+                if name == ".command.err" and obj.get("Size", 0) > 0:
+                    errs[task_dir] = obj
+                elif name == ".exitcode":
+                    exitcodes[task_dir] = key
+            if seen >= max_keys:
+                break
+
+        def _body(key: str, tail: Optional[int] = None) -> str:
+            kw = {"Range": f"bytes=-{tail}"} if tail else {}
+            return client.get_object(Bucket=bucket, Key=key, **kw)["Body"].read().decode("utf-8", "replace")
+
+        failed = []
+        for task_dir in errs:
+            if task_dir in exitcodes:
+                try:
+                    if _body(exitcodes[task_dir]).strip() not in ("", "0"):
+                        failed.append(task_dir)
+                except Exception:
+                    continue
+        chosen = failed or list(errs)
+        chosen.sort(key=lambda d: errs[d].get("LastModified") or 0, reverse=True)
+        snippets = []
+        for task_dir in chosen[:max_tasks]:
+            try:
+                content = _body(errs[task_dir]["Key"], tail=max_chars).strip()
+            except Exception:
+                continue
+            if content:
+                snippets.append(content[-max_chars:])
+        result = "\n---\n".join(snippets)
+    except Exception as exc:
+        log.debug("S3 task stderr collection failed for %s: %s", uri, exc)
+        return ""
+    _S3_TASK_ERR_CACHE[uri] = result
+    return result
+
+
+def _collect_task_errors_any(work_dir: str) -> str:
+    """.command.err for a run's failed tasks, from a local or an s3:// work dir."""
+    if not work_dir:
+        return ""
+    if str(work_dir).startswith("s3://"):
+        return _collect_failed_task_errors_s3(str(work_dir))
+    return _collect_failed_task_errors(Path(work_dir))
+
+
+# A tool's own exception line: Python `ValueError: …` / `pkg.FooError: …`,
+# R `Error in f(x) : …`. Nextflow/JVM exceptions are the executor's wrapper,
+# not the tool's statement of cause, so they are excluded.
+_TOOL_EXC_RE = re.compile(
+    r'^\s*(?:(?P<qual>[\w.]+)\.)?(?P<type>[A-Z]\w*(?:Error|Exception)):\s+(?P<msg>\S.*)$'
+    r'|^\s*Error in [^:\n]+:\s*(?P<rmsg>\S.*)$',
+    re.MULTILINE)
+
+
+def _tool_exception(text: str) -> Optional[Dict[str, str]]:
+    """The LAST tool-raised exception in `text` (the one that ended the task)."""
+    found = None
+    for m in _TOOL_EXC_RE.finditer(text or ""):
+        qual = (m.group("qual") or "").lower()
+        if qual.startswith(("nextflow", "groovy", "java", "org.", "com.amazonaws", "software.amazon")):
+            continue
+        found = {"type": m.group("type") or "Error", "message": (m.group("msg") or m.group("rmsg") or "").strip()[:300],
+                 "start": m.start()}
+    return found
+
+
 def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
     """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log).
 
@@ -1086,6 +1189,13 @@ def _classify_failure(
     # Build a sanitized snippet of the task error for the user-facing diagnosis.
     # Use the task stderr in preference to the orchestrator log — it has the real cause.
     _snippet_source = task_err_raw if task_err_raw.strip() else raw
+    _exc = _tool_exception(task_err_raw) or _tool_exception(raw)
+    _src_exc = _tool_exception(_snippet_source)
+    if _src_exc:
+        # End the excerpt AT the exception (its traceback precedes it); the lines
+        # after it are executor shutdown noise, which used to crowd it out.
+        _end = _snippet_source.find("\n", _src_exc["start"])
+        _snippet_source = _snippet_source[: _end if _end != -1 else len(_snippet_source)]
     _snippet_lines = [l for l in _snippet_source.splitlines() if l.strip()][-20:]
     _raw_snippet = "\n".join(_snippet_lines)
     task_error_snippet = _redact_internal(_raw_snippet)[:1500]
@@ -1107,7 +1217,10 @@ def _classify_failure(
         return {"category": category, "user_message": msg,
                 "is_transient": transient, "suggested_action": action,
                 "fix_strategy": _STRATEGY.get(category, "not_fixable"),
-                "task_error_snippet": task_error_snippet}
+                "task_error_snippet": task_error_snippet,
+                # The tool's own message, so clients can localise the sentence
+                # around it instead of showing this English user_message verbatim.
+                "error_detail": _exc["message"] if _exc else ""}
 
     # ── ARM64: workflow image has no arm64 variant → "pull access denied" or no manifest ──
     # Triggered when DOCKER_DEFAULT_PLATFORM=linux/arm64 (信创/domestic deployment) and the
@@ -1240,8 +1353,15 @@ def _classify_failure(
                        "An input could not be found or looks malformed. Check that "
                        "every input path exists (use a full s3:// URI, not a bare key), "
                        "then resume.", False, "check_input")
+    # ── the tool raised its own exception (Python/R): deterministic, so a plain
+    #    resume repeats it. Its message names what is wrong with the input/params.
+    if _exc:
+        return verdict("tool_error",
+                       f"The step stopped with an error from the tool itself: {_exc['message']} "
+                       "Check the input data and parameters against it, then run again.",
+                       False, "check_input")
     # ── generic tool/process failure ──
-    if any(k in low for k in ("process failed", "processfailedexception", "exit status",
+    if any(k in low for k in ("process failed", "processfailedexception", "exit status", "error executing process",
                               "command error", "pipeline failed", "workflow execution failed")):
         return verdict("tool_error",
                        "A step failed while running. It can resume from the last "
@@ -1333,15 +1453,14 @@ def _trigger_auto_reroute_on_failure(
         task_stderr: str = ""
         work_dir = run_meta.get("work_dir") or run_meta.get("workdir") or ""
         if work_dir and not str(work_dir).startswith("s3://"):
-            work_path = Path(work_dir)
             try:
-                _full, log_tail = _read_run_nextflow_log_text(work_path)
+                _full, log_tail = _read_run_nextflow_log_text(Path(work_dir))
             except Exception:
                 pass
-            try:
-                task_stderr = _collect_failed_task_errors(work_path)
-            except Exception:
-                pass
+        try:
+            task_stderr = _collect_task_errors_any(str(work_dir))
+        except Exception:
+            pass
 
         failure_verdict = _classify_failure("failed", log_tail, returncode, task_stderr=task_stderr)
         if not failure_verdict:
@@ -1564,11 +1683,10 @@ def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     if status in ("failed", "error", "cancelled"):
         task_stderr = ""
         work_dir = resp.get("work_dir") or resp.get("workdir") or ""
-        if work_dir and not str(work_dir).startswith("s3://"):
-            try:
-                task_stderr = _collect_failed_task_errors(Path(work_dir))
-            except Exception:
-                pass
+        try:
+            task_stderr = _collect_task_errors_any(str(work_dir))
+        except Exception:
+            pass
         resp["failure"] = _classify_failure(
             status, raw_tail, resp.get("returncode"), resp.get("duration_s"),
             task_stderr=task_stderr)

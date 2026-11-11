@@ -68,6 +68,115 @@ def stage_s3_to_local(s3_uri: str, dest: Optional[str] = None) -> str:
 log = logging.getLogger(__name__)
 
 
+def resolve_local_dataset_path(spec: DatasetSpec) -> str:
+    """The single local file a file-backed trainer reads, staging s3 when needed.
+
+    Every ml_training ``.nf`` wrapper passes ``params.dataset`` as a plain value
+    (no Nextflow ``path`` input), so NOTHING stages an ``s3://`` dataset before
+    the CLI runs. Several loaders/trainers used to assume "the executor staged it"
+    and then either raised NotImplementedError or handed the raw ``s3://`` string
+    to a file reader. This is the one place that turns a DatasetSpec into a
+    readable local path: ``path`` is used as-is, ``s3_uri`` is staged through
+    :func:`stage_s3_to_local` (AWS CLI in the training image).
+    """
+    if spec.path:
+        return spec.path
+    if spec.s3_uri:
+        return stage_s3_to_local(spec.s3_uri)
+    raise ConfigError("this dataset needs a file (path or s3_uri), not a named shortcut")
+
+
+# ---------------------------------------------------------------------------
+# Generic table reader — one parser for every tabular training path.
+# ---------------------------------------------------------------------------
+# Supported table formats. CSV/TSV are read with the stdlib csv module (values
+# arrive as strings); JSONL/NDJSON (one JSON object per line) and parquet keep
+# their native types (numbers, None, bools). Downstream helpers (_is_missing,
+# _looks_numeric, float()) accept both, so a parquet int column and a CSV "3"
+# column are featurized identically.
+TABLE_SUFFIXES = (".csv", ".tsv", ".tab", ".txt", ".jsonl", ".ndjson", ".parquet", ".pq")
+
+
+def _table_format(path: str) -> str:
+    low = path.lower()
+    for gz in (".gz",):
+        if low.endswith(gz):
+            low = low[: -len(gz)]
+    if low.endswith((".jsonl", ".ndjson")):
+        return "jsonl"
+    if low.endswith((".parquet", ".pq")):
+        return "parquet"
+    if low.endswith((".tsv", ".tab")):
+        return "tsv"
+    if low.endswith(".txt"):
+        # .txt tables are tab-separated by convention unless the header has
+        # commas and no tabs.
+        try:
+            with _open_text(path) as fh:
+                head = fh.readline()
+        except OSError:
+            return "tsv"
+        return "csv" if ("," in head and "\t" not in head) else "tsv"
+    return "csv"
+
+
+def _open_text(path: str):
+    if path.lower().endswith(".gz"):
+        import gzip
+        return gzip.open(path, "rt", newline="")
+    return open(path, newline="")
+
+
+def read_table_rows(path: str) -> tuple[list[str], list[dict]]:
+    """Read a CSV / TSV / JSONL / NDJSON / parquet table → (columns, row dicts).
+
+    Column order follows the file (header for CSV/TSV/parquet; first-seen key
+    order across records for JSONL). Raises ConfigError for a missing file, an
+    unreadable format, or a table with no columns.
+    """
+    import json
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"dataset path not found: {path}")
+    fmt = _table_format(path)
+    columns: list[str] = []
+    rows: list[dict] = []
+    if fmt in ("csv", "tsv"):
+        with _open_text(path) as fh:
+            reader = csv.DictReader(fh, delimiter="\t" if fmt == "tsv" else ",")
+            columns = list(reader.fieldnames or [])
+            rows = [dict(r) for r in reader]
+    elif fmt == "jsonl":
+        seen: dict[str, None] = {}
+        with _open_text(path) as fh:
+            for lineno, line in enumerate(fh, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ConfigError(f"{path}: line {lineno} is not valid JSON ({exc.msg})") from exc
+                if not isinstance(obj, dict):
+                    raise ConfigError(f"{path}: line {lineno} is not a JSON object")
+                for k in obj:
+                    seen.setdefault(str(k), None)
+                rows.append({str(k): v for k, v in obj.items()})
+        columns = list(seen)
+    else:  # parquet
+        try:
+            import pyarrow.parquet as pq
+        except ImportError as exc:
+            raise ConfigError(
+                "reading parquet needs pyarrow (shipped in the ml-training image)") from exc
+        table = pq.read_table(path)
+        columns = [str(c) for c in table.column_names]
+        rows = table.to_pylist()
+    if not columns:
+        raise ConfigError(f"no columns found in {path}")
+    return columns, rows
+
+
 @dataclass
 class LoadedDataset:
     rows: list[tuple[str, float]]           # [(smiles, label), ...]
@@ -110,10 +219,8 @@ def load_dataset(spec: DatasetSpec) -> LoadedDataset:
     kind = spec.source_kind()
     if kind == "name":
         return _load_named(spec)
-    if kind == "path":
-        return _load_csv(spec, spec.path)  # type: ignore[arg-type]
-    if kind == "s3_uri":
-        return _load_s3(spec)
+    if kind in ("path", "s3_uri"):
+        return _load_csv(spec, resolve_local_dataset_path(spec))
     raise ConfigError(f"unhandled dataset source kind: {kind}")
 
 
@@ -169,50 +276,40 @@ def _load_tdc(tdc_name: str, spec: DatasetSpec) -> LoadedDataset:
 
 
 def _load_csv(spec: DatasetSpec, path: str) -> LoadedDataset:
-    p = Path(path)
-    if not p.exists():
-        raise ConfigError(f"dataset path not found: {path}")
+    """Molecular (SMILES, label) loader over any supported table format.
+
+    Only the molecular model types (RDKit / Chemprop featurizers) use this; the
+    generic tabular learners read a feature matrix via load_tabular_dataset and
+    never require a SMILES column.
+    """
+    columns, raw_rows = read_table_rows(path)
+    if spec.smiles_col not in columns:
+        raise ConfigError(
+            f"smiles_col '{spec.smiles_col}' not in dataset columns {columns}"
+        )
+    if spec.target_col not in columns:
+        raise ConfigError(
+            f"target_col '{spec.target_col}' not in dataset columns {columns}"
+        )
     rows: list[tuple[str, float]] = []
-    with p.open(newline="") as fh:
-        reader = csv.DictReader(fh)
-        if spec.smiles_col not in (reader.fieldnames or []):
-            raise ConfigError(
-                f"smiles_col '{spec.smiles_col}' not in CSV columns {reader.fieldnames}"
-            )
-        if spec.target_col not in (reader.fieldnames or []):
-            raise ConfigError(
-                f"target_col '{spec.target_col}' not in CSV columns {reader.fieldnames}"
-            )
-        for row in reader:
-            smi = row[spec.smiles_col]
-            raw = row[spec.target_col]
-            # _is_missing matches the broad token set (NA/nan/./…), not just
-            # None/"" — otherwise float("NA") below crashes the whole load.
-            if _is_missing(smi) or _is_missing(raw):
-                continue
-            try:
-                val = float(raw)
-            except (TypeError, ValueError):
-                continue  # non-numeric property label (e.g. "inf"/"high") → skip row
-            if not math.isfinite(val):
-                continue  # inf/-inf target would poison a regression fit
-            rows.append((str(smi), val))
+    for row in raw_rows:
+        smi = row.get(spec.smiles_col)
+        raw = row.get(spec.target_col)
+        # _is_missing matches the broad token set (NA/nan/./…), not just
+        # None/"" — otherwise float("NA") below crashes the whole load.
+        if _is_missing(smi) or _is_missing(raw):
+            continue
+        try:
+            val = float(raw)
+        except (TypeError, ValueError):
+            continue  # non-numeric property label (e.g. "inf"/"high") → skip row
+        if not math.isfinite(val):
+            continue  # inf/-inf target would poison a regression fit
+        rows.append((str(smi), val))
     if not rows:
         raise ConfigError(f"no usable rows parsed from {path}")
-    return LoadedDataset(rows, spec.smiles_col, spec.target_col, source=f"csv:{path}")
-
-
-def _load_s3(spec: DatasetSpec) -> LoadedDataset:
-    """Production path: download the staged CSV from S3, then parse as CSV.
-
-    Stubbed for the PoC skeleton — the executor stages inputs to a local
-    work dir before the training container runs, so in production this becomes
-    a local CSV read. Left explicit so the seam is obvious.
-    """
-    raise NotImplementedError(
-        "s3_uri loading is wired at execution time by the Nextflow executor "
-        "(inputs are staged to a local work dir). Use path= for local runs."
-    )
+    return LoadedDataset(rows, spec.smiles_col, spec.target_col,
+                         source=f"{_table_format(path)}:{path}")
 
 
 # ---------------------------------------------------------------------------
@@ -246,7 +343,11 @@ def _is_blank(v) -> bool:
     A classification LABEL of "None"/"NA"/"-" may be a legitimate class, so the
     label row-skip uses _is_blank (never a real value), and only the regression
     path (where float("NA") would crash) drops the semantic-missing labels."""
-    return v is None or (isinstance(v, str) and v.strip() == "")
+    if v is None:
+        return True
+    if isinstance(v, float) and math.isnan(v):
+        return True  # parquet/JSONL null-as-NaN label — never a real class
+    return isinstance(v, str) and v.strip() == ""
 
 
 def _looks_numeric(values) -> bool:
@@ -267,37 +368,29 @@ def _looks_numeric(values) -> bool:
 def load_tabular_dataset(path: str, target_col: str,
                          id_cols: Optional[list] = None,
                          task: Optional[str] = None) -> LoadedTabularDataset:
-    """Load a generic feature-matrix CSV with a label column.
+    """Load a generic feature-matrix table (CSV/TSV/JSONL/NDJSON/parquet) with a label column.
 
     Every column except ``target_col`` and any ``id_cols`` is treated as a
     numeric feature (e.g. one gene per column in an expression matrix). Rows
-    missing the label are skipped; missing feature cells become 0.0. The task is
-    inferred when not given: a non-numeric or low-cardinality label column is
-    ``classification`` (subtype prediction), otherwise ``regression``.
+    missing the label are skipped; missing feature cells are mean-imputed. The
+    task is inferred when not given: a non-numeric or low-cardinality label
+    column is ``classification`` (subtype prediction), otherwise ``regression``.
+    No SMILES column is required or consulted.
     """
-    p = Path(path)
-    if not p.exists():
-        raise ConfigError(f"dataset path not found: {path}")
     skip = {target_col, *(id_cols or [])}
-    rows_raw: list[dict] = []
-    with p.open(newline="") as fh:
-        reader = csv.DictReader(fh)
-        cols = reader.fieldnames or []
-        if target_col not in cols:
-            raise ConfigError(f"target_col '{target_col}' not in CSV columns {cols}")
-        feature_names = [c for c in cols if c not in skip]
-        if not feature_names:
-            raise ConfigError("no feature columns found (all columns are target/id)")
-        for row in reader:
-            # Skip rows whose LABEL is TRULY absent (None/empty/whitespace) only.
-            # Semantic missing tokens ("NA"/"none"/"-"/".") are NOT dropped here:
-            # for classification they may be a legitimate class (e.g. a "no-subtype"
-            # category), and dropping them would silently change class balance
-            # (round-4 committee). The regression path below (where float("NA")
-            # would crash) drops them explicitly instead.
-            if _is_blank(row.get(target_col)):
-                continue
-            rows_raw.append(row)
+    cols, all_rows = read_table_rows(path)
+    if target_col not in cols:
+        raise ConfigError(f"target_col '{target_col}' not in dataset columns {cols}")
+    feature_names = [c for c in cols if c not in skip]
+    if not feature_names:
+        raise ConfigError("no feature columns found (all columns are target/id)")
+    # Skip rows whose LABEL is TRULY absent (None/empty/whitespace/NaN) only.
+    # Semantic missing tokens ("NA"/"none"/"-"/".") are NOT dropped here:
+    # for classification they may be a legitimate class (e.g. a "no-subtype"
+    # category), and dropping them would silently change class balance
+    # (round-4 committee). The regression path below (where float("NA")
+    # would crash) drops them explicitly instead.
+    rows_raw: list[dict] = [row for row in all_rows if not _is_blank(row.get(target_col))]
     if not rows_raw:
         raise ConfigError(f"no usable rows parsed from {path}")
 
@@ -388,7 +481,7 @@ def load_tabular_dataset(path: str, target_col: str,
         X.append(row)
     return LoadedTabularDataset(
         X=X, y=y, feature_names=feature_names, target_col=target_col,
-        source=f"tabular-csv:{path}", task=task,
+        source=f"tabular-{_table_format(path)}:{path}", task=task,
     )
 
 
@@ -458,38 +551,20 @@ def load_instruction_rows(spec: DatasetSpec, instruction_col: str = "instruction
             f"unknown LLM dataset '{name}'. Use 'hf:<dataset>', a local .jsonl/.csv "
             f"path, or 'fixture:instruct' for the offline fixture."
         )
-    if kind == "path":
-        return _load_instruct_file(spec.path, instruction_col, output_col)  # type: ignore[arg-type]
-    raise NotImplementedError("s3_uri LLM data is staged locally by the executor; use path=.")
+    return _load_instruct_file(resolve_local_dataset_path(spec), instruction_col, output_col)
 
 
 def _load_instruct_file(path: str, instruction_col: str, output_col: str) -> list[dict[str, str]]:
-    import json
-    p = Path(path)
-    if not p.exists():
+    """Instruction/response rows from any supported table format (CSV/TSV/JSONL/NDJSON/parquet)."""
+    if not Path(path).exists():
         raise ConfigError(f"LLM dataset path not found: {path}")
-    rows: list[dict[str, str]] = []
-    if p.suffix.lower() == ".jsonl":
-        for line in p.read_text().splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            obj = json.loads(line)
-            if instruction_col in obj and output_col in obj:
-                rows.append({instruction_col: str(obj[instruction_col]),
-                             output_col: str(obj[output_col])})
-    else:  # csv
-        with p.open(newline="") as fh:
-            reader = csv.DictReader(fh)
-            cols = reader.fieldnames or []
-            if instruction_col not in cols or output_col not in cols:
-                raise ConfigError(
-                    f"CSV must have '{instruction_col}' + '{output_col}' columns; got {cols}"
-                )
-            for row in reader:
-                if row[instruction_col] and row[output_col]:
-                    rows.append({instruction_col: row[instruction_col],
-                                 output_col: row[output_col]})
+    cols, raw = read_table_rows(path)
+    if instruction_col not in cols or output_col not in cols:
+        raise ConfigError(
+            f"dataset must have '{instruction_col}' + '{output_col}' columns; got {cols}"
+        )
+    rows = [{instruction_col: str(r[instruction_col]), output_col: str(r[output_col])}
+            for r in raw if not _is_blank(r.get(instruction_col)) and not _is_blank(r.get(output_col))]
     if not rows:
         raise ConfigError(f"no usable instruction rows parsed from {path}")
     return rows
@@ -535,9 +610,7 @@ def load_preference_rows(spec: DatasetSpec) -> list[dict[str, str]]:
         if low.startswith("hf:"):
             return _load_hf_generic(spec.name.split(":", 1)[1], ("prompt", "chosen", "rejected"))
         raise ConfigError("unknown DPO dataset; use 'fixture:preference', hf:<ds>, or a .jsonl/.csv path")
-    if kind == "path":
-        return _load_cols_file(spec.path, ("prompt", "chosen", "rejected"))  # type: ignore[arg-type]
-    raise NotImplementedError("s3_uri DPO data is staged locally by the executor; use path=.")
+    return _load_cols_file(resolve_local_dataset_path(spec), ("prompt", "chosen", "rejected"))
 
 
 def load_prompt_rows(spec: DatasetSpec) -> list[dict[str, str]]:
@@ -550,34 +623,15 @@ def load_prompt_rows(spec: DatasetSpec) -> list[dict[str, str]]:
         if low.startswith("hf:"):
             return _load_hf_generic(spec.name.split(":", 1)[1], ("prompt",))
         raise ConfigError("unknown GRPO dataset; use 'fixture:prompts', hf:<ds>, or a .jsonl/.csv path")
-    if kind == "path":
-        return _load_cols_file(spec.path, ("prompt",))  # type: ignore[arg-type]
-    raise NotImplementedError("s3_uri GRPO data is staged locally by the executor; use path=.")
+    return _load_cols_file(resolve_local_dataset_path(spec), ("prompt",))
 
 
 def _load_cols_file(path: str, cols: tuple) -> list[dict[str, str]]:
-    import json
-    p = Path(path)
-    if not p.exists():
-        raise ConfigError(f"dataset path not found: {path}")
-    rows: list[dict[str, str]] = []
-    if p.suffix.lower() == ".jsonl":
-        for line in p.read_text().splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            obj = json.loads(line)
-            if all(c in obj for c in cols):
-                rows.append({c: str(obj[c]) for c in cols})
-    else:
-        with p.open(newline="") as fh:
-            reader = csv.DictReader(fh)
-            fns = reader.fieldnames or []
-            if not all(c in fns for c in cols):
-                raise ConfigError(f"CSV must have columns {cols}; got {fns}")
-            for row in reader:
-                if all(row.get(c) for c in cols):
-                    rows.append({c: row[c] for c in cols})
+    """Rows carrying every column in ``cols`` from any supported table format."""
+    columns, raw = read_table_rows(path)
+    if not all(c in columns for c in cols):
+        raise ConfigError(f"dataset must have columns {cols}; got {columns}")
+    rows = [{c: str(r[c]) for c in cols} for r in raw if all(not _is_blank(r.get(c)) for c in cols)]
     if not rows:
         raise ConfigError(f"no usable rows ({cols}) parsed from {path}")
     return rows

@@ -1,5 +1,5 @@
 /**
- * Tests for the Models module:
+ * Tests for the Models module (rebuilt 2026-11-10):
  *   - ModelsPanel: the 5 tracks render; Registry lists catalog rows (from a
  *     mocked GET /api/models) and a row opens the model object.
  *   - ModelObject: identity + the evidence gate triple (measured · threshold ·
@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { ModelsPanel, type OptimiseData, type TrainData, type AdaptData } from "./models-panel"
+import { ModelsPanel, HOUSE_STYLE_HIDDEN, type OptimiseData, type TrainData } from "./models-panel"
 import { ModelObject } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import { InferenceResultView } from "./inference-result"
@@ -75,7 +75,8 @@ beforeEach(() => {
 
 // mock fetch by URL for the panel's react-query calls
 function mockFetchByUrl(map: Record<string, unknown>) {
-  map = { "/api/model-tracks/train": { runs: [] }, "/api/model-tracks/adapt": { pairs: [], pendingCount: 0 }, "/api/model-tracks/optimise": { active: false }, ...map }
+  map = { "/api/model-tracks/train": { runs: [] }, "/api/model-tracks/optimise": { active: false },
+    "/api/model-training-versions": { versions: [] }, "/api/projects": { projects: [] }, ...map }
   // Longest key first so "/api/models/bionemo:boltz2" wins over "/api/models".
   const keys = Object.keys(map).sort((a, b) => b.length - a.length)
   global.fetch = vi.fn(async (input: RequestInfo | URL) => {
@@ -89,355 +90,146 @@ function mockFetchByUrl(map: Record<string, unknown>) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-describe("ModelsPanel", () => {
-  it("renders all five tracks", () => {
+describe("ModelsPanel — tabs", () => {
+  it("renders exactly the three tabs: Train · Model library · Molecular learning", () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" />, { wrapper: wrapper() })
-    for (let i = 0; i < 5; i++) {
-      expect(screen.getByTestId(`models-track-${i}`)).toBeTruthy()
-    }
-    // v2 §10.1 track labels
-    expect(screen.getByText("House style")).toBeTruthy()
-    expect(screen.getByText("Rounds")).toBeTruthy()
-    expect(screen.getByText("Run a model")).toBeTruthy()
+    for (let i = 0; i < 3; i++) expect(screen.getByTestId(`models-track-${i}`)).toBeTruthy()
+    expect(screen.queryByTestId("models-track-3")).toBeNull()
+    expect(screen.queryByTestId("models-track-4")).toBeNull()
+    const tabs = screen.getByTestId("models-tabs")
+    expect(within(tabs).getByText("Train")).toBeTruthy()
+    expect(within(tabs).getByText("Model library")).toBeTruthy()
+    expect(within(tabs).getByText("Molecular learning")).toBeTruthy()
   })
 
-  // Regression (UX plan C4-b1): the track LABEL and the track BODY heading must
-  // use the same v2 §10.1 vocabulary — a "House style" tab must not open a card
-  // headed "Adaptation level", and "Rounds" must not open one headed "Optimise".
-  it("track body headings match the renamed track labels (no label↔body drift)", async () => {
+  it("hides House style and the workflow-search / DL-FM sections entirely", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
-    const { rerender } = render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
-    const adapt = await screen.findByTestId("adapt-levels")
-    expect(within(adapt).getByText("House style")).toBeTruthy()
-    expect(within(adapt).queryByText("Adaptation level")).toBeNull()
-
-    rerender(<ModelsPanel project="Test project" tab={2} />)
-    const rounds = await screen.findByTestId("track-optimise")
-    expect(within(rounds).getByText(/^Rounds/)).toBeTruthy()
-    expect(within(rounds).queryByText(/^Optimise/)).toBeNull()
+    render(<ModelsPanel project="Test project" />, { wrapper: wrapper() })
+    expect(HOUSE_STYLE_HIDDEN).toBe(true)
+    expect(screen.queryByText("House style")).toBeNull()
+    expect(screen.queryByTestId("track-adapt")).toBeNull()
+    expect(screen.queryByTestId("dl-fm-tab")).toBeNull()
+    expect(screen.queryByTestId("dl-section-prebuilt")).toBeNull()
+    // No workflow catalog search is issued from the Models panel any more.
+    await waitFor(() => expect(screen.getByTestId("models-tabs")).toBeTruthy())
+    const searched = (global.fetch as any).mock.calls.some((c: any[]) => String(c[0]).includes("/api/workflows/search"))
+    expect(searched).toBe(false)
   })
 
-  it("lists catalog rows on the Registry track and opens a model object on click", async () => {
-    mockFetchByUrl({
-      "/api/models/bionemo:boltz2": MODEL_DETAIL,
-      "/api/models": CATALOG, // less-specific key checked after — order-independent via includes
-    })
-    render(<ModelsPanel project="Test project" tab={4} />, { wrapper: wrapper() })
-
-    // registry rows populated from GET /api/models
-    await waitFor(() => expect(screen.getByTestId("registry-table")).toBeTruthy())
-    expect(screen.getByTestId("registry-row-bionemo:boltz2")).toBeTruthy()
-    expect(screen.getByTestId("registry-row-custom:camp1/potency-gp")).toBeTruthy()
-
-    fireEvent.click(screen.getByTestId("registry-row-bionemo:boltz2"))
-    // model object loads by id
-    await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
-    expect(screen.getByTestId("model-object-id").textContent).toContain("bionemo:boltz2")
+  it("offers no chat-draft action anywhere in the module", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    const { container } = render(<ModelsPanel project="Test project" />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("training-launcher-general")).toBeTruthy())
+    expect(screen.queryByText(/in chat/i)).toBeNull()
+    expect(screen.queryByText(/在聊天中/)).toBeNull()
+    expect(container.querySelector('a[href*="draft="]')).toBeNull()
   })
 })
 
-describe("ModelsPanel — Train track", () => {
-  it("shows the loop + families always, and an honest empty runs state with no data", async () => {
+describe("ModelsPanel — 训练 (Train) tab", () => {
+  it("shows the launcher and an honest empty runs state with no data", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" tab={0} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("track-train")).toBeTruthy())
-    expect(screen.getByTestId("train-loop")).toBeTruthy()
-    expect(screen.getByTestId("train-families")).toBeTruthy()
-    expect(screen.getByTestId("train-runs-empty")).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId("training-launcher-general")).toBeTruthy())
+    expect(await screen.findByTestId("train-runs-empty")).toBeTruthy()
   })
 
-  it("renders training runs with status + gate and opens the experiment/model on click", async () => {
-    mockFetchByUrl({
-      "/api/models/custom:camp1/potency-gp": MODEL_DETAIL,
-      "/api/models": CATALOG,
-    })
+  it("renders training runs with status, a Run Manager link and the model link", async () => {
+    mockFetchByUrl({ "/api/models/custom:camp1/potency-gp": MODEL_DETAIL, "/api/models": CATALOG })
     const TRAIN: TrainData = {
       runs: [
-        {
-          name: "potency-gp fit",
-          family: "tabular",
-          when: "2026-08",
-          status: "completed",
-          gate: "gate passed",
-          metric: "spearman 0.62",
-          dataset: "assay_2026_08.csv · v4",
-          version: "→ potency-gp v2",
-          modelId: "custom:camp1/potency-gp",
-        },
-        {
-          name: "herg refit",
-          family: "molecular property",
-          when: "now",
-          status: "running",
-          gate: "gate pending",
-          metric: "—",
-          dataset: "herg_panel.csv · v2",
-        },
+        { runId: "run-7", name: "potency-gp fit", family: "ml_training", when: "2026-08", status: "completed",
+          gate: "gate passed", metric: "spearman 0.62", dataset: "assay_2026_08.csv",
+          version: "→ potency-gp v2", modelId: "custom:camp1/potency-gp" },
+        { runId: "run-8", name: "herg refit", family: "ml_training", when: "now", status: "running",
+          gate: "Not recorded", metric: "Not recorded", dataset: "herg_panel.csv" },
       ],
     }
     render(<ModelsPanel project="Test project" tab={0} trainData={TRAIN} />, { wrapper: wrapper() })
-
     await waitFor(() => expect(screen.getByTestId("train-run-potency-gp fit")).toBeTruthy())
-    expect(screen.getByTestId("train-run-status-potency-gp fit").textContent).toContain("completed")
-    // A running run without an actual viewer target must not offer a no-op link.
-    expect(screen.queryByTestId("train-run-open-herg refit")).toBeNull()
-
-    // Completed run with a modelId opens the model object.
+    expect(screen.getByTestId("train-run-status-potency-gp fit").textContent).toContain("Completed")
+    expect(screen.getByTestId("train-run-status-herg refit").textContent).toContain("Running")
+    // Opens the Run Manager on the all-chats scope (it has no per-run deep link).
+    expect(screen.getByTestId("train-run-open-run-run-8").tagName).toBe("BUTTON")
+    // "Not recorded" is localized, never leaked as the raw server token.
+    expect(screen.getByTestId("train-run-herg refit").textContent).toContain("Not recorded")
     fireEvent.click(screen.getByTestId("train-run-open-potency-gp fit"))
     await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
   })
 })
 
-describe("ModelsPanel — Adapt track", () => {
-  it("shows the level ladder always, and an honest empty learned state with no data", async () => {
-    mockFetchByUrl({ "/api/models": CATALOG })
-    render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("track-adapt")).toBeTruthy())
-    expect(screen.getByTestId("adapt-levels")).toBeTruthy()
-    expect(screen.getByTestId("adapt-learned-empty")).toBeTruthy()
-  })
-
-  it("renders learned before→after pairs and toggling fires the callback", async () => {
-    mockFetchByUrl({ "/api/models": CATALOG })
-    const onAdaptToggle = vi.fn()
-    const ADAPT: AdaptData = {
-      pendingCount: 3,
-      pairs: [
-        {
-          id: "p1",
-          learned: "prefer 'cohort' over 'group'",
-          scope: "organisation",
-          before: "each group",
-          after: "each cohort",
-          source: "Methods draft · 2026-08",
-          on: true,
-        },
-        {
-          id: "p2",
-          learned: "cite the accession inline",
-          scope: "project",
-          before: "the dataset",
-          after: "the dataset (GSE12345)",
-          source: "Results · 2026-08",
-          on: false,
-        },
+describe("ModelsPanel — 模型库 (Model library) tab", () => {
+  it("lists catalog rows, opens a model, and shows WHY a model's last inference failed", async () => {
+    mockFetchByUrl({
+      "/api/models/bionemo:boltz2": MODEL_DETAIL,
+      "/api/models": [
+        ...CATALOG.slice(0, 1),
+        { ...CATALOG[1], lastInference: { status: "failed", error: "BioNeMo openfold2 error 500: CUDA out of memory" } },
+        { ...CATALOG[2], lastInference: { status: "completed" } },
       ],
-    }
-    render(
-      <ModelsPanel project="Test project" tab={1} adaptData={ADAPT} onAdaptToggle={onAdaptToggle} />,
-      { wrapper: wrapper() },
-    )
-
-    await waitFor(() => expect(screen.getByTestId("adapt-pair-p1")).toBeTruthy())
-    // before→after diff shown
-    expect(screen.getByTestId("adapt-pair-before-p1").textContent).toContain("each group")
-    expect(screen.getByTestId("adapt-pair-after-p1").textContent).toContain("each cohort")
-    // toggle fires with the pair id
-    fireEvent.click(screen.getByTestId("adapt-pair-toggle-p2"))
-    expect(onAdaptToggle).toHaveBeenCalledWith("p2")
+      "/api/model-training-versions": { versions: [] },
+    })
+    render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("registry-table")).toBeTruthy())
+    expect(screen.getByTestId("registry-row-bionemo:boltz2")).toBeTruthy()
+    // The real backend reason is shown, not a bare "failed".
+    const failure = screen.getByTestId("registry-row-failure-bionemo:evo2_7b")
+    expect(failure.textContent).toContain("CUDA out of memory")
+    expect(screen.queryByTestId("registry-row-failure-bionemo:boltz2")).toBeNull()
+    expect(screen.queryByTestId("registry-row-failure-custom:camp1/potency-gp")).toBeNull()
+    // Registry and "run a model" are merged into this one tab.
+    expect(screen.getByTestId("run-pretrained")).toBeTruthy()
+    expect(screen.getByTestId("owned-training-registry")).toBeTruthy()
+    fireEvent.click(screen.getByTestId("registry-row-bionemo:boltz2"))
+    await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
   })
 
-  it("with no onAdaptToggle prop, toggling POSTs the persisted override endpoint", async () => {
-    mockFetchByUrl({
-      "/api/model-tracks/adapt/p9/toggle": { id: "p9", on: false },
-      "/api/model-tracks/adapt": {
-        pendingCount: 1,
-        pairs: [
-          {
-            id: "p9",
-            learned: "prefer your edit",
-            scope: "project",
-            before: "old",
-            after: "new",
-            source: "Methods · 2026-08",
-            on: true,
-          },
-        ],
-      },
-      "/api/models": CATALOG,
-    })
-    render(<ModelsPanel project="Real project" tab={1} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("adapt-pair-p9")).toBeTruthy())
-    fireEvent.click(screen.getByTestId("adapt-pair-toggle-p9"))
-    await waitFor(() => {
-      const calls = (global.fetch as any).mock.calls as any[]
-      const toggled = calls.find(
-        ([u, opts]: any[]) =>
-          String(u).includes("/api/model-tracks/adapt/p9/toggle") &&
-          (opts?.method || "").toUpperCase() === "POST",
-      )
-      expect(toggled).toBeTruthy()
-    })
-  })
-
-  it("with no onAdaptRetrain prop, Re-train POSTs the retrain endpoint", async () => {
-    mockFetchByUrl({
-      "/api/model-tracks/adapt/retrain": { job_id: "job-1", status: "queued", edit_pair_count: 3 },
-      "/api/model-tracks/adapt": {
-        pendingCount: 3,
-        pairs: [
-          {
-            id: "p1",
-            learned: "prefer your edit",
-            scope: "project",
-            before: "old",
-            after: "new",
-            source: "Methods · 2026-08",
-            on: true,
-          },
-        ],
-      },
-      "/api/models": CATALOG,
-    })
-    render(<ModelsPanel project="Real project" tab={1} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("adapt-retrain")).toBeTruthy())
-    fireEvent.click(screen.getByTestId("adapt-retrain"))
-    await waitFor(() => {
-      const calls = (global.fetch as any).mock.calls as any[]
-      const retrained = calls.find(
-        ([u, opts]: any[]) =>
-          String(u).includes("/api/model-tracks/adapt/retrain") &&
-          (opts?.method || "").toUpperCase() === "POST",
-      )
-      expect(retrained).toBeTruthy()
-    })
+  it("reports a catalog read failure instead of an empty library", async () => {
+    mockFetchByUrl({ "/api/model-training-versions": { versions: [] } })
+    render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
+    expect(await screen.findByTestId("registry-error")).toBeTruthy()
+    expect(screen.queryByTestId("registry-empty")).toBeNull()
   })
 })
 
-describe("ModelsPanel — self-fetched track data (react-query hooks)", () => {
-  it("renders training runs fetched from /api/model-tracks/train with no props", async () => {
-    mockFetchByUrl({
-      "/api/model-tracks/train": {
-        runs: [
-          {
-            name: "potency-gp fit",
-            family: "tabular",
-            when: "2026-08",
-            status: "completed",
-            gate: "gate passed",
-            metric: "spearman 0.62",
-            dataset: "assay.csv · v4",
-          },
-        ],
-      },
-      "/api/models": CATALOG,
-    })
-    render(<ModelsPanel project="Real project" tab={0} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("train-run-potency-gp fit")).toBeTruthy())
-  })
-
-  it("renders a fetched DMTA loop from /api/model-tracks/optimise, and honest-empty when active:false", async () => {
-    mockFetchByUrl({
-      "/api/model-tracks/optimise": {
-        active: true,
-        running: true,
-        round: 2,
-        surrogates: [{ id: "custom:c1/potency-gp", label: "potency-gp v2" }],
-        rounds: [{ round: "Round 2", status: "proposed", what: "8 candidates", when: "now" }],
-        proposal: [{ id: "c-1", score: "7.1", confidence: "medium", verdict: "accepted" }],
-      },
-      "/api/models": CATALOG,
-    })
-    render(<ModelsPanel project="Real project" tab={2} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("optimise-loop")).toBeTruthy())
-    expect(screen.getByTestId("optimise-round-Round 2")).toBeTruthy()
-  })
-})
-
-describe("ModelsPanel — Optimise / DMTA track", () => {
-  it("shows the honest empty state when no loop data is supplied", async () => {
+describe("ModelsPanel — 分子学习 (Molecular learning) tab", () => {
+  it("shows the molecular launcher and the honest empty rounds state", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" tab={2} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("track-optimise")).toBeTruthy())
-    expect(screen.getByTestId("optimise-empty")).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId("training-launcher-molecular")).toBeTruthy())
+    expect(await screen.findByTestId("optimise-empty")).toBeTruthy()
   })
 
-  it("renders the DMTA loop, surrogate links and the proposal table with a safety-gate rejection", async () => {
-    mockFetchByUrl({
-      "/api/models/custom:camp1/potency-gp": MODEL_DETAIL,
-      "/api/models": CATALOG,
-    })
-    const OPT: OptimiseData = {
-      running: true,
-      round: 4,
-      budget: "96 assays per round · set by you, never inferred",
-      refitPolicy: "refit on ≥ 6 returned results",
+  it("renders the DMTA loop, surrogate links and a safety-gate rejection that stays visible", async () => {
+    mockFetchByUrl({ "/api/models/custom:camp1/potency-gp": MODEL_DETAIL, "/api/models": CATALOG })
+    const LOOP: OptimiseData = {
+      running: true, round: 3, budget: "96 assays", refitPolicy: "refit each round",
       surrogates: [{ id: "custom:camp1/potency-gp", label: "potency-gp v2" }],
-      rounds: [
-        { round: "Round 3", status: "closed", what: "8 measured, refit applied", when: "2026-08" },
-        { round: "Round 4", status: "proposed", what: "12 candidates", when: "now" },
-      ],
+      rounds: [{ round: "R3", status: "testing", what: "24 compounds at the bench", when: "today" }],
       proposal: [
-        { id: "cand-1", score: "7.4", confidence: "medium", verdict: "accepted" },
-        { id: "cand-2", score: "> 30 µM", confidence: "low", verdict: "rejected · hERG gate" },
+        { id: "cmpd-1", score: "7.4", confidence: "medium", verdict: "accepted" },
+        { id: "cmpd-2", score: "8.1", confidence: "high", verdict: "rejected · hERG gate" },
       ],
     }
-    render(<ModelsPanel project="Test project" tab={2} optimiseData={OPT} />, { wrapper: wrapper() })
-
+    render(<ModelsPanel project="Test project" tab={2} optimiseData={LOOP} />, { wrapper: wrapper() })
     await waitFor(() => expect(screen.getByTestId("optimise-loop")).toBeTruthy())
-    expect(screen.getByTestId("optimise-loop-state").textContent).toContain("running")
-    expect(screen.getByTestId("optimise-round-Round 4")).toBeTruthy()
-    expect(screen.getByTestId("optimise-proposal-cand-1")).toBeTruthy()
-    // A rejected proposal stays on the list with its safety-gate reason.
-    expect(screen.getByTestId("optimise-proposal-verdict-cand-2").textContent).toContain("hERG gate")
-
-    // Surrogate link opens the model object.
+    expect(screen.getByTestId("optimise-loop-state").textContent).toContain("3")
+    expect(screen.getByTestId("optimise-proposal-verdict-cmpd-2").textContent).toContain("rejected")
     fireEvent.click(screen.getByTestId("optimise-surrogate-custom:camp1/potency-gp"))
     await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
   })
-})
 
-describe("ModelsPanel — Deep Learning & Foundation Models track", () => {
-  it("renders method families (form + chat cards) and seeded workflow search", async () => {
-    mockFetchByUrl({
-      "/api/workflows/search": {
-        success: true,
-        candidate_workflows: [
-          { name: "Transcriptformer", domain: "transcriptomics", description: "scRNA foundation model", filename: "tx/main.nf", score: 90 },
-        ],
-      },
-      "/api/models": CATALOG,
-    })
-    render(<ModelsPanel project="Test project" tab={5} />, { wrapper: wrapper() })
-
-    // Tab body + both sections render.
-    await waitFor(() => expect(screen.getByTestId("dl-fm-tab")).toBeTruthy())
-    expect(screen.getByTestId("dl-section-train")).toBeTruthy()
-    expect(screen.getByTestId("dl-section-prebuilt")).toBeTruthy()
-
-    // Form-ready method exposes a Configure action; the chemprop_gnn STUB is absent.
-    expect(screen.getByTestId("dl-method-configure-sklearn_tabular")).toBeTruthy()
-    expect(screen.queryByTestId("dl-method-chemprop_gnn")).toBeNull()
-
-    // LLM / generative methods carry an honest family badge and now open a real
-    // structured form (SpecSetup) via Configure — not a chat punt.
-    expect(screen.getByTestId("dl-method-badge-trl_dpo")).toBeTruthy()
-    expect(screen.getByTestId("dl-method-badge-protein_diffusion")).toBeTruthy()
-    expect(screen.getByTestId("dl-method-configure-protein_diffusion")).toBeTruthy()
-    expect(screen.queryByTestId("dl-method-chat-protein_diffusion")).toBeNull()
-
-    // Section B lists the seeded catalog hit (real /api/workflows/search shape).
-    await waitFor(() => expect(screen.getByTestId("dl-wf-Transcriptformer")).toBeTruthy())
-    expect(screen.getByTestId("dl-wf-open-Transcriptformer")).toBeTruthy()
-  })
-
-  it("launches the training form pre-selected when a form-ready method is configured", async () => {
-    mockFetchByUrl({
-      "/api/workflows/search": { success: true, candidate_workflows: [] },
-      "/api/models": CATALOG,
-    })
-    render(<ModelsPanel project="Test project" tab={5} />, { wrapper: wrapper() })
-    await waitFor(() => expect(screen.getByTestId("dl-method-configure-sklearn_gbr")).toBeTruthy())
-    fireEvent.click(screen.getByTestId("dl-method-configure-sklearn_gbr"))
-    // ModelSetup appears inline, pre-selected to the chosen model_type.
-    await waitFor(() => expect(screen.getByTestId("dl-setup")).toBeTruthy())
-    expect((screen.getByLabelText("Model type") as HTMLSelectElement).value).toBe("sklearn_gbr")
-
-    // A generative method opens the structured SpecSetup panel inline instead.
-    fireEvent.click(screen.getByTestId("dl-method-configure-protein_diffusion"))
-    await waitFor(() => expect(screen.getByTestId("spec-setup-protein_diffusion")).toBeTruthy())
-    expect(screen.getByLabelText("Number of designs")).toBeTruthy()
+  it("renders a fetched loop, and honest-empty when the backend says inactive", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG, "/api/model-tracks/optimise": {
+      running: false, round: 1, surrogates: [], rounds: [{ round: "R1", status: "done", what: "seed", when: "y" }], proposal: [],
+    } })
+    const { unmount } = render(<ModelsPanel project="P" tab={2} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("optimise-round-R1")).toBeTruthy())
+    unmount()
+    mockFetchByUrl({ "/api/models": CATALOG, "/api/model-tracks/optimise": { active: false } })
+    render(<ModelsPanel project="P" tab={2} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("optimise-empty")).toBeTruthy())
   })
 })
 
@@ -659,7 +451,7 @@ describe("RunPretrained — full infer→poll→viewer flow", () => {
 
     // The failed badge appears \u2014 honest terminal state.
     await waitFor(() => expect(screen.getByTestId("result-status-failed")).toBeTruthy())
-    expect(screen.getByTestId("result-status-failed").textContent).toContain("failed")
+    expect(screen.getByTestId("result-status-failed").textContent).toContain("Failed")
     // The real backend error surfaces, not a generic placeholder.
     expect(screen.getByTestId("result-error").textContent).toContain("worker OOM")
 
@@ -672,37 +464,29 @@ describe("RunPretrained — full infer→poll→viewer flow", () => {
 })
 
 describe("Models activity failures", () => {
-  it.each([0, 1, 2])("shows an actionable error instead of empty success for tab %s", async tab => {
+  it("shows an actionable error instead of an empty success on the Train tab", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     const fetcher = global.fetch
     global.fetch = vi.fn(async (...args: Parameters<typeof fetch>) => {
       if (String(args[0]).includes("/api/model-tracks/")) return { ok: false, status: 503 } as Response
       return fetcher(...args)
     }) as typeof fetch
-    render(<ModelsPanel tab={tab} />, { wrapper: wrapper() })
-    expect((await screen.findByRole("alert")).textContent).toContain("Could not load model activity")
+    render(<ModelsPanel tab={0} />, { wrapper: wrapper() })
+    expect((await screen.findByRole("alert")).textContent).toContain("Could not load")
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy()
     expect(screen.queryByTestId("train-runs-empty")).toBeNull()
-    expect(screen.queryByTestId("adapt-learned-empty")).toBeNull()
-    expect(screen.queryByTestId("optimise-empty")).toBeNull()
   })
+
   it("rejects malformed successful responses instead of hiding saved work", async () => {
     mockFetchByUrl({ "/api/models": CATALOG, "/api/model-tracks/train": { unexpected: true } })
-    render(<ModelsPanel />, { wrapper: wrapper() })
+    render(<ModelsPanel tab={0} />, { wrapper: wrapper() })
     expect(await screen.findByRole("alert")).toBeTruthy()
   })
-  it("does not offer a no-op watch-live button for a run without a model", async () => {
-    mockFetchByUrl({ "/api/models": CATALOG })
-    render(<ModelsPanel trainData={{runs:[{ name:"job", family:"tabular", when:"now", status:"running", gate:"pending", metric:"—", dataset:"counts" }]}} />, { wrapper: wrapper() })
-    expect(screen.queryByTestId("train-run-open-job")).toBeNull()
-  })
-})
 
-describe("Training workflow records", () => {
-  it("links an owned workflow training record to its original chat without relaunching it", () => {
+  it("does not offer a no-op model link for a run without a model", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
-    render(<ModelsPanel trainData={{runs:[{ runId:"run-1", chatSessionId:"chat/1", name:"Subtype predictor", family:"training", when:"today", status:"completed", gate:"Not available", metric:"Not available", dataset:"Recorded run" }]}} />, { wrapper: wrapper() })
-    expect(screen.getByTestId("train-run-chat-run-1").getAttribute("href")).toBe("/?session=chat%2F1")
-    expect(screen.queryByTestId("train-run-open-Subtype predictor")).toBeNull()
+    render(<ModelsPanel tab={0} trainData={{ runs: [{ name: "job", family: "ml_training", when: "now",
+      status: "running", gate: "Not recorded", metric: "Not recorded", dataset: "counts" }] }} />, { wrapper: wrapper() })
+    expect(screen.queryByTestId("train-run-open-job")).toBeNull()
   })
 })

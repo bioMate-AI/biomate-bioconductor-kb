@@ -44,6 +44,10 @@ sys.path.insert(0, str(ROOT))
 
 from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch  # noqa: E402
 
+from _ci_markers import requires_workflow_db  # noqa: E402
+
+pytestmark = requires_workflow_db
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Ground-truth cases

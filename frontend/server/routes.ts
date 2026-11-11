@@ -7,6 +7,7 @@ import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalMod
 import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
+import { planModelTraining } from "./model-training-plan";
 import { authorizeDatasetReference } from "./dataset-reference-access";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
@@ -15,6 +16,8 @@ import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
 import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
 import { registerVoiceRoutes } from "./voice-routes";
+import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
+import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
 import { readConnectorSession } from "./connector-session";
@@ -50,7 +53,8 @@ import { parseOutputRequirements, checkOutputConformance, type OutputRequirement
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
-import { GalaxyAPIProxy, fetchGalaxyWithKeyRecovery } from "./galaxy-api-proxy";
+import { GalaxyAPIProxy } from "./galaxy-api-proxy";
+import { fetchGalaxyAsUser } from "./galaxy-user-fetch";
 import { ALLOWED_UPLOAD_EXTENSIONS, isAllowedUploadName, UnsupportedUploadTypeError } from "./upload-file-types";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
@@ -186,19 +190,8 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
   return galaxyAPIBackend.forUser(userApiKey, recover);
 }
 
-/**
- * fetch() to Galaxy as the signed-in user, for routes that call Galaxy directly instead of
- * through userProxy(): same key choice as before (user key, else shared admin key) plus the
- * same mid-session recovery (see fetchGalaxyWithKeyRecovery / userProxy).
- */
-function fetchGalaxyAsUser(req: express.Request, url: string, init: RequestInit = {}): Promise<Response> {
-  const user = req.user as any;
-  const raw = user?.galaxyApiKey as string | undefined;
-  const recover = user?.id && user?.email
-    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
-    : undefined;
-  return fetchGalaxyWithKeyRecovery(url, init, raw ? decryptField(raw) : null, process.env.GALAXY_API_KEY || '', recover);
-}
+// fetchGalaxyAsUser (user key, else shared admin key, with mid-session recovery) lives in
+// ./galaxy-user-fetch so project-routes.ts shares the exact same key choice.
 
 /**
  * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
@@ -1708,6 +1701,8 @@ ${outputRequirementsSection}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   registerVoiceRoutes(app, authenticateToken);
+  // Citation reader: abstract + open-access full text from Europe PMC (chat "Read").
+  registerLiteratureFulltextRoutes(app, authenticateToken);
   /** Resolve either BioMate's run ID or the Galaxy invocation alias and apply
    * the single owner/project-member policy used by every output surface. */
   const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
@@ -5832,6 +5827,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
       getUserProjects: uid => memoryService.projects.getUserProjects(uid),
       getExecutionRuns: (uid, project) => storage.getExecutionRuns(uid, project, undefined, 500),
+      // The trainer writes results/metrics.json (metrics + gate) to the run's own outputs;
+      // the URI comes from the run record (or Galaxy's status for it), never from the client.
+      loadTrainingMetrics: async (run) => {
+        const bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+        const uriOf = (f: any) => (typeof f === 'string' ? f : f?.s3_uri || f?.path || f?.url || '') as string;
+        let files: unknown[] = run.execution?.nextflowStatus?.s3_output_files || run.execution?.nextflowStatus?.output_files || [];
+        if (!files.some((f) => /\/metrics\.json$/.test(uriOf(f))) && run.execution?.nextflowRunId) {
+          const g = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(run.execution.nextflowRunId)}`,
+            { signal: AbortSignal.timeout(8000) }).catch(() => null);
+          const gd: any = g && g.ok ? await g.json().catch(() => null) : null;
+          if (Array.isArray(gd?.s3_output_files)) files = gd.s3_output_files;
+        }
+        const uris = files.map(uriOf).filter((u) => u.startsWith(`s3://${bucket}/`) && /\/metrics\.json$/.test(u));
+        const uri = uris.find((u) => /\/results\/metrics\.json$/.test(u)) || uris[0];
+        if (!uri) return null;
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const obj = await client.send(new GetObjectCommand({ Bucket: bucket, Key: uri.slice(`s3://${bucket}/`.length) }));
+        const text = await (obj.Body as any)?.transformToString?.('utf-8');
+        return text && text.length < 512 * 1024 ? JSON.parse(text) : null;
+      },
+      saveTrainingSummary: async (runId, summary) => {
+        const current = await storage.getExecutionRun(runId);
+        if (!current) return;
+        await storage.updateExecutionRun(runId, { execution: { ...(current as any).execution, trainingSummary: summary } } as any);
+      },
+    });
+    res.status(result.status).json(result.body);
+  });
+  // Models panel → structured training plan (no chat draft). The returned
+  // workflow_ga is submitted by the client through POST /api/workflows/execute.
+  app.post("/api/model-training/plan", authenticateToken, async (req: any, res) => {
+    const result = await planModelTraining({ userId: req.user?.id, body: req.body }, {
+      getProjectFile: async (projectId, fileId, uid) => {
+        const rows = await pool.query(`SELECT f.id, f.name, f.s3_key FROM project_files f JOIN projects p ON p.id = f.project_id
+          WHERE f.id::text = $1 AND f.project_id::text = $2 AND (p.user_id::text = $3 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $3
+          )) LIMIT 1`, [fileId, projectId, uid]);
+        const row = rows.rows[0];
+        return row ? { id: String(row.id), name: String(row.name), s3_key: String(row.s3_key) } : null;
+      },
+      stageForBatch: async (file, projectId) => {
+        const bucket = process.env.S3_BUCKET_NAME || '';
+        if (!bucket) return undefined;
+        return _stageProjectFileToNextflow(bucket, file.s3_key, projectId, file.name);
+      },
+      requestGalaxyPlan: async (uid, body) => {
+        const response = await fetchOwnedModelSurface(uid, '/api/model-training/plan', {
+          method: 'POST', body: JSON.stringify(body),
+        });
+        return { status: response.status, body: await response.json().catch(() => ({ error: 'Invalid training service response' })) };
+      },
     });
     res.status(result.status).json(result.body);
   });
@@ -14010,27 +14057,27 @@ Rules:
 
   // ── Session title generation via LLM ─────────────────────────────────────
   app.post("/api/sessions/generate-title", optionalAuth, express.json(), async (req, res) => {
-    const text: string = String(req.body?.text || '').slice(0, 600);
+    // Title from the user's words only: strip the composer's system blocks
+    // ([BioMate dataset: …], [Uploaded datasets: …], [Paper content: …]) BEFORE
+    // slicing, so a block can neither become the title nor be cut mid-way.
+    const text: string = titleSourceText(String(req.body?.text || '')).slice(0, 600);
     if (!text) return res.json({ title: 'New Chat' });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey && !localOnly()) {
-      // Fallback: take first 6 words
-      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
-      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+      return res.json({ title: fallbackTitle(text) });
     }
     try {
       const raw = await callGeminiFlash({
         messages: [{ role: 'user', content: `Query: ${text}` }],
-        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
+        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. Write the title in the same language as the query. No quotes, no punctuation at end, no filler words like "user wants to".',
         maxTokens: 1024,
         temperature: 0,
       });
-      const title = raw.trim().replace(/^["']|["']$/g, '').slice(0, 60) || text.split(/\s+/).slice(0, 6).join(' ');
+      const title = stripSystemBlocks(raw.trim().replace(/^["'“”]|["'“”]$/g, '')).slice(0, 60) || fallbackTitle(text);
       return res.json({ title });
     } catch {
-      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
-      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+      return res.json({ title: fallbackTitle(text) });
     }
   });
 

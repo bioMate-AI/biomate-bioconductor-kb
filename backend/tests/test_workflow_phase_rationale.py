@@ -32,6 +32,8 @@ import sys
 
 import pytest
 
+from _ci_markers import HAS_WORKFLOW_DB, requires_workflow_db
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "backend", "lib"))
 
@@ -42,6 +44,12 @@ from galaxy.webapps.galaxy.api.nextflow_executor import (  # noqa: E402
 
 def _db_has_table(table: str) -> bool:
     db = os.path.join(ROOT, "backend", "database", "galaxy_ai_tools.db")
+    # Never sqlite3.connect() a missing path: it CREATES a 0-byte DB (and
+    # raises "unable to open database file" at collection when the directory is
+    # absent, which aborted the whole CI session). The untracked catalog is
+    # handled by requires_workflow_db on the tests that need real rows.
+    if not HAS_WORKFLOW_DB:
+        return False
     with sqlite3.connect(db) as conn:
         row = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
@@ -51,7 +59,7 @@ def _db_has_table(table: str) -> bool:
 
 
 @pytest.mark.skipif(
-    not _db_has_table("workflow_phase_rationale"),
+    HAS_WORKFLOW_DB and not _db_has_table("workflow_phase_rationale"),
     reason="workflow_phase_rationale table absent from "
     "backend/database/galaxy_ai_tools.db — the canonical DB ships it "
     "populated; this skip only fires against a stub/rebuilt DB. Repopulate "
@@ -59,6 +67,7 @@ def _db_has_table(table: str) -> bool:
     "gated on the DB shipping the rationale tables — see module docstring.)",
 )
 class TestEndpoint:
+    @requires_workflow_db
     def test_known_bioc_chain_returns_rationale(self):
         r = get_workflow_phase_rationale("bulk_rnaseq_consensus_de_bioc", "B")
         assert r, "expected a rationale row for bulk_rnaseq B"
@@ -67,12 +76,14 @@ class TestEndpoint:
         assert r["qc_gate_name"] == "deseq2_negative_binomial_fit"
         assert isinstance(r["last_curated_at"], int)
 
+    @requires_workflow_db
     def test_methylation_dmrcate_phase(self):
         r = get_workflow_phase_rationale("methylation_450k_array_analysis", "D")
         assert r
         assert "bumphunter" in r["rationale_text"] or "DMR" in r["rationale_text"]
         assert r["citation"]["doi"] == "10.1186/1756-8935-8-6"
 
+    @requires_workflow_db
     def test_pseudobulk_centerpiece_phase(self):
         r = get_workflow_phase_rationale("scrna_pseudobulk_de_bioc", "E")
         assert r
@@ -87,6 +98,7 @@ class TestEndpoint:
             "bulk_rnaseq_consensus_de_bioc", "Z"
         ) == {}
 
+    @requires_workflow_db
     def test_phase_without_citation_still_returns_text(self):
         # F is a visualisation phase — no paper cited
         r = get_workflow_phase_rationale("bulk_rnaseq_consensus_de_bioc", "F")

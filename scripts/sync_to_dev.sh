@@ -1545,6 +1545,13 @@ restart_galaxy() {
       fi
     }
     kill_orphan_gunicorn
+    # Galaxy (user galaxy) creates /tmp/nextflow_runs/<run_id> for EVERY Nextflow launch.
+    # Anything run as root in the container (docker exec -u root …) can leave it root-owned,
+    # and a snapshot/rollback preserves that — then every workflow launch fails with
+    # "Permission denied: /tmp/nextflow_runs/<id>" (dev, 2026-11-11 03:03 → 04:52).
+    docker exec -u root "$GC" sh -c "mkdir -p /tmp/nextflow_runs && chown -R galaxy:galaxy /tmp/nextflow_runs" 2>/dev/null && \
+      echo "[galaxy] /tmp/nextflow_runs owned by galaxy" || \
+      echo "[galaxy] WARNING: could not fix /tmp/nextflow_runs ownership"
     docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -2 && \
       echo "[galaxy] gunicorn master restarted (fresh module load)" || \
       echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
@@ -1825,7 +1832,14 @@ _postsync_probe() {
       gx=0; fe=0
       curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null && gx=1
       curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health 2>/dev/null && fe=1
-      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then exit 0; fi
+      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then
+        # Launch-path check: the galaxy user must be able to create a Nextflow run dir,
+        # or every workflow launch fails with Permission denied on /tmp/nextflow_runs.
+        # (No double quotes or angle brackets in these comments: this text is inside the
+        # double-quoted ec2_ssh string, and a quote here broke the probe on 2026-11-11.)
+        if docker exec -u galaxy biomate-galaxy-dev sh -c 'd=/tmp/nextflow_runs/.writecheck-\$\$; mkdir -p \$d && rmdir \$d' 2>/dev/null; then exit 0; fi
+        echo \"[probe \$i/$tries] galaxy cannot create a run dir in /tmp/nextflow_runs — workflow launches would fail\"
+      fi
       echo \"[probe \$i/$tries] galaxy=\$gx frontend=\$fe\"
       sleep 5
     done
@@ -1850,6 +1864,8 @@ rollback_sync() {
       -v $GALAXY_DB_HOST_PATH:/app/database \
       --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
     docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+    # The snapshot preserves file ownership; make sure Galaxy can create run dirs again.
+    docker exec -u root biomate-galaxy-dev sh -c 'mkdir -p /tmp/nextflow_runs && chown -R galaxy:galaxy /tmp/nextflow_runs' 2>/dev/null || true
     echo '[rollback]   galaxy recreated from snapshot'
   "; then
     log "[rollback] galaxy recreate FAILED"
@@ -2122,7 +2138,43 @@ do_sync() {
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
+  [[ "$SYNC_RESULT" == healthy ]] && record_deploy_ledger "$commit"
   [[ "$SYNC_RESULT" == healthy ]] && return 0 || return 1
+}
+
+# ---------------------------------------------------------------------------
+# Deploy ledger — who put what on dev (append-only, on the dev host)
+# ---------------------------------------------------------------------------
+# Every successful scripted sync and every GitHub-Action deploy appends one JSON
+# line to /opt/biomate/.deploy-ledger.jsonl. Before deploying we print the last
+# entries and warn when what is LIVE is not the last recorded deploy — i.e. someone
+# deployed through a path that skips the ancestry gate (an old checkout of this
+# script, a raw docker command). "Who removed my fix" becomes answerable.
+DEPLOY_LEDGER=/opt/biomate/.deploy-ledger.jsonl
+record_deploy_ledger() {
+  local _commit="$1" _branch _who _line
+  _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  _who="$(git -C "$REPO_ROOT" config user.name 2>/dev/null || echo '?')@$(hostname -s 2>/dev/null || echo '?')"
+  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}")"
+  ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") >> $DEPLOY_LEDGER" \
+    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who}" \
+    || log "[ledger] WARNING: could not append to $DEPLOY_LEDGER"
+}
+show_deploy_ledger() {
+  local _live="$1" _tail _last
+  _tail="$(ec2_ssh "tail -n 5 $DEPLOY_LEDGER 2>/dev/null" || true)"
+  if [[ -z "$_tail" ]]; then
+    log "[ledger] no deploy ledger yet on dev (first recorded sync)"
+    return 0
+  fi
+  log "[ledger] last deploys to dev:"
+  printf '%s\n' "$_tail" | sed 's/^/    /'
+  _last="$(printf '%s\n' "$_tail" | tail -n 1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("commit",""))' 2>/dev/null || true)"
+  if [[ -n "$_last" && "$_last" != "$_live" ]]; then
+    log "[ledger] WARNING: dev is running ${_live:0:10} but the last RECORDED deploy was ${_last:0:10}."
+    log "[ledger]          Someone deployed without the ancestry gate. The gate below still refuses"
+    log "[ledger]          to drop what is live; merge it if refused."
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -2178,6 +2230,7 @@ fi
 _ANCESTRY_JSON="$(python3 "$REPO_ROOT/scripts/dev_deploy_ancestry.py" "${_ANCESTRY_ARGS[@]}")" || exit 2
 _DEPLOYED_COMMIT="$(printf '%s' "$_ANCESTRY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["deployedCommit"])')"
 log "Public dev ancestry verified: ${_DEPLOYED_COMMIT:0:8} -> ${CURRENT_COMMIT:0:8}"
+show_deploy_ledger "$_DEPLOYED_COMMIT"
 if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
   enable_interactive_tools
   log "=== IT review/apply path finished (full code and DB sync skipped) ==="

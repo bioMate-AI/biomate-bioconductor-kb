@@ -787,18 +787,21 @@ function FailedRunSection({
       {(() => {
         const diag = errorMessage ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
         if (!diag || !diag.known || !diag.cause) return null;
+        const { i18n } = diag;
+        const cause = i18n.cause ? tOr(i18n.cause, diag.cause, i18n.vars) : diag.cause;
+        const culprit = diag.culprit ? (i18n.culprit ? tOr(i18n.culprit, diag.culprit, i18n.vars) : diag.culprit) : '';
         return (
           <div style={styles.failureDiagnosis} data-testid="afterrun-failure-diagnosis" data-failure-class={diag.klass}>
             <div style={styles.failureDiagnosisCause}>
-              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {diag.cause}
+              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {cause}
             </div>
-            {diag.culprit && !diag.cause.includes(diag.culprit) && (
+            {culprit && !diag.cause.includes(diag.culprit!) && (
               <div style={styles.failureDiagnosisLine}>
-                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {diag.culprit}
+                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {culprit}
               </div>
             )}
             <div style={styles.failureDiagnosisLine}>
-              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {diag.nextAction}
+              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {tOr(i18n.next, diag.nextAction, i18n.vars)}
             </div>
           </div>
         );

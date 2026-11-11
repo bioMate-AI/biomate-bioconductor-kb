@@ -1,38 +1,23 @@
 /**
- * RTL tests for <CitationPanel> — Spec 09 "How this was searched"
- * retrieval-transparency section.
+ * RTL tests for <CitationPanel> — Spec 09 "How this was searched", reduced to a
+ * one-line footnote next to the "N sources" toggle (founder review 2026-11-10):
+ * the "N of M kept" summary is visible, the per-source breakdown lives in the
+ * tooltip / accessible label.
  *
- * v2 gap (docs/20260909_V2GAP_SEARCH_FILES_REPORTS_CONNECTORS.md, Surface B):
- * the deployed citation panel showed reference cards but no retrieval
- * transparency — per-source found/kept. This section surfaces exactly that,
- * driven by a `retrieval` prop supplied by the retrieval path.
- *
- * Honesty contract verified here:
- *  - the section renders ONLY when real per-source counts are supplied;
- *  - it is omitted entirely when `retrieval` is absent or empty (no fabricated
- *    "kept" derived from the citation list);
- *  - the "N of M kept" summary is the sum of the per-source counts;
- *  - malformed source rows (missing name / non-finite counts) are dropped.
- *
- * These tests do NOT touch the other citation-panel test files.
+ * Honesty contract (unchanged): renders ONLY when real per-source counts are
+ * supplied; omitted when `retrieval` is absent or empty; the summary is the sum
+ * of the per-source counts; malformed rows are dropped.
  */
 import { describe, it, expect } from "vitest"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import { CitationPanel, type RetrievalSource } from "./citation-panel"
 import type { Citation } from "@shared/schema"
 
 function makeCitation(over: Partial<Citation> = {}): Citation {
   return {
-    tool_id: "t1",
-    tool_name: "DESeq2",
-    title: "Interferon signalling in disease",
-    authors: ["Author A"],
-    year: 2023,
-    journal: "Cell Rep",
-    doi: "10.1000/abc",
-    formatted_apa: "Author A et al. (2023).",
-    formatted_short: "Author A et al., 2023",
-    formatted_bibtex: "@article{a2023}",
+    tool_id: "t1", tool_name: "Interferon signalling in disease", title: "Interferon signalling in disease",
+    authors: ["Author A"], year: 2023, journal: "Cell Rep", doi: "10.1000/abc",
+    formatted_apa: "", formatted_short: "", formatted_bibtex: "",
     ...over,
   } as unknown as Citation
 }
@@ -43,70 +28,46 @@ const RETRIEVAL: RetrievalSource[] = [
   { name: "bioRxiv", found: 40, kept: 3 },
 ]
 
-describe("<CitationPanel> — Spec 09 retrieval transparency", () => {
-  it("renders 'How this was searched' with one row per source", () => {
-    render(
-      <CitationPanel citations={[makeCitation()]} retrieval={RETRIEVAL} isCollapsed={false} />,
-    )
-    const panel = screen.getByTestId("retrieval-transparency")
-    expect(panel).toHaveTextContent(/How this was searched/i)
-    expect(screen.getByTestId("retrieval-source-PubMed")).toBeInTheDocument()
-    expect(screen.getByTestId("retrieval-source-Europe PMC")).toBeInTheDocument()
-    expect(screen.getByTestId("retrieval-source-bioRxiv")).toBeInTheDocument()
-  })
+const lit = (retrieval?: RetrievalSource[]) =>
+  render(<CitationPanel kind="literature" citations={[makeCitation()]} retrieval={retrieval} />)
 
-  it("keeps retrieval details folded and avoids a redundant tab bar for a source-only panel", () => {
-    render(<CitationPanel citations={[makeCitation()]} retrieval={RETRIEVAL} isCollapsed={false} />)
-    expect(screen.getByTestId('retrieval-transparency')).not.toHaveAttribute('open')
-    expect(screen.queryByRole('tab', { name: 'Tool Citations' })).toBeNull()
-    expect(screen.queryByRole('tab', { name: 'Methods Section' })).toBeNull()
-    expect(screen.getAllByText('Citations')).toHaveLength(1)
-  })
-
-  it("shows per-source found · kept counts", () => {
-    render(
-      <CitationPanel citations={[makeCitation()]} retrieval={RETRIEVAL} isCollapsed={false} />,
-    )
-    const pubmed = screen.getByTestId("retrieval-source-PubMed")
-    expect(pubmed).toHaveTextContent("214 found")
-    expect(pubmed).toHaveTextContent("18 kept")
+describe("<CitationPanel> — retrieval footnote", () => {
+  it("is visible even while the sources are collapsed, as a single footnote", () => {
+    lit(RETRIEVAL)
+    expect(screen.getByTestId("retrieval-transparency")).toBeInTheDocument()
+    expect(screen.queryByTestId("reference-list")).toBeNull()
+    expect(screen.queryByText(/How this was searched/i)).toBeNull()
   })
 
   it("summarises 'N of M kept' as the sum of per-source counts", () => {
-    render(
-      <CitationPanel citations={[makeCitation()]} retrieval={RETRIEVAL} isCollapsed={false} />,
-    )
+    lit(RETRIEVAL)
     // 18 + 11 + 3 = 32 kept of 214 + 96 + 40 = 350 found.
     expect(screen.getByTestId("retrieval-summary")).toHaveTextContent("32 of 350 kept")
   })
 
-  it("renders NOTHING when retrieval is omitted (honest — no fabricated transparency)", () => {
-    render(<CitationPanel citations={[makeCitation()]} isCollapsed={false} />)
-    expect(screen.queryByTestId("retrieval-transparency")).not.toBeInTheDocument()
+  it("carries the per-source breakdown in its accessible label (tooltip content)", () => {
+    lit(RETRIEVAL)
+    const label = screen.getByTestId("retrieval-transparency").getAttribute("aria-label") || ""
+    expect(label).toContain("PubMed: 214 found · 18 kept")
+    expect(label).toContain("Europe PMC: 96 found · 11 kept")
+    expect(label).toContain("bioRxiv: 40 found · 3 kept")
   })
 
-  it("renders NOTHING when retrieval is an empty array", () => {
-    render(<CitationPanel citations={[makeCitation()]} retrieval={[]} isCollapsed={false} />)
-    expect(screen.queryByTestId("retrieval-transparency")).not.toBeInTheDocument()
+  it("renders NOTHING when retrieval is omitted or empty (no fabricated transparency)", () => {
+    const { unmount } = lit()
+    expect(screen.queryByTestId("retrieval-transparency")).toBeNull()
+    unmount()
+    lit([])
+    expect(screen.queryByTestId("retrieval-transparency")).toBeNull()
   })
 
   it("drops malformed source rows (missing name or non-finite counts)", () => {
-    render(
-      <CitationPanel
-        citations={[makeCitation()]}
-        retrieval={[
-          { name: "PubMed", found: 100, kept: 10 },
-          { name: "", found: 5, kept: 5 } as RetrievalSource,
-          { name: "Broken", found: Number.NaN, kept: 0 } as RetrievalSource,
-        ]}
-        isCollapsed={false}
-      />,
-    )
-    const panel = screen.getByTestId("retrieval-transparency")
-    // Only the one valid row survives.
-    expect(within(panel).getByTestId("retrieval-source-PubMed")).toBeInTheDocument()
-    expect(within(panel).queryByTestId("retrieval-source-Broken")).not.toBeInTheDocument()
-    // Summary reflects only the valid row.
+    lit([
+      { name: "PubMed", found: 100, kept: 10 },
+      { name: "", found: 5, kept: 5 } as RetrievalSource,
+      { name: "Broken", found: Number.NaN, kept: 0 } as RetrievalSource,
+    ])
     expect(screen.getByTestId("retrieval-summary")).toHaveTextContent("10 of 100 kept")
+    expect(screen.getByTestId("retrieval-transparency").getAttribute("aria-label")).not.toContain("Broken")
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FINAL_ANSWER_INSTRUCTION, claimsProducedOutputFile, conversationHasComputableData, directComputeApplies, finalAnswerRequest, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
+import { FINAL_ANSWER_INSTRUCTION, claimsProducedOutputFile, conversationHasComputableData, finalAnswerRequest, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
+import { reconcileExecutionMode } from './routing-authority';
 
 // External-user replay on dev (2026-11-04): ad-hoc analysis of the user's own data — a Chinese
 // fold-change request on an attached CSV, a cell-viability comparison, DESeq2/clustering on pasted
@@ -106,20 +107,25 @@ describe('claimsProducedOutputFile', () => {
 // sample data" execution=direct_compute in ~2/3 browser turns. With no data in the conversation that
 // flipped off workflow generation → no card, and the model told the user to go search the
 // Workflows panel. direct_compute needs data to compute on (the classifier's own definition).
-describe('directComputeApplies', () => {
+describe('direct_compute is honoured only when the conversation has data (reconcileExecutionMode)', () => {
   const EBV = 'Run analyze_ebv_antibody_titers on its built-in ELISA OD readings and standard-curve data; quantify VCA, EA '
     + 'and EBNA1 titers (IgG and IgM) across the EBV-positive, EBV-active and EBV-negative groups using the default sample data.';
-  it('named workflow on its built-in data, nothing attached → not direct compute (workflow card)', () => {
-    expect(directComputeApplies('direct_compute', EBV, { previousMessages: [] })).toBe(false);
+  const route = (execution: string, message: string, context: any) => {
+    const intent: any = { execution, actions: { needsWorkflowGeneration: true, needsLLMReasoning: false } };
+    reconcileExecutionMode(intent, conversationHasComputableData(message, context));
+    return intent.actions.needsWorkflowGeneration ? 'workflow card' : 'direct compute';
+  };
+  it('named workflow on its built-in data, nothing attached → workflow card', () => {
+    expect(route('direct_compute', EBV, { previousMessages: [] })).toBe('workflow card');
   });
   it('attached data in this turn → direct compute', () => {
-    expect(directComputeApplies('direct_compute', ATTACHED, {})).toBe(true);
+    expect(route('direct_compute', ATTACHED, {})).toBe('direct compute');
   });
   it('data attached in an earlier turn (follow-up) → direct compute', () => {
-    expect(directComputeApplies('direct_compute', '先做第一步', { previousMessages: [{ role: 'user', content: ATTACHED }] })).toBe(true);
+    expect(route('direct_compute', '先做第一步', { previousMessages: [{ role: 'user', content: ATTACHED }] })).toBe('direct compute');
   });
-  it('pipeline label → never direct compute', () => {
-    expect(directComputeApplies('pipeline', ATTACHED, {})).toBe(false);
+  it('pipeline label → workflow card', () => {
+    expect(route('pipeline', ATTACHED, {})).toBe('workflow card');
   });
 });
 

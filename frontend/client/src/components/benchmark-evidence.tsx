@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * Benchmark Evidence Component
  *
@@ -124,10 +125,10 @@ export function BenchmarkEvidence({
         <CardTitle className="text-sm flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Benchmark Evidence
+            {t("citations.benchmark.title")}
             <Badge variant="outline" className="text-xs">
               <Beaker className="h-3 w-3 mr-1" />
-              Validated
+              {t("citations.benchmark.validated")}
             </Badge>
           </div>
           <Button
@@ -151,7 +152,7 @@ export function BenchmarkEvidence({
           <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">
-              Recommended: <span className="text-primary">{bestTool}</span>
+              {t("citations.benchmark.recommended")} <span className="text-primary">{bestTool}</span>
             </p>
             {benchmarkData.evidence && (
               <p className="text-xs text-muted-foreground truncate">
@@ -174,7 +175,7 @@ export function BenchmarkEvidence({
               <div className="p-2 bg-muted/50 rounded-lg text-xs">
                 <div className="flex items-center gap-2 mb-1">
                   <BookOpen className="h-3 w-3" />
-                  <span className="font-medium">Source Study</span>
+                  <span className="font-medium">{t("citations.benchmark.source_study")}</span>
                 </div>
                 <p className="text-muted-foreground">
                   {benchmarkData.study.study_name}
@@ -209,7 +210,7 @@ export function BenchmarkEvidence({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <TrendingUp className="h-3 w-3" />
-                Tool Rankings
+                {t("citations.benchmark.tool_rankings")}
               </div>
 
               {benchmarkData.results.slice(0, 5).map((result, index) => {
@@ -242,7 +243,7 @@ export function BenchmarkEvidence({
                         </button>
                         {isBest && (
                           <Badge variant="default" className="text-xs">
-                            Best
+                            {t("citations.benchmark.best")}
                           </Badge>
                         )}
                       </div>
@@ -258,7 +259,7 @@ export function BenchmarkEvidence({
                               </Badge>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="text-xs">{result.metric_name} performance metric</p>
+                              <p className="text-xs">{t("citations.benchmark.metric_tip", { metric: result.metric_name })}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -307,7 +308,7 @@ export function BenchmarkEvidence({
                             onClick={() => onToolClick(result.tool_name, result.galaxy_tool_id)}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
-                            View tool
+                            {t("citations.benchmark.view_tool")}
                           </Button>
                         )}
                       </div>
@@ -318,7 +319,7 @@ export function BenchmarkEvidence({
 
               {benchmarkData.results.length > 5 && (
                 <p className="text-xs text-muted-foreground text-center">
-                  + {benchmarkData.results.length - 5} more tools
+                  {t("citations.benchmark.more_tools", { count: benchmarkData.results.length - 5 })}
                 </p>
               )}
             </div>
@@ -328,13 +329,13 @@ export function BenchmarkEvidence({
               <div className="mt-3 pt-3 border-t">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
                   <BarChart3 className="h-3 w-3" />
-                  Detailed Comparison
+                  {t("citations.benchmark.detailed_comparison")}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-1 font-medium">Tool</th>
+                        <th className="text-left p-1 font-medium">{t("citations.benchmark.tool")}</th>
                         {Object.keys(Object.values(benchmarkData.comparison)[0] || {}).map((metric) => (
                           <th key={metric} className="text-right p-1 font-medium">
                             {metric}
@@ -368,7 +369,7 @@ export function BenchmarkEvidence({
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
             <ChevronRight className="h-3 w-3" />
-            Show {benchmarkData.results.length} ranked tools and evidence
+            {t("citations.benchmark.show_ranked", { count: benchmarkData.results.length })}
           </button>
         )}
       </CardContent>
@@ -388,8 +389,15 @@ export interface ResearchCitation {
   journal?: string;
   doi?: string;
   pmid?: string;
+  /** PubMed Central id (PMC…) when the retrieval path knows it — lets the reader fetch OA full text directly. */
+  pmcid?: string;
+  /** Landing URL for sources with no DOI/PMID (preprint servers, databases). */
+  url?: string;
   abstract?: string;
   relevance_score?: number;
+  locus?: string;
+  retrieval_date?: string;
+  corpus_version?: string;
 }
 
 export interface ResearchResponseData {
@@ -399,10 +407,12 @@ export interface ResearchResponseData {
   follow_up_questions?: string[];
   methods_used?: string[];
   benchmark_evidence?: BenchmarkComparison;
+  /** What this answer is NOT evidence for (spec 01: boundary is always present). */
+  boundary?: string;
   /**
    * Retrieval transparency ("How this was searched"), keyed per source that was
    * genuinely queried. Emitted by the backend ONLY when real per-source counts
-   * exist; absent → the rich panel renders no transparency section (honest-empty).
+   * exist; absent → the panel renders no search footnote (honest-empty).
    */
   retrieval?: Array<{ name: string; found: number; kept: number }>;
   /**
@@ -421,25 +431,29 @@ interface ResearchResponseDisplayProps {
 }
 
 /**
- * Map a research-agent literature citation to the EvidenceCitation shape the rich
- * CitationPanel expects. Literature answers don't produce formatted_apa/bibtex, so
- * those are left empty — the per-item BibTeX button is already disabled when
- * formatted_bibtex is empty, and CitationPanel's top-level Export button is guarded
- * to only appear when at least one citation carries a formatted_bibtex.
+ * Map a research-agent literature citation to the EvidenceCitation shape the
+ * CitationPanel / SourceReaderPane expect. Every identifier the reader needs to
+ * fetch real text travels: doi, pmid, pmcid and url (the reader resolves
+ * abstract + open-access full text from Europe PMC by these ids).
  * tool_name := title (the panel's primary label); tool_id := a stable key
  * (doi > pmid > index) so React keys and the reader pane stay stable.
  */
-function toEvidenceCitations(citations: ResearchCitation[]): EvidenceCitation[] {
+export function toEvidenceCitations(citations: ResearchCitation[]): EvidenceCitation[] {
   return (citations || []).map((c, i) => ({
-    tool_id: c.doi || c.pmid || `cite-${i}`,
-    tool_name: c.title || `Source ${i + 1}`,
-    title: c.title || `Source ${i + 1}`,
+    tool_id: c.doi || c.pmid || c.pmcid || `cite-${i}`,
+    tool_name: c.title || `#${i + 1}`,
+    title: c.title || `#${i + 1}`,
     authors: c.authors || [],
     year: c.year,
     journal: c.journal,
     doi: c.doi,
     pmid: c.pmid,
+    pmcid: c.pmcid,
+    url: c.url,
     abstract: c.abstract,
+    locus: c.locus,
+    retrieval_date: c.retrieval_date,
+    corpus_version: c.corpus_version,
     formatted_apa: "",
     formatted_short: "",
     formatted_bibtex: "",
@@ -452,11 +466,6 @@ export function ResearchResponseDisplay({
   onToolClick,
   className,
 }: ResearchResponseDisplayProps) {
-  // Evidence-forward: the sources/retrieval panel is the trustworthy surface for a
-  // research answer (the chat prose is re-synthesised and can drift), so surface it
-  // expanded by default on a research turn rather than hiding it behind a click.
-  const [showCitations, setShowCitations] = useState(true);
-
   return (
     <div className={cn("space-y-3", className)}>
       {/* Benchmark evidence if available */}
@@ -467,13 +476,11 @@ export function ResearchResponseDisplay({
         />
       )}
 
-      {/* Citations — rich panel. Renders the source list PLUS retrieval
-          transparency ("How this was searched") and conflict rows ("Sources
-          disagree") when the backend supplied real data. Both sections are
-          honest-empty otherwise (CitationPanel filters on Number.isFinite /
-          non-empty positions), so an ordinary literature answer degrades to a
-          plain source list. answerText travels so the panel's Save-to-notes
-          payload carries the claim with its sources. */}
+      {/* Sources — collapsed by default: one quiet "N sources" line under the
+          answer; expanding shows a numbered reference list (title · journal ·
+          year → link) with a Read action that opens the source reader. Search
+          transparency ("N of M kept") and conflicts render only when the
+          backend supplied real data. */}
       {response.citations && response.citations.length > 0 && (
         <CitationPanel
           kind="literature"
@@ -481,20 +488,20 @@ export function ResearchResponseDisplay({
           retrieval={response.retrieval}
           conflicts={response.conflicts}
           answerText={response.answer}
-          isCollapsed={!showCitations}
+          isCollapsed={true}
         />
       )}
 
-      {/* Follow-up questions */}
-      {response.follow_up_questions && response.follow_up_questions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+      {/* Follow-up questions — clicking one sends it as the next question. */}
+      {onFollowUpClick && response.follow_up_questions && response.follow_up_questions.length > 0 && (
+        <div className="flex flex-wrap gap-2" data-testid="research-follow-ups">
           {response.follow_up_questions.map((question, index) => (
             <Button
               key={index}
               variant="outline"
               size="sm"
-              className="text-xs"
-              onClick={() => onFollowUpClick?.(question)}
+              className="h-auto whitespace-normal text-left text-xs font-normal"
+              onClick={() => onFollowUpClick(question)}
             >
               {question}
             </Button>

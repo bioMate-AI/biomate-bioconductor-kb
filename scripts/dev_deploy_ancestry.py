@@ -55,10 +55,17 @@ def git(repo, *args):
     return subprocess.run(['git','-C',str(repo),*args],capture_output=True,text=True)
 
 
-def preflight(repo, deployed, emergency_reason=None):
+def lost_commits(repo, deployed, head, limit=30):
+    """Commits live on dev that `head` does not contain — what this deploy would drop."""
+    out = git(repo, 'log', '--no-merges', '--format=%h %an %ad %s', '--date=short', f'{head}..{deployed}')
+    lines = [l for l in out.stdout.splitlines() if l.strip()]
+    return lines[:limit], len(lines)
+
+
+def preflight(repo, deployed, emergency_reason=None, head_ref='HEAD'):
     if not isinstance(deployed,str) or not SHA.fullmatch(deployed):
         raise ValueError('Invalid deployed commit identity')
-    head = git(repo,'rev-parse','--verify','HEAD^{commit}')
+    head = git(repo,'rev-parse','--verify',head_ref+'^{commit}')
     if head.returncode or not SHA.fullmatch(head.stdout.strip()):
         raise ValueError('Local HEAD is not a valid commit')
     head = head.stdout.strip()
@@ -69,7 +76,13 @@ def preflight(repo, deployed, emergency_reason=None):
         raise ValueError('Cannot establish deployed/local ancestry')
     if relation:
         if not emergency_reason or len(emergency_reason.strip()) < 12:
-            raise ValueError('Stale/divergent worktree: deployed commit is not an ancestor of local HEAD')
+            lost, n = lost_commits(repo, deployed, head)
+            raise ValueError(
+                f'Stale/divergent: the commit live on dev ({deployed[:10]}) is not contained in the commit '
+                f'being deployed ({head[:10]}). Deploying would REMOVE {n} commit(s) of other people\'s work:\n  '
+                + '\n  '.join(lost)
+                + ('\n  …' if n > len(lost) else '')
+                + f'\nMerge {deployed[:10]} (or its branch) into what you deploy, then retry.')
         return {'deployedCommit':deployed,'localCommit':head,'emergencyOverride':True}
     return {'deployedCommit':deployed,'localCommit':head,'emergencyOverride':False}
 
@@ -79,8 +92,9 @@ def main():
     parser.add_argument('--repo',required=True)
     parser.add_argument('--url',default=DEFAULT_URL)
     parser.add_argument('--emergency-override-reason')
+    parser.add_argument('--head', default='HEAD', help='commit to be deployed (default: local HEAD; the GitHub Action passes the image commit)')
     args=parser.parse_args()
-    result=preflight(args.repo,public_commit(args.url),args.emergency_override_reason)
+    result=preflight(args.repo,public_commit(args.url),args.emergency_override_reason,args.head)
     print(json.dumps(result))
 
 if __name__=='__main__':

@@ -2094,6 +2094,7 @@ export function ChatInterface({
                   onRegenerate={handleRegenerate}
                   onSuggestionClick={handleSuggestionClick}
                   onRedoAsValidatedRun={handleRedoAsValidatedRun}
+                  onFollowUpQuestion={(question) => localSetDraftRef.current?.(question)}
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}

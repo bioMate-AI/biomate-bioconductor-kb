@@ -14,3 +14,4 @@ export const UX_FEEDBACK_ADMIN_ENABLED =
  *  affordance (which otherwise queried /api/ind-report/projects on every completed run).
  *  The backend and proxies are kept so the module can be re-enabled intact. */
 export const IND_REPORT_ENABLED = import.meta.env.VITE_ENABLE_IND_REPORT === "true";
+

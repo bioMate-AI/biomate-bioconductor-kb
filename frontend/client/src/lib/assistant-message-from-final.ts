@@ -147,6 +147,11 @@ export function buildAssistantMessageFromFinal(data: any, messageId: string): As
         ["Try again with different request", "Provide required inputs/formats", "Regenerate with tighter constraints"]),
     metadata: {
       type: workflowSuccess ? 'workflow' : (data.researchResponse ? 'research_response' : 'text'),
+      // Code-execution blocks streamed during the turn (run_code / read_file). The final
+      // message REPLACES the streaming placeholder, so without carrying them here the
+      // executed code + output vanished from the answer once streaming ended (live
+      // journey on dev, 2026-11-11).
+      ...(Array.isArray(data.toolBlocks) && data.toolBlocks.length > 0 ? { toolBlocks: data.toolBlocks } : {}),
       research_response: data.researchResponse || null,
       workflow: workflowData,
       steps: stepsArray,

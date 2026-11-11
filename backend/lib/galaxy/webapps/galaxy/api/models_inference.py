@@ -41,6 +41,7 @@ values as real measured science.
 # nextflow_executor.py header for the incident history).
 from __future__ import annotations
 
+import re
 import logging
 import threading
 import time
@@ -343,10 +344,53 @@ def _new_run(model_id: str, evidence_class: str, owner_id: Optional[str] = None)
 
 def _finish_run(run_id: str, result: Dict[str, Any]) -> None:
     _store().update_run(run_id, status="completed", result=result)
+    _record_last_inference(run_id, "completed", None)
 
 
 def _fail_run(run_id: str, error: str) -> None:
     _store().update_run(run_id, status="failed", error=error)
+    _record_last_inference(run_id, "failed", error)
+
+
+def _last_inference_key(owner_id: str, model_id: str) -> str:
+    """Store key for an owner's most recent inference outcome on a model.
+
+    Prefixed "inf-last-" so it never collides with run ids; no pid is ever set,
+    so the CompletionPoller ignores it (same contract as the "inf-" runs)."""
+    import hashlib
+    digest = hashlib.sha1(f"{owner_id}\x00{model_id}".encode("utf-8")).hexdigest()[:20]
+    return f"inf-last-{digest}"
+
+
+def _record_last_inference(run_id: str, status: str, error: Optional[str]) -> None:
+    """Remember the latest outcome per (owner, model) so the catalog can show why
+    a model's last inference failed (e.g. the NVIDIA-side error text)."""
+    rec = _store().get_run(run_id) or {}
+    owner_id, model_id = rec.get("owner_id"), rec.get("model_id")
+    if not owner_id or not model_id:
+        return
+    _store().set_run(_last_inference_key(owner_id, model_id), {
+        "run_id": run_id, "model_id": model_id, "owner_id": owner_id,
+        "status": status, "error": error, "at": time.time(),
+    })
+
+
+def _with_last_inference(rows: List[Dict[str, Any]], owner_id: str) -> List[Dict[str, Any]]:
+    """Annotate catalog rows with the owner's last inference outcome (if any)."""
+    try:
+        store = _store()
+        for row in rows:
+            last = store.get_run(_last_inference_key(owner_id, row["id"]))
+            if last and last.get("owner_id") == owner_id:
+                row["lastInference"] = {
+                    "status": last.get("status"),
+                    "error": last.get("error"),
+                    "at": last.get("at"),
+                    "runId": last.get("run_id"),
+                }
+    except Exception as exc:  # noqa: BLE001 — catalog must still list models
+        log.warning("models: last-inference annotation unavailable: %s", exc)
+    return rows
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -407,7 +451,8 @@ for _m in (ModelSummary, InferRequest, InferResponse, TogglePairRequest):
     summary="List catalog models (BioNeMo self-host + registered custom).",
 )
 def list_models(owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> List[Dict[str, Any]]:
-    return _catalog(_request_owner(owner_id))
+    owner_id = _request_owner(owner_id)
+    return _with_last_inference(_catalog(owner_id), owner_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1408,30 +1453,50 @@ def _plddt_from_cif(cif: str) -> List[float]:
     Extract per-residue pLDDT from an mmCIF string (``_atom_site.B_iso_or_equiv``
     of CA atoms). boltz2 / AlphaFold2 / OpenFold2 write per-residue pLDDT into the
     B-factor column of the CIF they return. Returns [] for empty / non-CIF input.
-    Column order is read from the ``_atom_site.*`` loop header, so it is robust to
-    field-order differences between models. Real model output — never fabricated.
+
+    The ``_atom_site`` loop is read as ONE token stream and sliced into records by
+    the header's column count — mmCIF allows a record to wrap across lines, and
+    Boltz-2 does wrap most of them (its B-factor + model number land on the next
+    line). The previous line-by-line parser skipped every wrapped record and
+    returned a single value for a 33-residue protein (live journey, 2026-11-11).
+    Real model output — never fabricated.
     """
     if not cif or "_atom_site." not in cif:
         return []
     cols: List[str] = []
-    out: List[float] = []
+    tokens: List[str] = []
+    in_loop = False
     for line in cif.splitlines():
         s = line.strip()
         if s.startswith("_atom_site."):
-            cols.append(s.split(".", 1)[1])
+            cols.append(s.split(".", 1)[1].split()[0])
+            in_loop = True
             continue
-        if cols and (s.startswith("ATOM") or s.startswith("HETATM")):
-            fields = s.split()
-            if len(fields) < len(cols):
+        if not in_loop or not cols:
+            continue
+        if not s:
+            continue
+        # The loop's data ends at the next category, loop_, data block or comment.
+        if s.startswith(("_", "loop_", "data_", "#")):
+            break
+        tokens.extend(_CIF_TOKEN.findall(s))
+    if not cols:
+        return []
+    out: List[float] = []
+    n = len(cols)
+    for i in range(0, len(tokens) - n + 1, n):
+        rec = dict(zip(cols, tokens[i:i + n]))
+        atom = (rec.get("label_atom_id") or rec.get("auth_atom_id") or "").strip('"\'')
+        if atom == "CA":
+            try:
+                out.append(float(rec.get("B_iso_or_equiv", "")))
+            except (ValueError, TypeError):
                 continue
-            rec = dict(zip(cols, fields))
-            atom = (rec.get("label_atom_id") or rec.get("auth_atom_id") or "").strip('"\'')
-            if atom == "CA":
-                try:
-                    out.append(float(rec.get("B_iso_or_equiv", "")))
-                except (ValueError, TypeError):
-                    continue
     return out
+
+
+# mmCIF token: a quoted string ('…' or "…", may contain spaces) or a bare word.
+_CIF_TOKEN = re.compile(r"'[^']*'|\"[^\"]*\"|\S+")
 
 
 def _plddt_from_structure(struct: str) -> List[float]:

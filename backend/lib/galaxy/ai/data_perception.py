@@ -39,7 +39,7 @@ import logging
 import os
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +116,21 @@ class DataProfile:
     # only for table-like inputs; capped small (see MAX_PREVIEW_*).
     columns: Optional[List[str]] = None
     sample_rows: Optional[List[List[str]]] = None
+    # Structured, localizable mirror of every free-text note / signal / leakage /
+    # plan-impact line: {section, code, level, params}. The UI renders these through
+    # i18n (perception.msg.<code>) so the card is never a mix of languages; the
+    # free-text lists stay for non-UI consumers (chat context, logs). ``level`` is
+    # "info" | "watch" | "blocked" — the findings at the verdict's level ARE the
+    # reason for that verdict ("why Watch?").
+    findings: List[Dict[str, Any]] = field(default_factory=list)
+    # Which reduction bound effective N: "dedup" (exact duplicate rows) or
+    # "imbalance" (k × minority-class size). The profiler does not estimate a
+    # correlation-based effective N, so it never emits "correlation".
+    effective_n_reason: Optional[str] = None
+    duplicate_rows: Optional[int] = None
+    # Rows actually held for statistics when the file exceeds MAX_TABLE_ROWS
+    # (``rows`` is always the true total). None when every row was profiled.
+    profiled_rows: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to the exact JSON shape the frontend consumes."""
@@ -130,6 +145,13 @@ class DataProfile:
             out["leakage"] = {"detail": self.leakage_detail}
         if self.effective_n is not None:
             out["effectiveN"] = self.effective_n
+            if self.effective_n_reason:
+                out["effectiveNReason"] = self.effective_n_reason
+            if self.duplicate_rows is not None:
+                out["duplicateRows"] = self.duplicate_rows
+        if self.profiled_rows is not None:
+            out["profiledRows"] = self.profiled_rows
+        out["findings"] = [dict(f) for f in self.findings]
         if self.class_balance:
             out["classBalance"] = [
                 {"label": lbl, "frac": frac} for lbl, frac in self.class_balance
@@ -145,6 +167,44 @@ class DataProfile:
         if self.sample_rows is not None:
             out["sampleRows"] = [list(r) for r in self.sample_rows]
         return out
+
+
+def emit(
+    p: DataProfile,
+    section: str,
+    code: str,
+    text: str,
+    level: str = "info",
+    **params: Any,
+) -> None:
+    """Record one profiler finding as BOTH its legacy free-text line and a structured,
+    localizable finding (``section`` is "note" | "signal" | "leakage" | "plan").
+
+    For "plan", ``text`` is the observed side and ``params["effect_text"]`` the effect.
+    Params must be JSON-serializable (they are interpolated by the UI's i18n strings).
+    """
+    if section == "note":
+        p.notes.append(text)
+    elif section == "signal":
+        p.signal_summary = (p.signal_summary or []) + [text]
+    elif section == "leakage":
+        p.leakage_detail = f"{p.leakage_detail} {text}" if p.leakage_detail else text
+    elif section == "plan":
+        p.plan_impact.append((text, str(params.pop("effect_text", ""))))
+    else:  # pragma: no cover — programming error
+        raise ValueError(f"unknown finding section {section!r}")
+    p.findings.append({"section": section, "code": code, "level": level, "params": params})
+
+
+def blocked_profile(code: str, text: str, **params: Any) -> DataProfile:
+    """A ``blocked`` profile carrying one blocked finding (used by the API layer too)."""
+    p = DataProfile(quality="blocked")
+    emit(p, "note", code, text, "blocked", **params)
+    return p
+
+
+# Columns named in a finding's params are capped so the payload stays small.
+_MAX_NAMED_COLUMNS = 8
 
 
 # ---------------------------------------------------------------------------
@@ -163,18 +223,16 @@ def profile_dataset(path: str, *, name: Optional[str] = None) -> Dict[str, Any]:
 def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfile:
     """Same as :func:`profile_dataset` but returns the dataclass (for tests)."""
     if not path or not os.path.exists(path):
-        p = DataProfile(quality="blocked")
-        p.notes.append(f"File not found: {path!r}." if path else "No dataset path provided.")
-        return p
+        if path:
+            return blocked_profile("file_not_found", f"File not found: {path!r}.")
+        return blocked_profile("no_path", "No dataset path provided.")
 
     try:
         size = os.path.getsize(path)
     except OSError:
         size = -1
     if size == 0:
-        p = DataProfile(quality="blocked")
-        p.notes.append("File is empty (0 bytes).")
-        return p
+        return blocked_profile("empty_file", "File is empty (0 bytes).")
 
     kind = _sniff_kind(path)
     try:
@@ -190,16 +248,16 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
             return _profile_table(path, reader=_read_jsonl)
         # Unknown / non-profilable — degrade honestly.
         p = DataProfile(quality="watch")
-        p.notes.append(
+        emit(
+            p, "note", "unprofilable",
             f"File type not profilable ({os.path.basename(path)}); "
-            "reported shape only, no leakage/balance derived."
+            "reported shape only, no leakage/balance derived.",
+            "watch", name=os.path.basename(path),
         )
         return p
     except Exception as e:  # noqa: BLE001 — defensive: profiling must never crash ingest.
         log.warning("[perception] profiling failed for %s: %s", path, e)
-        p = DataProfile(quality="blocked")
-        p.notes.append(f"Could not parse file: {e}")
-        return p
+        return blocked_profile("parse_failed", f"Could not parse file: {e}", error=str(e)[:300])
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +504,9 @@ def _profile_structured(path: str, kind: str) -> DataProfile:
     with _open_text(path) as handle:
         text = handle.read(2 * 1024 * 1024 + 1)
     if len(text) > 2 * 1024 * 1024:
-        p.notes.append("Structured validation is limited to files under 2 million characters; download for complete validation.")
+        emit(p, "note", "structured_too_large",
+             "Structured validation is limited to files under 2 million characters; download for complete validation.",
+             "watch")
         return p
     if kind == "json":
         data = json.loads(text)
@@ -474,7 +534,9 @@ def _profile_structured(path: str, kind: str) -> DataProfile:
     root = "object" if isinstance(data, dict) else "array" if isinstance(data, list) else "scalar"
     p.structured = {"format": kind.upper(), "root": root, "nodes": nodes,
                     "keys": keys, "nulls": nulls, "depth": depth}
-    p.notes.append(f"Valid {kind.upper()} syntax; {root} root. Structural checks only; scientific quality has not been assessed.")
+    emit(p, "note", "structured_only",
+         f"Valid {kind.upper()} syntax; {root} root. Structural checks only; scientific quality has not been assessed.",
+         "watch", format=kind.upper(), root=root)
     return p
 
 
@@ -574,22 +636,25 @@ def _profile_fastq(path: str, sample_reads: int = 4000) -> DataProfile:
     mean_q = (total_q / q_chars) if q_chars else 0.0
 
     count_word = "≥" if truncated else ""
-    p.signal_summary = [
-        f"{count_word}{n_reads:,} reads scanned; mean read length {mean_len:.0f} bp.",
-        f"Mean base quality Phred {mean_q:.1f} (sampled).",
-    ]
+    emit(p, "signal", "fastq_reads",
+         f"{count_word}{n_reads:,} reads scanned; mean read length {mean_len:.0f} bp.",
+         reads=n_reads, at_least=truncated, mean_len=int(round(mean_len)))
+    emit(p, "signal", "fastq_mean_quality", f"Mean base quality Phred {mean_q:.1f} (sampled).",
+         q=round(mean_q, 1))
     # Single-end vs paired-end can't be known from one file — state honestly.
-    p.notes.append("Single FASTQ file profiled — single-end unless a mate file is present.")
-    p.plan_impact.append(
-        ("single FASTQ observed", "suggested single-end pipeline (override if paired mate exists)")
-    )
+    emit(p, "note", "fastq_single_file",
+         "Single FASTQ file profiled — single-end unless a mate file is present.")
+    emit(p, "plan", "fastq_single_end", "single FASTQ observed",
+         effect_text="suggested single-end pipeline (override if paired mate exists)")
 
     if mean_q and mean_q < 20:
         p.quality = "watch"
-        p.notes.append(f"Mean base quality Phred {mean_q:.1f} is below 20 — consider trimming.")
+        emit(p, "note", "fastq_low_quality",
+             f"Mean base quality Phred {mean_q:.1f} is below 20 — consider trimming.",
+             "watch", q=round(mean_q, 1))
     if n_reads == 0:
         p.quality = "blocked"
-        p.notes.append("No FASTQ records parsed — file may be malformed.")
+        emit(p, "note", "fastq_no_records", "No FASTQ records parsed — file may be malformed.", "blocked")
     return p
 
 
@@ -615,16 +680,15 @@ def _profile_vcf(path: str) -> DataProfile:
 
     p.rows = n_variants
     p.cols = n_samples
-    p.signal_summary = [
-        f"{n_variants:,} variant records across {n_samples} sample(s).",
-    ]
-    p.notes.append(f"VCF with {n_variants:,} variants, {n_samples} genotyped sample(s).")
+    emit(p, "signal", "vcf_records", f"{n_variants:,} variant records across {n_samples} sample(s).",
+         variants=n_variants, samples=n_samples)
+    emit(p, "note", "vcf_summary", f"VCF with {n_variants:,} variants, {n_samples} genotyped sample(s).",
+         variants=n_variants, samples=n_samples)
     if n_variants == 0:
         p.quality = "watch"
-        p.notes.append("No variant records found (header only).")
-    p.plan_impact.append(
-        (f"{n_variants:,} variants / {n_samples} samples", "sized variant-annotation / filtering plan")
-    )
+        emit(p, "note", "vcf_no_variants", "No variant records found (header only).", "watch")
+    emit(p, "plan", "vcf_sized", f"{n_variants:,} variants / {n_samples} samples",
+         effect_text="sized variant-annotation / filtering plan", variants=n_variants, samples=n_samples)
     return p
 
 
@@ -645,22 +709,31 @@ def _sniff_delimiter(path: str) -> str:
     return ","
 
 
-def _read_table(path: str) -> Tuple[List[str], List[List[str]]]:
+def _iter_table(path: str) -> Iterator[List[str]]:
+    """THE delimited-table parse shared by the profiler and the paged rows reader:
+    yields the header (cells stripped) first, then every non-blank data row as-is."""
     delim = _sniff_delimiter(path)
-    header: List[str] = []
-    rows: List[List[str]] = []
     with _open_text(path) as f:
-        reader = csv.reader(f, delimiter=delim)
-        for i, row in enumerate(reader):
+        for i, row in enumerate(csv.reader(f, delimiter=delim)):
             if i == 0:
-                header = [c.strip() for c in row]
+                yield [c.strip() for c in row]
                 continue
             if not row or all(c == "" for c in row):
                 continue
+            yield row
+
+
+def _read_table(path: str, max_rows: int = MAX_TABLE_ROWS) -> Tuple[List[str], List[List[str]], int]:
+    """(header, first ``max_rows`` rows, TRUE total data-row count)."""
+    it = _iter_table(path)
+    header = next(it, [])
+    rows: List[List[str]] = []
+    total = 0
+    for row in it:
+        total += 1
+        if len(rows) < max_rows:
             rows.append(row)
-            if len(rows) >= MAX_TABLE_ROWS:
-                break
-    return header, rows
+    return header, rows, total
 
 
 def _preview_cell(c: Any) -> str:
@@ -678,13 +751,11 @@ def _jsonl_cell(v: Any) -> str:
     return str(v)
 
 
-def _read_jsonl(path: str) -> Tuple[List[str], List[List[str]]]:
-    """JSON Lines → (header, rows): one row per record, columns = top-level keys in first-seen
-    order, nested lists/objects as compact JSON. Unparseable lines are skipped and counted."""
-    keys: List[str] = []
-    seen = set()
-    records: List[Dict[str, Any]] = []
-    bad = 0
+def _iter_jsonl(path: str, stats: Dict[str, int]) -> Iterator[Dict[str, Any]]:
+    """THE JSON Lines parse shared by the profiler and the paged rows reader: one dict per
+    record (a non-object line becomes {"value": …}); unparseable lines are skipped and
+    counted in ``stats["bad"]``."""
+    stats.setdefault("bad", 0)
     with _open_text(path) as f:
         for line in f:
             line = line.strip()
@@ -693,20 +764,95 @@ def _read_jsonl(path: str) -> Tuple[List[str], List[List[str]]]:
             try:
                 obj = json.loads(line)
             except ValueError:
-                bad += 1
+                stats["bad"] += 1
                 continue
             if not isinstance(obj, dict):
                 obj = {"value": obj}
-            for k in obj:
-                if k not in seen:
-                    seen.add(k)
-                    keys.append(str(k))
+            yield obj
+
+
+def _read_jsonl(path: str, max_rows: int = MAX_TABLE_ROWS) -> Tuple[List[str], List[List[str]], int]:
+    """JSON Lines → (header, first ``max_rows`` rows, TRUE record count): one row per
+    record, columns = top-level keys (first-seen order, over ALL records), nested
+    lists/objects as compact JSON."""
+    keys: List[str] = []
+    seen = set()
+    records: List[Dict[str, Any]] = []
+    stats: Dict[str, int] = {}
+    total = 0
+    for obj in _iter_jsonl(path, stats):
+        for k in obj:
+            if k not in seen:
+                seen.add(k)
+                keys.append(str(k))
+        total += 1
+        if len(records) < max_rows:
             records.append(obj)
-            if len(records) >= MAX_TABLE_ROWS:
+    if stats.get("bad") and not total:
+        raise ValueError(f"no valid JSON lines ({stats['bad']} unparseable)")
+    return keys, [[_jsonl_cell(r.get(k)) for k in keys] for r in records], total
+
+
+# Hard cap on one page of the paged rows reader (the UI asks for ~200 at a time).
+MAX_ROWS_PAGE = 1000
+
+
+def read_rows(
+    path: str,
+    offset: int = 0,
+    limit: int = 200,
+    *,
+    known: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """One page of a table-like file's FULL rows, parsed exactly as the profiler parses it.
+
+    Returns ``{kind, tabular, columns, rows, offset, limit, totalRows}``. ``known`` is a
+    previously returned ``{"columns", "totalRows"}`` for the same bytes: with it the read
+    stops once the page is filled (the total and the JSONL key union need a full pass,
+    which ``known`` already carries). Non-tabular kinds return ``tabular: False``.
+    """
+    kind = _sniff_kind(path)
+    if kind not in ("table", "jsonl"):
+        return {"kind": kind, "tabular": False}
+    offset = max(0, int(offset))
+    limit = max(1, min(int(limit), MAX_ROWS_PAGE))
+    end = offset + limit
+    total = 0
+    out: Dict[str, Any] = {"kind": kind, "tabular": True, "offset": offset, "limit": limit}
+    if kind == "table":
+        it = _iter_table(path)
+        columns = next(it, [])
+        page: List[List[str]] = []
+        for row in it:
+            if offset <= total < end:
+                page.append(list(row))
+            total += 1
+            if known and total >= end:
                 break
-    if bad and not records:
-        raise ValueError(f"no valid JSON lines ({bad} unparseable)")
-    return keys, [[_jsonl_cell(r.get(k)) for k in keys] for r in records]
+        out["columns"] = columns
+        out["rows"] = page
+    else:
+        columns = list(known["columns"]) if known else []
+        seen = set(columns)
+        stats: Dict[str, int] = {}
+        recs: List[Dict[str, Any]] = []
+        for obj in _iter_jsonl(path, stats):
+            if not known:
+                for k in obj:
+                    if k not in seen:
+                        seen.add(k)
+                        columns.append(str(k))
+            if offset <= total < end:
+                recs.append(obj)
+            total += 1
+            if known and total >= end:
+                break
+        out["columns"] = columns
+        out["rows"] = [[_jsonl_cell(r.get(k)) for k in columns] for r in recs]
+        if not known:
+            out["skippedLines"] = stats.get("bad", 0)
+    out["totalRows"] = int(known["totalRows"]) if known else total
+    return out
 
 
 def _column(rows: Sequence[Sequence[str]], idx: int) -> List[str]:
@@ -732,17 +878,23 @@ def _find_col(header: Sequence[str], tokens: Sequence[str]) -> Optional[int]:
     return None
 
 
+def _named(cols: Sequence[str]) -> List[str]:
+    return [str(c) for c in cols[:_MAX_NAMED_COLUMNS]]
+
+
 def _profile_table(path: str, reader=None) -> DataProfile:
     p = DataProfile()
-    header, rows = (reader or _read_table)(path)
-    n_rows = len(rows)
+    header, rows, total = (reader or _read_table)(path)
+    n_rows = len(rows)  # rows held for statistics (≤ MAX_TABLE_ROWS)
     n_cols = len(header)
-    p.rows = n_rows
+    p.rows = total
     p.cols = n_cols
+    if total > n_rows:
+        p.profiled_rows = n_rows
 
     if n_cols == 0:
         p.quality = "blocked"
-        p.notes.append("No columns parsed from table.")
+        emit(p, "note", "no_columns", "No columns parsed from table.", "blocked")
         return p
     if n_rows == 0:
         # Header present but no data rows: this is a readable (if empty) table,
@@ -751,7 +903,7 @@ def _profile_table(path: str, reader=None) -> DataProfile:
         # instead of "analyzer cannot read this dataset".
         p.columns = [str(c) for c in header[:MAX_PREVIEW_COLS]]
         p.sample_rows = []
-        p.notes.append("Header present; no data rows yet.")
+        emit(p, "note", "header_only", "Header present; no data rows yet.")
         return p
 
     # Small tabular sample for the Preview tab (columns + first rows), capped.
@@ -760,7 +912,6 @@ def _profile_table(path: str, reader=None) -> DataProfile:
         [_preview_cell(c) for c in r[:MAX_PREVIEW_COLS]] for r in rows[:MAX_PREVIEW_ROWS]
     ]
 
-    signal: List[str] = []
     watch = False
 
     # --- constant / high-missingness columns (numeric-first signal) ---
@@ -777,13 +928,21 @@ def _profile_table(path: str, reader=None) -> DataProfile:
             if top / len(non_missing) >= NEAR_CONSTANT_FRAC:
                 near_constant.append(header[j])
     if near_constant:
-        signal.append(
-            f"{len(near_constant)} column(s) are near-constant (>{int(NEAR_CONSTANT_FRAC*100)}% single value)."
+        emit(
+            p, "signal", "near_constant",
+            f"{len(near_constant)} column(s) are near-constant (>{int(NEAR_CONSTANT_FRAC*100)}% single value): "
+            + ", ".join(_named(near_constant)) + ".",
+            "watch", count=len(near_constant), columns=_named(near_constant),
+            pct=int(NEAR_CONSTANT_FRAC * 100),
         )
         watch = True
     if high_missing:
-        signal.append(
-            f"{len(high_missing)} column(s) have ≥{int(HIGH_MISSING_FRAC*100)}% missing values."
+        emit(
+            p, "signal", "high_missing",
+            f"{len(high_missing)} column(s) have ≥{int(HIGH_MISSING_FRAC*100)}% missing values: "
+            + ", ".join(_named(high_missing)) + ".",
+            "watch", count=len(high_missing), columns=_named(high_missing),
+            pct=int(HIGH_MISSING_FRAC * 100),
         )
         watch = True
 
@@ -795,8 +954,8 @@ def _profile_table(path: str, reader=None) -> DataProfile:
         # Only treat as a classification target if it's low-cardinality.
         if 2 <= len(distinct_labels) <= max(20, int(0.1 * n_rows)):
             counts = Counter(v for v in label_col if v != "")
-            total = sum(counts.values())
-            balance = [(lbl, cnt / total) for lbl, cnt in counts.most_common()]
+            total_labelled = sum(counts.values())
+            balance = [(lbl, cnt / total_labelled) for lbl, cnt in counts.most_common()]
             p.class_balance = [(lbl, round(frac, 4)) for lbl, frac in balance]
 
             # normalize near-duplicate label spellings for a note
@@ -806,18 +965,18 @@ def _profile_table(path: str, reader=None) -> DataProfile:
             dup_spellings = [v for v in norm_map.values() if len(v) > 1]
             if dup_spellings:
                 watch = True
-                example = dup_spellings[0]
-                p.notes.append(
-                    f"Two spellings of the same label: {example[0]!r} and {example[1]!r}."
-                )
+                example = sorted(dup_spellings[0])
+                emit(p, "note", "label_spellings",
+                     f"Two spellings of the same label: {example[0]!r} and {example[1]!r}.",
+                     "watch", a=example[0], b=example[1])
 
             minority_frac = min(frac for _, frac in balance)
             if minority_frac < IMBALANCE_MINORITY_FRAC:
                 watch = True
                 minority_label = min(balance, key=lambda kv: kv[1])[0]
-                p.notes.append(
-                    f"{minority_label!r} class is {minority_frac*100:.0f}% — consider a balanced sampler."
-                )
+                emit(p, "note", "minority_class",
+                     f"{minority_label!r} class is {minority_frac*100:.0f}% — consider a balanced sampler.",
+                     "watch", label=minority_label, pct=int(round(minority_frac * 100)))
 
             # --- leakage checks (need a label) ---
             _detect_leakage(p, header, rows, label_idx, label_col)
@@ -825,33 +984,55 @@ def _profile_table(path: str, reader=None) -> DataProfile:
                 watch = True
 
             # --- effective N ---
-            eff_n, eff_note = _effective_n(rows, label_col, balance)
+            eff_n, reason, unique = _effective_n(rows, label_col, balance)
             p.effective_n = eff_n
-            if eff_note:
-                p.notes.append(eff_note)
+            p.effective_n_reason = reason
+            p.duplicate_rows = n_rows - unique
+            if eff_n < 0.75 * n_rows:
                 watch = True
+                if reason == "imbalance":
+                    emit(p, "note", "effective_n_imbalance",
+                         f"Effective N ({eff_n}) is far below {n_rows:,} rows — bounded by the "
+                         "minority class under strong imbalance.",
+                         "watch", n=eff_n, rows=n_rows)
+                else:
+                    emit(p, "note", "effective_n_dedup",
+                         f"Effective N ({eff_n}) is below {n_rows:,} rows — duplicate rows "
+                         f"reduce independent samples ({n_rows - unique} duplicate(s)).",
+                         "watch", n=eff_n, rows=n_rows, duplicates=n_rows - unique)
         else:
-            signal.append(
-                f"Column {header[label_idx]!r} looks like a label but has "
-                f"{len(distinct_labels)} distinct values — treated as free-text, not a class target."
-            )
-            p.effective_n = _dedup_count(rows)
+            emit(p, "signal", "label_free_text",
+                 f"Column {header[label_idx]!r} looks like a label but has "
+                 f"{len(distinct_labels)} distinct values — treated as free-text, not a class target.",
+                 column=header[label_idx], distinct=len(distinct_labels))
+            _set_dedup_effective_n(p, rows)
     else:
-        p.effective_n = _dedup_count(rows)  # no label: effective N is the unique row count
+        _set_dedup_effective_n(p, rows)  # no label: effective N is the unique row count
 
-    if signal:
-        p.signal_summary = signal
     if watch and p.quality == "good":
         p.quality = "watch"
     if not p.notes:
         # "No issues" only when nothing was flagged — the signal list (near-constant / missing
         # columns) was ignored here, so the card said "no constant-column issues" beside a
         # near-constant-column warning.
-        p.notes.append(
-            f"{n_rows:,} rows × {n_cols} columns; no leakage, imbalance, or constant-column issues detected."
-            if not signal else f"{n_rows:,} rows × {n_cols} columns."
-        )
+        if p.signal_summary:
+            emit(p, "note", "table_summary", f"{total:,} rows × {n_cols} columns.", rows=total, cols=n_cols)
+        else:
+            emit(p, "note", "table_clean",
+                 f"{total:,} rows × {n_cols} columns; no leakage, imbalance, or constant-column issues detected.",
+                 rows=total, cols=n_cols)
+    if p.profiled_rows is not None:
+        emit(p, "note", "profiled_subset",
+             f"Statistics were computed on the first {n_rows:,} of {total:,} rows.",
+             profiled=n_rows, rows=total)
     return p
+
+
+def _set_dedup_effective_n(p: DataProfile, rows: Sequence[Sequence[str]]) -> None:
+    unique = _dedup_count(rows)
+    p.effective_n = unique
+    p.effective_n_reason = "dedup"
+    p.duplicate_rows = len(rows) - unique
 
 
 def _dedup_count(rows: Sequence[Sequence[str]]) -> int:
@@ -868,7 +1049,7 @@ def _detect_leakage(
     label_idx: int,
     label_col: Sequence[str],
 ) -> None:
-    """Populate p.leakage_detail / plan_impact from three leakage heuristics.
+    """Emit leakage findings (+ plan impact) from three heuristics.
 
     1. train/test overlap — duplicate feature-rows appearing in >1 split value.
     2. target leaked into a feature — a single column predicts the label at
@@ -877,7 +1058,7 @@ def _detect_leakage(
        onto the label.
     """
     n_rows = len(rows)
-    findings: List[str] = []
+    leaked_feature = False
 
     # A batch/id column is handled by the batch↔label branch below (it gets
     # "add as covariate" advice, not "drop"). Exclude it from the generic
@@ -907,20 +1088,20 @@ def _detect_leakage(
         distinct_vals = len(per_value)
         if acc >= LEAKAGE_ACC_THRESHOLD and total >= max(4, int(0.5 * n_rows)):
             if distinct_vals >= 0.95 * total:
-                findings.append(
-                    f"column {header[j]!r} is (near-)unique per row and perfectly predicts the label — leaked id."
-                )
+                emit(p, "leakage", "leaked_id",
+                     f"column {header[j]!r} is (near-)unique per row and perfectly predicts the label — leaked id.",
+                     "watch", column=header[j])
             else:
-                findings.append(
-                    f"column {header[j]!r} predicts the label at {acc*100:.0f}% — target leaked into features."
-                )
-            p.plan_impact.append(
-                (f"{header[j]} leaks the label", f"drop {header[j]!r} before modelling")
-            )
+                emit(p, "leakage", "leaked_feature",
+                     f"column {header[j]!r} predicts the label at {acc*100:.0f}% — target leaked into features.",
+                     "watch", column=header[j], pct=int(round(acc * 100)))
+            emit(p, "plan", "drop_leaky_column", f"{header[j]} leaks the label",
+                 effect_text=f"drop {header[j]!r} before modelling", column=header[j])
+            leaked_feature = True
             break  # one is enough to flag
 
     # 3. batch<->label confound
-    if batch_idx is not None and batch_idx != label_idx and not findings:
+    if batch_idx is not None and batch_idx != label_idx and not leaked_feature:
         batch_col = _column(rows, batch_idx)
         distinct = len(set(v for v in batch_col if v != ""))
         if 2 <= distinct <= max(2, int(BATCH_MAX_DISTINCT_FRAC * n_rows)):
@@ -936,15 +1117,12 @@ def _detect_leakage(
                 pure += lblcounts.most_common(1)[0][1]
             purity = pure / total if total else 0.0
             if purity >= BATCH_CONFOUND_PURITY:
-                findings.append(
-                    f"{header[batch_idx]!r} (batch/id) is (near-)perfectly correlated with the outcome label."
-                )
-                p.plan_impact.append(
-                    (
-                        f"{header[batch_idx]}–label leakage",
-                        f"add {header[batch_idx]!r} as a covariate before modelling",
-                    )
-                )
+                emit(p, "leakage", "batch_confound",
+                     f"{header[batch_idx]!r} (batch/id) is (near-)perfectly correlated with the outcome label.",
+                     "watch", column=header[batch_idx])
+                emit(p, "plan", "batch_covariate", f"{header[batch_idx]}–label leakage",
+                     effect_text=f"add {header[batch_idx]!r} as a covariate before modelling",
+                     column=header[batch_idx])
 
     # 1. train/test overlap across a split column
     split_idx = _find_col(header, _SPLIT_NAME_TOKENS)
@@ -965,31 +1143,26 @@ def _detect_leakage(
                 sig_to_splits.setdefault(sig, set()).add(sp)
             overlap = sum(1 for s in sig_to_splits.values() if len(s) >= 2)
             if overlap:
-                findings.append(
-                    f"{overlap} feature-row(s) appear in more than one split — train/test overlap."
-                )
-                p.plan_impact.append(
-                    ("train/test overlap", "de-duplicated rows across splits before evaluation")
-                )
-
-    if findings:
-        # frontend leakage is a single detail string — join concisely.
-        p.leakage_detail = " ".join(findings)
+                emit(p, "leakage", "split_overlap",
+                     f"{overlap} feature-row(s) appear in more than one split — train/test overlap.",
+                     "watch", count=overlap)
+                emit(p, "plan", "dedup_splits", "train/test overlap",
+                     effect_text="de-duplicated rows across splits before evaluation")
 
 
 def _effective_n(
     rows: Sequence[Sequence[str]],
     label_col: Sequence[str],
     balance: Sequence[Tuple[str, float]],
-) -> Tuple[int, Optional[str]]:
-    """Estimate effective sample size and an optional explanatory note.
+) -> Tuple[int, str, int]:
+    """Estimate effective sample size → (effective N, binding reason, unique rows).
 
     Combines two deterministic reductions and reports the binding (smallest):
-      * dedup — exact duplicate rows count once.
-      * imbalance — for classification, usable N is bounded by the minority
+      * "dedup" — exact duplicate rows count once.
+      * "imbalance" — for classification, usable N is bounded by the minority
         class (a 7/93 split of 300 rows carries ~ the information of the ~2*21
         balanced examples, generalized to k*min for k classes).
-    We note it when the effective N is well below the raw row count.
+    The caller notes it when the effective N is well below the raw row count.
     """
     n_rows = len(rows)
 
@@ -1002,20 +1175,6 @@ def _effective_n(
         k = len(counts)
         candidates.append((k * minority, "imbalance"))
 
-    eff = min(c for c, _ in candidates)
+    eff, reason = min(candidates, key=lambda c: c[0])
     eff = max(1, min(eff, n_rows))
-
-    note: Optional[str] = None
-    if eff < 0.75 * n_rows:
-        reason = min(candidates, key=lambda c: c[0])[1]
-        if reason == "imbalance":
-            note = (
-                f"Effective N ({eff}) is far below {n_rows:,} rows — bounded by the "
-                "minority class under strong imbalance."
-            )
-        else:
-            note = (
-                f"Effective N ({eff}) is below {n_rows:,} rows — duplicate rows "
-                f"reduce independent samples ({n_rows - unique} duplicate(s))."
-            )
-    return eff, note
+    return eff, reason, unique

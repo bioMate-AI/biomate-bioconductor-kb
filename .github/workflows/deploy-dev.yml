@@ -11,6 +11,11 @@ on:
         required: true
         default: 'integration-next-phase-latest'
         type: string
+      emergency_reason:
+        description: 'ONLY to knowingly replace newer live code (rollback). Recorded in the deploy ledger.'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   id-token: write
@@ -35,14 +40,46 @@ jobs:
           role-to-assume: arn:aws:iam::399683337364:role/GitHubActionsDeploy
           aws-region: ${{ env.AWS_REGION }}
 
+      # Ancestry gate — the same rule as scripts/sync_to_dev.sh: the image being
+      # deployed must CONTAIN the commit live on dev, or it would silently remove
+      # other people's deployed work. (2026-11-10: this workflow's default tag
+      # pointed at a Nov-6 build; deploying it would have removed 253 commits.)
+      - name: Check out history for the ancestry gate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ancestry gate — refuse to drop live work
+        id: gate
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.ecr_tag }}"
+          SHA_TAG=$(aws ecr describe-images --repository-name biomate/dev-frontend --region "$AWS_REGION" \
+            --image-ids imageTag="$TAG" --query 'imageDetails[0].imageTags' --output text \
+            | tr '\t' '\n' | grep -E '^sha-[0-9a-f]{7,40}$' | head -1 || true)
+          if [[ -z "$SHA_TAG" ]]; then
+            echo "::error::Cannot resolve the commit of image tag '$TAG' (no sha-<commit> tag) — refusing to deploy an unidentified image."
+            exit 1
+          fi
+          IMAGE_COMMIT=$(git rev-parse --verify "${SHA_TAG#sha-}^{commit}")
+          echo "image $TAG = $IMAGE_COMMIT"
+          ARGS=(--repo . --head "$IMAGE_COMMIT")
+          if [[ -n "${{ inputs.emergency_reason }}" ]]; then ARGS+=(--emergency-override-reason "${{ inputs.emergency_reason }}"); fi
+          python3 scripts/dev_deploy_ancestry.py "${ARGS[@]}"
+          echo "image_commit=$IMAGE_COMMIT" >> "$GITHUB_OUTPUT"
+
       - name: Deploy via SSM
         run: |
           TAG="${{ inputs.ecr_tag }}"
+          LEDGER=$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "deploy-dev.yml", "override": sys.argv[4] or None}))' \
+            "${{ steps.gate.outputs.image_commit }}" "$TAG" "${{ github.actor }}" "${{ inputs.emergency_reason }}" | base64 -w0)
           CMD_ID=$(aws ssm send-command \
             --instance-ids "${{ env.DEV_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --parameters "commands=[
               \"set -e\",
+              \"mkdir /opt/biomate/.dev-deploy.lock || { echo 'Another deployment holds /opt/biomate/.dev-deploy.lock'; exit 1; }\",
+              \"trap 'rm -rf /opt/biomate/.dev-deploy.lock' EXIT\",
               \"echo === Logging in to ECR ===\",
               \"aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}\",
               \"echo === Pulling backend ===\",
@@ -57,7 +94,8 @@ jobs:
               \"sleep 20\",
               \"echo === Health check ===\",
               \"curl -sf http://localhost:3000/api/health && echo FRONTEND_OK || echo FRONTEND_FAIL\",
-              \"curl -sf http://localhost:8081/api/version && echo GALAXY_OK || echo GALAXY_FAIL\"
+              \"curl -sf http://localhost:8081/api/version && echo GALAXY_OK || echo GALAXY_FAIL\",
+              \"echo $LEDGER | base64 -d >> /opt/biomate/.deploy-ledger.jsonl\"
             ]" \
             --output text --query "Command.CommandId")
           echo "Command ID: $CMD_ID"

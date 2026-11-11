@@ -15,6 +15,7 @@ from pathlib import Path
 from galaxy.ai.nf_param_requirement import null_param_is_required as _null_required
 import sqlite3
 import re
+from .workflow_relevance import workflow_relevance_verdict
 
 from .types import (
     UserRequest, AIResponse, Task, Tool, ToolRecommendation,
@@ -233,6 +234,7 @@ def _composed_workflow_name(data: Dict) -> str:
         joined = ' → '.join(labels[:3])
         return joined if len(joined) <= 60 else joined[:57].rsplit(' ', 1)[0] + '…'
     return 'Custom workflow'
+
 
 
 class AIAssistant:
@@ -5259,6 +5261,35 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     f"[UnifiedWorkflowGeneration] Selected trial='{selected_trial}' | "
                     f"best={best_match.name if best_match else 'N/A'} (score={score:.2f}, match={match_type})"
                 )
+
+            # Relevance floor (docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md §4): an unrelated
+            # catalog hit must never be attached (mmuphin for a JSONL table; "Estimate Alpha Particle
+            # Radiotherapy Dosimetry"). _classify_match's 12/6 cut-offs predate the current score
+            # scale (junk tops score 18–41 and are labelled high_confidence), so a request whose best
+            # hit is below the calibrated floor — or whose hit cannot take the user's data kind —
+            # gets no workflow and an honest reason instead of a mismatched card.
+            if search_results:
+                _floor_verdict = workflow_relevance_verdict(
+                    search_results, score,
+                    input_compatible=lambda r: self.workflow_search.input_compatible(
+                        user_intent, r.id, user_input_kinds=user_input_kinds) if getattr(r, 'id', None) is not None else None,
+                )
+                if _floor_verdict['reject']:
+                    log.warning("[UnifiedWorkflowGeneration] relevance floor: %s", _floor_verdict['reason'])
+                    return {
+                        'success': False,
+                        'error': 'no_relevant_workflow',
+                        'message': _floor_verdict['message'],
+                        'reason': _floor_verdict['reason'],
+                        'candidate_workflows': [
+                            {'name': m.name, 'domain': m.domain, 'score': round(m.score, 2)} for m in search_results[:3]
+                        ],
+                    }
+                if _floor_verdict.get('promote') is not None:
+                    best_match = _floor_verdict['promote']
+                    score = best_match.score
+                    match_type = best_match.match_type
+                    search_results = [best_match] + [r for r in search_results if r is not best_match]
 
             workflow_ga = None
             source = None
