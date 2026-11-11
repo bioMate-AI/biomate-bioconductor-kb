@@ -24,7 +24,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
-import { EXECUTE_NOW_NUDGE, attachedInputNames, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, shouldRequireExecution, simulatedDataNote, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
 import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
@@ -77,7 +77,7 @@ import type {
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
-import { stripSystemBlocks } from '../shared/chat-system-blocks';
+import { attachedNamesFromBlocks, stripSystemBlocks } from '../shared/chat-system-blocks';
 import { decideWorkflowReplyState } from '../shared/workflow-response-state';
 import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk } from '../shared/workflow-data-inputs';
 
@@ -120,6 +120,11 @@ you forgot to pass input_datasets — pass the ids from the [Uploaded datasets:]
 Example — if raw_counts.csv was uploaded with dataset_id=abc123 (pass input_datasets=['abc123']):
   import os, pandas as pd
   df = pd.read_csv(INPUT_FILES['raw_counts.csv'], index_col=0)   # or os.path.join(os.environ['DATA_DIR'], 'abc123', 'raw_counts.csv')
+
+NEVER generate, simulate or hard-code measurements to stand in for data that was not provided
+(no random draws, no "typical" values, no assumed distributions as input data). If no dataset is
+available and the request names a workflow or its built-in sample data, do not compute — the
+workflow card runs on its real built-in data; otherwise ask the user for the data.
 
 Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']) — they will be shown to the user.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
@@ -827,6 +832,8 @@ export interface ChatContext {
   runCodeHistory?: { turn: string; codes: string[] };
   /** $OUTPUT_DIR artifacts run_code produced in this turn — the only files a reply may present as produced. */
   runCodeOutputFiles?: { turn: string; names: string[] };
+  /** run_code generated synthetic input data in this turn (no staged inputs) — see generatesSyntheticData. */
+  runCodeSimulated?: { turn: string };
   /** Set by the authenticated server route, never inferred from proxy fallback. */
   skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
@@ -2573,6 +2580,24 @@ export function workflowIdentityOf(wf: any): SelectedWorkflow | null {
  * Anything else (a question, a new goal or tool, several tasks) routes normally. Conservative by
  * design: a miss costs one ordinary routing turn; a false bind would ignore a new request.
  */
+/**
+ * A workflow the user's own text names explicitly as the thing to run: a run verb followed by a
+ * catalog identifier (nf-core/<name>, or a snake_case id with 2+ underscores such as
+ * analyze_ebv_antibody_titers), or "run (the) <name> workflow". Deterministic: the user already
+ * chose the workflow, so the classifier must not re-decide whether a workflow runs (dev
+ * 2026-11-11: "Run analyze_ebv_antibody_titers on its built-in … data" was sometimes routed to no
+ * workflow and the model simulated ELISA readings with run_code). Only a candidate — the backend
+ * resolves it exactly; an unresolvable name falls back to normal routing.
+ */
+export function workflowNamedInRunRequest(message: string): SelectedWorkflow | null {
+  const text = stripSystemBlocks(message);
+  const verb = String.raw`(?:\brun|\bexecute|\blaunch|运行|执行)\s+(?:the\s+)?`;
+  const id = new RegExp(verb + String.raw`(nf-core\/[a-z0-9_-]+|[a-z][a-z0-9]*(?:_[a-z0-9]+){2,})(?![\w/-])`, 'i').exec(text)?.[1]
+    || new RegExp(verb + String.raw`([a-z][\w.-]{3,})\s+(?:workflow|pipeline)\b`, 'i').exec(text)?.[1]
+    || new RegExp(verb + String.raw`([a-z][\w./-]{3,})\s*工作流`, 'i').exec(text)?.[1];
+  return id ? normalizeSelectedWorkflow({ name: id }) : null;
+}
+
 /** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA… */
 const DATA_IDENTIFIER_RE = /\b(?:[A-Z]{1,6}-)?[A-Z]{2,6}[-_]?\d{3,}\b/g;
 /** File names a user might paste (sample_R1.fastq.gz, counts.csv). */
@@ -2797,6 +2822,20 @@ export function hasComputableData(message: string): boolean {
 /** Data run_code can compute on exists anywhere in the conversation — this message, an earlier
  *  user turn (the UI adds the dataset block only on the turn the file is attached), or datasets
  *  selected in the UI. hasComputableData(message) alone is false on every follow-up turn. */
+/** Raw instrument data (sequencing reads, cryo-EM movies, raw MS files) is pipeline-scale: the
+ *  run_code sandbox cannot align / call variants / reconstruct from it, so a direct_compute label on
+ *  a conversation carrying it is not a compute-now request (dev 2026-11-11: FASTQ tumour/normal +
+ *  "call variants" → run_code built a samplesheet and the reply claimed "pipeline configured" with
+ *  no card). Read from the attached-file names in this message and earlier user turns. */
+const PIPELINE_SCALE_FILE_RE = /\.(?:f(?:ast)?q(?:\.gz)?|bam|cram|sra|mrcs?|tiff?|eer|raw|wiff|d)$/i;
+export function conversationHasPipelineScaleData(
+  message: string,
+  context?: { previousMessages?: Array<{ role: string; content: string }> },
+): boolean {
+  const texts = [message, ...((context?.previousMessages || []).filter(m => m.role === 'user').map(m => m.content || ''))];
+  return texts.some(t => attachedNamesFromBlocks(t).some(n => PIPELINE_SCALE_FILE_RE.test(n)));
+}
+
 export function conversationHasComputableData(
   message: string,
   context?: { previousMessages?: Array<{ role: string; content: string }>; selectedDatasets?: string[] },
@@ -4760,7 +4799,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     opts: { paperContentResult?: unknown; originalUserQuery?: string; context?: ChatContext } = {},
   ): { boinDoseLevelsMissing?: boolean; pathwayEnrichment?: boolean } {
     const userText = opts.originalUserQuery ?? message;
-    reconcileExecutionMode(intent, conversationHasComputableData(message, opts.context));
+    reconcileExecutionMode(intent, conversationHasComputableData(message, opts.context) && !conversationHasPipelineScaleData(message, opts.context));
     const { pathwayEnrichment } = applyRetrievalHints(intent, decomposition, userText);
     const gate = applyUserConstraintGate(intent, userText);
     if (gate !== 'none') console.log(`[GalaxyAssistant] [routing] user-constraint gate: ${gate}`);
@@ -5164,10 +5203,14 @@ Rules:
     // A pinned turn skips catalog search; the backend builds exactly that card (selected_workflow).
     const explicitSelection = normalizeSelectedWorkflow(context.selectedWorkflow);
     const openWorkflow = workflowIdentityOf(context.currentWorkflow);
+    //  - named: the user's own text names the workflow to run (workflowNamedInRunRequest) — forces
+    //    generation like a selection, but falls back to normal routing if the name does not resolve.
+    const namedInText = explicitSelection ? null : workflowNamedInRunRequest(message);
     let pinnedWorkflow: SelectedWorkflow | null = explicitSelection
+      || namedInText
       || (openWorkflow && followUpFillsCurrentWorkflow(decomposition, message) ? openWorkflow : null);
     if (pinnedWorkflow) {
-      log(`Step 1: workflow pinned → "${pinnedWorkflow.name}" (${explicitSelection ? 'user selection' : 'follow-up fills the open workflow'})`);
+      log(`Step 1: workflow pinned → "${pinnedWorkflow.name}" (${explicitSelection ? 'user selection' : namedInText ? 'named in the request' : 'follow-up fills the open workflow'})`);
     }
 
     // Surface the classifier's reasoning (computed above, historically only
@@ -5304,7 +5347,7 @@ Rules:
     // follow-up binding is only an inference: if a guard above decided this turn runs no workflow
     // (e.g. the data-attach guard), it stands. A pinned turn skips the clarification gate, which
     // asks WHICH kind of workflow — already decided.
-    if (explicitSelection) actions.needsWorkflowGeneration = true;
+    if (explicitSelection || namedInText) actions.needsWorkflowGeneration = true;
     else if (pinnedWorkflow && !(actions.needsWorkflowGeneration || actions.needsWorkflowModification)) pinnedWorkflow = null;
     const clarificationResponse = pinnedWorkflow ? null : await this._clarificationGate(
       intent, actions, message, recommendedTools, recommendedDatasets
@@ -5370,8 +5413,8 @@ Rules:
         if (pinnedWorkflow) {
           generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent, pinnedWorkflow);
           if (!generatedWorkflow?.success && !explicitSelection) {
-            // The open workflow is not a resolvable catalog workflow (e.g. a personal upload):
-            // binding was an inference, so route this turn normally instead.
+            // The open/named workflow is not a resolvable catalog workflow (e.g. a personal upload,
+            // or a name that is not an exact catalog id): the pin was an inference, so route normally.
             log(`Step 4: open workflow "${pinnedWorkflow.name}" could not be built (${generatedWorkflow?.error}) — routing normally`);
             pinnedWorkflow = null;
             onProgress?.('search');
@@ -6781,7 +6824,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
   /** Post-classifier routing for one sub-intent of a multi-intent message: the classifier decided;
    *  only reconcile its execution mode with its action flags (see _applyPostClassifierRouting). */
   _applySubIntentRouting(intent: DecomposedIntent, originalMessage: string, context?: ChatContext): void {
-    reconcileExecutionMode(intent, conversationHasComputableData(originalMessage, context));
+    reconcileExecutionMode(intent, conversationHasComputableData(originalMessage, context) && !conversationHasPipelineScaleData(originalMessage, context));
   }
 
   /**
@@ -10289,7 +10332,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         }
         const _unbackedNoteNc = this._unbackedFilesNote(finalMessage, message, context);
         if (_unbackedNoteNc) { finalMessage += _unbackedNoteNc; if (onResponseDelta) onResponseDelta(_unbackedNoteNc); }
-        return { message: finalMessage, truncated: false };
+        return { message: redactStoragePaths(finalMessage, /[\u4e00-\u9fff]/.test(message)), truncated: false };
       }
       // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
 
@@ -10550,7 +10593,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const _unbackedNote = this._unbackedFilesNote(qualityEnforcedMessage, message, context);
       if (_unbackedNote && onResponseDelta) onResponseDelta(_unbackedNote);
       return {
-        message: qualityEnforcedMessage + _unbackedNote,
+        message: redactStoragePaths(qualityEnforcedMessage + _unbackedNote, /[\u4e00-\u9fff]/.test(message)),
         thinking: thinkingResult.hasThinking ? thinkingResult : undefined,
         truncated: wasTruncated,
       };
@@ -10921,6 +10964,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (context) {
       if (context.runCodeOutputFiles?.turn !== turn) context.runCodeOutputFiles = { turn, names: [] };
       context.runCodeOutputFiles.names.push(...(result.output_files || []).map(f => f.name));
+      if (result.exit_code === 0 && generatesSyntheticData(String(input.code || ''), datasetRefs.length)) {
+        console.warn('[GalaxyAssistant] run_code generated synthetic data with no staged inputs');
+        context.runCodeSimulated = { turn };
+      }
     }
     return autoStaged
       ? { ...result, note: 'input_datasets was empty; staged the datasets attached to this message — open them via INPUT_FILES / staged_inputs.' }
@@ -10930,11 +10977,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   /** Output files a reply presents as produced must be this turn's run_code $OUTPUT_DIR artifacts. */
   private _unbackedFilesNote(text: string, message: string, context: ChatContext): string {
     const turn = context?.turnMessage || '';
+    const zh = /[\u4e00-\u9fff]/.test(message);
+    const simulated = context?.runCodeSimulated?.turn === turn ? simulatedDataNote(zh) : '';
     const produced = context?.runCodeOutputFiles?.turn === turn ? context.runCodeOutputFiles.names : [];
     const inputs = attachedInputNames(message, ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : ''));
     const unbacked = unbackedOutputFileClaims(text, produced, inputs);
     if (unbacked.length) console.warn(`[GalaxyAssistant] reply claims files not produced this turn: ${unbacked.join(', ')}`);
-    return unbackedFilesNote(unbacked, /[\u4e00-\u9fff]/.test(message));
+    return simulated + unbackedFilesNote(unbacked, zh);
   }
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */

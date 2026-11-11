@@ -17,6 +17,7 @@ import {
   GalaxyAssistant,
   followUpFillsCurrentWorkflow,
   isValueOnlyReply,
+  workflowNamedInRunRequest,
   normalizeSelectedWorkflow,
   workflowIdentityOf,
   inferActionsFromType,
@@ -224,5 +225,29 @@ describe('selection / identity normalization', () => {
       .toEqual({ name: 'nf-core/rnaseq', nextflow_path: RNASEQ_PATH });
     expect(workflowIdentityOf({ workflow_type: 'chain', chain_name: 'x' })).toBeNull();
     expect(workflowIdentityOf(null)).toBeNull();
+  });
+});
+
+describe('workflowNamedInRunRequest — the user names the workflow to run (EBV, dev 2026-11-11)', () => {
+  it.each([
+    ['Run analyze_ebv_antibody_titers on its built-in ELISA OD readings and standard-curve data', 'analyze_ebv_antibody_titers'],
+    ['Run perform_chipseq_peak_calling_with_macs2 on its built-in MACS3 CTCF ChIP and control chr22 BED files', 'perform_chipseq_peak_calling_with_macs2'],
+    ['Run survival_cox_proportional_hazards_regression on the attached autoimmune-cohort clinical data', 'survival_cox_proportional_hazards_regression'],
+    ['Run the metaboanalystr workflow on its built-in human_cachexia dataset', 'metaboanalystr'],
+    ['Run the chemoproteomics_pulldown workflow on its built-in LFQ-Analyst proteinGroups.txt dataset', 'chemoproteomics_pulldown'],
+    ['运行 nf-core/rnaseq 工作流。', 'nf-core/rnaseq'],
+    ['Run cart_construct_design to design a CD19-targeting CAR', 'cart_construct_design'],
+  ])('pins: %s', (message, name) => {
+    expect(workflowNamedInRunRequest(message)?.name).toBe(name);
+  });
+  it.each([
+    'Run DESeq2 differential expression on the airway dataset (treated vs control), then GO enrichment.',
+    'Summarise this assay table and plot potency against logP.',
+    'Run differential expression on the attached AChR-positive myasthenia gravis PBMC data',
+    'Call variants on these samples and flag the clinically relevant ones.',
+    'What is the evidence linking LRRK2 to Parkinson\'s disease?',
+    'run the analysis on human_cachexia',
+  ])('does not pin: %s', (message) => {
+    expect(workflowNamedInRunRequest(message)).toBeNull();
   });
 });
