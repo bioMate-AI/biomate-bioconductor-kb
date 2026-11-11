@@ -2227,6 +2227,20 @@ if [[ -n "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}" ]]; then
   log "WARNING: explicit emergency ancestry override requested; retain the incident reason"
   _ANCESTRY_ARGS+=(--emergency-override-reason "$BIOMATE_EMERGENCY_DEPLOY_REASON")
 fi
+# The public build-info.json is baked only into the FRONTEND image, so a
+# backend/db/workflow-only deploy leaves it stale and the gate above (build-info
+# only) could let a later full deploy silently overwrite that backend-only work.
+# The ledger records every deploy's full HEAD; read its last commit (over the
+# lease we already hold) and make the gate require HEAD to contain it too.
+_LEDGER_HEAD="$(ec2_ssh "tail -n 1 $DEPLOY_LEDGER 2>/dev/null" 2>/dev/null | python3 -c 'import json,sys,re
+try:
+  c=(json.loads(sys.stdin.read() or "{}") or {}).get("commit","")
+  print(c if c and re.fullmatch(r"[0-9a-f]{40}", c) else "")
+except Exception:
+  print("")' 2>/dev/null || true)"
+if [[ -n "$_LEDGER_HEAD" ]]; then
+  _ANCESTRY_ARGS+=(--ledger-head "$_LEDGER_HEAD")
+fi
 _ANCESTRY_JSON="$(python3 "$REPO_ROOT/scripts/dev_deploy_ancestry.py" "${_ANCESTRY_ARGS[@]}")" || exit 2
 _DEPLOYED_COMMIT="$(printf '%s' "$_ANCESTRY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["deployedCommit"])')"
 log "Public dev ancestry verified: ${_DEPLOYED_COMMIT:0:8} -> ${CURRENT_COMMIT:0:8}"
