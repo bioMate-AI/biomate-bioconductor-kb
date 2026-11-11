@@ -79,9 +79,8 @@ test("SB-1: sidebar toggle collapses and expands correctly", async () => {
   const toggle = page.locator('[data-testid="button-sidebar-toggle"]').first();
   await expect(toggle, "toggle must be visible").toBeVisible();
 
-  // Sidebar is expanded — New Chat button text should be visible
-  const newChatBtn = page.locator('[data-testid="button-new-chat"]').first();
-  await expect(newChatBtn).toBeVisible();
+  // New Chat was removed from the expanded sidebar (founder request); it now lives
+  // on the collapsed icon rail. This test exercises only the toggle round-trip.
 
   // Collapse — record URL so we can detect unwanted navigation
   const urlBefore = page.url();
@@ -99,9 +98,9 @@ test("SB-1: sidebar toggle collapses and expands correctly", async () => {
   await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
   await ss(page, "SB1_02_re_expanded");
 
-  // After navigate: sidebar should be expanded and New Chat visible
-  await expect(newChatBtn, "New Chat must be visible after page reload").toBeVisible({ timeout: 8_000 });
-  console.log("[SB-1] Sidebar toggle cycle completed — collapsed without navigation, New Chat visible after reload");
+  // After navigate: sidebar should be expanded again (toggle round-trip complete).
+  await expect(toggle, "sidebar toggle visible after reload").toBeVisible({ timeout: 8_000 });
+  console.log("[SB-1] Sidebar toggle cycle completed — collapsed without navigation, re-expanded after reload");
 });
 
 // ============================================================================
