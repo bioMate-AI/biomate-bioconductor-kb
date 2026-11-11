@@ -84,3 +84,22 @@ Left for the founder:
 - The workspace-level 新对话 (blue box in `removenewchat_remove_sidebar.png`) is still there. Removing it leaves no entry point for an unfiled chat other than the landing, and ~10 e2e specs click it. This needs a decision.
 - The leaked test project "live-journeys 2026-11-11T04:35:27.433Z (auto-deleted)" belongs to an interrupted run before the state-file move. Delete it on approval.
 - Two diagnosis boxes on a failed run (still to merge into one).
+
+### Overnight, continued (dev `276e4e79 → f62831ad → next`)
+
+| # | Defect | Root cause | Fix | Check |
+|---|---|---|---|---|
+| 10 | Two diagnoses on a failed run | Panel card (server category) + AfterRunReport (rule classifier) | Card runs the rule classifier on the task error, leads with the specific cause, and falls back to the server category. The embedded report gets `hideFailureDiagnosis`. | unit; live: one card |
+| 11 | Panel env-pull / auto-resume text hard-coded zh in the English UI | literals | `panel.env.*` | unit |
+| 12 | Card swap could land on a below-floor workflow | `candidate_workflows` = top-3 regardless of score; Step 6c / 6c-2 swap to any candidate | `relevant_candidates()` ≥ floor | pytest |
+| 13 | Tool exception after the executor prefix not recognised (live run f4fa8bd6) | Line-start-only regex (TS + Galaxy); TS also matched Nextflow wrappers | Accept the ` — ` / `: ` prefix; exclude wrappers | unit + pytest |
+| 14 | CI hard gate red | billing-guards under jsdom (URL class); chown regex assumed uid 4xxx; dedup cold import > 5 s; dataset-rows race; backend runner disk full | node env; any uid; 30 s; findByTestId; free runner disk | CI run 43029200462 all green |
+
+**CI.** PR #362 targets `integration/unmerged-20261110`, so `pull_request` CI never ran. Dispatched `ci-tests.yml` on the branch:
+- First run: 9 frontend failures, all but `dataset-rows` pre-existing on next-phase, where the job swallowed them. Backend job ran out of runner disk.
+- After the fixes: frontend, backend and security all green.
+- Local full vitest is no longer feasible on this 8 GB laptop under load (swap, load 28): one 5-test file took 594 s. CI is the gate.
+
+**Live journeys on `f62831ad`:** a, b+c and e pass. d fails because NVIDIA's hosted Boltz-2 returns 422 `CUDA error: an illegal memory access` for any request (a minimal 33-aa request sent directly from dev gives the same error). This is an upstream outage; the journey reports it as a fail, not a skip.
+
+**PR #362 conflicts with next-phase.** Next-phase took squashed copies (#349, #350, #347, `e0f393ce` "all unmerged product work") of commits this branch carries as originals. Not reconciled: dev is synced from this branch, per the founder's instruction.
