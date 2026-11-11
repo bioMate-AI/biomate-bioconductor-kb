@@ -295,7 +295,7 @@
       "design_cyclic_peptides_against_this_binding_site": "针对该结合位点设计环肽。",
       "propose_stapled_peptide_analogues_of_this_helix": "为该螺旋提出订书肽类似物。",
       "generate_macrocycle_candidates_with_good_permeability": "生成具有良好渗透性的大环候选物。",
-      "design_nanobody_candidates_against_this_epitope": "针对该表位设计纳米抗体候选物。",
+      "design_scfv_antibody_sequences_from_this_antibody_structure": "根据该抗体结构设计 scFv 抗体序列。",
       "graft_these_cdrs_onto_a_stable_human_framework": "将这些 CDR 移植到稳定的人源框架上。",
       "propose_enzyme_variants_with_a_redesigned_active_site_pocket": "提出重新设计活性位点口袋的酶变体。",
       "predict_filter": "预测与筛选",

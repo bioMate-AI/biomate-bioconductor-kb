@@ -239,7 +239,7 @@
       "design_cyclic_peptides_against_this_binding_site": "Design cyclic peptides against this binding site.",
       "propose_stapled_peptide_analogues_of_this_helix": "Propose stapled-peptide analogues of this helix.",
       "generate_macrocycle_candidates_with_good_permeability": "Generate macrocycle candidates with good permeability.",
-      "design_nanobody_candidates_against_this_epitope": "Design nanobody candidates against this epitope.",
+      "design_scfv_antibody_sequences_from_this_antibody_structure": "Design scFv antibody sequences from this antibody structure.",
       "graft_these_cdrs_onto_a_stable_human_framework": "Graft these CDRs onto a stable human framework.",
       "propose_enzyme_variants_with_a_redesigned_active_site_pocket": "Propose enzyme variants with a redesigned active-site pocket.",
       "predict_filter": "Predict & filter",

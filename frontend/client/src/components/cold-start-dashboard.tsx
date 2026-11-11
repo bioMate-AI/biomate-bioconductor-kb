@@ -326,7 +326,7 @@ export const COLD_MODULES: ColdModule[] = [
             "Generate macrocycle candidates with good permeability.",
           ],
           bio: [
-            "Design nanobody candidates against this epitope.",
+            "Design scFv antibody sequences from this antibody structure.",
             "Graft these CDRs onto a stable human framework.",
             "Propose enzyme variants with a redesigned active-site pocket.",
           ],
