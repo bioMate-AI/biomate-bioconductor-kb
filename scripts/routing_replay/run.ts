@@ -84,6 +84,11 @@ async function main() {
   results.sort((a, b) => a.id.localeCompare(b.id) || a.rep - b.rep);
   mkdirSync(path.join(HERE, 'out'), { recursive: true });
   writeFileSync(path.join(HERE, 'out', `${label}.jsonl`), results.map(r => JSON.stringify(r)).join('\n') + '\n');
+  // A degraded result means the classifier never answered (network / provider outage → keyword
+  // fallback). It measures the outage, not routing — excluded from scoring and reported; re-run with --only.
+  const degraded = results.filter(r => r.degraded || r.error);
+  if (degraded.length) console.log(`EXCLUDED (degraded/error, re-run with --only): ${degraded.map(r => r.id).join(',')}`);
+  results.splice(0, results.length, ...results.filter(r => !(r.degraded || r.error)));
   const groups = [...new Set(results.map(r => r.group))];
   let tot = 0, ok = 0;
   console.log(`label=${label} model=${model} reps=${reps}`);
