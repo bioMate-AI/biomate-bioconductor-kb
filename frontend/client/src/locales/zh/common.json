@@ -613,7 +613,6 @@
       "input_files_required_suffix": "— 请通过聊天中的文件按钮上传",
       "prereqs_not_met": "前置条件未满足 — 请查看上方清单"
     },
-    "inputs_mapped": "输入已映射",
     "params_only_no_inputs": "此工作流仅接受参数——没有需要绑定的数据输入。",
     "parameters": "参数",
     "required_parameters": "必需参数",
@@ -752,7 +751,6 @@
     "id_prefix": "id {{id}}",
     "inputs_all_bound": "这些输入将按绑定原样使用。可从数据集标签重新打开，以查看其溯源。",
     "inputs_blocking": "在解析 {{n}} 个输入之前不会运行——请在上方选择文件或修正映射。",
-    "inputs_count": "{{n}} 个输入",
     "key_findings": "关键发现",
     "last_step": "上一步",
     "limitations": "局限性：",
@@ -832,7 +830,18 @@
     "workflow_parameters": "工作流参数",
     "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。",
     "inputs_linked_review": "已设置输入文件引用，请核对下方映射。",
-    "run_stopped": "运行在完成前停止。"
+    "run_stopped": "运行在完成前停止。",
+    "inputs_title": "输入",
+    "inputs_required_unset": "{{n}} 个必需输入尚未设置",
+    "inputs_mapped_count": "已映射 {{n}} 个",
+    "inputs_none_required": "无必需的数据输入",
+    "inputs_attach_or_accession": "请用下方消息框中的回形针（📎）附加文件，或在对话中回复公共数据编号（如 SRR…、GSE…）。",
+    "inputs_attach_hint": "请用下方消息框中的回形针（📎）附加文件——BioMate 会自动将其接入工作流。",
+    "only_optional_overrides": "无需上传数据——以下文件均为可选覆盖项。",
+    "reference_overrides": "参考文件覆盖",
+    "reference_overrides_hint": "可选——默认取自所选基因组或流程",
+    "not_set_default_used": "未设置——使用默认值",
+    "uses_default": "默认"
   },
   "preview": {
     "loading": "正在加载预览…",

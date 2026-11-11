@@ -75,6 +75,8 @@ import type {
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
+import { decideWorkflowReplyState } from '../shared/workflow-response-state';
+import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk } from '../shared/workflow-data-inputs';
 
 // ─── Agent tool infrastructure ────────────────────────────────────────────────
 
@@ -9901,6 +9903,25 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const hasRunnableWorkflow = !!(_gw && _gw.success && !_gw.error &&
       (_gw.workflow_ga || _gw.nextflow_path || _gw.workflow_type === 'chain' ||
        _gw.chain_name || _gw.workflow_type === 'cryosparc'));
+    // Reply state is chosen here from real signals, not left to the model: a
+    // generated workflow whose REQUIRED data input is still unbound (and the
+    // message carries no data) is "identified, waiting for data" — never
+    // "could not generate" (docs/20261110_COLDSTART_EXAMPLES_LIVE_AUDIT.md §7.3).
+    const unboundDataInputs = runnableWorkflow
+      ? unboundRequiredDataInputs(generatedWorkflow, new Set(Object.keys(inlineDataMap)))
+      : [];
+    const workflowReplyState = decideWorkflowReplyState({
+      isWorkflowTurn,
+      runnableWorkflow,
+      generationFailed: workflowGenerationFailed,
+      hasInlineData,
+      messageCarriesData: messageCarriesRunData(message) || messageWaivesDataAsk(message) || _matchedFixture !== null,
+      unboundRequiredInputs: unboundDataInputs,
+    });
+    const needsDataInput = workflowReplyState === 'generated_needs_input';
+    const needsInputList = unboundDataInputs
+      .map(i => `${i.label}${i.description ? ` (${i.description.replace(/s3:\/\/\S+/gi, '').trim()})` : ''}`)
+      .join('; ');
 
     const RESEARCH_INTENT_TYPES_FOR_PROMPT = new Set([
       'research_question', 'troubleshooting', 'parameter_optimization',
@@ -10020,6 +10041,11 @@ When a workflow was generated successfully:
   - **Key steps:** [2–3 bullets, tool name → output]
   - **Expected output:** [what files/results the user will get]
 
+When a workflow WAS generated (its card and panel are shown) but a required data input is not provided yet (the user has not given data):
+  **[Workflow name]** — [one sentence: what it does]
+  [One or two sentences: the data input it still needs (e.g. a samplesheet of FASTQ reads) and how to give it — attach the files with the 📎 button, or, for public sequencing data, reply with its accession (e.g. SRR…/GSE…).]
+  Never say the workflow could not be generated or is unavailable — it was found. Do not list pipeline stages. Never ask for a storage path.
+
 When no workflow was generated AND no inline data is present (clarification needed — workflow turn only):
   **Missing: [what is needed]**
   [ONE specific question stating exactly what formats are accepted]
@@ -10029,7 +10055,7 @@ When no workflow was generated AND inline data IS present (technical failure —
   **Closest available option:** [name + brief description]
   [ONE configuration question if needed, otherwise say "Try adjusting parameters in the panel"]
 
-**The three formats above apply ONLY to workflow-generation turns.** For all other intents (research questions, protocol guidance, document extraction, general questions, explanations, data interpretation, etc.) respond directly and comprehensively — no "Missing:" prefix, no data-format questions. Just answer.
+**The formats above apply ONLY to workflow-generation turns.** For all other intents (research questions, protocol guidance, document extraction, general questions, explanations, data interpretation, etc.) respond directly and comprehensively — no "Missing:" prefix, no data-format questions. Just answer.
 ════════════════════════════════════════════════════════
 
 IMPORTANT RULES:
@@ -10096,11 +10122,11 @@ ${isDrugDevelopmentQuery ? `- Use section labels when possible: "Workflow phases
 Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
-${runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
+${needsDataInput ? `- Workflow generated; its required data input is not provided yet (${needsInputList}) — use the "generated but required data input not provided yet" format` : runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
   if (!_mfi.length) return '';
-  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to provide the data by ANY of: the upload button, an S3/local path, a public URL, an SRA/GEO accession, OR **Import from URL** — which fetches a direct link AND a Google Drive / Dropbox **share link** (BioMate converts the share link to a direct download server-side). Never tell the user BioMate "cannot access Google Drive / Dropbox" — it can, via Import from URL with the share link. Use plain language — no "DATA-FIRST RULE" phrasing.`;
+  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to provide the data by ANY of: the 📎 attach button, a public URL, an SRA/GEO accession, OR **Import from URL** — which fetches a direct link AND a Google Drive / Dropbox **share link** (BioMate converts the share link to a direct download server-side). Never tell the user BioMate "cannot access Google Drive / Dropbox" — it can, via Import from URL with the share link. Use plain language — no "DATA-FIRST RULE" phrasing.`;
 })()}
 ${workflowGenerationFailed && hasInlineData ? '- Workflow generation failed (inline data was present) — use "Technical failure" format, do NOT ask for data the user already provided' : ''}
 ${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no inline data) — use "Clarification needed" format' : ''}
@@ -10140,12 +10166,20 @@ ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.to
 
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
 
-${runnableWorkflow ? '\nA runnable workflow has been generated and is ready to run.' : ''}
+${needsDataInput ? `\nA workflow has been generated and is shown in the panel. It is waiting only for its required data input: ${needsInputList}.` : runnableWorkflow ? '\nA runnable workflow has been generated and is ready to run.' : ''}
 ${workflowGenerationFailed && hasInlineData ? `\nWorkflow generation failed (inline data was present — do NOT ask for it again).\nFailure details: ${JSON.stringify(workflowFailureSignals, null, 2).slice(0, 800)}` : ''}
 ${workflowGenerationFailed && !hasInlineData ? `\nWorkflow generation diagnostics:\n${JSON.stringify(workflowFailureSignals, null, 2).slice(0, 1600)}` : ''}${researchSection}${benchmarkSection}
 
 Use the RESPONSE FORMAT from the system prompt. Specifically:
-${runnableWorkflow
+${needsDataInput
+  ? `FORMAT: Workflow generated — required data input not provided yet.
+     - ${cardWorkflowName(generatedWorkflow)
+        ? `Start with "**${cardWorkflowName(generatedWorkflow)}** — [one sentence on what it does]", using exactly that name.`
+        : `Start with "**[workflow name]** — [one sentence on what it does]"`}
+     - Then say the one data input it still needs (${needsInputList}) in plain words, and how to give it: attach the files with the 📎 button, or, for public sequencing data, reply with its accession (e.g. SRR…/GSE…).
+     - Do NOT say the workflow could not be generated, is missing, or failed — it was found and is in the panel.
+     - Do NOT list pipeline stages. Do NOT mention storage locations, buckets or paths.`
+  : runnableWorkflow
   ? `FORMAT: Workflow generated successfully.
      - ${cardWorkflowName(generatedWorkflow)
         ? `The workflow panel shows "${cardWorkflowName(generatedWorkflow)}". Start with "**${cardWorkflowName(generatedWorkflow)}** — [one sentence]", using exactly that name. Never lead with a descriptive title or any other name of your own.${alternativeWorkflowNames(generatedWorkflow).length
