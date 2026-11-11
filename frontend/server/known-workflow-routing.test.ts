@@ -207,8 +207,12 @@ describe('isValueOnlyReply — deterministic: only identifiers, files, numbers l
     'SRR1039508', 'GSE52778', 'SRR1039508, SRR1039509', 'PXD012345', 'E-MTAB-1234',
     'sample_R1.fastq.gz sample_R2.fastq.gz',
     '[Attached files: counts.csv]\n[Uploaded datasets: counts.csv: dataset_id=abc]',
+    // Connective glue around a value list is still value-only (correctness review
+    // 2026-11-11): the commonest multi-accession phrasings must bind, not re-route.
+    'use SRR1039508, SRR1039509', 'SRR1039508 and SRR1039509', 'run SRR1039508 plus SRR1039509',
+    'srr1039508', '跑 SRR1039508', '用 SRR1039508',
   ])('value-only: %s', (m) => { expect(isValueOnlyReply(m)).toBe(true); });
-  it.each(['', 'hello', 'use SRR1039508', 'SRR1039508 please align to mouse', '用 SRR1039508', 'counts.csv 做差异表达'])(
+  it.each(['', 'hello', 'SRR1039508 please align to mouse', 'counts.csv 做差异表达', 'use DESeq2 on SRR1039508'])(
     'not value-only: %s', (m) => { expect(isValueOnlyReply(m)).toBe(false); });
 });
 
@@ -247,6 +251,10 @@ describe('workflowNamedInRunRequest — the user names the workflow to run (EBV,
     'Call variants on these samples and flag the clinically relevant ones.',
     'What is the evidence linking LRRK2 to Parkinson\'s disease?',
     'run the analysis on human_cachexia',
+    // A generic determiner/pronoun before workflow|pipeline names nothing — must
+    // not pin and skip clarification (correctness review 2026-11-11).
+    'run the whole workflow', 'run this pipeline', 'just run the workflow',
+    'please run that workflow again', 'run the full pipeline',
   ])('does not pin: %s', (message) => {
     expect(workflowNamedInRunRequest(message)).toBeNull();
   });

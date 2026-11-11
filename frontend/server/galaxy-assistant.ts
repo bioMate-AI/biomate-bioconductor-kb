@@ -2659,11 +2659,18 @@ export function workflowNamedInRunRequest(message: string): SelectedWorkflow | n
   const id = new RegExp(verb + String.raw`(nf-core\/[a-z0-9_-]+|[a-z][a-z0-9]*(?:_[a-z0-9]+){2,})(?![\w/-])`, 'i').exec(text)?.[1]
     || new RegExp(verb + String.raw`([a-z][\w.-]{3,})\s+(?:workflow|pipeline)\b`, 'i').exec(text)?.[1]
     || new RegExp(verb + String.raw`([a-z][\w./-]{3,})\s*工作流`, 'i').exec(text)?.[1];
-  return id ? normalizeSelectedWorkflow({ name: id }) : null;
+  if (!id) return null;
+  // "run the whole workflow" / "run this pipeline" name no workflow — a generic
+  // determiner/pronoun captured before workflow|pipeline must not pin a card and
+  // skip clarification (correctness review 2026-11-11). A real workflow name is a
+  // nf-core/… path or a multi-underscore snake_case id, which these are not.
+  if (/^(?:whole|this|that|these|those|the|my|your|our|its|a|an|same|it|again|entire|full|current|above|below|first|last|next|previous|new|old|other|one)$/i.test(id)) return null;
+  return normalizeSelectedWorkflow({ name: id });
 }
 
-/** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA… */
-const DATA_IDENTIFIER_RE = /\b(?:[A-Z]{1,6}-)?[A-Z]{2,6}[-_]?\d{3,}\b/g;
+/** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA…
+ *  Case-insensitive: users paste accessions lowercase too ("srr1039508"). */
+const DATA_IDENTIFIER_RE = /\b(?:[A-Z]{1,6}-)?[A-Z]{2,6}[-_]?\d{3,}\b/gi;
 /** File names a user might paste (sample_R1.fastq.gz, counts.csv). */
 const FILE_NAME_RE = /[^\s,;，；、]+\.[A-Za-z][A-Za-z0-9]{0,7}(?:\.gz)?\b/g;
 
@@ -2676,11 +2683,21 @@ const FILE_NAME_RE = /[^\s,;，；、]+\.[A-Za-z][A-Za-z0-9]{0,7}(?:\.gz)?\b/g;
  * Deterministic and language-neutral: any leftover letter or CJK character means "not value-only".
  */
 export function isValueOnlyReply(message: string): boolean {
-  const rest = stripSystemBlocks(message)
+  const base = stripSystemBlocks(message);
+  const values = base
     .replace(DATA_IDENTIFIER_RE, ' ')
     .replace(FILE_NAME_RE, ' ')
     .replace(/\d+/g, ' ');
-  const hadValue = rest !== stripSystemBlocks(message) || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
+  // "hadValue" requires an actual value token (accession/file/number) or an
+  // attachment block \u2014 glue words alone ("please run") are not values.
+  const hadValue = values !== base || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
+  // Connective glue around a list of values ("use SRR\u2026 and SRR\u2026", "run SRR\u2026 plus
+  // SRR\u2026", "\u8dd1 SRR\u2026") states no analysis of its own; drop it before the
+  // leftover-letters check so the most common multi-accession phrasings still
+  // bind to the open workflow (correctness review 2026-11-11).
+  const rest = values
+    .replace(/\b(?:and|or|plus|both|use|using|run|running|execute|launch|then|also|please)\b/gi, ' ')
+    .replace(/[\u8dd1\u7528\u548c\u53ca\u8fd8\u6709\u4ee5]/g, ' ');
   return hadValue && !/[A-Za-z\u3400-\u9fff]/.test(rest);
 }
 
@@ -2896,8 +2913,17 @@ export function conversationHasPipelineScaleData(
   message: string,
   context?: { previousMessages?: Array<{ role: string; content: string }> },
 ): boolean {
-  const texts = [message, ...((context?.previousMessages || []).filter(m => m.role === 'user').map(m => m.content || ''))];
-  return texts.some(t => attachedNamesFromBlocks(t).some(n => PIPELINE_SCALE_FILE_RE.test(n)));
+  const currentNames = attachedNamesFromBlocks(message || '');
+  if (currentNames.some(n => PIPELINE_SCALE_FILE_RE.test(n))) return true;
+  // The current turn brought its own (non-pipeline) data — that IS the task; a
+  // stale pipeline-scale attachment from an earlier, unrelated turn must not
+  // suppress direct_compute for it (correctness review 2026-11-11: a turn-1 FASTQ
+  // was disabling run_code for a turn-5 "mean of column 3" on a fresh CSV).
+  if (currentNames.length > 0 || hasComputableData(message || '')) return false;
+  // No data on this turn → a carried-over pipeline-scale file is the subject (the
+  // UI adds the dataset block only on the turn the file is attached).
+  return (context?.previousMessages || []).filter(m => m.role === 'user')
+    .some(m => attachedNamesFromBlocks(m.content || '').some(n => PIPELINE_SCALE_FILE_RE.test(n)));
 }
 
 export function conversationHasComputableData(

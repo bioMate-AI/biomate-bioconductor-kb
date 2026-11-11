@@ -50,25 +50,38 @@ was fixed, and what is deferred.
 
 Verification: `tsc` clean; vitest `execution-integrity` (27), `cold-start-demo-catalog` (102), `attachment-binding` (36) green.
 
-## Deferred — require `galaxy-assistant.ts` (held until the example-data agent's branch merges, to avoid a conflict-marker merge)
+## Fixed in batch 2 (after merging `fix/example-data-default` `cd2aa142be`) — `galaxy-assistant.ts`
 
-- **Correctness #2** — `isValueOnlyReply` fails on the commonest accession
-  phrasings ("SRR… and SRR…", "use SRR…", lowercase, CJK), so the value-only
-  bind silently doesn't fire and the reply re-routes. Add a small connector
-  stoplist + case-insensitive accession match.
-- **Correctness #3** — `workflowNamedInRunRequest` pins on generic tokens
-  ("run the whole workflow" → name "whole"; a 2-underscore filename). Add a
-  stoplist / tighten the pattern so a bogus name can't skip the clarification
-  gate.
-- **Correctness #4** — `conversationHasPipelineScaleData` scans the whole
-  conversation, so one stale pipeline-scale attachment disables `direct_compute`
-  for an unrelated later task. Scope it to the current task's data.
-- **Correctness #5** — Step 6r can overwrite a legitimate final reply once any
-  run_code in the turn is refused. Guard it to only replace when Step 6 produced
-  nothing usable.
-- **test-quality gap #3** — backend `_return_nextflow_match` `bound_value`
-  (accession vs file) has no Python test. Add one (backend, also held while the
-  agent writes backend tests).
+- **Correctness #2 — DONE.** `isValueOnlyReply` now strips connective glue
+  ("use/and/plus/run…", CJK run verbs 跑/用) before the leftover-letters check and
+  matches accessions case-insensitively, so "use SRR… and SRR…", "run SRR… plus
+  SRR…", lowercase "srr…", and "跑 SRR…" bind to the open workflow instead of
+  re-routing. Two existing test assertions that encoded the old narrow behaviour
+  ("use SRR…"/"用 SRR…" = not-value-only) were corrected to the fixed contract;
+  reviewer's scenarios added.
+- **Correctness #3 — DONE.** `workflowNamedInRunRequest` rejects a generic
+  determiner/pronoun captured before workflow|pipeline (whole/this/that/the/my/…)
+  so "run the whole workflow" no longer pins "whole" and skips the clarification
+  gate. 5 new negative cases.
+- **Correctness #4 — DONE.** `conversationHasPipelineScaleData` is scoped to the
+  current turn: a stale earlier pipeline-scale file (turn-1 FASTQ) no longer
+  suppresses `direct_compute` for this turn's own fresh small data (turn-5 CSV);
+  a data-less follow-up still sees the carried-over pipeline file. New test.
+- **test-quality gap #3** — backend `_return_nextflow_match` `bound_value` test:
+  the merged agent branch already added `test_example_data_detection.py` and
+  `test_executor_data_inputs.py` covers the data-input marking; the remaining
+  accession-vs-file assertion is a small follow-up (tracked), lower priority now
+  that the executor-data-input path has coverage.
+
+### Reviewed and intentionally NOT changed
+
+- **Correctness #5 (Step 6r overwrite)** — the overwrite fires only when a real
+  workflow card is successfully built (`recovered.success` + a card). Ending on
+  that card with the honest "simulation stopped — here's the real path" note is
+  the founder's explicit directive ("end with the real workflow card; simulation
+  must not be the ending status") and matches the merged example-data behaviour
+  (a workflow that runs on its built-in data should not end on "please provide
+  data"). When no card can be built, Step 6's reply stands. Left as-is by design.
 
 ## Structural debt — surfaced for a decision, NOT done autonomously (bigger than a fix)
 
@@ -82,6 +95,21 @@ Verification: `tsc` clean; vitest `execution-integrity` (27), `cold-start-demo-c
 - "Built from your data" over-claim (honesty #3) is prompt-enforced only; no
   structural post-check.
 - Nanobody-design catalog gap (routing lands on bispecific).
+
+## Cryo-EM license gate (founder note 2026-11-11) — verified, no change needed
+
+Cryo-EM via CryoSPARC requires each user's own license; BioMate already handles
+this in the UI (`components/license-gate.tsx` → `/api/workflows/license-requirements`
+→ `credentials_api.py` → `LICENSE_REGISTRY["cryosparc"]`, `user_must_provide:True`,
+`open_alternatives:[]`). The cryo cold-start query routes to
+`cryosparc_standard_spa/main.nf`, whose path matches `container_patterns:["cryosparc"]`,
+so the gate returns `source:'none'`, `has_fallback:False` → **hard-block** with
+"Provide credentials" + Register link. The S3-leak edit does not touch this (the
+gate keys on `nextflow_path`). **Live-sweep scoring:** cryo stopping at the
+CryoSPARC license gate is the CORRECT terminal state, not a failure — same for
+other `user_must_provide` tools (alphafold3, schrödinger/FEP+, gastroplus). Tools
+with `open_alternatives` + `user_must_provide:False` (Boltz, Simcyp, AMBER) are
+advisory (run on the open fallback), not blocking.
 
 ## Acknowledged, not findings
 

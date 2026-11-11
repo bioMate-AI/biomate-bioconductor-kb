@@ -171,4 +171,11 @@ describe('raw instrument data is pipeline-scale: direct_compute is not honoured 
   it('a table attached → direct compute stays allowed', () => {
     expect(route('Summarise this.\n\n[Attached files: bace_assays.csv]\n[Uploaded datasets: bace_assays.csv: dataset_id=x]')).toBe('direct compute');
   });
+  it('a fresh CSV this turn is not blocked by a stale FASTQ from an earlier turn (correctness review 2026-11-11)', () => {
+    const ctx = { previousMessages: [{ role: 'user', content: READS }] };
+    const freshCsv = "What's the mean of column 3?\n\n[Attached files: counts.csv]\n[Uploaded datasets: counts.csv: dataset_id=y]";
+    expect(route(freshCsv, ctx)).toBe('direct compute');
+    // …but a follow-up with no data of its own still sees the carried-over FASTQ.
+    expect(route('call variants', ctx)).toBe('workflow card');
+  });
 });
