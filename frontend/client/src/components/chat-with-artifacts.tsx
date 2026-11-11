@@ -754,6 +754,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     return () => clearInterval(id)
   }, [])
 
+  // The run the open workflow panel is showing. Its failure is already on screen
+  // there, so a toast for it is redundant — and the old sticky (duration 0) toast
+  // sat on top of the panel's own diagnosis.
+  const panelRunIdRef = useRef<string | null>(null)
+  panelRunIdRef.current = panelOpen && panelWorkflow ? (currentRun?.id ?? null) : null
+
   // Watch runList for status transitions → fire in-app toast.
   useEffect(() => {
     const prev = prevRunStatusesRef.current
@@ -785,7 +791,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             ),
             duration: 8000,
           })
-        } else if (bucket === "failed") {
+        } else if (bucket === "failed" && run.id !== panelRunIdRef.current) {
           toast({
             variant: "destructive",
             title: t('runs_ui.workflow_failed_title'),
@@ -804,7 +810,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 {t('runs_ui.view_and_fix')}
               </ToastAction>
             ),
-            duration: 0,
+            duration: 12000,
           })
         }
       }

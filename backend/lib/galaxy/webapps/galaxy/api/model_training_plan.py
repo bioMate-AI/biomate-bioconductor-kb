@@ -25,6 +25,39 @@ log = logging.getLogger(__name__)
 router = Router(tags=["model-training"])
 
 
+def _dataset_rows(s3_uri: str) -> Optional[int]:
+    """Row count of the staged dataset via the perception profiler (the same reader
+    the panel's column picker uses). None when it cannot be read — the plan then
+    proceeds and the training job reports the problem itself."""
+    import os
+
+    from galaxy.ai.data_perception import profile_to_dataclass
+    from galaxy.webapps.galaxy.api.perception import _is_perception_tempfile, _resolve_path
+
+    # Only delimited tables have a meaningful row = sample count here; h5ad /
+    # JSONL / SDF datasets are sized by their own trainers.
+    if not s3_uri.lower().endswith((".csv", ".tsv", ".txt", ".csv.gz", ".tsv.gz")):
+        return None
+    path = None
+    try:
+        path = _resolve_path(s3_uri)
+        if not path:
+            return None
+        profile = profile_to_dataclass(path, name=s3_uri.rsplit("/", 1)[-1])
+        if profile.quality == "blocked" and not profile.rows:
+            return None  # unreadable ≠ zero rows
+        return int(profile.rows) if isinstance(profile.rows, int) and profile.rows >= 0 else None
+    except Exception as exc:  # profiling is advisory here; never block on a reader bug
+        log.warning("[model-training/plan] could not count rows of %s: %s", s3_uri, exc)
+        return None
+    finally:
+        if _is_perception_tempfile(path):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+
+
 @router.post(
     "/api/model-training/plan",
     require_admin=True,
@@ -40,7 +73,7 @@ def plan_model_training(
     from galaxy.ai.ml_training.plan import build_training_plan
 
     try:
-        return build_training_plan(body)
+        return build_training_plan(body, rows_of=_dataset_rows)
     except ConfigError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except (TypeError, ValueError) as exc:

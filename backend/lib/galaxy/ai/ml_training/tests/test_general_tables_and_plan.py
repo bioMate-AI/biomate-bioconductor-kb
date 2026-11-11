@@ -186,3 +186,16 @@ def test_plan_scrna_diffusion_routes_to_its_wrapper_and_image():
     assert out["nextflow_path"] == "ml_training/scrna_diffusion_train.nf"
     assert out["workflow_ga"]["parameters"]["sc_finetune"] is False
     assert out["compute_config"]["container"].endswith("/biomate/sc-diffusion-training:latest")
+
+
+# ── dataset size floor (dev run c0d27792: 1-row contrasts.csv → 5-fold CV crash) ──
+def test_plan_refuses_a_dataset_too_small_for_its_split():
+    req = {**BASE, "model_type": "sklearn_tabular", "target_col": "variable", "task_type": "classification"}
+    with pytest.raises(ConfigError, match=r"^dataset_too_small:1:10:"):
+        build_training_plan(req, rows_of=lambda uri: 1)
+    assert build_training_plan(req, rows_of=lambda uri: 240)["workflow_ga"]
+
+
+def test_plan_does_not_refuse_when_row_count_is_unknown():
+    req = {**BASE, "model_type": "sklearn_tabular", "target_col": "subtype", "task_type": "classification"}
+    assert build_training_plan(req, rows_of=lambda uri: None)["workflow_ga"]

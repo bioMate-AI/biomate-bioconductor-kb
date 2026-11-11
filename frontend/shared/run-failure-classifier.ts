@@ -24,10 +24,12 @@ export interface RunFailureExplanation {
     | 'bad_contrast'
     | 'missing_column'
     | 'empty_input'
+    | 'too_few_rows'
     | 'out_of_memory'
     | 'container_tool'
     | 'missing_input_file'
     | 'bad_parameter'
+    | 'tool_error'
     | 'unknown';
   /** False when no rule matched — callers must NOT present an invented cause. */
   known: boolean;
@@ -43,6 +45,12 @@ export interface RunFailureExplanation {
   exitCode?: string;
   /** The most specific raw error line, for the "show raw error" expansion. */
   raw: string;
+  /** Named values the cause/culprit/next sentences refer to (file, column, …). */
+  vars?: Record<string, string>;
+  /** i18n keys (+ interpolation vars) for cause / culprit / next. The English
+   *  sentences above stay the fallback (and what the server-side chat reply uses);
+   *  UI surfaces render these through tOr so a zh session never shows English. */
+  i18n: { cause?: string; culprit?: string; next: string; vars: Record<string, string> };
 }
 
 /** Pull the failing Nextflow process name out of raw error text, if present. */
@@ -63,8 +71,23 @@ function extractExit(raw: string): string | undefined {
   );
 }
 
+/** The exception the tool itself raised (Python `ValueError: …`, Java `…Exception: …`,
+ *  R `Error in f(): …`), when the log carries one. This is the tool's own statement
+ *  of why it stopped, so it outranks any heuristic on the surrounding executor text. */
+function toolException(raw: string): { type: string; message: string; line: string } | undefined {
+  const lines = (raw || '').split('\n').map(l => l.trim());
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = /^(?:[\w.]+\.)?([A-Z]\w*(?:Error|Exception)):\s+(.+)$/.exec(lines[i]) ||
+      /^(Error) in [^:]+:\s*(.+)$/.exec(lines[i]);
+    if (m) return { type: m[1], message: m[2].slice(0, 300), line: lines[i].slice(0, 400) };
+  }
+  return undefined;
+}
+
 /** The single most specific line of the raw error — never a bare "Caused by:". */
 export function mostSpecificErrorLine(raw: string): string {
+  const exc = toolException(raw);
+  if (exc) return exc.line;
   const line = (raw || '')
     .split('\n')
     .map(l => l.trim())
@@ -98,6 +121,41 @@ export function classifyRunFailure(
   rawError: string | null | undefined,
   opts: { process?: string } = {},
 ): RunFailureExplanation {
+  return withI18n(classifyCore(rawError, opts));
+}
+
+type CoreExplanation = Omit<RunFailureExplanation, 'i18n'>;
+
+/** Attach locale keys: `failure.<klass>.cause[_named]`, `.culprit[_named]`, `.next[_step]`. */
+function withI18n(e: CoreExplanation): RunFailureExplanation {
+  const vars: Record<string, string> = {
+    step: e.process ? ` '${e.process}'` : '',
+    process: e.process || '',
+    exit: e.exitCode ? ` (exit ${e.exitCode})` : '',
+    culprit: e.culprit || '',
+    ...(e.vars || {}),
+  };
+  const k = `failure.${e.klass}`;
+  if (e.klass === 'unknown') {
+    return { ...e, i18n: { next: !e.raw ? 'failure.no_error.next' : e.process ? `${k}.next_step` : `${k}.next`, vars } };
+  }
+  const named = Object.keys(e.vars || {}).length > 0;
+  const culpritKey =
+    !e.culprit ? undefined
+    : e.klass === 'workflow_not_found' ? undefined          // a literal path: shown verbatim
+    : e.klass === 'out_of_memory' || e.klass === 'container_tool' || e.klass === 'tool_error'
+      ? (e.process ? `${k}.culprit_step` : `${k}.culprit`)
+    : named ? `${k}.culprit_named` : `${k}.culprit`;
+  return {
+    ...e,
+    i18n: { cause: named ? `${k}.cause_named` : `${k}.cause`, culprit: culpritKey, next: named ? `${k}.next_named` : `${k}.next`, vars },
+  };
+}
+
+function classifyCore(
+  rawError: string | null | undefined,
+  opts: { process?: string } = {},
+): CoreExplanation {
   const raw = (rawError || '').trim();
   const process = opts.process || extractProcess(raw);
   const exitCode = extractExit(raw);
@@ -145,6 +203,7 @@ export function classifyRunFailure(
         ? `Your contrasts/design references the column '${contrastVar.trim()}', which is not in your sample sheet.`
         : 'Your contrasts file references a column that is not present in your sample sheet, so the comparison could not be set up.',
       culprit: contrastVar?.trim() ? `contrasts column '${contrastVar.trim()}'` : 'contrasts file',
+      vars: contrastVar?.trim() ? { contrast: contrastVar.trim() } : undefined,
       nextAction: 'Make the contrast variable match a column that exists in the sample sheet (add the column, or fix its name/spelling), then run again.',
       ...base,
     };
@@ -161,7 +220,24 @@ export function classifyRunFailure(
       known: true,
       cause: `The analysis expected a column '${colName.trim()}' that is not in your input table.`,
       culprit: `column '${colName.trim()}'`,
+      vars: { column: colName.trim() },
       nextAction: `Add the '${colName.trim()}' column to your input (or correct the column name in the parameter that selects it), then run again.`,
+      ...base,
+    };
+  }
+
+  // 2c. Too few rows for the requested split / CV (a 1-row file given as a training table).
+  const fewRows =
+    /cannot make (\d+) folds from (\d+) rows?/i.exec(raw) ||
+    /n_splits=(\d+) cannot be greater than the number of (?:samples|members[^:]*): n_samples=(\d+)/i.exec(raw);
+  if (fewRows) {
+    return {
+      klass: 'too_few_rows',
+      known: true,
+      cause: `The input table has only ${fewRows[2]} usable row(s), too few for ${fewRows[1]}-fold cross-validation — it does not look like a training table (one row per sample with feature columns and a label).`,
+      culprit: 'training dataset',
+      vars: { rows: fewRows[2], folds: fewRows[1] },
+      nextAction: 'Pick a dataset with one row per sample (at least a few dozen rows), or lower the number of folds / use a holdout split, then train again.',
       ...base,
     };
   }
@@ -174,6 +250,7 @@ export function classifyRunFailure(
       known: true,
       cause: f ? `The input file ${f} is empty — there was no data for the step to process.` : 'One of the input files is empty — there was no data for the step to process.',
       culprit: f,
+      vars: f ? { file: f } : undefined,
       nextAction: 'Confirm the upload/transfer completed and the file actually contains data, replace the empty input, then run again.',
       ...base,
     };
@@ -199,8 +276,10 @@ export function classifyRunFailure(
 
   // 5. Container / tool unavailable (missing command, image pull, exit 127).
   if (
-    /\b(command not found|executable not found|no command|image .*(?:not found|pull)|pull access denied|unable to find image|manifest .*not found|docker|singularity|container)\b/i.test(raw) &&
-    /(not found|denied|unauthorized|error|pull|no such|missing)/i.test(raw) ||
+    // Specific phrases only. Nextflow prints a "Container:" banner on EVERY failed
+    // task, so the bare word "container"/"docker" next to "ERROR" is not evidence
+    // (it mislabelled a Python ValueError as "missing image", 2026-11-10).
+    /\b(command not found|executable not found|pull access denied|unable to find image|CannotPullContainerError|ErrImagePull|failed to pull image|manifest (?:for \S+ )?(?:unknown|not found)|image \S+ (?:not found|does not exist))/i.test(raw) ||
     (exitCode === '127') ||
     /No such file or directory.*\.(?:sh|py|pl|R)\b|\/(?:usr|bin)\/[^\s]*: No such file/i.test(raw)
   ) {
@@ -222,6 +301,7 @@ export function classifyRunFailure(
       known: true,
       cause: f ? `An input the pipeline needs could not be found: ${f}.` : 'An input file the pipeline needs could not be found at the path it was given.',
       culprit: f,
+      vars: f ? { file: f } : undefined,
       nextAction: 'Check that the file parameter points to a file that exists and is still accessible (re-upload or fix the path), then run again.',
       ...base,
     };
@@ -235,7 +315,23 @@ export function classifyRunFailure(
       known: true,
       cause: p ? `A parameter value was invalid or missing: ${p}.` : 'A parameter value was invalid, or a required parameter was missing.',
       culprit: p,
+      vars: p ? { param: p } : undefined,
       nextAction: 'Open the workflow panel → Edit params, fix the named parameter (set a valid/allowed value), then run again.',
+      ...base,
+    };
+  }
+
+  // 7b. The tool raised its own exception and no rule above recognised it: report
+  //     the tool's message verbatim as the cause rather than "unknown".
+  const exc = toolException(raw);
+  if (exc) {
+    return {
+      klass: 'tool_error',
+      known: true,
+      cause: `The step${process ? ` '${process}'` : ''} stopped with an error from the tool itself: ${exc.message}`,
+      culprit: process ? `step '${process}'` : undefined,
+      vars: { detail: exc.message },
+      nextAction: 'Check the input and parameters against that message (it usually names what is wrong), fix them, then run again.',
       ...base,
     };
   }

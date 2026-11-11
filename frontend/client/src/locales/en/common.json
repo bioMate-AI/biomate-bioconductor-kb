@@ -868,6 +868,24 @@
       "why_skippable": "{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped without affecting downstream phases.",
       "why_skippable_reduced": "{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped. Downstream phases still run but with reduced input.",
       "why_blocked": "{{phase}} — this workflow does not declare a skip parameter for this phase, and its output feeds downstream phases, so it always runs."
+    },
+    "diag": {
+      "title": "AI diagnosis",
+      "error_details": "Error details",
+      "no_log": "No error log was captured for this run. If resuming keeps failing, report the run to BioMate.",
+      "advice_resume": "Resume from last step to reuse completed work.",
+      "advice_no_resume": "No completed step is available to resume. Review the error and restart after correcting the cause.",
+      "advice_fix": "Adjust your parameters or input files, then run again with edits.",
+      "advice_check_input": "Check your input data and parameters against the error, then run again.",
+      "cat_infra_transient": "A temporary infrastructure interruption stopped the run.",
+      "cat_resource_memory": "A step ran out of memory. Running it again with more memory should let it finish.",
+      "cat_resource_time": "The run hit its time limit. Running it again with a longer limit should let it finish.",
+      "cat_config_param": "A configuration or parameter issue stopped the run before it could complete.",
+      "cat_input_data": "An input was missing, could not be found, or looks malformed.",
+      "cat_tool_error": "A step failed while running.",
+      "cat_tool_error_detail": "The step stopped with an error from the tool itself: {{detail}}",
+      "cat_workflow_code": "This looks like a defect in the workflow itself, not your input. A plain re-run would hit the same error; it has been flagged for the BioMate team.",
+      "cat_unknown": "The run stopped before completing."
     }
   },
   "preview": {
@@ -1125,7 +1143,8 @@
     "run_gate_pass": "Gate passed",
     "run_gate_fail": "Gate failed",
     "run_gate_pass_threshold": "Gate passed · threshold {{threshold}}",
-    "run_gate_fail_threshold": "Gate failed · threshold {{threshold}}"
+    "run_gate_fail_threshold": "Gate failed · threshold {{threshold}}",
+    "launch_too_few_rows": "This file has only {{rows}} data row(s); training needs at least {{min}} — one row per sample, with feature columns and the column to predict. Pick a training table instead."
   },
   "instructions_formats": {
     "edit_title": "Edit output format",
@@ -1467,6 +1486,75 @@
       "split_overlap": "{{count}} feature row(s) appear in more than one split — train/test overlap.",
       "dedup_splits": "Train/test overlap",
       "dedup_splits_effect": "de-duplicate rows across splits before evaluation"
+    }
+  },
+  "failure": {
+    "no_error": {
+      "next": "No error message was captured for this run. Open the run in the workflow panel → failed step → log to see the task log, and share it so I can investigate."
+    },
+    "unknown": {
+      "next": "Share this error with me and I will investigate; the full task log is in the workflow panel → failed step → log.",
+      "next_step": "Share this error with me and I will investigate; you can also open the run in the workflow panel → '{{process}}' step → log for the full task log."
+    },
+    "workflow_not_found": {
+      "cause": "The workflow itself could not be loaded on the server — the pipeline path it was given does not exist or is unavailable.",
+      "next": "Pick the workflow from the panel/catalog (or ask me to route your request) instead of that path, then run it again."
+    },
+    "bad_contrast": {
+      "cause": "Your contrasts file references a column that is not present in your sample sheet, so the comparison could not be set up.",
+      "cause_named": "Your contrasts/design references the column '{{contrast}}', which is not in your sample sheet.",
+      "culprit": "contrasts file",
+      "culprit_named": "contrasts column '{{contrast}}'",
+      "next": "Make the contrast variable match a column that exists in the sample sheet (add the column, or fix its name/spelling), then run again.",
+      "next_named": "Make the contrast variable match a column that exists in the sample sheet (add the column, or fix its name/spelling), then run again."
+    },
+    "missing_column": {
+      "cause_named": "The analysis expected a column '{{column}}' that is not in your input table.",
+      "culprit_named": "column '{{column}}'",
+      "next_named": "Add the '{{column}}' column to your input (or correct the column name in the parameter that selects it), then run again."
+    },
+    "too_few_rows": {
+      "cause_named": "The input table has only {{rows}} usable row(s), too few for {{folds}}-fold cross-validation — it does not look like a training table (one row per sample with feature columns and a label).",
+      "culprit_named": "training dataset",
+      "next_named": "Pick a dataset with one row per sample (at least a few dozen rows), or lower the number of folds / use a holdout split, then train again."
+    },
+    "empty_input": {
+      "cause": "One of the input files is empty — there was no data for the step to process.",
+      "cause_named": "The input file {{file}} is empty — there was no data for the step to process.",
+      "culprit_named": "{{file}}",
+      "next": "Confirm the upload/transfer completed and the file actually contains data, replace the empty input, then run again.",
+      "next_named": "Confirm the upload/transfer completed and the file actually contains data, replace the empty input, then run again."
+    },
+    "out_of_memory": {
+      "cause": "The step{{step}} ran out of memory (or was killed for exceeding its resource limit){{exit}}.",
+      "culprit": "memory/resource allocation",
+      "culprit_step": "step '{{process}}'",
+      "next": "Re-run with a larger memory / instance size for that step, or reduce the input size (subset / downsample) so it fits."
+    },
+    "container_tool": {
+      "cause": "A tool or container the step{{step}} needs was not available (missing command or image).",
+      "culprit": "container/tool",
+      "culprit_step": "step '{{process}}' container/tool",
+      "next": "This is usually an environment issue on our side — report it to BioMate; we will check the container/tool image for that step. Re-running as-is will not help until it is fixed."
+    },
+    "missing_input_file": {
+      "cause": "An input file the pipeline needs could not be found at the path it was given.",
+      "cause_named": "An input the pipeline needs could not be found: {{file}}.",
+      "culprit_named": "{{file}}",
+      "next": "Check that the file parameter points to a file that exists and is still accessible (re-upload or fix the path), then run again.",
+      "next_named": "Check that the file parameter points to a file that exists and is still accessible (re-upload or fix the path), then run again."
+    },
+    "bad_parameter": {
+      "cause": "A parameter value was invalid, or a required parameter was missing.",
+      "cause_named": "A parameter value was invalid or missing: {{param}}.",
+      "culprit_named": "{{param}}",
+      "next": "Open the workflow panel → Edit params, fix the named parameter (set a valid/allowed value), then run again.",
+      "next_named": "Open the workflow panel → Edit params, fix the named parameter (set a valid/allowed value), then run again."
+    },
+    "tool_error": {
+      "cause_named": "The step{{step}} stopped with an error from the tool itself: {{detail}}",
+      "culprit_step": "step '{{process}}'",
+      "next_named": "Check the input and parameters against that message (it usually names what is wrong), fix them, then run again."
     }
   }
 }

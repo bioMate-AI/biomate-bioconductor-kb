@@ -152,3 +152,12 @@ export function openRunManager(navigate: (url: string) => void = url => window.l
   } catch { /* storage unavailable — the manager can still be opened by hand */ }
   navigate('/');
 }
+
+/** Fewest data rows a training run can use — mirrors MIN_TRAIN_ROWS in
+ *  backend galaxy/ai/ml_training/plan.py, which enforces it server-side. */
+export const MIN_TRAIN_ROWS = 10;
+
+/** CSV/TSV-style files, where one row is one sample (the row floor applies). */
+export function isDelimitedTable(name: string): boolean {
+  return /\.(csv|tsv|txt)(\.gz)?$/i.test(name);
+}

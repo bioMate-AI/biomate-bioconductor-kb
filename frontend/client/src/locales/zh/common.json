@@ -1079,7 +1079,25 @@
     "workflow_parameters": "工作流参数",
     "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。",
     "inputs_linked_review": "已设置输入文件引用，请核对下方映射。",
-    "run_stopped": "运行在完成前停止。"
+    "run_stopped": "运行在完成前停止。",
+    "diag": {
+      "title": "AI 诊断",
+      "error_details": "错误详情",
+      "no_log": "本次运行没有记录到错误日志。如果继续运行仍然失败，请将该运行反馈给 BioMate。",
+      "advice_resume": "可从上一个完成的步骤继续运行，复用已完成的工作。",
+      "advice_no_resume": "没有可续跑的已完成步骤。请查看错误，修正原因后重新运行。",
+      "advice_fix": "调整参数或输入文件后，带修改重新运行。",
+      "advice_check_input": "请对照报错检查输入数据和参数，然后重新运行。",
+      "cat_infra_transient": "临时的基础设施中断导致运行停止。",
+      "cat_resource_memory": "某个步骤内存不足。分配更多内存后重新运行应可完成。",
+      "cat_resource_time": "运行达到了时间上限。放宽时间上限后重新运行应可完成。",
+      "cat_config_param": "配置或参数问题导致运行未能完成。",
+      "cat_input_data": "某个输入缺失、找不到或格式有误。",
+      "cat_tool_error": "某个步骤在运行中失败。",
+      "cat_tool_error_detail": "该步骤因工具自身报错而停止：{{detail}}",
+      "cat_workflow_code": "这看起来是工作流本身的缺陷，而不是您的输入问题。原样重跑会遇到同样的错误；已标记给 BioMate 团队修复。",
+      "cat_unknown": "运行在完成前停止。"
+    }
   },
   "preview": {
     "loading": "正在加载预览…",
@@ -1643,7 +1661,8 @@
     "run_gate_pass": "质量门通过",
     "run_gate_fail": "质量门未通过",
     "run_gate_pass_threshold": "质量门通过 · 阈值 {{threshold}}",
-    "run_gate_fail_threshold": "质量门未通过 · 阈值 {{threshold}}"
+    "run_gate_fail_threshold": "质量门未通过 · 阈值 {{threshold}}",
+    "launch_too_few_rows": "该文件只有 {{rows}} 行数据，训练至少需要 {{min}} 行——每行一个样本，包含特征列和要预测的列。请选择训练用的数据表。"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",
@@ -1962,6 +1981,75 @@
       "split_overlap": "{{count}} 行特征出现在多个数据划分中 — 训练集与测试集重叠。",
       "dedup_splits": "训练集与测试集重叠",
       "dedup_splits_effect": "评估前在各划分间去除重复行"
+    }
+  },
+  "failure": {
+    "no_error": {
+      "next": "本次运行没有记录到错误信息。请在工作流面板中打开该运行 → 失败步骤 → 日志查看任务日志，并发给我以便排查。"
+    },
+    "unknown": {
+      "next": "请把这条错误发给我，我来排查；完整任务日志在工作流面板 → 失败步骤 → 日志中。",
+      "next_step": "请把这条错误发给我，我来排查；也可以在工作流面板中打开该运行 → 「{{process}}」步骤 → 日志查看完整任务日志。"
+    },
+    "workflow_not_found": {
+      "cause": "服务器无法加载该工作流本身——给定的流程路径不存在或不可用。",
+      "next": "请从面板或目录中选择工作流（或让我为您的需求匹配工作流），不要直接使用该路径，然后重新运行。"
+    },
+    "bad_contrast": {
+      "cause": "对比文件引用了样本表中不存在的列，因此无法建立比较。",
+      "cause_named": "对比/设计引用了列「{{contrast}}」，但样本表中没有这一列。",
+      "culprit": "对比文件",
+      "culprit_named": "对比列「{{contrast}}」",
+      "next": "让对比变量与样本表中已有的列一致（补充该列，或修正列名拼写），然后重新运行。",
+      "next_named": "让对比变量与样本表中已有的列一致（补充该列，或修正列名拼写），然后重新运行。"
+    },
+    "missing_column": {
+      "cause_named": "分析需要列「{{column}}」，但输入表中没有这一列。",
+      "culprit_named": "列「{{column}}」",
+      "next_named": "在输入中补充「{{column}}」列（或在选择该列的参数中改正列名），然后重新运行。"
+    },
+    "too_few_rows": {
+      "cause_named": "输入表只有 {{rows}} 行可用数据，不足以做 {{folds}} 折交叉验证——它看起来不是训练表（训练表应每行一个样本，包含特征列和标签列）。",
+      "culprit_named": "训练数据集",
+      "next_named": "请选择每行一个样本的数据集（至少几十行），或减少折数 / 改用留出法划分，然后重新训练。"
+    },
+    "empty_input": {
+      "cause": "某个输入文件为空——该步骤没有可处理的数据。",
+      "cause_named": "输入文件 {{file}} 为空——该步骤没有可处理的数据。",
+      "culprit_named": "{{file}}",
+      "next": "确认上传/传输已完成且文件确实包含数据，替换空输入后重新运行。",
+      "next_named": "确认上传/传输已完成且文件确实包含数据，替换空输入后重新运行。"
+    },
+    "out_of_memory": {
+      "cause": "步骤{{step}}内存不足（或因超出资源上限被终止）{{exit}}。",
+      "culprit": "内存/资源分配",
+      "culprit_step": "步骤「{{process}}」",
+      "next": "为该步骤分配更大的内存/实例后重新运行，或缩小输入（取子集/降采样）使其能够容纳。"
+    },
+    "container_tool": {
+      "cause": "步骤{{step}}所需的工具或容器不可用（缺少命令或镜像）。",
+      "culprit": "容器/工具",
+      "culprit_step": "步骤「{{process}}」的容器/工具",
+      "next": "这通常是平台环境问题——请反馈给 BioMate，我们会检查该步骤的容器/工具镜像。修复前原样重跑不会成功。"
+    },
+    "missing_input_file": {
+      "cause": "流程所需的某个输入文件在给定路径下找不到。",
+      "cause_named": "找不到流程所需的输入：{{file}}。",
+      "culprit_named": "{{file}}",
+      "next": "检查文件参数指向的文件是否存在且仍可访问（重新上传或修正路径），然后重新运行。",
+      "next_named": "检查文件参数指向的文件是否存在且仍可访问（重新上传或修正路径），然后重新运行。"
+    },
+    "bad_parameter": {
+      "cause": "某个参数值无效，或缺少必填参数。",
+      "cause_named": "参数值无效或缺失：{{param}}。",
+      "culprit_named": "{{param}}",
+      "next": "打开工作流面板 → 编辑参数，修正该参数（设为有效/允许的值），然后重新运行。",
+      "next_named": "打开工作流面板 → 编辑参数，修正该参数（设为有效/允许的值），然后重新运行。"
+    },
+    "tool_error": {
+      "cause_named": "步骤{{step}}因工具自身报错而停止：{{detail}}",
+      "culprit_step": "步骤「{{process}}」",
+      "next_named": "请对照该报错信息（通常会指出问题所在）检查输入数据和参数，修正后重新运行。"
     }
   }
 }

@@ -21,7 +21,7 @@ Pure module: no FastAPI / network, unit-testable offline.
 from __future__ import annotations
 
 import math
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from .config import (
     ConfigError, DatasetSpec, DiffusionSpec, Hyperparams, LLMSpec, SCDiffusionSpec,
@@ -190,9 +190,39 @@ def build_training_config(req: dict) -> TrainingConfig:
     ).validate()
 
 
-def build_training_plan(req: dict) -> dict[str, Any]:
-    """Validated config → the workflow_ga + compute config Node submits to /api/workflows/execute."""
+# Fewest rows any training split can work with. k-fold needs at least two rows
+# per fold on top of that. Below this the Batch job can only fail (dev run
+# c0d27792: a 1-row DESeq2 contrasts.csv → "cannot make 5 folds from 1 rows").
+MIN_TRAIN_ROWS = 10
+
+
+def required_rows(cfg: TrainingConfig) -> int:
+    if cfg.dataset.split == "kfold":
+        return max(MIN_TRAIN_ROWS, 2 * int(cfg.dataset.cv_folds or 0))
+    return MIN_TRAIN_ROWS
+
+
+def check_dataset_rows(cfg: TrainingConfig, rows: Optional[int]) -> None:
+    """Refuse a dataset too small to train on before a Batch job is spent on it.
+    `rows=None` (row count unknown) is not a refusal: the training job reports it.
+    The message starts with a stable code the panel localises."""
+    if rows is None:
+        return
+    need = required_rows(cfg)
+    if rows < need:
+        raise ConfigError(
+            f"dataset_too_small:{rows}:{need}: the dataset has {rows} row(s); training needs "
+            f"at least {need} (one row per sample, with feature columns and the target column)")
+
+
+def build_training_plan(req: dict, rows_of: Optional[Callable[[str], Optional[int]]] = None) -> dict[str, Any]:
+    """Validated config → the workflow_ga + compute config Node submits to /api/workflows/execute.
+
+    `rows_of(s3_uri)` returns the dataset's row count (None when it cannot be read);
+    the endpoint wires it to the perception profiler."""
     cfg = build_training_config(req)
+    if rows_of is not None and cfg.dataset.s3_uri:
+        check_dataset_rows(cfg, rows_of(cfg.dataset.s3_uri))
     nf_path = nextflow_path_for(cfg.model_type)
     ga = cfg.to_workflow_ga(nextflow_path=nf_path)
     dataset_name = _text(req, "dataset_name") or (cfg.dataset.s3_uri or "").rsplit("/", 1)[-1]

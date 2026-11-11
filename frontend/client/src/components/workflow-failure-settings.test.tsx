@@ -8,6 +8,14 @@ vi.mock('./feedback/download-outcome-prompt',()=>({DownloadOutcomePrompt:()=>nul
 beforeEach(()=>{vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,status:404,json:async()=>({}),text:async()=>''})));});
 
 describe('recorded recovery capability and directly accessible settings',()=>{
+  it('renders the category sentence from the locale, quoting the tool\'s own message (dev run c0d27792)',()=>{
+    const server='The step stopped with an error from the tool itself: cannot make 5 folds from 1 rows Check the input data and parameters against it, then run again.';
+    expect(failureDiagnosisMessage(server,false,'tool_error','cannot make 5 folds from 1 rows'))
+      .toBe('The step stopped with an error from the tool itself: cannot make 5 folds from 1 rows');
+    expect(failureDiagnosisMessage('anything',false,'unknown')).toBe('The run stopped before completing.');
+    // arch_compat keeps the server's own (bilingual) message.
+    expect(failureDiagnosisMessage('此工作流… (Workflow container image has no ARM64 build.)',true,'arch_compat')).toContain('ARM64');
+  });
   it('preserves the cause while removing a server resume promise with no recorded checkpoint',()=>{
     const message='The run stopped before completing. You can resume from the last completed step.';
     expect(failureDiagnosisMessage(message,false)).toBe('The run stopped before completing.');

@@ -22,7 +22,7 @@ import { Loader2, Play } from 'lucide-react';
 import { t } from '@/lib/i18n';
 import {
   availableModelTypes, backendModelType, columnValues, defaultModelName, detectSmilesColumns,
-  fileKind, isSupervised, LLM_TYPES, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
+  fileKind, isDelimitedTable, isSupervised, LLM_TYPES, MIN_TRAIN_ROWS, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
   type LauncherFamily, type PanelModelType, type TaskType,
 } from './training-logic';
 import { launchTraining, TrainingLaunchError, useRunStatus, type TrainingPlan } from './models-api';
@@ -42,6 +42,8 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const [columns, setColumns] = useState<string[]>([]);
   const [sampleRows, setSampleRows] = useState<unknown[][]>([]);
   const [profileState, setProfileState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  // Total data rows of the selected table (from the profile), null when unknown.
+  const [rowCount, setRowCount] = useState<number | null>(null);
   const [modelType, setModelType] = useState<PanelModelType | ''>('');
   const [target, setTarget] = useState('');
   const [smilesCol, setSmilesCol] = useState('');
@@ -77,7 +79,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
 
   // Real columns for the selected file (tables only).
   useEffect(() => {
-    setColumns([]); setSampleRows([]); setTarget(''); setSmilesCol(''); setModelType('');
+    setColumns([]); setSampleRows([]); setRowCount(null); setTarget(''); setSmilesCol(''); setModelType('');
     setTaskTouched(false); setNameTouched(false); setSpec({});
     if (!file) { setProfileState('idle'); return; }
     if (fileKind(file.name) !== 'table') { setProfileState('ready'); return; }
@@ -93,6 +95,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
         const cols: string[] = Array.isArray(body?.columns) ? body.columns.map(String) : [];
         setColumns(cols);
         setSampleRows(Array.isArray(body?.sampleRows) ? body.sampleRows : []);
+        setRowCount(typeof body?.rows === 'number' && Number.isFinite(body.rows) ? body.rows : null);
         setProfileState(cols.length ? 'ready' : 'error');
       })
       .catch(cause => { if (!controller.signal.aborted) { setProfileState('error'); setError(cause.message); } });
@@ -139,7 +142,9 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const needsSmiles = !!modelType && (family === 'molecular' || modelType === 'ludwig_molecular');
   const gateValue = gate.trim() === '' ? undefined : Number(gate);
   const gateValid = gateValue === undefined || Number.isFinite(gateValue);
-  const valid = !!project && !!file && !!modelType && gateValid
+  // Same floor the server enforces (galaxy.ai.ml_training.plan.MIN_TRAIN_ROWS).
+  const tooFewRows = !!file && isDelimitedTable(file.name) && rowCount !== null && rowCount < MIN_TRAIN_ROWS;
+  const valid = !!project && !!file && !!modelType && gateValid && !tooFewRows
     && (!supervised || (!!target && !!metric))
     && (!needsSmiles || (!!smilesCol && smilesCol !== target))
     && (epochs.trim() === '' || Number(epochs) > 0);
@@ -167,6 +172,8 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
     } catch (cause) {
       const stage = cause instanceof TrainingLaunchError ? cause.stage : 'plan';
       const detail = cause instanceof Error ? cause.message : String(cause);
+      const small = /^dataset_too_small:(\d+):(\d+)/.exec(detail);
+      if (small) { setError(t('models.launch_too_few_rows', { rows: Number(small[1]), min: Number(small[2]) })); return; }
       setError(stage === 'execute' ? t('models.launch_execute_failed', { detail }) : t('models.launch_plan_failed', { detail }));
     } finally {
       setBusy(false);
@@ -198,6 +205,12 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
       {project && !filesLoading && !files.length && <p className="text-xs">{t('models.setup_no_files')}</p>}
       {profileState === 'loading' && <p role="status" className="text-xs">{t('models.columns_loading')}</p>}
       {profileState === 'error' && <p className="text-xs text-destructive">{t('models.columns_unavailable')}</p>}
+
+      {tooFewRows && (
+        <p className="text-xs text-destructive" data-testid="launcher-too-few-rows">
+          {t('models.launch_too_few_rows', { rows: rowCount ?? 0, min: MIN_TRAIN_ROWS })}
+        </p>
+      )}
 
       {file && !modelTypes.length && profileState !== 'loading' && (
         <p className="text-xs text-destructive" data-testid="launcher-no-model-types">
