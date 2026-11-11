@@ -193,3 +193,22 @@ live `analyzeIntent` offline via OpenRouter (`google/gemini-3.8-flash`), flag of
 
 So step 2 = demonstrated + measured, gated OFF, with the next steps and the regression check
 written down — not shipped.
+
+### Gold-set regression check (structural, 2026-11-11)
+
+Ran the decomposition benchmark A/B on the 24-row real gold set
+(`decomp_model_bench.ts`, `google/gemini-3.8-flash`, flag off vs on; `decomp_off.jsonl` /
+`decomp_on.jsonl` in scratchpad, ~$0.3). Free structural diff (node count + depends_on edges),
+not the LLM judge:
+
+- **19/23 rows identical** structure (flag-on is inert on normal decomposition)
+- **0 errors** in either arm
+- **4 rows changed**, all node-count *increases* (`decreal_mixed_4` 1→3, `decreal_sequential_13`
+  1→3, `decreal_sequential_63` 3→4, `decreal_sequential_65` 1→4)
+
+**Read:** reassuring (mostly inert, no breakage), **not conclusive**. The 4 shifts could be the
+operation-skills block OR gemini-3.8-flash stochasticity — there is no noise-baseline (off run
+twice), and without scoring against each row's gold I can't tell if the extra nodes are better
+(off was under-decomposing a chain to 1 node) or worse (on over-split). **Gate before enabling:**
+the formal judged eval (`decomp_judge.py`) off vs on, plus an off-twice noise baseline, on an
+adequate max_tokens (the control truncated at 4096). Flag remains OFF.
