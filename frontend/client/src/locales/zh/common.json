@@ -1183,6 +1183,14 @@
       "cat_tool_error_detail": "该步骤因工具自身报错而停止：{{detail}}",
       "cat_workflow_code": "这看起来是工作流本身的缺陷，而不是您的输入问题。原样重跑会遇到同样的错误；已标记给 BioMate 团队修复。",
       "cat_unknown": "运行在完成前停止。"
+    },
+    "env": {
+      "preparing": "准备运行环境（首次运行）",
+      "ready": "环境就绪",
+      "ready_starting": "环境就绪，正在启动…",
+      "pull_failed": "镜像下载失败",
+      "auto_resume": "检测到后台重启，{{n}} 秒后自动恢复运行…",
+      "cancel": "取消"
     }
   },
   "preview": {

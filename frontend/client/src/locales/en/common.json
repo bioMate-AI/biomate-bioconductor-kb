@@ -984,6 +984,14 @@
       "cat_tool_error_detail": "The step stopped with an error from the tool itself: {{detail}}",
       "cat_workflow_code": "This looks like a defect in the workflow itself, not your input. A plain re-run would hit the same error; it has been flagged for the BioMate team.",
       "cat_unknown": "The run stopped before completing."
+    },
+    "env": {
+      "preparing": "Preparing the run environment (first run)",
+      "ready": "Environment ready",
+      "ready_starting": "Environment ready, starting…",
+      "pull_failed": "Image download failed",
+      "auto_resume": "Backend restart detected — resuming automatically in {{n}}s…",
+      "cancel": "Cancel"
     }
   },
   "preview": {
