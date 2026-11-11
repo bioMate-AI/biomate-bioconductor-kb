@@ -15,7 +15,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const STATE_FILE = process.env.LIVE_JOURNEYS_STATE || path.join(HERE, 'test-results', 'live-journeys-state.json');
+export const STATE_FILE = process.env.LIVE_JOURNEYS_STATE || path.join(HERE, '.live-journeys-state.json')  // NOT under test-results/: Playwright clears that dir at run start;
 const BASE = (process.env.BIOMATE_URL || 'https://dev-public.biomate.ai').replace(/\/$/, '');
 const EMAIL = 'lifeifei163361@163.com';
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';

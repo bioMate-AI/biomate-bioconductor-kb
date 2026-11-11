@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the live user-journey suite (frontend/e2e/live-journeys.e2e.ts) against a
 # deployed BioMate stack and print a pass/fail table. Exits non-zero if any
-# journey fails (skipped journeys do not fail the run).
+# journey fails, is skipped, or does not run — only a demonstrated outcome passes.
 #
 #   scripts/run_live_journeys.sh                       # against dev
 #   BIOMATE_URL=https://other.host scripts/run_live_journeys.sh

@@ -151,7 +151,8 @@ test('d. models: Boltz-2 folds a protein and Evo2-7B generates — real payloads
   // UI — resilient to the Models page being rebuilt in parallel.
   await page.goto(`${BASE}/models`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
-  const runTab = page.locator('[data-testid="models-track-3"]').or(page.getByRole('tab', { name: /Run a model|运行模型/ }));
+  // Models panel (2026-11-11): tabs 训练 / 模型库 / 分子学习 — "run a model" lives in 模型库.
+  const runTab = page.getByRole('tab', { name: /模型库|Model library|Run a model|运行模型/ });
   if (await runTab.first().isVisible().catch(() => false)) {
     await runTab.first().click();
     await page.locator('[data-testid="domain-structure"]').click().catch(() => {});
@@ -226,23 +227,27 @@ test('a. dataset: JSONL upload opens as 5-column records with scrollable preview
   await scroller.evaluate((el) => { el.scrollTop = el.scrollHeight; });
   const after = await scroller.evaluate((el) => el.scrollTop);
   expect(after, 'preview pane did not scroll').toBeGreaterThan(0);
-  await expect(table.locator('tbody tr').nth(bodyRows - 1)).toBeInViewport();
-  await shot('a2_dataset_preview_scrolled');
-});
-
-// ── (e) Training from the panel (prepared; skipped until the route exists) ───
-test('e. training: plan a tabular classifier from the data panel', async () => {
-  const fileId = currentFileId();
-  const probe = await api.post('/api/model-training/plan', { data: {} });
-  test.skip(probe.status() === 404, 'POST /api/model-training/plan is not deployed yet (404) — journey prepared, enable when it ships');
-  test.skip(!fileId, 'journey (a) did not upload the dataset');
-  // Route exists: it must accept a real plan request over the uploaded dataset.
-  const r = await api.post('/api/model-training/plan', {
-    data: { projectId, fileId, task: 'classification', target: 'source' },
+  // The table is windowed (only visible rows are rendered, more load on scroll), so
+  // "the last DOM row is in view" is not meaningful. The outcome is: after scrolling,
+  // the rows the user SEES are later records than before.
+  const visibleFirstCell = () => scroller.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const row = Array.from(el.querySelectorAll('tbody tr')).find((r) => {
+      const b = (r as HTMLElement).getBoundingClientRect();
+      return b.bottom > box.top + 1 && b.top < box.bottom - 1;
+    });
+    return row ? (row.textContent || '').trim().slice(0, 120) : '';
   });
-  const body = await r.json().catch(() => ({}));
-  expect(r.status(), `plan: ${JSON.stringify(body).slice(0, 300)}`).toBeLessThan(400);
-  expect(body, 'plan response is empty').not.toEqual({});
+  await scroller.evaluate((el) => { el.scrollTop = 0; });
+  await page.waitForTimeout(300);
+  const topRow = await visibleFirstCell();
+  await scroller.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await page.waitForTimeout(800);
+  const bottomRow = await visibleFirstCell();
+  expect(topRow, 'no row visible at the top of the preview').not.toBe('');
+  expect(bottomRow, 'no row visible after scrolling').not.toBe('');
+  expect(bottomRow, 'scrolling did not reveal later records').not.toBe(topRow);
+  await shot('a2_dataset_preview_scrolled');
 });
 
 // ── (b)+(c) Chat direct compute, then refresh keeps the chat ────────────────
@@ -342,4 +347,53 @@ test('b+c. chat: "不用工作流" computes directly with the true count; refres
     await expect(page.locator('[data-role="assistant"]').getByText(new RegExp(`${FIXTURE_ROWS}`)).first(), 'answer vanished after refresh').toBeVisible({ timeout: 30_000 });
     await shot('c1_after_refresh');
   });
+});
+
+// ── (e) Training from the panel → a REAL training run completes on Batch ────
+// Same two calls the 训练 tab's 开始训练 button makes (models-api.ts launchTraining):
+// POST /api/model-training/plan, then POST /api/workflows/execute; then the run must
+// reach `completed` (not merely be accepted) and appear in the panel's run list.
+test('e. training: a tabular classifier trains to completion from the panel path', async () => {
+  test.setTimeout(45 * 60_000);
+  const csv = path.join(HERE, 'fixtures', 'train_tabular.csv');
+  const up = await api.post(`/api/projects/${projectId}/files/upload`, {
+    multipart: { file: { name: 'train_tabular.csv', mimeType: 'text/csv', buffer: readFileSync(csv) } },
+  });
+  expect(up.status(), `upload: ${(await up.text()).slice(0, 200)}`).toBeLessThan(400);
+  const fileId = ((await up.json()).file || {}).id;
+  expect(fileId, 'upload returned no file id').toBeTruthy();
+
+  const planRes = await api.post('/api/model-training/plan', {
+    data: { projectId, fileId, model_type: 'sklearn_tabular', task_type: 'classification',
+            target_col: 'label', metric: 'accuracy', gate_threshold: 0.6, model_name: 'live-journey-tabular' },
+  });
+  const plan = await planRes.json().catch(() => ({}));
+  expect(planRes.status(), `plan: ${JSON.stringify(plan).slice(0, 300)}`).toBe(200);
+  expect(plan.workflow_ga?.name, 'plan has no workflow').toBeTruthy();
+
+  const exec = await api.post('/api/workflows/execute', {
+    data: { workflowDefinition: plan.workflow_ga, workflowName: plan.workflow_ga.name,
+            executionConfig: { mode: 'production', executionEngine: 'nextflow', computeConfig: plan.compute_config },
+            inputs: [], projectId },
+  });
+  const ex = await exec.json().catch(() => ({}));
+  expect(exec.status(), `execute: ${JSON.stringify(ex).slice(0, 300)}`).toBeLessThan(400);
+  const runId = ex.runId;
+  expect(runId, 'execute returned no runId').toBeTruthy();
+  test.info().annotations.push({ type: 'training-run', description: String(runId) });
+
+  let last: any = {};
+  const deadline = Date.now() + 40 * 60_000;
+  while (Date.now() < deadline) {
+    const st = await api.get(`/api/workflows/runs/${encodeURIComponent(runId)}/status`);
+    last = await st.json().catch(() => ({}));
+    if (['completed', 'failed', 'cancelled', 'error'].includes(String(last.status))) break;
+    await new Promise((r) => setTimeout(r, 15_000));
+  }
+  expect(last.status, `training run ${runId} ended ${last.status}: ${last.errorMessage ?? ''}`).toBe('completed');
+
+  // The panel lists it.
+  await page.goto(`${BASE}/models`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('live-journey-tabular').first(), 'trained run missing from 训练运行').toBeVisible({ timeout: 60_000 });
+  await shot('e1_training_completed');
 });
