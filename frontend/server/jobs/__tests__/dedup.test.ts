@@ -207,7 +207,7 @@ describe("jobs router — dedup", () => {
     } finally {
       await new Promise<void>((r) => server.close(() => r()));
     }
-  });
+  }, 30_000); // first test cold-imports express + the jobs router (+ mocked db): >5 s on CI runners
 });
 
 describe("executor — recovery scan", () => {

@@ -79,7 +79,7 @@ describe('prepareSandboxOutputDir', () => {
     const out = path.join(baseDir, 'output');
     const foreign = { uid: realUid + 4242, gid: realGid + 4242 };
     await expect(prepareSandboxOutputDir(out, foreign, realUid, realGid))
-      .rejects.toThrow(/cannot chown run output dir .* to sandbox identity 4\d+:\d+.*RUN_CODE_UID/);
+      .rejects.toThrow(/cannot chown run output dir .* to sandbox identity \d+:\d+.*RUN_CODE_UID/);
   });
 
   it.runIf(isRoot)('as root, hands the dir to a different uid:gid', async () => {
