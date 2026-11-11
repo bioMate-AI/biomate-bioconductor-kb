@@ -104,6 +104,18 @@ cd frontend && BIOMATE_URL=https://dev-public.biomate.ai \
   - Candidates in `chat-interface.tsx`: the per-attempt `ATTEMPT_TIMEOUT_MS = 120_000` with retry; the user-abort path that returns a partial payload; session-update races (`App: Updating chat session … workflows: []`).
 - **Next step:** reproduce a failure with SSE and console capture on, under the same 3-worker concurrency. **Do not patch before the cause is identified.**
 
+**Root cause identified (2026-11-11, branch `fix/lost-workflow-card`):**
+- Timing (curl, dev `3b329654`, metaboanalystr): full summary text at 10 s, then about 62 s of server-side parameter grounding, then `workflow_ready` + `final` with the card at 72 s.
+- The client decided a turn was over once the reply had text. The typing cue was off, Stop was hidden, and the soft-queue was off for the whole ~60 s (`chat-interface.tsx` `displayTyping`; the progress line stayed in metadata and blocked the indicator even though it was no longer rendered). Users, and the 401e23e8 harness (not busy + 20 s stable), left before the card arrived.
+- Server: closing the socket wrote a text-only `partial: true` row and set the single `persisted` flag. The generation kept running and finished with `workflowGenerated: true`, but its final write was skipped (`routes.ts` `persistAssistantMessage`). 7 of the 9 failing sessions are stored `partial: true`.
+- The 2 failing sessions stored `partial: false` held only `workflowMetadata`. The reload path (`chat-history.ts` `fetchSessionDetail`) restores only `metadata`, so no card came back.
+- The current harness (polls the session for 90 s, so the page stays open) got 6 of 6 cards on dev `3b329654`. This is consistent with the above.
+- **Fix:**
+  - The turn state now follows the stream (`lib/chat-turn-state.ts`); `progress: matched` shows the workflow cue.
+  - The server persister never lets a partial write block or overwrite the final write (`server/chat-stream-persistence.ts`), and it stores `finalPayload`.
+  - The reload rebuilds the card from `finalPayload` with the same builder as the live stream (`lib/assistant-message-from-final.ts`).
+- **Still open:** the ~60 s parameter-grounding latency itself.
+
 ### 4.2 Wrong routing or no result — MEDIUM–HIGH
 
 | Example | Observed |

@@ -57,6 +57,7 @@ import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
 import { assessOutputCompletion } from "./output-completion-contract";
 import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
+import { createAssistantPersister } from "./chat-stream-persistence";
 import { humanizeWorkflowName } from "./workflow-display-name";
 import { isRunnableWorkflow } from "./workflow-runnable";
 import { parameterRepository } from "./parameter-repository";
@@ -6747,7 +6748,9 @@ ${paramLines || '(none recorded)'}`;
     // not race with the client-side chat-history sync.
     let accumulatedContent = "";
     let workflowMetadata: any = null;
-    let persisted = false;
+    // The `final` SSE payload, persisted so a reload can rebuild the card.
+    let finalPayloadForPersist: any = null;
+    const _fallbackAssistantMessageId = `srv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     // Strip tool-call XML the model sometimes narrates as prose (e.g. when reading
     // a PDF) out of the SSE stream. safeSend is the single funnel every model path
     // (Claude / Gemini / OpenAI / Ollama) emits through, so filtering here covers
@@ -6759,55 +6762,63 @@ ${paramLines || '(none recorded)'}`;
     // path falls back to ctx.projectId or null.
     let _resolvedProjectId: string | undefined;
 
-    const persistAssistantMessage = async (opts: { partial: boolean }): Promise<void> => {
-      if (persisted) return;
-      if (accumulatedContent.length === 0) return; // never persist an empty message
-      const userObj: any = (req as any).user;
-      if (!userObj?.id) return; // anonymous → nothing to persist (no session row)
-      const ctx = (req.body && req.body.context) || {};
-      const sessionId: string | undefined = ctx.sessionId || ctx.memorySessionId;
-      if (!sessionId) return;
-      const assistantMessageId: string =
-        ctx.assistantMessageId || `srv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const messageObj: any = {
-        message_id: assistantMessageId,
-        role: "assistant",
-        content: accumulatedContent,
-        timestamp: new Date().toISOString(),
-        partial: opts.partial,
-      };
-      if (workflowMetadata) messageObj.workflowMetadata = workflowMetadata;
-      try {
-        // UPSERT: ensure session row exists, then merge the assistant message by
-        // message_id (replace existing entry with same id, else append).
-        // project_id is set on insert AND backfilled on update if the row
-        // pre-dates Q4 (had a NULL project_id). The COALESCE preserves any
-        // existing non-null value so reassignment via a future UI selector
-        // doesn't get clobbered by the auto-resolved default project.
-        // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
-        // Prefer the server-resolved projectId (Q4 ensureDefaultProject)
-        // over a client-sent value, so a buggy client can't dissociate a
-        // session from the project we just resolved for it.
-        const projectIdForUpsert = _resolvedProjectId || ctx.projectId || null;
-        await pool.query(
-          `INSERT INTO chat_sessions (session_id, user_id, title, messages, project_id)
-             VALUES ($1, $2, 'New Chat', $3::jsonb, $5)
-             ON CONFLICT (session_id) DO UPDATE SET
-               messages = (
-                 SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
-                 FROM jsonb_array_elements(chat_sessions.messages) elem
-                 WHERE elem->>'message_id' IS DISTINCT FROM $4
-               ),
-               project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
-               last_activity = NOW()`,
-          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId, projectIdForUpsert]
-        );
-        persisted = true;
-        console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${opts.partial}, len=${accumulatedContent.length})`);
-      } catch (e: any) {
-        console.error('[ChatStream] Failed to persist assistant message:', e?.message || e);
-      }
-    };
+    // Write ordering (partial on disconnect vs final on completion) lives in
+    // createAssistantPersister — see server/chat-stream-persistence.ts.
+    const _assistantPersister = createAssistantPersister({
+      snapshot: () => ({ content: accumulatedContent, workflowMetadata, finalPayload: finalPayloadForPersist }),
+      write: async (w) => {
+        const userObj: any = (req as any).user;
+        if (!userObj?.id) return false; // anonymous → nothing to persist (no session row)
+        const ctx = (req.body && req.body.context) || {};
+        const sessionId: string | undefined = ctx.sessionId || ctx.memorySessionId;
+        if (!sessionId) return false;
+        const assistantMessageId: string =
+          ctx.assistantMessageId || _fallbackAssistantMessageId;
+        const messageObj: any = {
+          message_id: assistantMessageId,
+          role: "assistant",
+          content: w.content,
+          timestamp: new Date().toISOString(),
+          partial: w.partial,
+        };
+        if (w.workflowMetadata) messageObj.workflowMetadata = w.workflowMetadata;
+        // The client rebuilds the workflow card from this on reload when its own
+        // session sync never ran (tab closed/reloaded during the turn).
+        if (w.finalPayload) messageObj.finalPayload = w.finalPayload;
+        try {
+          // UPSERT: ensure session row exists, then merge the assistant message by
+          // message_id (replace existing entry with same id, else append).
+          // project_id is set on insert AND backfilled on update if the row
+          // pre-dates Q4 (had a NULL project_id). The COALESCE preserves any
+          // existing non-null value so reassignment via a future UI selector
+          // doesn't get clobbered by the auto-resolved default project.
+          // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+          // Prefer the server-resolved projectId (Q4 ensureDefaultProject)
+          // over a client-sent value, so a buggy client can't dissociate a
+          // session from the project we just resolved for it.
+          const projectIdForUpsert = _resolvedProjectId || ctx.projectId || null;
+          await pool.query(
+            `INSERT INTO chat_sessions (session_id, user_id, title, messages, project_id)
+               VALUES ($1, $2, 'New Chat', $3::jsonb, $5)
+               ON CONFLICT (session_id) DO UPDATE SET
+                 messages = (
+                   SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
+                   FROM jsonb_array_elements(chat_sessions.messages) elem
+                   WHERE elem->>'message_id' IS DISTINCT FROM $4
+                 ),
+                 project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
+                 last_activity = NOW()`,
+            [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId, projectIdForUpsert]
+          );
+          console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${w.partial}, len=${w.content.length}, card=${!!w.finalPayload?.workflow})`);
+          return true;
+        } catch (e: any) {
+          console.error('[ChatStream] Failed to persist assistant message:', e?.message || e);
+          return false;
+        }
+      },
+    });
+    const persistAssistantMessage = (opts: { partial: boolean }): Promise<void> => _assistantPersister.persist(opts);
 
     // Use socket 'close' (TCP disconnect) not req 'close' (body consumed).
     // req 'close' fires as soon as express body-parser finishes reading the POST body,
@@ -6815,10 +6826,9 @@ ${paramLines || '(none recorded)'}`;
     // TCP connection is actually destroyed (client disconnect).
     req.socket?.on('close', () => {
       abortController.abort();
-      // Fire-and-forget partial persistence on client disconnect.
-      if (!persisted && accumulatedContent.length > 0) {
-        persistAssistantMessage({ partial: true }).catch(() => {/* logged inside */});
-      }
+      // Fire-and-forget partial persistence on client disconnect. Generation
+      // continues server-side; the final write still lands afterwards.
+      persistAssistantMessage({ partial: true }).catch(() => {/* logged inside */});
     });
 
     let heartbeatTimer: NodeJS.Timeout | null = null;
@@ -6861,6 +6871,7 @@ ${paramLines || '(none recorded)'}`;
         // emit workflow data only in 'final', not 'workflow_ready').
         const wf = (data as any)?.workflow;
         if (wf && !workflowMetadata) workflowMetadata = { workflow: wf };
+        finalPayloadForPersist = data;
       }
       if (res.writableEnded || abortController.signal.aborted) return;
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -7869,9 +7880,7 @@ ${paramLines || '(none recorded)'}`;
       console.error("Chat Stream API error:", error);
       // Persist whatever we managed to stream before the error so the user can
       // see partial output on session reload.
-      if (!persisted && accumulatedContent.length > 0) {
-        await persistAssistantMessage({ partial: true }).catch(() => {/* logged */});
-      }
+      await persistAssistantMessage({ partial: true }).catch(() => {/* logged */});
       safeSend("error", {
         message: error?.message || "Streaming chat failed",
       });
