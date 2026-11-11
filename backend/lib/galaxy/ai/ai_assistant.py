@@ -15,7 +15,7 @@ from pathlib import Path
 from galaxy.ai.nf_param_requirement import null_param_is_required as _null_required
 import sqlite3
 import re
-from .workflow_relevance import workflow_relevance_verdict
+from .workflow_relevance import relevant_candidates, workflow_relevance_verdict
 
 from .types import (
     UserRequest, AIResponse, Task, Tool, ToolRecommendation,
@@ -5900,6 +5900,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
             # Return success response
             needs_user_feedback = match_type != "high_confidence"
+            # Only hits that clear the relevance floor are candidates: the chat layer may move
+            # the card to a candidate the reply names (Step 6c / 6c-2), and a below-floor hit
+            # there re-opened the path the floor closes (mismatched card via the text guardrail).
             candidate_workflows = [
                 {
                     'name': m.name,
@@ -5908,7 +5911,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     'score': m.score,
                     'format': m.format,
                 }
-                for m in (search_results or [])[:3]
+                for m in relevant_candidates(search_results)
             ]
 
             # A match whose template has no steps (no workflow_json, no nextflow_path) is not a

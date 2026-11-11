@@ -43,3 +43,11 @@ def workflow_relevance_verdict(search_results, best_score, input_compatible=None
         }
     return {'reject': False, 'reason': '', 'message': '', 'promote': usable[0] if usable[0] is not top else None}
 
+
+
+def relevant_candidates(search_results, floor=None, limit=3):
+    """The search hits that clear the floor, best first, as the candidate list a chat turn may
+    switch its card to (the text guardrail, Step 6c / 6c-2). A below-floor hit must never be
+    reachable that way — it is exactly what the floor refuses to attach."""
+    floor = WORKFLOW_RELEVANCE_FLOOR if floor is None else floor
+    return [r for r in (search_results or []) if getattr(r, 'score', 0.0) >= floor][:limit]
