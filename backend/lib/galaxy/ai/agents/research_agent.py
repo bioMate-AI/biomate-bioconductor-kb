@@ -673,16 +673,26 @@ def lookup_hpo_genes(hp_terms: List[str], limit: int = 20) -> Dict[str, List[dic
     return out
 
 
-def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
-    """NCBI ClinVar E-utils — pathogenic variants for a gene symbol."""
+def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5,
+                        pathogenic_only: bool = True, signal_errors: bool = False):
+    """NCBI ClinVar E-utils — variants for a gene symbol.
+
+    pathogenic_only=True (default) returns only pathogenic[CLNSIG] variants. For
+    VALIDATION pass pathogenic_only=False to return ALL significances — otherwise a real
+    benign / risk-factor / VUS variant (e.g. the LRRK2 risk allele G2385R, which ClinVar
+    classes "risk factor", not "pathogenic") is absent and would be wrongly flagged as a
+    fabrication. signal_errors=True returns None on a network/HTTP failure (vs [] for a
+    genuinely empty result) so a caller can say "could not check", not "not found"
+    (committee review, 2026-11-11)."""
+    _clnsig = "+pathogenic%5BCLNSIG%5D" if pathogenic_only else ""
     search_url = (
         f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-        f"?db=clinvar&term={urllib.parse.quote(gene_symbol)}%5Bgene%5D+pathogenic%5BCLNSIG%5D"
+        f"?db=clinvar&term={urllib.parse.quote(gene_symbol)}%5Bgene%5D{_clnsig}"
         f"&retmax={max_results}&retmode=json"
     )
     search = _http_get(search_url, timeout=10)
     if not search:
-        return []
+        return None if signal_errors else []
     ids = search.get("esearchresult", {}).get("idlist", [])
     if not ids:
         return []
@@ -692,7 +702,7 @@ def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
     )
     summary = _http_get(summary_url, timeout=10)
     if not summary:
-        return []
+        return None if signal_errors else []
     results = []
     for uid, doc in summary.get("result", {}).items():
         if uid == "uids":
@@ -704,6 +714,64 @@ def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
             "condition": doc.get("trait_set", [{}])[0].get("trait_name", "") if doc.get("trait_set") else "",
         })
     return results
+
+
+# ── Entity-claim validation helpers (spec: docs/20261111_ENTITY_CLAIM_VALIDATION_SPEC.md) ──
+_AA3TO1 = {'ala': 'A', 'arg': 'R', 'asn': 'N', 'asp': 'D', 'cys': 'C', 'gln': 'Q',
+           'glu': 'E', 'gly': 'G', 'his': 'H', 'ile': 'I', 'leu': 'L', 'lys': 'K',
+           'met': 'M', 'phe': 'F', 'pro': 'P', 'ser': 'S', 'thr': 'T', 'trp': 'W',
+           'tyr': 'Y', 'val': 'V'}
+
+
+def _normalize_protein_variant(v):
+    """Canonicalise a protein SNV string to (pos:int, from_aa1, to_aa1); None if not one.
+    Handles G2019S, p.Gly2019Ser, Gly2019Ser, p.G2019S — so a legacy mention matches HGVS."""
+    s = re.sub(r'^p\.', '', (v or "").strip(), flags=re.I)
+    m = re.fullmatch(r'([A-Za-z]{3})(\d+)([A-Za-z]{3})', s)
+    if m:
+        a, b = _AA3TO1.get(m.group(1).lower()), _AA3TO1.get(m.group(3).lower())
+        if a and b:
+            return (int(m.group(2)), a, b)
+    m = re.fullmatch(r'([A-Za-z])(\d+)([A-Za-z])', s)
+    if m:
+        return (int(m.group(2)), m.group(1).upper(), m.group(3).upper())
+    return None
+
+
+def _variant_in_clinvar_titles(claimed, titles):
+    """True if the claimed protein variant matches any ClinVar esummary title, comparing
+    canonical (pos, from, to) forms (legacy G2019S == HGVS p.Gly2019Ser)."""
+    want = _normalize_protein_variant(claimed)
+    joined = " \n ".join(t or "" for t in (titles or []))
+    if not want:  # non-SNV (indel/dup/fs) — fall back to substring
+        return bool(claimed) and claimed.lower() in joined.lower()
+    for cand in re.findall(r'p\.([A-Za-z]{3}\d+[A-Za-z]{3}|[A-Za-z]\d+[A-Za-z])', joined):
+        if _normalize_protein_variant(cand) == want:
+            return True
+    return False
+
+
+def _entity_validation_enabled():
+    import os as _os
+    return _os.environ.get("BIOMATE_ENTITY_VALIDATION", "").strip().lower() in ("1", "true", "yes")
+
+
+_FOUNDATIONAL_CUES = (
+    "what is the evidence", "evidence linking", "evidence for", "evidence that",
+    "etiolog", "aetiolog", "pathogenesis", "mechanism", "what drives", "what causes",
+    "structure-activity", "structure activity", " sar ", "sar for", "sar of",
+    "discover", "history of", "seminal", "foundational", "basis of", "underlying",
+    "link between", "association between", "causal",
+)
+
+
+def _needs_foundational(question):
+    """True when a question needs the FOUNDATIONAL literature (etiology / mechanism /
+    SAR / evidence-base), not just the last ~5 years — so retrieval should rank by
+    impact and keep seminal papers instead of burying them under recent reviews. The
+    ABL1/LRRK2 failure (every citation 2025-26, foundational papers absent) is this bug."""
+    q = f" {(question or '').lower()} "
+    return any(cue in q for cue in _FOUNDATIONAL_CUES)
 
 
 def lookup_omim_gene(gene_symbol: str) -> List[dict]:
@@ -1633,11 +1701,17 @@ class ResearchAgent:
                 # unverified paper (the 0-mismatched-citations property is preserved).
                 sub_queries = _build_search_queries(question, key_terms, primary_query)
                 _per_q = max(self.max_citations, 15)
+                # Etiology / evidence / SAR / mechanism questions need the FOUNDATIONAL
+                # literature (often 15-25 yrs old) — which a recency-ranked search buries
+                # under recent reviews (the ABL1/LRRK2 "all citations 2025-26" failure).
+                # Flag those so retrieval ranks by IMPACT (citation count) over recency.
+                _foundational = _needs_foundational(question)
 
                 async def _one_query(_q):
                     try:
                         return await self.literature_client.search_bioinformatics(
                             query=_q, max_results=_per_q, recent_years=5, verify_ids=_deep,
+                            recency_balance=_foundational,
                         )
                     except Exception as _e:
                         log.debug(f"sub-query search failed for '{_q[:60]}': {_e}")
@@ -1764,21 +1838,37 @@ class ResearchAgent:
                 _fed_entities = [e for e in (ids.get("gene_symbols") or []) if e][:2]
                 if _fed_entities:
                     _fed_sources = _select_sources(question, entities=_fed_entities)
+
+                    def _fed_one(e, s=_fed_sources):
+                        return _federated_query(str(e)[:80], sources=s)
+
+                    # Run the per-entity fan-outs in PARALLEL under ONE overall budget, so
+                    # the hot path can't add 2x the per-call timeout sequentially — the
+                    # worst case was +30s on every gene-named question (committee review,
+                    # 2026-11-11). return_exceptions so one failure doesn't sink the other;
+                    # non-fatal overall.
+                    _loop = asyncio.get_event_loop()
+                    _fed_results = await asyncio.wait_for(
+                        asyncio.gather(
+                            *[_loop.run_in_executor(None, _fed_one, _e) for _e in _fed_entities],
+                            return_exceptions=True,
+                        ),
+                        timeout=20,
+                    )
                     _fed_out: Dict[str, Any] = {}
-                    for _ent in _fed_entities:
-                        _r = await asyncio.get_event_loop().run_in_executor(
-                            None,
-                            lambda e=_ent, s=_fed_sources: _federated_query(str(e)[:80], sources=s),
-                        )
-                        if _r and _r.get("merged"):
+                    for _ent, _r in zip(_fed_entities, _fed_results):
+                        if isinstance(_r, dict) and _r.get("merged"):
                             _fed_out[_ent] = {
                                 "sources_queried": _r.get("sources_queried", []),
+                                "sources_succeeded": _r.get("sources_succeeded", []),
                                 "merged": _r["merged"][:8],
                             }
                     if _fed_out:
                         db_facts["federated_evidence"] = _fed_out
                         log.info("federated evidence: %s via %s",
                                  list(_fed_out.keys()), _fed_sources)
+            except asyncio.TimeoutError:
+                log.warning("federated evidence fan-out timed out (non-fatal)")
             except Exception as _fe:
                 log.warning(f"federated evidence fan-out skipped (non-fatal): {_fe}")
 
@@ -1804,7 +1894,12 @@ class ResearchAgent:
                             _tid = await asyncio.get_event_loop().run_in_executor(
                                 None, lambda: _orch.identify(question, context={"query": question}))
                             if _tid:
-                                db_facts["target_ranking"] = _tid
+                                # Store the serialized form: the renderer reads a dict
+                                # (targets[].target/score/tier); the raw OrchestratorResult
+                                # dataclass fails its isinstance(dict) check and renders nothing
+                                # (committee review, 2026-11-11).
+                                db_facts["target_ranking"] = (
+                                    _tid.to_dict() if hasattr(_tid, "to_dict") else _tid)
                                 log.info("target-id ranking attached for a target-ranking question")
             except Exception as _te:
                 log.warning(f"target-id ranking skipped (non-fatal): {_te}")
@@ -2278,6 +2373,19 @@ class ResearchAgent:
             answer_text = parsed.get('answer', response)
             answer_text, evidence_verdict = self._split_evidence_verdict(answer_text)
 
+            # ── Entity-claim validation (flag-gated, inert by default) ─────────
+            # Strip the model's own CLAIMS list (always — keeps it out of the answer)
+            # and, when enabled, validate each asserted entity against its authoritative
+            # source so a fabricated variant can't read as established.
+            answer_text, _entity_claims = self._split_claims(answer_text)
+            _claim_rows = []
+            if _entity_validation_enabled() and _entity_claims:
+                try:
+                    _claim_rows = await asyncio.get_event_loop().run_in_executor(
+                        None, lambda: self._validate_entity_claims(_entity_claims))
+                except Exception as _cve:
+                    log.warning(f"entity-claim validation skipped (non-fatal): {_cve}")
+
             # ── Conflict extraction ───────────────────────────────────────────
             # Pull the optional machine-parseable conflicts block BEFORE citation
             # grounding, so its embedded [N] tokens don't pollute the grounding
@@ -2367,12 +2475,32 @@ class ResearchAgent:
             _dbf = evidence.get('db_facts') or {}
             for _k, _v in _dbf.items():
                 if _k == 'federated_evidence' and isinstance(_v, dict):
+                    # Count ONE channel per entity that actually returned merged evidence —
+                    # NOT the attempted source list (sources_queried). The attempted count
+                    # inflated confidence: any real gene attempts ~5-9 sources and UniProt
+                    # returns an identity record regardless, so every gene read "reasonable"
+                    # even with zero on-topic data (committee review, 2026-11-11).
                     for _blk in _v.values():
                         if isinstance(_blk, dict) and _blk.get('merged'):
-                            _n_db_channels += len(_blk.get('sources_queried') or []) or 1
+                            _n_db_channels += 1
                 elif _v:
                     _n_db_channels += 1
             confidence = self._grounding_confidence(evidence_verdict, len(citations), _n_db_channels)
+            # Entity-validation outcome: flag unconfirmed claims in a footnote and penalise
+            # confidence — a confident fabrication (a variant not in ClinVar) must read
+            # "limited", never "reasonable".
+            if _claim_rows:
+                _flagged = [r for r in _claim_rows if r["status"] != "verified"]
+                _n_not_found = sum(1 for r in _claim_rows if r["status"] == "not_found")
+                if _flagged:
+                    _foot = ["\n\n**Entity validation** — asserted items that could not be confirmed "
+                             "against authoritative databases (treat as reported-but-unconfirmed):"]
+                    for r in _flagged:
+                        _subj = f" ({r['subject']})" if r.get("subject") else ""
+                        _foot.append(f"- {r['text']}{_subj} — {r['status']}: {r['note']}")
+                    answer_text = answer_text.rstrip() + "\n" + "\n".join(_foot)
+                if _n_not_found:
+                    confidence = min(confidence, 0.3)  # fabricated/unconfirmed entity → limited
             answer_text = self._ensure_evidence_boundary(answer_text, len(citations), confidence)
 
             return ResearchResponse(
@@ -3059,6 +3187,19 @@ class ResearchAgent:
                 "unreferenced background clearly marked as not literature-grounded."
             )
 
+        # Entity-claim validation (flag-gated): ask the model to list its own asserted
+        # checkable entities so each can be validated against an authoritative DB. Only
+        # added when enabled, so default behaviour is unchanged.
+        if _entity_validation_enabled():
+            prompt_parts.append(
+                "After the answer, output one final line, exactly: 'CLAIMS: ' followed by a "
+                "compact JSON array of the SPECIFIC checkable biomedical entities you asserted "
+                "as fact — each {\"text\":<as written>, \"type\":\"variant|gene|compound|structure|disease\", "
+                "\"subject\":<gene/target if applicable>}. Include every named variant (e.g. G2019S), "
+                "compound, and PDB id; omit prose and general concepts. "
+                "Example: CLAIMS: [{\"text\":\"G2019S\",\"type\":\"variant\",\"subject\":\"LRRK2\"}]"
+            )
+
         # Rigor-adaptive instructions. A quick factual question wants a brief answer;
         # an evidence-review request ("evidence table", "verify every DOI", "separate
         # the evidence", "systematic") wants a thorough, structured, honestly-hedged
@@ -3202,6 +3343,75 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
         if not m:
             return answer, None
         return answer[m.end():].lstrip(), m.group(1).lower() == 'addresses'
+
+    @staticmethod
+    def _split_claims(answer):
+        """Strip the trailing 'CLAIMS: [json]' line (entity-validation mode) and return
+        (answer_without_claims, [claim dicts]). Fail-soft; empty list when absent."""
+        import re as _re_c, json as _json_c
+        if not answer:
+            return answer, []
+        m = _re_c.search(r'\n\s*[#*_\s]*CLAIMS\s*:\s*(\[.*\])\s*$', answer, _re_c.I | _re_c.S)
+        if not m:
+            return answer, []
+        try:
+            claims = _json_c.loads(m.group(1))
+            claims = claims if isinstance(claims, list) else []
+        except Exception:
+            claims = []
+        return answer[:m.start()].rstrip(), claims
+
+    def _validate_entity_claims(self, claims):
+        """Validate each asserted entity against its authoritative source — variants via
+        ClinVar (lookup_clinvar_gene), other types via the federated_query existence check
+        over the same ENTITY_SOURCES map. Labels: verified / not_found / unverified
+        (citation_check taxonomy). Non-fatal + cached. Returns [{text,type,subject,status,note}]."""
+        rows = []
+        for c in (claims or [])[:20]:
+            if not isinstance(c, dict):
+                continue
+            text = str(c.get("text") or "").strip()
+            ctype = str(c.get("type") or "").strip().lower()
+            subject = str(c.get("subject") or "").strip()
+            if not text:
+                continue
+            status, note = "unverified", "could not check"
+            try:
+                if ctype == "variant":
+                    gene = subject or (text.split()[0] if text.split() else "")
+                    # Validate against ALL ClinVar significances (not just pathogenic) so a
+                    # real benign/risk-factor/VUS variant isn't flagged a fabrication; and
+                    # signal_errors so an OUTAGE reads "could not check", not "not found".
+                    hits = (lookup_clinvar_gene(gene, max_results=40, pathogenic_only=False,
+                                                signal_errors=True) if gene else None)
+                    if hits is None:
+                        status, note = "unverified", (
+                            "could not check (ClinVar unreachable)" if gene
+                            else "could not check (no gene context for the variant)")
+                    else:
+                        titles = [h.get("title", "") for h in hits]
+                        if _variant_in_clinvar_titles(text, titles):
+                            sig = next((h.get("clinical_significance", "") for h in hits
+                                        if _variant_in_clinvar_titles(text, [h.get("title", "")])), "")
+                            # carry significance so a risk-factor isn't read as a pathogenic mutation
+                            status, note = "verified", (f"ClinVar: {sig}" if sig else "in ClinVar")
+                        elif titles:
+                            status, note = "not_found", f"{gene} is in ClinVar but {text} is not a recorded variant"
+                        else:
+                            status, note = "not_found", f"{gene} not found in ClinVar"
+                else:
+                    from galaxy.ai.federated_query import federated_query as _fq
+                    _r = _fq(subject or text, entity_type=(ctype or None))
+                    if _r is None:
+                        status, note = "unverified", "lookup unreachable"
+                    elif _r.get("merged"):
+                        status, note = "verified", "found in " + ", ".join((_r.get("sources_succeeded") or [])[:3])
+                    else:
+                        status, note = "not_found", "no record in the authoritative sources"
+            except Exception as _e:
+                status, note = "unverified", f"check error: {type(_e).__name__}"
+            rows.append({"text": text, "type": ctype, "subject": subject, "status": status, "note": note})
+        return rows
 
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse the LLM response to extract structured data."""

@@ -768,7 +768,14 @@ def federated_query(
     # Filter to known sources only
     target_sources = [s for s in target_sources if s in _FETCHERS]
 
-    cache_key = f"bm:fq:{detected}:{query.lower().strip()}"
+    # The cache key MUST include the (filtered) source set: an intent-selected fan-out
+    # (e.g. sources=[chembl,pdb,…] for a SAR question) and a default entity-type fan-out
+    # share the same detected type + query text but query DIFFERENT sources. Keying on
+    # type+query alone let a prior default query serve a later source-restricted one from
+    # cache with the WRONG merged set — silently dropping the sources the caller asked for
+    # (committee review, 2026-11-11).
+    _src_key = ",".join(sorted(target_sources))
+    cache_key = f"bm:fq:{detected}:{query.lower().strip()}:{_src_key}"
     cached = _cache_get(cache_key)
     if cached:
         cached["_cached"] = True

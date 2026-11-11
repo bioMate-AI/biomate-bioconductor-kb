@@ -655,6 +655,7 @@ class UnifiedLiteratureClient:
         max_results: int = 10,
         recent_years: int = 5,
         verify_ids: bool = False,
+        recency_balance: bool = False,
     ) -> List[LiteratureCitation]:
         """
         Search specifically for bioinformatics/computational biology papers.
@@ -703,7 +704,17 @@ class UnifiedLiteratureClient:
                 def _relevance(c: LiteratureCitation) -> tuple:
                     text = ((c.title or "") + " " + (c.abstract or "")).lower()
                     overlap = sum(1 for w in _qtok if w in text)
-                    return (overlap, c.year or 0, c.citation_count)
+                    # recency_balance (etiology/evidence/SAR questions): rank by IMPACT
+                    # (citation count) over recency, so seminal papers surface instead of
+                    # being buried by recent reviews and truncated. Default keeps recency
+                    # as the tiebreaker (best for "latest work" / tangential-review avoidance).
+                    # coalesce citation_count: Semantic Scholar can return null -> None,
+                    # and the recency_balance sort uses it as a PRIMARY key, so a None
+                    # would raise TypeError on comparison (committee review, 2026-11-11).
+                    _cites = c.citation_count or 0
+                    if recency_balance:
+                        return (overlap, _cites, c.year or 0)
+                    return (overlap, c.year or 0, _cites)
 
                 unique.sort(key=_relevance, reverse=True)
                 if verify_ids:
