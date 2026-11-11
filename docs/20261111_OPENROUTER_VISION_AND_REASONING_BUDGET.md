@@ -109,6 +109,65 @@ Gemini thinking-tokens incident (`docs/PRE_SYNC_CHECKLIST.md`).
 - Dev's tool turns (run_code etc.) run on the Claude agentic loop with claude-haiku-4-5 (response
   model `gpt-5.6-luna` has no tool loop; ANTHROPIC_API_KEY is set) — plots reach it as image blocks.
 
+**Fix implemented (2026-11-11, after the user asked for Chinese vision models — every Chinese
+vision+tools candidate is a reasoning model, so the bug would have hit them all):**
+`reasoningBudgetBody(url, answerTokens)` in `local-llm.ts` → on openrouter.ai only:
+`max_tokens = answer + R`, `reasoning: { max_tokens: R }` (R = `BIOMATE_OPENROUTER_REASONING_TOKENS`,
+default 2048); used by `openaiCompatMessagesClient` and `decomposeViaOpenRouter`.
+`assertNotReasoningExhausted` throws a named error on a `length` stop with no content and no tool
+call. Probe on the failing row (`decreal_mixed_1`, glm-5.3-prime, real analyzeIntent request):
+baseline 4096 → `length`, content 2 chars, 4094 reasoning tokens, 27 s; capped (2048 + 4096) →
+`stop`, 3,786 chars, 133 reasoning tokens, 8 s. (`reasoning.effort: low` also stopped, but with a
+much shorter plan — not chosen.) Benchmark effect for glm-5.3-prime: failures 15/23 → 1/23,
+node_F1 0.164 → 0.583.
+
+## 4. Chinese-language browsers → a Chinese LLM that reads images
+
+**Routing** (`routes.ts`, `response-language.ts`): `isChineseBrowser(uiLanguage, Accept-Language,
+geo)` — app UI language first, then the browser's PRIMARY Accept-Language tag (any `zh-*`), then a
+geo header only when no language is sent. A user's own key/selected model always wins.
+- With a system `OPENROUTER_API_KEY`: Chinese browsers get `zhDefaultModel()` (was text-only
+  glm-5.3-prime, keyed on a `zh-cn` anywhere in Accept-Language or CN geo).
+- New `OPENROUTER_ZH_API_KEY`: a key scoped to Chinese browsers only, so a deployment can serve
+  them a Chinese model without routing every keyless user through OpenRouter. Never applied when
+  `LLM_API_URL` (on-prem) or local-only is configured.
+- Default `deepseek/deepseek-v4.1-flash`; override `OPENROUTER_ZH_DEFAULT_MODEL`.
+
+**Selection evidence (product path, reasoning fix applied, 2026-11-11):**
+
+Chinese agent checks (`zh_agent_bench.ts`): Chinese request → valid `run_code` tool call; 4 plots,
+questions in Chinese.
+
+| Model | tool call | plots |
+|---|---|---|
+| z-ai/glm-5.3-prime | OK | 1/4 (text-only: "无法查看这张图片") |
+| z-ai/glm-5v-turbo, z-ai/glm-5.3-flashx, moonshotai/kimi-k3 | OK | 4/4 |
+| qwen/qwen3.8-max-0902, deepseek/deepseek-v4.1-flash, minimax/minimax-m3 | OK | 4/4 |
+| qwen/qwen3.7-plus | OK | 3/4 |
+
+Decomposition benchmark (23 held-out rows, BioMate's real analyzeIntent prompt):
+
+| Model | fail | node_F1 | edge_F1 | struct | $/call | median s |
+|---|---|---|---|---|---|---|
+| z-ai/glm-5v-turbo | 1 | 0.640 | 0.337 | 0.39 | 0.0331 | 21.3 |
+| moonshotai/kimi-k3 | 1 | 0.619 | 0.307 | 0.30 | 0.0175 | 6.4 |
+| deepseek/deepseek-v4.1-flash | 1 | 0.616 | 0.293 | 0.30 | 0.0018 | 4.9 |
+| z-ai/glm-5.3-prime (control) | 1 | 0.583 | 0.264 | 0.26 | 0.0703 | 4.5 |
+| z-ai/glm-5.3-flashx | 2 | 0.576 | 0.271 | 0.26 | 0.0094 | 5.1 |
+| qwen/qwen3.8-max-0902 | 2 | 0.568 | 0.307 | 0.35 | 0.0566 | 20.3 |
+| minimax/minimax-m3 | 2 | 0.566 | 0.315 | 0.35 | 0.0106 | 22.6 |
+| qwen/qwen3.7-plus | 3 | 0.484 | 0.213 | 0.22 | 0.0098 | 22.9 |
+
+Paired bootstrap vs glm-5v-turbo (5,000 resamples): kimi-k3 Δnode +0.021 [−0.026, +0.083], wins/losses
+2/2; deepseek-v4.1-flash Δnode +0.024 [−0.053, +0.114], 2/2 — **statistically indistinguishable**.
+(qwen3.8-max and glm-5.3-prime are lower at the CI boundary.) With quality tied, latency and cost
+decide: deepseek-v4.1-flash is ~4× faster than glm-5v-turbo and 10–18× cheaper per call →
+default. kimi-k3 is the alternative (also fast; output tokens cost $16/M, so long answers are
+pricier).
+
+Limitations: the decomposition set is English (Chinese requests were covered only by the agent
+checks); 23 rows; the plot check establishes capability, not a ranking.
+
 ## 3. Open items
 - Gemini tool loop (`_generateWithGemini`) still passes tool output as text: plots render in the UI
   but the model does not see them. It runs (a) as the fallback when Anthropic credit is exhausted
