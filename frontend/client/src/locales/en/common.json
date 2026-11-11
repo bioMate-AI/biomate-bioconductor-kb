@@ -383,7 +383,9 @@
       "predict_the_fold_of_this_stapled_peptide_and_where_to_trust_it": "Predict the fold of this stapled peptide and where to trust it.",
       "predict_the_structure_of_this_antibody_antigen_complex_and_repor": "Predict the structure of this antibody–antigen complex and report interface confidence.",
       "model_this_complex_for_a_nanobody_and_its_antigen": "Model this complex for a nanobody and its antigen.",
-      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target."
+      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target.",
+      "map_b_cell_epitopes_on_an_ebv_antigen_and_draft_a_vaccine_immuno": "Map B-cell epitopes on an EBV antigen and draft a vaccine immunogen",
+      "predict_hla_class_i_binding_for_neoantigen_peptides": "Predict HLA class-I binding for neoantigen peptides"
     },
     "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },
