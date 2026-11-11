@@ -753,6 +753,9 @@ export interface ChatContext {
   uiLanguage?: 'en' | 'zh';
   previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentWorkflow?: any;
+  /** Workflow the user explicitly chose for this turn (Workflows library "Run" or another explicit picker).
+   *  Routing and catalog search are skipped; exactly this workflow's card is built. */
+  selectedWorkflow?: SelectedWorkflow;
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
@@ -2440,6 +2443,86 @@ export function textWorkflowName(text: string): string | null {
   if (/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/.test(name)) return name;
   if (/^[A-Z0-9][\w+-]*(?:\s+\(?[A-Z0-9][\w+-]*\)?){1,7}$/.test(name)) return name;
   return null;
+}
+
+/** Catalog identity of a workflow the user has chosen — sent to the backend as
+ *  generate_workflow's `selected_workflow`, which builds exactly that card (no search). */
+export interface SelectedWorkflow {
+  name: string;
+  nextflow_path?: string;
+  id?: number | string;
+  source?: string;
+  type?: string;
+}
+
+/** Validate a client-supplied `context.selectedWorkflow` (Workflows library "Run" or another explicit picker).
+ *  Only catalog workflows qualify: a chain is a plan of several workflows, not one identity. */
+export function normalizeSelectedWorkflow(raw: unknown): SelectedWorkflow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() && v.length <= max ? v.trim() : undefined);
+  const name = str(r.name, 300);
+  const nextflow_path = str(r.nextflow_path, 1000);
+  if (!name && !nextflow_path) return null;
+  const type = str(r.type, 40);
+  if (type === 'chain') return null;
+  const id = typeof r.id === 'number' && Number.isInteger(r.id) ? r.id
+    : (typeof r.id === 'string' && /^\d+$/.test(r.id) ? r.id : undefined);
+  const source = str(r.source, 80);
+  return {
+    name: name || nextflow_path!,
+    ...(nextflow_path ? { nextflow_path } : {}),
+    ...(id !== undefined ? { id } : {}),
+    ...(source ? { source } : {}),
+    ...(type ? { type } : {}),
+  };
+}
+
+/** Catalog identity of the workflow open in the panel (`context.currentWorkflow`, the card
+ *  payload the client last opened), or null when it is not a single catalog workflow. */
+export function workflowIdentityOf(wf: any): SelectedWorkflow | null {
+  if (!wf || typeof wf !== 'object') return null;
+  if (['chain', 'pipeline', 'disambiguation', 'clarification'].includes(String(wf.workflow_type || ''))) return null;
+  const name = wf.workflow_ga?.name || wf.workflow_name || wf.workflowDefinition?.name || wf.name;
+  const nextflow_path = wf.workflow_ga?.nextflow_path || wf.nextflow_path || wf.workflowDefinition?.nextflow_path;
+  return normalizeSelectedWorkflow({ name, nextflow_path });
+}
+
+/**
+ * Follow-up binding: does this turn fill in the workflow already open in the panel, rather than
+ * ask for a new analysis? (Doc §7.4: with nf-core/rnaseq open and BioMate asking for input, the
+ * reply "SRR1039508" was re-routed as a fresh request and the card became differentialabundance.)
+ *
+ * Decided from the intent classifier's own output — no wording regexes, so it holds in any
+ * language. Bind only when ALL hold:
+ *   1. one intent (a multi-intent turn is a new plan);
+ *   2. the classifier wants a pipeline run/configuration (needsWorkflowGeneration or
+ *      needsWorkflowModification) and not direct_compute (ad-hoc compute is not this workflow);
+ *   3. the turn SUPPLIES something: inline parameter values, an uploaded-file binding, or a
+ *      file_reference / parameter fact;
+ *   4. the turn states no analysis of its own: no analysis_goal or tool_preference fact the
+ *      classifier marked as explicitly stated (confidence >= 0.8 — its prompt reserves 0.9+ for
+ *      direct mentions and 0.5-0.7 for inferred facts, e.g. the open workflow's goal carried
+ *      over from earlier turns).
+ * Anything else (a question, a new goal or tool, several tasks) routes normally. Conservative by
+ * design: a miss costs one ordinary routing turn; a false bind would ignore a new request.
+ */
+export function followUpFillsCurrentWorkflow(decomposition: IntentDecomposition, message: string): boolean {
+  if (decomposition.isMultiIntent) return false;
+  const intent = decomposition.primaryIntent;
+  if (!intent) return false;
+  const a: Partial<ActionCategories> = intent.actions || {};
+  if (!(a.needsWorkflowGeneration || a.needsWorkflowModification)) return false;
+  if (intent.execution === 'direct_compute') return false;
+  const facts = intent.facts || [];
+  const suppliesValues =
+    Object.entries(intent.inlineParameters || {}).some(([k, v]) => k !== 'domain_hint' && String(v ?? '').trim() !== '') ||
+    Object.keys(extractUploadedFileParams(message)).length > 0 ||
+    facts.some(f => f.category === 'file_reference' || f.category === 'parameter');
+  if (!suppliesValues) return false;
+  const statesNewAnalysis = facts.some(f =>
+    (f.category === 'analysis_goal' || f.category === 'tool_preference') && (f.confidence ?? 1) >= 0.8);
+  return !statesNewAnalysis;
 }
 
 /** The other workflows the search retrieved for this request (not the card's own), as
@@ -4999,6 +5082,19 @@ Rules:
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
 
+    // Pinned workflow: the user already chose the workflow, so routing must not re-decide it.
+    //  - explicit: context.selectedWorkflow (Workflows library "Run" or another explicit picker) — always honoured;
+    //  - follow-up: this turn fills inputs for the workflow open in the panel
+    //    (followUpFillsCurrentWorkflow — classifier output, see its comment for the rule).
+    // A pinned turn skips catalog search; the backend builds exactly that card (selected_workflow).
+    const explicitSelection = normalizeSelectedWorkflow(context.selectedWorkflow);
+    const openWorkflow = workflowIdentityOf(context.currentWorkflow);
+    let pinnedWorkflow: SelectedWorkflow | null = explicitSelection
+      || (openWorkflow && followUpFillsCurrentWorkflow(decomposition, message) ? openWorkflow : null);
+    if (pinnedWorkflow) {
+      log(`Step 1: workflow pinned → "${pinnedWorkflow.name}" (${explicitSelection ? 'user selection' : 'follow-up fills the open workflow'})`);
+    }
+
     // Surface the classifier's reasoning (computed above, historically only
     // logged) in the existing progress box by re-emitting the 'intent' stage
     // with the rationale as its detail → "Understanding your goal… · <why>".
@@ -5009,7 +5105,7 @@ Rules:
     // Cross-intent ambiguity — only when no intentOverride already set.
     // Fires when the intent type looks wrong for a design-shaped query and
     // returns an IntentClarificationCard rather than proceeding blindly.
-    if (!context.intentOverride) {
+    if (!context.intentOverride && !pinnedWorkflow) {
       const ambiguity = this._detectCrossIntentAmbiguity(message, intent);
       if (ambiguity.shouldClarify) {
         log(`Step 1.5: ambiguity detected (${ambiguity.reason}) — emitting IntentClarificationCard`);
@@ -5041,7 +5137,7 @@ Rules:
     }
 
     // Multi-intent path: fan out to processSubIntent for each intent
-    if (decomposition.isMultiIntent) {
+    if (decomposition.isMultiIntent && !pinnedWorkflow) {
       return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext, sessionMemoryBlock, onToolEvent);
     }
 
@@ -5547,7 +5643,13 @@ Rules:
     }
 
     // S1: ClarificationGate — returns early if ambiguity requires user clarification
-    const clarificationResponse = await this._clarificationGate(
+    // An explicit selection is generated whatever the per-keyword overrides above decided. A
+    // follow-up binding is only an inference: if a guard above decided this turn runs no workflow
+    // (e.g. the data-attach guard), it stands. A pinned turn skips the clarification gate, which
+    // asks WHICH kind of workflow — already decided.
+    if (explicitSelection) actions.needsWorkflowGeneration = true;
+    else if (pinnedWorkflow && !(actions.needsWorkflowGeneration || actions.needsWorkflowModification)) pinnedWorkflow = null;
+    const clarificationResponse = pinnedWorkflow ? null : await this._clarificationGate(
       intent, actions, message, recommendedTools, recommendedDatasets
     );
     if (clarificationResponse) {
@@ -5561,7 +5663,8 @@ Rules:
     // inline params, domain hints, session files). A card swapped in after the response text
     // is written (Steps 6b/6c) must be built this way — complete, with its OWN parameters
     // and file bindings — not from a stripped name lookup carrying the old card's params.
-    let regenerateWorkflowFor: ((intentText: string) => Promise<any>) | null = null;
+    // With `selection`, the backend builds exactly that catalog workflow (no search).
+    let regenerateWorkflowFor: ((intentText: string, selection?: SelectedWorkflow) => Promise<any>) | null = null;
     // Names the workflow search retrieved for this request (Step 4). The response text may
     // lead with one of these instead of the card, and Step 6c-2 only follows the text to one
     // of these: the response model re-ranks retrieved candidates, it does not retrieve.
@@ -5569,7 +5672,8 @@ Rules:
     let userInputKinds: string[] | undefined;  // classifier's input_kinds for this turn (guards card swaps)
     if (needsGeneration) {
       try {
-        onProgress?.('search');
+        // No "Searching 4,000+ workflows…" for a pinned workflow: nothing is searched.
+        if (!pinnedWorkflow) onProgress?.('search');
         log('Step 4: Generating workflow');
         // Preserve original message keywords alongside the LLM-distilled subQuery.
         // subQuery can lose domain tokens (e.g. "ADMET", SMILES) when project context
@@ -5594,7 +5698,7 @@ Rules:
         }
 
         userInputKinds = intent.inputKinds ?? decomposition.inputKinds;
-        regenerateWorkflowFor = (intentText: string) => this.generateWorkflow(
+        regenerateWorkflowFor = (intentText: string, selection?: SelectedWorkflow) => this.generateWorkflow(
           intentText,
           recommendedDatasets.map(d => d.dataset),
           _mergedInline,
@@ -5603,9 +5707,22 @@ Rules:
           decomposition.keyTerms,
           context.sessionDatasets?.length ? context.sessionDatasets : undefined,
           decomposition.penalizedDomains,
-          userInputKinds
+          userInputKinds,
+          selection
         );
-        generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent);
+        if (pinnedWorkflow) {
+          generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent, pinnedWorkflow);
+          if (!generatedWorkflow?.success && !explicitSelection) {
+            // The open workflow is not a resolvable catalog workflow (e.g. a personal upload):
+            // binding was an inference, so route this turn normally instead.
+            log(`Step 4: open workflow "${pinnedWorkflow.name}" could not be built (${generatedWorkflow?.error}) — routing normally`);
+            pinnedWorkflow = null;
+            onProgress?.('search');
+            generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent);
+          }
+        } else {
+          generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent);
+        }
         searchCandidateNames = (generatedWorkflow?.candidate_workflows || [])
           .map((c: any) => String(c?.name || ''))
           .filter(Boolean);
@@ -5803,7 +5920,7 @@ Rules:
     // the FTS search (Step 4) does not. When the generated text describes a different
     // workflow than what FTS selected, we ask a cheap LLM call to pick from the top
     // candidates using both the user message and the generated text as context.
-    if (generatedWorkflow?.success && generatedWorkflow?.candidate_workflows?.length > 1) {
+    if (!pinnedWorkflow && generatedWorkflow?.success && generatedWorkflow?.candidate_workflows?.length > 1) {
       try {
         const reselectedName = await this._reselectWorkflow(
           message,
@@ -5842,7 +5959,13 @@ Rules:
     // explicitly chosen clusterprofiler via key_terms/penalizedDomains. Applying the guardrail
     // here would undo the override and route back to differentialabundance (the Step 6c bug
     // diagnosed 2026-07-20 after the MG demo E2E reproducibly showed this pattern).
+    // A pinned card (Step 1) is the user's own choice: neither text guardrail may move it.
+    // Unpinned, the workflow open in the panel is a legitimate target for both guardrails besides
+    // this request's search candidates — "not a search candidate" must never keep a card that
+    // contradicts both the reply and the workflow the user has open (doc §7.4).
+    const _isOpenWorkflow = (n: string) => !!openWorkflow && !!n && workflowSlug(n) === workflowSlug(openWorkflow.name);
     if (
+      !pinnedWorkflow &&
       generatedWorkflow?.success &&
       generatedWorkflow?.workflow_ga &&
       !generatedWorkflow?.workflow_type?.includes('chain') &&
@@ -5862,7 +5985,8 @@ Rules:
         const _textWorkflow = _boldNfcore?.[1]?.toLowerCase();
         // Same constraint as Step 6c-2: follow the text only to a workflow the search retrieved for this
         // request (unconstrained, the response model's own "retrieval" moved correct cards to wrong ones).
-        const _isCandidate = !!_textWorkflow && searchCandidateNames.some(c => workflowSlug(c) === workflowSlug(_textWorkflow));
+        const _isCandidate = !!_textWorkflow && (
+          searchCandidateNames.some(c => workflowSlug(c) === workflowSlug(_textWorkflow)) || _isOpenWorkflow(_textWorkflow));
         if (
           _textWorkflow &&
           _textWorkflow !== _cardName &&
@@ -5878,8 +6002,16 @@ Rules:
           !_textWorkflow.includes(_cardName)
         ) {
           log(`Step 6c: text mentions "${_textWorkflow}" but card shows "${_cardName}" — correcting via lookup`);
-          const corrected = await this._lookupWorkflowByName(_textWorkflow, message, userInputKinds);
-          if (corrected?.input_compatible === false) {
+          // The open workflow is rebuilt as its own complete card (own params, this turn's values).
+          const _openCard = _isOpenWorkflow(_textWorkflow) && regenerateWorkflowFor
+            ? await regenerateWorkflowFor(message, openWorkflow!) : null;
+          const _openOk = !!(_openCard?.success && _openCard.workflow_ga);
+          const corrected = _openOk ? null : await this._lookupWorkflowByName(_textWorkflow, message, userInputKinds);
+          if (_openOk) {
+            generatedWorkflow = { ..._openCard, source: 'text_guardrail' };
+            workflowGenerated = true;
+            log(`Step 6c: card corrected to the open workflow "${openWorkflow!.name}"`);
+          } else if (corrected?.input_compatible === false) {
             // 2026-11-05: the reply recommended nf-core/proteomicslfq "for MaxQuant proteinGroups.txt" and
             // this step moved the correct dep card onto a raw-spectra pipeline.
             log(`Step 6c: "${_textWorkflow}" cannot run on this request's data (backend input-kind check) — keeping "${_cardName}"`);
@@ -5915,6 +6047,7 @@ Rules:
     // generative design) while the card was a lexical near-miss. The nf-core branch above
     // could not see these names. Same exception as above for the pathway-enrichment override.
     if (
+      !pinnedWorkflow &&
       generatedWorkflow?.success &&
       generatedWorkflow?.workflow_ga &&
       !generatedWorkflow?.workflow_type?.includes('chain') &&
@@ -5930,12 +6063,16 @@ Rules:
           // 2026-11-03: unconstrained, the response model also "retrieved" on its own and moved
           // correct cards to wrong ones (dock-the-top-50 -> pocket detection; safety-gate
           // triage -> pharmacophore filtering).
-          const _candidate = searchCandidateNames.find(c => workflowSlug(c) === workflowSlug(_named));
+          const _candidate = searchCandidateNames.find(c => workflowSlug(c) === workflowSlug(_named))
+            || (_isOpenWorkflow(_named) ? openWorkflow!.name : undefined);
           if (!_candidate) {
             log(`Step 6c-2: text presents "${_named}", not a search candidate for this request — keeping "${_card}"`);
           } else {
             log(`Step 6c-2: text presents candidate "${_candidate}" but card shows "${_card}"`);
-            const corrected = await this._cardForNamedWorkflow(_candidate, message, regenerateWorkflowFor, userInputKinds);
+            const _open = _isOpenWorkflow(_candidate) && regenerateWorkflowFor
+              ? await regenerateWorkflowFor(message, openWorkflow!) : null;
+            const corrected = (_open?.success && _open.workflow_ga) ? _open
+              : await this._cardForNamedWorkflow(_candidate, message, regenerateWorkflowFor, userInputKinds);
             if (corrected) {
               generatedWorkflow = { ...corrected, source: 'text_guardrail' };
               workflowGenerated = true;
@@ -9425,7 +9562,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     keyTerms?: string[],
     sessionDatasets?: Array<{ id: string; name: string; type: string }>,
     penalizedDomains?: string[],
-    userInputKinds?: string[]
+    userInputKinds?: string[],
+    selectedWorkflow?: SelectedWorkflow
   ): Promise<any> {
     // Build context text for domain inference (active workflow + recent turns)
     const currentWorkflowText = String(
@@ -9459,7 +9597,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const _transcriptomicsPenalized = penalizedDomains?.some(
       d => /^(transcriptomics|rna_seq)$/i.test(d)
     );
-    const domainHint = (_explicitRegistryFastPath || _transcriptomicsPenalized)
+    // The domain hint only steers catalog search, which a selected workflow skips.
+    const domainHint = (_explicitRegistryFastPath || _transcriptomicsPenalized || selectedWorkflow)
       ? undefined
       : await this._inferDomainWithLLM(userIntent, currentWorkflowText || recentContext || undefined);
     // Normalize composite dataset-ref values (e.g. the cryo "Dataset Id" leak
@@ -9501,6 +9640,11 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       user_input_kinds: userInputKinds,
       session_datasets: sessionDatasets?.length ? sessionDatasets : undefined,
       credential_map: context?.credentialMap ?? undefined,
+      ...(selectedWorkflow ? { selected_workflow: {
+        name: selectedWorkflow.name,
+        ...(selectedWorkflow.nextflow_path ? { nextflow_path: selectedWorkflow.nextflow_path } : {}),
+        ...(selectedWorkflow.id !== undefined ? { id: selectedWorkflow.id } : {}),
+      } } : {}),
     });
 
     if (response.success) {
