@@ -7,6 +7,7 @@ import { cardWorkflowName } from './workflow-display-name';
 import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
+import { renderOperationSkillsBlock } from './operation-skills';
 import { scientificToolRequest, scientificToolResult, targetEvidenceReply, databaseQueryRequest, databaseQueryResult } from './scientific-chat-tools';
 import { groundedResearchReply, researchEvidenceContext } from './grounded-research-reply';
 /**
@@ -7047,6 +7048,7 @@ BioMate has 61 drug_discovery and 21 pharmacology workflows. Inputs are molecula
 - Biologics: "scFv intrabody design / antibody developability / LNP formulation optimization" → workflow_generation
 
 Key: providing concrete molecular inputs (SMILES, PDB, dose levels, CSV data) + asking to run/compute/predict = workflow_generation. Asking "how does hERG work?" = research_question.
+${renderOperationSkillsBlock()}
 
 **Cryo-EM and structural biology requests (workflow_generation):**
 BioMate has 11 cryo-EM SPA, 2 cryo-ET, and 3 structural biology workflows. Key examples:
