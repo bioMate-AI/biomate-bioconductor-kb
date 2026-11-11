@@ -4945,7 +4945,15 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # Lazy-imported + guarded so any failure degrades to the normal search path.
         try:
             from galaxy.ai.ml_training.routing import route_ml_training_result
-            _ml_result = route_ml_training_result(user_intent)
+            # The user's ATTACHED data is what a "train a model on our data" request trains on, so
+            # it is threaded in. Without it the router could not resolve a dataset, returned None,
+            # and the request fell through to the catalog search — which answered a model-TRAINING
+            # request with a molecule-DESIGN workflow (dev 2026-11-11: "Train a potency predictor on
+            # our in-house assay data." + bace_assays.csv → a scaffold-hopping card whose required
+            # param is the "compound series to hop"). Only readable training tables qualify
+            # (select_training_dataset), so a request with raw reads attached still falls through
+            # to the normal search exactly as before.
+            _ml_result = route_ml_training_result(user_intent, uploaded_datasets=uploaded_datasets)
         except Exception as _ml_err:
             _ml_result = None
             log.warning("[UnifiedWorkflowGeneration] ml_training routing skipped: %s", _ml_err)

@@ -2563,6 +2563,23 @@ export function textWorkflowName(text: string): string | null {
   return null;
 }
 
+/** Rewrite the header's workflow name to the card's title, keeping the " — one-line description"
+ *  that follows it. Used when the reply opens on a name that is NOT the card and NOT a workflow the
+ *  search retrieved (an invented/renamed title): the card is right, so the TEXT is what must change —
+ *  CLAUDE.md requires the chat name to be the card title exactly. Returns the text unchanged when the
+ *  header is already the card, when there is no bold header, or when the header is not `named`. */
+export function relabelWorkflowHeader(text: string, named: string, cardName: string): string {
+  if (!text || !named || !cardName) return text;
+  if (workflowSlug(named) === workflowSlug(cardName)) return text;
+  const m = /\*\*([^*\n]{3,120}?)\*\*/.exec(text);
+  if (!m) return text;
+  const sep = /\s+[—–-]\s+/.exec(m[1]);
+  const head = sep ? m[1].slice(0, sep.index) : m[1];
+  const rest = sep ? m[1].slice(sep.index) : '';
+  if (workflowSlug(head.replace(/[:.]+$/, '').trim()) !== workflowSlug(named)) return text;
+  return `${text.slice(0, m.index)}**${cardName}${rest}**${text.slice(m.index + m[0].length)}`;
+}
+
 /** Catalog identity of a workflow the user has chosen — sent to the backend as
  *  generate_workflow's `selected_workflow`, which builds exactly that card (no search). */
 export interface SelectedWorkflow {
@@ -5845,6 +5862,19 @@ Rules:
             || (_isOpenWorkflow(_named) ? openWorkflow!.name : undefined);
           if (!_candidate) {
             log(`Step 6c-2: text presents "${_named}", not a search candidate for this request — keeping "${_card}"`);
+            // The card stays, but the reply must not introduce it under another name. Dev 2026-11-11:
+            // "Design nanobody candidates against this epitope." answered "**Nanobody Design Against
+            // SARS-CoV-2 Spike RBD**" over a bispecific_antibody_design card — an invented title is
+            // never a search candidate, so this branch used to leave text and panel disagreeing.
+            // CLAUDE.md: the chat name must be the card title exactly, so relabel the header in place.
+            const _display = cardWorkflowName(generatedWorkflow);
+            if (_display) {
+              const _relabelled = relabelWorkflowHeader(response.message, _named, _display);
+              if (_relabelled !== response.message) {
+                response.message = _relabelled;
+                log(`Step 6c-2: reply header relabelled to the card name "${_display}"`);
+              }
+            }
           } else {
             log(`Step 6c-2: text presents candidate "${_candidate}" but card shows "${_card}"`);
             const _open = _isOpenWorkflow(_candidate) && regenerateWorkflowFor
