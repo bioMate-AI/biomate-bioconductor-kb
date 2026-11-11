@@ -18,6 +18,7 @@ import { Loader2, Search, Upload, Play, CheckCircle2, Info, Trash2, Sparkles } f
 import { analytics } from '@/lib/analytics';
 import { parseNfParams } from '@/lib/parse-nf-params';
 import { tOr } from '@/lib/i18n';
+import type { WorkflowSelection } from '@/lib/workflow-selection';
 
 /** One ranked catalog match returned by POST /api/ai_assistant/search_ranked. */
 interface RankedResult {
@@ -30,6 +31,9 @@ interface RankedResult {
   format?: string;
   score?: number | null;
   type?: string;
+  /** Catalog identity (search_ranked), so "Run" selects exactly this row. */
+  id?: number;
+  nextflow_path?: string | null;
 }
 
 interface RunRow {
@@ -71,9 +75,11 @@ interface WorkflowHistoryDialogProps {
   /**
    * Seed the chat composer with a run request for the clicked catalog result.
    * The library wrapper navigates to /?draft=<prompt> (the established, non-
-   * destructive seed path) so the user reviews and runs.
+   * destructive seed path) so the user reviews and runs. `selection` is the
+   * clicked workflow's catalog identity (absent for chains), sent with that
+   * message as context.selectedWorkflow so the server does not re-route it.
    */
-  onSeedChat?: (prompt: string) => void;
+  onSeedChat?: (prompt: string, selection?: WorkflowSelection) => void;
 }
 
 function statusColor(status: string): string {
@@ -181,7 +187,17 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
     const label = r.display_name || r.name;
     const prompt = tOr('workflows_library.seed_prompt', 'Run the {{name}} workflow.', { name: label });
     analytics.track('catalog_workflow_seeded', { workflow_name: r.name, wf_source: r.source, wf_type: r.type });
-    onSeedChat?.(prompt);
+    // The user picked THIS workflow: pass its identity, not only a sentence naming it. A chain is a
+    // multi-workflow plan, not one catalog row, so it keeps the text route.
+    const selection: WorkflowSelection | undefined = r.type === 'chain' ? undefined : {
+      name: r.name,
+      ...(r.nextflow_path ? { nextflow_path: r.nextflow_path } : {}),
+      ...(typeof r.id === 'number' ? { id: r.id } : {}),
+      ...(r.source ? { source: r.source } : {}),
+      ...(r.type ? { type: r.type } : {}),
+      ...(label !== r.name ? { label } : {}),
+    };
+    onSeedChat?.(prompt, selection);
     onOpenChange(false);
   }
 

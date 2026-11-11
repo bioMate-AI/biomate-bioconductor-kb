@@ -7,6 +7,7 @@
  *   [Uploaded datasets: a.csv: dataset_id=…]
  *   [Galaxy dataset: …] / [Dataset: name (id: …)]
  *   [Paper content: ref]\n<extracted paper text to end of message>
+ *   [Prepared inputs: …]  (model-facing notes for a cold-start example's files)
  *
  * They are machine context, not the user's words. Anything user-facing that
  * is derived from message text (the user bubble, the chat title) must strip
@@ -15,7 +16,7 @@
  * the server title route.
  */
 
-const BLOCK_LABELS = "BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?";
+const BLOCK_LABELS = "BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?|Prepared inputs";
 
 /** `[Label: …]` blocks (single bracketed run, no nesting). */
 const LABELLED_BLOCK = new RegExp(`\\n?\\[(?:${BLOCK_LABELS})\\s*:[^\\]]*\\]`, "gi");

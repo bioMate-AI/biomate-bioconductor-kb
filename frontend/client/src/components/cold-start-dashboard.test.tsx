@@ -178,9 +178,13 @@ describe("<ColdStartDashboard>", () => {
     const body = within(cardFor("analysis")).getByTestId("cold-module-body");
     await user.click(within(body).getByTestId("cold-track-validated-workflows"));
 
-    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows.
+    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows;
+    // one badge per shape that names a dataset, in shape order.
     await user.click(within(body).getByTestId("cold-domain-dd"));
-    expect(within(body).getByTestId("cold-shape-sample")).toHaveTextContent(/example SMILES/i);
+    const dd = COLD_DOMAINS.find((d) => d.id === "dd")!;
+    const badges = within(body).getAllByTestId("cold-shape-sample");
+    expect(badges).toHaveLength(dd.shapes.filter((s) => s.sampleDataset).length);
+    expect(badges[0]).toHaveTextContent(/example SMILES/i);
 
     // Data integrity: every attached sample has a real label + ref (no empty
     // "sample provided" that can't run), and the seed asks to run on it.
@@ -327,6 +331,18 @@ describe("<ColdStartDashboard>", () => {
       // The peptide/protein design examples read as design (cloud), not instant.
       const pepEx = design.tracks[0].exBy!.pep[0];
       expect(readIntent(pepEx)!.lane).toBe("cloud");
+    });
+
+    it("surfaces the Fold & complex track (Boltz-2 cofold) and every variant reads as Structure prediction", () => {
+      const design = COLD_MODULES.find((m) => m.id === "design")!;
+      const fold = design.tracks.find((t) => t.k === "Fold & complex");
+      expect(fold, "design module is missing the Fold & complex track").toBeTruthy();
+      const variants = [...fold!.ex, ...Object.values(fold!.exBy!).flat()];
+      for (const ex of variants) {
+        const r = readIntent(ex);
+        expect(r?.lane, `fold example not cloud: ${ex}`).toBe("cloud");
+        expect(r?.domain, `fold example not Structure prediction: ${ex}`).toBe("Structure prediction");
+      }
     });
   });
 

@@ -48,9 +48,19 @@ export interface RoutingDecomposition {
 
 /** The classifier's own execution mode is authoritative over its action flags: direct_compute means
  *  compute now with run_code, so no workflow card (a card disables run_code at the tool gate). This is
- *  consistency between two fields of ONE classifier answer, not an override of it. */
-export function reconcileExecutionMode(intent: RoutingIntent): void {
+ *  consistency between two fields of ONE classifier answer, not an override of it.
+ *
+ *  The classifier's own contract for direct_compute is "the data is already in the conversation".
+ *  A direct_compute label with NO data anywhere in the conversation contradicts that contract and is
+ *  not honoured: dev 2026-11-11, "Run analyze_ebv_antibody_titers on its built-in … sample data" came
+ *  back direct_compute ~2/3 times → no card, and the model told the user to search the Workflows panel.
+ *  `conversationHasData` covers this message, earlier user turns and UI-selected datasets. */
+export function reconcileExecutionMode(intent: RoutingIntent, conversationHasData: boolean): void {
   if (intent.execution === 'direct_compute' && intent.actions.needsWorkflowGeneration) {
+    if (!conversationHasData) {
+      console.log('[GalaxyAssistant] [routing] direct_compute label ignored: no data in the conversation — keeping workflow generation');
+      return;
+    }
     intent.actions.needsWorkflowGeneration = false;
     intent.actions.needsLLMReasoning = true;
   }

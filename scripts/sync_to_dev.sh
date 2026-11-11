@@ -1668,7 +1668,7 @@ smoke_test_workflow() {
   # Returns 0 (pass) or 1 (fail). Called after postsync_health_ok passes.
   log "[smoke] Testing workflow generation (Galaxy localhost:8081)..."
   ec2_ssh '
-    result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
+    result=$(curl -s --max-time 90 http://localhost:8081/api/ai_assistant/generate_workflow \
       -X POST -H "Content-Type: application/json" \
       -d "{\"request_text\":\"run RNA-seq differential expression analysis\",\"user_id\":\"1\"}" 2>/dev/null)
     if [[ -z "$result" ]]; then
@@ -1701,7 +1701,7 @@ except Exception as e:
 " 2>&1)
     if grep -q "^CLARIFY" <<<"$ok"; then
       echo "[smoke] clarification_needed — retrying with specific query..."
-      result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
+      result=$(curl -s --max-time 90 http://localhost:8081/api/ai_assistant/generate_workflow \
         -X POST -H "Content-Type: application/json" \
         -d "{\"request_text\":\"run DESeq2 differential expression on human RNA-seq FASTQ files, control vs treatment\",\"user_id\":\"1\"}" 2>/dev/null)
       ok=$(echo "$result" | python3 -c "

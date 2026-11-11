@@ -84,6 +84,19 @@ describe('classifyRunFailure — plain-language cause + remediation per class', 
     expect(exp.cause).toMatch(/error from the tool itself: target column has a single class/);
   });
 
+  it('tool exception after the executor prefix is the cause (dev run f4fa8bd6, FOLD_COMPLEX)', () => {
+    const exp = classifyRunFailure(
+      "Process FOLD_COMPLEX (fmc63) failed: Essential container in task exited — RuntimeError: DataLoader worker (pid(s) 2349) exited unexpectedly | Predicting: |",
+    );
+    expect(exp.klass).toBe('tool_error');
+    expect(exp.cause).toMatch(/DataLoader worker \(pid\(s\) 2349\) exited unexpectedly/);
+  });
+
+  it('a Nextflow wrapper exception is not the tool\'s own error', () => {
+    const exp = classifyRunFailure("nextflow.exception.ProcessFailedException: Process `X` terminated for an unknown reason");
+    expect(exp.klass).not.toBe('tool_error');
+  });
+
   it('workflow not found: mis-routed nf-core path (the real U-MOFA 404)', () => {
     const exp = classifyRunFailure(
       "Nextflow execution failed (404): Could not resolve Nextflow script 'nfcore/diaproteomics/main.nf'.",

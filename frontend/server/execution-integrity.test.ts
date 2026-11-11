@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, SYNTHETIC_DATA_REFUSAL } from './execution-integrity';
 import { requireNonEmptyResponse, stripDatasetReferenceParams, parseUploadedDatasetRefs, groundInlineParameters } from './galaxy-assistant';
 
 describe('structural execution guard', () => {
@@ -73,4 +73,52 @@ describe('W4: dataset references are never workflow params', () => {
     const withSchema = await groundInlineParameters({ workflowName: 'some_wf', rawParams: raw, userQuery: msg, requiredParams: ['alpha'] });
     expect(withSchema.params).toEqual({ alpha: '0.1' });
   });
+});
+
+describe('generatesSyntheticData — run_code that invents its input (EBV, dev 2026-11-11)', () => {
+  it('flags random/simulated values when nothing was staged', () => {
+    expect(generatesSyntheticData('import numpy as np\nod = np.random.normal(0.8, 0.2, 30)', 0)).toBe(true);
+    expect(generatesSyntheticData('rng = np.random.default_rng(1)', 0)).toBe(true);
+    expect(generatesSyntheticData('set.seed(1); x <- rnorm(30)', 0)).toBe(true);
+    expect(generatesSyntheticData('# simulate OD readings from literature distributions', 0)).toBe(true);
+  });
+  it('does not flag real computation on staged inputs, or plain code without generation', () => {
+    expect(generatesSyntheticData('df = pd.read_csv(INPUT_FILES["a.csv"]); np.random.seed(0)', 1)).toBe(false);
+    expect(generatesSyntheticData('import math\nprint(math.log10(2500))', 0)).toBe(false);
+  });
+  it('a refused attempt tells the model to use real data and report no numbers', () => {
+    expect(SYNTHETIC_DATA_REFUSAL).toMatch(/NOT EXECUTED/);
+    expect(SYNTHETIC_DATA_REFUSAL).toMatch(/Do not report any numbers/);
+  });
+});
+
+describe('redactStoragePaths — no storage URIs in reply prose', () => {
+  it('folder prefixes become "the staged dataset"; file URIs become their file name', () => {
+    expect(redactStoragePaths('Using the movies at s3://biomate-cryo-data/empiar-10028/Micrographs/ (20 files).'))
+      .toBe('Using the movies at the staged dataset (20 files).');
+    expect(redactStoragePaths('Input: `s3://biomate-nextflow-work/uploads/ab12/pilot_compounds.csv`'))
+      .toBe('Input: pilot_compounds.csv');
+    expect(redactStoragePaths('数据位于 s3://b/x/', true)).toBe('数据位于 已准备好的数据集');
+  });
+  it('leaves code blocks and ordinary text untouched', () => {
+    const code = '```python\npath = "s3://b/x/a.csv"\n```';
+    expect(redactStoragePaths(code)).toBe(code);
+    expect(redactStoragePaths('No storage here.')).toBe('No storage here.');
+  });
+});
+
+describe('requestAsksForSimulation — generating values is the task only when the user asked for it', () => {
+  it.each([
+    'Run a power analysis for a two-arm trial with effect size 0.5',
+    'Simulate a one-compartment PK curve for 100 mg q12h',
+    'Do a Monte Carlo estimate of the false-positive rate',
+    'bootstrap the confidence interval',
+    '模拟一个两组试验的样本量',
+    '用蒙特卡洛方法估计',
+  ])('simulation requested: %s', (m) => { expect(requestAsksForSimulation(m)).toBe(true); });
+  it.each([
+    'Run analyze_ebv_antibody_titers on its built-in ELISA OD readings and standard-curve data',
+    'Summarise this assay table and plot potency against logP.',
+    '计算这些样本的平均值',
+  ])('not a simulation request: %s', (m) => { expect(requestAsksForSimulation(m)).toBe(false); });
 });

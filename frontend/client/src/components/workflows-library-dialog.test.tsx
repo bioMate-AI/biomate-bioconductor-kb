@@ -20,11 +20,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('@/lib/analytics', () => ({ analytics: { track: vi.fn() } }));
 
 import { WorkflowsLibraryDialog } from './workflows-library-dialog';
+import { stashWorkflowSelection, takeWorkflowSelection } from '@/lib/workflow-selection';
 
 const RANKED = {
   query: 'rna-seq',
   results: [
-    { rank: 1, name: 'nf-core/rnaseq', display_name: 'nf-core/rnaseq', description: 'Bulk RNA-seq quantification and QC.', domain: 'transcriptomics', source: 'nfcore', format: 'nextflow', score: 14.3, type: 'workflow' },
+    { rank: 1, name: 'nf-core/rnaseq', display_name: 'nf-core/rnaseq', description: 'Bulk RNA-seq quantification and QC.', domain: 'transcriptomics', source: 'nfcore', format: 'nextflow', score: 14.3, type: 'workflow', id: 42, nextflow_path: 'biomni_workflows/nfcore/rnaseq/main.nf' },
     { rank: 2, name: 'DESeq2', display_name: 'DESeq2 differential expression', description: 'Differential gene expression.', domain: 'transcriptomics', source: 'bioconductor', format: 'r', score: 9.1, type: 'workflow' },
   ],
 };
@@ -86,6 +87,50 @@ describe('WorkflowsLibraryDialog — Browse (ranked search)', () => {
     expect(onSeedChat).toHaveBeenCalledTimes(1);
     expect(onSeedChat.mock.calls[0][0]).toContain('nf-core/rnaseq');
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  // §7.2: the pick carries the workflow's catalog identity (structured), and the visible
+  // sentence carries no ids or paths.
+  it('Run passes the selected workflow identity alongside a plain sentence', async () => {
+    const onSeedChat = vi.fn();
+    render(<WorkflowsLibraryDialog open onOpenChange={() => {}} onSeedChat={onSeedChat} />);
+
+    fireEvent.change(await screen.findByTestId('browse-search-input'), { target: { value: 'rna-seq' } });
+    fireEvent.click(await screen.findByTestId('button-run-catalog-1'));
+
+    const [prompt, selection] = onSeedChat.mock.calls[0];
+    expect(selection).toEqual({
+      name: 'nf-core/rnaseq', id: 42, nextflow_path: 'biomni_workflows/nfcore/rnaseq/main.nf', source: 'nfcore', type: 'workflow',
+    });
+    expect(prompt).not.toMatch(/main\.nf|biomni_workflows|\b42\b/);
+  });
+
+  it('default seed path parks the selection for the next send of that draft', async () => {
+    const assign = vi.fn();
+    const orig = window.location;
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...orig, assign } });
+    try {
+      render(<WorkflowsLibraryDialog open onOpenChange={() => {}} />);
+      fireEvent.change(await screen.findByTestId('browse-search-input'), { target: { value: 'rna-seq' } });
+      fireEvent.click(await screen.findByTestId('button-run-catalog-1'));
+      expect(assign.mock.calls[0][0]).toMatch(/^\/\?draft=/);
+      const draft = new URLSearchParams(String(assign.mock.calls[0][0]).slice(1)).get('draft')!;
+      expect(takeWorkflowSelection(draft)).toMatchObject({ name: 'nf-core/rnaseq', id: 42 });
+      expect(takeWorkflowSelection(draft)).toBeUndefined(); // one-shot
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: orig });
+    }
+  });
+});
+
+describe('takeWorkflowSelection', () => {
+  it('applies only while the sent message still names the picked workflow', () => {
+    stashWorkflowSelection({ name: 'nf-core/rnaseq' });
+    expect(takeWorkflowSelection('Run the nf-core/rnaseq workflow on SRR1039508')).toEqual({ name: 'nf-core/rnaseq' });
+    stashWorkflowSelection({ name: 'nf-core/rnaseq' });
+    expect(takeWorkflowSelection('actually, dock these ligands instead')).toBeUndefined();
+    stashWorkflowSelection({ name: 'deseq2_de', label: 'DESeq2 differential expression' });
+    expect(takeWorkflowSelection('运行 DESeq2 differential expression 工作流。')).toMatchObject({ name: 'deseq2_de' });
   });
 });
 

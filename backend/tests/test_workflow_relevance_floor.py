@@ -54,3 +54,11 @@ def test_floor_separates_the_recorded_calibration_set():
     junk = [r["score"] for r in rows if r["final"] == "direct_compute" and r["id"].startswith(("F", "DC")) and r["id"] not in ("DC5", "DC8")]
     assert positives and junk
     assert min(positives) >= wr.WORKFLOW_RELEVANCE_FLOOR > max(junk)
+
+
+def test_card_swap_candidates_exclude_below_floor_hits():
+    # Step 6c may move the card to a candidate the reply names; a sub-floor hit must not be one.
+    hits = [m("nf-core/rnaseq", 110.2), m("mmuphin", 28.1), m("nf-core/differentialabundance", 61.0)]
+    names = [r.name for r in wr.relevant_candidates(hits)]
+    assert names == ["nf-core/rnaseq", "nf-core/differentialabundance"]
+    assert wr.relevant_candidates([m("mmuphin", 28.1)]) == []

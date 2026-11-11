@@ -24,7 +24,6 @@ import {
   TrendingUp,
   Clock,
   Zap,
-  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -467,10 +466,6 @@ export function ResearchResponseDisplay({
   onToolClick,
   className,
 }: ResearchResponseDisplayProps) {
-  // Boundary is ALWAYS present (spec 01): a specific caveat when the agent
-  // supplies one, else an honest standing caveat — never silently omitted.
-  const boundaryText = response.boundary?.trim() || t("citations.boundary_default");
-
   return (
     <div className={cn("space-y-3", className)}>
       {/* Benchmark evidence if available */}
@@ -496,15 +491,6 @@ export function ResearchResponseDisplay({
           isCollapsed={true}
         />
       )}
-
-      {/* Boundary — always present (spec 01): what this answer is NOT evidence for. */}
-      <div
-        data-testid="research-answer-boundary"
-        className="flex items-start gap-1.5 text-xs text-muted-foreground"
-      >
-        <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-        <span>{boundaryText}</span>
-      </div>
 
       {/* Follow-up questions — clicking one sends it as the next question. */}
       {onFollowUpClick && response.follow_up_questions && response.follow_up_questions.length > 0 && (

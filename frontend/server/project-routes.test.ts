@@ -111,7 +111,10 @@ describe("project-routes — contract", () => {
     expect(SRC.includes("validateRemoteFileUrl")).toBe(true);            // SSRF-safe URL check
     expect(/import-url[\s\S]{0,1200}_isOwnerOrEditor/.test(SRC)).toBe(true); // owner/editor gate
     expect(SRC.includes("512 * 1024 * 1024")).toBe(true);               // 512 MiB cap
-    expect(/VALUES\s*\([^)]*'url'[^)]*\)/.test(SRC)).toBe(true);         // inserts source='url'
+    // Same storage path as an upload: collision-safe key from the original name, and
+    // same-name/new-bytes becomes a version (never an overwrite), source='url'.
+    expect(/files\/import-url[\s\S]{0,3000}projectInputPath\(rawName\)/.test(SRC)).toBe(true);
+    expect(/files\/import-url[\s\S]{0,3500}_storeProjectInput\(\{[^}]*source: "url"/.test(SRC)).toBe(true);
   });
 
   it("content-hash dedup (§4.5.1) — column added idempotently, computed + checked at ingest", () => {

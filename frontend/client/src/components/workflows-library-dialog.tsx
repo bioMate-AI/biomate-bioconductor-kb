@@ -16,6 +16,7 @@
  */
 
 import { WorkflowHistoryDialog } from './workflow-history-dialog';
+import { stashWorkflowSelection, type WorkflowSelection } from '@/lib/workflow-selection';
 
 interface WorkflowsLibraryDialogProps {
   open: boolean;
@@ -25,7 +26,7 @@ interface WorkflowsLibraryDialogProps {
    * /?draft=<prompt>, which App.tsx consumes to pre-fill (not auto-send) the
    * composer. Injectable so tests can observe the seed without a real navigation.
    */
-  onSeedChat?: (prompt: string) => void;
+  onSeedChat?: (prompt: string, selection?: WorkflowSelection) => void;
 }
 
 export function WorkflowsLibraryDialog({ open, onOpenChange, onSeedChat }: WorkflowsLibraryDialogProps) {
@@ -34,8 +35,11 @@ export function WorkflowsLibraryDialog({ open, onOpenChange, onSeedChat }: Workf
       open={open}
       onOpenChange={onOpenChange}
       library
-      onSeedChat={(prompt) => {
-        if (onSeedChat) { onSeedChat(prompt); return; }
+      onSeedChat={(prompt, selection) => {
+        if (onSeedChat) { onSeedChat(prompt, selection); return; }
+        // The chosen workflow's identity rides with the next send (context.selectedWorkflow);
+        // the visible draft stays a plain sentence.
+        if (selection) stashWorkflowSelection(selection);
         // Established seed path: /?draft= pre-fills the composer for review/run.
         window.location.assign(`/?draft=${encodeURIComponent(prompt)}`);
       }}

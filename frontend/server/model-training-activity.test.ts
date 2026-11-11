@@ -46,6 +46,10 @@ it('requires exact training domain/path rather than loose model names', () => {
  expect(isModelTrainingRun(run({ workflowDefinition: { nextflow_path: '/workflows/ml_training/chemprop_train.nf' } }))).toBe(true);
  expect(isModelTrainingRun(run({ workflowDefinition: { workflow_domain: 'ml_training' } }))).toBe(true);
  for (const path of ['/not_ml_training/model.nf', '/model.nf?path=ml_training/train.nf', '/ml_training/../private.nf']) expect(isModelTrainingRun(run({ workflowDefinition: { nextflow_path: path } }))).toBe(false);
+ // House-style prompt-rules compile is not model training (no model, no metrics).
+ expect(isModelTrainingRun(run({ workflowDefinition: { name: 'Adaptation retrain', workflow_type: 'training', steps: { '1': { label: 'Compile edit pairs', tool_id: 'adapt_compile' } } } }))).toBe(false);
+ expect(isModelTrainingRun(run({ workflowDefinition: { name: 'Adaptation retrain', workflow_type: 'adaptation' } }))).toBe(false);
+ expect(isModelTrainingRun(run({ workflowDefinition: { workflow_type: 'training', domain: 'ml_training' } }))).toBe(true);
 });
 
 // Register the authenticated bridge before the broad Galaxy proxy.

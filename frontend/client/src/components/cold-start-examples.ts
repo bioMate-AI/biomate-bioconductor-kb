@@ -20,11 +20,20 @@ export const PREPARED_EXAMPLES = [
   ...HOSPITAL_EXAMPLES,
 ] as const;
 
-export async function prepareColdStartExample(text: string): Promise<{ prompt: string; files: File[] }> {
+/**
+ * A prepared example = the natural goal the user sees + its files, plus the
+ * bundle's model-facing notes. The notes (dataset identity, column meanings,
+ * staged locations) are NEVER put in the composer or the user's bubble: they
+ * travel as a hidden `[Prepared inputs: …]` block appended at send time, the
+ * same way `[Attached files]` / `[Uploaded datasets]` already do.
+ */
+export interface PreparedExample { prompt: string; files: File[]; hiddenContext?: string }
+
+export async function prepareColdStartExample(text: string): Promise<PreparedExample> {
   const example = PREPARED_EXAMPLES.find(item => item.label === text);
   const demo = coldDemoFor(text);
   if (!example && !demo) return { prompt: text, files: [] };
-  const names = example ? ('files' in example ? [...example.files] : []) : [...demo!.files, 'demo_notes.md'];
+  const names = example ? ('files' in example ? [...example.files] : []) : [...demo!.files];
   const root = example ? ('root' in example ? example.root : '/demo/mg_demo/') : '/demo/cold-start/';
   const files = await Promise.all(names.map(async name => {
     const response = await fetch(`${root}${name}`);
@@ -36,7 +45,12 @@ export async function prepareColdStartExample(text: string): Promise<{ prompt: s
   // Context specifies exact entities and contrasts; no unresolved “this target”.
   // Incompatible generic hints (e.g. GRCh38) are replaced by the fixture's build.
   const goal = demo ? text.replace(/ Human GRCh38\./g, '').replace(/this protein sequence and tell me where to trust it: .+$/, 'the attached lysozyme sequence and tell me where to trust it.') : text;
-  return { prompt: example ? example.prompt : `${goal}\n\nPrepared demo context:\n${demo!.context}`, files };
+  return example ? { prompt: example.prompt, files } : { prompt: goal, files, hiddenContext: demo!.context };
+}
+
+/** The hidden block appended to the sent message; the chat bubble strips it. */
+export function preparedInputsBlock(context: string): string {
+  return `[Prepared inputs: ${context.replace(/[\[\]]/g, '')}]`;
 }
 
 export const INTERNAL_EXAMPLES = [
@@ -82,7 +96,7 @@ export async function ensureInternalDemoProject(files: File[], hospital = false)
 }
 
 /** Prepare a reviewable draft and its explicit project context, never send or run. */
-export async function prepareColdStartSelection(text: string): Promise<{ prompt: string; files: File[]; projectId?: string }> {
+export async function prepareColdStartSelection(text: string): Promise<PreparedExample & { projectId?: string }> {
   const internal = INTERNAL_EXAMPLES.includes(text);
   const hospital = HOSPITAL_EXAMPLES.some(example => example.label === text);
   const result = await prepareColdStartExample(internal ? PREPARED_EXAMPLES[0].label : text);
