@@ -14,6 +14,7 @@ and deploys with the team's integration→dev sync.
 | `40fd8d02fb` | fix(ui): de-duplicate project surfaces (right sidebar hidden; top New Chat removed + 4 e2e specs; output-format examples hidden once configured) |
 | `acba98ab09` | feat(research): intent-aware evidence source selection + federated fan-out + SYSUCC DB-audit doc |
 | `a886beffae` | fix(research): coverage-aware confidence (kill the hardcoded 0.8 stub) |
+| `880e20b450` | feat(research): route target-ranking questions to the target_id engine (`fuse_channels`), **flag-gated + inert by default** (`BIOMATE_TARGETID_IN_RESEARCH=1`) |
 
 Verification: `tsc` clean; vitest **2834 passed / 0 failed**; `py_compile` clean on
 all backend files; selector + confidence logic verified by direct execution
@@ -59,9 +60,11 @@ evidence-**processing** methods the pipeline should use. Analysis:
 - **`target_id/arbiter.fuse_channels`** (domain-neutral z-gated channel fusion) and
   **`evidence_gate`/`rank_evidence`** — for **ranking** questions ("which
   target/gene/driver for X"). Already the engine behind `identify_targets`.
-  **Next step:** route target-ranking intents to `identify_targets` (needs
-  disease-id / seed extraction + routing — a real feature, not an overnight
-  speculative change).
+  **DONE (`880e20b450`), flag-gated:** `is_target_ranking_question()` detects
+  ranking intent and `_gather_evidence` runs the `TargetIDOrchestrator`, attaching
+  the ranked targets to `db_facts['target_ranking']` (rendered in the prompt).
+  Inert until `BIOMATE_TARGETID_IN_RESEARCH=1` (it does live network + an LLM call).
+  To finish: enable the flag on dev and validate on a "which targets for X" question.
 - **`verification_layer.self_consistent` / `grounded_pick` / `consensus`** — general
   answer verification; `self_consistent` gives a **measured** confidence (sampled
   agreement) that could replace the heuristic `_grounding_confidence`. **Cost:** K
