@@ -147,6 +147,11 @@ export interface TrainRun {
   status: string
   gate: string
   metric: string
+  /** Structured training result (from the run's metrics.json); absent → not recorded. */
+  metricName?: string
+  metricValue?: number
+  gateStatus?: "pass" | "fail" | null
+  gateThreshold?: number | null
   dataset: string
   version?: string
   modelId?: string
@@ -162,6 +167,22 @@ function trainStatusColor(status: string): string {
 
 function notRecorded(value: string): string {
   return value === "Not recorded" ? t("models.not_recorded") : value
+}
+
+/** "accuracy 0.896" — metric names are model vocabulary (kept as-is in both locales). */
+function metricLabel(r: TrainRun): string {
+  return r.metricName && typeof r.metricValue === "number"
+    ? t("models.run_metric", { metric: r.metricName, value: r.metricValue.toFixed(3) })
+    : t("models.not_recorded")
+}
+
+/** "通过 · 阈值 0.60" / "Passed · threshold 0.60". */
+function gateLabel(r: TrainRun): string {
+  if (r.gateStatus !== "pass" && r.gateStatus !== "fail") return t("models.not_recorded")
+  const key = r.gateStatus === "pass" ? "models.run_gate_pass" : "models.run_gate_fail"
+  return typeof r.gateThreshold === "number"
+    ? t(key + "_threshold", { threshold: r.gateThreshold.toFixed(2) })
+    : t(key)
 }
 
 export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenModel: (id: string) => void }) {
@@ -196,8 +217,11 @@ export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenMo
                 </Badge>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="text-fs-xs">{notRecorded(r.metric)}</Badge>
-                <Badge variant="outline" className="text-fs-xs">{notRecorded(r.gate)}</Badge>
+                <Badge variant="outline" className="text-fs-xs" data-testid={`train-run-metric-${r.name}`}>{metricLabel(r)}</Badge>
+                <Badge variant="outline" className="text-fs-xs" data-testid={`train-run-gate-${r.name}`}
+                  style={r.gateStatus === "pass" ? { color: "#15803d" } : r.gateStatus === "fail" ? { color: "#b91c1c" } : undefined}>
+                  {gateLabel(r)}
+                </Badge>
                 <span className="truncate font-mono text-fs-xs text-muted-foreground">{notRecorded(r.dataset)}</span>
                 {r.runId && /^(completed|complete|success|succeeded)$/i.test(r.status) && (
                   <TrainingRegistration runId={r.runId} eligible={r.registrationEligible} />

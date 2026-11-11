@@ -1638,7 +1638,12 @@
     "training_runs_empty": "该项目还没有训练运行。在上方配置模型并启动，运行会出现在这里以及运行管理器中。",
     "training_runs_heading": "训练运行",
     "training_workflow": "训练",
-    "use_example_input": "填入示例输入"
+    "use_example_input": "填入示例输入",
+    "run_metric": "{{metric}} {{value}}",
+    "run_gate_pass": "质量门通过",
+    "run_gate_fail": "质量门未通过",
+    "run_gate_pass_threshold": "质量门通过 · 阈值 {{threshold}}",
+    "run_gate_fail_threshold": "质量门未通过 · 阈值 {{threshold}}"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",

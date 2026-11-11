@@ -5826,6 +5826,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
       getUserProjects: uid => memoryService.projects.getUserProjects(uid),
       getExecutionRuns: (uid, project) => storage.getExecutionRuns(uid, project, undefined, 500),
+      // The trainer writes results/metrics.json (metrics + gate) to the run's own outputs;
+      // the URI comes from the run record (or Galaxy's status for it), never from the client.
+      loadTrainingMetrics: async (run) => {
+        const bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+        const uriOf = (f: any) => (typeof f === 'string' ? f : f?.s3_uri || f?.path || f?.url || '') as string;
+        let files: unknown[] = run.execution?.nextflowStatus?.s3_output_files || run.execution?.nextflowStatus?.output_files || [];
+        if (!files.some((f) => /\/metrics\.json$/.test(uriOf(f))) && run.execution?.nextflowRunId) {
+          const g = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(run.execution.nextflowRunId)}`,
+            { signal: AbortSignal.timeout(8000) }).catch(() => null);
+          const gd: any = g && g.ok ? await g.json().catch(() => null) : null;
+          if (Array.isArray(gd?.s3_output_files)) files = gd.s3_output_files;
+        }
+        const uris = files.map(uriOf).filter((u) => u.startsWith(`s3://${bucket}/`) && /\/metrics\.json$/.test(u));
+        const uri = uris.find((u) => /\/results\/metrics\.json$/.test(u)) || uris[0];
+        if (!uri) return null;
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const obj = await client.send(new GetObjectCommand({ Bucket: bucket, Key: uri.slice(`s3://${bucket}/`.length) }));
+        const text = await (obj.Body as any)?.transformToString?.('utf-8');
+        return text && text.length < 512 * 1024 ? JSON.parse(text) : null;
+      },
+      saveTrainingSummary: async (runId, summary) => {
+        const current = await storage.getExecutionRun(runId);
+        if (!current) return;
+        await storage.updateExecutionRun(runId, { execution: { ...(current as any).execution, trainingSummary: summary } } as any);
+      },
     });
     res.status(result.status).json(result.body);
   });

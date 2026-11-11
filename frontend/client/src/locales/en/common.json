@@ -1120,7 +1120,12 @@
     "training_runs_empty": "No training run in this project yet. Configure a model above and start one — it appears here and in the Run Manager.",
     "training_runs_heading": "Training runs",
     "training_workflow": "Training",
-    "use_example_input": "Use an example input"
+    "use_example_input": "Use an example input",
+    "run_metric": "{{metric}} {{value}}",
+    "run_gate_pass": "Gate passed",
+    "run_gate_fail": "Gate failed",
+    "run_gate_pass_threshold": "Gate passed · threshold {{threshold}}",
+    "run_gate_fail_threshold": "Gate failed · threshold {{threshold}}"
   },
   "instructions_formats": {
     "edit_title": "Edit output format",

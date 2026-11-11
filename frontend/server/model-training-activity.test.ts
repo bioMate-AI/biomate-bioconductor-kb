@@ -71,3 +71,54 @@ it('includes the owned adaptation handler training execution record', async () =
  expect((result.body as any).runs[0].family).toBe('adaptation');
  expect((result.body as any).runs[0]).not.toHaveProperty('modelId');
 });
+
+// Real metrics.json shape written by the ml_training trainer (dev run 32e60784, 2026-11-11).
+const REAL_METRICS = {
+  name: 'live-journey-tabular',
+  metrics: { cv_accuracy_mean: 0.8958333333333334, accuracy: 0.8958333333333334, auc: 0.95, macro_f1: 0.8956497660306303 },
+  gate: { gates: [{ name: 'accuracy', measured: 0.8958333333333334, threshold: 0.6, status: 'pass', direction: 'higher_is_better' }] },
+};
+
+describe('training result (score + gate) in 训练运行', () => {
+  const completed = (over: Partial<TrainingActivityRun['execution']> = {}): TrainingActivityRun => ({
+    id: 'run-1', userId: 'u1', workflowName: 'live-journey-tabular',
+    workflowDefinition: { nextflow_path: 'ml_training/chemprop_train.nf' },
+    execution: { status: 'completed', ...over }, createdAt: '2026-11-11T05:00:00Z', updatedAt: '2026-11-11T05:02:00Z',
+  });
+
+  it('summarizes the gate (preferred) from a real trainer metrics.json', async () => {
+    const { summarizeTrainingMetrics } = await import('./model-training-activity');
+    expect(summarizeTrainingMetrics(REAL_METRICS)).toEqual({ metric: 'accuracy', value: 0.8958333333333334, gate: 'pass', threshold: 0.6 });
+    expect(summarizeTrainingMetrics({ metrics: { rmse: 1.2, r2: 0.7 } })).toEqual({ metric: 'r2', value: 0.7, gate: null, threshold: null });
+    expect(summarizeTrainingMetrics(null)).toBeNull();
+    expect(summarizeTrainingMetrics({ metrics: {} })).toBeNull();
+  });
+
+  it('backfills a completed run once and returns structured result fields', async () => {
+    const run = completed();
+    const load = vi.fn(async () => REAL_METRICS);
+    const save = vi.fn(async () => undefined);
+    const res: any = await readModelTrainingActivity({ userId: 'u1' }, {
+      getUserProjects: async () => [], getExecutionRuns: async () => [run], loadTrainingMetrics: load, saveTrainingSummary: save,
+    });
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith('run-1', { metric: 'accuracy', value: 0.8958333333333334, gate: 'pass', threshold: 0.6 });
+    const row = res.body.runs[0];
+    expect(row).toMatchObject({ metricName: 'accuracy', gateStatus: 'pass', gateThreshold: 0.6, gate: 'pass' });
+    expect(row.metric).toBe('accuracy 0.896');
+  });
+
+  it('does not re-read a run that already has a result, and leaves runs without metrics not recorded', async () => {
+    const load = vi.fn(async () => null);
+    const done = completed({ trainingSummary: { metric: 'auc', value: 0.95, gate: null, threshold: null } });
+    const failed: TrainingActivityRun = { ...completed(), id: 'run-2', execution: { status: 'failed' } };
+    const res: any = await readModelTrainingActivity({ userId: 'u1' }, {
+      getUserProjects: async () => [], getExecutionRuns: async () => [done, failed], loadTrainingMetrics: load,
+    });
+    expect(load).not.toHaveBeenCalled();
+    const byId = Object.fromEntries(res.body.runs.map((r: any) => [r.runId, r]));
+    expect(byId['run-1'].metric).toBe('auc 0.950');
+    expect(byId['run-2']).toMatchObject({ metric: 'Not recorded', gate: 'Not recorded' });
+    expect(byId['run-2'].metricName).toBeUndefined();
+  });
+});
