@@ -50,19 +50,36 @@ was fixed, and what is deferred.
 
 Verification: `tsc` clean; vitest `execution-integrity` (27), `cold-start-demo-catalog` (102), `attachment-binding` (36) green.
 
-## Fixed in batch 2 (after merging `fix/example-data-default` `cd2aa142be`) — `galaxy-assistant.ts`
+## Batch 2 (after merging `fix/example-data-default` `cd2aa142be`) — `galaxy-assistant.ts`
 
-- **Correctness #2 — DONE.** `isValueOnlyReply` now strips connective glue
-  ("use/and/plus/run…", CJK run verbs 跑/用) before the leftover-letters check and
-  matches accessions case-insensitively, so "use SRR… and SRR…", "run SRR… plus
-  SRR…", lowercase "srr…", and "跑 SRR…" bind to the open workflow instead of
-  re-routing. Two existing test assertions that encoded the old narrow behaviour
-  ("use SRR…"/"用 SRR…" = not-value-only) were corrected to the fixed contract;
-  reviewer's scenarios added.
-- **Correctness #3 — DONE.** `workflowNamedInRunRequest` rejects a generic
-  determiner/pronoun captured before workflow|pipeline (whole/this/that/the/my/…)
-  so "run the whole workflow" no longer pins "whole" and skips the clarification
-  gate. 5 new negative cases.
+**Founder correction mid-review: "where you use regex again? overfitting again?"** My
+first pass at #2/#3 added keyword/word-list regexes — the exact anti-pattern
+([[feedback_infer_solution_type_not_keywords]]). Reverted them to structural checks:
+
+- **Correctness #2 — structural only.** `isValueOnlyReply` keeps the FORMAT-defined
+  value detection (accessions, file names, numbers) and makes accession matching
+  case-insensitive (so lowercase "srr1039508" is caught — a format fix, not a word
+  list). The connective-glue stop-list ("use/and/plus/…" + CJK) I had added is
+  REMOVED — enumerating connectives is keyword overfitting. The function stays
+  conservative (re-routes rather than mis-binds); the real coverage gap ("use SRR…
+  and SRR…" while the classifier carries a stale 0.95 goal) belongs at the
+  classifier, not a word list. Tracked, not patched here.
+- **Correctness #3 — rely on the existing structural check, no word list.**
+  `workflowNamedInRunRequest` extracts a CANDIDATE name only; it is validated
+  downstream by the backend's EXACT catalog membership
+  (`_resolve_selected_workflow`: *"no fuzzy search"*), so a generic word like
+  "whole" resolves to nothing and the turn falls back to normal routing. The
+  frontend determiner/pronoun stop-list I had added is REMOVED — it was redundant
+  keyword overfitting on top of the catalog check. (Residual: a bogus candidate
+  still skips the clarification gate for that turn; the non-overfit way to close
+  that is to validate the pin against the catalog before the gate decision — a
+  reorder, tracked — not a word list.)
+- **Synthetic-data guard (#1) kept** because the change *removed* the worst
+  keyword matches (`set.seed`, `random.seed`, the bare `simulat…` substring that
+  hit `simulated_annealing`/comments) and narrowed to actual data-fabrication
+  call primitives — a linter-style code-property check, with
+  `requestAsksForSimulation` as the inference escape hatch. Net less overfit than
+  before.
 - **Correctness #4 — DONE.** `conversationHasPipelineScaleData` is scoped to the
   current turn: a stale earlier pipeline-scale file (turn-1 FASTQ) no longer
   suppresses `direct_compute` for this turn's own fresh small data (turn-5 CSV);

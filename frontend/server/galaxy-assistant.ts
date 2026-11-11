@@ -2659,13 +2659,13 @@ export function workflowNamedInRunRequest(message: string): SelectedWorkflow | n
   const id = new RegExp(verb + String.raw`(nf-core\/[a-z0-9_-]+|[a-z][a-z0-9]*(?:_[a-z0-9]+){2,})(?![\w/-])`, 'i').exec(text)?.[1]
     || new RegExp(verb + String.raw`([a-z][\w.-]{3,})\s+(?:workflow|pipeline)\b`, 'i').exec(text)?.[1]
     || new RegExp(verb + String.raw`([a-z][\w./-]{3,})\s*工作流`, 'i').exec(text)?.[1];
-  if (!id) return null;
-  // "run the whole workflow" / "run this pipeline" name no workflow — a generic
-  // determiner/pronoun captured before workflow|pipeline must not pin a card and
-  // skip clarification (correctness review 2026-11-11). A real workflow name is a
-  // nf-core/… path or a multi-underscore snake_case id, which these are not.
-  if (/^(?:whole|this|that|these|those|the|my|your|our|its|a|an|same|it|again|entire|full|current|above|below|first|last|next|previous|new|old|other|one)$/i.test(id)) return null;
-  return normalizeSelectedWorkflow({ name: id });
+  // A captured token is only a CANDIDATE name — validated structurally downstream:
+  // the backend resolves selected_workflow by EXACT catalog membership
+  // (_resolve_selected_workflow: "no fuzzy search"), so a generic word like "whole"
+  // in "run the whole workflow" resolves to nothing and the turn falls back to
+  // normal routing. No hand-maintained stop-word list — the catalog is the
+  // authority on what is a workflow name.
+  return id ? normalizeSelectedWorkflow({ name: id }) : null;
 }
 
 /** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA…
@@ -2684,20 +2684,19 @@ const FILE_NAME_RE = /[^\s,;，；、]+\.[A-Za-z][A-Za-z0-9]{0,7}(?:\.gz)?\b/g;
  */
 export function isValueOnlyReply(message: string): boolean {
   const base = stripSystemBlocks(message);
-  const values = base
+  // Value tokens are FORMAT-defined (accessions, file names, numbers), not a
+  // keyword list \u2014 DATA_IDENTIFIER_RE is case-insensitive so a lowercase accession
+  // ("srr1039508") is caught too. If anything with a letter is left after removing
+  // them, the reply says more than its values and is not value-only. (The commonest
+  // multi-accession phrasings that ALSO carry a connective \u2014 "use SRR\u2026 and SRR\u2026" \u2014
+  // are deliberately NOT special-cased here with a connective word-list; that would
+  // be keyword overfitting. The real gap is the classifier carrying a stale goal
+  // onto a value turn, which is the right place to fix if coverage needs it.)
+  const rest = base
     .replace(DATA_IDENTIFIER_RE, ' ')
     .replace(FILE_NAME_RE, ' ')
     .replace(/\d+/g, ' ');
-  // "hadValue" requires an actual value token (accession/file/number) or an
-  // attachment block \u2014 glue words alone ("please run") are not values.
-  const hadValue = values !== base || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
-  // Connective glue around a list of values ("use SRR\u2026 and SRR\u2026", "run SRR\u2026 plus
-  // SRR\u2026", "\u8dd1 SRR\u2026") states no analysis of its own; drop it before the
-  // leftover-letters check so the most common multi-accession phrasings still
-  // bind to the open workflow (correctness review 2026-11-11).
-  const rest = values
-    .replace(/\b(?:and|or|plus|both|use|using|run|running|execute|launch|then|also|please)\b/gi, ' ')
-    .replace(/[\u8dd1\u7528\u548c\u53ca\u8fd8\u6709\u4ee5]/g, ' ');
+  const hadValue = rest !== base || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
   return hadValue && !/[A-Za-z\u3400-\u9fff]/.test(rest);
 }
 
