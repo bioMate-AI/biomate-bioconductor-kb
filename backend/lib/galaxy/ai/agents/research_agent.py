@@ -746,6 +746,24 @@ def _entity_validation_enabled():
     return _os.environ.get("BIOMATE_ENTITY_VALIDATION", "").strip().lower() in ("1", "true", "yes")
 
 
+_FOUNDATIONAL_CUES = (
+    "what is the evidence", "evidence linking", "evidence for", "evidence that",
+    "etiolog", "aetiolog", "pathogenesis", "mechanism", "what drives", "what causes",
+    "structure-activity", "structure activity", " sar ", "sar for", "sar of",
+    "discover", "history of", "seminal", "foundational", "basis of", "underlying",
+    "link between", "association between", "causal",
+)
+
+
+def _needs_foundational(question):
+    """True when a question needs the FOUNDATIONAL literature (etiology / mechanism /
+    SAR / evidence-base), not just the last ~5 years — so retrieval should rank by
+    impact and keep seminal papers instead of burying them under recent reviews. The
+    ABL1/LRRK2 failure (every citation 2025-26, foundational papers absent) is this bug."""
+    q = f" {(question or '').lower()} "
+    return any(cue in q for cue in _FOUNDATIONAL_CUES)
+
+
 def lookup_omim_gene(gene_symbol: str) -> List[dict]:
     """NCBI Gene → MIM IDs via mygene.info (OMIM API key not required this way)."""
     result = _http_get(
@@ -1673,11 +1691,17 @@ class ResearchAgent:
                 # unverified paper (the 0-mismatched-citations property is preserved).
                 sub_queries = _build_search_queries(question, key_terms, primary_query)
                 _per_q = max(self.max_citations, 15)
+                # Etiology / evidence / SAR / mechanism questions need the FOUNDATIONAL
+                # literature (often 15-25 yrs old) — which a recency-ranked search buries
+                # under recent reviews (the ABL1/LRRK2 "all citations 2025-26" failure).
+                # Flag those so retrieval ranks by IMPACT (citation count) over recency.
+                _foundational = _needs_foundational(question)
 
                 async def _one_query(_q):
                     try:
                         return await self.literature_client.search_bioinformatics(
                             query=_q, max_results=_per_q, recent_years=5, verify_ids=_deep,
+                            recency_balance=_foundational,
                         )
                     except Exception as _e:
                         log.debug(f"sub-query search failed for '{_q[:60]}': {_e}")
