@@ -75,7 +75,7 @@ import "@/v2/research-tokens.css";
 import "@/v2/layout.css";
 import "@/v2/research-layout.css";
 import "@/v2/tour.css";
-import { IND_REPORT_ENABLED, DESIGN_GENERATE_ENABLED } from "@/lib/feature-flags";
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 
 interface ToolItem {
   id: string
@@ -704,7 +704,7 @@ function Router({
       </Route>
 
       <Route path="/design">
-        {!DESIGN_GENERATE_ENABLED ? <NotFound /> : <PlatformLayout
+        <PlatformLayout
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
           onNewChat={onNewChat}
@@ -719,7 +719,7 @@ function Router({
           <div className="max-w-5xl mx-auto p-4">
             <DesignGenerate />
           </div>
-        </PlatformLayout>}
+        </PlatformLayout>
       </Route>
 
       {/* Tier-1 data surface — the data hub. Datasets as first-class objects

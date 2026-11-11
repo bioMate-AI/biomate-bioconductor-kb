@@ -49,7 +49,6 @@ import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from "./cold-start-examples";
 import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 import { t } from "@/lib/i18n";
-import { DESIGN_GENERATE_ENABLED } from "@/lib/feature-flags";
 
 /**
  * Display copy for the card catalogue below. The catalogue stays canonical
@@ -877,19 +876,15 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
   );
 }
 
-/**
- * The cards shown on the landing. The molecule design & generate module stays
- * in the catalogue (router self-test) but is hidden unless
- * DESIGN_GENERATE_ENABLED — founder review 2026-11-10 (it over-claimed).
- */
-export function landingModules(designEnabled: boolean = DESIGN_GENERATE_ENABLED): ColdModule[] {
-  return COLD_MODULES.filter((m) => m.id !== "design" || designEnabled);
+/** The cards shown on the landing — every function module, molecule design included. */
+export function landingModules(): ColdModule[] {
+  return COLD_MODULES;
 }
 
 export interface ColdStartDashboardProps {
   /** Seed the composer with a goal / example intent. Does not send. */
   onSeed: (text: string) => void;
-  /** Cards to show; defaults to the landing set (design gated by flag). */
+  /** Cards to show; defaults to the landing set. */
   modules?: ColdModule[];
 }
 

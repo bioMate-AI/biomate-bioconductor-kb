@@ -15,8 +15,3 @@ export const UX_FEEDBACK_ADMIN_ENABLED =
  *  The backend and proxies are kept so the module can be re-enabled intact. */
 export const IND_REPORT_ENABLED = import.meta.env.VITE_ENABLE_IND_REPORT === "true";
 
-/** Molecule design & generate entry — HIDDEN by default (founder review 2026-11-10:
- *  the landing card over-claimed). Off unless VITE_ENABLE_DESIGN_GENERATE === "true".
- *  Gates the cold-start "design" module card and the /design route together, so no
- *  entry point leads to a surface we are not presenting. */
-export const DESIGN_GENERATE_ENABLED = import.meta.env.VITE_ENABLE_DESIGN_GENERATE === "true";

@@ -33,13 +33,12 @@ function headerFor(moduleId: string): HTMLElement {
 }
 
 describe("<ColdStartDashboard>", () => {
-  it("landing default hides the molecule design card (flag off) and keeps the heading", () => {
+  it("landing default shows every module, molecule design & generate included", () => {
     render(<ColdStartDashboard onSeed={() => {}} />);
     const ids = screen.getAllByTestId("cold-module-card").map((c) => c.getAttribute("data-module-id"));
-    expect(ids).toEqual(landingModules(false).map((m) => m.id));
-    expect(ids).not.toContain("design");
-    expect(landingModules(true).map((m) => m.id)).toContain("design");
-    expect(screen.queryByText("Molecule design & generate")).toBeNull();
+    expect(ids).toEqual(landingModules().map((m) => m.id));
+    expect(ids).toContain("design");
+    expect(screen.getByText("Molecule design & generate")).toBeInTheDocument();
     expect(screen.getByText("What are you trying to do?")).toBeInTheDocument();
   });
 
