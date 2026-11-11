@@ -131,11 +131,31 @@ describe('every cold-start path has prepared inputs', () => {
    expect(header[0]).toBe('sample_id'); expect(header[header.length - 1]).toBe('subtype');
  });
 
-it('requires explicit built-in sample defaults when a prepared example has no files', () => {
+// A file-less prepared example must read as a real, demo-free request: it names a
+// concrete dataset/target the resolved workflow runs on (so routing and the card are
+// honest), and it carries NO "built-in / sample data / demo" scaffolding. The
+// workflow's example-data default (backend example_data.present) is what lets it run
+// without an upload — the prompt no longer begs that behaviour with demo keywords.
+// docs/20261111 example-data default.
+it('every file-less prepared example is demo-free and names a concrete dataset/target', () => {
+  // concrete subject each file-less example must name (keyed by a label substring).
+  const SUBJECT: Array<[RegExp, RegExp]> = [
+    [/cachexia/i,        /human_cachexia/],
+    [/EBV antibody/i,    /VCA|EA|EBNA1/],
+    [/flow cytometry/i,  /FSC|SSC|flow[_ ]?cytometry/i],
+    [/CAR-T/i,           /CD19/],
+    [/ChIP-seq/i,        /CTCF|MACS|ChIP/],
+    [/whole-slide/i,     /CMU-1|whole-slide|nuclei/i],
+    [/ATAC/i,            /ATAC|differentially accessible/i],
+    [/chemoproteomics/i, /pull-?down|proteinGroups|LFQ/i],
+  ];
+  const DEMO_SPEAK = /built-in|sample data|\bdemo\b|default sample|using the default/i;
   for (const example of PREPARED_EXAMPLES) {
-    if (!('files' in example)) {
-      expect(example.prompt, example.label).toMatch(/built-in/);
-      expect(example.prompt, example.label).toMatch(/demo|sample|in-silico design exercise/);
-    }
+    if ('files' in example) continue;
+    expect(example.prompt, `${example.label}: must not use demo/built-in/sample-data scaffolding`)
+      .not.toMatch(DEMO_SPEAK);
+    const rule = SUBJECT.find(([label]) => label.test(example.label));
+    expect(rule, `${example.label}: no concrete-subject rule declared for this file-less example`).toBeDefined();
+    expect(example.prompt, `${example.label}: must name its concrete dataset/target`).toMatch(rule![1]);
   }
 });

@@ -15,6 +15,5 @@
   "source_ftp": "ftp://ftp.ebi.ac.uk/pub/databases/empiar/archive/10028/",
   "source_http": "https://ftp.ebi.ac.uk/empiar/world_availability/10028/data/Micrographs/",
   "staged_date": "2026-03-12",
-  "s3_path": "s3://biomate-cryo-data/empiar-10028/",
   "notes": "Subset: 20 movies from Micrographs_part1 (001-020_movie.mrcs). Full dataset available via EMPIAR FTP."
 }

@@ -19,6 +19,7 @@ import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } fr
 import { registerVoiceRoutes } from "./voice-routes";
 import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
+import { redactStoragePaths } from "./execution-integrity";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
 import { readConnectorSession } from "./connector-session";
@@ -6912,6 +6913,21 @@ ${paramLines || '(none recorded)'}`;
 
     let heartbeatTimer: NodeJS.Timeout | null = null;
 
+    // Backstop for the no-S3-in-user-facing-text directive on the LIVE stream:
+    // redactStoragePaths only cleaned the FINAL message, so a storage URI the model
+    // echoed could flash in the bubble token-by-token before `final` replaced it
+    // (honesty review 2026-11-11, Finding 1). Redact complete `s3://…` inside each
+    // delta, and hold back a trailing unterminated `s3://…` run until a later chunk
+    // supplies its terminator — so the path never renders mid-stream. Flushed at 'final'.
+    let _storagePathPending = '';
+    const _scrubDeltaStoragePaths = (chunk: string): string => {
+      let buf = _storagePathPending + chunk;
+      _storagePathPending = '';
+      const tail = buf.match(/s3:\/\/[^\s`)\]>"']*$/i); // an s3 URI still running to the end of the buffer
+      if (tail) { _storagePathPending = tail[0]; buf = buf.slice(0, buf.length - tail[0].length); }
+      return redactStoragePaths(buf);
+    };
+
     const safeSend = (event: string, data: unknown): void => {
       // Server-side accumulation (runs even if write fails / connection dead).
       if (event === 'delta') {
@@ -6920,7 +6936,7 @@ ${paramLines || '(none recorded)'}`;
           // Filter narrated tool-call XML out of the live token stream. rawResponse
           // held on the LLM side is unaffected; what the user sees + what we persist
           // is clean. The filter may hold back a partial tag; flushed at 'final'.
-          const safe = _leakFilter.push(t);
+          const safe = _scrubDeltaStoragePaths(_leakFilter.push(t));
           accumulatedContent += safe;
           if (res.writableEnded || abortController.signal.aborted) return;
           if (safe) res.write(`event: delta\ndata: ${JSON.stringify({ ...(data as any), text: safe })}\n\n`);
@@ -6929,8 +6945,11 @@ ${paramLines || '(none recorded)'}`;
       } else if (event === 'workflow_ready') {
         workflowMetadata = data;
       } else if (event === 'final') {
-        // Release any partial-tag remainder the delta filter was holding.
-        const rem = _leakFilter.flush();
+        // Release any partial-tag remainder the delta filter was holding, then any
+        // held-back storage-path tail (redacted — an unterminated s3:// run that
+        // never got its terminator still must not reach the user raw).
+        const rem = redactStoragePaths(_leakFilter.flush() + _storagePathPending);
+        _storagePathPending = '';
         if (rem) {
           accumulatedContent += rem;
           if (!res.writableEnded && !abortController.signal.aborted) {
