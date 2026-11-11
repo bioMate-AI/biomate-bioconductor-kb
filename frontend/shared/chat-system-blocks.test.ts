@@ -40,7 +40,7 @@ describe('redactInternalRefs — never show galaxy dataset id/keyword to the use
   });
   it('removes the key=value form, keeping the rest', () => {
     expect(redactInternalRefs('counts.csv: dataset_id=abc, galaxy_dataset_id=ac170aeb, s3_uri=x'))
-      .toBe('counts.csv: dataset_id=abc, s3_uri=x');
+      .toBe('counts.csv: dataset_id=abc'); // galaxy_dataset_id AND s3_uri both redacted
   });
   it('removes the prose colon form', () => {
     expect(redactInternalRefs('Use galaxy_dataset_id: ac170aeb for run_code'))
@@ -79,5 +79,20 @@ describe('redactInternalRefs — never show internal run_code paths to the user'
   it('leaves ordinary user file paths untouched', () => {
     expect(redactInternalRefs('see ./data/counts.csv and /home/user/x.txt'))
       .toBe('see ./data/counts.csv and /home/user/x.txt');
+  });
+});
+
+describe('redactInternalRefs — never show s3 references to the user', () => {
+  it('drops the s3_uri key=value and JSON forms', () => {
+    expect(redactInternalRefs('name: dataset_id=abc, s3_uri=s3://bkt/k/counts.csv'))
+      .toBe('name: dataset_id=abc');
+    expect(redactInternalRefs('{"s3_uri":"s3://bkt/k/x.csv"}')).toBe('');
+  });
+  it('collapses a bare s3:// URI to its filename', () => {
+    expect(redactInternalRefs('output at s3://biomate-nextflow-work/out/run1/deg.csv'))
+      .toBe('output at deg.csv');
+  });
+  it('neutralizes an s3 bucket with no key', () => {
+    expect(redactInternalRefs('bucket is s3://biomate-nextflow-work')).toBe('bucket is a data file');
   });
 });

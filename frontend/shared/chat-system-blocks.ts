@@ -68,6 +68,15 @@ export function redactInternalRefs(text: string | null | undefined): string {
     .replace(/(?:\/work\/(?:input|output)|\/tmp\/biomate_code)\/[^\s'"`)\]]*\/([^\/\s'"`)\]]+)/g, "$1")
     // $DATA_DIR/<id>/<file>  (shell/string form) → <file>
     .replace(/\$\{?DATA_DIR\}?\/[^\/\s'"`)\]]+\/([^\/\s'"`)\]]+)/g, "$1")
+    // ── s3 references (from the same [Uploaded datasets] block) — never show an
+    // s3:// URI or bucket/key to the user (no-S3-in-user-text rule). ──
+    // s3_uri JSON / key=value → drop the pair
+    .replace(/,?\s*"s3_uri"\s*:\s*"[^"]*"/gi, "")
+    .replace(/,?\s*\bs3_uri\s*=\s*[^\s,}\])]+/gi, "")
+    // bare s3://bucket/key/<file> → the filename only
+    .replace(/\bs3:\/\/[^\s'"`)\],]+\/([^\/\s'"`)\],]+)/gi, "$1")
+    // s3://bucket with no key → neutral
+    .replace(/\bs3:\/\/[^\s'"`)\],]+/gi, "a data file")
     // tidy JSON wreckage the removals can leave: {} / {, / ,} / ,,
     .replace(/\{\s*\}/g, "")
     .replace(/\{\s*,/g, "{")
