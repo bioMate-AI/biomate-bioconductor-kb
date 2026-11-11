@@ -611,7 +611,7 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
       {shape.sampleDataset && (
         <span
           data-testid="cold-shape-sample"
-          title={t('cold_start.sample_title', { ref: shape.sampleDataset.ref })}
+          title={shape.sampleDataset.ref === 'inline' ? t('cold_start.sample_title_inline') : t('cold_start.sample_title', { ref: shape.sampleDataset.ref })}
           style={{
             flexShrink: 0,
             fontSize: 'var(--fs-xs)',

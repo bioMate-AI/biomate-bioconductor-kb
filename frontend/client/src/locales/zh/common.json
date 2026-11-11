@@ -390,7 +390,8 @@
       "sample_provided_a_cohort_table_labels": "提供样例 — 队列数据表 + 标签",
       "assemble_the_analysis_section_of_a_submission": "整理申报材料的分析部分",
       "sample_provided_inputs_for_a_first_run": "提供样例 — 首次运行所需输入"
-    }
+    },
+    "sample_title_inline": "使用目标中附带的示例运行。编辑目标即可改用您自己的数据。"
   },
   "chat_msg": {
     "figure": "图",
@@ -1801,7 +1802,8 @@
       "open_at_source": "在来源处打开",
       "no_link": "此来源未提供链接。",
       "prev": "上一个来源",
-      "next": "下一个来源"
+      "next": "下一个来源",
+      "close": "关闭"
     }
   }
 }

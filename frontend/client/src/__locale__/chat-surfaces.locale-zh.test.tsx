@@ -1,0 +1,33 @@
+/**
+ * Chinese UI: every chat surface Track D touched renders in Chinese only — no
+ * missing key and no untranslated English UI words. Allowed Latin tokens are
+ * proper nouns / scientific identifiers / user data (paper titles etc.).
+ */
+import { describe, expect, it, vi } from "vitest"
+vi.mock("3dmol", () => ({ default: {}, GLViewer: class {}, createViewer: () => ({}) }))
+vi.mock("@/lib/i18n", async () => {
+  const { strictI18n } = await import("./i18n-strict-mock")
+  const zh = (await import("@/locales/zh/common.json")).default
+  return strictI18n(zh as any, "zh")
+})
+vi.mock("@/lib/api", () => ({ api: { request: vi.fn(async () => ({ found: true, openAccess: false, fullTextStatus: "not_open_access", sections: [], abstract: null, links: { publisher: "https://doi.org/10.1/x", europepmc: null } })) } }))
+import { renderChatSurfaces, DATA_STRINGS } from "./chat-surfaces.harness"
+
+/** Proper nouns, product names, file names and scientific identifiers. */
+const ALLOWED = new Set(`BioMate PubMed Europe PMC DOI PMID SMILES SDF ADMET hERG logP IC50 GO RNA seq DESeq2 ChIP ATAC MACS CTCF EBV VCA EA EBNA1
+CAR CD19 Cox LFQ proteinGroups SNF CRISPR AChR PBMC PBMCs counts_matrix csv contrasts SAR FTO APA BibTeX h5ad x cryo EM airway CDR CDRs
+QC FDR µM IgG IgM nf core rnaseq EPAR STAR HISAT2 Genome Biology Love MI T
+GMT UTC MG IC h ad GSE EBNA CD`.split(/\s+/))
+
+describe("chat surfaces — zh locale", () => {
+  it("contain no missing keys and no untranslated English UI words", async () => {
+    let text = await renderChatSurfaces("中文回答。", "按年份统计 EPAR 审批")
+    expect(text).not.toMatch(/⟦MISSING:[^⟧]+⟧/)
+    for (const d of DATA_STRINGS) text = text.split(d).join(" ")
+    const words = (text.match(/[A-Za-z][A-Za-z_]*/g) || []).filter((w) => !ALLOWED.has(w))
+    expect([...new Set(words)]).toEqual([])
+    for (const s of ["1 个来源", "检索 · 保留 4 / 24", "阅读", "运行中", "打开", "新对话", "哪里有问题？", "您想做什么？"]) {
+      expect(text).toContain(s)
+    }
+  }, 60_000)
+})

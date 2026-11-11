@@ -355,7 +355,8 @@
       "sample_provided_a_cohort_table_labels": "sample provided — a cohort table + labels",
       "assemble_the_analysis_section_of_a_submission": "Assemble the analysis section of a submission",
       "sample_provided_inputs_for_a_first_run": "sample provided — inputs for a first run"
-    }
+    },
+    "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },
   "chat_msg": {
     "figure": "Figure",
@@ -1306,7 +1307,8 @@
       "open_at_source": "Open at source",
       "no_link": "No source link was supplied.",
       "prev": "Previous source",
-      "next": "Next source"
+      "next": "Next source",
+      "close": "Close"
     }
   }
 }

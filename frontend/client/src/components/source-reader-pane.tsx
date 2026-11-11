@@ -170,6 +170,7 @@ export function SourceReaderPane({
         aria-describedby={undefined}
         className={cn("w-full sm:max-w-xl flex flex-col", className)}
         data-testid="source-reader-pane"
+        closeLabel={t('citations.reader.close')}
       >
         {source && (
           <>
