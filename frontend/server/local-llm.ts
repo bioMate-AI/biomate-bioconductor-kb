@@ -72,6 +72,9 @@ function textBlocks(content: any): string {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) throw new Error('Unsupported local message content');
   return content.map(b => {
+    // This path is text-only: an image block (an attached image read by read_file, a run_code plot)
+    // becomes a short note instead of throwing and aborting the whole agent turn.
+    if (b.type === 'image') return `[image (${b.source?.media_type || 'image'}) — not visible to this model]`;
     if (b.type !== 'text') throw new Error(`Local text trial does not support ${b.type} content`);
     return b.text;
   }).join('\n');

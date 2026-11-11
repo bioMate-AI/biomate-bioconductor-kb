@@ -2833,6 +2833,39 @@ export function dagInputStatus(steps: any[], hasUnwired: boolean): string[] {
   ].filter(Boolean);
 }
 
+/** A tool output with image BYTES removed, for serializing as model TEXT. `image_data_uri` (run_code
+ *  plot previews for the UI) becomes a short marker; `__imageBlocks` (real vision blocks, attached
+ *  separately as image content) is dropped. Images reach a model only as image blocks, never as text. */
+export function stripImageBytesForModel(value: any): any {
+  if (Array.isArray(value)) return value.map(stripImageBytesForModel);
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k === '__imageBlocks') continue;
+      out[k] = k === 'image_data_uri' && typeof v === 'string' ? '[image — attached separately, not as text]'
+        : stripImageBytesForModel(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Vision image blocks for the plots a run_code call produced, so the model can look at the figure
+ *  it reports. Only raster formats the vision model reads (PNG/JPEG/GIF/WebP), within the same limits
+ *  as attached images (_VISION_MAX_RAW_BYTES each, _VISION_MAX_IMAGES total). */
+export function plotImageBlocks(files: Array<{ name?: string; image_data_uri?: string }> | undefined): any[] {
+  const allowed = new Set(Object.values(_VISION_MEDIA_TYPES));
+  const blocks: any[] = [];
+  for (const f of files || []) {
+    const m = /^data:([\w/+.-]+);base64,(.+)$/s.exec(f?.image_data_uri || '');
+    if (!m || !allowed.has(m[1])) continue;
+    if (Math.floor(m[2].length * 3 / 4) > _VISION_MAX_RAW_BYTES) continue;
+    blocks.push({ type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } });
+    if (blocks.length >= _VISION_MAX_IMAGES) break;
+  }
+  return blocks;
+}
+
 /** Closed input-kind vocabulary — kept equal to backend chain_composer/input_kinds_classifier.INPUT_KINDS. */
 export const INPUT_KIND_VOCAB = [
   'fastq', 'bam', 'raw_spectra', 'idat', 'bcl', 'nanopore_signal', 'raw_images',
@@ -4077,10 +4110,14 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
               break;
           }
         } catch (e: any) { error = e.message; output = { error }; }
-        const outStr = JSON.stringify(output).slice(0, 200);
-        console.log(`[GeminiLoop] tool_result name=${name} output=${outStr}`);
-        toolContext.onToolEvent?.({ type: 'tool_result', tool_use_id: name, name, output: JSON.stringify(output) });
-        functionResults.push({ functionResponse: { name, response: { output: JSON.stringify(output) } } });
+        // Model text never carries image bytes (this loop has no image parts); the UI event keeps
+        // the plot preview but not the duplicate vision-block bytes.
+        const modelText = JSON.stringify(stripImageBytesForModel(output));
+        const eventOut = (output as any)?.__imageBlocks
+          ? { ...(output as any), __imageBlocks: `[${(output as any).__imageBlocks.length} image block(s)]` } : output;
+        console.log(`[GeminiLoop] tool_result name=${name} output=${modelText.slice(0, 200)}`);
+        toolContext.onToolEvent?.({ type: 'tool_result', tool_use_id: name, name, output: JSON.stringify(eventOut) });
+        functionResults.push({ functionResponse: { name, response: { output: modelText } } });
       }
       currentMessage = functionResults;
     }
@@ -10934,12 +10971,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   // tool_result content accepts an array of text+image blocks. Everything else is
   // stringified as before.
   static toolResultContent(output: unknown): string | any[] {
+    // Image BYTES never go into model text: run_code plot previews (image_data_uri, kept for the
+    // UI via the event stream) were serialized here as ~100–250K tokens of base64 per plot.
+    const text = JSON.stringify(stripImageBytesForModel(output));
     const img = (output as any)?.__imageBlocks;
-    if (Array.isArray(img) && img.length) {
-      const { __imageBlocks, ...rest } = output as any;
-      return [{ type: 'text', text: JSON.stringify(rest) }, ...img];
-    }
-    return JSON.stringify(output);
+    if (Array.isArray(img) && img.length) return [{ type: 'text', text }, ...img];
+    return text;
   }
 
   /** Executes all tool_use blocks in parallel, returns tool_result message content. */
@@ -11230,9 +11267,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       if (context.runCodeOutputFiles?.turn !== turn) context.runCodeOutputFiles = { turn, names: [] };
       context.runCodeOutputFiles.names.push(...(result.output_files || []).map(f => f.name));
     }
-    return autoStaged
+    const base = autoStaged
       ? { ...result, note: 'input_datasets was empty; staged the datasets attached to this message — open them via INPUT_FILES / staged_inputs.' }
       : result;
+    // Plots go to the model as image blocks (it can check the figure it describes); the UI keeps
+    // image_data_uri. A model path without vision receives a text note instead (see local-llm).
+    const plots = plotImageBlocks(result.output_files as any);
+    return plots.length ? { ...base, __imageBlocks: plots } : base;
   }
 
   /** Output files a reply presents as produced must be this turn's run_code $OUTPUT_DIR artifacts. */
