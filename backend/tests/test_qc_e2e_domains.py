@@ -50,12 +50,24 @@ from galaxy.jobs.parameter_suggester import (
 # Shared helpers
 # ---------------------------------------------------------------------------
 
+def _qc_events_only(events):
+    """SSE capture for QC-gate assertions.
+
+    Since 7668498b4a (2026-05-14) the QC monitor ALSO emits a friendly
+    ('chat_progress', …) narration line over the same sse_callback for every
+    gate/warning. Narration is covered by
+    lib/galaxy/ai/workflow_ops/tests/test_workflow_chat_narrator.py; these
+    tests count QC events, so narration is excluded here.
+    """
+    return lambda t, d: None if t == "chat_progress" else events.append((t, d))
+
+
 def _make_handler(work_dir, domain, params=None, profile=None):
     events = []
     h = NextflowQCGateHandler(
         invocation_id=f"e2e-{domain}",
         work_dir=work_dir,
-        sse_callback=lambda t, d: events.append((t, d)),
+        sse_callback=_qc_events_only(events),
         app=Mock(),
         workflow_domain=domain,
         current_parameters=params or {},
@@ -1284,7 +1296,7 @@ class TestProteomicsProfiles:
         h = NextflowQCGateHandler(
             invocation_id="profile-test-phospho",
             work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="proteomics",
             qc_profile="proteomics_phospho",
@@ -1298,7 +1310,7 @@ class TestProteomicsProfiles:
         h = NextflowQCGateHandler(
             invocation_id="profile-test-plasma",
             work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="proteomics",
             qc_profile="proteomics_plasma_biomarker",
@@ -3109,9 +3121,12 @@ class TestMonaMetabolomics:
         h, events = _make_handler(tmp_path, "XCMS_metabolomics")
         _submit(h, "XCMS", "mm", "00000092", tmp_path,
                 lambda d: self._write_feature_matrix(d, 2000, 45.0, 0.0))
-        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        # Advisory-only metabolomics items do not block (see
+        # test_mona_all_gates_advisory_do_not_block); since 04651dbd08 they surface
+        # through the qc_warning event, not qc_gate_triggered.
+        gate = [e for e in events if e[0] == "qc_warning"]
         assert len(gate) == 1
-        cv_fail = next((f for f in gate[0][1]["failures"]
+        cv_fail = next((f for f in gate[0][1]["warnings"]
                         if f["metric"] == "qc_cv_median_pct"), None)
         assert cv_fail is not None
         assert cv_fail.get("advisory") is True
@@ -3122,9 +3137,12 @@ class TestMonaMetabolomics:
         h, events = _make_handler(tmp_path, "metabolomics")
         _submit(h, "CAMERA", "mm", "00000093", tmp_path,
                 lambda d: self._write_feature_matrix(d, 120, 5.0, 0.0))
-        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        # Advisory-only metabolomics items do not block (see
+        # test_mona_all_gates_advisory_do_not_block); since 04651dbd08 they surface
+        # through the qc_warning event, not qc_gate_triggered.
+        gate = [e for e in events if e[0] == "qc_warning"]
         assert len(gate) == 1
-        feat_fail = next((f for f in gate[0][1]["failures"]
+        feat_fail = next((f for f in gate[0][1]["warnings"]
                           if f["metric"] == "feature_count"), None)
         assert feat_fail is not None
         assert feat_fail.get("advisory") is True
@@ -3135,9 +3153,12 @@ class TestMonaMetabolomics:
         h, events = _make_handler(tmp_path, "metabolomics")
         _submit(h, "BIOSIGNER", "mm", "00000094", tmp_path,
                 lambda d: self._write_feature_matrix(d, 1000, 5.0, 40.0))
-        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        # Advisory-only metabolomics items do not block (see
+        # test_mona_all_gates_advisory_do_not_block); since 04651dbd08 they surface
+        # through the qc_warning event, not qc_gate_triggered.
+        gate = [e for e in events if e[0] == "qc_warning"]
         assert len(gate) == 1
-        miss_fail = next((f for f in gate[0][1]["failures"]
+        miss_fail = next((f for f in gate[0][1]["warnings"]
                           if f["metric"] == "missing_value_pct"), None)
         assert miss_fail is not None
         assert miss_fail.get("advisory") is True
@@ -3167,9 +3188,12 @@ class TestMonaMetabolomics:
         h, events = _make_handler(tmp_path, "metabolomics")
         _submit(h, "METABOIGNITER", "mm", "00000095", tmp_path,
                 lambda d: self._write_feature_matrix(d, 120, 5.0, 0.0))
-        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        # Advisory-only metabolomics items do not block (see
+        # test_mona_all_gates_advisory_do_not_block); since 04651dbd08 they surface
+        # through the qc_warning event, not qc_gate_triggered.
+        gate = [e for e in events if e[0] == "qc_warning"]
         assert len(gate) == 1
-        assert any(f["metric"] == "feature_count" for f in gate[0][1]["failures"])
+        assert any(f["metric"] == "feature_count" for f in gate[0][1]["warnings"])
 
     def test_mona_no_files_no_gate(self, tmp_path):
         """No metabolomics output files → parser returns None, no gate."""
@@ -3187,7 +3211,10 @@ class TestMonaMetabolomics:
             }))
         h, events = _make_handler(tmp_path, "metabolomics")
         _submit(h, "ASICS", "mm", "00000097", tmp_path, _writer)
-        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        # Advisory-only metabolomics items do not block (see
+        # test_mona_all_gates_advisory_do_not_block); since 04651dbd08 they surface
+        # through the qc_warning event, not qc_gate_triggered.
+        gate = [e for e in events if e[0] == "qc_warning"]
         assert len(gate) == 1
-        failed = {f["metric"] for f in gate[0][1]["failures"]}
+        failed = {f["metric"] for f in gate[0][1]["warnings"]}
         assert failed == {"qc_cv_median_pct", "feature_count", "missing_value_pct"}

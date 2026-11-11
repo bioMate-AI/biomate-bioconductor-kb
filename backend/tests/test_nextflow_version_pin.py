@@ -122,30 +122,23 @@ def test_dockerfile_pins_jdk_17():
     )
 
 
-def test_executor_disables_publishdir():
-    """The publishDir=null config is the actual fix for the AWS CRT crash class.
+def test_executor_does_not_emit_publishdir_null():
+    """publishDir=null must NOT be emitted into the generated executor config.
 
-    See docs/20260606_CELL_WORKFLOW_BREAKTHROUGH.md. Without this directive
-    in the generated biomate_executor_override.config, the Nextflow head JVM
-    creates publishDir threads, which instantiate S3TransferManager, which
-    loads the AWS CRT native lib, which SIGSEGVs the JVM via ld-linux dlopen.
-
-    The publishDir directives in individual workflow .nf files still run
-    (and use the Batch host's `aws s3 cp` via cliPath — no CRT), so the
-    user-facing output behavior is preserved.
-
-    If this is stripped, every nextflow run will randomly JVM-crash again.
+    History: 2026-06-06 added `publishDir = null` to stop AWS-CRT SIGSEGVs in
+    the head JVM. 0dc5a6ac39 (2026-07-20) removed it deliberately: under
+    Nextflow 25.10.5 it breaks every process that declares publishDir
+    ("Could not find which method publishDir() to invoke" — ADMET and other
+    drug_discovery workflows failed immediately), and nf-amazon@3.3.0 already
+    prevents the CRT crash. This test previously still asserted the old
+    directive (stale since July; hidden by CI's `|| echo`). It now guards the
+    July fix instead.
     """
     text = EXECUTOR.read_text()
-    assert '"    publishDir = null"' in text, (
-        "publishDir = null config emission removed from _generate_executor_config(). "
-        "Without it, the head JVM creates publishDir threads that load AWS CRT and "
-        "SIGSEGV the JVM (rc=-6, hs_err_pid log). 7/9 workflows that previously "
-        "crashed now succeed because of this. See docs/20260606_CELL_WORKFLOW_"
-        "BREAKTHROUGH.md. Restore it in nextflow_executor.py inside _generate_"
-        "executor_config()."
+    assert '"    publishDir = null"' not in text, (
+        "publishDir = null is back in _generate_executor_config(); it breaks "
+        "Nextflow 25.10.5 processes that declare publishDir (see 0dc5a6ac39)."
     )
-
 
 def test_executor_pins_nfamazon_plugin():
     """Belt-and-suspenders pin for nf-amazon plugin version.

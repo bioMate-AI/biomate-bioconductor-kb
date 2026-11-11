@@ -31,7 +31,7 @@ def _handler_with_events(work_dir, domain, params=None):
     h = NextflowQCGateHandler(
         invocation_id="test123",
         work_dir=work_dir,
-        sse_callback=lambda t, d: events.append({"type": t, "data": d}),
+        sse_callback=lambda t, d: None if t == "chat_progress" else events.append({"type": t, "data": d}),  # narration excluded (see test_workflow_chat_narrator.py)
         app=Mock(),
         workflow_domain=domain,
         current_parameters=params or {},
@@ -222,7 +222,7 @@ class TestGap3CompleteIntegration:
         h = NextflowQCGateHandler(
             invocation_id="my-unique-invocation-42",
             work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append(d),
+            sse_callback=lambda t, d: None if t == "chat_progress" else events.append(d),  # narration excluded
             app=Mock(),
             workflow_domain="cryo_em",
         )

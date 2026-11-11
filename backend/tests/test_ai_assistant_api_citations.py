@@ -10,6 +10,8 @@ Tests the new API endpoints and response models added for:
 """
 
 import pytest
+
+from _ci_markers import requires_workflow_db
 import sys
 import os
 from unittest.mock import MagicMock, patch, AsyncMock
@@ -418,6 +420,7 @@ class TestAPIEndpointsUnit:
         assert request.config.pilot_fraction == 0.15
 
 
+@requires_workflow_db
 class TestEndToEndWorkflowGeneration:
     """End-to-end tests for the citation-attachment code path.
 
