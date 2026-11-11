@@ -24,7 +24,7 @@ const LATIN_ALLOWED = new Set([
   "scikit", "learn", "ludwig", "lora", "qlora", "dpo", "grpo", "llm", "scdiffusion", "rfdiffusion",
   "rdkit", "smiles", "roc", "auc", "f1", "r²", "hugging", "face", "pdb", "cif", "h5ad", "csv", "tsv",
   "jsonl", "parquet", "plddt", "pae", "contig", "kl", "beta", "obs", "gpu", "id", "a30", "a33", "ai",
-  "biomate",
+  "biomate", "nvidia",
 ])
 
 function latinWords(text: string): string[] {
@@ -67,7 +67,7 @@ vi.mock("@/contexts/active-project-context", () => ({
 }))
 
 const CATALOG = [
-  { id: "bionemo:boltz2", name: "Boltz-2", family: "structure", version: "2.0", origin: "self-host", usedByCount: 0,
+  { id: "bionemo:boltz2", name: "Boltz-2", family: "structure", version: "2.0", origin: "self_host", usedByCount: 0,
     lastInference: { status: "failed", error: "E500" } },
 ]
 const LOOP = {

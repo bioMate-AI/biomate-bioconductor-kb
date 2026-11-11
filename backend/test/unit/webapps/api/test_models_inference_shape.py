@@ -83,8 +83,11 @@ def test_bionemo_catalog_present(mod):
     # Structure + genomic evidence classes are both represented.
     assert "bionemo:boltz2" in ids
     assert "bionemo:evo2_7b" in ids
+    # Origin reflects the REAL backend (self_host when a NIM URL is set, else
+    # hosted_nvidia with a key, else unconfigured) — never a hard-coded "self-host"
+    # that hid the NVIDIA fallback (2026-11-11).
     for r in mod._bionemo_catalog():
-        assert r["origin"] == "self-host"
+        assert r["origin"] in {"self_host", "hosted_nvidia", "unconfigured"}, r["origin"]
 
 
 # ── evidence class routing ───────────────────────────────────────────────────

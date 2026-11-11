@@ -1773,7 +1773,11 @@
     "metric_rmse": "均方根误差",
     "metric_pr_auc": "精确率-召回率曲线下面积",
     "run_status_interrupted": "已中断",
-    "run_status_unknown": "状态未知"
+    "run_status_unknown": "状态未知",
+    "origin_self_host": "自建部署",
+    "origin_hosted_nvidia": "NVIDIA 托管",
+    "origin_unconfigured": "未配置",
+    "origin_custom": "自定义（您的）"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",

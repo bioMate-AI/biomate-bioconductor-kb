@@ -34,13 +34,13 @@ function wrapper() {
 
 // ── fixtures matching the WS1 contract ───────────────────────────────────────
 const CATALOG = [
-  { id: "bionemo:boltz2", name: "Boltz-2", family: "structure", version: "2.0", origin: "self-host", usedByCount: 0 },
-  { id: "bionemo:evo2_7b", name: "Evo2 7B", family: "genomic", version: "7b", origin: "self-host", usedByCount: 0 },
+  { id: "bionemo:boltz2", name: "Boltz-2", family: "structure", version: "2.0", origin: "self_host", usedByCount: 0 },
+  { id: "bionemo:evo2_7b", name: "Evo2 7B", family: "genomic", version: "7b", origin: "self_host", usedByCount: 0 },
   { id: "custom:camp1/potency-gp", name: "potency-gp", family: "python", version: "1", origin: "custom", usedByCount: 2 },
 ]
 
 const MODEL_DETAIL: ModelDetail = {
-  identity: { name: "Boltz-2", version: "2.0", family: "structure", confidenceBand: null, origin: "self-host" },
+  identity: { name: "Boltz-2", version: "2.0", family: "structure", confidenceBand: null, origin: "self_host" },
   evidence: { gate: { measured: "0.81", threshold: "0.75", verdict: "pass" }, calibration: "0.04", evalSetId: "assay_2026_08.csv" },
   lineage: { datasetVersion: "assay_2026_08.csv · v4", trainingRunId: "camp1", priorVersions: ["v1"] },
   consumers: ["camp1", "camp2"],
