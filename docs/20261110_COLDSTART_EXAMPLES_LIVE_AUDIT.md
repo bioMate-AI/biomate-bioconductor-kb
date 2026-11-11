@@ -408,3 +408,19 @@ A stale remote deploy lock was cleared earlier with the founder's approval.
 - **The full sync at 02:13 CST failed:** the SSH transport dropped during the nf-core check ("Bad packet length … Connection corrupted") before any files changed, and the script hung until its 90-minute limit.
   - The script's own remote lease (created 08:13:26Z, owner `fd6dfc01…`) was left behind and blocks every dev deploy.
   - It must be released (guarded on that owner id), then re-run `scripts/sync_to_dev.sh` from `/Users/kky/biomate-coldstart-dev`.
+
+### 10.7 Deploy of `78aeb642` and the Galaxy outage it exposed (2026-11-11 13:26–13:44Z)
+
+- **What happened:** after the sync restarted Galaxy, the new supervisor-managed gunicorn could not bind port 8080 (`Errno 98 Address already in use`). The health probes failed, and Galaxy-backed features (workflow generation, runs, `/api/health`) were down for about 18 minutes. The home page and login stayed up.
+- **Root cause:** an **orphaned gunicorn master** (PID 152212, parent PID 1, about 6 h old, from an earlier restart around 07:38Z) still held the listening socket. It no longer served requests: no workers, about 194 connections queued, requests hung. The new code loaded cleanly.
+- **Recovery (founder-approved):** SIGTERM had no effect (graceful shutdown never completed), so it was SIGKILLed. The supervisor's gunicorn then bound with 4 workers, `/api/version` returned 200, and the sync's health gate and smoke tests passed.
+- **Follow-up:** the restart path in `scripts/sync_to_dev.sh` / gravity can leave an orphaned gunicorn master that survives later restarts and silently holds the port.
+  - Before starting gunicorn, the deploy should check that nothing outside the supervisor tree holds 8080, and fail loudly if something does.
+  - Also: an earlier full sync at 08:13Z died on an SSH transport error and left its own remote lease; it was released at about 11:10Z.
+
+**Founder rnaseq flow on `78aeb642` (real chat API):**
+
+| Turn | Result |
+|---|---|
+| 1. Library pick | PASS. No search stage; nf-core/rnaseq card. The reply leads with "**nf-core/rnaseq** — …", names the one input it needs (a sample sheet) and how to give it (📎 or an SRR/GSE accession). No "无法生成" / "缺少输入数据", no airway, no S3 |
+| 2. "SRR1039508" | PASS. No search stage (value-only binding pinned the open workflow); the card stays rnaseq with SRR1039508 as the input |

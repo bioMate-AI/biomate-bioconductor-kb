@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims, generatesSyntheticData, redactStoragePaths, simulatedDataNote } from './execution-integrity';
+import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, SYNTHETIC_DATA_REFUSAL } from './execution-integrity';
 import { requireNonEmptyResponse, stripDatasetReferenceParams, parseUploadedDatasetRefs, groundInlineParameters } from './galaxy-assistant';
 
 describe('structural execution guard', () => {
@@ -86,9 +86,9 @@ describe('generatesSyntheticData — run_code that invents its input (EBV, dev 2
     expect(generatesSyntheticData('df = pd.read_csv(INPUT_FILES["a.csv"]); np.random.seed(0)', 1)).toBe(false);
     expect(generatesSyntheticData('import math\nprint(math.log10(2500))', 0)).toBe(false);
   });
-  it('the note says plainly the numbers are simulated, in both languages', () => {
-    expect(simulatedDataNote(false)).toMatch(/simulated/);
-    expect(simulatedDataNote(true)).toMatch(/模拟数据/);
+  it('a refused attempt tells the model to use real data and report no numbers', () => {
+    expect(SYNTHETIC_DATA_REFUSAL).toMatch(/NOT EXECUTED/);
+    expect(SYNTHETIC_DATA_REFUSAL).toMatch(/Do not report any numbers/);
   });
 });
 
@@ -105,4 +105,20 @@ describe('redactStoragePaths — no storage URIs in reply prose', () => {
     expect(redactStoragePaths(code)).toBe(code);
     expect(redactStoragePaths('No storage here.')).toBe('No storage here.');
   });
+});
+
+describe('requestAsksForSimulation — generating values is the task only when the user asked for it', () => {
+  it.each([
+    'Run a power analysis for a two-arm trial with effect size 0.5',
+    'Simulate a one-compartment PK curve for 100 mg q12h',
+    'Do a Monte Carlo estimate of the false-positive rate',
+    'bootstrap the confidence interval',
+    '模拟一个两组试验的样本量',
+    '用蒙特卡洛方法估计',
+  ])('simulation requested: %s', (m) => { expect(requestAsksForSimulation(m)).toBe(true); });
+  it.each([
+    'Run analyze_ebv_antibody_titers on its built-in ELISA OD readings and standard-curve data',
+    'Summarise this assay table and plot potency against logP.',
+    '计算这些样本的平均值',
+  ])('not a simulation request: %s', (m) => { expect(requestAsksForSimulation(m)).toBe(false); });
 });
