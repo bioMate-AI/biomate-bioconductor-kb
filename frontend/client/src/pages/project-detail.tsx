@@ -656,7 +656,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   aria-label="Add tag"
                   data-testid="button-add-tag"
                 >
-                  <Plus className="w-3 h-3" />tag
+                  <Plus className="w-3 h-3" />{tOr('projects.page.add_tag', 'tag')}
                 </button>
               )}
             </div>

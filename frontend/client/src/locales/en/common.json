@@ -511,7 +511,8 @@
       "transferring": "Transferring…",
       "transfer": "Transfer ownership",
       "transfer_body": "This makes {{name}} the owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.",
-      "message_count": "{{n}} messages"
+      "message_count": "{{n}} messages",
+      "add_tag": "tag"
     }
   },
   "file_tree": {

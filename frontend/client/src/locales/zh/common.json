@@ -517,7 +517,8 @@
       "transferring": "正在转让……",
       "transfer": "转让所有权",
       "transfer_body": "这将使 {{name}} 成为此项目的所有者。您将降为编辑者并失去所有者专属权限，且您无法自行撤销。",
-      "message_count": "{{n}} 条消息"
+      "message_count": "{{n}} 条消息",
+      "add_tag": "标签"
     }
   },
   "file_tree": {
