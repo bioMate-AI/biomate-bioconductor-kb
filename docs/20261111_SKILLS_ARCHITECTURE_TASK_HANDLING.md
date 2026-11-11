@@ -163,4 +163,33 @@ components). Sequence:
 - **Testable** — each skill authored + evaluated independently, vs. one untestable mega-prompt.
 - **Builds on what exists** — extends `SkillManager`/`SkillLoader`, doesn't fork a new system.
 
-Prototype: `backend/lib/galaxy/ai/skills/generator-adaptation.md` (next).
+Prototype: `backend/lib/galaxy/ai/skills/generator-adaptation.md`.
+
+## 7. Step 2 — measured offline (2026-11-11)
+
+Wired a Node operation-skills registry (`frontend/server/operation-skills.ts`,
+flag `OPERATION_SKILLS_IN_DECOMP`, default OFF) into the decomposition prompt and A/B'd the
+live `analyzeIntent` offline via OpenRouter (`google/gemini-3.8-flash`), flag off vs on
+(harness result in scratchpad `decomp_probe.log`; ~6 calls, ~$0.05):
+
+| Case | flag OFF (today) | flag ON (operation skill) |
+|---|---|---|
+| **"Adapt the generative model to our chemical series"** | `type=workflow_generation`, `needsWorkflowGeneration=true` → **routed to a REINVENT4/catalog pipeline (the misroute)** | **`type=generator_adaptation`, `needsWorkflowGeneration=false`** — no catalog workflow fabricated ✅ |
+| "Fine-tune this property predictor on our measured compounds" | workflow_generation | workflow_generation (unchanged — predictor-retraining is a *separate* skill, not yet authored; no regression) |
+| control: "Dock 200 SMILES vs EGFR and predict ADMET" | clean 3-intent fan-out (dock ∥ ADMET → rank) | 2-intent, one malformed (task_spec empty) — **inconclusive**: both runs hit `max_tokens=4096` (truncated), single stochastic sample |
+
+**Honest read:**
+- ✅ The mechanism works for the target: the operation skill flips "adapt the generative
+  model" from a fabricated catalog workflow to a distinct `generator_adaptation` intent. The
+  decomposition-level misroute is fixed.
+- ⚠️ Two things are NOT done, and the flag stays **OFF** until they are:
+  1. `generator_adaptation` is a new intent type **not yet handled downstream**
+     (`inferActionsFromType`, routing, the Models/ml_training generator-adaptation path, and
+     the small-molecule generator branch that doesn't exist yet). So step 2 stops the wrong
+     card; it does not yet produce the real **model-version card** (steps 3–4).
+  2. The control showed a possibly-degraded fan-out under a **max_tokens-truncation confound**
+     — must be measured on the full gold set (`decomp_model_bench.ts`, raised max_tokens,
+     multiple reps) to rule out a regression **before enabling the flag**.
+
+So step 2 = demonstrated + measured, gated OFF, with the next steps and the regression check
+written down — not shipped.
