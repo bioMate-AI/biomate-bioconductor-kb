@@ -48,7 +48,7 @@ import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
-import { _isOwnerOrMember, _isOwnerOrEditor } from "./project-routes";
+import { _isOwnerOrMember, _isOwnerOrEditor, storeGeneratedFileInProject } from "./project-routes";
 import { appendComposerInstructions, appendProjectOutputRequirements } from "./chat-context";
 import { loadProjectOutputRequirementsPrompt, loadProjectOutputRequirements, applyOutputRequirements } from "./project-instruction-settings";
 import { parseOutputRequirements, checkOutputConformance, type OutputRequirements } from "../client/src/lib/output-requirements";
@@ -1118,6 +1118,8 @@ const uploadDir = path.join(process.cwd(), 'data', 'uploads');
  * s3Uri is set when the file was also uploaded to S3 for Nextflow access.
  */
 const uploadedFileRegistry = new Map<string, { name: string; filePath: string; uploadedAt: number; s3Uri?: string }>();
+/** Set by registerRoutes: store a file as a session dataset (uploads + generated files). */
+let _registerDatasetFileRef: ((req: any, srcPath: string, name: string, opts?: any) => Promise<{ datasetId: string; galaxyDatasetId?: string; size: number }>) | undefined;
 
 export function getUploadedFile(datasetId: string): { name: string; filePath: string; s3Uri?: string } | undefined {
   const cached = uploadedFileRegistry.get(datasetId);
@@ -4169,6 +4171,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File Upload API
+  /** Store a file as a dataset the requesting user owns — the one path for uploads AND files BioMate
+   *  generates (run_code outputs): a copy under data/uploads named by its dataset id, the session's
+   *  Galaxy history, an S3 mirror (Batch workflows), the run_code registry and the session dataset
+   *  list (so later turns see it). `move` renames (multer temp file); otherwise the source is copied
+   *  and left alone (the run_code workspace keeps its own copy). */
+  async function registerDatasetFile(
+    req: any, srcPath: string, originalName: string,
+    opts: { move?: boolean; mimetype?: string; description?: string; size?: number; source?: string } = {},
+  ) {
+    const datasetId = uuidv4();
+    const namedFilePath = path.join(uploadDir, `${datasetId}${path.extname(originalName)}`);
+    await fs.mkdir(uploadDir, { recursive: true });
+    if (opts.move) await fs.rename(srcPath, namedFilePath);
+    else await fs.copyFile(srcPath, namedFilePath);
+    const size = opts.size ?? (await fs.stat(namedFilePath)).size;
+
+    // Get or create Galaxy history for this session
+    let historyId = req.session?.galaxyHistoryId as string | undefined;
+    if (!historyId) {
+      try {
+        const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
+        historyId = await userProxy(req).createHistory(sessionName);
+        if (req.session) req.session.galaxyHistoryId = historyId;
+        console.log(`[FileUpload] Created new Galaxy history: ${historyId}`);
+      } catch (error: any) {
+        console.warn(`[FileUpload] Failed to create Galaxy history:`, error.message);
+        // Continue without Galaxy integration if it fails
+      }
+    }
+    let galaxyDatasetId: string | undefined;
+    if (historyId) {
+      try {
+        galaxyDatasetId = await userProxy(req).uploadDataset(namedFilePath, historyId, originalName);
+        console.log(`[FileUpload] Uploaded to Galaxy: ${galaxyDatasetId}`);
+      } catch (error: any) {
+        console.warn(`[FileUpload] Failed to upload to Galaxy:`, error.message);
+        // Continue with local file only if Galaxy upload fails
+      }
+    }
+
+    // Mirror to S3 so Nextflow workflows on AWS Batch can access the file
+    const s3Uri = await _uploadFileToS3(namedFilePath, datasetId, originalName).catch(() => undefined);
+
+    // Register in in-memory registry so run_code can find files without Galaxy/Redis
+    const reg = { name: originalName, filePath: namedFilePath, uploadedAt: Date.now(), s3Uri };
+    uploadedFileRegistry.set(datasetId, reg);
+    if (galaxyDatasetId) uploadedFileRegistry.set(galaxyDatasetId, reg);
+
+    // Store dataset in session (validation + the "this session" list later turns are given)
+    if (req.session) {
+      if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
+      req.session.uploadedDatasets.push({
+        dataset_id: datasetId,
+        galaxy_dataset_id: galaxyDatasetId,
+        name: originalName,
+        description: opts.description || '',
+        file_type: opts.mimetype,
+        file_size: size,
+        file_path: namedFilePath,
+        // Persist the durable S3 reference in the Redis-backed session too. Without it
+        // the in-memory uploadedFileRegistry is the ONLY holder of s3_uri, so a server
+        // restart between upload and run leaves a re-selected upload with only a local
+        // file_path — unreachable from AWS Batch. With it, the "this session" list stays
+        // runnable across restarts.
+        s3_uri: s3Uri,
+        ...(opts.source ? { source: opts.source } : {}),
+      });
+      req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
+    }
+    return { datasetId, galaxyDatasetId, historyId, filePath: namedFilePath, size, s3Uri };
+  }
+  _registerDatasetFileRef = registerDatasetFile;
+
   app.post("/api/datasets/upload", authenticateToken, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
@@ -4176,113 +4251,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const file = req.file;
-      const datasetId = uuidv4();
       const description = req.body.description || ''; // Get optional description from request body
-
-      // Rename the multer-generated file to use datasetId as the filename prefix,
-      // so that getUploadedFile() fallback scan (f.startsWith(datasetId)) works after server restart.
-      const fileExt = path.extname(file.originalname);
-      const namedFilename = `${datasetId}${fileExt}`;
-      const namedFilePath = path.join(path.dirname(file.path), namedFilename);
-      await fs.rename(file.path, namedFilePath);
-      file.path = namedFilePath;
-      file.filename = namedFilename;
-
-      console.log(`[FileUpload] File uploaded: ${file.originalname} -> ${file.filename}`);
-      console.log(`[FileUpload] Dataset ID: ${datasetId}`);
+      console.log(`[FileUpload] File uploaded: ${file.originalname}`);
       if (description) {
         console.log(`[FileUpload] Description: ${description}`);
       }
-
-      // Get or create Galaxy history for this session
-      let historyId = req.session?.galaxyHistoryId as string | undefined;
-
-      if (!historyId) {
-        try {
-          // Create a new history for this session
-          const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-          historyId = await userProxy(req).createHistory(sessionName);
-          if (req.session) {
-            req.session.galaxyHistoryId = historyId;
-          }
-          console.log(`[FileUpload] Created new Galaxy history: ${historyId}`);
-        } catch (error: any) {
-          console.warn(`[FileUpload] Failed to create Galaxy history:`, error.message);
-          // Continue without Galaxy integration if it fails
-        }
-      }
-
-      // Upload file to Galaxy if we have a history
-      let galaxyDatasetId: string | undefined;
-      if (historyId) {
-        try {
-          galaxyDatasetId = await userProxy(req).uploadDataset(
-            file.path,
-            historyId,
-            file.originalname
-          );
-          console.log(`[FileUpload] Uploaded to Galaxy: ${galaxyDatasetId}`);
-        } catch (error: any) {
-          console.warn(`[FileUpload] Failed to upload to Galaxy:`, error.message);
-          // Continue with local file only if Galaxy upload fails
-        }
-      }
-
-      // Mirror to S3 so Nextflow workflows on AWS Batch can access the file
-      // This runs concurrently — response is not blocked by S3 upload
-      const s3Uri = await _uploadFileToS3(file.path, datasetId, file.originalname).catch(() => undefined);
-
-      // Register in in-memory registry so run_code can find files without Galaxy/Redis
-      uploadedFileRegistry.set(datasetId, {
-        name: file.originalname,
-        filePath: file.path,
-        uploadedAt: Date.now(),
-        s3Uri,
+      // Rename the multer temp file to <datasetId><ext> so the getUploadedFile() fallback scan
+      // (f.startsWith(datasetId)) works after a server restart.
+      const d = await registerDatasetFile(req, file.path, file.originalname, {
+        move: true, mimetype: file.mimetype, description, size: file.size,
       });
-      // Also register by galaxy_dataset_id for cross-lookup
-      if (galaxyDatasetId) {
-        uploadedFileRegistry.set(galaxyDatasetId, {
-          name: file.originalname,
-          filePath: file.path,
-          uploadedAt: Date.now(),
-          s3Uri,
-        });
-      }
-
-      // Store dataset in session for validation
-      if (req.session) {
-        if (!req.session.uploadedDatasets) {
-          req.session.uploadedDatasets = [];
-        }
-        req.session.uploadedDatasets.push({
-          dataset_id: datasetId,
-          galaxy_dataset_id: galaxyDatasetId,
-          name: file.originalname,
-          description: description,
-          file_type: file.mimetype,
-          file_size: file.size,
-          file_path: file.path,
-          // Persist the durable S3 reference in the Redis-backed session too. Without it
-          // the in-memory uploadedFileRegistry is the ONLY holder of s3_uri, so a server
-          // restart between upload and run leaves a re-selected upload with only a local
-          // file_path — unreachable from AWS Batch. With it, the "this session" list stays
-          // runnable across restarts.
-          s3_uri: s3Uri,
-        });
-        req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
-      }
+      console.log(`[FileUpload] Dataset ID: ${d.datasetId}`);
 
       // Return dataset information with local, Galaxy, and S3 IDs
       res.json({
-        dataset_id: datasetId,
-        galaxy_dataset_id: galaxyDatasetId,
-        galaxy_history_id: historyId,
+        dataset_id: d.datasetId,
+        galaxy_dataset_id: d.galaxyDatasetId,
+        galaxy_history_id: d.historyId,
         name: file.originalname,
         description: description,
         file_size: file.size,
         file_type: file.mimetype,
-        file_path: file.path,
-        s3_uri: s3Uri,
+        file_path: d.filePath,
+        s3_uri: d.s3Uri,
         uploaded_at: new Date().toISOString(),
       });
     } catch (error: any) {
@@ -4291,6 +4282,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'UploadError',
         message: error.message || 'File upload failed',
       });
+    }
+  });
+
+  // Download a dataset of THIS session (an upload or a file BioMate generated, e.g. a run_code
+  // report or plot). Authorized by the session's own dataset list — never by a client-supplied path.
+  app.get("/api/datasets/:id/download", optionalAuth, async (req: any, res) => {
+    const id = String(req.params.id || '');
+    const entry = (req.session?.uploadedDatasets || []).find((d: any) => d.dataset_id === id || d.galaxy_dataset_id === id);
+    if (!entry) return res.status(404).json({ error: 'Dataset not found in this session' });
+    const name = String(entry.name || 'download').replace(/[\r\n"]/g, '_');
+    const local = entry.file_path ? path.resolve(String(entry.file_path)) : '';
+    if (local && local.startsWith(path.resolve(uploadDir) + path.sep)) {
+      try { await fs.access(local); return res.download(local, name); } catch { /* fall through to S3 */ }
+    }
+    const m = /^s3:\/\/([^/]+)\/(.+)$/.exec(String(entry.s3_uri || ''));
+    if (!m) return res.status(404).json({ error: 'File no longer available' });
+    try {
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = await _s3ClientForBucket(m[1]);
+      const out: any = await s3.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+      res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+      if (out.ContentType) res.setHeader('Content-Type', out.ContentType);
+      (out.Body as any).pipe(res);
+    } catch (e: any) {
+      console.warn(`[datasets/download] S3 read failed for ${id}: ${e?.message}`);
+      res.status(404).json({ error: 'File no longer available' });
     }
   });
 
@@ -7545,6 +7562,28 @@ ${paramLines || '(none recorded)'}`;
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
         uiLanguage: normalizeUiLanguage((context as any)?.uiLanguage),
+        // run_code outputs → session datasets (download link + later turns), the same store as uploads.
+        persistGeneratedFile: async (hostPath: string, name: string) => {
+          // A project chat saves into the project automatically (versioned project file, shown under
+          // "Analysis outputs").
+          const _uid = req.user?.id != null ? String(req.user.id) : '';
+          if (_resolvedProjectId && _uid) {
+            const stored = await storeGeneratedFileInProject({ projectId: _resolvedProjectId, uid: _uid, hostPath, name });
+            if (stored?.file?.id) {
+              return { dataset_id: String(stored.file.id), project_file_id: String(stored.file.id), project_id: _resolvedProjectId,
+                download_url: `/api/projects/${encodeURIComponent(_resolvedProjectId)}/files/${encodeURIComponent(stored.file.id)}/url?redirect=1` };
+            }
+          }
+          // Non-project chats: not saved (founder 2026-11-11: "only project" — new chats can only be
+          // started inside a project; project-less chats are legacy). Their files stay in the chat's
+          // session workspace for later turns; figures still download from their inline bytes.
+          // To re-enable, register the file as a session dataset:
+          //   if (!_registerDatasetFileRef) return undefined;
+          //   const d = await _registerDatasetFileRef(req, hostPath, name, { source: 'run_code' });
+          //   return { dataset_id: d.datasetId, galaxy_dataset_id: d.galaxyDatasetId,
+          //     download_url: `/api/datasets/${encodeURIComponent(d.datasetId)}/download` };
+          return undefined;
+        },
         openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call

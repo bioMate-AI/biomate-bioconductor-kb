@@ -125,3 +125,12 @@ describe('reasoning budget (OpenRouter counts reasoning against max_tokens)', ()
     expect(reasoningBudgetBody('https://evil.example/openrouter.ai/v1', 4096)).toEqual({ max_tokens: 4096 });
   });
 });
+
+describe('attachmentDisposition (cross-origin downloads of generated files)', () => {
+  it('builds an RFC 6266 attachment header with a UTF-8 name', async () => {
+    const { attachmentDisposition } = await import('./content-disposition');
+    expect(attachmentDisposition('QC_Report.txt')).toBe(`attachment; filename="QC_Report.txt"; filename*=UTF-8''QC_Report.txt`);
+    expect(attachmentDisposition('generated/质控报告.txt')).toBe(`attachment; filename="____.txt"; filename*=UTF-8''${encodeURIComponent('质控报告.txt')}`);
+    expect(attachmentDisposition('a"b\r\n.csv')).toContain('filename="a_b__.csv"');
+  });
+});
