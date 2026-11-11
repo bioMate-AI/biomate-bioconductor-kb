@@ -8,15 +8,17 @@
  * journey below drives the real UI and the real backend and asserts the
  * BEHAVIOUR a user sees. See docs/20261110_LIVE_JOURNEY_TESTS_AND_CI.md.
  *
- * Order: d (independent) → a → e → b+c. Serial mode skips everything after a
- * failure, so independent journeys run first and only true dependants are lost.
+ * Order: d → a → e → b+c, each an independent test; (e) and (b+c) need the
+ * file (a) uploads and skip with a reason if it is missing (a SKIP is NOT
+ * green — scripts/run_live_journeys.sh counts it as a failure).
  *
  * Rules (CLAUDE.md §Testing Rules / §E2E plan discipline):
  *  - NO route mocking (no page.route / msw / stubs) — anywhere in this file.
  *  - ONE login per harness (the canonical fixture lifeifei163361@163.com),
- *    ONE project per harness, deleted in afterAll. Never /api/auth/register.
- *  - Journeys run serially and share state: (b) chats over the dataset that
- *    (a) uploaded, (c) reloads the chat that (b) produced.
+ *    ONE project per harness — both in globalSetup (live-journeys.global.ts),
+ *    project deleted in globalTeardown. Never /api/auth/register.
+ *  - (b) chats over the dataset that (a) uploaded; (c) reloads the chat (b)
+ *    produced (one test, two steps).
  *  - LLM path budget: 120 s for the direct-compute answer.
  *
  * Run: scripts/run_live_journeys.sh   (or: npx playwright test -c playwright.live.config.ts)
@@ -25,15 +27,14 @@
  *      E2E_TEST_TOKEN (default biomate-e2e-bypass-token-dev-only).
  */
 import { test, expect, request as pwRequest, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
-import { readFileSync, mkdirSync, existsSync, writeFileSync } from 'fs';
-import { homedir } from 'os';
+import { readFileSync, mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { STATE_FILE } from './live-journeys.global';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = (process.env.BIOMATE_URL || 'https://dev-public.biomate.ai').replace(/\/$/, '');
-const EMAIL = 'lifeifei163361@163.com';
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';
 const FIXTURE = path.join(HERE, 'fixtures', 'epar_sample.jsonl');
 const SHOTS = path.join(HERE, 'screenshots', 'live-journeys');
@@ -53,25 +54,27 @@ const WORKFLOW_UI = [
   '[data-testid="workflow-panel"]',
 ].join(', ');
 
-function fixturePassword(): string {
-  if (process.env.E2E_FIXTURE_PASSWORD) return process.env.E2E_FIXTURE_PASSWORD;
-  const f = path.join(homedir(), '.config', 'biomate', 'e2e_fixture_password');
-  if (existsSync(f)) return readFileSync(f, 'utf8').trim();
-  throw new Error('No fixture password: set E2E_FIXTURE_PASSWORD or create ~/.config/biomate/e2e_fixture_password');
-}
 
 const fixtureLines = readFileSync(FIXTURE, 'utf8').split('\n').filter((l) => l.trim().length > 0);
 const FIXTURE_ROWS = fixtureLines.length; // 200
 const FIXTURE_COLUMNS = Object.keys(JSON.parse(fixtureLines[0])); // source, drug, page, headers, rows
 
-// ── Shared harness state (one login, one project) ────────────────────────────
+// ── Shared harness state (one login, one project — from globalSetup) ─────────
+// Journeys are independent tests (default mode): a failure in one does not
+// skip the others. Cross-journey state (the uploaded file) goes through the
+// state file because Playwright restarts the worker after a failure.
+// Read lazily (in beforeAll): test files are also loaded for listing, which
+// can happen before globalSetup has written the state file.
 let token = '';
+let projectId = '';
+const saveState = (patch: Record<string, string>) => {
+  const cur = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
+  writeFileSync(STATE_FILE, JSON.stringify({ ...cur, ...patch }, null, 2));
+};
+const currentFileId = (): string => JSON.parse(readFileSync(STATE_FILE, 'utf8')).fileId || '';
 let api: APIRequestContext;
 let ctx: BrowserContext;
 let page: Page;
-let projectId = '';
-let fileId = '';
-let uploadContentType = '';
 let chatSessionUrl = '';
 const consoleErrors: string[] = [];
 
@@ -80,31 +83,17 @@ async function shot(name: string) {
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false }).catch(() => {});
 }
 
-test.describe.configure({ mode: 'serial' });
-
 test.beforeAll(async ({ browser }) => {
-  // 1. Login ONCE.
-  const anon = await pwRequest.newContext({ baseURL: BASE, extraHTTPHeaders: { 'x-e2e-test-token': E2E_TOKEN } });
-  const r = await anon.post('/api/auth/login', { data: { email: EMAIL, password: fixturePassword() } });
-  const body = await r.json().catch(() => ({}));
-  await anon.dispose();
-  expect(r.ok(), `login failed ${r.status()}: ${JSON.stringify(body).slice(0, 200)}`).toBeTruthy();
-  token = body.token || body.accessToken;
-  expect(token, 'login returned no token').toBeTruthy();
-
+  const state = JSON.parse(readFileSync(STATE_FILE, 'utf8')) as { token: string; projectId: string };
+  token = state.token;
+  projectId = state.projectId;
+  // No login here — globalSetup did it once. Just an API context + a browser
+  // context carrying the cookie (re-created if Playwright restarts the worker).
   api = await pwRequest.newContext({
     baseURL: BASE,
+    timeout: 90_000,
     extraHTTPHeaders: { Authorization: `Bearer ${token}`, 'x-e2e-test-token': E2E_TOKEN },
   });
-
-  // 2. ONE project per harness.
-  const pr = await api.post('/api/projects', {
-    data: { name: `live-journeys ${new Date().toISOString()} (auto-deleted)`, description: 'Track E live journey harness — deleted in teardown' },
-  });
-  expect(pr.status(), `create project: ${await pr.text()}`).toBe(201);
-  projectId = (await pr.json()).project.id;
-
-  // 3. Browser context: cookie auth + active project + zh UI.
   // No extraHTTPHeaders here: a custom header on every browser request turns
   // cross-origin font loads into CORS preflights that Google Fonts rejects.
   ctx = await browser.newContext({ locale: 'zh-CN', viewport: { width: 1600, height: 1000 } });
@@ -123,12 +112,8 @@ test.beforeAll(async ({ browser }) => {
 
 test.afterAll(async () => {
   mkdirSync(SHOTS, { recursive: true });
-  writeFileSync(path.join(SHOTS, 'console-errors.txt'), consoleErrors.join('\n'));
+  writeFileSync(path.join(SHOTS, `console-errors-${process.pid}.txt`), consoleErrors.join('\n'));
   await ctx?.close().catch(() => {});
-  if (projectId && api) {
-    const d = await api.delete(`/api/projects/${projectId}`).catch(() => null);
-    if (!d || !d.ok()) console.warn(`[live-journeys] project ${projectId} NOT deleted (${d?.status()}) — remove it by hand`);
-  }
   await api?.dispose().catch(() => {});
 });
 
@@ -140,7 +125,8 @@ async function infer(modelId: string, inputs: Record<string, unknown>) {
   const runId = body.run_id;
   let res: any = {};
   for (let i = 0; i < 60; i++) {
-    res = await (await api.get(`/api/inference/${runId}/result`)).json();
+    // Tolerate a transient network blip on a poll; the run itself is server-side.
+    res = await api.get(`/api/inference/${runId}/result`).then((x) => x.json()).catch(() => ({ status: 'running' }));
     if (res.status !== 'running') break;
     await new Promise((s) => setTimeout(s, 5000));
   }
@@ -197,9 +183,9 @@ test('a. dataset: JSONL upload opens as 5-column records with scrollable preview
   });
   expect(up.status(), `upload: ${await up.text()}`).toBe(201);
   const file = (await up.json()).file;
-  fileId = file.id;
-  uploadContentType = file.content_type;
-  expect(uploadContentType).toBe('application/x-ndjson');
+  const fileId = file.id as string;
+  saveState({ fileId });
+  expect(file.content_type).toBe('application/x-ndjson');
 
   await page.goto(`${BASE}/files?project=${projectId}&file=${fileId}`, { waitUntil: 'domcontentloaded' });
   const table = page.locator('[data-testid="dataset-preview-table"]');
@@ -235,6 +221,7 @@ test('a. dataset: JSONL upload opens as 5-column records with scrollable preview
 
 // ── (e) Training from the panel (prepared; skipped until the route exists) ───
 test('e. training: plan a tabular classifier from the data panel', async () => {
+  const fileId = currentFileId();
   const probe = await api.post('/api/model-training/plan', { data: {} });
   test.skip(probe.status() === 404, 'POST /api/model-training/plan is not deployed yet (404) — journey prepared, enable when it ships');
   test.skip(!fileId, 'journey (a) did not upload the dataset');
@@ -248,11 +235,12 @@ test('e. training: plan a tabular classifier from the data panel', async () => {
 });
 
 // ── (b)+(c) Chat direct compute, then refresh keeps the chat ────────────────
-// One test with two steps: (c) needs the chat (b) creates, and serial mode would
-// otherwise skip (c) whenever a purely presentational (soft) check in (b) fails.
+// One test with two steps: (c) needs the chat (b) creates, so a purely
+// presentational (soft) failure in (b) must not stop (c) from running.
 // Hard assertions = the functional contract; expect.soft = user-visible polish
 // that must still be fixed (it fails the run) but must not hide step (c).
 test('b+c. chat: "不用工作流" computes directly with the true count; refresh keeps the chat', async () => {
+  const fileId = currentFileId();
   test.skip(!fileId, 'journey (a) did not upload the dataset');
   test.setTimeout(LLM_BUDGET_MS + 180_000);
 

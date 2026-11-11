@@ -7,7 +7,8 @@ import { defineConfig, devices } from '@playwright/test';
  * Differences from playwright.config.ts, all deliberate:
  *  - retries: 0  — a journey that only passes on retry is a failing journey, and
  *    every retry re-spends LLM / GPU budget on the shared fixture account.
- *  - one worker, serial — the journeys share ONE login + ONE project.
+ *  - one worker; ONE login + ONE project via globalSetup/globalTeardown, so a
+ *    failing journey does not skip the independent ones.
  *  - bundled chromium (no `channel: 'chrome'`) so CI and the post-sync hook do
  *    not depend on a system Chrome install. Override with PLAYWRIGHT_CHANNEL.
  *  - 1x device scale (these are audit screenshots, not manual captures).
@@ -15,6 +16,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   testMatch: 'live-journeys.e2e.ts',
+  // Login once + one project per run, independent of worker restarts.
+  globalSetup: './e2e/live-journeys.setup.ts',
+  globalTeardown: './e2e/live-journeys.teardown.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,
