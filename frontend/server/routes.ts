@@ -50,7 +50,8 @@ import { parseOutputRequirements, checkOutputConformance, type OutputRequirement
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
-import { GalaxyAPIProxy, fetchGalaxyWithKeyRecovery } from "./galaxy-api-proxy";
+import { GalaxyAPIProxy } from "./galaxy-api-proxy";
+import { fetchGalaxyAsUser } from "./galaxy-user-fetch";
 import { ALLOWED_UPLOAD_EXTENSIONS, isAllowedUploadName, UnsupportedUploadTypeError } from "./upload-file-types";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
@@ -185,19 +186,8 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
   return galaxyAPIBackend.forUser(userApiKey, recover);
 }
 
-/**
- * fetch() to Galaxy as the signed-in user, for routes that call Galaxy directly instead of
- * through userProxy(): same key choice as before (user key, else shared admin key) plus the
- * same mid-session recovery (see fetchGalaxyWithKeyRecovery / userProxy).
- */
-function fetchGalaxyAsUser(req: express.Request, url: string, init: RequestInit = {}): Promise<Response> {
-  const user = req.user as any;
-  const raw = user?.galaxyApiKey as string | undefined;
-  const recover = user?.id && user?.email
-    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
-    : undefined;
-  return fetchGalaxyWithKeyRecovery(url, init, raw ? decryptField(raw) : null, process.env.GALAXY_API_KEY || '', recover);
-}
+// fetchGalaxyAsUser (user key, else shared admin key, with mid-session recovery) lives in
+// ./galaxy-user-fetch so project-routes.ts shares the exact same key choice.
 
 /**
  * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:

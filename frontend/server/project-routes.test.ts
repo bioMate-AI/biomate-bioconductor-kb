@@ -163,7 +163,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(32); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit)
+    expect(authed.length).toBe(33); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit, rows)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {
