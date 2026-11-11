@@ -2391,16 +2391,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onSubmitWithFiles={() => { pendingPanelFromFiles.current = true }}
             onStreamingChange={(streaming) => {
               setPanelGenerating(streaming)
-              if (streaming && !panelOpen && pendingPanelFromFiles.current) {
-                // Pre-open only when the submission had file attachments — file
-                // uploads almost always produce a workflow so showing the skeleton
-                // immediately gives the user immediate feedback without false opens.
-                setPanelOpen(true)
-                onWorkflowPanelOpenChange?.(true)
-              }
+              // Do NOT pre-open the workflow panel on file attachment: a research /
+              // evidence query attaches files but produces NO workflow, so pre-opening
+              // showed a blank skeleton for half the screen (founder feedback 2026-11-10:
+              // "no need to show at all"). The panel now opens ONLY when a real workflow
+              // is detected (the setPanelWorkflow + setPanelOpen paths), never blank.
               if (streaming) pendingPanelFromFiles.current = false
               if (!streaming && panelOpen && !panelWorkflow) {
-                // Streaming ended with no workflow — close the skeleton panel.
+                // Safety: if some other path left the panel open with no workflow, close it.
                 setPanelOpen(false)
                 onWorkflowPanelOpenChange?.(false)
               }
