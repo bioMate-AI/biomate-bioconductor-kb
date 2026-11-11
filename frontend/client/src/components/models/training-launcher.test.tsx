@@ -92,6 +92,18 @@ describe("TrainingLauncher — general data", () => {
     expect([...target.options].map(o => o.value).filter(Boolean)).toEqual(["sample_id", "gene_a", "gene_b", "subtype"])
   })
 
+  it("refuses a table with too few rows before launch (real DataProfile shape: shape.rows)", async () => {
+    // dev run c0d27792: a 1-row DESeq2 contrasts.csv was trained with 5-fold CV.
+    const csv = { ...TABLE_FILE, name: "contrasts.csv", s3_key: `projects/${PROJECT}/inputs/contrasts.csv` }
+    const calls = mockApi({ files: [csv], profile: { shape: { rows: 1, cols: 5 }, columns: ["id", "variable", "reference", "target", "blocking"],
+      sampleRows: [["MG_AChR_pos_vs_HC", "condition", "HC", "MG_AChR_pos", "9"]] } })
+    render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
+    await pickTableFile()
+    expect(await screen.findByTestId("launcher-too-few-rows")).toHaveTextContent(/1/)
+    expect(screen.getByTestId("launcher-submit")).toBeDisabled()
+    expect(calls.some(c => c.url.includes("/api/model-training/plan"))).toBe(false)
+  })
+
   it("auto-suggests the task type from the chosen column's values, and stays editable", async () => {
     mockApi()
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
