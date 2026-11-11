@@ -383,10 +383,11 @@ def _call_gemini_frontier(
             "topP": 0.9,
         },
     }
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    # API key in the x-goog-api-key header, never in the URL (URLs end up in logs/tracebacks).
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     req = urllib.request.Request(
         url, data=_json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=timeout_s) as resp:
