@@ -417,6 +417,9 @@ export interface WorkflowGenerationRequest {
   session_datasets?: Array<{ id: string; name: string; type: string }>;
   /** Licensed tool credential map: {tool_id: true/false} presence flags for premium integrations */
   credential_map?: Record<string, boolean>;
+  /** Workflow the user explicitly chose (catalog identity). When set the backend skips routing and
+   *  search and builds exactly this workflow's card, or fails — it never substitutes another. */
+  selected_workflow?: { name: string; nextflow_path?: string; id?: number | string };
 }
 
 export interface WorkflowGenerationResponse {

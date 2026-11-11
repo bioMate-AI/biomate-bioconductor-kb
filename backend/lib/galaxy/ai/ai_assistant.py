@@ -3849,6 +3849,63 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             **({'citations': citations} if citations else {}),
         }
 
+    def _resolve_selected_workflow(self, selected: Dict[str, Any]) -> Optional[Any]:
+        """Resolve a structured workflow selection to ONE catalog row, or None.
+
+        Most specific identifier first: catalog id (only when its name agrees, so a stale id
+        after a re-index cannot point at another workflow), exact nextflow_path, then the name
+        (exact identifier forms via resolve_named_workflow, then case-insensitive exact name).
+        No fuzzy search: a selection that does not resolve is reported, not approximated.
+        """
+        name = str(selected.get('name') or '').strip()
+        path = str(selected.get('nextflow_path') or '').strip()
+        wf_id = selected.get('id')
+        search = self.workflow_search
+        if isinstance(wf_id, int) or (isinstance(wf_id, str) and wf_id.isdigit()):
+            m = search.get_workflow(int(wf_id))
+            if m and (not name or (m.name or '').lower() == name.lower()):
+                return m
+        if path:
+            m = search.get_workflow_by_filename_pattern(path)
+            if m and (m.filename or '').lower() == path.lower():
+                return m
+        if name:
+            return search.resolve_named_workflow(name) or search.get_workflow_by_name(name)
+        return None
+
+    def _generate_selected_workflow(
+        self,
+        selected: Dict[str, Any],
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Card for the workflow the user explicitly selected (see generate_workflow_unified)."""
+        label = selected.get('name') or selected.get('nextflow_path') or selected.get('id')
+        try:
+            top = self._resolve_selected_workflow(selected)
+        except Exception as exc:  # noqa: BLE001 — reported to the caller, not swallowed
+            log.warning("[UnifiedWorkflowGeneration] selected workflow lookup failed (%s): %s", label, exc)
+            top = None
+        if not top:
+            log.warning("[UnifiedWorkflowGeneration] selected workflow not found / not executable: %s", label)
+            return {
+                'success': False,
+                'error': f'selected_workflow_not_found: {label}',
+                'message': f"The selected workflow '{label}' is not available in the catalog.",
+            }
+        log.info("[UnifiedWorkflowGeneration] User-selected workflow → %s (id=%s)", top.name, top.id)
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='user_selected',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
     @staticmethod
     def _named_workflow_tokens(user_intent: str) -> List[str]:
         """Candidate workflow identifiers explicitly written in a request.
@@ -4796,6 +4853,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         penalized_domains: Optional[List[str]] = None,
         credential_map: Optional[Dict[str, bool]] = None,
         user_input_kinds: Optional[List[str]] = None,
+        selected_workflow: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -4822,6 +4880,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             - datasets_assigned: bool
         """
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
+
+        # The user already chose this exact workflow (Workflows library "Run" or another explicit picker, or a
+        # follow-up that fills inputs for the workflow open in the panel). Identity is given, so
+        # no route or search may replace it: build THAT workflow's card (params prefilled from
+        # user_intent) or fail honestly — never silently substitute another workflow.
+        if selected_workflow:
+            return self._generate_selected_workflow(selected_workflow, user_intent, uploaded_datasets)
 
         # ml_training route (feature-flagged via ML_TRAINING_ROUTING, default OFF).
         # A model-TRAINING request short-circuits to the ml_training pipeline card

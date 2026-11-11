@@ -11,6 +11,7 @@ import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
+import { takeWorkflowSelection } from "@/lib/workflow-selection"
 import { groupWorkflowResponses, ProgressStreamBox } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
@@ -1748,6 +1749,12 @@ export function ChatInterface({
     files?: File[],
     contextOverride?: Record<string, unknown>,
   ) => {
+    // A workflow picked in the Workflows library rides with the message that runs it, as
+    // structured context.selectedWorkflow (the server builds exactly that workflow, no search).
+    if (!contextOverride?.selectedWorkflow) {
+      const _picked = takeWorkflowSelection(content)
+      if (_picked) contextOverride = { ...(contextOverride || {}), selectedWorkflow: _picked }
+    }
     // Handle attached files: upload to backend and include dataset IDs in prompt context.
     if (files && files.length > 0) {
       console.log('[ChatInterface] Files attached:', files.map((f) => f.name))
