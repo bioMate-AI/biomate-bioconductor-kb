@@ -1,0 +1,115 @@
+/**
+ * Pure helpers for the Models-panel training launcher.
+ *
+ * The metric table mirrors backend/lib/galaxy/ai/ml_training/plan.py
+ * (_SUPERVISED_METRICS / _GENERATIVE_METRIC): only metrics the trainer actually
+ * reports are offered, so a configured gate can never fail closed on a metric
+ * that is never produced. The backend re-validates every field.
+ */
+
+export type LauncherFamily = 'general' | 'molecular';
+export type FileKind = 'table' | 'h5ad' | 'structure' | 'other';
+export type TaskType = 'classification' | 'regression';
+
+/** Panel model choices. `ludwig_molecular` = ludwig_tabular + featurizer rdkit_2d. */
+export type PanelModelType =
+  | 'sklearn_tabular' | 'ludwig_tabular'
+  | 'ludwig_llm' | 'trl_dpo' | 'trl_grpo'
+  | 'scrna_diffusion' | 'protein_diffusion'
+  | 'sklearn_gbr' | 'ludwig_molecular';
+
+export const SUPERVISED_GENERAL: PanelModelType[] = ['sklearn_tabular', 'ludwig_tabular'];
+export const MOLECULAR: PanelModelType[] = ['sklearn_gbr', 'ludwig_molecular'];
+export const LLM_TYPES: PanelModelType[] = ['ludwig_llm', 'trl_dpo', 'trl_grpo'];
+
+export function isSupervised(type: PanelModelType): boolean {
+  return SUPERVISED_GENERAL.includes(type) || MOLECULAR.includes(type);
+}
+
+export function fileKind(name: string): FileKind {
+  const low = name.toLowerCase().replace(/\.gz$/, '');
+  if (/\.(csv|tsv|tab|txt|jsonl|ndjson|parquet|pq)$/.test(low)) return 'table';
+  if (low.endsWith('.h5ad')) return 'h5ad';
+  if (/\.(pdb|cif|mmcif|ent)$/.test(low)) return 'structure';
+  return 'other';
+}
+
+const SMILES_CHARS = /^[A-Za-z0-9@+\-[\]()=#$\\/.%*:]{2,}$/;
+const SMILES_STRUCTURE = /[=#()[\]]|[cnos]\d|[CNOS]\d|^[CNOcno][CNOcno]/;
+
+function nonEmpty(values: unknown[]): string[] {
+  return values.map(v => (v === null || v === undefined ? '' : String(v).trim())).filter(v => v !== '');
+}
+
+/** Columns whose name says SMILES, or whose sampled values read as SMILES strings. */
+export function detectSmilesColumns(columns: string[], sampleRows: unknown[][]): string[] {
+  return columns.filter((col, i) => {
+    if (/smiles|^smi$/i.test(col)) return true;
+    const values = nonEmpty(sampleRows.map(r => r?.[i]));
+    if (values.length < 2) return false;
+    const hits = values.filter(v => SMILES_CHARS.test(v) && SMILES_STRUCTURE.test(v) && !/^-?\d+(\.\d+)?$/.test(v));
+    return hits.length / values.length >= 0.8;
+  });
+}
+
+/** Suggest classification for non-numeric or few-valued labels, else regression. */
+export function suggestTaskType(values: unknown[]): TaskType {
+  const vals = nonEmpty(values);
+  if (!vals.length) return 'classification';
+  const numeric = vals.every(v => Number.isFinite(Number(v)));
+  if (!numeric) return 'classification';
+  const distinct = new Set(vals).size;
+  if (distinct <= 2) return 'classification';
+  const allInts = vals.every(v => Number.isInteger(Number(v)));
+  if (allInts && distinct <= 10 && distinct < vals.length / 2) return 'classification';
+  return 'regression';
+}
+
+export function columnValues(columns: string[], sampleRows: unknown[][], column: string): unknown[] {
+  const i = columns.indexOf(column);
+  return i < 0 ? [] : sampleRows.map(r => r?.[i]);
+}
+
+/** Model types offered for a dataset, filtered by what the file can actually train. */
+export function availableModelTypes(family: LauncherFamily, kind: FileKind, columns: string[],
+  smilesColumns: string[]): PanelModelType[] {
+  if (family === 'molecular') return kind === 'table' && smilesColumns.length ? MOLECULAR : [];
+  if (kind === 'h5ad') return ['scrna_diffusion'];
+  if (kind === 'structure') return ['protein_diffusion'];
+  if (kind !== 'table' || columns.length < 2) return [];
+  const out: PanelModelType[] = [...SUPERVISED_GENERAL, 'ludwig_llm'];
+  if (['prompt', 'chosen', 'rejected'].every(c => columns.includes(c))) out.push('trl_dpo');
+  if (columns.includes('prompt')) out.push('trl_grpo');
+  return out;
+}
+
+const SUPERVISED_METRICS: Record<string, Record<TaskType, string[]>> = {
+  sklearn_tabular: { classification: ['accuracy', 'macro_f1', 'auc'], regression: ['r2', 'mae'] },
+  ludwig_tabular: { classification: ['accuracy'], regression: ['mae'] },
+  ludwig_molecular: { classification: ['auc', 'accuracy'], regression: ['mae'] },
+  sklearn_gbr: { classification: ['auc'], regression: ['mae'] },
+};
+
+export function metricsFor(type: PanelModelType, task: TaskType): string[] {
+  return SUPERVISED_METRICS[type]?.[task] ?? [];
+}
+
+/** Lower is better for error metrics; the gate is a ceiling for these. */
+export function metricIsCeiling(metric: string): boolean {
+  return metric === 'mae';
+}
+
+/** Map the panel choice onto the backend plan's model_type + featurizer. */
+export function backendModelType(type: PanelModelType): { model_type: string; featurizer?: string } {
+  if (type === 'ludwig_molecular') return { model_type: 'ludwig_tabular', featurizer: 'rdkit_2d' };
+  if (type === 'ludwig_tabular') return { model_type: 'ludwig_tabular', featurizer: 'none' };
+  return { model_type: type };
+}
+
+/** Language-neutral default model name: <file stem>-<target>. */
+export function defaultModelName(fileName: string, target: string): string {
+  const stem = fileName.replace(/\.gz$/i, '').replace(/\.[^.]+$/, '');
+  return target ? `${stem}-${target}` : stem;
+}
+
+export const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'canceled', 'succeeded', 'error']);
