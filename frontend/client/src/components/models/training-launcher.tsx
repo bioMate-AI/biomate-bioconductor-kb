@@ -95,7 +95,9 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
         const cols: string[] = Array.isArray(body?.columns) ? body.columns.map(String) : [];
         setColumns(cols);
         setSampleRows(Array.isArray(body?.sampleRows) ? body.sampleRows : []);
-        setRowCount(typeof body?.rows === 'number' && Number.isFinite(body.rows) ? body.rows : null);
+        // DataProfile.to_dict(): { shape: { rows, cols }, … } (backend ai/data_perception.py).
+        const rows = body?.shape?.rows;
+        setRowCount(typeof rows === 'number' && Number.isFinite(rows) ? rows : null);
         setProfileState(cols.length ? 'ready' : 'error');
       })
       .catch(cause => { if (!controller.signal.aborted) { setProfileState('error'); setError(cause.message); } });
