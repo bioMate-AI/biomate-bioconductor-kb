@@ -5,7 +5,11 @@ import {
   unboundRequiredDataInputs,
   messageCarriesRunData,
   messageWaivesDataAsk,
+  workflowHasExampleData,
+  exampleDataNote,
+  shouldRunOnExampleData,
 } from './workflow-data-inputs';
+import { decideWorkflowReplyState } from './workflow-response-state';
 
 // Shape of nf-core/rnaseq as the panel receives it: the samplesheet `input` is a
 // REQUIRED string (stub `params.input = null // Samplesheet CSV …`), while the
@@ -89,5 +93,84 @@ describe('unboundRequiredDataInputs — executor-owned data_inputs (live rnaseq 
   });
   it('is satisfied when the request carried data (bound)', () => {
     expect(unboundRequiredDataInputs(live(true))).toEqual([]);
+  });
+});
+
+// ── Example-data default (docs/20261111) ─────────────────────────────────────
+// A workflow that ships its own bundled example dataset runs with no user input.
+// Shapes below are the REAL generated cards captured from dev (85014ef9) for the
+// cold-start example workflows; the backend adds `example_data` after this fix.
+describe('example-data default: card runs on its own dataset without asking', () => {
+  // Mirrors the inline decision in server/galaxy-assistant.ts (the two signals the
+  // fix changes): runsOnExampleData and needsDataInput.
+  const decide = (gw: any, message: string) => {
+    const runnableWorkflow = !!(gw && gw.success);
+    const unbound = unboundRequiredDataInputs(gw, new Set<string>());
+    const userSuppliedRunData = messageCarriesRunData(message) || messageWaivesDataAsk(message);
+    const runsOnExampleData = shouldRunOnExampleData(gw, { runnableWorkflow, userSuppliedRunData });
+    const state = decideWorkflowReplyState({
+      isWorkflowTurn: true, runnableWorkflow, generationFailed: false, hasInlineData: false,
+      messageCarriesData: userSuppliedRunData || runsOnExampleData, unboundRequiredInputs: unbound,
+    });
+    return { runsOnExampleData, needsDataInput: state === 'generated_needs_input' && !runsOnExampleData, state };
+  };
+
+  // Real dev shape: Chemoproteomics Pulldown (input_file type:file, required:null).
+  const chemo = (withExampleData: boolean) => ({
+    success: true,
+    workflow_ga: {
+      name: 'Chemoproteomics Pulldown',
+      required_params: [{ name: 'input_file', type: 'file', required: null, default: null }],
+      optional_params: [],
+      ...(withExampleData ? { example_data: { present: true, note: "Runs on the workflow's built-in example dataset — attach your own files to replace it." } } : {}),
+    },
+  });
+
+  // Real dev shape: a required, still-unbound data input (e.g. EBV/metabo-style file param).
+  const requiredUnbound = (withExampleData: boolean) => ({
+    success: true,
+    workflow_ga: {
+      name: 'Analyze Ebv Antibody Titers',
+      required_params: [{ name: 'raw_od_data', type: 'file', required: true, default: null }],
+      optional_params: [],
+      ...(withExampleData ? { example_data: { present: true } } : {}),
+    },
+  });
+
+  const DEMO_FREE = 'Run analyze_ebv_antibody_titers to quantify VCA, EA and EBNA1 titers across the three groups.';
+
+  it('workflowHasExampleData reads the backend flag off the card', () => {
+    expect(workflowHasExampleData(chemo(false))).toBe(false);
+    expect(workflowHasExampleData(chemo(true))).toBe(true);
+    expect(workflowHasExampleData({ example_data: { present: true } })).toBe(true); // top-level too
+  });
+
+  it('BEFORE fix: a required data input with no example data and no user data → asks', () => {
+    const d = decide(requiredUnbound(false), DEMO_FREE);
+    expect(d.runsOnExampleData).toBe(false);
+    expect(d.state).toBe('generated_needs_input');
+    expect(d.needsDataInput).toBe(true); // the DATA-FIRST ask fires
+  });
+
+  it('AFTER fix: the same card carrying example_data → card, no ask, example-data note', () => {
+    const d = decide(requiredUnbound(true), DEMO_FREE);
+    expect(d.runsOnExampleData).toBe(true);
+    expect(d.needsDataInput).toBe(false); // no upload is requested
+    expect(exampleDataNote(requiredUnbound(true))).toMatch(/example dataset/i);
+    expect(exampleDataNote(requiredUnbound(true))).not.toMatch(/s3:\/\/|\bS3\b/);
+  });
+
+  it('chemoproteomics shape flips to example-data runnable once the flag is present', () => {
+    expect(decide(chemo(false), DEMO_FREE).runsOnExampleData).toBe(false);
+    expect(decide(chemo(true), DEMO_FREE).runsOnExampleData).toBe(true);
+  });
+
+  it('when the user DID supply data, their data is used — example_data is moot, no false suppression', () => {
+    const withAccession = 'Run analyze_ebv_antibody_titers on SRR1039508';
+    expect(decide(requiredUnbound(true), withAccession).runsOnExampleData).toBe(false);
+  });
+
+  it('a workflow with NO example data still asks when its required input is unbound (DATA-FIRST preserved)', () => {
+    expect(decide(requiredUnbound(false), DEMO_FREE).needsDataInput).toBe(true);
   });
 });

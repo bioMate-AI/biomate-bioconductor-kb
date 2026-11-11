@@ -76,19 +76,41 @@ describe('W4: dataset references are never workflow params', () => {
 });
 
 describe('generatesSyntheticData — run_code that invents its input (EBV, dev 2026-11-11)', () => {
-  it('flags random/simulated values when nothing was staged', () => {
+  it('flags genuine input-fabrication draws when nothing was staged', () => {
     expect(generatesSyntheticData('import numpy as np\nod = np.random.normal(0.8, 0.2, 30)', 0)).toBe(true);
     expect(generatesSyntheticData('rng = np.random.default_rng(1)', 0)).toBe(true);
-    expect(generatesSyntheticData('set.seed(1); x <- rnorm(30)', 0)).toBe(true);
-    expect(generatesSyntheticData('# simulate OD readings from literature distributions', 0)).toBe(true);
+    expect(generatesSyntheticData('set.seed(1); x <- rnorm(30)', 0)).toBe(true); // the rnorm draw, not the seed
+    // torch / scipy.rvs / sklearn make_* were evading the old regex — now covered.
+    expect(generatesSyntheticData('import torch\nx = torch.randn(64, 10)', 0)).toBe(true);
+    expect(generatesSyntheticData('from scipy import stats\ny = stats.norm.rvs(size=50)', 0)).toBe(true);
+    expect(generatesSyntheticData('X, y = make_classification(n_samples=200)', 0)).toBe(true);
   });
-  it('does not flag real computation on staged inputs, or plain code without generation', () => {
+  it('does not flag reproducibility seeds, resampling of real data, or algorithm names (2026-11-11 precision fix)', () => {
     expect(generatesSyntheticData('df = pd.read_csv(INPUT_FILES["a.csv"]); np.random.seed(0)', 1)).toBe(false);
     expect(generatesSyntheticData('import math\nprint(math.log10(2500))', 0)).toBe(false);
+    // Seed-setting and resampling are not fabrication; neither is an optimiser or a
+    // comment that merely says "simulate" — these were false positives that wrongly
+    // refused real-data run_code (correctness review 2026-11-11).
+    expect(generatesSyntheticData('np.random.seed(0)\nnp.random.shuffle(idx)', 0)).toBe(false);
+    expect(generatesSyntheticData('set.seed(42)', 0)).toBe(false);
+    expect(generatesSyntheticData('best = simulated_annealing(objective)', 0)).toBe(false);
+    expect(generatesSyntheticData('# simulate OD readings from literature distributions', 0)).toBe(false);
   });
   it('a refused attempt tells the model to use real data and report no numbers', () => {
     expect(SYNTHETIC_DATA_REFUSAL).toMatch(/NOT EXECUTED/);
     expect(SYNTHETIC_DATA_REFUSAL).toMatch(/Do not report any numbers/);
+  });
+  // The run_code gate (galaxy-assistant.ts) refuses only when the code fabricates
+  // input AND the user did not ask for a simulation. Assert that composition here,
+  // where both predicates live, so a regression in either is caught without a live run.
+  it('refuses fabrication-without-staged-data only when no simulation was requested', () => {
+    const refuses = (code: string, staged: number, msg: string) =>
+      generatesSyntheticData(code, staged) && !requestAsksForSimulation(msg);
+    const fab = 'od = np.random.normal(0.8, 0.2, 30)';
+    expect(refuses(fab, 0, 'quantify EBV titers from the ELISA readings')).toBe(true);   // invented data → refused
+    expect(refuses(fab, 0, 'run a Monte Carlo power analysis for this assay')).toBe(false); // simulation asked → allowed
+    expect(refuses(fab, 1, 'analyze the attached plate')).toBe(false);                    // real data staged → allowed
+    expect(refuses('mean(df$value)', 0, 'summarise the pasted values')).toBe(false);      // no fabrication → allowed
   });
 });
 

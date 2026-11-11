@@ -134,6 +134,44 @@ export function unboundRequiredDataInputs(
   return out;
 }
 
+/**
+ * True when the resolved workflow ships its own bundled example dataset and can
+ * run with no user input (backend `example_data.present`, derived from the .nf
+ * definition — a built-in demo-data fallback or a data param defaulting to
+ * bundled example data; see ai_assistant._detect_example_data). The chat reply
+ * then presents the card as runnable on the example dataset instead of asking
+ * for an upload. A real per-workflow property, never a list of workflow names.
+ */
+export function workflowHasExampleData(generatedWorkflow: any): boolean {
+  const ga = generatedWorkflow?.workflow_ga || {};
+  return ga?.example_data?.present === true || generatedWorkflow?.example_data?.present === true;
+}
+
+/**
+ * The runnable workflow should present + run on its own example dataset (no ask)
+ * exactly when it ships example data AND the request carried no user data of its
+ * own (an upload / accession / inline data / an explicit waiver). When the user
+ * supplied data, THEIR data is used, so this is false. A workflow with no example
+ * data is always false, so the DATA-FIRST ask is preserved for it.
+ */
+export function shouldRunOnExampleData(
+  generatedWorkflow: any,
+  opts: { runnableWorkflow: boolean; userSuppliedRunData: boolean },
+): boolean {
+  return !!(opts.runnableWorkflow
+    && workflowHasExampleData(generatedWorkflow)
+    && !opts.userSuppliedRunData);
+}
+
+/** The one honest, storage-path-free sentence the backend supplies for the reply. */
+export function exampleDataNote(generatedWorkflow: any): string {
+  const ga = generatedWorkflow?.workflow_ga || {};
+  const note = ga?.example_data?.note || generatedWorkflow?.example_data?.note;
+  return typeof note === 'string' && note.trim()
+    ? note.trim()
+    : "Runs on the workflow's built-in example dataset — attach your own files to replace it.";
+}
+
 /** Public data accessions the run can fetch (SRA/ENA/DDBJ runs, GEO, ArrayExpress, PRIDE). */
 const RUN_DATA_ACCESSION_RE = /\b(?:[SED]RR\d{6,9}|[SED]RX\d{6,9}|[SED]RP\d{6,9}|PRJ[NED][A-Z]?\d{4,9}|GSE\d{3,9}|GSM\d{3,9}|E-[A-Z]{4}-\d{1,9}|PXD\d{4,9})\b/i;
 

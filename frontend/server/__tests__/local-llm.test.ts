@@ -68,8 +68,13 @@ describe('local inference boundary and tool protocol', () => {
     expect(events.find(e => e.type === 'content_block_delta').delta.partial_json).toBe('{"id":"GSE1"}');
     await expect(client.messages.create({ ...params, tools: [] })).rejects.toThrow('tool call');
   });
-  it('fails explicitly for unsupported image content', () => {
-    expect(() => localMessages({ messages: [{ role: 'user', content: [{ type: 'image' }] }] })).toThrow('does not support');
+  it('renders image content as a text note on the text-only path (no throw)', () => {
+    // Was: throw. An image block (a run_code plot, an attached image) aborted the whole agent turn.
+    const msgs = localMessages({ messages: [{ role: 'user', content: [{ type: 'image', source: { media_type: 'image/png' } }] }] });
+    expect(msgs[0].content).toContain('not visible to this model');
+  });
+  it('still fails explicitly for other unsupported content', () => {
+    expect(() => localMessages({ messages: [{ role: 'user', content: [{ type: 'document' }] }] })).toThrow('does not support');
   });
 });
 
