@@ -321,6 +321,14 @@ def _step_inputs(sa: Any, nextflow_path: str, uploaded: Optional[List[Dict[str, 
              if p.get("name") and p.get("autoFilled") and p.get("value") not in (None, "")}
     missing = [p["name"] for p in req
                if p.get("name") and p.get("default") in (None, "") and p.get("value") in (None, "")]
+    # A data-file input the workflow declares but that is not bound to the user's files is also
+    # needed. "// Input:" header tokens are surfaced by the parser as OPTIONAL file params because the
+    # executor falls back to built-in SAMPLE data — so an empty list here would mean "this step will
+    # silently analyze sample data, not yours" (seen on dev 2026-11-11: every root step reported
+    # nothing missing). Optional params with a real default are not flagged.
+    missing += [p["name"] for p in opt
+                if p.get("name") and p.get("type") == "file" and p.get("default") in (None, "")
+                and p.get("value") in (None, "") and p["name"] not in missing]
     return bound, missing
 
 

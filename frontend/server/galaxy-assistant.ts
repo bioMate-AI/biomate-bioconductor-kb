@@ -2826,7 +2826,7 @@ export function dagInputStatus(steps: any[], hasUnwired: boolean): string[] {
   const needed = per('missing_inputs');
   return [
     filled.length ? `Filled from your files: ${filled.join('; ')}.` : '',
-    needed.length ? `Still needed before running: ${needed.join('; ')}.` : '',
+    needed.length ? `Still needed before running: ${needed.join('; ')}. Without its data files a step runs on the workflow's built-in sample data, not yours.` : '',
     needed.length || hasUnwired
       ? 'Fill these in the plan, then click **Confirm & Run**.'
       : 'Inputs are set — review the plan, then click **Confirm & Run**.',
