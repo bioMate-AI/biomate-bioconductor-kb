@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from "react"
 import { FileContentView } from "../file-content-view"
+import { t } from "@/lib/i18n"
 import {
   resolveViewer,
   InlineStructureViewer,
@@ -16,6 +17,9 @@ const DensityMapViewer = lazy(() =>
 )
 
 const LIMIT = 256 * 1024
+
+/** An already-localized, user-facing preview failure. */
+class PreviewError extends Error {}
 // Text-fetchable formats. Broader than the viewer registry's TEXT_EXTS on purpose —
 // the Files module previews config/markup/source text too. The specialised viewers
 // (structure/vcf/sequence/annotation) are dispatched from the SAME fetched text in
@@ -52,13 +56,13 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url`, {
         credentials: "include", signal: abort.signal,
       })
-      if (!response.ok) throw new Error(`Cannot access file (${response.status}).`)
+      if (!response.ok) throw new PreviewError(t("dataset_obj.preview_access_error", { status: response.status }))
       const { url } = await response.json()
-      if (typeof url !== "string" || !/^https?:\/\//.test(url)) throw new Error("File URL is unavailable.")
+      if (typeof url !== "string" || !/^https?:\/\//.test(url)) throw new PreviewError(t("dataset_obj.preview_unavailable"))
       if (!TEXT.test(name)) { setState({ url }); return }
       const content = await fetch(url, { signal: abort.signal })
-      if (!content.ok) throw new Error(`Cannot read file (${content.status}).`)
-      if (!content.body) throw new Error("File content is unavailable.")
+      if (!content.ok) throw new PreviewError(t("dataset_obj.preview_read_error", { status: content.status }))
+      if (!content.body) throw new PreviewError(t("dataset_obj.preview_unavailable"))
       const reader = content.body.getReader()
       const decoder = new TextDecoder()
       let text = "", bytes = 0, truncated = false
@@ -76,24 +80,28 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
       // JSON / CSV / TSV / STAR, structures, VCF, sequences and annotations are
       // rendered by the shared rich viewers (renderTextContent) — pass raw text.
       if (!abort.signal.aborted) setState({ text, truncated })
-    })().catch(error => { if (!abort.signal.aborted) setState({ error: error.message }) })
+    // Our own errors are already localized; a raw network/stream error is not shown verbatim.
+    })().catch(error => {
+      if (abort.signal.aborted) return
+      setState({ error: error instanceof PreviewError ? error.message : t("dataset_obj.preview_unavailable") })
+    })
     return () => abort.abort()
   }, [projectId, fileId, name])
   if (!TEXT.test(name) && !IMAGE.test(name) && !DENSITY.test(name) && !/\.pdf$/i.test(name)) return (
-    <p className="text-muted-foreground">Content preview is not available for this format. Download the file to open it in a compatible application.</p>
+    <p className="text-muted-foreground">{t("dataset_obj.preview_unsupported")}</p>
   )
   if (state.error) return <p role="alert" className="text-destructive">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
     {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
-    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]") : <p className="text-muted-foreground">This file is empty.</p>}
-    {state.truncated && <p className="text-muted-foreground">Showing the first 256 KiB. Download for the complete file.</p>}
+    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]") : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
+    {state.truncated && <p className="text-muted-foreground">{t("dataset_obj.preview_truncated")}</p>}
   </div>
   if (state.url && IMAGE.test(name)) return <img src={state.url} alt={name} className="max-h-[60vh] max-w-full object-contain" />
   if (state.url && DENSITY.test(name)) return (
-    <Suspense fallback={<p role="status" className="text-muted-foreground">Loading density viewer…</p>}>
+    <Suspense fallback={<p role="status" className="text-muted-foreground">{t("dataset_obj.preview_loading_density")}</p>}>
       <DensityMapViewer src={state.url} name={name} />
     </Suspense>
   )
   if (state.url) return <iframe title={name} src={state.url} className="h-[60vh] w-full rounded-md border" />
-  return <p role="status" className="text-muted-foreground">Loading preview…</p>
+  return <p role="status" className="text-muted-foreground">{t("dataset_obj.preview_loading")}</p>
 }

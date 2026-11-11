@@ -25,6 +25,7 @@ import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { emailService } from "./email-service";
+import { projectInputPath, projectInputKey, decodeMultipartFilename } from "./project-file-paths";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
 import path from "path";
@@ -712,8 +713,10 @@ export function registerProjectRoutes(app: Express): void {
   });
 
   // ─── POST /api/projects/:id/files/upload ──────────────────────────────
-  // Multipart upload: saves to S3 under projects/<projectId>/inputs/<filename>,
-  // then records metadata in project_files.
+  // Multipart upload: saves to S3 under projects/<projectId>/inputs/<relative path>,
+  // then records metadata in project_files. A folder upload sends one request per
+  // file with a `relativePath` field (before the file part); the stored name keeps
+  // the folders ("run1/fastq/S1.fastq.gz") — see project-file-paths.ts.
   app.post(
     "/api/projects/:id/files/upload",
     authenticateToken,
@@ -730,12 +733,14 @@ export function registerProjectRoutes(app: Express): void {
           fs.unlink(req.file.path, () => {});
           return res.status(404).json({ error: "Project not found" });
         }
-        const originalName = req.file.originalname || req.file.filename;
-        const safeExt = path.extname(originalName).toLowerCase().replace(/[^a-z0-9.]/g, "");
-        const safeName = path.basename(originalName, path.extname(originalName))
-          .replace(/[^a-zA-Z0-9._-]/g, "_")
-          .slice(0, 200);
-        const key = `projects/${id}/inputs/${safeName}${safeExt}`;
+        // Folder uploads send the browser's folder-relative path (webkitRelativePath) as a
+        // UTF-8 text field; it is the stored name, so the tree can rebuild the folders.
+        const relativePath = typeof req.body?.relativePath === "string" ? req.body.relativePath : null;
+        const { name: originalName, keyPath } = projectInputPath(
+          decodeMultipartFilename(req.file.originalname || req.file.filename),
+          relativePath,
+        );
+        const key = `projects/${id}/inputs/${keyPath}`;
         const buf = fs.readFileSync(req.file.path);
         fs.unlink(req.file.path, () => {});
         // Content-hash dedup (§4.5.1): the same bytes already in this project link
@@ -750,7 +755,7 @@ export function registerProjectRoutes(app: Express): void {
         // and becomes current. Never overwrites — a completed run keeps the exact bytes.
         const prior = await _findProjectFileByName(id, originalName);
         if (prior && prior.content_hash && prior.content_hash !== contentHash) {
-          const vkey = `projects/${id}/inputs/${safeName}${safeExt}.v${prior.version_no + 1}`;
+          const vkey = `${key}.v${prior.version_no + 1}`;
           await s3Service.putObject(vkey, buf, ctype, uid);
           await _archiveCurrentAsVersion(prior, id, `v${prior.version_no}`, uid);
           const upd = await pool.query(
@@ -1042,8 +1047,7 @@ export function registerProjectRoutes(app: Express): void {
       const newText = lines.join("\n") + (keepTrailingNL ? "\n" : "");
       const buf = Buffer.from(newText, "utf-8");
       const contentHash = createHash("sha256").update(buf).digest("hex");
-      const safeName = String(cur.name).replace(/[^a-zA-Z0-9._-]/g, "_");
-      const vkey = `projects/${id}/inputs/${safeName}.v${cur.version_no + 1}`;
+      const vkey = `${projectInputKey(id, String(cur.name), String(cur.name))}.v${cur.version_no + 1}`;
       await s3Service.putObject(vkey, buf, cur.content_type, uid);
       await _archiveCurrentAsVersion({ ...cur, id: fileId, size }, id, `v${cur.version_no}`, uid);
       const upd = await pool.query(
@@ -1114,6 +1118,63 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] url failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to generate download URL" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/rows?offset=&limit= ─────────
+  // One page of a table-like project file's FULL rows (csv/tsv/jsonl), for the
+  // dataset Preview table. Parsed in the Python backend by the SAME readers the
+  // perception profiler uses (data_perception.read_rows), so the table, the stat
+  // grid and the QC card describe the same rows (JSONL → one row per record,
+  // top-level keys as columns, nested values as compact JSON). Owner/member scoped
+  // exactly like /url; the S3 key never leaves the server.
+  app.get("/api/projects/:id/files/:fileId/rows", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    const offset = parseInt(String(req.query.offset ?? "0"), 10);
+    const limit = parseInt(String(req.query.limit ?? "200"), 10);
+    if (!Number.isFinite(offset) || offset < 0 || !Number.isFinite(limit) || limit < 1) {
+      return res.status(400).json({ error: "invalid_range" });
+    }
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const fileRow = await pool.query(
+        `SELECT s3_key, name FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await import("./galaxy-user-fetch");
+      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/rows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          datasetRef: fileRow.rows[0].s3_key,
+          name: fileRow.rows[0].name,
+          offset,
+          limit: Math.min(limit, 1000),
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      const body: any = await resp.json().catch(() => null);
+      if (!resp.ok || !body) {
+        console.error(`[project_files] rows backend ${resp.status} for file ${fileId}`);
+        return res.status(502).json({ error: "rows_unavailable" });
+      }
+      if (body.error === "unresolvable_ref") return res.status(404).json({ error: "file_unreadable" });
+      if (body.error) return res.status(422).json({ error: "parse_failed" });
+      if (body.tabular === false) return res.status(415).json({ error: "not_tabular", kind: body.kind ?? null });
+      res.json({
+        kind: body.kind,
+        columns: Array.isArray(body.columns) ? body.columns : [],
+        rows: Array.isArray(body.rows) ? body.rows : [],
+        offset: body.offset ?? offset,
+        limit: body.limit ?? limit,
+        totalRows: typeof body.totalRows === "number" ? body.totalRows : null,
+      });
+    } catch (e: any) {
+      console.error("[project_files] rows failed:", e?.message ?? e);
+      res.status(502).json({ error: "rows_unavailable" });
     }
   });
 

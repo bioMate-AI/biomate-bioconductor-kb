@@ -111,11 +111,15 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(screen.queryByText(new RegExp(OPAQUE_CONSUMER))).toBeNull()
   })
 
-  it("labels the data-quality card 'Data QC' (not jargon, not 'QC results')", async () => {
+  it("labels the data-quality card 'Data QC' and shows it in the Preview tab, not Provenance", async () => {
     renderObj()
-    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    // QC lives directly under the table (Preview tab) — moved out of Provenance.
     const q = await screen.findByTestId("dataset-quality", {}, { timeout: 4000 })
-    expect(within(q).getByText("Data QC")).toBeInTheDocument()
+    expect(screen.getByTestId("dataset-preview")).toContainElement(q)
+    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    expect(screen.queryByTestId("dataset-quality")).toBeNull()
+    fireEvent.click(screen.getByTestId("dataset-tab-preview"))
+    expect(within(screen.getByTestId("dataset-quality")).getByText("Data QC")).toBeInTheDocument()
   })
 
   it("Open-in — a data file stages + launches an interactive tool (§4.3.1)", async () => {
