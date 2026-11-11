@@ -9,12 +9,28 @@ import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from './cold-start-examples';
 const seeds = [...COLD_DOMAINS.flatMap(domain => domain.shapes.map(shape => shape.seed)), ...COLD_MODULES.flatMap(module => module.tracks.flatMap(track => track.exBy ? [...track.ex, ...Object.entries(track.exBy).flatMap(([mod, texts]) => texts.map(text => seedWithModality(text, mod as 'sm' | 'pep' | 'bio')))] : track.ex))];
 const builtins = new Set<string>([...PREPARED_EXAMPLES.map(example => example.label), ...INTERNAL_EXAMPLES]);
 
+// An example that points at the user's own data needs an explicit bundle to
+// resolve "this/my/these/our"; a self-contained question names its subject.
+const DEICTIC = /\b(this|these|my|our)\b/i;
+
 describe('every cold-start path has prepared inputs', () => {
   it.each([...new Set(seeds)].filter(seed => !builtins.has(seed)))('%s', seed => {
     const demo = coldDemoFor(seed);
-    expect(demo, 'An example must explicitly select its own dataset bundle').toBeDefined();
+    if (!DEICTIC.test(seed) && !demo) return; // names its own subject, e.g. a literature question
+    expect(demo, 'An example about the user\'s data must explicitly select its own dataset bundle').toBeDefined();
     expect(demo!.files.length).toBeGreaterThan(0);
     expect(demo!.context.length).toBeGreaterThan(100);
+  });
+  it('does not give the Search & evidence tracks one shared input set', () => {
+    const search = COLD_MODULES.find(module => module.id === 'search')!;
+    const perTrack = search.tracks.filter(track => track.k !== 'Internal').map(track =>
+      [...new Set(track.ex.flatMap(text => coldDemoFor(text)?.files ?? []))].sort().join(',')).filter(Boolean);
+    expect(new Set(perTrack).size, perTrack.join(' | ')).toBe(perTrack.length);
+    // And within a track, two questions never silently reuse one bundle.
+    for (const track of search.tracks.filter(track => track.k !== 'Internal')) {
+      const bundles = track.ex.map(text => coldDemoFor(text)?.files.join(',')).filter(Boolean);
+      expect(new Set(bundles).size, track.k).toBe(bundles.length);
+    }
   });
   it('ships every selected asset rather than relying on an HTML SPA fallback', () => {
     const root = resolve(__dirname, '../../public/demo/cold-start');

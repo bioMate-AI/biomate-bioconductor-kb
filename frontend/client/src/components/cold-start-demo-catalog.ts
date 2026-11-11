@@ -1,8 +1,16 @@
-/** Every displayed intent has an explicit data bundle; no keyword/fallback dataset. */
+/**
+ * Every displayed intent that refers to the user's own data ("this/my/these/our …")
+ * has an explicit data bundle; self-contained questions that name their subject
+ * (e.g. Search & evidence) need none. No keyword/fallback dataset.
+ */
 export interface ColdDemoBundle { files: string[]; context: string }
 const notes = 'These are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.';
 export const COLD_DEMO_BUNDLES: Record<string, ColdDemoBundle> = {
-  evidence: { files: ['pilot_compounds.csv', 'pilot_target_info.json', 'pilot_reference_actives.smi', 'pilot_README.md'], context: 'Target: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.' },
+  // Search & evidence: questions name their own subject, so most need no files.
+  // Only the two patent questions about the USER's compounds attach a set, and
+  // each attaches its own (no shared bundle across Literature/Databases/Patents).
+  ftoSeries: { files: ['pilot_compounds.csv', 'pilot_target_info.json', 'pilot_README.md'], context: 'The series is the 15 BCR-ABL1 (UniProt P00519) kinase inhibitors in pilot_compounds.csv (imatinib, dasatinib, nilotinib and analogues; SMILES column). Search US/EP/WO claims covering these structures and their uses; report publication numbers, priority/expiry dates and claim scope per compound. This is a patent-landscape summary, not a legal freedom-to-operate opinion.' },
+  claimCandidates: { files: ['candidate_library.csv'], context: 'Treat the 500 compounds in candidate_library.csv (compound_id, smiles; published BACE1 chemotypes used as a stand-in generated set) as the candidates. Group them by scaffold, then check each scaffold family against granted and pending BACE1-inhibitor claims (including Markush claims). Report publication numbers, dates and which compound IDs fall inside claim scope. Not a legal opinion.' },
   assay: { files: ['bace_assays.csv'], context: 'Use the published human BACE1 assays in bace_assays.csv: compound_id, smiles, IC50_nM, pIC50 and logP. IC50_nM is converted from published pIC50. Plot logP versus pIC50 and report units.' },
   correlation: { files: ['predicted_measured.csv', 'prediction_method.json'], context: 'Compare measured and predicted IC50_nM in predicted_measured.csv on the held-out BACE Valid/Test compounds. Predictions come from the documented teaching baseline, not a validated production predictor. Compare on a log scale.' },
   plate: { files: ['plate_layout.csv', 'plate_compounds.csv'], context: 'plate_layout.csv is an illustrative 8×12 reshaping of 96 published BACE IC50_nM values; plate_compounds.csv maps each well to compound_id and SMILES. It is not a newly measured plate. Reshape into well, compound_id, smiles, IC50_nM.' },
@@ -35,7 +43,8 @@ export const COLD_DEMO_BUNDLES: Record<string, ColdDemoBundle> = {
 };
 
 const GROUPS: Array<[keyof typeof COLD_DEMO_BUNDLES, string[]]> = [
-  ['evidence', ['What is the evidence linking this target to disease?', 'Known SAR for this chemotype — what drives potency?', 'Why do inhibitors of this target usually fail on selectivity?', 'Pull every reported structure for this target.', 'Known off-targets for this chemotype?', 'Which trials targeted this pathway, and what were their endpoints?', 'Who holds composition-of-matter claims on this scaffold?', 'Freedom-to-operate picture for this series.', "Are my generated candidates inside anyone's claims?"]],
+  ['ftoSeries', ['Freedom-to-operate picture for this series.']],
+  ['claimCandidates', ["Are my generated candidates inside anyone's claims?"]],
   ['assay', ['Summarise this assay table and plot potency against logP.']],
   ['correlation', ['Correlate predicted and measured IC50 for these compounds.']],
   ['plate', ['Reshape this plate readout into long format and save it.']],

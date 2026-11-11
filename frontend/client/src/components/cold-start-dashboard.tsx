@@ -248,23 +248,23 @@ export const COLD_MODULES: ColdModule[] = [
       {
         k: "Literature",
         ex: [
-          "What is the evidence linking this target to disease?",
-          "Known SAR for this chemotype — what drives potency?",
-          "Why do inhibitors of this target usually fail on selectivity?",
+          "What is the evidence linking LRRK2 to Parkinson's disease?",
+          "Known SAR for imatinib-like phenylaminopyrimidines — what drives ABL1 potency?",
+          "Why do JAK2 inhibitors usually fail on selectivity?",
         ],
       },
       {
         k: "Databases",
         ex: [
-          "Pull every reported structure for this target.",
-          "Known off-targets for this chemotype?",
-          "Which trials targeted this pathway, and what were their endpoints?",
+          "Pull every reported structure for KRAS G12C.",
+          "Known off-targets for the celecoxib diarylpyrazole sulfonamide chemotype?",
+          "Which trials targeted PD-1/PD-L1 in non-small-cell lung cancer, and what were their endpoints?",
         ],
       },
       {
         k: "Patents",
         ex: [
-          "Who holds composition-of-matter claims on this scaffold?",
+          "Who holds composition-of-matter claims on the sotorasib scaffold?",
           "Freedom-to-operate picture for this series.",
           "Are my generated candidates inside anyone's claims?",
         ],

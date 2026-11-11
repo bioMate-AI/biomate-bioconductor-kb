@@ -51,6 +51,7 @@ describe('prepared examples', () => {
     vi.stubGlobal('fetch', fetcher);
     const result = await prepareColdStartSelection(HOSPITAL_EXAMPLES[0].label);
     expect(result.projectId).toBe('hospital-demo');
+    expect(result.prompt, 'project scope travels as context.projectId, never in the query text').not.toMatch(/hospital-demo|\(Project /);
     expect(result.files.map(file => file.name)).toContain('rna.csv');
     expect(result.prompt).toContain('synthetic');
     expect(result.prompt).toContain('confirm before running');

@@ -88,5 +88,7 @@ export async function prepareColdStartSelection(text: string): Promise<{ prompt:
   const result = await prepareColdStartExample(internal ? PREPARED_EXAMPLES[0].label : text);
   if (!internal && !hospital) return result;
   const projectId = await ensureInternalDemoProject(result.files, hospital);
-  return { ...result, projectId, prompt: `${internal ? text : result.prompt} (Project ${projectId}; use the attached files — these are inputs, not results.)` };
+  // Project scope travels structurally (active project id → chat context.projectId);
+  // never paste the id into the user's query text.
+  return { ...result, projectId, prompt: internal ? text : result.prompt };
 }
