@@ -7,9 +7,44 @@ procedures the agent selects by *inference over their descriptions*, composes, a
 back from (synthesize/ask) when none fits. This doc grounds that in BioMate's existing
 skills framework and lays out the extension + migration.
 
-## 0. What exists today (don't reinvent)
+## 0. What exists today (don't reinvent) — CORRECTED 2026-11-11
 
-BioMate already has a skills framework — two layers:
+**Pattern skills already exist** as a documented library (user pointed this out). Do NOT invent
+a pattern taxonomy. The authoritative sources:
+
+- **Pattern library** — `docs/20260608_CHAIN_PATTERN_LIBRARY_DRAFT.md` + loader
+  `backend/lib/galaxy/ai/chain_composer/pattern_loader.py` (`Pattern` objects, a real registry).
+  Its stated purpose is *exactly* this design: "a small catalog of canonical chain shapes the
+  LLM is **taught about via retrieval, not picks from via enum** … may still emit off-pattern
+  shapes." That is skills + inference + open registry + off-pattern catch-all, already written.
+  **The 13 canonical patterns:** `sequential_omics_pipeline`, `multi_omics_integration`,
+  `multi_method_consensus`, `ensemble_annotation`, `iterative_refinement` (owns the auto-loop
+  before/after comparison card), `cross_cohort_replication`, `discovery_then_validation`,
+  `branching_on_qc`, `hierarchical_re_evaluation`, `comparative_benchmarking` (⚠️ deprecated),
+  `filter_cascade`, `resampling_uncertainty`, `time_series_longitudinal`. Each entry already has
+  a **When**, a **Shape** (ASCII DAG — the presentation contract), Instantiations, Pitfall, Reference.
+- **Pattern router** — `backend/lib/galaxy/ai/pattern_router.py` (`maybe_route_workflow_generation`):
+  selects single / pipeline / fan-out / multi-specialist. **Flag-gated OFF**
+  (`BIOMATE_PATTERN_ROUTER_ENABLED`, default no-op); even on, live dispatch only implements
+  `MULTI_SPECIALIST`, the rest fall through (`docs/20261009_ORCHESTRATION_CAPABILITY_AUDIT_AND_PLAN.md`).
+- **Chain composer** — `chain_composer/composer.py` (emits steps + edges, uses retrieved patterns,
+  2–5 steps), shadow-mode only (`BIOMATE_COMPOSER_SHADOW=1`).
+- The `20261009` audit already states the orthogonal axes we re-derived: **domain patterns,
+  control-flow patterns, and reasoning strategies "must remain distinct fields"** — and "do not
+  silently flatten unsupported patterns."
+
+**So the real problem is INTEGRATION, not invention.** These components (pattern library + router +
+composer, all off/shadow) are not wired into the **live chat decomposer** — `galaxy-assistant.ts`
+still uses its ~400-line monolith prompt + nearest-catalog `_resolve_task_to_workflow`, and
+`to_pipeline_card` flattens every pattern's **Shape** into one list. The skills work = wire the
+existing pattern library (pattern skills) + operation skills into the live path and honor each
+pattern's documented Shape as its presentation. This matches the 20261009 audit's own conclusion:
+"inconsistent contracts and incomplete integration … another model-training run cannot repair
+dropped dependencies, lost task identities, or invalid rankings."
+
+### Operation-skill / expert-role framework (also exists)
+
+BioMate also has a skills framework — two layers:
 
 - **`skill_manager.py` (`SkillManager`)** — expert-role skills: `backend/lib/galaxy/ai/skills/*.md`,
   YAML frontmatter + Markdown body (`ml-bioinformatics.md`, `drug-discovery-chemist.md`,
@@ -38,7 +73,7 @@ BioMate already has a skills framework — two layers:
 
 | Category | Owns | Examples | Today |
 |---|---|---|---|
-| **Pattern skills** | recognition of a task *shape* → decomposition structure (steps + edges) **+ the presentation contract for that shape** | `single`, `sequential-chain`, `parallel-independent`, `fork-join`, `fan-out-rank` | prose in the monolith; flat card |
+| **Pattern skills** | recognition of a task *shape* → decomposition structure (steps + edges) **+ the presentation contract (the Shape)** | **already exist** — the 13 `chain_composer` patterns (§0): `sequential_omics_pipeline`, `multi_omics_integration`, `multi_method_consensus`, `iterative_refinement`, `branching_on_qc`, … | registry built (`pattern_loader.py`) but **off/shadow**; not in the live decomposer; `to_pipeline_card` flattens every Shape to one list |
 | **Operation skills** | what a *kind of work* needs → inputs, params, which engine/workflow, **and its own card** | `generator-adaptation`, `predictor-retraining`, `multi-omics-integration`, `target-id-evidence`, `docking`, `de-analysis` | partly: domain prompt skills + feature-flagged `route_*_result` "ADD a route" shims |
 | **Expert-role skills** (exists) | reasoning persona / methodology guidance | `ml-bioinformatics`, `drug-discovery-chemist` | ✅ already injected into the prompt |
 
@@ -90,6 +125,13 @@ pattern skill = `single` (not a fork-join fan-out) → operation skill =
 card**. Not dock+ADMET, not an empty pipeline card.
 
 ## 5. Migration (incremental, measurable — no big-bang rewrite)
+
+**Framing: integrate, don't invent.** The pattern library (pattern skills), pattern_router, and
+chain_composer already exist but are off/shadow and not wired into the live chat decomposer. The
+operation-skill framework (SkillManager) exists but only augments the prompt. The migration wires
+these existing pieces into the live path + honors each pattern's documented Shape as presentation,
+exactly as the 20261009 audit prescribes ("incomplete integration" is the problem, not missing
+components). Sequence:
 
 1. **Author `generator-adaptation` as the first operation skill** (this doc's prototype:
    `backend/lib/galaxy/ai/skills/generator-adaptation.md`), with a `description` for inference
