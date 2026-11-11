@@ -591,6 +591,12 @@ class UnifiedLiteratureClient:
         self.pubmed = PubMedClient(api_key=pubmed_api_key)
         self.arxiv = ArxivClient()
         self.semantic_scholar = SemanticScholarClient(api_key=s2_api_key)
+        # Semantic Scholar's keyless shared pool returns HTTP 429 on almost every
+        # call, so querying it without an API key just wastes requests and slows the
+        # answer. Disable it unless we actually hold a key; it re-enables the moment
+        # SEMANTIC_SCHOLAR_API_KEY is set (no code change). PubMed/Europe PMC/OpenAlex
+        # cover the literature in the meantime.
+        self._s2_enabled = bool(s2_api_key)
 
     async def search_all(
         self,
@@ -620,7 +626,7 @@ class UnifiedLiteratureClient:
             tasks.append(self.pubmed.search(query, max_results_per_source))
         if "arxiv" in sources:
             tasks.append(self.arxiv.search(query, max_results_per_source))
-        if "semantic_scholar" in sources:
+        if "semantic_scholar" in sources and self._s2_enabled:
             tasks.append(self.semantic_scholar.search(query, max_results_per_source))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -738,11 +744,14 @@ class UnifiedLiteratureClient:
         min_year = current_year - recent_years
         tasks = [
             self.pubmed.search(query, max_results // 2, min_date=f"{min_year}/01/01"),
-            self.semantic_scholar.search(
+        ]
+        # Only query Semantic Scholar when we hold a key — keyless it returns 429 and
+        # wastes the call (see __init__). PubMed alone covers the fallback otherwise.
+        if self._s2_enabled:
+            tasks.append(self.semantic_scholar.search(
                 query, max_results // 2, year_range=(min_year, current_year),
                 fields_of_study=["Biology", "Computer Science"],
-            ),
-        ]
+            ))
         results = await asyncio.gather(*tasks, return_exceptions=True)
         all_citations = []
         for result in results:
@@ -867,7 +876,18 @@ def create_literature_client(
     pubmed_api_key: Optional[str] = None,
     s2_api_key: Optional[str] = None
 ) -> UnifiedLiteratureClient:
-    """Create a UnifiedLiteratureClient instance."""
+    """Create a UnifiedLiteratureClient instance.
+
+    Keys fall back to the environment so adding SEMANTIC_SCHOLAR_API_KEY /
+    NCBI_API_KEY (or PUBMED_API_KEY) to the Galaxy container is enough to raise the
+    rate limits and re-enable Semantic Scholar — no code change needed.
+    """
+    import os as _os
+    if not pubmed_api_key:
+        pubmed_api_key = (_os.environ.get("NCBI_API_KEY")
+                          or _os.environ.get("PUBMED_API_KEY") or None)
+    if not s2_api_key:
+        s2_api_key = _os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or None
     return UnifiedLiteratureClient(
         pubmed_api_key=pubmed_api_key,
         s2_api_key=s2_api_key

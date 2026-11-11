@@ -47,6 +47,18 @@ except Exception:  # pragma: no cover
 _MACRO_TYPES = frozenset({"gene", "protein"})
 _COMPOUND_TYPES = frozenset({"compound"})
 
+# Sources that need an API key we may not hold. Keyless they return HTTP 429 on nearly
+# every call (Semantic Scholar's shared pool), so querying them just wastes a request
+# and slows the answer. Drop them unless the key is present; they re-enable the moment
+# the env var is set — no code change. PubMed / Europe PMC / OpenAlex cover literature.
+_KEY_GATED_SOURCES = {"semantic_scholar": "SEMANTIC_SCHOLAR_API_KEY"}
+
+
+def _drop_unauthenticated_sources(srcs: List[str]) -> List[str]:
+    return [s for s in srcs
+            if s not in _KEY_GATED_SOURCES
+            or os.environ.get(_KEY_GATED_SOURCES[s], "").strip()]
+
 
 def _drop_mismatched_sources(srcs: List[str], detected: str) -> List[str]:
     """Remove sources whose registry entity_types serve EXCLUSIVELY the other class.
@@ -838,6 +850,8 @@ def federated_query(
     # list (facet-based) is exactly what over-includes compound DBs for a target
     # (live dev finding, 2026-11-11: ABL1 SAR hit PubChem/ChEBI/PDB-by-id).
     target_sources = _drop_mismatched_sources(target_sources, detected)
+    # Drop sources whose required API key we don't hold (keyless → 429 waste).
+    target_sources = _drop_unauthenticated_sources(target_sources)
 
     # The cache key MUST include the (filtered) source set: an intent-selected fan-out
     # (e.g. sources=[chembl,pdb,…] for a SAR question) and a default entity-type fan-out
