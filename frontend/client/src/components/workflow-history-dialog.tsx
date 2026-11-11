@@ -486,7 +486,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                         <div className="text-sm font-medium truncate">{r.workflowName}</div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                           {r.runType === 'research' && (
-                            <span className="px-1 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-medium">Research</span>
+                            <span className="px-1 py-0.5 rounded text-fs-xs bg-purple-100 text-purple-700 font-medium">Research</span>
                           )}
                           {r.status} · {formatWhen(r.createdAt)}
                         </div>
@@ -607,13 +607,13 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                         <div className="text-sm font-medium truncate flex items-center gap-1.5">
                           {r.display_name || r.name}
                           {r.type === 'chain' && (
-                            <span className="px-1 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700 font-medium">{tOr('workflows_library.chain', 'Chain')}</span>
+                            <span className="px-1 py-0.5 rounded text-fs-xs bg-amber-100 text-amber-700 font-medium">{tOr('workflows_library.chain', 'Chain')}</span>
                           )}
                         </div>
                         {r.description && (
                           <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{r.description}</div>
                         )}
-                        <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                        <div className="text-fs-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
                           {r.domain && <span className="px-1 py-0.5 rounded bg-muted">{r.domain}</span>}
                           {r.source && <span>{r.source}</span>}
                           {typeof r.score === 'number' && (
@@ -645,7 +645,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
             {/* Tip */}
             <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'oklch(0.97 0.01 240)', borderRadius: 6, border: '1px solid oklch(0.88 0.03 240)' }}>
               <Info style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1, color: 'oklch(0.50 0.12 240)' }} />
-              <p style={{ fontSize: 12, lineHeight: 1.5, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
+              <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.5, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
                 Upload your own <strong>Nextflow (.nf)</strong> or <strong>Galaxy (.ga / .yml)</strong> workflow.
                 Once imported it appears in <em>My Imports</em> and can be launched from any chat.
                 BioMate will run it on AWS Batch with your configured environment.

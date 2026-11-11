@@ -266,7 +266,7 @@ function SessionTab({
                 : tOr('datasets_dialog.drop_hint', 'Drop files or folders here, or click to browse')}
           </span>
           {!uploading && (
-            <span className="text-[11px] text-muted-foreground/60">
+            <span className="text-fs-xs text-muted-foreground/60">
               {tOr('datasets_dialog.files_folders_supported', 'Files and folders supported')}
               {' · '}
               <button
@@ -284,7 +284,7 @@ function SessionTab({
       {uploadError && <p className="text-xs text-destructive px-1">{uploadError}</p>}
 
       {/* One-line hint — full limits/formats live in docs, not this dialog */}
-      <p className="flex items-start gap-2 text-[11px] text-muted-foreground px-1 mb-3">
+      <p className="flex items-start gap-2 text-fs-xs text-muted-foreground px-1 mb-3">
         <Info className="h-3 w-3 mt-0.5 shrink-0" />
         <span>{tOr('datasets_dialog.session_help_prefix', 'Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use ')}<span className="font-medium text-foreground">{tOr('datasets_dialog.tab_url', 'From URL')}</span>.</span>
       </p>
@@ -632,10 +632,10 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   // Compact "source → one example" row for the collapsible examples list.
   const ExampleRow = ({ label, code, icon }: { label: string; code: string; icon?: React.ReactNode }) => (
     <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
-      <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-1">
+      <span className="flex items-center gap-1 text-fs-xs font-medium text-foreground/80 pt-1">
         {icon}{label}
       </span>
-      <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all break-all">
+      <code className="block font-mono bg-background/60 rounded px-2 py-1 text-fs-xs select-all break-all">
         {code}
       </code>
     </div>
@@ -664,7 +664,7 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       {/* One-line reassurance — always visible, secondary to the input */}
-      <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground px-0.5">
+      <p className="flex items-start gap-1.5 text-fs-xs text-muted-foreground px-0.5">
         <Info className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-px" />
         <span>{tOr('datasets_dialog.url_no_limit', 'No size limit — BioMate downloads server-side. Works for files of any size.')}</span>
       </p>
@@ -702,15 +702,15 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
               label={tOr('datasets_dialog.url_cloud_label', 'Google Drive / Dropbox (best for large files — no browser upload):')}
               code="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
             />
-            <p className="text-[11px] pl-[7.5rem] -mt-1">{tOr('datasets_dialog.url_cloud_help', 'Set the file to "Anyone with the link" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser.')}</p>
+            <p className="text-fs-xs pl-[7.5rem] -mt-1">{tOr('datasets_dialog.url_cloud_help', 'Set the file to "Anyone with the link" and paste it here — the server pulls it directly, so multi-GB files do not go through your browser.')}</p>
             <div className="grid grid-cols-[7rem_1fr] gap-2 items-start">
-              <span className="flex items-center gap-1 text-[11px] font-medium text-foreground/80 pt-px">
+              <span className="flex items-center gap-1 text-fs-xs font-medium text-foreground/80 pt-px">
                 <FolderArchive className="h-3 w-3 text-amber-500 shrink-0" />
                 {tOr('datasets_dialog.url_s3_folder_label', 'S3 folder:')}
               </span>
-              <p className="text-[11px]">{tOr('datasets_dialog.url_s3_folder_help', 'Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.')}</p>
+              <p className="text-fs-xs">{tOr('datasets_dialog.url_s3_folder_help', 'Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.')}</p>
             </div>
-            <p className="text-[11px] border-t pt-2">{tOr('datasets_dialog.url_no_credentials', 'Do not place credentials in a URL. Authenticated storage requires a managed connection.')}</p>
+            <p className="text-fs-xs border-t pt-2">{tOr('datasets_dialog.url_no_credentials', 'Do not place credentials in a URL. Authenticated storage requires a managed connection.')}</p>
           </div>
         )}
       </div>

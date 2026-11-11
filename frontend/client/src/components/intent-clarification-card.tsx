@@ -113,7 +113,7 @@ export function IntentClarificationCard({
       </div>
       {reason && (
         <div className="px-4 pb-2">
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             Why I'm asking: matched patterns — {reason}
           </p>
         </div>

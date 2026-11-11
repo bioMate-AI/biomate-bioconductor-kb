@@ -124,7 +124,7 @@ export function RetrainAdapterCard() {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600 }}>Adapt regulatory LLM to your org</div>
-          <div style={{ fontSize: 12, color: "var(--bm-text-muted)" }}>
+          <div style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-muted)" }}>
             Compile your accumulated edit pairs into a per-org rule pack that
             the regulatory LLM reads on the next inference call. Zero GPU.
           </div>
@@ -134,7 +134,7 @@ export function RetrainAdapterCard() {
           style={{
             background: "var(--bm-surface, #f3f4f6)",
             border: "1px solid var(--bm-border, #e5e7eb)",
-            borderRadius: 6, padding: "6px 10px", fontSize: 12.5,
+            borderRadius: 6, padding: "6px 10px", fontSize: 'var(--fs-base)',
           }}
         >
           {pairCount === null ? "…" : pairCount} edit pair{pairCount === 1 ? "" : "s"}
@@ -148,7 +148,7 @@ export function RetrainAdapterCard() {
           disabled={busy}
           className="ind-btn sm primary"
           style={{
-            padding: "6px 14px", fontSize: 12.5,
+            padding: "6px 14px", fontSize: 'var(--fs-base)',
             background: "oklch(0.45 0.18 280)", color: "white",
             border: "none", borderRadius: 4,
             cursor: busy ? "wait" : "pointer",
@@ -163,7 +163,7 @@ export function RetrainAdapterCard() {
             disabled={busy}
             className="ind-btn sm"
             style={{
-              padding: "6px 14px", fontSize: 12.5,
+              padding: "6px 14px", fontSize: 'var(--fs-base)',
               background: "transparent", color: "var(--bm-text-muted)",
               border: "1px solid var(--bm-border, #e5e7eb)", borderRadius: 4,
               cursor: busy ? "wait" : "pointer",
@@ -179,7 +179,7 @@ export function RetrainAdapterCard() {
           disabled={busy}
           className="ind-btn sm"
           style={{
-            padding: "6px 14px", fontSize: 12.5,
+            padding: "6px 14px", fontSize: 'var(--fs-base)',
             background: "transparent", color: "var(--bm-text-muted)",
             border: "1px solid var(--bm-border, #e5e7eb)", borderRadius: 4,
             cursor: busy ? "wait" : "pointer",
@@ -193,7 +193,7 @@ export function RetrainAdapterCard() {
         <div
           data-testid="retrain-error"
           style={{
-            color: "var(--ind-err, #b91c1c)", fontSize: 12,
+            color: "var(--ind-err, #b91c1c)", fontSize: 'var(--fs-sm)',
             background: "var(--ind-err-soft, #fef2f2)",
             border: "1px solid var(--ind-err, #fecaca)",
             borderRadius: 4, padding: "6px 10px",
@@ -205,11 +205,11 @@ export function RetrainAdapterCard() {
 
       {jobs !== null && (
         <div data-testid="retrain-job-history">
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--bm-text-muted)", marginBottom: 6 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--bm-text-muted)", marginBottom: 6 }}>
             Recent jobs
           </div>
           {jobs.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: "var(--bm-text-muted)" }}>
+            <div style={{ fontSize: 'var(--fs-base)', color: "var(--bm-text-muted)" }}>
               No retrain jobs yet — click <b>Re-train on my edits</b> to queue one.
             </div>
           ) : (
@@ -222,7 +222,7 @@ export function RetrainAdapterCard() {
                     display: "flex", alignItems: "center", gap: 10,
                     padding: "6px 10px",
                     border: "1px solid var(--bm-border, #e5e7eb)",
-                    borderRadius: 4, fontSize: 12,
+                    borderRadius: 4, fontSize: 'var(--fs-sm)',
                   }}
                 >
                   <span
@@ -232,14 +232,14 @@ export function RetrainAdapterCard() {
                     }}
                   />
                   <span style={{ flex: 1 }}>
-                    <span style={{ fontFamily: "JetBrains Mono", fontSize: 11 }}>{j.job_id.slice(0, 8)}</span>
+                    <span style={{ fontFamily: "JetBrains Mono", fontSize: 'var(--fs-xs)' }}>{j.job_id.slice(0, 8)}</span>
                     {" · "}
                     <span>{j.adaptation_mode}</span>
                     {j.message ? <span style={{ color: "var(--bm-text-muted)" }}> · {j.message.slice(0, 80)}</span> : null}
                   </span>
-                  <span style={{ color: "var(--bm-text-muted)", fontSize: 11 }}>{fmtTs(j.updated_at)}</span>
+                  <span style={{ color: "var(--bm-text-muted)", fontSize: 'var(--fs-xs)' }}>{fmtTs(j.updated_at)}</span>
                   <span style={{
-                    fontSize: 10.5, fontWeight: 600, textTransform: "uppercase",
+                    fontSize: 'var(--fs-xs)', fontWeight: 600, textTransform: "uppercase",
                     color: STATUS_COLOR[j.status] ?? "#374151",
                   }}>
                     {j.status}

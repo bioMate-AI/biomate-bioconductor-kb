@@ -26,9 +26,10 @@ export function ThemeProvider({
   storageKey = "biomate-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+  // Light only for now: dark mode has not been reviewed, so a stored
+  // "dark"/"system" preference (or the OS setting) must not switch it.
+  // To restore selection: (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  const [theme, setTheme] = useState<Theme>(() => "light")
 
   useEffect(() => {
     const root = window.document.documentElement

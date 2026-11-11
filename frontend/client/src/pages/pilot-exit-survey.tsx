@@ -79,7 +79,7 @@ function LikertRow({
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-muted-foreground px-0.5">
+      <div className="flex justify-between text-fs-xs text-muted-foreground px-0.5">
         <span>Strongly disagree</span>
         <span>Strongly agree</span>
       </div>

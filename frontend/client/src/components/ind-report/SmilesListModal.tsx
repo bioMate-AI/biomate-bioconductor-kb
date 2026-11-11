@@ -105,7 +105,7 @@ export function SmilesListModal({
         data-testid="smiles-list-modal"
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>Edit compound library</h3>
+          <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700 }}>Edit compound library</h3>
           <button
             onClick={onClose}
             style={{ background: "none", border: "none", cursor: "pointer" }}
@@ -115,7 +115,7 @@ export function SmilesListModal({
           </button>
         </div>
 
-        <div style={{ fontSize: 12, color: "var(--ind-text-muted)", marginBottom: 12 }}>
+        <div style={{ fontSize: 'var(--fs-sm)', color: "var(--ind-text-muted)", marginBottom: 12 }}>
           {entries.length} compound{entries.length === 1 ? "" : "s"} ·{" "}
           {activeLead ? `lead: ${entries.find((e) => e.id === activeLead)?.label ?? activeLead}` : "no lead selected"}
         </div>
@@ -123,7 +123,7 @@ export function SmilesListModal({
         {/* Existing entries */}
         <div style={{ flex: 1, overflowY: "auto", marginBottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
           {entries.length === 0 && (
-            <div style={{ fontSize: 12.5, color: "var(--ind-text-muted)", padding: "16px", textAlign: "center" }}>
+            <div style={{ fontSize: 'var(--fs-base)', color: "var(--ind-text-muted)", padding: "16px", textAlign: "center" }}>
               No compounds yet — add a SMILES below.
             </div>
           )}
@@ -144,7 +144,7 @@ export function SmilesListModal({
                   borderRadius: 6,
                 }}
               >
-                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 'var(--fs-xs)' }}>
                   <input
                     type="radio"
                     name="lead"
@@ -160,7 +160,7 @@ export function SmilesListModal({
                   onChange={(ev) => updateSmiles(e.id, ev.target.value)}
                   style={{
                     fontFamily: "JetBrains Mono, monospace",
-                    fontSize: 11.5,
+                    fontSize: 'var(--fs-sm)',
                     padding: "4px 6px",
                     border: "1px solid var(--ind-border, #e5e7eb)",
                     borderRadius: 4,
@@ -168,7 +168,7 @@ export function SmilesListModal({
                   }}
                   spellCheck={false}
                 />
-                <span style={{ fontSize: 11, color: err ? "#dc2626" : "var(--ind-text-muted)" }}>
+                <span style={{ fontSize: 'var(--fs-xs)', color: err ? "#dc2626" : "var(--ind-text-muted)" }}>
                   {err ? `⚠ ${err}` : (e.label ?? "")}
                 </span>
                 <button
@@ -200,7 +200,7 @@ export function SmilesListModal({
             onChange={(e) => { setNewSmiles(e.target.value); setAddErr(""); }}
             placeholder="SMILES (e.g. CC(=O)Nc1ccc(O)cc1)"
             style={{
-              fontFamily: "JetBrains Mono, monospace", fontSize: 12,
+              fontFamily: "JetBrains Mono, monospace", fontSize: 'var(--fs-sm)',
               padding: "5px 8px",
               border: "1px solid var(--ind-border-strong, #d1d5db)",
               borderRadius: 4,
@@ -215,7 +215,7 @@ export function SmilesListModal({
             onChange={(e) => setNewLabel(e.target.value)}
             placeholder="Label (optional)"
             style={{
-              fontSize: 12,
+              fontSize: 'var(--fs-sm)',
               padding: "5px 8px",
               border: "1px solid var(--ind-border-strong, #d1d5db)",
               borderRadius: 4,
@@ -232,7 +232,7 @@ export function SmilesListModal({
           </button>
         </div>
         {addErr && (
-          <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8 }}>{addErr}</div>
+          <div style={{ fontSize: 'var(--fs-sm)', color: "#dc2626", marginBottom: 8 }}>{addErr}</div>
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>

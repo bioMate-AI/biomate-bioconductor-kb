@@ -164,7 +164,7 @@ export function IndDocPanel({
             <option value="PMDA" disabled>PMDA — coming soon</option>
             <option value="ALL" disabled>All regions — coming soon</option>
           </select>
-          <span style={{ color: "var(--ind-text-dim)", marginLeft: 8, fontSize: 11 }}>
+          <span style={{ color: "var(--ind-text-dim)", marginLeft: 8, fontSize: 'var(--fs-micro)' }}>
             FDA-only in beta · multi-region coming soon
           </span>
         </div>
@@ -211,7 +211,7 @@ export function IndDocPanel({
           <div
             style={{
               marginTop: 24, padding: 12,
-              background: "var(--ind-bg-sub)", borderRadius: 8, fontSize: 12.5,
+              background: "var(--ind-bg-sub)", borderRadius: 8, fontSize: 'var(--fs-meta)',
             }}
           >
             <b>💬 Discuss in chat →</b> Have a question about a specific result?{" "}
@@ -411,7 +411,7 @@ function DocSection({
       {section.note && (
         <div
           style={{
-            fontSize: 11.5,
+            fontSize: 'var(--fs-micro)',
             color: "var(--ind-warn)",
             fontStyle: "italic",
             marginTop: 4,
@@ -587,7 +587,7 @@ function RegenerateModal({
         onClick={(e) => e.stopPropagation()}
         style={{ background: "white", borderRadius: 10, padding: 18, maxWidth: 520, width: "92%" }}
       >
-        <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
+        <h3 style={{ fontSize: 'var(--fs-body)', fontWeight: 700, marginBottom: 10 }}>
           Regenerate §{section}
         </h3>
         {idle && (
@@ -595,7 +595,7 @@ function RegenerateModal({
             {/* P1-8: controlled radios — "as is" clears instruction, the
                 other focuses the textarea. Was uncontrolled defaultChecked
                 that did nothing. */}
-            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 'var(--fs-meta)' }}>
               <input
                 type="radio" name="regen"
                 checked={!instruction}
@@ -603,7 +603,7 @@ function RegenerateModal({
               />
               Regenerate as is
             </label>
-            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 'var(--fs-meta)' }}>
               <input
                 type="radio" name="regen"
                 checked={!!instruction}
@@ -619,7 +619,7 @@ function RegenerateModal({
                   style={{
                     width: "100%", marginTop: 4, padding: 8,
                     border: "1px solid var(--ind-border-strong)", borderRadius: 6,
-                    fontFamily: "inherit", fontSize: 12.5,
+                    fontFamily: "inherit", fontSize: 'var(--fs-meta)',
                   }}
                 />
               </span>
@@ -637,7 +637,7 @@ function RegenerateModal({
               minHeight: 80,
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
               {streaming && (
                 <span style={{
                   display: "inline-block", width: 12, height: 12,
@@ -651,7 +651,7 @@ function RegenerateModal({
               <div
                 data-testid="regen-draft-text"
                 style={{
-                  fontSize: 12.5, lineHeight: 1.55,
+                  fontSize: 'var(--fs-meta)', lineHeight: 1.55,
                   whiteSpace: "pre-wrap",
                   color: "var(--ind-text, #111)",
                 }}
@@ -661,7 +661,7 @@ function RegenerateModal({
               </div>
             )}
             {errorMsg && (
-              <div style={{ fontSize: 12, color: "#ef4444", marginTop: 6 }}>
+              <div style={{ fontSize: 'var(--fs-meta)', color: "#ef4444", marginTop: 6 }}>
                 {errorMsg} — production would fall back to Gemini Flash.
               </div>
             )}
@@ -719,7 +719,7 @@ function VersionHistory({
     <>
       <div style={{ position: "absolute", inset: 0, zIndex: 25 }} onClick={onClose} />
       <div className="version-popover">
-        <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+        <h4 style={{ fontSize: 'var(--fs-meta)', fontWeight: 700, marginBottom: 8 }}>
           Document versions
         </h4>
 
@@ -729,7 +729,7 @@ function VersionHistory({
             <span
               style={{
                 background: "var(--ind-accent)", color: "white",
-                padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
+                padding: "1px 7px", borderRadius: 3, fontSize: 'var(--fs-xs)', fontWeight: 700,
               }}
             >
               v{currentVersion}
@@ -740,24 +740,24 @@ function VersionHistory({
           <div className="meta">
             SHA-256: {doc.shaPrefix}… · Sections: §2.6.1–§2.6.6
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--ind-text-muted)", marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--fs-micro)', color: "var(--ind-text-muted)", marginTop: 2 }}>
             Generated {doc.generatedAt}
           </div>
         </div>
 
         {/* Historical snapshots from backend */}
         {loading && (
-          <div style={{ padding: 10, fontSize: 11.5, color: "var(--ind-text-muted)" }}>
+          <div style={{ padding: 10, fontSize: 'var(--fs-micro)', color: "var(--ind-text-muted)" }}>
             Loading version history…
           </div>
         )}
         {err && !loading && (
-          <div style={{ padding: 10, fontSize: 11.5, color: "var(--ind-err, #dc2626)" }}>
+          <div style={{ padding: 10, fontSize: 'var(--fs-micro)', color: "var(--ind-err, #dc2626)" }}>
             Could not load history: {err}
           </div>
         )}
         {!loading && !err && versions.length === 0 && (
-          <div style={{ padding: 10, fontSize: 11.5, color: "var(--ind-text-muted)" }}>
+          <div style={{ padding: 10, fontSize: 'var(--fs-micro)', color: "var(--ind-text-muted)" }}>
             No prior versions yet — this is v1.
           </div>
         )}
@@ -767,7 +767,7 @@ function VersionHistory({
               <span
                 style={{
                   background: "var(--ind-text-dim)", color: "white",
-                  padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
+                  padding: "1px 7px", borderRadius: 3, fontSize: 'var(--fs-xs)', fontWeight: 700,
                 }}
               >
                 v{v.version}
@@ -778,7 +778,7 @@ function VersionHistory({
             <div className="meta">
               SHA-256: {v.document_sha256_short}… · {v.section_count} section{v.section_count === 1 ? "" : "s"}
             </div>
-            <div style={{ fontSize: 11.5, marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--fs-micro)', marginTop: 2 }}>
               {v.created_at?.slice(0, 10)} · {v.author}
               {v.note && <span style={{ color: "var(--ind-text-muted)" }}> · {v.note}</span>}
             </div>
@@ -787,7 +787,7 @@ function VersionHistory({
 
         <div
           style={{
-            marginTop: 10, padding: 10, fontSize: 11.5,
+            marginTop: 10, padding: 10, fontSize: 'var(--fs-micro)',
             color: "var(--ind-text-muted)",
             background: "var(--ind-bg-sub)", borderRadius: 6, lineHeight: 1.5,
           }}

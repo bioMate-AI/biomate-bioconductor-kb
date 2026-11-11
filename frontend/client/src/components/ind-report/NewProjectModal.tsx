@@ -80,7 +80,7 @@ export function NewProjectModal({
         data-testid="new-project-modal"
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>New IND project</h3>
+          <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700 }}>New IND project</h3>
           <button
             onClick={onClose}
             style={{ background: "none", border: "none", cursor: "pointer" }}
@@ -101,7 +101,7 @@ export function NewProjectModal({
                  value={sponsor} onChange={setSponsor} placeholder="Acme Therapeutics" />
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ind-text-muted)" }}>Target regions</label>
+            <label style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: "var(--ind-text-muted)" }}>Target regions</label>
             <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
               {ALL_REGIONS.map((r) => (
                 <button
@@ -118,7 +118,7 @@ export function NewProjectModal({
         </div>
 
         {err && (
-          <div style={{ marginTop: 12, padding: 8, background: "#fef2f2", color: "#dc2626", fontSize: 12, borderRadius: 6 }}>
+          <div style={{ marginTop: 12, padding: 8, background: "#fef2f2", color: "#dc2626", fontSize: 'var(--fs-sm)', borderRadius: 6 }}>
             {err}
           </div>
         )}
@@ -141,7 +141,7 @@ function Field({
 }) {
   return (
     <label style={{ display: "block" }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ind-text-muted)" }}>{label}</span>
+      <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: "var(--ind-text-muted)" }}>{label}</span>
       <input
         type="text"
         value={value}
@@ -150,7 +150,7 @@ function Field({
         style={{
           display: "block", width: "100%", marginTop: 4, padding: "6px 10px",
           border: "1px solid var(--ind-border-strong)", borderRadius: 6,
-          fontSize: 13, fontFamily: "inherit",
+          fontSize: 'var(--fs-base)', fontFamily: "inherit",
         }}
       />
     </label>

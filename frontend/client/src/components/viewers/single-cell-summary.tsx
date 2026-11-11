@@ -107,7 +107,7 @@ export function SingleCellSummaryPanel({
       {clusters.length > 0 && (
         <div className="space-y-1" data-testid="single-cell-clusters">
           {clusters.map((c) => (
-            <div key={c.label} className="flex items-center gap-2 text-[11px]">
+            <div key={c.label} className="flex items-center gap-2 text-fs-xs">
               <span
                 className="h-2.5 w-2.5 rounded-sm shrink-0"
                 style={{ background: colorFor(c.label, order) }}
@@ -128,9 +128,9 @@ export function SingleCellSummaryPanel({
       {/* Top markers per cluster. */}
       {data.markers && data.markers.length > 0 && (
         <div className="space-y-1" data-testid="single-cell-markers">
-          <div className="text-[11px] font-medium text-muted-foreground">Top markers</div>
+          <div className="text-fs-xs font-medium text-muted-foreground">Top markers</div>
           {data.markers.map((m) => (
-            <div key={m.cluster} className="text-[11px] flex gap-2">
+            <div key={m.cluster} className="text-fs-xs flex gap-2">
               <span className="w-32 truncate shrink-0" title={m.cluster}>
                 <span
                   className="inline-block h-2 w-2 rounded-sm mr-1 align-middle"

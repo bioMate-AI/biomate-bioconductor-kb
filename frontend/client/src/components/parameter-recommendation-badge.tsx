@@ -88,7 +88,7 @@ export function ParameterRecommendationBadge({
         variant="secondary"
         className={cn(
           "bg-green-500/10 text-green-600 dark:text-green-400 gap-1",
-          size === 'sm' ? 'text-[10px] px-1.5 py-0' : 'text-xs px-2 py-0.5',
+          size === 'sm' ? 'text-fs-xs px-1.5 py-0' : 'text-xs px-2 py-0.5',
           className
         )}
       >
@@ -105,7 +105,7 @@ export function ParameterRecommendationBadge({
           variant="outline"
           className={cn(
             "cursor-pointer hover:bg-primary/10 transition-colors gap-1 border-primary/30",
-            size === 'sm' ? 'text-[10px] px-1.5 py-0' : 'text-xs px-2 py-0.5',
+            size === 'sm' ? 'text-fs-xs px-1.5 py-0' : 'text-xs px-2 py-0.5',
             className
           )}
         >

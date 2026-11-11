@@ -25,7 +25,7 @@ function SkipConfirmModal({ target, onCancel, onConfirm }) {
           </p>
           <div style={{
             border:'1px dashed var(--border-strong)', borderRadius:'var(--r-sm)',
-            padding:'9px 12px', fontSize:12, color:'var(--text-muted)',
+            padding:'9px 12px', fontSize: 'var(--fs-meta)', color:'var(--text-muted)',
             background:'var(--surface)'
           }}>
             You can rerun the skipped {kind} at any time from its card.
@@ -50,7 +50,7 @@ function AdjustModal({ step, onCancel, onRerun }) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="body">
           <h3>Adjust &amp; rerun — {step.name}</h3>
-          <p style={{color:'var(--text-muted)', fontSize:12.5, margin:'4px 0 16px'}}>
+          <p style={{color:'var(--text-muted)', fontSize: 'var(--fs-meta)', margin:'4px 0 16px'}}>
             Parameters below apply to this step only. Downstream steps will rerun
             automatically from this point. A new <span className="mono">runId</span> will be created.
           </p>
@@ -81,7 +81,7 @@ function AdjustModal({ step, onCancel, onRerun }) {
 // ── Visualization sub-components for cryo-EM outputs ──────────────────
 
 const Caption = ({ children }) => (
-  <div style={{fontSize:11, color:'var(--text-dim)', marginTop:8, lineHeight:1.5}}>
+  <div style={{fontSize: 'var(--fs-micro)', color:'var(--text-dim)', marginTop:8, lineHeight:1.5}}>
     {children}
   </div>
 );
@@ -159,7 +159,7 @@ const VizMicrographs = () => {
                     fill="rgba(220,220,230,0.55)"/>
                 ))}
               </svg>
-              <span style={{position:'absolute', bottom:2, left:4, fontSize:8, color:'#aab', fontFamily:'var(--font-mono)'}}>
+              <span style={{position:'absolute', bottom:2, left:4, fontSize:'var(--fs-xs)', color:'#aab', fontFamily:'var(--font-mono)'}}>
                 mic_{String(i+1).padStart(3,'0')}
               </span>
             </div>
@@ -225,7 +225,7 @@ const VizCtfTable = () => {
   }));
   return (
     <div>
-      <table style={{width:'100%', borderCollapse:'collapse', fontFamily:'var(--font-mono)', fontSize:11}}>
+      <table style={{width:'100%', borderCollapse:'collapse', fontFamily:'var(--font-mono)', fontSize: 'var(--fs-micro)'}}>
         <thead>
           <tr style={{background:'var(--surface-2)', textAlign:'left'}}>
             <th style={{padding:'6px 8px'}}>Micrograph</th>
@@ -293,7 +293,7 @@ const VizClass2D = ({ clean }) => {
                   <circle cx="20" cy="20" r="14" fill={`url(#c2d-${i})`}/>
                 )}
               </svg>
-              <span style={{position:'absolute', top:2, left:3, fontSize:7, color:'#aab', fontFamily:'var(--font-mono)'}}>
+              <span style={{position:'absolute', top:2, left:3, fontSize:'var(--fs-xs)', color:'#aab', fontFamily:'var(--font-mono)'}}>
                 {String(i+1).padStart(2,'0')}
               </span>
             </div>
@@ -485,8 +485,8 @@ const VizTrainingCurve = () => {
 
 const VizValReport = () => {
   return (
-    <div style={{background:'var(--surface)', padding:14, borderRadius:'var(--r-sm)', fontSize:12.5, lineHeight:1.55}}>
-      <div style={{fontWeight:600, fontSize:14, marginBottom:6}}>EMDB Validation Report (preview)</div>
+    <div style={{background:'var(--surface)', padding:14, borderRadius:'var(--r-sm)', fontSize: 'var(--fs-meta)', lineHeight:1.55}}>
+      <div style={{fontWeight:600, fontSize: 'var(--fs-body)', marginBottom:6}}>EMDB Validation Report (preview)</div>
       <div style={{color:'var(--text-muted)'}}>
         <div><b>Map:</b> sharpened_map.mrc · <b>Pixel size:</b> 1.30 Å/px · <b>Box:</b> 320³ </div>
         <div><b>Resolution (FSC 0.143):</b> 3.21 Å · <b>Resolution (FSC 0.5):</b> 3.62 Å</div>
@@ -529,8 +529,8 @@ function PreviewModal({ file, onClose }) {
         <div className="body" style={{paddingBottom:0}}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
             <div>
-              <h3 className="mono" style={{fontSize:13, margin:0}}>{file.name}</h3>
-              <div style={{fontSize:11, color:'var(--text-dim)', marginTop:3}}>
+              <h3 className="mono" style={{fontSize: 'var(--fs-meta)', margin:0}}>{file.name}</h3>
+              <div style={{fontSize: 'var(--fs-micro)', color:'var(--text-dim)', marginTop:3}}>
                 Step output · interactive preview · σ / threshold / colormap available in the full viewer
               </div>
             </div>
@@ -646,8 +646,8 @@ function ReportModal({ scenario, onClose }) {
         <div className="body" style={{paddingBottom:0}}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
             <div>
-              <h3 style={{fontSize:14, margin:0}} data-tour="report-title">Report</h3>
-              <div style={{fontSize:11, color:'var(--text-dim)', marginTop:3}}>
+              <h3 style={{fontSize: 'var(--fs-body)', margin:0}} data-tour="report-title">Report</h3>
+              <div style={{fontSize: 'var(--fs-micro)', color:'var(--text-dim)', marginTop:3}}>
                 {scenario.name} · outputs, findings, methods · paste-ready
               </div>
             </div>
@@ -659,7 +659,7 @@ function ReportModal({ scenario, onClose }) {
                 data-tour={'report-tab-' + k}
                 onClick={() => setTab(k)}
                 style={{
-                  padding:'8px 14px', fontSize:12, background:'none', border:'none', cursor:'pointer',
+                  padding:'8px 14px', fontSize: 'var(--fs-meta)', background:'none', border:'none', cursor:'pointer',
                   color: tab === k ? 'var(--text)' : 'var(--text-muted)',
                   borderBottom: tab === k ? '2px solid var(--accent, oklch(0.55 0.18 250))' : '2px solid transparent',
                   fontWeight: tab === k ? 600 : 500, whiteSpace: 'nowrap',
@@ -667,7 +667,7 @@ function ReportModal({ scenario, onClose }) {
             ))}
           </div>
         </div>
-        <div style={{padding:'14px 22px 20px', overflowY:'auto', maxHeight:'62vh', fontSize:12.5, lineHeight:1.65, color:'var(--text)'}} data-tour="report-body">
+        <div style={{padding:'14px 22px 20px', overflowY:'auto', maxHeight:'62vh', fontSize: 'var(--fs-meta)', lineHeight:1.65, color:'var(--text)'}} data-tour="report-body">
           {tab === 'findings' && <ReportFindings findings={findings}/>}
           {tab === 'outputs'  && <ReportOutputs outputs={outputs} scenario={scenario}/>}
           {tab === 'imrad' && (
@@ -678,7 +678,7 @@ function ReportModal({ scenario, onClose }) {
           {tab === 'cite' && <ReportCitations/>}
         </div>
         <div className="foot" data-tour="report-foot">
-          <span style={{flex:1, fontSize:11, color:'var(--text-dim)'}}>
+          <span style={{flex:1, fontSize: 'var(--fs-micro)', color:'var(--text-dim)'}}>
             Generated 2026-04-19 · runId <span className="mono">cs_2026-0419-r3</span>
           </span>
           <button className="btn sm"><Icon name="download" size={12}/> DOCX</button>
@@ -696,17 +696,17 @@ function ReportFindings({ findings }) {
   return (
     <div>
       <div style={{
-        fontSize: 13, fontWeight: 600, color: 'var(--text)',
+        fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)',
         marginBottom: 10, lineHeight: 1.5,
       }}>{findings.headline}</div>
       <ul style={{margin: '0 0 14px', paddingLeft: 18, color: 'var(--text-muted)'}}>
         {findings.bullets.map((b, i) => <li key={i} style={{marginBottom: 4}}>{b}</li>)}
       </ul>
       <div style={{
-        fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase',
+        fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', textTransform: 'uppercase',
         letterSpacing: '0.05em', fontWeight: 600, marginBottom: 6,
       }}>Headline metrics</div>
-      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 12.5}}>
+      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-meta)'}}>
         <tbody>
           {findings.table.map((r, i) => (
             <tr key={i} style={{borderTop: i === 0 ? 'none' : '1px dashed var(--border)'}}>
@@ -718,7 +718,7 @@ function ReportFindings({ findings }) {
       </table>
       <div style={{
         marginTop: 14, padding: 10, background: 'var(--surface)', borderRadius: 'var(--r-sm)',
-        fontSize: 11.5, color: 'var(--text-dim)', fontStyle: 'italic', lineHeight: 1.55,
+        fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', fontStyle: 'italic', lineHeight: 1.55,
       }}>
         Findings are generated directly from the run manifest. Numbers in this section come from outputs,
         not from the LLM.
@@ -739,14 +739,14 @@ function ReportOutputs({ outputs, scenario, onDownloadAll }) {
   return (
     <div>
       <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10}}>
-        <div style={{fontSize: 11.5, color: 'var(--text-dim)', flex: 1, lineHeight: 1.5}}>
+        <div style={{fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', flex: 1, lineHeight: 1.5}}>
           {outputs.length} file{outputs.length === 1 ? '' : 's'} across {scenario.phases.length} phase{scenario.phases.length === 1 ? '' : 's'}.
         </div>
         <button className="btn sm" onClick={onDownloadAll} data-tour="link-download">
           <Icon name="download" size={11}/> Download all
         </button>
       </div>
-      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-mono)'}}>
+      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-meta)', fontFamily: 'var(--font-mono)'}}>
         <thead>
           <tr style={{background: 'var(--surface-2)', textAlign: 'left'}}>
             <th style={{padding: '6px 8px'}}>Phase / Step</th>
@@ -767,8 +767,8 @@ function ReportOutputs({ outputs, scenario, onDownloadAll }) {
               </td>
               <td style={{padding: '6px 8px', color: 'var(--text-dim)'}}>{o.type}</td>
               <td style={{padding: '6px 8px', fontFamily: 'var(--font-ui)'}}>
-                <button className="linkish" style={{fontSize: 11, marginRight: 8}}>view</button>
-                <button className="linkish" style={{fontSize: 11}}>dl</button>
+                <button className="linkish" style={{fontSize: 'var(--fs-micro)', marginRight: 8}}>view</button>
+                <button className="linkish" style={{fontSize: 'var(--fs-micro)'}}>dl</button>
               </td>
             </tr>
           ))}
@@ -781,7 +781,7 @@ function ReportOutputs({ outputs, scenario, onDownloadAll }) {
 function ReportMethodsImrad() {
   return (
     <div>
-      <h4 style={{fontSize:13, margin:'4px 0 6px'}}>Methods (Cryo-electron microscopy)</h4>
+      <h4 style={{fontSize: 'var(--fs-meta)', margin:'4px 0 6px'}}>Methods (Cryo-electron microscopy)</h4>
       <p>
         Single-particle cryo-electron microscopy data were processed using BioMate (v0.9.4)
         orchestrating CryoSPARC (v4.4.1) on AWS Batch (g5.2xlarge × 4). Movie frames were aligned
@@ -804,7 +804,7 @@ function ReportMethodsImrad() {
         was <b>3.21 Å</b> (FSC = 0.5: 3.62 Å). The map was <b>B-factor sharpened</b> automatically
         (B = -84 Å²) for visualization at σ = 5.0.
       </p>
-      <p style={{color:'var(--text-muted)', fontSize:12, fontStyle:'italic'}}>
+      <p style={{color:'var(--text-muted)', fontSize: 'var(--fs-meta)', fontStyle:'italic'}}>
         Resolution and B-factor values are read directly from the run manifest; no values in this
         paragraph were inferred.
       </p>
@@ -829,7 +829,7 @@ function ReportParams() {
     ['E · FSC', 'mask', 'soft, 6 px cosine'],
   ];
   return (
-    <table style={{width:'100%', borderCollapse:'collapse', fontSize:12, fontFamily:'var(--font-mono)'}}>
+    <table style={{width:'100%', borderCollapse:'collapse', fontSize: 'var(--fs-meta)', fontFamily:'var(--font-mono)'}}>
       <thead><tr style={{background:'var(--surface-2)', textAlign:'left'}}>
         <th style={{padding:'6px 8px'}}>Phase / Step</th>
         <th style={{padding:'6px 8px'}}>Parameter</th>
@@ -908,8 +908,8 @@ function QcAuditModal({ scenario, phases, onClose }) {
         <div className="body" style={{paddingBottom:0}}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
             <div>
-              <h3 style={{fontSize:14, margin:0}} data-tour="qc-title">QC Audit Report</h3>
-              <div style={{fontSize:11, color:'var(--text-dim)', marginTop:3}}>
+              <h3 style={{fontSize: 'var(--fs-body)', margin:0}} data-tour="qc-title">QC Audit Report</h3>
+              <div style={{fontSize: 'var(--fs-micro)', color:'var(--text-dim)', marginTop:3}}>
                 {scenario.name} · runId <span className="mono">cs_2026-0419-r3</span> · {events.length} gate evaluations · 21 CFR Part 11 compliant
               </div>
             </div>
@@ -931,17 +931,17 @@ function QcAuditModal({ scenario, phases, onClose }) {
                 background:'var(--surface)', padding:'10px 12px', borderRadius:'var(--r-sm)',
                 border:'1px solid var(--border)',
               }}>
-                <div style={{fontSize:10, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
-                <div style={{fontSize:20, fontWeight:600, color: s[2] || 'var(--text)', marginTop:2}}>{s[1]}</div>
+                <div style={{fontSize:'var(--fs-xs)', color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
+                <div style={{fontSize: 'var(--fs-section)', fontWeight:600, color: s[2] || 'var(--text)', marginTop:2}}>{s[1]}</div>
               </div>
             ))}
           </div>
 
           {/* Audit table */}
-          <div style={{fontSize:11, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:6}}>
+          <div style={{fontSize: 'var(--fs-micro)', color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:6}}>
             Gate evaluation log
           </div>
-          <table data-tour="qc-table" style={{width:'100%', borderCollapse:'collapse', fontSize:11.5, fontFamily:'var(--font-mono)'}}>
+          <table data-tour="qc-table" style={{width:'100%', borderCollapse:'collapse', fontSize: 'var(--fs-micro)', fontFamily:'var(--font-mono)'}}>
             <thead>
               <tr style={{background:'var(--surface-2)', textAlign:'left'}}>
                 <th style={{padding:'7px 8px'}}>Timestamp (UTC)</th>
@@ -971,7 +971,7 @@ function QcAuditModal({ scenario, phases, onClose }) {
           </table>
 
           <div data-tour="qc-chain" style={{marginTop:16, padding:'12px 14px', background:'var(--surface)', borderRadius:'var(--r-sm)',
-            border:'1px solid var(--border)', fontSize:11.5, lineHeight:1.55, color:'var(--text-muted)'}}>
+            border:'1px solid var(--border)', fontSize: 'var(--fs-micro)', lineHeight:1.55, color:'var(--text-muted)'}}>
             <div style={{fontWeight:600, color:'var(--text)', marginBottom:4}}>Chain of custody</div>
             All raw inputs, intermediate outputs, and parameter sets are versioned via content-addressed
             storage (SHA-256). Each row above corresponds to a tamper-evident manifest entry. No human
@@ -979,18 +979,18 @@ function QcAuditModal({ scenario, phases, onClose }) {
           </div>
 
           <div data-tour="qc-sig" style={{marginTop:12, padding:'12px 14px', background:'var(--surface)', borderRadius:'var(--r-sm)',
-            border:'1px solid var(--border)', fontSize:11.5, lineHeight:1.55}}>
+            border:'1px solid var(--border)', fontSize: 'var(--fs-micro)', lineHeight:1.55}}>
             <div style={{fontWeight:600, marginBottom:4}}>Operator e-signature</div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', color:'var(--text-muted)'}}>
               <span>Reviewed by Andrew Chen, PhD · 2026-04-19 22:18 UTC · TOTP verified</span>
-              <span className="mono" style={{fontSize:10}}>
+              <span className="mono" style={{fontSize:'var(--fs-xs)'}}>
                 sig:9f2a…b7e1
               </span>
             </div>
           </div>
         </div>
         <div className="foot">
-          <span style={{flex:1, fontSize:11, color:'var(--text-dim)'}}>
+          <span style={{flex:1, fontSize: 'var(--fs-micro)', color:'var(--text-dim)'}}>
             Auto-generated · publishable as supplementary file
           </span>
           <button className="btn sm"><Icon name="download" size={12}/> PDF</button>
@@ -1033,21 +1033,21 @@ function QcAuditPanel({ scenario, phases }) {
         ].map((s, i) => (
           <div key={i} style={{background:'var(--surface)', padding:'10px 12px', borderRadius:'var(--r-sm)',
             border:'1px solid var(--border)'}}>
-            <div style={{fontSize:10, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
-            <div style={{fontSize:20, fontWeight:600, color: s[2] || 'var(--text)', marginTop:2}}>{s[1]}</div>
+            <div style={{fontSize:'var(--fs-xs)', color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5}}>{s[0]}</div>
+            <div style={{fontSize: 'var(--fs-section)', fontWeight:600, color: s[2] || 'var(--text)', marginTop:2}}>{s[1]}</div>
           </div>
         ))}
       </div>
       {events.length === 0 ? (
-        <div style={{fontSize:12, color:'var(--text-dim)', fontStyle:'italic', padding:'8px 0'}}>
+        <div style={{fontSize: 'var(--fs-meta)', color:'var(--text-dim)', fontStyle:'italic', padding:'8px 0'}}>
           No QC gates fired for this scenario.
         </div>
       ) : (
         <React.Fragment>
-          <div style={{fontSize:11, color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:6}}>
+          <div style={{fontSize: 'var(--fs-micro)', color:'var(--text-dim)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:6}}>
             Gate evaluation log
           </div>
-          <table data-tour="qc-table" style={{width:'100%', borderCollapse:'collapse', fontSize:11.5, fontFamily:'var(--font-mono)'}}>
+          <table data-tour="qc-table" style={{width:'100%', borderCollapse:'collapse', fontSize: 'var(--fs-micro)', fontFamily:'var(--font-mono)'}}>
             <thead>
               <tr style={{background:'var(--surface-2)', textAlign:'left'}}>
                 <th style={{padding:'7px 8px'}}>Timestamp (UTC)</th>
@@ -1076,17 +1076,17 @@ function QcAuditPanel({ scenario, phases }) {
             </tbody>
           </table>
           <div data-tour="qc-chain" style={{marginTop:16, padding:'12px 14px', background:'var(--surface)',
-            borderRadius:'var(--r-sm)', border:'1px solid var(--border)', fontSize:11.5, lineHeight:1.55, color:'var(--text-muted)'}}>
+            borderRadius:'var(--r-sm)', border:'1px solid var(--border)', fontSize: 'var(--fs-micro)', lineHeight:1.55, color:'var(--text-muted)'}}>
             <div style={{fontWeight:600, color:'var(--text)', marginBottom:4}}>Chain of custody</div>
             All raw inputs, intermediate outputs, and parameter sets are versioned via content-addressed storage
             (SHA-256). Each row above corresponds to a tamper-evident manifest entry. No human override modified this run.
           </div>
           <div data-tour="qc-sig" style={{marginTop:12, padding:'12px 14px', background:'var(--surface)',
-            borderRadius:'var(--r-sm)', border:'1px solid var(--border)', fontSize:11.5, lineHeight:1.55}}>
+            borderRadius:'var(--r-sm)', border:'1px solid var(--border)', fontSize: 'var(--fs-micro)', lineHeight:1.55}}>
             <div style={{fontWeight:600, marginBottom:4}}>Operator e-signature</div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', color:'var(--text-muted)'}}>
               <span>Reviewed by Andrew Chen, PhD · 2026-04-19 22:18 UTC · TOTP verified</span>
-              <span className="mono" style={{fontSize:10}}>sig:9f2a…b7e1</span>
+              <span className="mono" style={{fontSize:'var(--fs-xs)'}}>sig:9f2a…b7e1</span>
             </div>
           </div>
         </React.Fragment>

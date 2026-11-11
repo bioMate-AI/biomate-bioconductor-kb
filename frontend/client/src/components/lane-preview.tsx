@@ -210,7 +210,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
         flexDirection: "column",
         gap: 3,
         padding: "4px 4px 8px",
-        fontSize: 12,
+        fontSize: 'var(--fs-sm)',
         lineHeight: 1.4,
       }}
     >
@@ -242,7 +242,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
               padding: 0,
               cursor: "pointer",
               color: "var(--bm-primary, oklch(0.55 0.20 265))",
-              fontSize: 12,
+              fontSize: 'var(--fs-sm)',
               textDecoration: "underline",
               textUnderlineOffset: 2,
             }}
@@ -263,7 +263,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
             padding: 0,
             cursor: "pointer",
             color: "var(--bm-primary, oklch(0.55 0.20 265))",
-            fontSize: 12,
+            fontSize: 'var(--fs-sm)',
             textDecoration: "underline",
             textUnderlineOffset: 2,
           }}
@@ -277,7 +277,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
           style={{
             margin: 0,
             color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
-            fontSize: 11.5,
+            fontSize: 'var(--fs-sm)',
             lineHeight: 1.45,
             maxWidth: "62ch",
           }}
@@ -285,7 +285,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
           {WHY_COPY[v.lane]}
         </p>
       )}
-      <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))", fontSize: 11 }}>
+      <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))", fontSize: 'var(--fs-xs)' }}>
         BioMate will ask before starting any compute.
       </span>
     </div>

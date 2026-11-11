@@ -106,7 +106,7 @@ export function ResidencyBadge({ residency }: { residency?: Residency }) {
       title={d.why}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
-        fontSize: 9.5, lineHeight: 1.6, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
+        fontSize: 'var(--fs-xs)', lineHeight: 1.6, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
         fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase',
         background: c.bg, color: c.fg,
         border: d.known ? 'none' : '1px dashed oklch(0.72 0.12 30)',
@@ -141,7 +141,7 @@ export function ScopeSelector({
             aria-pressed={on}
             onClick={e => { e.stopPropagation(); onChange(s); }}
             style={{
-              fontSize: 10, fontWeight: on ? 600 : 400, padding: '2px 7px',
+              fontSize: 'var(--fs-xs)', fontWeight: on ? 600 : 400, padding: '2px 7px',
               border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
               background: on ? 'oklch(0.88 0.06 260)' : 'transparent',
               color: on ? 'oklch(0.33 0.12 260)' : 'var(--muted-foreground)',

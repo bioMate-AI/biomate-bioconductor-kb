@@ -49,9 +49,9 @@ function Sidebar({ scenario, onScenarioChange, rail }) {
 
       <div className="side-foot">
         <div className="avatar">KM</div>
-        <div style={{fontSize:12, lineHeight:1.2}}>
+        <div style={{fontSize:'var(--fs-sm)', lineHeight:1.2}}>
           <div style={{fontWeight:500}}>Kira M.</div>
-          <div style={{color:'var(--text-dim)', fontSize:11}}>Broad Institute</div>
+          <div style={{color:'var(--text-dim)', fontSize:'var(--fs-xs)'}}>Broad Institute</div>
         </div>
       </div>
     </aside>
@@ -77,7 +77,7 @@ function ChatColumn({ scenario, onReopenPanel, panelOpen, onTogglePanel, onStart
         </div>
         <div className="actions">
           <button className="tut-btn" onClick={onStartTour} title="Replay the tutorial">
-            <span style={{ fontSize: 10 }}>▶</span> Tutorial
+            <span style={{ fontSize: 'var(--fs-xs)' }}>▶</span> Tutorial
           </button>
           <button className="btn ghost sm"><Icon name="sparkles" size={13}/> Share</button>
           <button className="btn ghost sm"><Icon name="more" size={14}/></button>
@@ -125,7 +125,7 @@ function ChatColumn({ scenario, onReopenPanel, panelOpen, onTogglePanel, onStart
                     <div className="sub">Alternative · matches tumour/normal intent</div>
                   </div>
                   <span className="score">0.74</span>
-                  <button className="linkish" style={{fontSize:12}}>Use this instead</button>
+                  <button className="linkish" style={{fontSize:'var(--fs-sm)'}}>Use this instead</button>
                 </div>
               </div>
             )}

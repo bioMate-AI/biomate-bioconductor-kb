@@ -134,7 +134,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Run a model</CardTitle>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             A pre-trained, integrated open-source model · nothing of yours is trained. You supply an input and get
             an inference — so the questions are what it can speak to and how much of its answer to
             trust, not what it learned.
@@ -159,7 +159,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
 
           <div className="space-y-1">
             <p className="text-xs font-semibold">{domain.goal}</p>
-            <div className="flex items-center gap-2 flex-wrap text-[10px]">
+            <div className="flex items-center gap-2 flex-wrap text-fs-xs">
               <Badge variant="outline">{domain.id}</Badge>
               {modelId ? (
                 <button
@@ -181,7 +181,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
               <button
                 key={e}
                 type="button"
-                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-1 text-fs-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setInputText(domain.placeholder.split("\n")[0])}
                 data-testid="run-pretrained-example"
               >
@@ -193,7 +193,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
 
           {/* Input */}
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            <label className="text-fs-xs uppercase tracking-wide text-muted-foreground">
               {domain.inputLabel}
             </label>
             <Textarea
@@ -226,7 +226,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
               )}
             </Button>
             {infer.isError && (
-              <span className="text-[11px] text-destructive" data-testid="run-pretrained-error">
+              <span className="text-fs-xs text-destructive" data-testid="run-pretrained-error">
                 {infer.error instanceof Error ? infer.error.message : "Inference failed"}
               </span>
             )}
@@ -241,22 +241,22 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
             <div className="flex items-center gap-2 flex-wrap">
               <CardTitle className="text-sm">Result</CardTitle>
               {result?.status === "running" && (
-                <Badge variant="outline" className="text-[10px] gap-1" data-testid="result-status-running">
+                <Badge variant="outline" className="text-fs-xs gap-1" data-testid="result-status-running">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   running
                 </Badge>
               )}
               {result?.status === "completed" && (
-                <Badge variant="outline" className="text-[10px]" data-testid="result-status-completed">
+                <Badge variant="outline" className="text-fs-xs" data-testid="result-status-completed">
                   completed
                 </Badge>
               )}
               {result?.status === "failed" && (
-                <Badge variant="destructive" className="text-[10px]" data-testid="result-status-failed">
+                <Badge variant="destructive" className="text-fs-xs" data-testid="result-status-failed">
                   failed
                 </Badge>
               )}
-              <span className="text-[10px] font-mono text-muted-foreground ml-auto">{modelId}</span>
+              <span className="text-fs-xs font-mono text-muted-foreground ml-auto">{modelId}</span>
             </div>
           </CardHeader>
           <CardContent>

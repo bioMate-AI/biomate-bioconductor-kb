@@ -195,13 +195,13 @@ export function ProgressStreamBox({ messages, inline = false, plan }: { messages
         background: 'var(--bm-surface-2, oklch(0.975 0.003 240))',
         border: '1px solid var(--bm-border, oklch(0.9 0.004 240))',
         fontFamily: 'var(--bm-font-mono, ui-monospace, SFMono-Regular, monospace)',
-        fontSize: 11.5,
+        fontSize: 'var(--fs-sm)',
         lineHeight: 1.65,
         color: 'var(--bm-text-muted, oklch(0.48 0.012 260))',
       }}
     >
       <div ref={contentRef}>
-        {plan && <div data-testid="response-plan" style={{ fontFamily: 'var(--bm-font-ui, system-ui, sans-serif)', fontSize: 13, lineHeight: 1.6, minWidth: 0, overflowWrap: 'anywhere' }}>{plan}</div>}
+        {plan && <div data-testid="response-plan" style={{ fontFamily: 'var(--bm-font-ui, system-ui, sans-serif)', fontSize: 'var(--fs-base)', lineHeight: 1.6, minWidth: 0, overflowWrap: 'anywhere' }}>{plan}</div>}
       {lines.map((l) => (
         <div key={l.id} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
           {l.text || '…'}

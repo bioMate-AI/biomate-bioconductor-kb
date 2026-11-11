@@ -33,18 +33,18 @@ const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = 
 };
 
 const inputStyle: React.CSSProperties = {
-  fontSize: 13, padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 6,
+  fontSize: 'var(--fs-meta)', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 6,
   background: 'var(--background)', color: 'var(--foreground)', width: '100%',
 };
 const btn = (variant: 'primary' | 'ghost' | 'outline'): React.CSSProperties => ({
-  fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
+  fontSize: 'var(--fs-meta)', fontWeight: 600, padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
   border: variant === 'outline' ? '1px solid var(--border)' : 'none',
   background: variant === 'primary' ? 'var(--foreground)' : 'transparent',
   color: variant === 'primary' ? 'var(--background)' : 'var(--muted-foreground)',
 });
 
 function Badge({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
-  return <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: bg, color: fg }}>{children}</span>;
+  return <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: bg, color: fg }}>{children}</span>;
 }
 
 export function InstrumentsSection() {
@@ -108,7 +108,7 @@ export function InstrumentsSection() {
 
   return (
     <div data-testid="instruments-section" style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
+      <p style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)', margin: 0 }}>
         Register a lab instrument or cloud service. A BioMate connector on your lab network (or a cloud service
         you've keyed) watches it and posts new-data events below; launching an event opens a chat draft to run
         the matching workflow, which you review before sending. Residency is shown on every row.
@@ -116,13 +116,13 @@ export function InstrumentsSection() {
 
       {/* New data events */}
       <section>
-        <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px', color: 'var(--foreground)' }}>
+        <h3 style={{ fontSize: 'var(--fs-meta)', fontWeight: 700, margin: '0 0 8px', color: 'var(--foreground)' }}>
           New data events {events.length > 0 && <span data-testid="events-count">({events.length})</span>}
         </h3>
         {eventsQ.isLoading ? (
-          <p style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>Loading…</p>
+          <p style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)' }}>Loading…</p>
         ) : events.length === 0 ? (
-          <p data-testid="events-empty" style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
+          <p data-testid="events-empty" style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)' }}>
             No new data events. When a connected instrument produces data, it appears here as a workflow-launch suggestion.
           </p>
         ) : (
@@ -130,8 +130,8 @@ export function InstrumentsSection() {
             {events.map((ev) => (
               <div key={ev.id} data-testid="instrument-event" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{ev.description}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>{ev.message}</div>
+                  <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--foreground)' }}>{ev.description}</div>
+                  <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)', marginTop: 2 }}>{ev.message}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                     <Badge bg="var(--muted)" fg="var(--muted-foreground)">{ev.source}</Badge>
                     <Badge bg="var(--muted)" fg="var(--muted-foreground)">{ev.experimentType}</Badge>
@@ -151,7 +151,7 @@ export function InstrumentsSection() {
       {/* My instruments */}
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--foreground)' }}>
+          <h3 style={{ fontSize: 'var(--fs-meta)', fontWeight: 700, margin: 0, color: 'var(--foreground)' }}>
             My instruments {instruments.length > 0 && <span data-testid="instruments-count">({instruments.length})</span>}
           </h3>
           <button data-testid="button-add-instrument" style={btn('outline')} onClick={() => setShowAdd((v) => !v)}>+ Add instrument</button>
@@ -177,11 +177,11 @@ export function InstrumentsSection() {
               <input data-testid="input-instrument-outputdir" style={inputStyle} placeholder="Watched output directory (e.g. /data/qpcr)" value={outputDir} onChange={(e) => setOutputDir(e.target.value)} />
             )}
             {selectedMeta && (
-              <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>
+              <p style={{ fontSize: 'var(--fs-micro)', color: 'var(--muted-foreground)', margin: 0 }}>
                 Residency: <strong>{selectedMeta.residency === 'cloud' ? 'cloud — data leaves your estate' : 'on-prem — stays inside your network'}</strong>
               </p>
             )}
-            {formError && <p data-testid="form-error" style={{ fontSize: 12, color: 'oklch(0.55 0.2 25)', margin: 0 }}>{formError}</p>}
+            {formError && <p data-testid="form-error" style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.2 25)', margin: 0 }}>{formError}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button style={btn('ghost')} onClick={resetForm}>Cancel</button>
               <button data-testid="button-submit-instrument" disabled={!canSubmit} style={{ ...btn('primary'), opacity: canSubmit ? 1 : 0.5 }} onClick={() => registerM.mutate()}>
@@ -192,9 +192,9 @@ export function InstrumentsSection() {
         )}
 
         {instrumentsQ.isLoading ? (
-          <p style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>Loading…</p>
+          <p style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)' }}>Loading…</p>
         ) : instruments.length === 0 ? (
-          <p data-testid="instruments-empty" style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
+          <p data-testid="instruments-empty" style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)' }}>
             No instruments registered yet. Add one above to track its connectivity and receive its data events.
           </p>
         ) : (
@@ -206,11 +206,11 @@ export function InstrumentsSection() {
                 <div key={inst.id} data-testid="instrument-row" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{inst.name}</span>
+                      <span style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--foreground)' }}>{inst.name}</span>
                       <span data-testid="instrument-status" data-status={inst.status}><Badge bg={st.bg} fg={st.fg}>{st.label}</Badge></span>
                       {meta && <Badge bg="var(--muted)" fg="var(--muted-foreground)">{meta.residency}</Badge>}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)', marginTop: 2 }}>
                       {meta?.label || inst.type}
                       {inst.host && ` · ${inst.host}${inst.port ? `:${inst.port}` : ''}`}
                       {inst.lastError && <span style={{ color: 'oklch(0.55 0.18 25)' }}> · {inst.lastError}</span>}

@@ -1,0 +1,6 @@
+Font-size usage across the frontend (count × value):
+Tailwind named: text-xs(12px) 1515 · text-sm(14px) 711 · text-base(16px) 50 · text-lg(18px) 69 · text-xl(20px) 17 · text-2xl(24px) 45
+Tailwind arbitrary: text-[10px] 250 · text-[11px] 106 · text-[13px] 29 · text-[12px] 13 · text-[11.5px] 11 · text-[12.5px] 10 · text-[9px] 6 · text-[10.5px] 6 · text-[14px] 5 · text-[15px] 3
+Inline React fontSize px: 7×1 8×1 9×3 9.5×3 10×62 10.5×17 11×129 11.5×64 12×139 12.5×47 13×69 13.5×6 14×17 15×4 16×4 18×1 20×8 22×1 24×1 28×1 32×1
+CSS files font-size px: 9×1 9.5×1 10×9 10.5×9 11×28 11.5×36 12×28 12.5×21 13×21 13.5×3 14×7 14.5×1 15×6 16×1 17×1 18×2 20×1 22×3 26×1 36×1
+Fonts: IBM Plex Sans (UI), IBM Plex Mono. Layout: sidebar 224px, chat column flexible, right workflow panel ~480px (narrow — tables of 4 columns live there).

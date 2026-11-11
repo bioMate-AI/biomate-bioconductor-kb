@@ -120,7 +120,7 @@ export function RollIntoIndAffordance({ workflowName, workflowRunId }: Props) {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    fontSize: 12,
+    fontSize: 'var(--fs-sm)',
     color: "oklch(0.48 0.012 260)",
   };
   const btn: React.CSSProperties = {
@@ -130,7 +130,7 @@ export function RollIntoIndAffordance({ workflowName, workflowRunId }: Props) {
     padding: "4px 10px",
     cursor: "pointer",
     color: "oklch(0.28 0.012 260)",
-    fontSize: 12,
+    fontSize: 'var(--fs-sm)',
   };
 
   if (state.kind === "ok") {

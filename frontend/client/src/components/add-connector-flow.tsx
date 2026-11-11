@@ -117,7 +117,7 @@ function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectI
             {scanning ? 'Scanning…' : 'Scan'}
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground">Nothing is attached until you have seen what the scan found.</p>
+        <p className="text-fs-xs text-muted-foreground">Nothing is attached until you have seen what the scan found.</p>
       </div>
 
       {result && !result.ok && (
@@ -134,7 +134,7 @@ function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectI
             ({humanBytes(result.summary.totalBytes)}) under <span className="font-mono">{result.summary.root}</span>.
           </div>
           {(result.warnings || []).map((w, i) => (
-            <div key={i} className="text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
+            <div key={i} className="text-fs-xs text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
               <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />{w}
             </div>
           ))}
@@ -168,12 +168,12 @@ function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectI
                 <button
                   key={v} type="button" onClick={() => setMode(v)}
                   data-testid={`directory-mode-${v}`}
-                  className={`text-[11px] rounded-full border px-2.5 py-0.5 ${mode === v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                  className={`text-fs-xs rounded-full border px-2.5 py-0.5 ${mode === v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
                 >{label}</button>
               ))}
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             {mode === 'index'
               ? 'Indexing reads the files where they are and creates dataset objects pointing at them — nothing is copied.'
               : 'Copy-in is for small sets you want versioned inside the project; the files are copied and tracked.'}
@@ -240,12 +240,12 @@ export function AddConnectorFlow(props: AddConnectorFlowProps) {
           <div key={k.key} className="flex items-start gap-3 rounded-md border border-border p-3" data-testid={`add-kind-${k.key}`}>
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold">{k.icon}{k.title}</span>
-                <span className="text-[10.5px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{k.kind}</span>
-                <span className="text-[10.5px] rounded-full bg-primary/10 px-2 py-0.5 text-primary">{k.mode}</span>
+                <span className="inline-flex items-center gap-1.5 text-fs-base font-semibold">{k.icon}{k.title}</span>
+                <span className="text-fs-xs rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{k.kind}</span>
+                <span className="text-fs-xs rounded-full bg-primary/10 px-2 py-0.5 text-primary">{k.mode}</span>
               </div>
-              <p className="text-[11.5px] text-muted-foreground">{k.q}</p>
-              <p className="text-[11.5px] text-muted-foreground/90">{k.note}</p>
+              <p className="text-fs-sm text-muted-foreground">{k.q}</p>
+              <p className="text-fs-sm text-muted-foreground/90">{k.note}</p>
             </div>
             <Button
               size="sm" variant="outline" className="h-7 text-xs shrink-0"
@@ -257,7 +257,7 @@ export function AddConnectorFlow(props: AddConnectorFlowProps) {
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-fs-xs text-muted-foreground">
         Nothing is attached until you have seen what was found. A directory scan reports the file types and
         counts it detected, and what each will become, before it creates a single dataset object.
       </p>

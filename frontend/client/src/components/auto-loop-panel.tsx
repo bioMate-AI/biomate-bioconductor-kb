@@ -193,19 +193,19 @@ function actionBadge(action: "pass" | "advisory" | "halt" | string) {
 
 function regulatoryBasisBadge(basis?: string) {
   if (basis === "REGULATORY")
-    return <Badge className="bg-red-50 text-red-700 border-red-200 text-[10px] px-1 py-0">REG</Badge>
+    return <Badge className="bg-red-50 text-red-700 border-red-200 text-fs-xs px-1 py-0">REG</Badge>
   if (basis === "RISK_STRATIFICATION")
-    return <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0">RISK</Badge>
+    return <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-fs-xs px-1 py-0">RISK</Badge>
   return null
 }
 
 function confidenceBadge(confidence?: string) {
   if (confidence === "confident")
-    return <Badge className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1 py-0">confident</Badge>
+    return <Badge className="bg-green-50 text-green-700 border-green-200 text-fs-xs px-1 py-0">confident</Badge>
   if (confidence === "heuristic")
-    return <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px] px-1 py-0">heuristic</Badge>
+    return <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-fs-xs px-1 py-0">heuristic</Badge>
   if (confidence === "manual")
-    return <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] px-1 py-0">manual input</Badge>
+    return <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-fs-xs px-1 py-0">manual input</Badge>
   return null
 }
 
@@ -282,7 +282,7 @@ function RemediationCard({ rem, currentParams, onManualChange, manualValues }: R
         <div className="ml-6 space-y-1.5">
           {paramEntries.length > 0 ? (
             <>
-              <p className="text-[10px] text-orange-700 dark:text-orange-400 font-medium">
+              <p className="text-fs-xs text-orange-700 dark:text-orange-400 font-medium">
                 Enter value(s) manually — system cannot infer from available data:
               </p>
               {paramEntries.map(([k]) => (
@@ -299,7 +299,7 @@ function RemediationCard({ rem, currentParams, onManualChange, manualValues }: R
               ))}
             </>
           ) : (
-            <p className="text-[10px] text-orange-700 dark:text-orange-400">
+            <p className="text-fs-xs text-orange-700 dark:text-orange-400">
               Review the gate output and adjust parameters manually before re-running.
             </p>
           )}
@@ -348,7 +348,7 @@ function RegulatoryActionCard({ action }: { action: AutoLoopRegulatoryAction }) 
             <p className="text-sm font-semibold text-red-900 dark:text-red-200">
               {gateLabel(action.gate)}
             </p>
-            <Badge className="bg-red-100 text-red-700 border-red-300 text-[10px] px-1 py-0">REGULATORY</Badge>
+            <Badge className="bg-red-100 text-red-700 border-red-300 text-fs-xs px-1 py-0">REGULATORY</Badge>
           </div>
           <p className="text-xs text-red-800 dark:text-red-300 mt-0.5">{action.action_required}</p>
         </div>
@@ -402,7 +402,7 @@ function GateRow({ g, domain }: { g: AutoLoopGate; domain: string }) {
       </tr>
       {expanded && g.suggestion && (
         <tr className="bg-blue-50/50 dark:bg-blue-950/10">
-          <td colSpan={5} className="py-1.5 px-2 text-[11px] text-blue-800 dark:text-blue-300 italic">
+          <td colSpan={5} className="py-1.5 px-2 text-fs-xs text-blue-800 dark:text-blue-300 italic">
             {g.suggestion}
           </td>
         </tr>

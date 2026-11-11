@@ -279,7 +279,7 @@ export function InteractiveLauncher({
                       <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
                         {tool.name}
                         {idx === 0 && datasetFormat && (
-                          <Badge variant="secondary" className="ml-2 text-[10px]">Recommended for .{datasetFormat}</Badge>
+                          <Badge variant="secondary" className="ml-2 text-fs-xs">Recommended for .{datasetFormat}</Badge>
                         )}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-0.5">

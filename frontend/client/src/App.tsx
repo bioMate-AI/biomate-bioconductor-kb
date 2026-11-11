@@ -16,7 +16,8 @@ import ProjectDetailPage from "@/pages/project-detail";
 import ProjectNotesPage from "@/pages/project-notes";
 import NotFound from "@/pages/not-found";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
+// Theme toggle hidden — light only for now (dark mode not reviewed).
+// import { ThemeToggle } from "@/components/theme-toggle";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
 import { ToolIntroductionDialog } from "@/components/tool-introduction-dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -289,7 +290,7 @@ function MobileBanner() {
         padding: '7px 14px',
         background: 'hsl(214 100% 97%)',
         borderBottom: '1px solid hsl(214 60% 88%)',
-        fontSize: 13, flexShrink: 0,
+        fontSize: 'var(--fs-base)', flexShrink: 0,
         color: 'hsl(214 60% 30%)',
       }}
       data-testid="mobile-banner"
@@ -325,7 +326,7 @@ function ActiveProjectBanner() {
         padding: '4px 14px',
         background: 'var(--bm-surface-2, hsl(var(--accent)))',
         borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
-        fontSize: 12.5, flexShrink: 0,
+        fontSize: 'var(--fs-base)', flexShrink: 0,
       }}
       data-testid="active-project-banner"
     >
@@ -340,7 +341,7 @@ function ActiveProjectBanner() {
       </button>
       <span style={{ flex: 1 }} />
       <button
-        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-sm)', color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
         onClick={() => navigate(`/projects?project=${activeProject.id}`)}
         data-testid="active-project-banner-goto"
       >
@@ -478,7 +479,7 @@ function PlatformLayout({
                 style={{
                   background: 'var(--bm-text, hsl(var(--foreground)))',
                   color: 'var(--bm-bg-elev, white)',
-                  fontSize: 13,
+                  fontSize: 'var(--fs-base)',
                   letterSpacing: '-0.03em',
                 }}
                 data-testid="button-sidebar-expand"
@@ -495,7 +496,7 @@ function PlatformLayout({
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
               <div className="flex-1" />
-              <ThemeToggle />
+              {/* <ThemeToggle /> — light only for now */}
             </div>
           ) : (
             /* Full sidebar */

@@ -184,7 +184,7 @@ function OriginBadge({ origin }: { origin?: ParamOrigin }) {
     <span
       data-testid={`param-origin-${label}`}
       data-origin={label}
-      className={cn("inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none", style)}
+      className={cn("inline-block rounded border px-1.5 py-0.5 text-fs-xs font-medium leading-none", style)}
       title={origin ? undefined : t('step_view.origin_not_reported')}
     >
       {label}
@@ -241,7 +241,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
   const shown = (text || "").slice(0, 8000);
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground mb-1">
+      <p className="text-fs-xs text-muted-foreground mb-1">
         First bytes, exactly as written by the step. The rendered view above is derived from these.
       </p>
       <pre className="text-xs font-mono bg-muted p-2 rounded max-h-80 overflow-auto whitespace-pre-wrap">
@@ -316,7 +316,7 @@ export function StepDetail({
       <div className="border-b px-4 py-3 space-y-2 shrink-0">
         <div className="flex items-center gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('step_view.title')}{step.status ? ` · ${step.status}` : ""}</p>
+            <p className="text-fs-xs uppercase tracking-wide text-muted-foreground">{t('step_view.title')}{step.status ? ` · ${step.status}` : ""}</p>
             <p className="font-semibold break-words" title={step.processName || step.name}>
               {step.processName || step.name}
             </p>
@@ -349,7 +349,7 @@ export function StepDetail({
             {step.tool ? step.tool : <span className="text-muted-foreground">{t('step_view.tool_not_reported')}</span>}
             {step.toolVersion
               ? <span className="ml-1 font-mono text-muted-foreground">{step.toolVersion}</span>
-              : <span className="ml-1 text-[10px] text-muted-foreground">{t('step_view.version_na')}</span>}
+              : <span className="ml-1 text-fs-xs text-muted-foreground">{t('step_view.version_na')}</span>}
           </span>
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <span className="rounded border bg-muted/60 px-1.5 py-0.5">
@@ -442,7 +442,7 @@ export function StepDetail({
                   />
                 </div>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1.5">
+              <p className="text-fs-xs text-muted-foreground mt-1.5">
                 {raw
                   ? t('step_view.caption_raw')
                   : t('step_view.caption_rendered')}
@@ -457,7 +457,7 @@ export function StepDetail({
             <p className="text-xs font-semibold">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.params_running') : t('step_view.params_ran_with')}</p>
             <span
               data-testid="not-default-count"
-              className="rounded border bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded border bg-muted/60 px-1.5 py-0.5 text-fs-xs text-muted-foreground"
             >
               {t('step_view.not_default', { n: notDefault })}
             </span>
@@ -493,7 +493,7 @@ export function StepDetail({
                       {changed && (
                         <button
                           data-testid={`param-revert-${p.name}`}
-                          className="text-[11px] text-primary hover:underline shrink-0"
+                          className="text-fs-xs text-primary hover:underline shrink-0"
                           onClick={() => setVals(v => ({ ...v, [p.name]: p.value }))}
                         >
                           {t('step_view.revert')}
@@ -501,7 +501,7 @@ export function StepDetail({
                       )}
                     </div>
                     {p.reason && (
-                      <p className="sm:col-span-2 text-[10px] text-muted-foreground">{p.reason}</p>
+                      <p className="sm:col-span-2 text-fs-xs text-muted-foreground">{p.reason}</p>
                     )}
                   </div>
                 );
@@ -520,7 +520,7 @@ export function StepDetail({
               </Button>
             </div>
           )}
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-fs-xs text-muted-foreground mt-2">
             {t('step_view.params_caption')}
           </p>
         </div>
@@ -536,7 +536,7 @@ export function StepDetail({
           >
             <Download className="h-3.5 w-3.5" /> {t('step_view.download', { name: selected.name })}
           </a>
-          <span className="ml-auto text-[10px] text-muted-foreground inline-flex items-center gap-1">
+          <span className="ml-auto text-fs-xs text-muted-foreground inline-flex items-center gap-1">
             <ExternalLink className="h-3 w-3" /> {t('step_view.artifact_unmodified')}
           </span>
         </div>

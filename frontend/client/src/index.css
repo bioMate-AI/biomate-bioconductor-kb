@@ -239,7 +239,7 @@
   }
 
   html {
-    font-size: 15px; /* Bump base — all rem sizes scale up proportionally */
+    font-size: var(--fs-lg); /* Bump base — all rem sizes scale up proportionally */
   }
 
   body {
@@ -541,7 +541,7 @@
   padding: 14px 16px 12px;
   box-shadow: 0 16px 40px rgba(10,14,28,0.32), 0 2px 6px rgba(10,14,28,0.14);
   z-index: 9001;
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
 }
 .cro-tour-callout.center { width: 420px; }

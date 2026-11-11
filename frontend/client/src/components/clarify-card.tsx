@@ -259,14 +259,14 @@ export function ClarifyCard({
                 : "border-border bg-background hover:bg-accent/50",
             )}
           >
-            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] text-muted-foreground">
+            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-fs-xs text-muted-foreground">
               {n + 1}
             </span>
             <span className="flex flex-col gap-0.5 min-w-0">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium">{o.label}</span>
                 {o.pick && (
-                  <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-fs-xs font-medium text-primary">
                     recommended
                   </span>
                 )}
@@ -291,7 +291,7 @@ export function ClarifyCard({
               : "border-border bg-background hover:bg-accent/50",
           )}
         >
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] text-muted-foreground">
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-fs-xs text-muted-foreground">
             {q.opts.length + 1}
           </span>
           <span className="flex flex-col gap-1.5 min-w-0 w-full">

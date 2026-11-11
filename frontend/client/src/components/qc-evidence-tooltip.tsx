@@ -39,7 +39,7 @@ function ProvenanceBadge({ grade }: ProvenanceBadgeProps) {
       : "bg-orange-100 text-orange-900 border-orange-300"
   return (
     <span
-      className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${color}`}
+      className={`inline-block rounded border px-1.5 py-0.5 text-fs-xs font-semibold uppercase tracking-wide ${color}`}
       title={
         grade === "GOLD"
           ? "Verbatim from cited source or trivially derived"
@@ -127,7 +127,7 @@ export function QCEvidenceTooltip({
                   )}
                 </div>
               ))}
-              <div className="border-t border-gray-200 pt-2 text-[10px] text-gray-400">
+              <div className="border-t border-gray-200 pt-2 text-fs-xs text-gray-400">
                 GOLD = verbatim from source · SILVER = community convention ·
                 BRONZE = operational heuristic (verify before regulatory use)
               </div>

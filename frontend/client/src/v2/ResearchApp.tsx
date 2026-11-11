@@ -719,7 +719,7 @@ function ResearchApp() {
             {liveMode === 'real' && liveStatus && (
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--fs-xs)',
                   padding: '3px 8px',
                   borderRadius: 6,
                   border: '1px solid var(--v2-bm-border, #e5e5e5)',
@@ -742,7 +742,7 @@ function ResearchApp() {
           </div>
           <div className="actions">
             <button className="tut-btn" onClick={tour.start} title="Replay the tutorial">
-              <span style={{ fontSize: 10 }}>▶</span> Tutorial
+              <span style={{ fontSize: 'var(--fs-xs)' }}>▶</span> Tutorial
             </button>
             <button className="btn ghost sm" onClick={restartScenario}>
               <Icon name="refresh" size={13}/> Replay

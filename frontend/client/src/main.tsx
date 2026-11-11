@@ -31,7 +31,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
       return (
         <div style={{ padding: '24px', fontFamily: 'monospace', color: '#dc2626', background: '#fef2f2', minHeight: '100vh' }}>
           <h2 style={{ margin: '0 0 12px' }}>Application Error</h2>
-          <pre style={{ fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <pre style={{ fontSize: 'var(--fs-sm)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {this.state.error.message}
             {'\n\n'}
             {this.state.error.stack}

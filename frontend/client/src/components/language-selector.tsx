@@ -4,7 +4,7 @@ import { locale, setLanguagePreference } from "@/lib/i18n";
 /** Both languages share this UI; changing language changes only the translation bundle. */
 export function LanguageSelector() {
   return (
-    <label className="flex items-center gap-2 min-w-0" style={{ padding: '5px 10px', fontSize: 12, color: 'var(--bm-text-muted)' }}>
+    <label className="flex items-center gap-2 min-w-0" style={{ padding: '5px 10px', fontSize: 'var(--fs-sm)', color: 'var(--bm-text-muted)' }}>
       <Languages className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
       <span className="shrink-0">Language / 语言</span>
       <select

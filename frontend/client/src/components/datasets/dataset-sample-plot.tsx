@@ -88,7 +88,7 @@ export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotP
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="bin" tick={{ fontSize: 10, fill: "var(--text-muted)" }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} width={28} allowDecimals={false} />
-            <Tooltip contentStyle={{ fontSize: 11, background: "var(--bg-elev, #fff)", border: "1px solid var(--border)", borderRadius: 6 }} />
+            <Tooltip contentStyle={{ fontSize: 'var(--fs-xs)', background: "var(--bg-elev, #fff)", border: "1px solid var(--border)", borderRadius: 6 }} />
             <Bar dataKey="count" fill="var(--accent, oklch(0.55 0.18 260))" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

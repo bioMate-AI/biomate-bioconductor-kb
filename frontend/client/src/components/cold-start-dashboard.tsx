@@ -552,7 +552,7 @@ function ExampleRow({ text, onSeed }: ExampleRowProps) {
         background: "transparent",
         cursor: "pointer",
         textAlign: "left",
-        fontSize: 12.5,
+        fontSize: 'var(--fs-base)',
         color: "var(--bm-text, oklch(0.22 0.01 260))",
       }}
     >
@@ -588,8 +588,8 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
       }}
     >
       <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-        <span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{shape.t}</span>
-        <span style={{ fontSize: 11.5, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
+        <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{shape.t}</span>
+        <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
           {shape.needs} · {shape.time}
         </span>
       </span>
@@ -600,7 +600,7 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
           title={`Runs on a provided sample dataset (${shape.sampleDataset.ref}). Edit the goal to use your own.`}
           style={{
             flexShrink: 0,
-            fontSize: 10.5,
+            fontSize: 'var(--fs-xs)',
             fontWeight: 600,
             padding: "2px 6px",
             borderRadius: 999,
@@ -710,8 +710,8 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
           <Icon size={16} />
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
-          <span style={{ fontWeight: 600, fontSize: 13.5, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{t('cold_start.mod_' + m.id + '_name')}</span>
-          <span style={{ fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
+          <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{t('cold_start.mod_' + m.id + '_name')}</span>
+          <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
         </span>
         <span
           aria-hidden
@@ -757,7 +757,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                     border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
                     background: on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "transparent",
                     color: on ? "white" : "var(--bm-text, oklch(0.22 0.01 260))",
-                    fontSize: 12,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     cursor: "pointer",
                   }}
@@ -783,7 +783,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
               threaded into the seeded goal. (reference MODALITIES / tr.exBy) */}
           {m.modalities && (
             <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-              <span style={{ fontSize: 11.5, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.modality')}</span>
+              <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.modality')}</span>
               {COLD_MODALITIES.map(([k]) => {
                 const on = mod === k;
                 return (
@@ -799,7 +799,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                       border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
                       background: on ? "var(--bm-chip, oklch(0.95 0.01 260))" : "transparent",
                       color: "var(--bm-text, oklch(0.22 0.01 260))",
-                      fontSize: 11.5,
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 500,
                       cursor: "pointer",
                     }}
@@ -830,7 +830,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                       border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
                       background: on ? "var(--bm-chip, oklch(0.95 0.01 260))" : "transparent",
                       color: "var(--bm-text, oklch(0.22 0.01 260))",
-                      fontSize: 11.5,
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 500,
                       cursor: "pointer",
                     }}
@@ -898,7 +898,7 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
           The heading now titles the module cards below; the single pinned composer
           is the only place to type, and the cards/example rows seed it on click. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
-        <span style={{ fontSize: 20, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+        <span style={{ fontSize: 'var(--fs-xl)', textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
           {t('cold_start.heading')}
         </span>
       </div>

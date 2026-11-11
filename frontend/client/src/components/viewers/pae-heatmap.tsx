@@ -67,7 +67,7 @@ export function PaeHeatmap({ pae, reliableThreshold = 8, className }: PaeHeatmap
           <Grid3x3 className="h-4 w-4" />
           Pairwise alignment error
         </CardTitle>
-        <CardDescription className="text-[10px] text-muted-foreground">
+        <CardDescription className="text-fs-xs text-muted-foreground">
           lower is better · Ångström · blue = reliable, red = unresolved
         </CardDescription>
       </CardHeader>
@@ -101,7 +101,7 @@ export function PaeHeatmap({ pae, reliableThreshold = 8, className }: PaeHeatmap
               <span className="font-mono">block {cell.i + 1} × {cell.j + 1}</span>
               <span className="font-mono font-semibold">{cell.v} Å</span>
               <span
-                className="text-[10px]"
+                className="text-fs-xs"
                 style={{ color: reliable ? "var(--ok)" : "var(--err)" }}
               >
                 {reliable
@@ -110,7 +110,7 @@ export function PaeHeatmap({ pae, reliableThreshold = 8, className }: PaeHeatmap
               </span>
             </>
           ) : (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-fs-xs text-muted-foreground">
               Two confident domains can still be placed wrongly relative to each other — that is
               what this reads.
             </span>

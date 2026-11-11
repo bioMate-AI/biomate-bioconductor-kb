@@ -195,7 +195,7 @@ function PhaseCard({ phase, open, onToggle, onRunPhase, onSkipPhase, onStepActio
             */}
             <span style={{flex:1}}/>
             {status === 'completed' && (
-              <button className="linkish" style={{fontSize:12}}>View phase outputs</button>
+              <button className="linkish" style={{fontSize:'var(--fs-sm)'}}>View phase outputs</button>
             )}
           </div>
         </div>

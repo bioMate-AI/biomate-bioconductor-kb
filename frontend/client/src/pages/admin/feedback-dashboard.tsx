@@ -336,7 +336,7 @@ export default function AdminFeedbackDashboardPage() {
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-muted-foreground">Sessions Submitted</div>
                   <div className="text-2xl font-bold">{pilotKpi.sessions_submitted}</div>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-fs-xs text-muted-foreground">
                     {pilotKpi.sessions_no_correction} without correction
                     {pilotKpi.sessions_submitted > 0
                       ? ` (${Math.round((pilotKpi.sessions_no_correction / pilotKpi.sessions_submitted) * 100)}%)`
@@ -357,7 +357,7 @@ export default function AdminFeedbackDashboardPage() {
                         {pct !== null ? `${Math.round(pct)}%` : "—"}
                       </div>
                       <Progress value={pct ?? 0} className="h-1.5" />
-                      <p className="text-[10px] text-muted-foreground">Target ≥ 80%</p>
+                      <p className="text-fs-xs text-muted-foreground">Target ≥ 80%</p>
                     </div>
                   );
                 })()}
@@ -379,7 +379,7 @@ export default function AdminFeedbackDashboardPage() {
                           saves ~{pilotKpi.avg_time_saved_hours.toFixed(1)} h/run
                         </p>
                       )}
-                      <p className="text-[10px] text-muted-foreground">Target ≤ 30 min</p>
+                      <p className="text-fs-xs text-muted-foreground">Target ≤ 30 min</p>
                     </div>
                   );
                 })()}
@@ -402,7 +402,7 @@ export default function AdminFeedbackDashboardPage() {
                       {passPct !== null && (
                         <Progress value={passPct} className="h-1.5" />
                       )}
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-fs-xs text-muted-foreground">
                         {passPct !== null ? `${passPct}% rated ≥4` : ""} · Target ≥ 70%
                       </p>
                     </div>
@@ -429,7 +429,7 @@ export default function AdminFeedbackDashboardPage() {
                       {maybePct !== null && (
                         <p className="text-xs text-muted-foreground">+{maybePct}% maybe</p>
                       )}
-                      <p className="text-[10px] text-muted-foreground">Target ≥ 60% Yes</p>
+                      <p className="text-fs-xs text-muted-foreground">Target ≥ 60% Yes</p>
                     </div>
                   );
                 })()}
@@ -447,7 +447,7 @@ export default function AdminFeedbackDashboardPage() {
                         {total}
                       </div>
                       <p className="text-xs text-muted-foreground">reported incidents</p>
-                      <p className="text-[10px] text-muted-foreground">Target = 0</p>
+                      <p className="text-fs-xs text-muted-foreground">Target = 0</p>
                     </div>
                   );
                 })()}

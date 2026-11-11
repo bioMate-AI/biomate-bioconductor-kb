@@ -352,13 +352,13 @@ export function PrivateDbConnectionForm() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium truncate">{conn.name}</span>
-                    <Badge variant="secondary" className="text-[10px] font-normal">{conn.driver}</Badge>
-                    <Badge variant="secondary" className="text-[10px] font-normal gap-1">
+                    <Badge variant="secondary" className="text-fs-xs font-normal">{conn.driver}</Badge>
+                    <Badge variant="secondary" className="text-fs-xs font-normal gap-1">
                       <CheckCircle2 className="h-3 w-3 text-green-600" />
                       password set
                     </Badge>
                   </div>
-                  <div className="text-[11px] text-muted-foreground font-mono truncate mt-0.5">
+                  <div className="text-fs-xs text-muted-foreground font-mono truncate mt-0.5">
                     {conn.user}@{conn.host}:{conn.port}/{conn.database}
                   </div>
                 </div>

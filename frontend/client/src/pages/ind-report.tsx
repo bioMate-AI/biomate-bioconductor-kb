@@ -84,7 +84,7 @@ function TopBar({ activeProject }: { activeProject: IndProjectSummary | null }) 
         ))}
         {/* Tutorial button — removed (stub, no tour wired)
         <button className="tut-btn" title="Replay the tutorial">
-          <span style={{ fontSize: 10 }}>▶</span> Tutorial
+          <span style={{ fontSize: 'var(--fs-xs)' }}>▶</span> Tutorial
         </button>
         */}
         {/* User avatar — removed (hardcoded jane@acme.com, replace with real auth user when wired)
@@ -142,7 +142,7 @@ function PipelineCenter({
   if (!activeProject) {
     return (
       <main className="ind-center">
-        <div style={{ padding: 24, color: "var(--ind-text-muted)", fontSize: 13 }}>
+        <div style={{ padding: 24, color: "var(--ind-text-muted)", fontSize: 'var(--fs-base)' }}>
           Select a project from the left to begin.
         </div>
       </main>
@@ -711,7 +711,7 @@ export function IndReportPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3>Settings</h3>
-            <p style={{ fontSize: 12.5, color: "var(--ind-text-muted)" }}>
+            <p style={{ fontSize: 'var(--fs-base)', color: "var(--ind-text-muted)" }}>
               Settings panel — porting in progress.
             </p>
             <button className="ind-btn sm" onClick={() => setShowSettings(false)}>

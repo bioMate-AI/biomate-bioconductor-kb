@@ -81,7 +81,7 @@ function RegistryTrack({ onOpenModel }: { onOpenModel: (id: string) => void }) {
   }
   return (
     <div className="space-y-2" data-testid="registry-track">
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-fs-xs text-muted-foreground">
         Account-level · a model trained in one project is callable from any. A row opens the model
         object — evidence, lineage, consumers, interface, versions.
       </p>
@@ -188,7 +188,7 @@ function OptimiseTrack({
               "Censored values stay censored (IC50 > 30 µM is fitted as an inequality, never as 30).",
               "A rejected proposal stays on the list with its safety-gate reason.",
             ].map((b) => (
-              <li key={b} className="text-[11px] flex items-start gap-1.5">
+              <li key={b} className="text-fs-xs flex items-start gap-1.5">
                 <span className="mt-1 inline-block h-1 w-1 rounded-full bg-muted-foreground shrink-0" />
                 <span>{b}</span>
               </li>
@@ -208,7 +208,7 @@ function OptimiseTrack({
             <CardTitle className="text-sm">Design · make · test · analyse</CardTitle>
             <Badge
               variant="outline"
-              className="text-[10px] gap-1 ml-auto"
+              className="text-fs-xs gap-1 ml-auto"
               style={{ color: data.running ? "#22c55e" : "#94a3b8" }}
               data-testid="optimise-loop-state"
             >
@@ -264,9 +264,9 @@ function OptimiseTrack({
               >
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" />
                 <span className="font-semibold">{r.round}</span>
-                <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
+                <Badge variant="outline" className="text-fs-xs">{r.status}</Badge>
                 <span>{r.what}</span>
-                <span className="text-[10px] text-muted-foreground ml-auto">{r.when}</span>
+                <span className="text-fs-xs text-muted-foreground ml-auto">{r.when}</span>
               </div>
             ))}
           </div>
@@ -278,7 +278,7 @@ function OptimiseTrack({
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">Round {data.round} proposal</CardTitle>
-            <span className="text-[10px] text-muted-foreground ml-auto">
+            <span className="text-fs-xs text-muted-foreground ml-auto">
               steerable before anything is ordered
             </span>
           </div>
@@ -303,7 +303,7 @@ function OptimiseTrack({
                   <span className="text-muted-foreground">{p.confidence}</span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] gap-1 w-fit"
+                    className="text-fs-xs gap-1 w-fit"
                     style={{ color: proposalVerdictColor(p.verdict) }}
                     data-testid={`optimise-proposal-verdict-${p.id}`}
                   >
@@ -316,12 +316,12 @@ function OptimiseTrack({
                 </div>
               ))
             ) : (
-              <p className="px-2 py-2 text-[11px] text-muted-foreground border-t">
+              <p className="px-2 py-2 text-fs-xs text-muted-foreground border-t">
                 No proposal for this round yet.
               </p>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground pt-1">
+          <p className="text-fs-xs text-muted-foreground pt-1">
             A rejected proposal stays on the list with its reason — you must be able to see what the
             loop wanted to do, and why the safety gate did not allow it.
           </p>
@@ -405,7 +405,7 @@ function TrainTrack({
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">The training loop</CardTitle>
-            <span className="text-[10px] text-muted-foreground ml-auto">
+            <span className="text-fs-xs text-muted-foreground ml-auto">
               same compute, same gates, same tracking as a workflow run
             </span>
           </div>
@@ -413,14 +413,14 @@ function TrainTrack({
         <CardContent className="space-y-1">
           {TRAIN_LOOP.map(([k, d], i) => (
             <div key={k} className="flex items-center gap-2 text-xs" data-testid={`train-loop-step-${i}`}>
-              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[10px] font-semibold shrink-0">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-fs-xs font-semibold shrink-0">
                 {i + 1}
               </span>
               <span className="font-semibold">{k}</span>
               <span className="text-muted-foreground">{d}</span>
             </div>
           ))}
-          <p className="text-[10px] text-muted-foreground pt-1">
+          <p className="text-fs-xs text-muted-foreground pt-1">
             Only the first and last steps are new decisions: which dataset, and whether to register.
             Everything between reuses the run experience — training should feel like running a
             workflow.
@@ -443,11 +443,11 @@ function TrainTrack({
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold">{r.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{r.family === "ml_training" ? t("models.training_workflow") : r.family}</Badge>
-                  <span className="text-[10px] text-muted-foreground ml-auto">{r.when}</span>
+                  <Badge variant="outline" className="text-fs-xs">{r.family === "ml_training" ? t("models.training_workflow") : r.family}</Badge>
+                  <span className="text-fs-xs text-muted-foreground ml-auto">{r.when}</span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] gap-1"
+                    className="text-fs-xs gap-1"
                     style={{ color: trainStatusColor(r.status) }}
                     data-testid={`train-run-status-${r.name}`}
                   >
@@ -459,10 +459,10 @@ function TrainTrack({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-[10px]">{r.metric === "Not recorded" ? t("models.not_recorded") : r.metric}</Badge>
+                  <Badge variant="outline" className="text-fs-xs">{r.metric === "Not recorded" ? t("models.not_recorded") : r.metric}</Badge>
                   <Badge
                     variant="outline"
-                    className="text-[10px] gap-1"
+                    className="text-fs-xs gap-1"
                     style={{ color: trainStatusColor(r.status) }}
                   >
                     <span
@@ -471,7 +471,7 @@ function TrainTrack({
                     />
                     {r.gate === "Not recorded" ? t("models.not_recorded") : r.gate}
                   </Badge>
-                  <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset === "Not recorded" ? t("models.not_recorded") : r.dataset}</span>
+                  <span className="font-mono text-fs-xs text-muted-foreground truncate">{r.dataset === "Not recorded" ? t("models.not_recorded") : r.dataset}</span>
                   {r.chatSessionId && <a className="ml-auto text-primary hover:underline" href={`/?session=${encodeURIComponent(r.chatSessionId)}`} data-testid={`train-run-chat-${r.runId || r.name}`}>{t("models.open_training_chat")}</a>}
                   {r.runId && /^(completed|complete|success|succeeded)$/i.test(r.status) && <TrainingRegistration runId={r.runId} eligible={r.registrationEligible} />}
                   {r.modelId && (
@@ -485,11 +485,11 @@ function TrainTrack({
                     </button>
                   )}
                 </div>
-                {r.version && <p className="text-[10px] text-muted-foreground">{r.version}</p>}
+                {r.version && <p className="text-fs-xs text-muted-foreground">{r.version}</p>}
               </div>
             ))
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="train-runs-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="train-runs-empty">
               This project hasn't trained a model yet. Ask for model work — "train a potency
               predictor on our assay data" — and the run appears here, configured like any workflow
               run.
@@ -507,7 +507,7 @@ function TrainTrack({
           {MODEL_FAMILIES.map(([n, s]) => (
             <div key={n} className="rounded border px-2 py-1.5 text-xs">
               <p className="font-semibold">{n}</p>
-              <p className="text-[10px] text-muted-foreground">{s}</p>
+              <p className="text-fs-xs text-muted-foreground">{s}</p>
             </div>
           ))}
         </CardContent>
@@ -571,10 +571,10 @@ function AdaptTrack({
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 flex-wrap">
             <CardTitle className="text-sm">House style</CardTitle>
-            <Badge variant="outline" className="text-[10px]">scope: organisation</Badge>
+            <Badge variant="outline" className="text-fs-xs">scope: organisation</Badge>
             <Button
               size="sm"
-              className="h-6 text-[11px] px-2 ml-auto"
+              className="h-6 text-fs-xs px-2 ml-auto"
               onClick={() => onRetrain?.()}
               data-testid="adapt-retrain"
             >
@@ -593,13 +593,13 @@ function AdaptTrack({
               <div key={n} className="rounded border px-2 py-1.5 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{n}</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">{cost}</span>
+                  <span className="text-fs-xs text-muted-foreground ml-auto">{cost}</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground">{state}</p>
+                <p className="text-fs-xs text-muted-foreground">{state}</p>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-fs-xs text-muted-foreground">
             Cheapest first: a rule is preferred over an index, and an index over a trained adapter.
             The level in use is visible, because it changes what "forget this" means.
           </p>
@@ -612,7 +612,7 @@ function AdaptTrack({
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">What was learned</CardTitle>
             {pairs.length > 0 && (
-              <span className="text-[10px] text-muted-foreground ml-auto">
+              <span className="text-fs-xs text-muted-foreground ml-auto">
                 {activeCount} of {pairs.length} active
               </span>
             )}
@@ -628,7 +628,7 @@ function AdaptTrack({
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold">{p.learned}</span>
-                  <Badge variant="outline" className="text-[10px] ml-auto">{p.scope}</Badge>
+                  <Badge variant="outline" className="text-fs-xs ml-auto">{p.scope}</Badge>
                   <button
                     type="button"
                     role="switch"
@@ -648,7 +648,7 @@ function AdaptTrack({
                     />
                   </button>
                 </div>
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-fs-xs">
                   <span className="line-through text-red-500/80" data-testid={`adapt-pair-before-${p.id}`}>
                     {p.before}
                   </span>
@@ -657,11 +657,11 @@ function AdaptTrack({
                     {p.after}
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground">from your edit in {p.source}</p>
+                <p className="text-fs-xs text-muted-foreground">from your edit in {p.source}</p>
               </div>
             ))
           ) : (
-            <p className="text-[11px] text-muted-foreground" data-testid="adapt-learned-empty">
+            <p className="text-fs-xs text-muted-foreground" data-testid="adapt-learned-empty">
               Nothing learned yet. When you correct a BioMate output, the before→after pair is queued
               here as a switchable rule — never applied silently.
             </p>
@@ -790,7 +790,7 @@ export function ModelsPanel({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <CardTitle className="text-base">Models</CardTitle>
-            <Badge variant="outline" className="text-[10px]" data-testid="models-count">
+            <Badge variant="outline" className="text-fs-xs" data-testid="models-count">
               {(models?.length ?? 0)} registered
             </Badge>
           </div>
