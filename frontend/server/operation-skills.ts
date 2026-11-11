@@ -49,15 +49,19 @@ export const OPERATION_SKILLS: OperationSkill[] = [
       'series", "fine-tune the molecule generator on our compounds", "continue-train the peptide ' +
       'designer on our actives". This is the documented Models→Adapt capability (generator adaptation).',
     shape:
-      'A single operation (sequential_omics_pipeline-style single node), NOT a dock+ADMET ' +
+      'A single workflow_generation intent targeting reinvent4_finetune_rl — NOT a dock+ADMET ' +
       'fork/join fan-out. It only becomes multi-step if the user explicitly chains it ' +
       '("adapt the generator, THEN screen its outputs").',
     route:
-      'Route to the Models / ml_training generator-adaptation path (continue-train from a base ' +
-      'checkpoint on the user\'s authorized data), NOT catalog workflow search / reinvent4_lead_design.',
+      'The executor already exists — route to the NAMED workflow `reinvent4_finetune_rl` ' +
+      '(run_type=transfer_learning, stage=transfer; fine-tunes the REINVENT4 prior on the user\'s ' +
+      'train_smiles series → *_finetuned.model, on reinvent4-nf). This is workflow_generation with ' +
+      'the exact target reinvent4_finetune_rl — NOT nearest-catalog retrieval (misroutes to ' +
+      'dock/ADMET) and NOT reinvent4_lead_design (that only samples a frozen prior = inference).',
     presentation:
-      'A model-version card: base model + adaptation dataset, before/after metrics on a fixed ' +
-      'holdout, diff vs the previous checkpoint, reviewer-gated promotion. NOT a pipeline card.',
+      'A model-version card over the reinvent4_finetune_rl outputs: base prior + adaptation SMILES ' +
+      'series, before/after adaptation metrics, the produced *_finetuned.model checkpoint as a new ' +
+      'model version, reviewer-gated promotion. NOT an empty/dock-ADMET pipeline card.',
     notThis:
       'NOT docking / ADMET / virtual screening (those are their own operations); NOT de-novo ' +
       'generation from scratch with no adaptation data; NOT a property-PREDICTOR retrain ' +

@@ -63,15 +63,19 @@ skills"; "don't you have the pattern docs"). Doc: `docs/20261111_SKILLS_ARCHITEC
 - **Gold-set regression check** (24 rows, structural): 19/23 identical, 0 errors, 4 node-count
   increases (inconclusive — no noise baseline). Flag stays OFF pending the formal judged eval.
 
-**Not done (needs your steer — product + feature + spend):**
-1. Route `generator_adaptation` to the Models/`ml_training` generator-adaptation path and render a
-   **model-version card** (§7.2). Currently it degrades to an LLM text answer (safe, but not the
-   real card).
-2. Build the missing **small-molecule generator-adaptation branch** in `ml_training` (today it has
-   single-cell diffusion / protein diffusion / LLM branches, no ReINVENT-style small-molecule one).
-3. Formal judged eval (`decomp_judge.py`, ~$2–4) + off-twice noise baseline + adequate max_tokens,
-   as the gate before enabling the flag.
-4. Peel each monolith capability/pattern section into its own skill; wire the existing pattern
+**CORRECTION (2026-11-11): the executor already exists — the gap was routing, now fixed.**
+`reinvent4_finetune_rl` ("Reinvent4 Finetune Rl", in the catalog, run_type=transfer_learning on
+the reinvent4-nf container) fine-tunes the REINVENT4 prior on the user's SMILES → `*_finetuned.model`
+= generator adaptation. There is **no missing ml_training branch**. The corrected skill/registry now
+make the decomposer emit a task_spec ("transfer learning / fine-tuning of a molecular generative
+model prior (REINVENT4) … fine-tuned checkpoint") that retrieves `reinvent4_finetune_rl` (re-measured).
+
+**Remaining (needs your steer / gate):**
+1. The **model-version-card presentation** layer over the `reinvent4_finetune_rl` after-run outputs
+   (checkpoint + metrics) — a UI nicety; the run itself works today.
+2. Formal judged eval (`decomp_judge.py`, ~$2–4) + off-twice noise baseline + adequate max_tokens —
+   the gate before enabling `OPERATION_SKILLS_IN_DECOMP`.
+3. Peel each monolith capability/pattern section into its own skill; wire the existing pattern
    library + pattern_router into the live decomposer (the integration the 20261009 audit calls for).
 
 ## 4. Memory written

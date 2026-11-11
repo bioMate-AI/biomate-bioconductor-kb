@@ -43,24 +43,33 @@ multi-step if the user explicitly chains it ("adapt the generator, THEN screen t
 
 ## How to handle (route)
 
-Route to the Models / `ml_training` **generator-adaptation** path, not catalog workflow search:
-- modality from the data/target: small molecule (SMILES series) · peptide · protein.
-- mode = **adapt / continue-train** from a base checkpoint (not train-from-scratch), on the
-  user's authorized data; fixed holdout; before/after vs the previous version.
-- Backend: `ml_training` has generator-adaptation branches for single-cell diffusion
-  (`scrna_diffusion`), protein/peptide structure diffusion (`protein_diffusion`), and LLMs
-  (`ludwig_llm`). **Capability gap:** there is NO small-molecule generative (ReINVENT-style)
-  adaptation branch yet — so a SMILES-series request currently has nothing real to route to.
-  Until that branch exists: say so honestly and offer the supported path (predictor-retraining
-  on the same assays, or de-novo generation), rather than emitting a wrong/empty card.
+**The executor already exists — route to the named workflow, do NOT nearest-retrieve.**
+For a small-molecule (SMILES) generator, route to the catalog workflow **`reinvent4_finetune_rl`**
+("Reinvent4 Finetune Rl") with `run_type=transfer_learning` (`stage=transfer`): it fine-tunes the
+base REINVENT4 prior on the user's `train_smiles` series → a `*_finetuned.model` checkpoint. It
+runs on the `reinvent4-nf` container (the CLI + baked-in priors). This is `workflow_generation`
+with the **exact target** `reinvent4_finetune_rl` — NOT the nearest-catalog match (which misroutes
+to dock/ADMET), and NOT `reinvent4_lead_design` (that only *samples* a frozen prior = inference).
+
+- Inputs: `train_smiles` = the user's chemical series; `prior_path` optional (empty → container
+  default prior); `epochs`, `stage` (transfer | rl | both).
+- Modality note: small molecule → `reinvent4_finetune_rl`. Peptide/protein generator adaptation
+  → the structure-diffusion path (`ml_training` `protein_diffusion`); single-cell → `scrna_diffusion`;
+  LLM → `ludwig_llm`. **The gap here is ROUTING, not a missing executor** — the decomposer today
+  sends "adapt the generative model" to an empty dock/ADMET fan-out instead of to
+  `reinvent4_finetune_rl`.
 
 ## Presentation contract (model-version card — BD doc §7.2)
 
-Render the result as a **model-version card**, not a pipeline card:
-- base model + the adaptation dataset (identity + units validated);
-- **before / after** metrics on a **fixed holdout** (same split as the previous version);
-- a diff vs the previous checkpoint;
+The run produces a new generator checkpoint (`*_finetuned.model`); present it as a
+**model-version card**, not just a generic pipeline card:
+- base prior + the adaptation SMILES series (identity validated);
+- adaptation metrics (e.g. NLL / validity / novelty / series-similarity before vs after);
+- the produced checkpoint path, as a new model version;
 - **promotion gated on reviewer approval** — the adapted model is proposed, not auto-deployed.
+
+(The `reinvent4_finetune_rl` after-run surfaces the checkpoint + training metrics; the
+model-version framing is the presentation layer on top of that workflow's outputs.)
 
 ## Validation / honesty rules
 

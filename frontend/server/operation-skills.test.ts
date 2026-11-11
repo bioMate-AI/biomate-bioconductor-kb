@@ -17,7 +17,7 @@ describe('operation-skills registry', () => {
     expect(gen).toBeTruthy();
     expect(gen!.whenToUse).toMatch(/adapt|fine-tune|generative/i);
     expect(gen!.shape).toMatch(/single/i);
-    expect(gen!.route).toMatch(/ml_training|Models/i);
+    expect(gen!.route).toMatch(/reinvent4_finetune_rl/i);
     expect(gen!.presentation).toMatch(/model-version card/i);
     expect(gen!.notThis).toMatch(/dock|ADMET/i);
   });

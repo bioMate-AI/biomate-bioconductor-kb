@@ -140,11 +140,15 @@ components). Sequence:
 2. **Give the decomposer the skill descriptions and let it infer**, delegating recognised
    operations to their skill instead of the monolith's drug-discovery template. Retire the
    `_TRAIN_VERBS` regex gate; selection becomes inference.
-3. **Close the capability gap the skill names:** `ml_training` has generator-adaptation
-   branches for single-cell diffusion, protein diffusion, and LLMs, but **no small-molecule
-   generative (ReINVENT-style) branch** — that's why the documented small-molecule "adapt the
-   generative model" direction has nothing real to route to. Build that branch so the skill
-   yields a real model-version card.
+3. **The executor already EXISTS — the gap is routing (corrected 2026-11-11).** For small
+   molecules, `reinvent4_finetune_rl` ("Reinvent4 Finetune Rl", in the catalog, run_type=
+   transfer_learning on the `reinvent4-nf` container) fine-tunes the REINVENT4 prior on the
+   user's SMILES → `*_finetuned.model`. So there is NO missing trainer — the decomposer just
+   has to route "adapt the generative model" to that named workflow. The corrected
+   `generator-adaptation` skill + registry now make the decomposer emit a task_spec that
+   retrieves `reinvent4_finetune_rl` (measured, §7). (Peptide/protein → `ml_training`
+   `protein_diffusion`; single-cell → `scrna_diffusion`; LLM → `ludwig_llm` — those branches
+   do exist.) Remaining: the model-version-card presentation layer over the workflow outputs.
 4. **Peel each monolith capability section into its own operation skill** the same way
    (drug-discovery `:7026`, cryo-EM `:7051`, …), and each decomposition section into a pattern
    skill (`:7130` fork-join, `:7151` sequential) with its presentation contract.
@@ -183,10 +187,13 @@ live `analyzeIntent` offline via OpenRouter (`google/gemini-3.8-flash`), flag of
   model" from a fabricated catalog workflow to a distinct `generator_adaptation` intent. The
   decomposition-level misroute is fixed.
 - ⚠️ Two things are NOT done, and the flag stays **OFF** until they are:
-  1. `generator_adaptation` is a new intent type **not yet handled downstream**
-     (`inferActionsFromType`, routing, the Models/ml_training generator-adaptation path, and
-     the small-molecule generator branch that doesn't exist yet). So step 2 stops the wrong
-     card; it does not yet produce the real **model-version card** (steps 3–4).
+  1. **CORRECTED (2026-11-11):** the first measurement emitted a new `generator_adaptation`
+     intent type that degraded to text. The skill was then corrected to route to the EXISTING
+     named workflow `reinvent4_finetune_rl` (the executor is not missing — see §5.3). Re-measured
+     (§7, below): the decomposer now emits a single `workflow_generation` whose task_spec
+     ("transfer learning / fine-tuning of a molecular generative model prior (REINVENT4) …
+     fine-tuned checkpoint") targets `reinvent4_finetune_rl`. Remaining: the model-version-card
+     presentation over that workflow's outputs; enabling needs the §-below regression gate.
   2. The control showed a possibly-degraded fan-out under a **max_tokens-truncation confound**
      — must be measured on the full gold set (`decomp_model_bench.ts`, raised max_tokens,
      multiple reps) to rule out a regression **before enabling the flag**.
@@ -212,3 +219,16 @@ twice), and without scoring against each row's gold I can't tell if the extra no
 (off was under-decomposing a chain to 1 node) or worse (on over-split). **Gate before enabling:**
 the formal judged eval (`decomp_judge.py`) off vs on, plus an off-twice noise baseline, on an
 adequate max_tokens (the control truncated at 4096). Flag remains OFF.
+
+### Corrected re-measurement (2026-11-11) — routes to the real workflow
+
+After discovering `reinvent4_finetune_rl` exists, the skill/registry were corrected to route to
+that named workflow (not a new `generator_adaptation` type). Re-ran the adapt case, flag on
+(`decomp_probe2.log`): the decomposer emits a **single `workflow_generation`**, needsWorkflow=true,
+`task_spec="transfer learning / fine-tuning of a molecular generative model prior (REINVENT4) on a
+target chemical series SMILES set → fine-tuned checkpoint model"`. That task_spec semantically
+matches `Reinvent4 Finetune Rl` ("MODELS TRAINED ON YOUR OWN DATA … generator fine-tuning …
+REINVENT4") over `reinvent4_lead_design` (de-novo sampling). So the end-to-end fix uses only
+existing components (skill → task_spec → `reinvent4_finetune_rl` → reinvent4-nf → adapted
+checkpoint); no new trainer. Still gated OFF pending the regression judged eval + the
+model-version-card presentation.
