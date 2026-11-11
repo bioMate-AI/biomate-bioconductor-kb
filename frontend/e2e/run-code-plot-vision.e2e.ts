@@ -33,14 +33,24 @@ function pickSeed(): { seed: string; values: number[]; tallest: string; shortest
   }
 }
 
-test("run_code plot renders in the UI and the model reads it as an image", async ({ page }) => {
+// E2E_LOCALE=zh-CN runs the same journey as a Chinese-language browser (Accept-Language + app UI
+// language), which routes chat to the Chinese vision model (isChineseBrowser → zhDefaultModel).
+const ZH = /^zh/i.test(process.env.E2E_LOCALE || "");
+test.use({ locale: ZH ? "zh-CN" : "en-US" });
+const TAG = ZH ? "zh" : "en";
+
+test(`run_code plot renders in the UI and the model reads it as an image (${TAG})`, async ({ page }) => {
   test.setTimeout(6 * 60 * 1000);
   const { seed, values, tallest, shortest } = pickSeed();
-  const prompt =
-    `Use run_code (Python) to make a bar chart. Labels: A, B, C, D, E, F. The height of label L is ` +
-    `int(hashlib.sha256(f"${seed}-{L}".encode()).hexdigest()[:2], 16). Save it as bars.png with matplotlib. ` +
-    `Do NOT print, log, or return the heights or any statistic of them — the code must print nothing. ` +
-    `Then, looking only at the plot image, answer on one line exactly: TALLEST=<label> SHORTEST=<label>`;
+  const formula = `int(hashlib.sha256(f"${seed}-{L}".encode()).hexdigest()[:2], 16)`;
+  const prompt = ZH
+    ? `用 run_code（Python）画一个柱状图。标签：A、B、C、D、E、F。标签 L 的高度为 ${formula}。用 matplotlib 保存为 bars.png。` +
+      `不要打印、记录或返回任何高度值或其统计量——代码不能有任何输出。` +
+      `然后只看图回答，单独一行严格按此格式：TALLEST=<标签> SHORTEST=<标签>`
+    : `Use run_code (Python) to make a bar chart. Labels: A, B, C, D, E, F. The height of label L is ` +
+      `${formula}. Save it as bars.png with matplotlib. ` +
+      `Do NOT print, log, or return the heights or any statistic of them — the code must print nothing. ` +
+      `Then, looking only at the plot image, answer on one line exactly: TALLEST=<label> SHORTEST=<label>`;
   console.log(`seed=${seed} values=${values.join(",")} truth TALLEST=${tallest} SHORTEST=${shortest}`);
 
   await loginAsFixture(page);
@@ -48,7 +58,7 @@ test("run_code plot renders in the UI and the model reads it as an image", async
   await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
   const nc = page.getByTestId("button-new-chat");
   if ((await nc.count().catch(() => 0)) > 0) { await nc.first().click({ timeout: 8000 }).catch(() => {}); await page.waitForTimeout(1500); }
-  await page.screenshot({ path: "e2e/screenshots/run-code-plot-vision-0-pre.png" });
+  await page.screenshot({ path: `e2e/screenshots/run-code-plot-vision-${TAG}-0-pre.png` });
 
   const input = page.getByTestId("chat-input");
   await input.click(); await input.fill(prompt);
@@ -68,7 +78,7 @@ test("run_code plot renders in the UI and the model reads it as an image", async
   const answerRe = /TALLEST\s*=\s*\*{0,2}([A-F])\b[\s\S]{0,40}?SHORTEST\s*=\s*\*{0,2}([A-F])\b/i;
   await page.waitForFunction((re) => new RegExp(re, "i").test(document.body.innerText || ""), answerRe.source, { timeout: 240_000 });
   await page.waitForTimeout(3000); // let the stream settle
-  await page.screenshot({ path: "e2e/screenshots/run-code-plot-vision-1-answer.png", fullPage: true });
+  await page.screenshot({ path: `e2e/screenshots/run-code-plot-vision-${TAG}-1-answer.png`, fullPage: true });
 
   // (2) The values never reached the model as text: absent from every tool block (code + stdout).
   const toolText = (await page.locator('[data-testid^="tool-block-run_code"]').allInnerTexts()).join("\n");
@@ -84,5 +94,5 @@ test("run_code plot renders in the UI and the model reads it as an image", async
 
   // (4) No image bytes surfaced as text anywhere in the visible chat.
   expect(/data:image\/[a-z]+;base64,[A-Za-z0-9+/]{200}/.test(body), "base64 image text visible in chat").toBe(false);
-  expect(/not visible to this model/i.test(body), "model path reported the image as not visible").toBe(false);
+  expect(/not visible to this model|无法查看|看不到(这张)?图/i.test(body), "model path reported the image as not visible").toBe(false);
 });
