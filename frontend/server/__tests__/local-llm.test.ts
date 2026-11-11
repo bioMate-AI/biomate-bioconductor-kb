@@ -130,6 +130,15 @@ describe('OpenAI-compatible agentic shim (OpenRouter / any base_url)', () => {
     // same unknown-tool guard as the local path
     await expect(client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools: [] })).rejects.toThrow('tool call');
   });
+  it('passes tool_choice none through, so the final-answer turn cannot call tools (dev 2026-11-11 CRISPR QC)', async () => {
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(reply({ content: 'QC summary' }))); vi.stubGlobal('fetch', fetch);
+    const client = openaiCompatMessagesClient({ url: 'https://openrouter.ai/api/v1', model: 'm', key: 'k' });
+    const tools = [{ name: 'run_code', input_schema: { type: 'object', properties: { code: { type: 'string' } } } }];
+    await client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools, tool_choice: { type: 'none' } });
+    expect(JSON.parse(fetch.mock.calls[0][1].body).tool_choice).toBe('none');
+    await client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools });
+    expect(JSON.parse(fetch.mock.calls[1][1].body).tool_choice).toBe('auto');
+  });
   it('rejects a tool call whose arguments violate the schema (guardrail parity)', async () => {
     const fetch = vi.fn().mockResolvedValue(reply({ tool_calls: [{ id: 'c', type: 'function',
       function: { name: 'run_code', arguments: '{"language":"ruby","code":"1"}' } }] }, 'tool_calls')); vi.stubGlobal('fetch', fetch);

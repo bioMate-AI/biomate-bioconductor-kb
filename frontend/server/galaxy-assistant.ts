@@ -2644,6 +2644,44 @@ export function conversationHasComputableData(
   return (context?.previousMessages || []).some(m => m.role === 'user' && hasComputableData(m.content || ''));
 }
 
+/** The classifier's execution=direct_compute holds only when there is data in the conversation to
+ *  compute on (its own definition). Without data — e.g. "run <named workflow> on its built-in sample
+ *  data" — the request is a pipeline run and must produce a workflow card. */
+export function directComputeApplies(
+  execution: unknown,
+  message: string,
+  context?: { previousMessages?: Array<{ role: string; content: string }>; selectedDatasets?: string[] },
+): boolean {
+  return execution === 'direct_compute' && conversationHasComputableData(message, context);
+}
+
+export const FINAL_ANSWER_INSTRUCTION = 'The tool budget for this turn is used up. Do not call any more tools. '
+  + 'Write the final answer for the user now, using only the tool results above: what was computed, the '
+  + 'actual numbers and files produced, and any limitation. Do not describe steps you have not run.';
+
+/** The request for the final, tool-free turn of the agentic loop once its tool budget is spent:
+ *  same model/system, the full transcript plus an instruction, tools declared but disabled
+ *  (tool_choice none — the transcript contains tool_use blocks, so the tools stay defined). */
+export function finalAnswerRequest(
+  apiOptions: Record<string, any>,
+  agentMessages: Array<{ role: string; content: any }>,
+  agentTools?: any[] | null,
+): Record<string, any> {
+  const messages = agentMessages.slice();
+  const last = messages[messages.length - 1];
+  if (last?.role === 'user' && Array.isArray(last.content)) {
+    messages[messages.length - 1] = { ...last, content: [...last.content, { type: 'text', text: FINAL_ANSWER_INSTRUCTION }] };
+  } else {
+    messages.push({ role: 'user', content: FINAL_ANSWER_INSTRUCTION });
+  }
+  const { stream: _stream, tools: _tools, tool_choice: _tc, ...base } = apiOptions;
+  return {
+    ...base,
+    messages,
+    ...(agentTools?.length ? { tools: agentTools, tool_choice: { type: 'none' } } : {}),
+  };
+}
+
 /** The user asked for code itself ("write a script", "give me the R code", 写代码/脚本). */
 export function wantsCodeItself(message: string): boolean {
   return /\b(write|give|show|generate|provide)\b[^.\n]{0,40}\b(scripts?|code|snippets?|functions?)\b|代码|脚本/i.test(message || '');
@@ -5123,7 +5161,16 @@ Rules:
     // follow-up turn ("先做第一步", "不用工作流") because the dataset block lives in an earlier turn
     // (dev logs 2026-11-10: execution=direct_compute + needsWorkflowGeneration=false, 3/3 turns,
     // all overridden into workflow generation).
-    const _directCompute = (intent as any).execution === 'direct_compute';
+    // The classifier's OWN contract for direct_compute is "the data is already in the conversation";
+    // a direct_compute label with no data anywhere in the conversation contradicts it and is not a
+    // compute-now request. Dev 2026-11-11 (GLM classifier): "Run analyze_ebv_antibody_titers on its
+    // built-in … sample data" came back direct_compute ~2/3 times → no card, and the model told the
+    // user to go search the Workflows panel. Checked over the whole conversation (history +
+    // selected datasets), so follow-up turns whose dataset block is in an earlier turn still qualify.
+    const _directCompute = directComputeApplies((intent as any).execution, message, context);
+    if ((intent as any).execution === 'direct_compute' && !_directCompute) {
+      log('Direct-compute label ignored: no data in the conversation to compute on — keeping workflow generation');
+    }
     if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute || isSimpleSequencePropertyRequest(message))) {
       if (_directCompute) log('Direct-compute override: classifier execution=direct_compute with data in the conversation');
       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
@@ -10639,6 +10686,27 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           onResponseDelta((_shownBeforeNudge ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
         }
         break;
+      }
+      // Tool budget exhausted while the model was still calling tools: the loop ends with no final
+      // text, so the user saw only the opening narration ("I'll run a comprehensive QC analysis…")
+      // or, below, a raw stdout line ("✓ Saved: crispr_qc_report.png") as the whole answer
+      // (dev 2026-11-11: CRISPR QC — 5/5 turns spent on run_code, every time). The Gemini loop
+      // already forces a final answer at its budget; this is the same contract for the Claude /
+      // OpenRouter-shim loop: one more turn with tools disabled, asked to answer from the results.
+      if (lastStopReason === 'tool_use' && !rawResponse.trim()) {
+        console.warn(`[GalaxyAssistant] tool budget (${MAX_TOOL_TURNS} turns) exhausted with no final answer — requesting one with tools disabled`);
+        try {
+          const finalTurn: any = await this._withAnthropicRetry(
+            () => this._getClaude().messages.create({ ...finalAnswerRequest(apiOptions, agentMessages, agentTools) } as any),
+            'final-answer',
+          );
+          lastStopReason = finalTurn?.stop_reason ?? lastStopReason;
+          rawResponse = (finalTurn?.content || [])
+            .filter((b: any) => b?.type === 'text').map((b: any) => b.text || '').join('');
+          if (onResponseDelta && rawResponse.trim()) onResponseDelta('\n\n' + stripNarratedToolCalls(rawResponse));
+        } catch (err: any) {
+          console.warn('[GalaxyAssistant] final-answer turn failed:', err?.message);
+        }
       }
       // The pre-nudge reply presented code that never ran, possibly with results stated before any
       // computation; it is NOT kept. The final message (which replaces the streamed preview in the UI,

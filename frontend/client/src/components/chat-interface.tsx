@@ -29,7 +29,7 @@ import { useMutation } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/queryClient"
 import { chatHistoryService } from "@/lib/chat-history"
 import { emitUxEvent } from "@/lib/ux-telemetry"
-import { getChatAsyncGuidance, isTransientChatError } from "@/lib/async-guidance"
+import { chatRetryDelaysMs, getChatAsyncGuidance, isTransientChatError } from "@/lib/async-guidance"
 import { useNetworkStatus } from "@/lib/network-status"
 import type { ChatSession, ExecutionRun } from "@shared/schema"
 import { analytics } from "@/lib/analytics"
@@ -850,7 +850,7 @@ export function ChatInterface({
       // too-short timeout firing at 15–45s was a likely cause of the "under
       // maintenance" dead-end on the first attempt.
       const ATTEMPT_TIMEOUT_MS = 120_000
-      const MAX_ATTEMPTS = 3 // 1 initial + 2 retries
+      // Retries per failure kind: chatRetryDelaysMs (gateway errors span a server restart).
       const timedOutRef = { current: false }
 
       // Single stream attempt. Throws on failure; the caller decides whether
@@ -1062,7 +1062,7 @@ export function ChatInterface({
       // failures (4xx, validation, clarification) are thrown immediately so
       // the user sees the real message instead of retrying into a hang.
       let lastError: any = null
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      for (let attempt = 1; ; attempt++) {
         try {
           return await attemptStream()
         } catch (err: any) {
@@ -1075,16 +1075,15 @@ export function ChatInterface({
             httpStatus: err?.httpStatus ?? null,
             aborted: false,
           }) || err?.timedOut === true
-          const hasAttemptsLeft = attempt < MAX_ATTEMPTS
-          if (!transient || !hasAttemptsLeft) {
+          const delays = chatRetryDelaysMs(err?.message, err?.httpStatus ?? null)
+          const backoffMs = delays[attempt - 1]
+          if (!transient || backoffMs === undefined) {
             throw err
           }
-          // Short exponential backoff: 800ms, 1600ms. Keep the placeholder
-          // visible with a calm "retrying" cue so the user isn't staring at a
-          // frozen bubble.
-          const backoffMs = 800 * Math.pow(2, attempt - 1)
+          // Keep the placeholder visible with a calm "retrying" cue so the
+          // user isn't staring at a frozen bubble.
           console.warn(
-            `[ChatInterface] Transient generation failure (attempt ${attempt}/${MAX_ATTEMPTS}), retrying in ${backoffMs}ms:`,
+            `[ChatInterface] Transient generation failure (attempt ${attempt}/${delays.length + 1}), retrying in ${backoffMs}ms:`,
             err?.message,
           )
           try {

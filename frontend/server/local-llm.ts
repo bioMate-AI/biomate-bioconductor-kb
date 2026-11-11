@@ -125,6 +125,12 @@ export function validateToolInput(value: any, schema: any, path = 'arguments'): 
   } else if (schema.type) throw new Error(`Unsupported local tool schema type: ${schema.type}`);
 }
 
+/** Anthropic tool_choice → OpenAI tool_choice. {type:'none'} must reach the provider: the agentic
+ *  loop's final-answer turn keeps the tools declared (the transcript has tool calls) but disabled. */
+export function openaiToolChoice(choice: any): 'auto' | 'none' {
+  return choice?.type === 'none' || choice === 'none' ? 'none' : 'auto';
+}
+
 async function* events(message: any) {
   yield { type: 'message_start', message: { ...message, content: [] } };
   for (const [index, block] of message.content.entries()) {
@@ -148,7 +154,7 @@ export function localMessagesClient() {
     const result = await localCompletion({ messages: localMessages(params),
       max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
-      ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) });
+      ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
     const choice = result.choices[0];
     const calls = choice.message.tool_calls || [];
     if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete local tool call');
@@ -218,7 +224,7 @@ export function openaiCompatMessagesClient(cfg: { url: string; model: string; ke
     const result = await openaiCompatCompletion(cfg, { messages: localMessages(params),
       max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
-      ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) });
+      ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
     const choice = result.choices[0];
     const calls = choice.message.tool_calls || [];
     if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete tool call');
