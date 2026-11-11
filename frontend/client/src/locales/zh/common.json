@@ -1204,7 +1204,10 @@
       "pull_failed": "镜像下载失败",
       "auto_resume": "检测到后台重启，{{n}} 秒后自动恢复运行…",
       "cancel": "取消"
-    }
+    },
+    "view_sample_data": "查看示例数据",
+    "rows_count": "{{n}} 行",
+    "rows_truncated": "显示前 50 行，共 {{n}} 行"
   },
   "preview": {
     "loading": "正在加载预览…",

@@ -725,14 +725,49 @@ function autoloopPhaseMatches(groupKey: string, autoloopPhase: string | undefine
 // row, add/remove) laid out full-width, and serialise back to the wire format
 // the param arrived in (a real array, or a JSON-array string).
 const LIST_NAME_RE = /(_list$|smiles|compounds?|molecules?|sequences?|inchi|accessions?)/i;
-function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
+// Only a flat array of SCALARS is a list the one-item-per-row editor can show.
+// An array of objects (e.g. antigens=[{id,sequence}]) must NOT be stringified
+// into "[object Object]" rows — it falls through to the sample-data table below.
+const isScalarArray = (a: any[]): boolean => a.every(x => x == null || typeof x !== 'object');
+export function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
   const raw = p?.value ?? p?.defaultValue;
-  if (Array.isArray(raw)) return { items: raw.map((x: any) => String(x)), fmt: 'array' };
+  if (Array.isArray(raw)) return isScalarArray(raw) ? { items: raw.map((x: any) => String(x)), fmt: 'array' } : null;
   if (typeof raw === 'string') {
     const t = raw.trim();
     if (t.startsWith('[')) {
-      try { const a = JSON.parse(t); if (Array.isArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
+      try { const a = JSON.parse(t); if (Array.isArray(a) && isScalarArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
     }
+  }
+  return null;
+}
+
+/**
+ * Render a JSON-string param default (the "built-in sample data" an example
+ * runs on) as a readable table instead of a raw blob in the textarea. Returns
+ * null for anything that isn't tabular, so the plain editor still shows.
+ *   • array of objects      → columns = union of keys, one row per element
+ *   • object whose values   → one row per key, columns = union of inner keys
+ *     are all objects          (first column is the outer key, e.g. sample id)
+ *   • object of scalars/     → a two-column key / value table (non-scalar
+ *     arrays                     values are shown as compact JSON)
+ */
+export function sampleDataTable(raw: string): { headers: string[]; rows: string[][] } | null {
+  let data: any;
+  try { data = JSON.parse(raw); } catch { return null; }
+  const cell = (v: any): string => v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+  const isPlainObj = (v: any) => v != null && typeof v === 'object' && !Array.isArray(v);
+  if (Array.isArray(data) && data.length > 0 && data.every(isPlainObj)) {
+    const headers = [...data.reduce((s: Set<string>, o: any) => { Object.keys(o).forEach(k => s.add(k)); return s; }, new Set<string>())];
+    return { headers, rows: data.map((o: any) => headers.map(h => cell(o[h]))) };
+  }
+  if (isPlainObj(data)) {
+    const entries = Object.entries(data);
+    if (entries.length === 0) return null;
+    if (entries.every(([, v]) => isPlainObj(v))) {
+      const inner = [...entries.reduce((s: Set<string>, [, o]: any) => { Object.keys(o).forEach(k => s.add(k)); return s; }, new Set<string>())];
+      return { headers: ['', ...inner], rows: entries.map(([k, o]: any) => [k, ...inner.map(h => cell(o[h]))]) };
+    }
+    return { headers: ['key', 'value'], rows: entries.map(([k, v]) => [k, cell(v)]) };
   }
   return null;
 }
@@ -988,9 +1023,39 @@ function PhaseGroupSection({
                     const isLong = p.type !== 'number' && p.type !== 'file' && p.type !== 'boolean' && !p.options &&
                       (strVal.length > 40 || strVal.trimStart().startsWith('{'));
                     if (isLong) {
+                      const sample = sampleDataTable(strVal);
                       return (
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="long">
                           {label}
+                          {sample && (
+                            <details data-testid={`param-sample-preview-${p.id}`} style={{ marginTop: 4 }}>
+                              <summary style={{ cursor: 'pointer', fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', userSelect: 'none' }}>
+                                {tOr('panel.view_sample_data', 'View sample data')}
+                                <span style={{ marginLeft: 6, color: 'var(--text-dim)' }}>
+                                  {tOr('panel.rows_count', '{{n}} rows', { n: sample.rows.length })}
+                                </span>
+                              </summary>
+                              <div style={{ overflowX: 'auto', marginTop: 4, border: '1px solid var(--border)', borderRadius: 4 }}>
+                                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 'var(--fs-micro)', fontFamily: 'var(--font-mono)' }}>
+                                  <thead>
+                                    <tr>{sample.headers.map((h, i) => (
+                                      <th key={i} style={{ textAlign: 'left', padding: '3px 8px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface)' }}>{h}</th>
+                                    ))}</tr>
+                                  </thead>
+                                  <tbody>{sample.rows.slice(0, 50).map((r, ri) => (
+                                    <tr key={ri}>{r.map((c, ci) => (
+                                      <td key={ci} style={{ padding: '3px 8px', borderBottom: '1px solid var(--border-subtle, var(--border))', color: 'var(--text)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c}>{c}</td>
+                                    ))}</tr>
+                                  ))}</tbody>
+                                </table>
+                              </div>
+                              {sample.rows.length > 50 && (
+                                <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', padding: '3px 8px' }}>
+                                  {tOr('panel.rows_truncated', 'Showing first 50 of {{n}} rows', { n: sample.rows.length })}
+                                </div>
+                              )}
+                            </details>
+                          )}
                           <textarea
                             className="v"
                             value={strVal}

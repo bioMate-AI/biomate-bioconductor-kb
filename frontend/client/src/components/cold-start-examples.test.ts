@@ -1,4 +1,4 @@
-import hospitalProvenance from '../../public/demo/sysucc_synthetic/provenance.json';
+import hospitalProvenance from '../../public/demo/hospital_synthetic/provenance.json';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PREPARED_EXAMPLES, prepareColdStartExample, ensureInternalDemoProject, DEMO_PROJECT_NAME, HOSPITAL_EXAMPLES, HOSPITAL_DEMO_PROJECT_NAME, prepareColdStartSelection, preparedInputsBlock } from './cold-start-examples';
 afterEach(() => vi.unstubAllGlobals());

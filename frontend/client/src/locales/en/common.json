@@ -1005,7 +1005,10 @@
       "pull_failed": "Image download failed",
       "auto_resume": "Backend restart detected — resuming automatically in {{n}}s…",
       "cancel": "Cancel"
-    }
+    },
+    "view_sample_data": "View sample data",
+    "rows_count": "{{n}} rows",
+    "rows_truncated": "Showing first 50 of {{n}} rows"
   },
   "preview": {
     "loading": "Loading preview…",

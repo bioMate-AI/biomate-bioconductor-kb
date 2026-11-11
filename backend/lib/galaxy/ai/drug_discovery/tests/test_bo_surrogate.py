@@ -21,8 +21,8 @@ from galaxy.ai.drug_discovery.fingerprint_surrogate import (
     expected_hypervolume_improvement, expected_improvement,
 )
 
-# SYSUCC Case 3 fixture: composite scores of A/B/C after the potency batch
-# and after the safety batch (docs/qa/sysucc-usecases).
+# Case 3 fixture: composite scores of A/B/C after the potency batch
+# and after the safety batch (internal QA use-case records).
 FIXTURE_TRAIN = ["CCO", "CCN", "CCC"]
 FIXTURE_LABELS = {"initial": [1.0, 0.9090909090909091, 0.0],
                   "safety": [0.2, 0.9545454545454546, 0.24489795918367346]}

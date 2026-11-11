@@ -73,7 +73,7 @@ if __name__ == "__main__":
     raise SystemExit(0 if passed == len(tests) else 1)
 
 
-# --- spatial modality + Chinese routing (SYSUCC: NPC spatial atlas, 中文 users) ---
+# --- spatial modality + Chinese routing (NPC spatial atlas, 中文 users) ---
 
 def test_spatial_modality_is_detected():
     mods = _extract_modalities("integrate spatial transcriptomics with proteomics")

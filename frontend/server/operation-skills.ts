@@ -37,7 +37,7 @@ export interface OperationSkill {
 
 /**
  * The registry. Keep each entry aligned with its backend skills/*.md source of truth.
- * First entry: generator-adaptation (the 2026-11-10 demo misroute; documented SYSUCC
+ * First entry: generator-adaptation (the 2026-11-10 demo misroute; documented
  * Models→Adapt direction, BD doc §5.4/§7.2/§7.3).
  */
 export const OPERATION_SKILLS: OperationSkill[] = [
