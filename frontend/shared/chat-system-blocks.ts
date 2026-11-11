@@ -47,6 +47,7 @@ export function stripSystemBlocks(text: string | null | undefined): string {
 export function redactInternalRefs(text: string | null | undefined): string {
   if (!text) return "";
   return String(text)
+    // ── galaxy_dataset_id (keyword / JSON / key=value / prose) ──
     // JSON:  "galaxy_dataset_id": "uuid"  (drop the whole pair + a leading comma)
     .replace(/,?\s*"galaxy_dataset_id"\s*:\s*"[^"]*"/gi, "")
     // key=value:  galaxy_dataset_id=uuid
@@ -55,6 +56,18 @@ export function redactInternalRefs(text: string | null | undefined): string {
     .replace(/,?\s*\bgalaxy_dataset_id\s*:\s*[^\s,}\])]+/gi, "")
     // any bare keyword left over → neutral, never the word "galaxy"
     .replace(/\bgalaxy_dataset_id\b/gi, "data_id")
+    // ── internal run_code staging paths → the clean filename the model is told
+    // to prefer. These prefixes (/work/input, /work/output, /tmp/biomate_code,
+    // $DATA_DIR, the os.environ['DATA_DIR'] join) are BioMate-internal and never
+    // appear in legitimate content, so collapsing them to the basename is safe.
+    // os.path.join(os.environ['DATA_DIR'], '<id>', '<file>') → INPUT_FILES['<file>']
+    .replace(/os\.path\.join\(\s*os\.environ\[['"]DATA_DIR['"]\]\s*,\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g, "INPUT_FILES['$1']")
+    // R:  file.path(Sys.getenv("DATA_DIR"), "<id>", "<file>") → INPUT_FILES[["<file>"]]
+    .replace(/file\.path\(\s*Sys\.getenv\(['"]DATA_DIR['"]\)\s*,\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g, 'INPUT_FILES[["$1"]]')
+    // absolute staged paths → basename:  /work/input/<id>/<file>, /work/output/…, /tmp/biomate_code/…/<file>
+    .replace(/(?:\/work\/(?:input|output)|\/tmp\/biomate_code)\/[^\s'"`)\]]*\/([^\/\s'"`)\]]+)/g, "$1")
+    // $DATA_DIR/<id>/<file>  (shell/string form) → <file>
+    .replace(/\$\{?DATA_DIR\}?\/[^\/\s'"`)\]]+\/([^\/\s'"`)\]]+)/g, "$1")
     // tidy JSON wreckage the removals can leave: {} / {, / ,} / ,,
     .replace(/\{\s*\}/g, "")
     .replace(/\{\s*,/g, "{")

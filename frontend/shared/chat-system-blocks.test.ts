@@ -56,3 +56,28 @@ describe('redactInternalRefs — never show galaxy dataset id/keyword to the use
     expect(redactInternalRefs('')).toBe('');
   });
 });
+
+describe('redactInternalRefs — never show internal run_code paths to the user', () => {
+  it('rewrites the explicit DATA_DIR join to the clean INPUT_FILES form', () => {
+    expect(redactInternalRefs("df = pd.read_csv(os.path.join(os.environ['DATA_DIR'], 'ac170aeb-1659-4c81', 'counts.csv'))"))
+      .toBe("df = pd.read_csv(INPUT_FILES['counts.csv'])");
+  });
+  it('collapses an absolute container path to the filename', () => {
+    expect(redactInternalRefs('read /work/input/ac170aeb-1659-4c81-a7cf-b14cc2ab598e/counts.csv'))
+      .toBe('read counts.csv');
+  });
+  it('collapses a host staging path to the filename', () => {
+    expect(redactInternalRefs("open('/tmp/biomate_code/sess_123/input/ac170aeb/raw.tsv')"))
+      .toBe("open('raw.tsv')");
+  });
+  it('collapses the $DATA_DIR string form to the filename', () => {
+    expect(redactInternalRefs('path=$DATA_DIR/ac170aeb/matrix.csv')).toBe('path=matrix.csv');
+  });
+  it('collapses a /work/output path to the filename', () => {
+    expect(redactInternalRefs('wrote /work/output/results/deg_table.csv')).toBe('wrote deg_table.csv');
+  });
+  it('leaves ordinary user file paths untouched', () => {
+    expect(redactInternalRefs('see ./data/counts.csv and /home/user/x.txt'))
+      .toBe('see ./data/counts.csv and /home/user/x.txt');
+  });
+});
