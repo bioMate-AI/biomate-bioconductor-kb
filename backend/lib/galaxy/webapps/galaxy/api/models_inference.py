@@ -343,10 +343,53 @@ def _new_run(model_id: str, evidence_class: str, owner_id: Optional[str] = None)
 
 def _finish_run(run_id: str, result: Dict[str, Any]) -> None:
     _store().update_run(run_id, status="completed", result=result)
+    _record_last_inference(run_id, "completed", None)
 
 
 def _fail_run(run_id: str, error: str) -> None:
     _store().update_run(run_id, status="failed", error=error)
+    _record_last_inference(run_id, "failed", error)
+
+
+def _last_inference_key(owner_id: str, model_id: str) -> str:
+    """Store key for an owner's most recent inference outcome on a model.
+
+    Prefixed "inf-last-" so it never collides with run ids; no pid is ever set,
+    so the CompletionPoller ignores it (same contract as the "inf-" runs)."""
+    import hashlib
+    digest = hashlib.sha1(f"{owner_id}\x00{model_id}".encode("utf-8")).hexdigest()[:20]
+    return f"inf-last-{digest}"
+
+
+def _record_last_inference(run_id: str, status: str, error: Optional[str]) -> None:
+    """Remember the latest outcome per (owner, model) so the catalog can show why
+    a model's last inference failed (e.g. the NVIDIA-side error text)."""
+    rec = _store().get_run(run_id) or {}
+    owner_id, model_id = rec.get("owner_id"), rec.get("model_id")
+    if not owner_id or not model_id:
+        return
+    _store().set_run(_last_inference_key(owner_id, model_id), {
+        "run_id": run_id, "model_id": model_id, "owner_id": owner_id,
+        "status": status, "error": error, "at": time.time(),
+    })
+
+
+def _with_last_inference(rows: List[Dict[str, Any]], owner_id: str) -> List[Dict[str, Any]]:
+    """Annotate catalog rows with the owner's last inference outcome (if any)."""
+    try:
+        store = _store()
+        for row in rows:
+            last = store.get_run(_last_inference_key(owner_id, row["id"]))
+            if last and last.get("owner_id") == owner_id:
+                row["lastInference"] = {
+                    "status": last.get("status"),
+                    "error": last.get("error"),
+                    "at": last.get("at"),
+                    "runId": last.get("run_id"),
+                }
+    except Exception as exc:  # noqa: BLE001 — catalog must still list models
+        log.warning("models: last-inference annotation unavailable: %s", exc)
+    return rows
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -407,7 +450,8 @@ for _m in (ModelSummary, InferRequest, InferResponse, TogglePairRequest):
     summary="List catalog models (BioNeMo self-host + registered custom).",
 )
 def list_models(owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> List[Dict[str, Any]]:
-    return _catalog(_request_owner(owner_id))
+    owner_id = _request_owner(owner_id)
+    return _with_last_inference(_catalog(owner_id), owner_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

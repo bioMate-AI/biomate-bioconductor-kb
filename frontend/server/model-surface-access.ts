@@ -14,7 +14,7 @@ export async function fetchOwnedModelSurface(userId: string | undefined, path: s
  const key = process.env.GALAXY_API_KEY;
  if (!key) throw new ModelSurfaceAccessError(503, 'Models service is not configured');
  const url = new URL(path, process.env.GALAXY_URL || 'http://localhost:8081');
- if (!/^\/api\/(?:models(?:\/|$)|model-tracks\/|inference\/)/.test(url.pathname)
+ if (!/^\/api\/(?:models(?:\/|$)|model-tracks\/|inference\/|model-training\/plan$)/.test(url.pathname)
    || url.origin !== new URL(process.env.GALAXY_URL || 'http://localhost:8081').origin)
   throw new ModelSurfaceAccessError(400, 'Invalid Models service path');
  return fetch(url.toString(), { ...init, headers: {

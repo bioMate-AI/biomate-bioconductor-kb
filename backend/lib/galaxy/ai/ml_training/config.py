@@ -63,6 +63,8 @@ TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training 
 # scrna_diffusion → sc-diffusion-training; tabular_diffusion → tabular-diffusion-training.
 DIFFUSION_MODEL_TYPES = ("protein_diffusion", "scrna_diffusion", "tabular_diffusion")
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
+# Model types that featurize a SMILES column (and therefore require one).
+MOLECULAR_MODEL_TYPES = ("chemprop_gnn", "sklearn_gbr")
 ADAPTERS = ("lora", "qlora", "none")
 # Built-in reward functions for GRPO (a real reward fn or a named built-in).
 # "composite" = a user-declared, weighted multi-component reward (reward_spec),
@@ -461,6 +463,17 @@ class TrainingConfig:
                 raise ConfigError(f"gate_threshold must be numeric, got {self.gate_threshold!r}")
             if not math.isfinite(thr):
                 raise ConfigError(f"gate_threshold must be finite, got {self.gate_threshold!r}")
+        # Molecular featurizers need a SMILES column; generic learners must not.
+        if self.model_type in MOLECULAR_MODEL_TYPES and self.featurizer == "none":
+            raise ConfigError(
+                f"{self.model_type} featurizes SMILES; featurizer='none' is only valid for "
+                "generic tabular learners (sklearn_tabular / ludwig_tabular)")
+        if self.model_type == "ludwig_tabular" and self.featurizer == "none":
+            if self.dataset.split == "scaffold":
+                raise ConfigError("a scaffold split needs SMILES; use split='random' for a "
+                                  "generic (featurizer='none') Ludwig table")
+            if self.dataset.split == "kfold":
+                raise ConfigError("Ludwig supports split='random' or 'scaffold', not 'kfold'")
         if self.model_type in LLM_MODEL_TYPES:
             if self.llm is None:
                 raise ConfigError(f"model_type={self.model_type} requires an `llm` spec")
