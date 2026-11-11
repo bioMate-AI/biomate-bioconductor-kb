@@ -41,6 +41,7 @@ values as real measured science.
 # nextflow_executor.py header for the incident history).
 from __future__ import annotations
 
+import re
 import logging
 import threading
 import time
@@ -1452,30 +1453,50 @@ def _plddt_from_cif(cif: str) -> List[float]:
     Extract per-residue pLDDT from an mmCIF string (``_atom_site.B_iso_or_equiv``
     of CA atoms). boltz2 / AlphaFold2 / OpenFold2 write per-residue pLDDT into the
     B-factor column of the CIF they return. Returns [] for empty / non-CIF input.
-    Column order is read from the ``_atom_site.*`` loop header, so it is robust to
-    field-order differences between models. Real model output — never fabricated.
+
+    The ``_atom_site`` loop is read as ONE token stream and sliced into records by
+    the header's column count — mmCIF allows a record to wrap across lines, and
+    Boltz-2 does wrap most of them (its B-factor + model number land on the next
+    line). The previous line-by-line parser skipped every wrapped record and
+    returned a single value for a 33-residue protein (live journey, 2026-11-11).
+    Real model output — never fabricated.
     """
     if not cif or "_atom_site." not in cif:
         return []
     cols: List[str] = []
-    out: List[float] = []
+    tokens: List[str] = []
+    in_loop = False
     for line in cif.splitlines():
         s = line.strip()
         if s.startswith("_atom_site."):
-            cols.append(s.split(".", 1)[1])
+            cols.append(s.split(".", 1)[1].split()[0])
+            in_loop = True
             continue
-        if cols and (s.startswith("ATOM") or s.startswith("HETATM")):
-            fields = s.split()
-            if len(fields) < len(cols):
+        if not in_loop or not cols:
+            continue
+        if not s:
+            continue
+        # The loop's data ends at the next category, loop_, data block or comment.
+        if s.startswith(("_", "loop_", "data_", "#")):
+            break
+        tokens.extend(_CIF_TOKEN.findall(s))
+    if not cols:
+        return []
+    out: List[float] = []
+    n = len(cols)
+    for i in range(0, len(tokens) - n + 1, n):
+        rec = dict(zip(cols, tokens[i:i + n]))
+        atom = (rec.get("label_atom_id") or rec.get("auth_atom_id") or "").strip('"\'')
+        if atom == "CA":
+            try:
+                out.append(float(rec.get("B_iso_or_equiv", "")))
+            except (ValueError, TypeError):
                 continue
-            rec = dict(zip(cols, fields))
-            atom = (rec.get("label_atom_id") or rec.get("auth_atom_id") or "").strip('"\'')
-            if atom == "CA":
-                try:
-                    out.append(float(rec.get("B_iso_or_equiv", "")))
-                except (ValueError, TypeError):
-                    continue
     return out
+
+
+# mmCIF token: a quoted string ('…' or "…", may contain spaces) or a bare word.
+_CIF_TOKEN = re.compile(r"'[^']*'|\"[^\"]*\"|\S+")
 
 
 def _plddt_from_structure(struct: str) -> List[float]:
