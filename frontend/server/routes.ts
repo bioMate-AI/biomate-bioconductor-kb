@@ -8,6 +8,7 @@ import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
+import { planModelFold } from "./model-fold";
 import { authorizeDatasetReference } from "./dataset-reference-access";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
@@ -5882,6 +5883,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           method: 'POST', body: JSON.stringify(body),
         });
         return { status: response.status, body: await response.json().catch(() => ({ error: 'Invalid training service response' })) };
+      },
+    });
+    res.status(result.status).json(result.body);
+  });
+  // Structure "Run a model" → fold on OUR AWS Batch (Boltz-2), not NVIDIA.
+  // Stages the sequence as a FASTA and returns the boltz_structure_prediction
+  // launch request; the client submits it through POST /api/workflows/execute,
+  // so the fold is a tracked run (see server/model-fold.ts).
+  app.post("/api/models/fold/plan", authenticateToken, async (req: any, res) => {
+    const result = await planModelFold({ userId: req.user?.id, body: req.body }, {
+      stageFasta: async (content: string, basename: string) => {
+        const onPrem = !!process.env.S3_ENDPOINT_URL;
+        const bucket = onPrem
+          ? (process.env.S3_BUCKET_NAME || 'biomate-data')
+          : (process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work');
+        const { randomUUID } = await import('crypto');
+        const key = `uploads/fold-${randomUUID()}/${basename}`;
+        try {
+          const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const s3 = await _s3ClientForBucket(bucket);
+          await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: content, ContentType: 'text/plain' }));
+          return `s3://${bucket}/${key}`;
+        } catch (error) {
+          console.error('[fold] stageFasta failed:', error instanceof Error ? error.message : error);
+          return undefined;
+        }
       },
     });
     res.status(result.status).json(result.body);

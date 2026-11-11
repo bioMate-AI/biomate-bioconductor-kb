@@ -1,3 +1,4 @@
+import { originLabel } from "./model-origin"
 /**
  * ModelsPanel — the Models surface, three tabs:
  *
@@ -73,7 +74,7 @@ function CatalogTable({ rows, onOpenModel }: { rows: ModelSummary[]; onOpenModel
               {m.name} <span className="text-muted-foreground">{m.version}</span>
             </span>
             <span className="truncate text-muted-foreground">{m.family}</span>
-            <span className="truncate text-muted-foreground">{m.origin}</span>
+            <span className="truncate text-muted-foreground">{originLabel(m.origin)}</span>
             <span className="text-muted-foreground">{m.usedByCount}</span>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
           </button>

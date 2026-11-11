@@ -326,6 +326,36 @@ export async function launchTraining(req: TrainingPlanRequest): Promise<{ runId:
   return { runId: body.runId, plan }
 }
 
+/**
+ * Launch a Boltz-2 fold on OUR AWS Batch (not NVIDIA). Mirrors launchTraining:
+ * POST /api/models/fold/plan stages the sequence + returns the
+ * boltz_structure_prediction launch request, then POST /api/workflows/execute
+ * runs it as a tracked run. Returns the runId to poll with useRunStatus.
+ */
+export async function launchFold(req: { sequence: string; name?: string }): Promise<{ runId: string }> {
+  const planRes = await fetch("/api/models/fold/plan", {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(req),
+  })
+  if (!planRes.ok) throw new TrainingLaunchError("plan", await errorText(planRes))
+  const plan = await planRes.json()
+  if (!plan?.workflow_ga?.nextflow_path) throw new TrainingLaunchError("plan", "fold plan was rejected")
+  const execRes = await fetch("/api/workflows/execute", {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workflowDefinition: plan.workflow_ga,
+      workflowName: plan.workflow_ga.name,
+      executionConfig: { mode: "production", executionEngine: "nextflow" },
+      inputs: [],
+    }),
+  })
+  if (!execRes.ok) throw new TrainingLaunchError("execute", await errorText(execRes))
+  const body = await execRes.json()
+  if (typeof body?.runId !== "string" || !body.runId) throw new TrainingLaunchError("execute", "missing runId")
+  return { runId: body.runId }
+}
+
 export interface RunStatus { runId: string; status: string; errorMessage?: string }
 
 /** Poll a launched run until it reaches a terminal state. */
