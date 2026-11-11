@@ -67,6 +67,22 @@
     "bytes": 40761,
     "sha256": "e338dac82f72033f845cc0b5eb210c78c70f6591b5ce3977e99c5380b748de2e"
   },
+  "ceph1463.ped": {
+    "bytes": 598,
+    "sha256": "993ba91b034ecc4681f4f9e2d74e38b0e875058fbd8ce89aedbc97ac0a25280a",
+    "source": "https://raw.githubusercontent.com/brentp/peddy/master/data/ceph1463.ped",
+    "licence": "MIT (brentp/peddy)",
+    "citation": "Pedersen & Quinlan, AJHG 2017",
+    "derivation": "unchanged"
+  },
+  "ceph1463_genotypes.vcf.gz": {
+    "bytes": 1112735,
+    "sha256": "bccf6837501daf3f44c3f66aca83e2bb84f4b451ba837d02383a198f72ed2f0a",
+    "source": "https://raw.githubusercontent.com/brentp/peddy/master/data/ceph1463.peddy.vcf.gz",
+    "licence": "MIT (brentp/peddy); Illumina Platinum Genomes CEPH 1463 pedigree",
+    "citation": "Pedersen BS, Quinlan AR. Who's who? Detecting and resolving sample anomalies in human DNA sequencing studies with peddy. AJHG 2017;100:406-413",
+    "derivation": "All 19,991 sites and 17 samples kept; INFO dropped and FORMAT reduced to GT:DP:RO:AO for size; genotypes and allele counts unchanged; plain gzip (not BGZF)"
+  },
   "clinical_cohort.csv": {
     "bytes": 7252,
     "sha256": "4045e3fee76936bb8bd9312243d7b81b36ed224a12800fcef12e8a361883cfb6"
@@ -88,8 +104,8 @@
     "sha256": "2f7f6ec285e775d03fe9cb9b37b2a94db1b5a7f627e2bd7a2a1ebe52f0a8e4ed"
   },
   "demo_notes.md": {
-    "bytes": 1370,
-    "sha256": "d212c76ce695254ce10f6d1626fd1b5e95dc5affd12e0e3401cde4e17ed11f69"
+    "bytes": 2598,
+    "sha256": "5261e0c0ba9f985444b79a6336ecde5fcb08b58db4f3baf8baab24edd4c4ebad"
   },
   "enzyme_candidates.fasta": {
     "bytes": 3656,
@@ -99,6 +115,14 @@
     "bytes": 292,
     "sha256": "212b1e4a79ab0c02ba0b737e53e1e5cf9d241934cd5db29c4bd29789d082e0ab"
   },
+  "essential_genes_CEGv2.txt": {
+    "bytes": 15088,
+    "sha256": "1b1df46f829e2c47dc8a4c164f60f5f1dc67513bafba7d8b9609421e0c75d27e",
+    "source": "https://raw.githubusercontent.com/hart-lab/bagel/master/CEGv2.txt",
+    "licence": "MIT (hart-lab/bagel)",
+    "citation": "Hart T et al. Evaluation and design of genome-wide CRISPR/SpCas9 knockout screens. G3 2017 (CEGv2 core essential genes)",
+    "derivation": "unchanged"
+  },
   "example_smiles.csv": {
     "bytes": 117,
     "sha256": "99e7cc0e91068bfbf34709b71f1aa4debf94b624c1e2099297c9adaca1d10f4f"
@@ -106,6 +130,30 @@
   "herg.csv": {
     "bytes": 28282,
     "sha256": "84d16d19f89799d8edaa0eefdb5143aacb35fd73a91b4ade18f2c25848781129"
+  },
+  "herg_series.csv": {
+    "bytes": 26261,
+    "sha256": "520e66f6b151aec6b9d26550bf39b1cc72fa37da45484ac5016ed2e892dfdcfd",
+    "source": "https://www.ebi.ac.uk/chembl/api/data/activity.json?document_chembl_id=CHEMBL1137327",
+    "licence": "CC BY-SA 3.0 (ChEMBL)",
+    "citation": "Optimization of chromone-2-carboxamide melanin concentrating hormone receptor 1 antagonists: assessment of potency, efficacy, and cardiovascular safety. J Med Chem 2006, doi:10.1021/jm060683e (ChEMBL document CHEMBL1137327)",
+    "derivation": "All IC50 activities for MCHR1 (CHEMBL344) and hERG/KCNH2 (CHEMBL240) in the document, flattened from the ChEMBL activity API to CSV; 24 records without a numeric value omitted; values unchanged"
+  },
+  "ht29_brunello_counts.tsv": {
+    "bytes": 2718991,
+    "sha256": "b4215f2070b245a4b8ec5c240cb2339d0e2ea7a515d2742417c1cf1a6dfd346b",
+    "source": "https://raw.githubusercontent.com/francescojm/CRISPRcleanR/master/inst/extdata/HT29-Brunello_counts.tsv",
+    "licence": "MIT (CRISPRcleanR)",
+    "citation": "HT-29 screened with the Brunello library (Doench et al., Nat Biotechnol 2016), distributed as a CRISPRcleanR example dataset (Iorio et al., BMC Genomics 2018)",
+    "derivation": "CR line endings normalised to LF; content otherwise unchanged"
+  },
+  "ht29_minlibcas9_counts.tsv": {
+    "bytes": 1345508,
+    "sha256": "a3c2684dc05cd6c8c4f601be0eda56bedab2b742872a9c5b822cc48676c4de3a",
+    "source": "https://raw.githubusercontent.com/francescojm/CRISPRcleanR/master/inst/extdata/HT29-MiniLibCas9_counts.tsv",
+    "licence": "MIT (CRISPRcleanR)",
+    "citation": "Goncalves E et al. Minimal genome-wide human CRISPR-Cas9 library. Genome Biol 2021;22:40; distributed as a CRISPRcleanR example dataset",
+    "derivation": "unchanged"
   },
   "macrocycle_constraints.json": {
     "bytes": 364,
@@ -127,6 +175,14 @@
     "bytes": 535,
     "sha256": "22f3fb7243ad50543835385c89494e4c396f378ba56aeb08d412c560ea6c00d5"
   },
+  "nonessential_genes_NEGv1.txt": {
+    "bytes": 21712,
+    "sha256": "18a6b37a8f182a1bf501548e6b28fe4fcef02fcd296f873ef500a21eeb433739",
+    "source": "https://raw.githubusercontent.com/hart-lab/bagel/master/NEGv1.txt",
+    "licence": "MIT (hart-lab/bagel)",
+    "citation": "Hart T et al. Mol Syst Biol 2014 (non-essential reference genes)",
+    "derivation": "unchanged"
+  },
   "normal_R1.fastq.gz": {
     "bytes": 45010,
     "sha256": "f30c6fc07ec1e0b39fcb75b10993bafba5c15fa8f921cda8420bfd50480968a1"
@@ -146,6 +202,22 @@
   "nutrimouse_metadata.csv": {
     "bytes": 709,
     "sha256": "23dfc33bccc62faff22925f4409a8d3618bd14622ea50d93a48278ca5b5f268b"
+  },
+  "pbc_cohort.csv": {
+    "bytes": 32887,
+    "sha256": "797ea9b6abfec34297ef07f361a2e0bfdd90c3c2def180adf8547ea30e75b613",
+    "source": "https://vincentarelbundock.github.io/Rdatasets/csv/survival/pbc.csv",
+    "licence": "LGPL (>=2) R survival package dataset",
+    "citation": "Mayo Clinic PBC trial; Fleming TR, Harrington DP. Counting Processes and Survival Analysis. Wiley 1991; Therneau & Grambsch 2000",
+    "derivation": "unchanged"
+  },
+  "pbc_dictionary.json": {
+    "bytes": 1260,
+    "sha256": "604cc15ff1348647d5d5e242415cbb0010e5d5f638017f4ae456d277f4c68216",
+    "source": "https://vincentarelbundock.github.io/Rdatasets/doc/survival/pbc.html",
+    "licence": "LGPL (>=2) R survival package documentation",
+    "citation": "R survival::pbc documentation",
+    "derivation": "Variable coding transcribed from the package documentation"
   },
   "pbmc3k_raw.h5ad": {
     "bytes": 5855727,
@@ -199,6 +271,22 @@
     "bytes": 1913304,
     "sha256": "bf13e11f41f37ae06b2f8447b6576c1a566c1646e6be3881527158c5a79fe167"
   },
+  "proteinGroups_batch.txt": {
+    "bytes": 1699391,
+    "sha256": "e574021763ad862a0f9d6a3734e94da4e450cac66d3fae82104750dc28044548",
+    "source": "https://raw.githubusercontent.com/MonashBioinformaticsPlatform/LFQ-Analyst/master/www/data/proteinGroups_example_feb19.txt",
+    "licence": "GPL-3.0 (LFQ-Analyst repository)",
+    "citation": "Shah AD et al. LFQ-Analyst. J Proteome Res 2020;19:204-211 (example MaxQuant input, 12 runs)",
+    "derivation": "unchanged"
+  },
+  "proteomics_batch_design.txt": {
+    "bytes": 185,
+    "sha256": "9b19c0cb6e65ee58cd5e238471ff1fc800b669afeb81fad91cfdd921c911a07f",
+    "source": "https://raw.githubusercontent.com/MonashBioinformaticsPlatform/LFQ-Analyst/master/www/data/experimental_design_example_feb19.txt",
+    "licence": "GPL-3.0 (LFQ-Analyst repository)",
+    "citation": "LFQ-Analyst example experimental design",
+    "derivation": "unchanged"
+  },
   "proteomics_design.csv": {
     "bytes": 298,
     "sha256": "2c9c6f1cd15d66d7c00da17614255cff04ca1b821db7fa788efcf084ff2019b3"
@@ -206,6 +294,22 @@
   "reference_grch37.fasta": {
     "bytes": 818613,
     "sha256": "e6da32e7a11739023a513ec4f4bf32a96d13a0cb7cbb2b64c2367bca3ca550ff"
+  },
+  "rizvi2015_clinical.csv": {
+    "bytes": 4385,
+    "sha256": "406e8236aa99a3703d713194374c00499c19a7de7766fa6496bcdf9103d4b926",
+    "source": "https://www.cbioportal.org/api/studies/nsclc_mskcc_2015/clinical-data (PATIENT + SAMPLE)",
+    "licence": "cBioPortal public study data (cBioPortal terms of use); cite the original publication",
+    "citation": "Rizvi NA et al. Science 2015, PMID 25765070",
+    "derivation": "Patient and sample attributes pivoted to one row per sample; values unchanged"
+  },
+  "rizvi2015_mutations.csv": {
+    "bytes": 359646,
+    "sha256": "5972c6bb1e9789bb5336f09340c833e32e076f62f59cf5152141d8d31086cef8",
+    "source": "https://www.cbioportal.org/api/molecular-profiles/nsclc_mskcc_2015_mutations/mutations/fetch (sampleListId nsclc_mskcc_2015_all)",
+    "licence": "cBioPortal public study data (cBioPortal terms of use); cite the original publication",
+    "citation": "Rizvi NA et al. Mutational landscape determines sensitivity to PD-1 blockade in non-small cell lung cancer. Science 2015;348:124-128, PMID 25765070 (cBioPortal study nsclc_mskcc_2015)",
+    "derivation": "All 4,079 somatic coding mutations for the 16 samples, flattened from cBioPortal JSON to CSV; GRCh37; values unchanged"
   },
   "sequencing_samples.csv": {
     "bytes": 166,
@@ -216,8 +320,8 @@
     "sha256": "8c06a76f0c6487d29ab0f903e6a7a7139f189ab3c1178f159c8be8964602f189"
   },
   "sources.json": {
-    "bytes": 2885,
-    "sha256": "3e899b4fbb550e15d063d56f13e3442ca760f7c5ca26c3893a6b1183399ac9d4"
+    "bytes": 4473,
+    "sha256": "f20318d13db7aa4af1bca9f8f3accaef0480064c472e3dc50785c6179bda44d7"
   },
   "submission_contrasts.csv": {
     "bytes": 84,

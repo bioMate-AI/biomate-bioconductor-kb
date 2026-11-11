@@ -27,5 +27,18 @@
   "Strelka_1234N_variants.vcf.gz": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek/testdata/vcf/Strelka_1234N_variants.vcf.gz",
   "Strelka_9876T_variants.vcf.gz": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek/testdata/vcf/Strelka_9876T_variants.vcf.gz",
   "tumor_R1.fastq.gz": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek/testdata/tiny/tumor/tiny_t_L001_R1_xxx.fastq.gz",
-  "tumor_R2.fastq.gz": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek/testdata/tiny/tumor/tiny_t_L001_R2_xxx.fastq.gz"
+  "tumor_R2.fastq.gz": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek/testdata/tiny/tumor/tiny_t_L001_R2_xxx.fastq.gz",
+  "herg_series.csv": "https://www.ebi.ac.uk/chembl/api/data/activity.json?document_chembl_id=CHEMBL1137327",
+  "rizvi2015_mutations.csv": "https://www.cbioportal.org/api/molecular-profiles/nsclc_mskcc_2015_mutations/mutations/fetch (sampleListId nsclc_mskcc_2015_all)",
+  "rizvi2015_clinical.csv": "https://www.cbioportal.org/api/studies/nsclc_mskcc_2015/clinical-data (PATIENT + SAMPLE)",
+  "ceph1463_genotypes.vcf.gz": "https://raw.githubusercontent.com/brentp/peddy/master/data/ceph1463.peddy.vcf.gz",
+  "ceph1463.ped": "https://raw.githubusercontent.com/brentp/peddy/master/data/ceph1463.ped",
+  "ht29_brunello_counts.tsv": "https://raw.githubusercontent.com/francescojm/CRISPRcleanR/master/inst/extdata/HT29-Brunello_counts.tsv",
+  "ht29_minlibcas9_counts.tsv": "https://raw.githubusercontent.com/francescojm/CRISPRcleanR/master/inst/extdata/HT29-MiniLibCas9_counts.tsv",
+  "essential_genes_CEGv2.txt": "https://raw.githubusercontent.com/hart-lab/bagel/master/CEGv2.txt",
+  "nonessential_genes_NEGv1.txt": "https://raw.githubusercontent.com/hart-lab/bagel/master/NEGv1.txt",
+  "pbc_cohort.csv": "https://vincentarelbundock.github.io/Rdatasets/csv/survival/pbc.csv",
+  "pbc_dictionary.json": "https://vincentarelbundock.github.io/Rdatasets/doc/survival/pbc.html",
+  "proteinGroups_batch.txt": "https://raw.githubusercontent.com/MonashBioinformaticsPlatform/LFQ-Analyst/master/www/data/proteinGroups_example_feb19.txt",
+  "proteomics_batch_design.txt": "https://raw.githubusercontent.com/MonashBioinformaticsPlatform/LFQ-Analyst/master/www/data/experimental_design_example_feb19.txt"
 }

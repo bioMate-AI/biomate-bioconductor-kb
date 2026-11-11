@@ -115,7 +115,7 @@ cd frontend && BIOMATE_URL=https://dev-public.biomate.ai \
 | Compare variant burden; Stratify cohort by response | Answered inline (computed) instead of a workflow. Acceptable only if intended. |
 | Quantify differential protein abundance | Routed to *Chemoproteomics Pulldown* (H/L enrichment), not a DE workflow |
 
-### 4.3 Example ↔ data mismatches (static audit) — MEDIUM
+### 4.3 Example ↔ data mismatches (static audit) — MEDIUM (fixed, see §9)
 
 - **"Compare variant burden between my responder and non-responder cohorts"** attaches one normal and one tumour Strelka VCF from the same patient. There are no responder cohorts.
 - **"Stratify this cohort by response and test the primary endpoint"** uses the NCCTG lung cohort, which has no response variable. The bundle context tells the model to stratify by sex instead; the label promises something the data cannot deliver.
@@ -216,3 +216,77 @@ Remove the "**Boundary:** Synthesizes retrieved literature only — not validate
 
   They will be merged into #365, then pre-sync checks, dev sync and a full re-run of the live harness.
 - **Left for the founder to decide:** UI that belongs to the real S3 connector feature still says "S3": "复制 S3 路径" (copy path), "我的 S3 存储桶" (output destination), and the URL importer's "AWS S3 单个文件 / S3 文件夹". These name a working feature rather than leak storage.
+
+---
+
+## 9. Data analysis example catalog reworked (4.3 closed — branch `fix/data-analysis-example-catalog`)
+
+Standard applied: **every clickable example has its own appropriate inputs, and
+the text the user sees must be supportable by the data that is attached.** Where
+a well-known small public dataset genuinely fits, it was added (option a);
+where it did not, the visible text was rewritten to what the existing data
+supports (option b). Nothing was fabricated or synthesized.
+
+### 9.1 Per-example decisions
+
+| Example (domain / track) | Before | After | Data + provenance |
+|---|---|---|---|
+| Genomics — "Compare variant burden between my responder and non-responder cohorts." | `variants`: one normal + one tumour Strelka VCF from a single nf-core test patient — no cohorts, no response | **(a)** text unchanged, data replaced → `cohorts` | `rizvi2015_mutations.csv` (4,079 somatic coding mutations, GRCh37) + `rizvi2015_clinical.csv` (16 samples, `DURABLE_CLINICAL_BENEFIT` DCB=7 / NDB=9, `OVERALL_RESPONSE`, PFS). cBioPortal study `nsclc_mskcc_2015`; Rizvi NA et al., *Science* 2015, PMID 25765070. cBioPortal public-study terms |
+| Clinical — "Stratify this cohort by response and test the primary endpoint." | `clinical`: NCCTG lung cohort has **no** response variable; the hidden context told the model to stratify by sex instead | **(a)+(b)** text rewritten to what a real randomised trial supports → `trial`; shape title now "Compare trial arms and test the primary endpoint", seed "Compare the treatment arms in this trial cohort and test the primary endpoint." | `pbc_cohort.csv` + `pbc_dictionary.json` — Mayo Clinic PBC trial, R `survival::pbc` (418 rows; `trt` 1=D-penicillamine / 2=placebo for the randomised 312; OS with transplant as a competing event). Rdatasets mirror; LGPL (>=2) |
+| Functional genomics — "QC my CRISPR screen — guide representation, replicate correlation, and control separation" | `crispr`: MAGeCK demo has one column per line/time → **no replicates**, so replicate correlation was impossible | **(a)** → `crisprQc` | `ht29_brunello_counts.tsv` (plasmid + `Brunello_HT29-rep1/2/3`, three true replicates) + `essential_genes_CEGv2.txt` / `nonessential_genes_NEGv1.txt` for control separation. CRISPRcleanR `inst/extdata` (MIT; Iorio et al., *BMC Genomics* 2018; Brunello library Doench et al. 2016) and hart-lab/bagel CEGv2/NEGv1 (MIT) |
+| Functional genomics — "Call hits from a pooled CRISPR screen" | shared `crispr` | **(a)** → `crisprHits` | `ht29_minlibcas9_counts.tsv` (plasmid `MHG_library_v1` + `HT29_c9M1R4/R5/R6`) + the same two reference gene sets. CRISPRcleanR example (MIT); MiniLibCas9 library Gonçalves et al., *Genome Biol* 2021 |
+| Functional genomics — "Compare screen hits across two conditions" | shared `crispr`; the MAGeCK demo's two arms are two **cell lines**, not two conditions | **(b)** → `crisprLines`, title "Compare screen hits across two cell lines", seed "…between the two cell lines and flag line-specific dependencies." | `crispr_counts.tsv` + `crispr_design.csv` (MAGeCK demo, HL60 and KBM7 initial/final) — unchanged data, honest text |
+| Proteomics — "Assess run-to-run quality across this proteomics batch." | shared `proteomics` (the DE bundle) | **(a)** → `proteomicsQc` | `proteinGroups_batch.txt` + `proteomics_batch_design.txt` — LFQ-Analyst 12-run example (4 replicates each of CD34High/Low/Neg), GPL-3.0; Shah AD et al., *J Proteome Res* 2020. The DE example keeps the 15-run `proteinGroups.txt` |
+| Drug discovery — "Why might this hit series be failing on hERG? Cite the evidence." | shared `admet` (the ABL1 pilot compound set, whose hERG values are curated single drugs, not one series) | **(a)** → `hergSeries` | `herg_series.csv` — one published chromone-2-carboxamide MCHR1 series with measured MCHR1 IC50 (CHEMBL344) and hERG IC50 (CHEMBL240, [³H]dofetilide) in nM. ChEMBL document CHEMBL1137327 (*J Med Chem* 2006, doi:10.1021/jm060683e); ChEMBL data CC BY-SA 3.0. 109 measured activities over 46 compounds (25 with a measured hERG IC50); the 24 records with no numeric value were dropped |
+| Genomics — "Check these samples for contamination and relatedness before I analyse them." | shared `reads` (two tiny nf-core FASTQ pairs — a single tumour/normal pair cannot support relatedness) | **(a)+(b)** → `relatedness`; needs now "multi-sample genotypes + a pedigree", seed "Check these **genotypes** for contamination and relatedness…" | `ceph1463_genotypes.vcf.gz` (17 samples, 19,991 sites, GRCh37) + `ceph1463.ped` — Illumina Platinum Genomes CEPH 1463 pedigree from brentp/peddy (MIT; Pedersen & Quinlan, *AJHG* 2017). INFO dropped and FORMAT reduced to `GT:DP:RO:AO` for size; genotypes and allele counts unchanged |
+| Genomics — "Call variants on these samples…" | `reads` | unchanged (`reads` is now exclusive to it) | nf-core/sarek tiny fixtures, GRCh37 |
+| Clinical — "From this cohort, discover a biomarker panel…" | `clinical` | unchanged bundle, context corrected to drop the "stratify by sex" instruction (that instruction only existed to paper over the response-stratification example) | NCCTG lung cohort, R `survival::cancer` |
+
+The two Strelka VCFs and `variant_samples.csv` are no longer selected by any
+example. They were left in place (not deleted) and remain listed in
+`checksums.json`.
+
+### 9.2 Provenance recording
+
+Every new asset has an entry in `frontend/client/public/demo/cold-start/checksums.json`
+carrying `bytes`, `sha256`, **`source` (URL), `licence`, `citation` and
+`derivation`** — the derivation line states exactly what was changed (column
+flattening, line endings, FORMAT reduction) so no file can be mistaken for an
+untouched upstream download or for new measurements. `sources.json` and
+`demo_notes.md` were updated in the same pass. 13 new files, 7.3 MB total,
+largest 2.7 MB.
+
+### 9.3 Uniqueness regression test
+
+`cold-start-demo-catalog.test.ts` now has three new assertions:
+
+1. **`never shows two examples that silently resolve to the same inputs`** —
+   within every module track and within every validated-workflow domain, no two
+   printed examples may map to the same bundle key unless the pair is in
+   `SHARING_ALLOWLIST` with a written reason. This generalises the
+   Search-track-only check from §2.1 to all four modules and all seven domains.
+2. **`allowlists only sharing that actually happens`** — an allowlist entry that
+   no longer corresponds to real sharing fails the suite, so the allowlist cannot
+   rot into a blanket exemption.
+3. **`every bundle in the catalog is reachable from a printed example`** — a
+   bundle that no example selects is dead weight and fails.
+
+Allowlist (2 entries, both the design chain working on one candidate set by
+design):
+
+| Entry | Reason |
+|---|---|
+| `design:molecules` | the small-molecule design chain deliberately carries ONE candidate library through Generate → Predict → Optimise → Rank |
+| `design:biologics` | same chain, biologic modality: one nanobody/antibody design set end to end |
+
+The earlier tests are kept unchanged: deictic examples must have a bundle, no
+storage paths or demo scaffolding in visible text, every selected asset exists
+and is not an HTML SPA fallback, no default dataset for a custom goal.
+
+### 9.4 Verification
+
+- `npx vitest run client/src/components/cold-start` → **3 files, 202 tests passed**.
+- `npx tsc --noEmit -p .` → clean.
+- One existing dashboard assertion was widened: the Drug discovery domain now
+  shows two sample badges (ADMET example SMILES and the hERG series), so the test
+  asserts one badge per shape that names a dataset, in shape order.

@@ -3,7 +3,7 @@ import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { COLD_MODULES, COLD_DOMAINS, seedWithModality } from './cold-start-dashboard';
-import { coldDemoFor, COLD_DEMO_BUNDLES } from './cold-start-demo-catalog';
+import { coldDemoFor, COLD_DEMO_BUNDLES, COLD_DEMO_INTENTS } from './cold-start-demo-catalog';
 import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from './cold-start-examples';
 
 const seeds = [...COLD_DOMAINS.flatMap(domain => domain.shapes.map(shape => shape.seed)), ...COLD_MODULES.flatMap(module => module.tracks.flatMap(track => track.exBy ? [...track.ex, ...Object.entries(track.exBy).flatMap(([mod, texts]) => texts.map(text => seedWithModality(text, mod as 'sm' | 'pep' | 'bio')))] : track.ex))];
@@ -35,6 +35,60 @@ describe('every cold-start path has prepared inputs', () => {
       const bundles = track.ex.map(text => coldDemoFor(text)?.files.join(',')).filter(Boolean);
       expect(new Set(bundles).size, track.k).toBe(bundles.length);
     }
+  });
+  // Two examples printed side by side must not quietly resolve to the same
+  // inputs: a shared bundle is how "QC a screen" ended up on data with no
+  // replicates and how all three Search tracks attached one dataset
+  // (docs/20261110_COLDSTART_EXAMPLES_LIVE_AUDIT.md §2.1, §4.3). Reuse is legal
+  // only where it is the point — a design chain working on one candidate set.
+  const SHARING_ALLOWLIST: Record<string, string> = {
+    'design:molecules': 'the small-molecule design chain deliberately carries ONE candidate library through Generate → Predict → Optimise → Rank',
+    'design:peptides': 'same chain, peptide modality: one candidate set through generate/predict/optimise/rank',
+    'design:biologics': 'same chain, biologic modality: one nanobody/antibody design set end to end',
+    'models:loop': 'the design–make–test loop example and its "next round" follow-up are two turns of one loop',
+  };
+  const bundleKey = (text: string) => COLD_DEMO_INTENTS.get(text.replace(/ \((peptide|protein) design\)$/, ''));
+  const assertUnique = (scope: string, texts: string[]) => {
+    const seen = new Map<string, string>();
+    for (const text of texts) {
+      const key = bundleKey(text);
+      if (!key) continue;
+      const first = seen.get(key);
+      if (first === undefined) { seen.set(key, text); continue; }
+      expect(SHARING_ALLOWLIST[`${scope}:${key}`], `${scope} reuses the "${key}" bundle for "${first}" and "${text}" — give one its own inputs, or allowlist the pair with a reason`).toBeTruthy();
+    }
+  };
+  it('never shows two examples that silently resolve to the same inputs', () => {
+    for (const module of COLD_MODULES) {
+      for (const track of module.tracks) {
+        const texts = track.exBy
+          ? Object.entries(track.exBy).flatMap(([mod, list]) => list.map(text => seedWithModality(text, mod as 'sm' | 'pep' | 'bio')))
+          : track.ex;
+        assertUnique(module.id, texts.filter(text => !builtins.has(text)));
+      }
+    }
+    for (const domain of COLD_DOMAINS) assertUnique(`domain-${domain.id}`, domain.shapes.map(shape => shape.seed));
+  });
+  it('allowlists only sharing that actually happens, so stale entries are removed', () => {
+    const shared = new Set<string>();
+    const record = (scope: string, texts: string[]) => {
+      const seen = new Set<string>();
+      for (const text of texts) {
+        const key = bundleKey(text);
+        if (!key) continue;
+        if (seen.has(key)) shared.add(`${scope}:${key}`);
+        seen.add(key);
+      }
+    };
+    for (const module of COLD_MODULES) for (const track of module.tracks) {
+      record(module.id, (track.exBy ? Object.entries(track.exBy).flatMap(([mod, list]) => list.map(text => seedWithModality(text, mod as 'sm' | 'pep' | 'bio'))) : track.ex).filter(text => !builtins.has(text)));
+    }
+    for (const domain of COLD_DOMAINS) record(`domain-${domain.id}`, domain.shapes.map(shape => shape.seed));
+    expect([...Object.keys(SHARING_ALLOWLIST)].filter(entry => !shared.has(entry))).toEqual([]);
+  });
+  it('every bundle in the catalog is reachable from a printed example', () => {
+    const used = new Set([...COLD_DEMO_INTENTS.values()]);
+    expect(Object.keys(COLD_DEMO_BUNDLES).filter(key => !used.has(key))).toEqual([]);
   });
   it('ships every selected asset rather than relying on an HTML SPA fallback', () => {
     const root = resolve(__dirname, '../../public/demo/cold-start');
