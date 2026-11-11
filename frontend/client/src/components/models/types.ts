@@ -28,6 +28,15 @@ export interface ModelSummary {
   version: string
   origin: string
   usedByCount: number
+  /** The owner's most recent inference on this model, when there has been one.
+   * A failure carries the REAL backend reason (e.g. the NVIDIA-side error), so
+   * the 模型库 tab can say why instead of only "failed". */
+  lastInference?: {
+    status: "completed" | "failed" | string
+    error?: string | null
+    at?: number
+    runId?: string
+  }
 }
 
 // ── GET /api/models/{id} ─────────────────────────────────────────────────────

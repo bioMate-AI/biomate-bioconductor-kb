@@ -1,11 +1,13 @@
 /**
- * Pure helpers for the Models-panel training launcher.
+ * Helpers for the Models-panel training launcher.
  *
  * The metric table mirrors backend/lib/galaxy/ai/ml_training/plan.py
  * (_SUPERVISED_METRICS / _GENERATIVE_METRIC): only metrics the trainer actually
  * reports are offered, so a configured gate can never fail closed on a metric
  * that is never produced. The backend re-validates every field.
  */
+
+import { t } from '@/lib/i18n';
 
 export type LauncherFamily = 'general' | 'molecular';
 export type FileKind = 'table' | 'h5ad' | 'structure' | 'other';
@@ -113,3 +115,13 @@ export function defaultModelName(fileName: string, target: string): string {
 }
 
 export const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'canceled', 'succeeded', 'error']);
+
+/** Known run states; anything else is treated as queued. */
+const RUN_STATUSES = ['queued', 'configuring', 'running', 'paused', 'completed', 'succeeded',
+  'failed', 'cancelled', 'canceled', 'error'];
+
+/** A run status string → its localized label (unknown states fall back to queued). */
+export function runStatusLabel(status: string): string {
+  const key = String(status || '').toLowerCase();
+  return t(`models.run_status_${RUN_STATUSES.includes(key) ? key : 'queued'}`);
+}

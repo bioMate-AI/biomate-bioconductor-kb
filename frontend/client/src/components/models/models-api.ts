@@ -23,7 +23,27 @@ import type {
   InferResponse,
   InferenceResult,
 } from "./types"
-import type { TrainData, AdaptData, OptimiseData } from "./models-panel"
+import type { TrainData, OptimiseData } from "./models-panel"
+
+/**
+ * House-style (adaptation) shapes. The tab is hidden (models-panel
+ * HOUSE_STYLE_HIDDEN) because its only data source is the IND regulatory pair
+ * recorder, which is itself hidden — the read/mutate hooks and these types stay
+ * so re-enabling it is one tab registration, not a rewrite.
+ */
+export interface AdaptPair {
+  id: string
+  learned: string
+  scope: string
+  before: string
+  after: string
+  source: string
+  on: boolean
+}
+export interface AdaptData {
+  pendingCount?: number
+  pairs: AdaptPair[]
+}
 
 // ── GET /api/models ──────────────────────────────────────────────────────────
 export function useModels(): UseQueryResult<ModelSummary[]> {

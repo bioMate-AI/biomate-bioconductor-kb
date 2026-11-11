@@ -17,6 +17,7 @@
  */
 
 import { useMemo, useState } from "react"
+import { t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,55 +30,32 @@ import type { EvidenceClass, ModelSummary } from "./types"
 // ── Domain definitions ───────────────────────────────────────────────────────
 interface Domain {
   id: EvidenceClass
-  label: string
-  goal: string
   /** default catalog id if none matches the family filter. */
   defaultModelId: string
   /** which catalog family strings belong to this domain. */
   families: string[]
   inputKey: "sequence" | "smiles"
-  inputLabel: string
-  placeholder: string
-  examples: string[]
-  produces: string
 }
+
 
 const DOMAINS: Domain[] = [
   {
     id: "structure",
-    label: "Structure",
-    goal: "Predict a protein structure with per-residue confidence and pairwise error.",
     defaultModelId: "bionemo:boltz2",
     families: ["structure"],
     inputKey: "sequence",
-    inputLabel: "Protein sequence (one-letter)",
-    placeholder: "MKTAYIAKQR...",
-    examples: ["Fold this sequence and show me which loops to trust"],
-    produces: "a 3D structure, pLDDT and PAE",
   },
   {
     id: "genomic",
-    label: "Genomic",
-    goal: "Score / generate over a genomic locus and flag the actionable intervals.",
     defaultModelId: "bionemo:evo2_7b",
     families: ["genomic"],
     inputKey: "sequence",
-    inputLabel: "Nucleotide sequence",
-    placeholder: "ACGTACGTACGT...",
-    examples: ["Score this locus and flag the intervals worth reviewing"],
-    produces: "score tracks and flagged intervals",
   },
   {
     id: "chemical",
-    label: "Chemical",
-    goal: "Score a set of candidate molecules for a property, ranked with confidence.",
     defaultModelId: "",
     families: ["python", "docker", "rest", "custom", "chemical"],
     inputKey: "smiles",
-    inputLabel: "SMILES (one per line)",
-    placeholder: "CC1=CC(=NO1)C(=O)Nc1ccc(F)cc1\nCOc1ccc(cc1)...",
-    examples: ["Rank these candidates and tell me which are out-of-domain"],
-    produces: "ranked hits by score, confidence and verdict",
   },
 ]
 
@@ -133,12 +111,8 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
     <div className={className} data-testid="run-pretrained">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Run a model</CardTitle>
-          <p className="text-fs-xs text-muted-foreground">
-            A pre-trained, integrated open-source model · nothing of yours is trained. You supply an input and get
-            an inference — so the questions are what it can speak to and how much of its answer to
-            trust, not what it learned.
-          </p>
+          <CardTitle className="text-sm">{t("models.run_model_heading")}</CardTitle>
+          <p className="text-fs-xs text-muted-foreground">{t("models.run_model_intro")}</p>
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Domain picker */}
@@ -152,13 +126,13 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
                 data-testid={`domain-${d.id}`}
                 onClick={() => selectDomain(d.id)}
               >
-                {d.label}
+                {t(`models.domain_${d.id}`)}
               </Button>
             ))}
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-semibold">{domain.goal}</p>
+            <p className="text-xs font-semibold">{t(`models.domain_goal_${domain.id}`)}</p>
             <div className="flex items-center gap-2 flex-wrap text-fs-xs">
               <Badge variant="outline">{domain.id}</Badge>
               {modelId ? (
@@ -172,34 +146,31 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
                 </button>
               ) : (
                 <span className="text-muted-foreground" data-testid="run-pretrained-no-model">
-                  no {domain.id} model registered
+                  {t("models.no_model_for_domain")}
                 </span>
               )}
-              <span className="text-muted-foreground">produces {domain.produces}</span>
+              <span className="text-muted-foreground">{t(`models.domain_produces_${domain.id}`)}</span>
             </div>
-            {domain.examples.map((e) => (
-              <button
-                key={e}
-                type="button"
-                className="flex items-center gap-1 text-fs-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setInputText(domain.placeholder.split("\n")[0])}
-                data-testid="run-pretrained-example"
-              >
-                <Sparkles className="h-3 w-3" />
-                <span className="italic">"{e}"</span>
-              </button>
-            ))}
+            <button
+              type="button"
+              className="flex items-center gap-1 text-fs-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setInputText(t(`models.domain_example_${domain.id}`))}
+              data-testid="run-pretrained-example"
+            >
+              <Sparkles className="h-3 w-3" />
+              <span className="italic">{t("models.use_example_input")}</span>
+            </button>
           </div>
 
           {/* Input */}
           <div className="space-y-1">
             <label className="text-fs-xs uppercase tracking-wide text-muted-foreground">
-              {domain.inputLabel}
+              {t(`models.domain_input_${domain.id}`)}
             </label>
             <Textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder={domain.placeholder}
+              placeholder={t(`models.domain_placeholder_${domain.id}`)}
               className="font-mono text-xs min-h-[80px]"
               data-testid="run-pretrained-input"
             />
@@ -216,18 +187,18 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
               {running ? (
                 <>
                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Running…
+                  {t("models.inference_running")}
                 </>
               ) : (
                 <>
                   <Play className="h-3 w-3 mr-1" />
-                  Run inference
+                  {t("models.run_inference")}
                 </>
               )}
             </Button>
             {infer.isError && (
               <span className="text-fs-xs text-destructive" data-testid="run-pretrained-error">
-                {infer.error instanceof Error ? infer.error.message : "Inference failed"}
+                {infer.error instanceof Error ? infer.error.message : t("models.inference_failed")}
               </span>
             )}
           </div>
@@ -239,21 +210,21 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
         <Card className="mt-3" data-testid="run-pretrained-result-card">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-sm">Result</CardTitle>
+              <CardTitle className="text-sm">{t("models.result_heading")}</CardTitle>
               {result?.status === "running" && (
                 <Badge variant="outline" className="text-fs-xs gap-1" data-testid="result-status-running">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  running
+                  {t("models.run_status_running")}
                 </Badge>
               )}
               {result?.status === "completed" && (
                 <Badge variant="outline" className="text-fs-xs" data-testid="result-status-completed">
-                  completed
+                  {t("models.run_status_completed")}
                 </Badge>
               )}
               {result?.status === "failed" && (
                 <Badge variant="destructive" className="text-fs-xs" data-testid="result-status-failed">
-                  failed
+                  {t("models.run_status_failed")}
                 </Badge>
               )}
               <span className="text-fs-xs font-mono text-muted-foreground ml-auto">{modelId}</span>
@@ -262,7 +233,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
           <CardContent>
             {result?.status === "failed" && (
               <p className="text-xs text-destructive" data-testid="result-error">
-                {result.error ?? "Inference did not complete."}
+                {result.error ?? t("models.inference_incomplete")}
               </p>
             )}
             {result?.status === "completed" && (
@@ -274,7 +245,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
             )}
             {(!result || result.status === "running") && (
               <p className="text-xs text-muted-foreground" data-testid="result-pending">
-                Inference is running — the result renders here when it completes.
+                {t("models.inference_pending")}
               </p>
             )}
           </CardContent>
