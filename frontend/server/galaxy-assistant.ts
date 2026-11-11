@@ -6725,7 +6725,6 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       const wired = !data.order_only;
       return `  ${k + 1}. **${s.description || s.workflow_name}** — ` +
         (s.workflow_label ? `runs **${s.workflow_label}** (\`${s.nextflow_path}\`)` : `\`${s.nextflow_path}\``) +
-        (s.reroute_reason ? ` — switched from ${s.rerouted_from} because it ${s.reroute_reason}` : '') +
         (deps.length
           ? ` (${wired ? 'uses the results of' : 'runs after'} step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})`
           : ' (runs in parallel)');
