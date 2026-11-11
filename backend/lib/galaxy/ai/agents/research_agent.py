@@ -89,13 +89,23 @@ def _fetch_s2_paper(title_or_query: str) -> list:
     Returns a list of dicts with keys: title, abstract, openAccessPdf, externalIds.
     openAccessPdf is a dict with 'url' key when available.
     """
+    # Semantic Scholar's keyless shared pool returns HTTP 429 on nearly every call, so
+    # without a key this per-citation abstract/PDF enrichment just wastes requests (the
+    # abstract/PDF is recoverable from Europe PMC / OpenAlex anyway). Skip unless we hold
+    # a key; it re-enables the moment SEMANTIC_SCHOLAR_API_KEY is set. This is a THIRD S2
+    # path, separate from the literature client + federated fan-out — the live E2E caught
+    # 6x 429 from here even after those were gated (dev finding, 2026-11-11).
+    import os as _os_s2
+    _s2_key = _os_s2.environ.get("SEMANTIC_SCHOLAR_API_KEY", "").strip()
+    if not _s2_key:
+        return []
     try:
         q = urllib.parse.quote(title_or_query[:200])
         url = (
             f"https://api.semanticscholar.org/graph/v1/paper/search"
             f"?query={q}&fields=title,abstract,openAccessPdf,externalIds&limit=3"
         )
-        result = _http_get(url, headers={"Accept": "application/json"}, timeout=15)
+        result = _http_get(url, headers={"Accept": "application/json", "x-api-key": _s2_key}, timeout=15)
         if result and isinstance(result.get("data"), list):
             return result["data"]
     except Exception as e:
