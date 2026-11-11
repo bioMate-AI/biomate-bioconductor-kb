@@ -1545,6 +1545,13 @@ restart_galaxy() {
       fi
     }
     kill_orphan_gunicorn
+    # Galaxy (user galaxy) creates /tmp/nextflow_runs/<run_id> for EVERY Nextflow launch.
+    # Anything run as root in the container (docker exec -u root …) can leave it root-owned,
+    # and a snapshot/rollback preserves that — then every workflow launch fails with
+    # "Permission denied: /tmp/nextflow_runs/<id>" (dev, 2026-11-11 03:03 → 04:52).
+    docker exec -u root "$GC" sh -c "mkdir -p /tmp/nextflow_runs && chown -R galaxy:galaxy /tmp/nextflow_runs" 2>/dev/null && \
+      echo "[galaxy] /tmp/nextflow_runs owned by galaxy" || \
+      echo "[galaxy] WARNING: could not fix /tmp/nextflow_runs ownership"
     docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -2 && \
       echo "[galaxy] gunicorn master restarted (fresh module load)" || \
       echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
@@ -1825,7 +1832,12 @@ _postsync_probe() {
       gx=0; fe=0
       curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null && gx=1
       curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health 2>/dev/null && fe=1
-      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then exit 0; fi
+      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then
+        # Launch-path check: the galaxy user must be able to create a Nextflow run dir,
+        # or every workflow launch fails ("Permission denied: /tmp/nextflow_runs/<id>").
+        if docker exec -u galaxy biomate-galaxy-dev sh -c 'd=/tmp/nextflow_runs/.writecheck-\$\$; mkdir -p \$d && rmdir \$d' 2>/dev/null; then exit 0; fi
+        echo \"[probe \$i/$tries] galaxy cannot create /tmp/nextflow_runs/<run> — workflow launches would fail\"
+      fi
       echo \"[probe \$i/$tries] galaxy=\$gx frontend=\$fe\"
       sleep 5
     done
@@ -1850,6 +1862,8 @@ rollback_sync() {
       -v $GALAXY_DB_HOST_PATH:/app/database \
       --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
     docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+    # The snapshot preserves file ownership; make sure Galaxy can create run dirs again.
+    docker exec -u root biomate-galaxy-dev sh -c 'mkdir -p /tmp/nextflow_runs && chown -R galaxy:galaxy /tmp/nextflow_runs' 2>/dev/null || true
     echo '[rollback]   galaxy recreated from snapshot'
   "; then
     log "[rollback] galaxy recreate FAILED"
