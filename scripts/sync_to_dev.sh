@@ -883,13 +883,20 @@ deploy_workflows() {
     log "[workflows] Resolve them (likely a stray 'git stash apply') then re-run. ABORTING sync."
     return 1
   fi
-  tar -czf "$tar_file" \
-    --exclude='*/.nextflow' \
-    --exclude='*/.nextflow.log*' \
-    backend/biomni_workflows/ \
-    backend/nf-core-workflows/modules/biomate-ai-tools/ \
-    backend/nf-core-modules/ 2>/dev/null
-  log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
+  # Ship the COMMITTED tree (HEAD), NOT the working tree. A sparse or stale
+  # worktree shipped an OLD .nf for a commit the ledger recorded as deployed
+  # (2026-11-11 boltz_structure_prediction: dev's commit contained the fix but
+  # /app still ran the old file). The ancestry gate verifies the COMMIT while
+  # deploy_workflows ships FILES, so a working-tree tar let the two diverge.
+  # git archive is content-addressed to HEAD — same guarantee deploy_backend_python
+  # gets from `git show HEAD:`. All workflow source is committed (0 untracked .nf),
+  # and .nextflow/.nextflow.log are gitignored so HEAD never carries them.
+  git archive --format=tar.gz -o "$tar_file" HEAD -- \
+    backend/biomni_workflows \
+    backend/nf-core-workflows/modules/biomate-ai-tools \
+    backend/nf-core-modules 2>/dev/null \
+    || { log "[workflows] FATAL: git archive HEAD failed (detached/corrupt HEAD?). ABORTING."; return 1; }
+  log "[workflows] Archive (git HEAD ${CURRENT_COMMIT:0:8}): $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
 
