@@ -969,6 +969,7 @@
     "inputs_blocking": "Nothing will run until {{n}} input{{verb}} resolved — pick the file or fix the mapping above.",
     "inputs_all_bound": "These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.",
     "params_only_no_inputs": "This workflow takes parameters only — no data inputs to bind.",
+    "attachments_not_used": "Files you uploaded in this session are not used by this workflow. Ask in the chat for a workflow that reads them.",
     "diag": {
       "title": "AI diagnosis",
       "error_details": "Error details",
