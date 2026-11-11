@@ -1,0 +1,89 @@
+{
+  "_note": "Held-out replay set for docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md. Wordings are deliberately DIFFERENT from the classifier-prompt examples (never copy a prompt example here). expect = acceptable final outcomes: workflow | direct_compute | no_exec. attach=true appends the UI's attached-dataset block; history = prior USER turns.",
+  "cases": [
+    {"id":"F1","group":"founder","text":"先做第一步","history":["这个表格里能做哪些分析？给我列个计划\n\n[Attached files: epar_medicines.jsonl]\n[Uploaded datasets: epar_medicines.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://biomate-uploads/u1/epar_medicines.jsonl]"],"expect":["direct_compute"]},
+    {"id":"F2","group":"founder","text":"第2-5步，并提供结果文件下载链接","history":["这个表格里能做哪些分析？给我列个计划\n\n[Attached files: epar_medicines.jsonl]\n[Uploaded datasets: epar_medicines.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://biomate-uploads/u1/epar_medicines.jsonl]","先做第一步"],"expect":["direct_compute"]},
+    {"id":"F3","group":"founder","text":"你可以直接编程统计吗 不用工作流","history":["这个表格里能做哪些分析？给我列个计划\n\n[Attached files: epar_medicines.jsonl]\n[Uploaded datasets: epar_medicines.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://biomate-uploads/u1/epar_medicines.jsonl]"],"expect":["direct_compute"]},
+    {"id":"F1e","group":"founder","text":"Go ahead with step one","history":["What analyses could I run on this table? Give me a plan\n\n[Attached files: epar_medicines.jsonl]\n[Uploaded datasets: epar_medicines.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://biomate-uploads/u1/epar_medicines.jsonl]"],"expect":["direct_compute"]},
+    {"id":"F2e","group":"founder","text":"Now do steps 2 through 5 and give me download links for the result files","history":["What analyses could I run on this table? Give me a plan\n\n[Attached files: epar_medicines.jsonl]\n[Uploaded datasets: epar_medicines.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://biomate-uploads/u1/epar_medicines.jsonl]","Go ahead with step one"],"expect":["direct_compute"]},
+    {"id":"F3e","group":"founder","text":"Can you just write code and count it directly? No workflow needed.","history":["What analyses could I run on this table? Give me a plan\n\n[Attached files: epar_medicines.jsonl]\n[Uploaded datasets: epar_medicines.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://biomate-uploads/u1/epar_medicines.jsonl]"],"expect":["direct_compute"]},
+
+    {"id":"DC1","group":"direct_code","text":"Using run_code, give me the median and IQR of 4.1, 5.3, 2.2, 8.8, 6.0","expect":["direct_compute"]},
+    {"id":"DC2","group":"direct_code","text":"帮我跑一下这段代码：\n```python\nimport math\nprint(sum(math.log(x) for x in [1,2,3,4]))\n```","expect":["direct_compute"]},
+    {"id":"DC3","group":"direct_code","text":"Tabulate how many records per therapeutic area are in my file and draw a bar chart","attach":"medicines.csv","expect":["direct_compute"]},
+    {"id":"DC4","group":"direct_code","text":"统计一下这个表里每个年份批准了多少个药，画个折线图","attach":"approvals.csv","expect":["direct_compute"]},
+    {"id":"DC5","group":"direct_code","text":"Compute isoelectric point and molecular weight for MKWVTFISLLLLFSSAYSRGVFRRDTHKSEIAHRFKDLGE","expect":["direct_compute"]},
+    {"id":"DC6","group":"direct_code","text":"No pipeline please — just correlate column dose with response in the attached sheet","attach":"dose_response.xlsx","expect":["direct_compute"]},
+    {"id":"DC7","group":"direct_code","text":"Run nf-core/rnaseq on the paired FASTQ files I attached, GRCh38","attach":"S1_R1.fastq.gz","expect":["workflow"]},
+    {"id":"DC8","group":"direct_code","text":"Quick DE on this little table with DESeq2:\ngene,ctl1,ctl2,trt1,trt2\nIL6,10,12,80,95\nTNF,5,7,40,38\nACTB,1000,1010,990,1005","expect":["direct_compute","workflow"]},
+
+    {"id":"ML1","group":"ml_training","text":"Fine-tune a graph neural network regressor to predict aqueous solubility from my compound table","attach":"solubility.csv","expect":["workflow"]},
+    {"id":"ML2","group":"ml_training","text":"用我上传的表达矩阵训练一个分类器区分肿瘤和正常样本","attach":"tcga_expr.csv","expect":["workflow","direct_compute"]},
+    {"id":"ML3","group":"ml_training","text":"Build me a QSAR model for EGFR inhibition using ChEMBL IC50 values","expect":["workflow"]},
+    {"id":"ML4","group":"ml_training","text":"Is a random forest or a GNN better suited for small-molecule QSAR?","expect":["no_exec"]},
+
+    {"id":"TE1","group":"target_evidence","text":"Pull together the target evidence for TNFRSF13B in IgA nephropathy","expect":["workflow"]},
+    {"id":"TE2","group":"target_evidence","text":"给我看一下 FCGRT 在重症肌无力中的遗传关联证据和成药性","expect":["workflow"]},
+    {"id":"TE3","group":"target_evidence","text":"Score C5 as a target in generalized myasthenia gravis — Open Targets association, GWAS and tractability","expect":["workflow"]},
+    {"id":"TE4","group":"target_evidence","text":"What does the Open Targets overall association score actually measure?","expect":["no_exec"]},
+
+    {"id":"TF1","group":"trial_feasibility","text":"Estimate how long enrollment will take for a phase 3 CIDP study across 40 US sites","expect":["workflow"]},
+    {"id":"TF2","group":"trial_feasibility","text":"计算一个罕见病二期试验需要的样本量，效应量0.5，检验效能80%","expect":["workflow","direct_compute"]},
+    {"id":"TF3","group":"trial_feasibility","text":"How many patients per arm do I need for a two-arm MG trial detecting a 2-point MG-ADL difference with SD 3.5?","expect":["workflow","direct_compute"]},
+    {"id":"TF4","group":"trial_feasibility","text":"Why are rare disease trials so hard to power adequately?","expect":["no_exec"]},
+
+    {"id":"PE1","group":"pathway_enrichment","text":"Do a GO biological-process over-representation test on C3, C5, CFB, CFH, SERPING1","expect":["workflow"]},
+    {"id":"PE2","group":"pathway_enrichment","text":"对这些差异基因做KEGG富集分析：TP53, MDM2, CDKN1A, BAX, GADD45A","expect":["workflow"]},
+    {"id":"PE3","group":"pathway_enrichment","text":"Take my DEG list and run clusterProfiler enrichKEGG with a dotplot","attach":"deg_list.txt","expect":["workflow"]},
+    {"id":"PE4","group":"pathway_enrichment","text":"What's the practical difference between GSEA and over-representation analysis?","expect":["no_exec"]},
+
+    {"id":"GW1","group":"gwas_chain","text":"Map TNFSF13B's genetic evidence across MG, CIDP and lupus — GWAS hits, eQTL colocalization and which cell types express it","expect":["workflow"]},
+    {"id":"GW2","group":"gwas_chain","text":"拉取 PTPN22 附近的 GWAS 信号并做 eQTL 共定位分析","expect":["workflow"]},
+    {"id":"GW3","group":"gwas_chain","text":"Explain what eQTL colocalization can and cannot tell you about causality","expect":["no_exec"]},
+
+    {"id":"MO1","group":"multi_omics","text":"Integrate my bulk RNA-seq counts with the Olink NPX panel measured on the same patients","expect":["workflow"]},
+    {"id":"MO2","group":"multi_omics","text":"把我的转录组和代谢组数据联合分析，找共同的通路","expect":["workflow"]},
+    {"id":"MO3","group":"multi_omics","text":"What are the main families of multi-omics integration methods?","expect":["no_exec"]},
+
+    {"id":"MA1","group":"macrophage","text":"Characterize M1 versus M2 macrophage polarization states in my nerve biopsy scRNA-seq","expect":["workflow"]},
+    {"id":"MA2","group":"macrophage","text":"分析我的单细胞数据中 TREM2+ 脂质相关巨噬细胞的代谢状态","expect":["workflow"]},
+    {"id":"MA3","group":"macrophage","text":"Which metabolic pathways distinguish M1 from M2 macrophages?","expect":["no_exec"]},
+
+    {"id":"CF1","group":"canonical_fixture","text":"DESeq2 on the pasilla dataset, treated vs untreated, and give me an MA plot","expect":["workflow"]},
+    {"id":"CF2","group":"canonical_fixture","text":"用 pbmc3k 数据做细胞聚类和注释","expect":["workflow"]},
+    {"id":"CF3","group":"canonical_fixture","text":"What is the airway dataset and why is it used in tutorials?","expect":["no_exec"]},
+
+    {"id":"DK1","group":"named_docking","text":"Site-directed docking of my ligand.sdf into the ATP pocket of PDB 1M17 with Vina","expect":["workflow"]},
+    {"id":"DK2","group":"named_docking","text":"用 AutoDock Vina 把这个配体对接到 6LU7 的活性位点","expect":["workflow"]},
+    {"id":"DK3","group":"named_docking","text":"How does the AutoDock Vina scoring function work?","expect":["no_exec"]},
+
+    {"id":"PA1","group":"plan_ab_pocket","text":"Predict MHC-I binders with nf-core/epitopeprediction (mhcnuggets) for my peptide FASTA","attach":"peptides.fasta","expect":["workflow"]},
+    {"id":"PA2","group":"plan_ab_pocket","text":"Codon-optimize target_sequence ATGGCTAGCAAAGGAGAAGAACTTTTCACTGGAGTTGTC for E. coli using the host_codon_usage table","expect":["workflow","direct_compute"]},
+    {"id":"PA3","group":"plan_ab_pocket","text":"Find druggable pockets with fpocket on PDB 3HTB","expect":["workflow"]},
+    {"id":"PA4","group":"plan_ab_pocket","text":"用 fpocket 检测这个蛋白结构的结合口袋并评估成药性","attach":"target.pdb","expect":["workflow"]},
+    {"id":"PA5","group":"plan_ab_pocket","text":"What does an fpocket druggability score of 0.8 mean?","expect":["no_exec"]},
+
+    {"id":"AD1","group":"admet","text":"hERG and DILI risk for CC(=O)Oc1ccccc1C(=O)O and CN1C=NC2=C1C(=O)N(C(=O)N2C)C","expect":["workflow"]},
+    {"id":"AD2","group":"admet","text":"预测这个分子的ADMET性质：CC(C)Cc1ccc(cc1)C(C)C(=O)O","expect":["workflow"]},
+    {"id":"AD3","group":"admet","text":"Here are the two leads: c1ccc2[nH]ccc2c1 and O=C(O)c1ccccc1O — screen them","history":["Our project goal is to profile ADMET liabilities (hERG, Ames, BBB) for each lead series"],"expect":["workflow"]},
+    {"id":"AD4","group":"admet","text":"Why is hERG channel blockade a cardiotoxicity concern?","expect":["no_exec"]},
+
+    {"id":"HP1","group":"hpo_ensg","text":"Phenotypes HP:0001250, HP:0001263, HP:0000252. Candidates: ENSG00000141510, ENSG00000012048, ENSG00000139618. Which gene explains this patient?","expect":["no_exec"]},
+    {"id":"HP2","group":"hpo_ensg","text":"患者表型 HP:0001761、HP:0000486，候选基因 ENSG00000161011、ENSG00000130812，哪个是致病基因？","expect":["no_exec"]},
+
+    {"id":"EP1","group":"execution_prohibition","text":"Interpret these PK parameters but do not run any simulation: CL=5 L/h, Vd=50 L, t1/2=7 h","expect":["no_exec"]},
+    {"id":"EP2","group":"execution_prohibition","text":"Set up the RNA-seq QC and alignment plan for my FASTQs, but don't launch any jobs yet","attach":"S2_R1.fastq.gz","expect":["workflow"]},
+    {"id":"EP3","group":"execution_prohibition","text":"只解释一下这些PBPK结果的含义，不要运行任何工作流","attach":"pbpk_results.csv","expect":["no_exec"]},
+
+    {"id":"PQ1","group":"paper_question","text":"Summarize the key findings of this paper\n\n[Attached files: smith2024_nature.pdf]","paper":true,"expect":["no_exec"]},
+    {"id":"PQ2","group":"paper_question","text":"这篇论文的主要结论是什么？\n\n[Attached files: zhang2025.pdf]","paper":true,"expect":["no_exec"]},
+    {"id":"PQ3","group":"paper_question","text":"Reproduce the single-cell clustering analysis from this paper on my data\n\n[Attached files: lee2023.pdf]","paper":true,"expect":["workflow"]},
+
+    {"id":"DA1","group":"data_attach","text":"also attach the remaining two CSVs","history":["Summarise sample QC for batch 1\n\n[Attached files: batch1.csv]"],"expect":["no_exec","direct_compute"]},
+    {"id":"DA2","group":"data_attach","text":"把另外两个文件也加进来","history":["帮我看看第一批样本的质控\n\n[Attached files: batch1.csv]"],"expect":["no_exec","direct_compute"]},
+    {"id":"DA3","group":"data_attach","text":"Add these two FASTQ pairs and run nf-core/rnaseq on all samples","attach":"S3_R1.fastq.gz","expect":["workflow"]},
+
+    {"id":"BO1","group":"boin","text":"Design a BOIN dose-escalation trial for my oncology compound","expect":["workflow"]},
+    {"id":"BO2","group":"boin","text":"设计一个BOIN一期剂量递增试验，剂量水平 [10, 30, 60, 120] mg，目标DLT率 0.3","expect":["workflow","direct_compute"]}
+  ]
+}
