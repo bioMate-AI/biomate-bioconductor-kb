@@ -79,7 +79,28 @@ another PR changes it. Add this as the last line, after the health check:
 
 ## 3. Live results on dev
 
-LIVE_RESULTS_PLACEHOLDER
+**Recorded run: 2026-11-10 22:05 CST, against dev at deployed commit
+`401e23e8ef6e67078425e51fc61e6f0f933b92ff`** (from `/build-info.json`; dev
+moved off `2faa9a9ac2` during the session). Evidence is in
+`docs/20261110_live_journeys_run/` (`live-journeys-result.json`,
+`run-log.txt`, screenshots, answer and SSE summary). Result:
+**1 PASS, 2 FAIL, 1 SKIP. The runner exits 1.**
+
+| Journey | Result | What happened on dev |
+|---|---|---|
+| d. models | **FAIL** | Boltz-2 returned `completed` with a structure reference, but `plddt` had **1 value for a 33-residue sequence**. The user does not get per-residue confidence. (Evo2-7B was not reached in this run; it was OK in the canary.) |
+| a. dataset | **PASS** | The JSONL was stored as `application/x-ndjson` and opened as 5 record columns (`source, drug, page, headers, rows`) with 200 rows. The preview showed more than 8 rows and scrolled to the last row. |
+| e. training | **SKIP → counted as FAIL** | `POST /api/model-training/plan` returns 404 on dev; the journey is prepared |
+| b+c. chat | **FAIL** (functional contract met; the 2 soft UX checks failed) | `run_code` executed (6 run_code tool_events in the real SSE). No workflow card or panel appeared. The answer, outside the progress log, states "总记录数：200 条" and "药物种类：24 种" (both correct). The URL gained `?session=`. **After reload, the same session showed the question and the answer (step c passed).** It failed for two reasons: (1) **no run_code block is rendered** in the final message; (2) **the composer still holds the sent question** after sending. |
+
+Earlier runs on `2faa9a9ac2` in the same session gave the same picture. One
+of them passed d (Boltz-2 returned a 33-value pLDDT through the API), but at
+that point the UI part only checked the "completed" badge. That run's
+screenshot shows "mean 1" and an empty per-residue chart: a false green. The
+UI step now asserts the payload the page received (see §4 and §7). Two runs
+were lost to client-side network timeouts (`apiRequestContext` 30 s) and one
+was degraded by local CPU load. Login and project creation now retry, and
+inference polling tolerates transient blips.
 
 ## 4. Daily model canary
 
@@ -170,7 +191,13 @@ out of scope for Track E.
 | `test_qc_consistency.py` `_profile_mapping_drift` (8 tests) | always | The `infer_qc_profile()` path→profile mapping changed after these expectations were written (for example, FFPE paths now map to `wgs_somatic_tumor_only` instead of `wgs_ffpe`, and metagenomics paths now map to `metagenomics_human_gut` instead of `None`). Whether to update the expectations or restore the mapping is a QC-owner decision. |
 | `test_qc_evidence.py` `_compound_grade` (2 tests) | always | `admet_herg_ic50` provenance is the compound value `'GOLD-metric / SILVER-tier'`, which is outside the GOLD/SILVER/BRONZE contract that consumers expect |
 
-BACKEND_RESULT_PLACEHOLDER
+**Backend suite result at HEAD** (Python 3.11 venv with
+`requirements.txt`, `rdkit==2024.3.5` and the CI test dependencies; run
+from `backend/` with `python -m pytest tests/`; no LLM keys; no workflow DB;
+no R): **1,830 passed, 224 xfailed, 112 skipped, 0 failed, 0 errors**
+(exit 0). The 112 skips were already in the suite before this change, for
+example `live` tests without `ANTHROPIC_API_KEY` and network-only providers;
+none of them were added here.
 
 ## 6. Files
 
