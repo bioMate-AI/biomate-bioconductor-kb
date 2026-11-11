@@ -754,7 +754,14 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
           <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{t('cold_start.mod_' + m.id + '_name')}</span>
-          <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
+          {/* Reserve exactly 2 lines so 1- and 2-line descriptions give every
+              collapsed card the same height — fixes the broken grid row where the
+              design card overflowed its border (founder 2026-11-11). */}
+          <span style={{
+            fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            lineHeight: 1.5, minHeight: open ? undefined : '3em',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
         </span>
         <span
           aria-hidden
@@ -957,7 +964,7 @@ export function ColdStartDashboard({ onSeed, modules = landingModules() }: ColdS
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: 12,
-          alignItems: "start",
+          alignItems: "stretch",
         }}
       >
         {modules.map((m) => (
