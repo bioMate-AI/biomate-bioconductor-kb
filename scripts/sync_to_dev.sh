@@ -1834,9 +1834,11 @@ _postsync_probe() {
       curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health 2>/dev/null && fe=1
       if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then
         # Launch-path check: the galaxy user must be able to create a Nextflow run dir,
-        # or every workflow launch fails ("Permission denied: /tmp/nextflow_runs/<id>").
+        # or every workflow launch fails with Permission denied on /tmp/nextflow_runs.
+        # (No double quotes or angle brackets in these comments: this text is inside the
+        # double-quoted ec2_ssh string, and a quote here broke the probe on 2026-11-11.)
         if docker exec -u galaxy biomate-galaxy-dev sh -c 'd=/tmp/nextflow_runs/.writecheck-\$\$; mkdir -p \$d && rmdir \$d' 2>/dev/null; then exit 0; fi
-        echo \"[probe \$i/$tries] galaxy cannot create /tmp/nextflow_runs/<run> — workflow launches would fail\"
+        echo \"[probe \$i/$tries] galaxy cannot create a run dir in /tmp/nextflow_runs — workflow launches would fail\"
       fi
       echo \"[probe \$i/$tries] galaxy=\$gx frontend=\$fe\"
       sleep 5
