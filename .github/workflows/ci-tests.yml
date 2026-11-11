@@ -126,14 +126,16 @@ jobs:
           mypy . --ignore-missing-imports || true
 
       - name: Run unit tests
+        # HARD GATE. This step used to end in `|| echo "Some tests failed"`, so
+        # it was green no matter what — and since 2026-10 a module-level
+        # sys.exit() in one test aborted collection (INTERNALERROR), so it ran
+        # ZERO tests. Known failures are now explicit strict xfails with a
+        # reason (listed in docs/20261110_LIVE_JOURNEY_TESTS_AND_CI.md); a test
+        # that newly fails, or an xfail that starts passing, fails CI.
         if: always()
         run: |
           cd backend
-          if [ -d tests ]; then
-            python -m pytest tests/ -v --tb=short || echo "Some tests failed"
-          else
-            echo "No tests directory found"
-          fi
+          python -m pytest tests/ -v --tb=short
 
       - name: Sandbox self-tests (no docker, no AWS)
         # Validates the execution-sandbox code path (Feature ①: gVisor isolation,
@@ -154,7 +156,8 @@ jobs:
     name: Frontend Tests (Full Suite)
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # tsc over the whole client+server tree + 260 vitest files + vite build.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -172,22 +175,25 @@ jobs:
           cd frontend
           npm ci || npm install
 
-      - name: Run linting
+      # HARD GATES (docs/20261110_LIVE_JOURNEY_TESTS_AND_CI.md). Previously
+      # every step here ended in `|| echo ...`: `npm run lint` does not even
+      # exist in package.json, and vitest/build failures were swallowed.
+      # These are the same steps as docs/PRE_SYNC_CHECKLIST.md 1-2.
+      - name: Type check
         run: |
           cd frontend
-          echo "Running ESLint..."
-          npm run lint || echo "Linting issues found"
+          npx tsc --noEmit -p .
 
-      - name: Run unit tests
+      - name: Run unit tests (vitest)
         if: always()
         run: |
           cd frontend
-          npm test -- --passWithNoTests || echo "Some tests failed"
+          npx vitest run
 
-      - name: Build frontend (dry run)
+      - name: Build frontend
         run: |
           cd frontend
-          npm run build || echo "Build failed"
+          npm run build
 
       - name: Check .dockerignore
         run: |

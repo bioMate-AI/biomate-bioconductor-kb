@@ -42,7 +42,9 @@ if ! node -e "const {chromium}=require('@playwright/test');require('fs').accessS
   npx playwright install chromium || { echo "playwright install chromium failed" >&2; exit 2; }
 fi
 
-echo "Live journeys → $BIOMATE_URL   (log: $LOG)"
+DEV_COMMIT="$(curl -fsS --max-time 15 "$BIOMATE_URL/build-info.json" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).commit||"unknown")}catch{console.log("unknown")}})')"
+export LIVE_JOURNEYS_DEPLOYED_COMMIT="${DEV_COMMIT:-unknown}"
+echo "Live journeys → $BIOMATE_URL   deployed commit: ${DEV_COMMIT:-unknown}   (log: $LOG)"
 npx playwright test -c playwright.live.config.ts "$@" 2>&1 | tee "$LOG"
 PW_RC=${PIPESTATUS[0]}
 
@@ -68,11 +70,16 @@ const walk = (s) => { (s.specs || []).forEach((sp) => sp.tests.forEach((t) => {
 })); (s.suites || []).forEach(walk); };
 (r.suites || []).forEach(walk);
 console.log('\n==================== LIVE JOURNEYS ====================');
+console.log('target: ' + process.env.BIOMATE_URL + '   deployed commit: ' + (process.env.LIVE_JOURNEYS_DEPLOYED_COMMIT || 'unknown'));
 for (const [st, title, dur, why] of rows) console.log(`${st.padEnd(6)} ${title.padEnd(84).slice(0, 84)} ${dur.padStart(5)}  ${why}`);
 const fails = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`-------------------------------------------------------\n${rows.length} journeys: ${rows.filter((r) => r[0] === 'PASS').length} pass, ${fails} fail, ${rows.filter((r) => r[0] === 'SKIP').length} skip, ${rows.filter((r) => r[0] === 'NORUN').length} not run`);
 if (!rows.length) console.log('NO JOURNEYS RAN — treating as failure');
-process.exitCode = fails || !rows.length || rows.some((r) => r[0] === 'NORUN') ? 1 : 0;
+// Standing rule: a journey is green ONLY if the user outcome happened on the
+// deployed stack. SKIP / NORUN are not green — they fail the run too.
+const notGreen = rows.filter((r) => r[0] !== 'PASS');
+if (notGreen.some((r) => r[0] === 'SKIP')) console.log('SKIPPED journeys count as FAIL (outcome not demonstrated): ' + notGreen.filter((r) => r[0] === 'SKIP').map((r) => r[1].split('.')[0]).join(', '));
+process.exitCode = notGreen.length || !rows.length ? 1 : 0;
 EOF
 TABLE_RC=$?
 [ "$PW_RC" -ne 0 ] && exit "$PW_RC"
