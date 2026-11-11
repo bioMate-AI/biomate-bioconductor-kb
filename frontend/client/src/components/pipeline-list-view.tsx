@@ -13,6 +13,7 @@ import {
   GitMerge,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { tOr } from '@/lib/i18n'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,14 @@ export interface PipelineStep {
   runParallelWith?: string[]
   durationMs?: number
   errorMessage?: string
+  /** What the step will actually run (decomposed DAG plans): resolution kind + catalog name. */
+  resolution?: 'catalog_workflow' | string
+  workflowLabel?: string
+  /** Required declared inputs still empty at plan time, and those filled from the user's uploads. */
+  missingInputs?: string[]
+  boundFromUploads?: string[]
+  /** A fan-in step whose data from earlier steps is not connected automatically. */
+  needsInputMapping?: boolean
 }
 
 export interface PipelineListViewProps {
@@ -229,6 +238,34 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
             )}
           </div>
         </div>
+
+        {/* What runs (decomposed plans): the step title is the sub-task; name the workflow too */}
+        {step.workflowLabel && (
+          <p data-testid={`plan-step-runs-${step.id}`} className="text-xs text-muted-foreground">
+            <span className="font-medium">{tOr('plan_step.runs', 'Runs')}:</span>{' '}
+            <span className="font-mono">{step.workflowLabel}</span>
+            {step.resolution === 'catalog_workflow' && (
+              <span className="ml-1.5 text-fs-xs">· {tOr('plan_step.catalog_workflow', 'catalog workflow')}</span>
+            )}
+          </p>
+        )}
+
+        {/* Waits on (fan-in / chain) when no single "uses" step is declared */}
+        {!usesStep && step.dependsOn && step.dependsOn.length > 0 && (
+          <p data-testid={`plan-step-after-${step.id}`} className="text-xs text-muted-foreground flex items-center gap-1">
+            <ArrowLeft className="h-3 w-3 text-sky-500 flex-shrink-0" />
+            <span>{tOr('plan_step.after', 'after')} {step.dependsOn.map(n => circledNumber(n)).join(' ')}</span>
+          </p>
+        )}
+
+        {/* Inputs still needed — instead of an empty step */}
+        {step.status === 'pending' && ((step.missingInputs?.length ?? 0) > 0 || step.needsInputMapping) && (
+          <p data-testid={`plan-step-needs-${step.id}`} className="text-xs text-amber-700 dark:text-amber-400">
+            {(step.missingInputs?.length ?? 0) > 0
+              ? tOr('plan_step.inputs_needed', 'Needed before running: {{names}}', { names: step.missingInputs!.join(', ') })
+              : tOr('plan_step.map_inputs', 'Map inputs from earlier steps')}
+          </p>
+        )}
 
         {/* Params */}
         {hasParams && (

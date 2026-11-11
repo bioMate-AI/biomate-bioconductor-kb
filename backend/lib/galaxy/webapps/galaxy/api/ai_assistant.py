@@ -6913,6 +6913,8 @@ class PlanDagRequest(BaseModel):
     tasks: List[PlanDagTask]
     name: Optional[str] = None
     max_parallel: Optional[int] = None
+    # Files the user attached this turn ({name, s3_uri}); bound to each root step's declared params.
+    uploaded_datasets: Optional[List[Dict[str, Any]]] = None
 
 
 @router.post(
@@ -6933,7 +6935,8 @@ def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTran
         if sa is None:
             return {"success": False, "reason": "assistant_unavailable"}
         from galaxy.ai.decomposed_dag import plan_dag_from_tasks
-        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel)
+        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel,
+                                   uploaded_datasets=request.uploaded_datasets)
     except Exception as exc:  # noqa: BLE001 — planning is best-effort; the chat falls back
         log.warning("[plan_dag] failed: %s", exc)
         log.warning("[plan_dag] failed: %s", exc)
