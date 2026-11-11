@@ -7,6 +7,45 @@ Our current baseline: Overall ~0.104, pds ~0.43
 
 ---
 
+## 2026-09-14
+
+### Items reported
+
+1. **cell-eval2 BREAKING CHANGE — default profile "standard" (Sept 12, 2026)**
+   - `strand` was the default; `standard` (fast battery) is now the default as of ~Sept 12.
+   - `pds_l1 / pds_l2 / pds_cosine` values also move under `exclude_target_gene=True` for every profile except v1 and cell-eval-0.7.6 — requires baseline artifact regeneration.
+   - Source: https://github.com/ArcInstitute/cell-eval2/blob/main/CHANGELOG.md
+
+2. **cell-eval de_systema_test default changed to "z" (Sept 1, 2026)**
+   - Previously "wilcoxon" (~5400s / 1000 perts); now "z" (~6.8s). Choice is banner-printed and recorded in resolved eval config.
+   - Source: https://github.com/ArcInstitute/cell-eval/activity
+
+3. **Kytos Observatory public experiments (Sept 5–11, 2026)**
+   - k003 sparse mean-shift baseline: Overall −0.948
+   - k004-resample: Overall −0.304 (rank 656)
+   - k005: combined with Replogle K562 genome-wide Perturb-seq bulk data → 272/300 2026 targets covered → Overall −0.021, rank 534
+   - Source: https://github.com/udirobert/kytos
+
+4. **arXiv 2608.00152 — "Locked Evaluation Surfaces" (submitted July 31, revised Aug 28)**
+   - Shoeibi & Yousefi; frozen Geneformer representation; key finding: within-screen informative representations can fail cross-screen transfer; locked pre-registered protocol.
+   - Source: https://arxiv.org/abs/2608.00152
+
+5. **Official VCC 2026 Cell paper published (DOI: 10.1016/j.cell.2026.08.004)**
+   - "Virtual Cell Challenge 2026: Benchmarking zero-shot generalization across cellular contexts"
+   - Source: https://www.cell.com/cell/fulltext/S0092-8674(26)00931-1
+
+6. **pds_cosine scale-sensitivity insight (community discussion)**
+   - L1-based PDS is scale-sensitive; as prediction magnitude increases pds_cosine approaches sign-based cosine similarity. Zero-norm predictions tie at distance 1.0.
+
+### No new items found
+- No Arc Institute news/announcements from Sept 13–14 specifically
+- No deadline or rule changes
+- No new starter code or baseline from Arc
+- No top-team methods disclosed
+- Leaderboard live but scores not directly scraped (site blocked)
+
+---
+
 ## 2026-10-02 (Run 1 — initial)
 
 ### Leaderboard (live, validation contexts A/B/C)
