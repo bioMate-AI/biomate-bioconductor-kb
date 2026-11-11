@@ -480,7 +480,45 @@
     "status_active": "进行中",
     "status_completed": "已完成",
     "status_archived": "已归档",
-    "status_paused": "已暂停"
+    "status_paused": "已暂停",
+    "page": {
+      "not_found": "未找到该项目",
+      "back_to_projects": "返回项目列表",
+      "tag_placeholder": "标签名称",
+      "rename": "重命名",
+      "archive": "归档",
+      "delete": "删除",
+      "tab_chat": "对话",
+      "tab_files": "文件",
+      "instructions_placeholder": "填写助手需要遵循的背景、规范或要求……",
+      "save": "保存",
+      "cancel": "取消",
+      "no_instructions": "尚无常驻指令",
+      "no_instructions_hint": "补充背景信息，帮助 BioMate 更好地工作",
+      "plan_title": "计划 / 假设",
+      "plan_goal": "目标（必填）",
+      "plan_hypothesis": "假设（可选）",
+      "loading_plans": "正在加载计划……",
+      "no_plans": "尚无计划",
+      "details": "详情",
+      "created": "创建时间",
+      "chats": "对话数",
+      "runs": "运行数",
+      "updated": "更新时间",
+      "rename_title": "重命名项目",
+      "name_placeholder": "项目名称",
+      "archive_title": "归档此项目？",
+      "archive_body": "项目及其关联的对话和运行将被归档。之后可通过修改项目状态恢复。",
+      "archiving": "正在归档……",
+      "delete_title": "删除此项目？",
+      "delete_body": "这将永久删除该项目及其全部关联数据，且无法撤销。",
+      "deleting": "正在删除……",
+      "transfer_title": "转让所有权？",
+      "transferring": "正在转让……",
+      "transfer": "转让所有权",
+      "transfer_body": "这将使 {{name}} 成为此项目的所有者。您将降为编辑者并失去所有者专属权限，且您无法自行撤销。",
+      "message_count": "{{n}} 条消息"
+    }
   },
   "file_tree": {
     "files": "文件",
@@ -2110,5 +2148,10 @@
       "culprit_step": "步骤「{{process}}」",
       "next_named": "请对照该报错信息（通常会指出问题所在）检查输入数据和参数，修正后重新运行。"
     }
+  },
+  "not_found_page": {
+    "title": "页面不存在",
+    "body": "找不到您要访问的页面，它可能已被移动，或链接已失效。",
+    "back": "返回 BioMate"
   }
 }

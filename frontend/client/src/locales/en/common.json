@@ -474,7 +474,45 @@
     "status_active": "Active",
     "status_completed": "Completed",
     "status_archived": "Archived",
-    "status_paused": "Paused"
+    "status_paused": "Paused",
+    "page": {
+      "not_found": "Project not found",
+      "back_to_projects": "Back to Projects",
+      "tag_placeholder": "tag name",
+      "rename": "Rename",
+      "archive": "Archive",
+      "delete": "Delete",
+      "tab_chat": "Chat",
+      "tab_files": "Files",
+      "instructions_placeholder": "Add context, guidelines, or background the assistant should follow…",
+      "save": "Save",
+      "cancel": "Cancel",
+      "no_instructions": "No instructions yet",
+      "no_instructions_hint": "Add context to help BioMate",
+      "plan_title": "Plan / hypothesis",
+      "plan_goal": "Goal (required)",
+      "plan_hypothesis": "Hypothesis (optional)",
+      "loading_plans": "Loading plans…",
+      "no_plans": "No plans yet",
+      "details": "Details",
+      "created": "Created",
+      "chats": "Chats",
+      "runs": "Runs",
+      "updated": "Updated",
+      "rename_title": "Rename project",
+      "name_placeholder": "Project name",
+      "archive_title": "Archive this project?",
+      "archive_body": "The project and its linked chats and runs will be archived. You can restore it later by changing its status.",
+      "archiving": "Archiving…",
+      "delete_title": "Delete this project?",
+      "delete_body": "This permanently deletes the project and all linked data. This action cannot be undone.",
+      "deleting": "Deleting…",
+      "transfer_title": "Transfer ownership?",
+      "transferring": "Transferring…",
+      "transfer": "Transfer ownership",
+      "transfer_body": "This makes {{name}} the owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.",
+      "message_count": "{{n}} messages"
+    }
   },
   "file_tree": {
     "files": "Files",
@@ -1627,5 +1665,10 @@
       "culprit_step": "step '{{process}}'",
       "next_named": "Check the input and parameters against that message (it usually names what is wrong), fix them, then run again."
     }
+  },
+  "not_found_page": {
+    "title": "Page not found",
+    "body": "We couldn’t find the page you were looking for. It may have moved, or the link is out of date.",
+    "back": "Back to BioMate"
   }
 }
