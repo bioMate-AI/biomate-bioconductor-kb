@@ -1835,30 +1835,58 @@ class ResearchAgent:
             try:
                 from galaxy.ai.evidence_source_router import select_sources as _select_sources
                 from galaxy.ai.federated_query import federated_query as _federated_query
-                _fed_entities = [e for e in (ids.get("gene_symbols") or []) if e][:2]
-                if _fed_entities:
-                    _fed_sources = _select_sources(question, entities=_fed_entities)
+                # Entities to ground against the DB sources, WITH their types. The type
+                # decides routing (a target → ChEMBL target + PDB; a compound → PubChem +
+                # ChEMBL molecule), and it comes from the LLM's understanding of the
+                # question — NOT a character-pattern regex, which mis-read "ABL1" as a PDB
+                # id and "SAR" as a gene (live dev finding, 2026-11-11). PRIMARY: LLM
+                # extraction. FALLBACK (LLM down / empty): legacy symbol regex validated
+                # by mygene resolution, so a flaky LLM call never drops DB evidence to zero.
+                _fed_typed: List[tuple] = []   # (name, entity_type)
+                _llm_ents = await self._extract_entities_llm(question)
+                if _llm_ents is not None:
+                    _fed_typed = [(e["name"], e["type"]) for e in _llm_ents[:3]]
+                else:
+                    _cands = [e for e in (ids.get("gene_symbols") or []) if e][:5]
+                    if _cands:
+                        try:
+                            _mg_val = lookup_mygene(_cands, fields="symbol,name,summary,OMIM")
+                        except Exception:
+                            _mg_val = []
+                        if _mg_val:
+                            db_facts.setdefault("mygene_annotation", _mg_val)
+                            _resolved = {str(h.get("symbol", "")).upper()
+                                         for h in _mg_val if h.get("symbol")}
+                            _cands = [s for s in _cands if s.upper() in _resolved]
+                        _fed_typed = [(s, "gene") for s in _cands[:2]]
 
-                    def _fed_one(e, s=_fed_sources):
-                        return _federated_query(str(e)[:80], sources=s)
+                if _fed_typed:
+                    _fed_names = [n for n, _t in _fed_typed]
+                    _fed_sources = _select_sources(question, entities=_fed_names)
 
-                    # Run the per-entity fan-outs in PARALLEL under ONE overall budget, so
-                    # the hot path can't add 2x the per-call timeout sequentially — the
-                    # worst case was +30s on every gene-named question (committee review,
-                    # 2026-11-11). return_exceptions so one failure doesn't sink the other;
-                    # non-fatal overall.
+                    def _fed_one(nt, s=_fed_sources):
+                        _n, _t = nt
+                        # Pass the resolved entity_type so federated_query routes by the
+                        # KNOWN type (and drops category-mismatched sources), never the
+                        # char-pattern detector.
+                        return _federated_query(str(_n)[:80], sources=s, entity_type=_t)
+
+                    # Per-entity fan-outs run in PARALLEL under ONE overall budget so the hot
+                    # path can't add N× the per-call timeout sequentially (committee review,
+                    # 2026-11-11). return_exceptions so one failure doesn't sink the others.
                     _loop = asyncio.get_event_loop()
                     _fed_results = await asyncio.wait_for(
                         asyncio.gather(
-                            *[_loop.run_in_executor(None, _fed_one, _e) for _e in _fed_entities],
+                            *[_loop.run_in_executor(None, _fed_one, _nt) for _nt in _fed_typed],
                             return_exceptions=True,
                         ),
                         timeout=20,
                     )
                     _fed_out: Dict[str, Any] = {}
-                    for _ent, _r in zip(_fed_entities, _fed_results):
+                    for (_n, _t), _r in zip(_fed_typed, _fed_results):
                         if isinstance(_r, dict) and _r.get("merged"):
-                            _fed_out[_ent] = {
+                            _fed_out[_n] = {
+                                "entity_type": _t,
                                 "sources_queried": _r.get("sources_queried", []),
                                 "sources_succeeded": _r.get("sources_succeeded", []),
                                 "merged": _r["merged"][:8],
@@ -3333,6 +3361,75 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             )
 
         return response
+
+    @staticmethod
+    def _parse_json_array(text: str) -> Optional[list]:
+        """Pull the first JSON array out of an LLM response (fenced or bare prose),
+        decoding incrementally so trailing commentary after the ']' doesn't break it."""
+        if not text:
+            return None
+        start = text.find("[")
+        if start == -1:
+            return None
+        raw = text[start:]
+        for end in range(len(raw), 0, -1):
+            cand = raw[:end]
+            if not cand.rstrip().endswith("]"):
+                continue
+            try:
+                val = json.loads(cand)
+                return val if isinstance(val, list) else None
+            except Exception:
+                continue
+        return None
+
+    async def _extract_entities_llm(self, question: str) -> Optional[List[Dict[str, str]]]:
+        """Identify the biological entities a question is ABOUT, with their types, using
+        the LLM — not a regex. Character-pattern typing is what mis-read "ABL1" as a PDB
+        id and "SAR" as a gene; the model knows ABL1 is a target, imatinib a compound,
+        T315I a variant, and that SAR/PK/ADMET are analysis concepts, not entities.
+
+        Returns [{"name","type"}] with type in a controlled vocabulary, or None on any
+        failure so the caller falls back to the legacy extractor (never regress to no
+        DB evidence)."""
+        if not self.llm_client:
+            return None
+        prompt = (
+            "Extract the biological entities this research question is ABOUT, so a "
+            "database search can be routed to the right sources. Return ONLY a JSON "
+            'array. Each element: {"name": <canonical symbol or name>, "type": <one of: '
+            "gene, protein, compound, variant, disease, pathway>}.\n"
+            "Guidance:\n"
+            '- A gene / kinase / therapeutic target (ABL1, EGFR, KRAS) → "gene".\n'
+            '- A drug or small molecule (imatinib, aspirin) → "compound".\n'
+            '- A sequence mutation (T315I, V600E) → "variant".\n'
+            "- EXCLUDE analysis concepts and method acronyms that are NOT entities: "
+            "SAR, structure-activity relationship, PK, PD, ADMET, QC, IC50, potency, "
+            "selectivity, binding.\n"
+            "- Only concrete, nameable entities. If there are none, return [].\n\n"
+            f"Question: {question}\n\nJSON:"
+        )
+        try:
+            raw = await self._call_llm(prompt, max_tokens=300)
+        except Exception as e:
+            log.warning("LLM entity extraction failed (non-fatal, falling back): %s", e)
+            return None
+        ents = self._parse_json_array(raw)
+        if ents is None:
+            return None
+        allowed = {"gene", "protein", "compound", "variant", "disease", "pathway"}
+        out: List[Dict[str, str]] = []
+        seen = set()
+        for e in ents:
+            if not isinstance(e, dict):
+                continue
+            name = str(e.get("name", "")).strip()
+            etype = str(e.get("type", "")).strip().lower()
+            key = (name.lower(), etype)
+            if name and etype in allowed and key not in seen:
+                seen.add(key)
+                out.append({"name": name[:80], "type": etype})
+        return out
 
     @staticmethod
     def _split_evidence_verdict(answer: str):

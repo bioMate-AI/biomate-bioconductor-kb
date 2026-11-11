@@ -33,6 +33,50 @@ log = logging.getLogger(__name__)
 
 _TIMEOUT = 10  # seconds per external call
 
+# Registry (authoritative source catalog) — used to drop category-mismatched sources
+# for a given entity type. Degrade gracefully (keep all sources) if unavailable.
+try:  # pragma: no cover - import guard
+    from galaxy.ai import data_sources as _registry
+except Exception:  # pragma: no cover
+    _registry = None
+
+# Entity-type classes for the mismatch filter. A gene symbol names a protein target,
+# so gene and protein are one class; "compound" is the other. A source is dropped only
+# when its entity_types are a subset of the OTHER class (e.g. PubChem/ChEBI = compound-
+# only, dropped for a gene/protein query). Dual-class and cross-cutting sources survive.
+_MACRO_TYPES = frozenset({"gene", "protein"})
+_COMPOUND_TYPES = frozenset({"compound"})
+
+
+def _drop_mismatched_sources(srcs: List[str], detected: str) -> List[str]:
+    """Remove sources whose registry entity_types serve EXCLUSIVELY the other class.
+
+    Only filters when the detected type is cleanly gene/protein or compound; for
+    structure/variant/disease/pathway/literature it is a no-op (those are either
+    cross-cutting or already selected deliberately). Unknown sources are kept so the
+    filter never silently reduces coverage.
+    """
+    if detected in _MACRO_TYPES:
+        other = _COMPOUND_TYPES
+    elif detected in _COMPOUND_TYPES:
+        other = _MACRO_TYPES
+    else:
+        return srcs
+    if _registry is None:
+        return srcs
+    kept: List[str] = []
+    for sid in srcs:
+        rec = None
+        try:
+            rec = _registry.by_id(sid)
+        except Exception:
+            rec = None
+        et = set((rec or {}).get("entity_types") or [])
+        # keep when we can't classify it, or it is not exclusively the other class
+        if not et or not et.issubset(other):
+            kept.append(sid)
+    return kept
+
 # ── Air-gap / offline mode ──────────────────────────────────────────────────────
 # In a no-egress (air-gapped) on-prem deployment, every external resolver call would
 # hang for _TIMEOUT before failing. BIOMATE_OFFLINE_MODE short-circuits them: a registered
@@ -291,7 +335,10 @@ def _fetch_pdb(query: str) -> Dict:
     payload = {
         "query": {"type": "terminal", "service": "full_text",
                   "parameters": {"value": query}},
-        "return_type": "entry", "request_options": {"results_slice": {"start": 0, "rows": 5}}
+        # v2 pagination key is "paginate" (start/rows). The old "results_slice" is not
+        # a valid v2 field → HTTP 400 on every text search (dev finding, 2026-11-11,
+        # confirmed against the live endpoint).
+        "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}}
     }
     data = _post_json("https://search.rcsb.org/rcsbsearch/v2/query", payload)
     ids = [r["identifier"] for r in (data or {}).get("result_set", [])[:5]]
@@ -406,6 +453,19 @@ def _fetch_chembl(query: str) -> Dict:
                         "formula": props.get("full_molformula"),
                         "mw": props.get("full_mwt"),
                         "smiles": (m.get("molecule_structures") or {}).get("canonical_smiles")})
+    # No molecule by that name → treat the query as a TARGET (gene/protein). This is
+    # the SAR/potency case: "ABL1" is not a molecule, so molecule/search is empty and
+    # the old fetcher returned nothing. Resolve the ChEMBL target so the answer grounds
+    # on real target annotation (dev finding, 2026-11-11: ABL1 → CHEMBL1862).
+    if not results:
+        tq = urllib.parse.quote(query)
+        tdata = _get(f"https://www.ebi.ac.uk/chembl/api/data/target/search"
+                     f"?q={tq}&format=json&limit=3")
+        for t in (tdata or {}).get("targets", [])[:3]:
+            results.append({"chembl_target_id": t.get("target_chembl_id"),
+                            "name": t.get("pref_name"),
+                            "target_type": t.get("target_type"),
+                            "organism": t.get("organism")})
     return {"source": "chembl", "results": results}
 
 def _fetch_pubchem(query: str) -> Dict:
@@ -767,6 +827,17 @@ def federated_query(
     target_sources = sources or ENTITY_SOURCES.get(detected, ENTITY_SOURCES["gene"])
     # Filter to known sources only
     target_sources = [s for s in target_sources if s in _FETCHERS]
+    # Drop category-mismatched sources for the detected entity type. A gene/protein
+    # target must NOT be looked up in a COMPOUND-only database (PubChem/ChEBI return
+    # 404 for "ABL1" and burn a shared rate-limit slot), and a compound must not be
+    # looked up in a GENE-only database. Registry `entity_types` are the source of
+    # truth; a source is dropped only when it serves EXCLUSIVELY the other class, so
+    # dual-class sources (ChEMBL = protein+compound) and cross-cutting ones
+    # (literature/pathway/variant/disease/structure) always survive. This runs even
+    # when the caller passes an explicit `sources=` list, because that intent-selected
+    # list (facet-based) is exactly what over-includes compound DBs for a target
+    # (live dev finding, 2026-11-11: ABL1 SAR hit PubChem/ChEBI/PDB-by-id).
+    target_sources = _drop_mismatched_sources(target_sources, detected)
 
     # The cache key MUST include the (filtered) source set: an intent-selected fan-out
     # (e.g. sources=[chembl,pdb,…] for a SAR question) and a default entity-type fan-out
