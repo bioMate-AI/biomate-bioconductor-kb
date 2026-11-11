@@ -221,9 +221,13 @@ const FILE_WORD_RE =
 export function isFilePathParam(p: BindableParam): boolean {
   const name = String(p.name || '').trim();
   if (!name || name.startsWith('__')) return false;
-  if (p.type === 'file' || p.data_input === true) return true;
+  // Base type with any list suffix removed: a multi-file input declares itself
+  // as "file[]" (e.g. SNF/MOFA2 `omics`), which is still a file parameter — the
+  // per-file assembly below binds every attachment to it.
+  const baseType = String(p.type || '').toLowerCase().replace(/\[\]$/, '');
+  if (baseType === 'file' || p.data_input === true) return true;
   if (p.format === 'file-path' || !!p.mimetype) return true;
-  if (p.type && !['string', 'text', 'path'].includes(String(p.type).toLowerCase())) return false;
+  if (p.type && !['string', 'text', 'path'].includes(baseType)) return false;
   if (defaultLooksInline(p)) return false;
   if (/_(file|path|dir|sheet|csv|tsv|fasta|fastq|bam|vcf|json)$/i.test(name)) return true;
   if (FILE_WORD_RE.test(paramText(p).replace(/_/g, ' '))) return true;
@@ -374,7 +378,12 @@ export function bindAttachmentsToParams(
   if (usableFiles.length === 0) return [];
   const candidates: AttachmentBinding[] = [];
   for (const p of params) {
-    if (isBound(p.value)) continue;
+    // A multi-file input (SNF/MOFA2 `omics`, type file[]) is topped up even when an
+    // earlier single-file extractor already set it to ONE file — otherwise the other
+    // modality tables are dropped and the panel still asks "Which omics?" (dev 2026-11-11:
+    // omics pre-bound to rna.csv, protein/methyl never added). A single-value param keeps
+    // its binding.
+    if (isBound(p.value) && !paramAcceptsMultipleFiles(p)) continue;
     // An optional parameter already carrying a default is an override, not an
     // empty input — leave the pipeline default in place.
     if (!p.required && isBound(p.default ?? p.defaultValue)) continue;

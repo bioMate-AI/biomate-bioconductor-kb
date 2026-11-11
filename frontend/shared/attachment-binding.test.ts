@@ -13,17 +13,7 @@
  *     bare file NAME into an inline-content parameter.
  */
 import { describe, it, expect } from 'vitest';
-import {
-  attachmentsNotUsed,
-  parseAttachedFiles,
-  attachedFilesFromMessages,
-  bindAttachmentsToParams,
-  bindClarificationAnswer,
-  isFilePathParam,
-  rebindFilenameValues,
-  resolveAttachmentAnswer,
-  scoreBinding,
-} from './attachment-binding';
+import { attachmentsNotUsed, parseAttachedFiles, attachedFilesFromMessages, bindAttachmentsToParams, bindClarificationAnswer, isFilePathParam, rebindFilenameValues, resolveAttachmentAnswer, scoreBinding, paramAcceptsMultipleFiles } from './attachment-binding';
 
 const S3 = 's3://biomate-nextflow-work/uploads';
 
@@ -323,5 +313,37 @@ describe('clarification answers that refer to an attachment — founder case 2',
       'x\n[Uploaded datasets: a.csv: dataset_id=a1, s3_uri=s3://b/a1/a.csv; b.csv: dataset_id=a2, s3_uri=s3://b/a2/b.csv]',
     );
     expect(resolveAttachmentAnswer('use the attached file', many)).toBeNull();
+  });
+});
+
+describe('file[] multi-file params (SNF/MOFA2 omics) bind every attachment', () => {
+  const omics = { name: 'omics', type: 'file[]', required: true, description: 'One features×samples CSV per modality (RNA, proteomics).' } as any;
+  const f = (name: string, id: string) => ({ name, datasetId: id, s3Uri: `s3://b/${id}/${name}` } as any);
+  it('isFilePathParam recognises file[]', () => {
+    expect(isFilePathParam(omics)).toBe(true);
+    expect(paramAcceptsMultipleFiles(omics)).toBe(true);
+  });
+  it('binds all three modality CSVs to omics as a comma-separated list', () => {
+    const files = [f('rna.csv', 'a'), f('protein.csv', 'b'), f('methyl.csv', 'c')];
+    const out = bindAttachmentsToParams(files, [omics]);
+    expect(out.length).toBe(1);
+    expect(out[0].param).toBe('omics');
+    expect(out[0].value.split(',').length).toBe(3);
+    expect(out[0].files.map((x: any) => x.name)).toEqual(['rna.csv', 'protein.csv', 'methyl.csv']);
+  });
+});
+
+describe('multi-file param pre-bound to one file is topped up with the rest', () => {
+  const f = (name: string) => ({ name, datasetId: name, s3Uri: `s3://b/${name}` } as any);
+  it('omics already set to rna.csv gains protein.csv + methyl.csv', () => {
+    const omics = { name: 'omics', type: 'file[]', required: true, value: 's3://b/rna.csv', autoFilled: true, description: 'One features×samples CSV per modality.' } as any;
+    const out = bindAttachmentsToParams([f('rna.csv'), f('protein.csv'), f('methyl.csv')], [omics]);
+    expect(out.length).toBe(1);
+    expect(out[0].value.split(',').length).toBe(3);
+  });
+  it('a single-value param that is already bound is left alone', () => {
+    const inp = { name: 'input_smiles', type: 'file', required: true, value: 's3://b/a.smi', autoFilled: true } as any;
+    const out = bindAttachmentsToParams([f('a.smi'), f('b.smi')], [inp]);
+    expect(out.length).toBe(0);
   });
 });
