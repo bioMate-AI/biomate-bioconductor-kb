@@ -802,8 +802,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           </Tabs>
         </div>
 
-        {/* Right sidebar */}
-        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
+        {/* Project instructions live in the 项目指令 (Instructions) tab only.
+            The former chat/files right sidebar was fully redundant with that tab
+            (standing instructions + members + details all render there), so it is
+            hidden outside the Instructions tab — removed per founder request. */}
+        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "hidden"}>
           {activeTab === "instructions" && <ProjectInstructionsPage projectId={projectId} projectName={project.name} canEdit={canEdit} instructions={project.instructions || ""} onInstructionsSaved={(t) => { setInstructionsValue(t); setProject(prev => prev ? { ...prev, instructions: t } : prev); }} />}
           {activeTab !== "instructions" && <div className="p-4 flex-1 overflow-y-auto space-y-6">
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}

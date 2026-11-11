@@ -46,6 +46,10 @@ export interface OutputFile {
   path: string;
   size: number;
   preview: string; // first 10 lines if text-like
+  /** For image outputs (plots) below IMAGE_MAX_BYTES: a `data:<mime>;base64,…` URI
+   *  so the chat UI can render the generated figure inline. The sandbox output dir
+   *  is deleted right after the run, so the bytes must be captured here or lost. */
+  image_data_uri?: string;
 }
 
 /** Where run_code stages input datasets inside the sandbox: SANDBOX_INPUT_DIR/<dataset id>/<filename>.
@@ -112,6 +116,36 @@ function isTextFile(name: string): boolean {
   return TEXT_EXTS.has(ext);
 }
 
+/** Image outputs we inline as data URIs so generated plots render in chat. */
+const IMAGE_MEDIA: Record<string, string> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+};
+// Cap the per-image base64 we push through the SSE stream. A 300-dpi matplotlib
+// figure is ~0.1–0.5 MB; 4 MB covers large plots while keeping the event sane.
+const IMAGE_MAX_BYTES = 4_000_000;
+
+function imageMediaType(name: string): string | undefined {
+  return IMAGE_MEDIA[name.split('.').pop()?.toLowerCase() ?? ''];
+}
+
+/** Read an image output file and return a `data:` URI, or undefined if too large
+ *  or unreadable. O_NOFOLLOW: the output dir is written by untrusted sandbox code. */
+async function imageDataUri(filePath: string, mediaType: string): Promise<string | undefined> {
+  try {
+    const fh = await fs.open(filePath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+    try {
+      const buf = await fh.readFile();
+      if (buf.length > IMAGE_MAX_BYTES) return undefined;
+      return `data:${mediaType};base64,${buf.toString('base64')}`;
+    } finally {
+      await fh.close();
+    }
+  } catch {
+    return undefined;
+  }
+}
+
 async function previewFile(filePath: string): Promise<string> {
   try {
     // O_NOFOLLOW: the output dir is written by untrusted sandbox code.
@@ -136,8 +170,12 @@ export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
       const filePath = path.join(dir, entry.name);
       const stat = await fs.lstat(filePath);
       if (!stat.isFile()) continue;
+      const mediaType = imageMediaType(entry.name);
       const preview = isTextFile(entry.name) ? await previewFile(filePath) : '(binary)';
-      results.push({ name: entry.name, path: filePath, size: stat.size, preview });
+      const image_data_uri = mediaType && stat.size <= IMAGE_MAX_BYTES
+        ? await imageDataUri(filePath, mediaType)
+        : undefined;
+      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri });
     }
   } catch { /* dir may not exist */ }
   return results;
