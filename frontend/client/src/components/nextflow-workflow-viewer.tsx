@@ -1069,6 +1069,22 @@ function PhaseGroupSection({
                       );
                     }
 
+                    // A file/input param holds a storage path or dataset key as
+                    // its value — never show that to the user (incl. in the
+                    // editor or on hover). Render the clean file name read-only;
+                    // files are bound via attach/browse, not hand-typed here.
+                    if (p.type === 'file') {
+                      const shown = strVal ? (strVal.split('/').pop() || '') : '';
+                      return (
+                        <div key={p.id} className="param-row" data-param={p.id} data-param-kind="file" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+                          {label}
+                          <span style={{ fontSize: 'var(--fs-micro)', color: shown ? 'var(--text)' : 'var(--text-dim)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, textAlign: 'right' }}>
+                            {shown || (missing ? tOr('panel.required', 'required') : tOr('panel.not_set', 'not set'))}
+                          </span>
+                        </div>
+                      );
+                    }
+
                     // Default inline row: label · editor.
                     return (
                       <div key={p.id} className="param-row" data-param={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
@@ -3895,9 +3911,10 @@ export function NextflowWorkflowViewer({
                         {isOverride ? tOr('panel.not_set_default_used', 'not set — default used') : tOr('panel.not_set', 'not set')}
                       </span>
                     ) : (
-                      // Show the clean basename only; the full value (storage URI
-                      // or dataset id) stays available on hover, never inline.
-                      <span title={r.dataset?.id ? String(r.dataset.id) : String(r.value)}>
+                      // Show the clean name only. Never reveal the storage URI or
+                      // dataset id — not inline and not on hover (founder: no
+                      // internal path/key/id in the UI, including tooltips).
+                      <span title={r.dataset?.name || basename(r.value)}>
                         {r.dataset?.name || basename(r.value)}
                       </span>
                     )}

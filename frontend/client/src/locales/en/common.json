@@ -536,7 +536,7 @@
     "open_dataset": "Open dataset",
     "preview": "Preview",
     "hide_preview": "Hide preview",
-    "copy_s3": "Copy S3 path",
+    "copy_s3": "Copy path",
     "confirm_delete": "Delete this file?",
     "err_load": "Failed to load files",
     "err_upload": "Upload failed",

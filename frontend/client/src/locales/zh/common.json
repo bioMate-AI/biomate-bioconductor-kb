@@ -542,7 +542,7 @@
     "open_dataset": "打开数据集",
     "preview": "预览",
     "hide_preview": "隐藏预览",
-    "copy_s3": "复制 S3 路径",
+    "copy_s3": "复制路径",
     "confirm_delete": "删除此文件？",
     "err_load": "加载文件失败",
     "err_upload": "上传失败",
