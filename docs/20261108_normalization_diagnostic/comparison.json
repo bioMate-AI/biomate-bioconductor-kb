@@ -1,0 +1,74 @@
+[
+  {
+    "normalization": "labelled-only",
+    "arm": "pretrained",
+    "mode": "fixed_epochs",
+    "auroc": 0.9123899274369003,
+    "auprc": 0.7485673426371013,
+    "auroc_sd": 0.05171159541608893,
+    "auprc_sd": 0.1309684506818861
+  },
+  {
+    "normalization": "labelled-only",
+    "arm": "pretrained",
+    "mode": "matched_full_label_updates",
+    "auroc": 0.9305046348945473,
+    "auprc": 0.7934207198230337,
+    "auroc_sd": 0.024064232531977228,
+    "auprc_sd": 0.06917146635957021
+  },
+  {
+    "normalization": "labelled-only",
+    "arm": "scratch",
+    "mode": "fixed_epochs",
+    "auroc": 0.9447661813770326,
+    "auprc": 0.8301922383133499,
+    "auroc_sd": 0.008102162007206948,
+    "auprc_sd": 0.01225513656162504
+  },
+  {
+    "normalization": "labelled-only",
+    "arm": "scratch",
+    "mode": "matched_full_label_updates",
+    "auroc": 0.9392046566166332,
+    "auprc": 0.818270210903762,
+    "auroc_sd": 0.009979999598598032,
+    "auprc_sd": 0.019834153759310576
+  },
+  {
+    "normalization": "all-training-features",
+    "arm": "pretrained",
+    "mode": "fixed_epochs",
+    "auroc": 0.9177039141295588,
+    "auprc": 0.7633857720870773,
+    "auroc_sd": 0.0480652343981564,
+    "auprc_sd": 0.12656691765329667
+  },
+  {
+    "normalization": "all-training-features",
+    "arm": "pretrained",
+    "mode": "matched_full_label_updates",
+    "auroc": 0.9318149158170191,
+    "auprc": 0.8059022049680737,
+    "auroc_sd": 0.026145421001522163,
+    "auprc_sd": 0.06216266257307021
+  },
+  {
+    "normalization": "all-training-features",
+    "arm": "scratch",
+    "mode": "fixed_epochs",
+    "auroc": 0.94862803554528,
+    "auprc": 0.8422704627267379,
+    "auroc_sd": 0.009839396344150753,
+    "auprc_sd": 0.017087695752011495
+  },
+  {
+    "normalization": "all-training-features",
+    "arm": "scratch",
+    "mode": "matched_full_label_updates",
+    "auroc": 0.9421132924770208,
+    "auprc": 0.8273393235626144,
+    "auroc_sd": 0.008551733368984831,
+    "auprc_sd": 0.013988296869588315
+  }
+]

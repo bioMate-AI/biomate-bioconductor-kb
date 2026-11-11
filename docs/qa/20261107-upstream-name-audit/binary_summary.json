@@ -1,0 +1,14 @@
+{
+  "files_considered": 3483,
+  "raw_bytes_scanned": 2446788273,
+  "matching_records": 248,
+  "matching_files": 168,
+  "skipped": [],
+  "errors": [],
+  "limitations": [
+    "No pickle/model code execution",
+    "No PDF content-stream decompression or OCR",
+    "No gzip/tar recursive decompression",
+    "No extraction of nested archives"
+  ]
+}

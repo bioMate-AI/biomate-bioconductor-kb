@@ -2,7 +2,7 @@
 <tool id="biomni_biochemistry_analyze_rna_secondary_structure_features" name="Biomni: Analyze Rna Secondary Structure Features" version="1.0.0">
     <description>Calculate numeric values for various structural features of an RNA secondary structure.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_rna_secondary_structure_features_wrapper.py' --output '$output'

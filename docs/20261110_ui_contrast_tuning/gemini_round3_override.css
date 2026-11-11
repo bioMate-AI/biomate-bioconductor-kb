@@ -1,0 +1,158 @@
+/* 
+  TYPE RAMP PROPOSAL (To be implemented in source, not via CSS scaling):
+  - Page Title: 24px / 1.2 (font-semibold)
+  - Section Title: 18px / 1.3 (font-medium)
+  - Body: 15px / 1.5 (font-normal)
+  - Secondary/Meta: 13px / 1.5 (font-normal, text-muted-foreground)
+  - Micro-label: 11px / 1.4 (font-medium, uppercase tracking-wider)
+  - Mono: 13px / 1.5 (font-mono)
+*/
+
+:root {
+  /* 1. SURFACE HIERARCHY & CONTRAST */
+  /* Tinted canvas (L:95%) with pure white (L:100%) cards and sidebar. 
+     This creates a strict 5% lightness difference for clear, high-end separation. */
+  --background: 212 20% 95%;
+  --sidebar: 0 0% 100%;
+  --card: 0 0% 100%;
+  --popover: 0 0% 100%;
+
+  /* Visible borders (L:85%) to clearly delineate white surfaces against the tinted canvas */
+  --border: 212 15% 85%;
+  --card-border: 212 15% 85%;
+  --sidebar-border: 212 15% 85%;
+  --popover-border: 212 15% 85%;
+  --input: 212 15% 85%;
+
+  /* Near-black primary text for crisp readability */
+  --foreground: 212 20% 15%;
+  --card-foreground: 212 20% 15%;
+  --sidebar-foreground: 212 20% 15%;
+  --popover-foreground: 212 20% 15%;
+
+  /* Muted backgrounds (e.g., Run Manager columns) slightly darker than canvas (L:92%) to give them structure */
+  --muted: 212 20% 92%;
+  /* Darkened secondary text (L:40%) to guarantee WCAG AA >= 4.5:1 on all surfaces */
+  --muted-foreground: 212 15% 40%;
+  
+  --sidebar-accent: 212 20% 95%;
+  --sidebar-accent-foreground: 212 20% 15%;
+
+  /* 2. BRAND ACCENT (CERULEAN BLUE) - STRICTLY NO PURPLE */
+  /* Enforcing the requested Cerulean Blue across all primary interactive tokens */
+  --primary: 202 100% 37%;
+  --primary-foreground: 0 0% 100%;
+  --sidebar-primary: 202 100% 37%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --ring: 202 100% 37%;
+
+  /* Replacing legacy purple charts/accents with a deep navy */
+  --chart-3: 215 60% 45%; 
+  --bio-purple: 215 60% 45%; 
+
+  /* 3. BIOMATE OKLCH TOKENS (GLOBAL) */
+  /* Aligning OKLCH tokens with the HSL hierarchy: tinted bg, white surfaces */
+  --bm-bg: oklch(0.96 0.01 240); 
+  --bm-surface: #ffffff; 
+  --bm-surface-2: oklch(0.97 0.01 240); /* Subtle hover/inset */
+  --bm-surface-3: oklch(0.93 0.01 240); /* Deeper inset */
+  
+  /* Visible borders matching the HSL L:85% */
+  --bm-border: oklch(0.87 0.01 240);
+  --bm-border-strong: oklch(0.75 0.01 240);
+  
+  /* High-contrast text */
+  --bm-text: oklch(0.25 0.01 240);
+  --bm-text-muted: oklch(0.45 0.01 240); /* WCAG AA compliant secondary text */
+  --bm-text-dim: oklch(0.55 0.01 240);
+
+  /* Brand accents */
+  --bm-primary: #007fbd;
+  --bm-accent: oklch(0.55 0.14 245);
+  --bm-accent-soft: oklch(0.96 0.03 245);
+  --bm-accent-ink: oklch(0.35 0.10 245);
+
+  /* Status colors: Darkened base colors to ensure text readability against soft backgrounds */
+  --bm-ok: oklch(0.50 0.14 150);
+  --bm-ok-soft: oklch(0.97 0.04 150);
+  --bm-warn: oklch(0.60 0.16 75);
+  --bm-warn-soft: oklch(0.97 0.05 75);
+  --bm-err: oklch(0.55 0.18 25);
+  --bm-err-soft: oklch(0.97 0.04 25);
+
+  /* Replaced purple speaker pill with a cool blue/grey */
+  --bm-loop: oklch(0.50 0.12 220); 
+
+  /* Unprefixed aliases */
+  --ok: var(--bm-ok);
+  --ok-soft: var(--bm-ok-soft);
+  --warn: var(--bm-warn);
+  --warn-soft: var(--bm-warn-soft);
+  --err: var(--bm-err);
+  --err-soft: var(--bm-err-soft);
+  --accent: var(--bm-accent);
+  --accent-soft: var(--bm-accent-soft);
+  --accent-ink: var(--bm-accent-ink);
+  --run: var(--bm-accent);
+  --run-soft: var(--bm-accent-soft);
+  --surface: var(--bm-surface);
+  --surface-3: var(--bm-surface-3);
+  --border: var(--bm-border);
+  --border-strong: var(--bm-border-strong);
+  --text: var(--bm-text);
+  --text-muted: var(--bm-text-muted);
+  --text-dim: var(--bm-text-dim);
+}
+
+/* 4. WORKFLOW PANEL OVERRIDES */
+.wf-panel {
+  /* Panel acts as a white surface on the tinted canvas */
+  --bg: oklch(0.96 0.01 240); 
+  --surface: #ffffff; 
+  --surface-2: oklch(0.97 0.01 240);
+  --surface-3: oklch(0.93 0.01 240);
+  
+  --border: oklch(0.87 0.01 240);
+  --border-strong: oklch(0.75 0.01 240);
+  
+  --text: oklch(0.25 0.01 240);
+  --text-muted: oklch(0.45 0.01 240);
+  --text-dim: oklch(0.55 0.01 240);
+  
+  --primary: 202 100% 37%;
+  --primary-foreground: 0 0% 100%;
+  --accent: oklch(0.55 0.14 245);
+  --accent-soft: oklch(0.96 0.03 245);
+  --accent-ink: oklch(0.35 0.10 245);
+  --run: oklch(0.55 0.14 245);
+  --run-soft: oklch(0.96 0.03 245);
+  
+  --ok: oklch(0.50 0.14 150);
+  --ok-soft: oklch(0.97 0.04 150);
+  --warn: oklch(0.60 0.16 75);
+  --warn-soft: oklch(0.97 0.05 75);
+  --err: oklch(0.55 0.18 25);
+  --err-soft: oklch(0.97 0.04 25);
+}
+
+/* 5. GLOBAL ENFORCEMENT RULES */
+body {
+  /* Enforce the tinted canvas globally */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-sidebar="sidebar"] {
+  /* Enforce pure white sidebar for contrast against canvas */
+  background-color: hsl(var(--sidebar));
+  border-right: 1px solid hsl(var(--sidebar-border));
+}
+
+.wf-panel {
+  /* Enforce pure white panel surface */
+  background-color: var(--surface);
+  color: var(--text);
+  border-left: 1px solid var(--border);
+}

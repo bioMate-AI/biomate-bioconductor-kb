@@ -6,25 +6,25 @@
 
 /* ── Design tokens (light mode) ───────────────────────────── */
 .wf-panel {
-  --bg:          oklch(0.99 0.003 240);
-  --surface:     oklch(0.985 0.003 240);
-  --surface-2:   oklch(0.97  0.003 240);
-  --surface-3:   oklch(0.945 0.005 240);
+  --bg:          oklch(0.96 0.01 240);
+  --surface:     #ffffff;
+  --surface-2:   oklch(0.97 0.01 240);
+  --surface-3:   oklch(0.93 0.01 240);
   --bg-elev:     oklch(1.0   0     0);
-  --border:      oklch(0.915 0.006 240);
-  --border-strong: oklch(0.86 0.008 240);
+  --border:      oklch(0.87 0.01 240);
+  --border-strong: oklch(0.75 0.01 240);
   --text:        oklch(0.22  0.01  260);
-  --text-muted:  oklch(0.48  0.012 260);
-  --text-dim:    oklch(0.62  0.010 260);
+  --text-muted:  oklch(0.45 0.012 260);
+  --text-dim:    oklch(0.55 0.010 260);
   --accent:      oklch(0.55  0.14  245);
   --accent-soft: oklch(0.96  0.03  245);
   --accent-ink:  oklch(0.35  0.10  245);
-  --ok:          oklch(0.62  0.13  150);
-  --ok-soft:     oklch(0.96  0.04  150);
-  --err:         oklch(0.58  0.18  25);
-  --err-soft:    oklch(0.96  0.05  25);
-  --warn:        oklch(0.72  0.14  75);
-  --warn-soft:   oklch(0.96  0.05  75);
+  --ok:          oklch(0.50 0.14 150);
+  --ok-soft:     oklch(0.97 0.04 150);
+  --err:         oklch(0.55 0.18 25);
+  --err-soft:    oklch(0.97 0.04 25);
+  --warn:        oklch(0.60 0.16 75);
+  --warn-soft:   oklch(0.97 0.05 75);
   --run:         oklch(0.55  0.14  245);
   --run-soft:    oklch(0.96  0.03  245);
   --r-xs:  4px;
@@ -102,8 +102,8 @@
 .wf-panel .btn:hover:not(:disabled) { background: var(--surface-2); }
 .wf-panel .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .wf-panel .btn.primary {
-  background: var(--text); color: var(--bg-elev);
-  border-color: var(--text);
+  background: var(--accent); color: #fff;
+  border-color: var(--accent);
 }
 .wf-panel .btn.primary:hover:not(:disabled) { opacity: 0.88; }
 .wf-panel .btn.ghost  { border-color: transparent; background: transparent; }

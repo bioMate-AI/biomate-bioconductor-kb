@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_get_uce_embeddings_scRNA" name="Biomni: Get Uce Embeddings Scrna" version="1.0.0">
     <description>The UCE embeddings are usually our default tools to get cell embeddings, we map UCE embeddings to IMA referece dataset and get the cell types for a better understanding.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_uce_embeddings_scRNA_wrapper.py' --output '$output'

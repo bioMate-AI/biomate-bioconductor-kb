@@ -50,6 +50,7 @@ class LoopConfig:
     beta: float = 1.0
     retrieve_k: int = 5
     max_proposals_factor: int = 20
+    max_seconds: Optional[float] = None  # safety cap, not optimization budget
 
 
 # ------------------------------------------------------------------------------------------------ logging
@@ -207,15 +208,28 @@ def run_loop(cfg: LoopConfig, generator, train_verifier: Verifier, constraint=No
             monitor.load_state_dict(ck["monitor"])
         lora_path = os.path.join(ckpt_dir, ck["lora"])
         generator.load_lora(lora_path)
+        extra=ck.get("extra",{})
+        stop_cache={c:float(v) for c,v in extra.get("stop_cache",{}).items()}
         if retriever is not None:
-            for _, c, s in oracle.log:
-                retriever.add(c, {train_verifier.name: s})
+            if extra.get("retriever") is not None:
+                if not hasattr(retriever,"load_state_dict"):
+                    raise ValueError("retriever cannot restore provenance checkpoint")
+                retriever.load_state_dict(extra["retriever"])
+            else:
+                for _, c, s in oracle.log:
+                    retriever.add(c, {train_verifier.name: s})
         start_round = int(ck["next_round"])
         rounds_done = start_round
 
     interrupted = False
+    started = time.monotonic()
+    stop_reason = "round_limit"
     for r in range(start_round, cfg.rounds_max):
+        if cfg.max_seconds is not None and time.monotonic() - started >= cfg.max_seconds:
+            stop_reason = "wallclock"
+            break
         if oracle.exhausted:
+            stop_reason = "budget_or_proposal_cap"
             break
         ctx = ctx_builder(r, oracle, retriever)
         samples = generator.sample(cfg.n_per_round, ctx, cfg.temperature, cfg.seed * 100003 + r, constraint)
@@ -241,19 +255,25 @@ def run_loop(cfg: LoopConfig, generator, train_verifier: Verifier, constraint=No
         except BudgetExhausted:
             budget_done = True
 
-        pair_diag: Dict[str, float] = {}
-        step_metrics: Dict[str, float] = {}
-        if updater is not None and len(scored_raw) >= 2:
+        pair_diag: Dict[str, Any] = {}
+        step_metrics: Dict[str, Any] = {}
+        if updater is not None:
+            # Empty and small rounds must still be counted in pair diagnostics
+            # and in a real updater's search-round learning-stall gate.
             pairs, pair_diag = updater.make_pairs(scored_raw, scored_val, cfg.margin)
             if pairs:
                 step_metrics = updater.step(pairs, cfg.lr, cfg.beta)
+            if hasattr(updater,"observe_round"):
+                step_metrics = updater.observe_round(r,step_metrics or None,pair_diag)
         if retriever is not None:
             for _, c, s in oracle.log[calls0:]:
                 retriever.add(c, {train_verifier.name: s})
 
         top = oracle.top_smiles(cfg.topk)
         train_top = [oracle.cache[c] for c in top]
-        stop_mean, gap, should_stop = None, None, None
+        stop_mean, gap = None, None
+        learning_stopped=step_metrics.get("update_gate")=="stop"
+        should_stop=learning_stopped
         if stop_verifier is not None and monitor is not None and top:
             stop_vals = []
             for c in top:
@@ -261,7 +281,8 @@ def run_loop(cfg: LoopConfig, generator, train_verifier: Verifier, constraint=No
                     stop_cache[c] = float(stop_verifier.fn(c))
                 stop_vals.append(stop_cache[c])
             res = monitor.update(r, train_top, stop_vals)
-            stop_mean, gap, should_stop = float(np.mean(stop_vals)), res.get("gap"), bool(res.get("should_stop"))
+            stop_mean, gap = float(np.mean(stop_vals)), res.get("gap")
+            should_stop=should_stop or bool(res.get("should_stop"))
         if logger is not None:
             logger.log(RoundRow(run_id=cfg.run_id, method=cfg.method, objective=cfg.objective, seed=cfg.seed, round=r,
                                 n_sampled=len(samples), n_invalid=oracle.n_invalid - n_inv0, n_dup=oracle.n_dup - n_dup0,
@@ -270,22 +291,35 @@ def run_loop(cfg: LoopConfig, generator, train_verifier: Verifier, constraint=No
                                 stop_topk_mean=stop_mean, gap=gap, should_stop=should_stop,
                                 kl=step_metrics.get("kl"), weight_delta_rel=step_metrics.get("weight_delta_rel"),
                                 frac_zero_variance_groups=pair_diag.get("frac_zero_variance_groups"),
+                                frac_small_groups_dropped=pair_diag.get("frac_small_groups_dropped"),
+                                frac_groups_retained=pair_diag.get("frac_groups_retained"),
+                                n_groups=pair_diag.get("n_groups"),n_groups_kept=pair_diag.get("n_groups_kept"),
+                                preference_mean_margin=pair_diag.get("mean_margin"),
+                                loss=step_metrics.get("loss"),update_gate=step_metrics.get("update_gate"),
+                                update_gate_reason=step_metrics.get("update_gate_reason"),
+                                learning_gate_round=step_metrics.get("learning_gate_round"),
+                                optimizer_updated=step_metrics.get("optimizer_updated"),
                                 n_pairs=int(pair_diag["n_pairs"]) if "n_pairs" in pair_diag else None, t_unix=time.time()))
         rounds_done = r + 1
         if ckpt_dir:
-            save_checkpoint(ckpt_dir, r + 1, oracle, monitor, generator)
+            save_checkpoint(ckpt_dir, r + 1, oracle, monitor, generator,
+                            extra={"stop_cache":stop_cache,
+                                   "retriever":retriever.state_dict() if retriever is not None and hasattr(retriever,"state_dict") else None})
         if should_stop:
             stopped_at = r
+            stop_reason = "learning_gate" if learning_stopped else "monitor"
             break
         if budget_done or oracle.exhausted:
+            stop_reason = "budget_or_proposal_cap"
             break
         if stop_after_rounds is not None and (r + 1) >= stop_after_rounds:
             interrupted = True
+            stop_reason = "interrupted"
             break
 
     curve = oracle.topk_curve(cfg.topk)
     return {"run_id": cfg.run_id, "method": cfg.method, "objective": cfg.objective, "seed": cfg.seed, "calls": oracle.calls,
             "auc_topk": auc_topk(curve), "final_topk": float(curve[-1]), "curve": curve, "top_smiles": oracle.top_smiles(cfg.topk),
-            "rounds": rounds_done, "stopped_at": stopped_at, "interrupted": interrupted, "n_stop_calls": len(stop_cache),
+            "rounds": rounds_done, "stop_reason": stop_reason, "wall_s": time.monotonic() - started, "stopped_at": stopped_at, "interrupted": interrupted, "n_stop_calls": len(stop_cache),
             "n_proposals": oracle.n_proposals, "n_invalid": oracle.n_invalid, "n_dup": oracle.n_dup,
             "n_constraint_fail": oracle.n_constraint_fail, "oracle_log": list(oracle.log)}

@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_apply_vcog_grade" name="Biomni: Apply Vcog Grade" version="1.0.0">
     <description>Apply VCOG-CTCAE grading criteria to an adverse event.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/apply_vcog_grade_wrapper.py' --output '$output'

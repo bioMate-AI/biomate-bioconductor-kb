@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+import path from 'path';
+const base = 'http://localhost:7788/';
+const url = base + 'BioMate%20Data-Centric%20Prototype.html';
+const outDir = process.argv[2] || '/tmp/proto_shots';
+const b = await chromium.launch({ channel:'chrome', args:['--hide-scrollbars'] });
+const pg = await b.newPage({ viewport:{width:1512,height:945}, deviceScaleFactor:1 });
+pg.on('pageerror', e => console.log('  [pageerror]', String(e).slice(0,140)));
+await pg.goto(url, { waitUntil:'load' });
+await pg.waitForFunction(() => typeof window.App==='function', { timeout:60000 }).catch(()=>console.log('  (App undefined)'));
+await pg.waitForFunction(() => { const r=document.getElementById('root'); return r && r.innerText.trim().length>60; }, { timeout:60000 }).catch(()=>console.log('  (root empty)'));
+await pg.waitForTimeout(2500);
+const txt = await pg.evaluate(() => (document.getElementById('root')?.innerText||'').replace(/\n+/g,' | ').slice(0,600));
+console.log('--- root text ---\n'+txt+'\n');
+await pg.screenshot({ path: path.join(outDir,'00_entry.png') });
+console.log('shot 00_entry.png');
+await b.close();

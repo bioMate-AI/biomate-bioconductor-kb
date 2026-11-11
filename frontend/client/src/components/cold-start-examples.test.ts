@@ -53,7 +53,7 @@ describe('prepared examples', () => {
     expect(result.projectId).toBe('hospital-demo');
     expect(result.files.map(file => file.name)).toContain('rna.csv');
     expect(result.prompt).toContain('synthetic');
-    expect(result.prompt).toContain('Stop for confirmation');
+    expect(result.prompt).toContain('confirm before running');
     expect(result.prompt).not.toContain('ARI 0.978');
     const create = fetcher.mock.calls.find(([url, init]) => url === '/api/projects' && init?.method === 'POST');
     expect(JSON.parse(String(create?.[1]?.body)).name).toBe(HOSPITAL_DEMO_PROJECT_NAME);

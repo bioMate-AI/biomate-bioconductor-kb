@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_find_alternative_drugs_ddinter" name="Biomni: Find Alternative Drugs Ddinter" version="1.0.0">
     <description>Find alternative drugs that don't interact with contraindicated drugs.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/find_alternative_drugs_ddinter_wrapper.py' --output '$output'

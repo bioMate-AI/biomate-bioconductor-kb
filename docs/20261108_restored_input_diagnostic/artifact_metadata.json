@@ -1,0 +1,14 @@
+{
+  "scaler_keys": [
+    "hvg_names",
+    "mean",
+    "scale",
+    "n_tr",
+    "n_datasets_ckpt",
+    "staleness"
+  ],
+  "staleness": "<=4 datasets vs final PASS1",
+  "n_know": 768,
+  "n_pathways": 512,
+  "n_tf": 256
+}

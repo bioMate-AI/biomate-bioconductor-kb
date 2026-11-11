@@ -1,0 +1,186 @@
+# Organic-user issues — complete collection + test mapping (2026-11-10)
+
+Supersedes the 2026-11-09 pass, which only covered the last-week signups. This is
+**all** genuine organic users across the full history, mined from the users table,
+`chat_sessions` (conversation content), `project_episodes`, the 702 study run logs,
+and the live container logs. Privacy-safe: users are pseudonymized (U-codes by
+institution type/region), frictions are paraphrased from assistant responses, no
+emails or verbatim user content.
+
+## Population (dev = production instance `i-06696b0d91f4346e0`)
+- **1,483 users total**, but **~1,370 are test/internal** (`biomate-test.internal`,
+  `biomate-verify.dev`, `example.com`, `test.local`, QA fixtures). **~47 genuine
+  organic** signups (real institutions).
+- **Engagement:** ~33 organic users started ≥1 chat; **19 hit at least one friction**
+  (below). ~13 **churned** (0 sessions) — incl. Harvard, Houston Methodist, UTHealth,
+  Tsinghua, Zhejiang, SENAC, megarobo; two (Harvard, Houston Methodist) opened a
+  session but sent 0 messages.
+- **Organic runs: 133 of 700 study-logged runs; 0 failed** — so organic *run*
+  reliability is good; the issues are overwhelmingly **pre-run** (connectivity,
+  ingestion, routing, input friction) and **onboarding** (verification).
+
+## Issue classes (ranked by impact)
+
+### I1 — Workflow engine unreachable (frontend→Galaxy `ECONNREFUSED`/DNS) · HIGH · STILL LIVE
+Most common friction. Seen across a verified gmail power-user, a Hong Kong
+university user (repeated), two `qq.com` users, and others. User-visible text:
+"Could not generate workflow — the workflow engine is temporarily unreachable
+(connection refused / DNS resolution failure `biomate-galaxy-dev` unreachable)",
+and for code: "run_code sandbox backend is temporarily unavailable
+(ECONNREFUSED 172.19.0.2:8080)".
+- **Live check:** 0 in the last 2h, but `connect ECONNREFUSED 127.0.0.1:8081`
+  (Galaxy port) appeared within 6h — intermittent, still occurring.
+- **Root cause:** Node frontend → Galaxy (`:8081`) transient refusal (worker
+  recycle / cold path). A retry (3×) exists on 502/503/504 + `TypeError fetch
+  failed` at **execution** (`routes.ts:~12552`) but the **workflow-generation** and
+  **run_code** paths surface the refusal to the user instead of retrying.
+- **Fix direction:** extend the same bounded retry/backoff to the generate + run_code
+  calls; keep the honest "closest available option" fallback it already shows.
+
+### I2 — `run_code` sandbox backend unreachable · HIGH · likely same root as I1
+`RDIAG[ok=false,e=connect ECONNREFUSED 172.19.0.2:8080]` — the code sandbox node was
+unreachable (seen for a `qq.com`/alibaba user). Same retry gap as I1 on the sandbox path.
+
+### I3 — "No response received from the AI service" (workflow generation) · MEDIUM
+A `qq.com` user: "Workflow generation failed — no response received from the AI
+service … temporary initialization issue." LLM/provider init or timeout on the
+generate path. Connects to the agentic-on-Gemini / provider-timeout work.
+
+### I4 — Cloud / local file ingestion not supported · HIGH · partially addressed
+A Philippines-university user (heavy, 39 msgs) hit this repeatedly with explicit
+frustration: "BioMate cannot directly access your Google Drive or local files." This
+is the churn driver flagged last week (lgayukil). Drive-URL normalization was added
+(`remote-source-validation.ts`), but the assistant still answers "cannot access Google
+Drive directly" — the capability isn't surfaced in the conversation path.
+- **Fix direction:** when a user mentions Drive/Dropbox/a share link, route to the
+  From-URL ingestion (normalize + fetch) instead of replying that it's impossible.
+
+### I5 — File-upload internal server error (incl. Word/doc retrieval) · HIGH
+A University of Delhi user: "file upload encountered an internal server error, so I
+wasn't able to retrieve the script content" and "internal server error retrieving your
+Word document." Upload or content-retrieval 500s that blocked the whole task.
+- **Test:** exercise upload + read_file of .py/.docx via the real API; capture the 500.
+
+### I6 — Hallucinated dataset accessions · MEDIUM · correctness
+A Wenzhou user got a fabricated GEO ID and the assistant later retracted:
+"GSE148286 doesn't exist — that was a fictional dataset ID I generated." Matches the
+`research_confabulation` finding (research_query invents accessions/PMIDs).
+- **Fix direction:** gate accession claims through the accession resolver / GEO
+  cascade before presenting them (the accession-benchmark work).
+
+### I7 — Backend "no such table: workflows" · MEDIUM · FIXED (retired)
+A GIBH user hit "internal database error (`no such table: workflows`)" retrieving
+ChIP-seq templates (2026-06). **Live check: 0 occurrences in current logs** — the
+template path changed; retired. Keep a regression note.
+
+### I8 — Run failures + poor failure diagnosis · MEDIUM · addressed, verify
+A McGill user asked "why is my run failing" 3× and got the same unhelpful "the
+provided literature does not contain diagnostic information" — the run-problem was
+routed to the literature agent with no run/universe context. This is exactly the
+"ad hoc short-circuit" issue addressed this cycle (run-diagnostics + universe context
+threaded into the research payload). Humanitas and ibch.ru also hit real run errors
+("Workflow hit an error", "BIOC_TFBSTOOLS… failed — 1 task failed").
+- **Test:** a run-problem query must return run-grounded diagnosis (status/step/log),
+  not a literature deflection.
+
+### I9 — Email verification not completing · HIGH · SYSTEMIC · TESTED: not a code bug
+**46 of 47 organic users are unverified** (~2%). **Tested the full loop live on dev
+(2026-11-10):**
+- Registration/resend DOES send the email — `POST /api/auth/resend-verification`
+  for the fixture returned 200 and the frontend logged
+  `[EmailService] SES sent to …@163.com: Verify Your BioMate Account`. SES is in
+  **production** (not sandbox) and delivers to external domains. ✅
+- The verify LINK is `${APP_URL}/verify-email?token=…` with
+  `APP_URL=https://dev-public.biomate.ai` — **which is where the app actually lives**:
+  `dev-public.biomate.ai/verify-email` → 200. (Correction to an earlier note:
+  `biomate.ai` is a SEPARATE site — different title, and `/verify-email` → 404 there.
+  So APP_URL=dev-public is CORRECT; pointing it at biomate.ai would BREAK the link.) ✅
+- `verify-email` + `verifyEmail()` + `resend-verification` are all implemented and
+  wired (guarded by `auth-fixes-20260612.test.ts`).
+So send and link both work — **the low rate is NOT a broken flow/link/send.** It is
+**deliverability / engagement**, and the most suspicious factor is the sender
+`noreply@dev-public.biomate.ai` — a dev-looking subdomain that invites spam
+placement. (The fixture itself is unverified because E2E tests never click the email
+link — expected for a test account, and not representative of real users.)
+- **This is a product/infra decision, not a code fix:** choose a trustworthy sending
+  identity (e.g. `noreply@biomate.ai`, a verified SES domain — the From domain is
+  independent of APP_URL, so this does NOT require moving the app), and confirm
+  SPF/DKIM/DMARC alignment for it. Keep `APP_URL=dev-public.biomate.ai` (or move the
+  app to a cleaner host) so the link stays valid. Then measure the delivered→clicked
+  rate. NOT changed autonomously — outward-facing email on the real stack.
+- Minor: `auth-service` wraps the send in `.catch(() => {})`, but `email-service`
+  itself logs `SES sent` / `SES send failed`, so per-send outcomes ARE visible in the
+  frontend log — observability is adequate.
+
+### I10 — Post-signup churn · MEDIUM · onboarding
+~13 organic users (incl. Harvard, Houston Methodist, UTHealth, Tsinghua) registered
+and never engaged; two opened a chat and sent nothing. Likely compounded by I9
+(unverified → degraded first session) and an empty cold-start.
+- Related: the cold-start cleanup + example rows shipped this cycle.
+
+### I11 — Required-param / "Missing input" friction · MEDIUM · UX, high-frequency
+Very frequent across USC, alibaba, kk, alphac, GIBH, Wenzhou, Chongqing, Delhi, HKU:
+"⚠️ 1 required parameter need to be filled" and "Missing: input data / accession /
+FASTQ." Often legitimate, but the volume suggests users expect the run to proceed or
+don't find the panel. Some are fine (guarding a real missing input); worth a UX pass
+on making the required-param affordance obvious and offering a sample dataset.
+
+### I12 — Citation-integrity friction · LOW · working as intended
+ncsu and St. Jude users were told the assistant can only cite from papers they
+supply. Correct behavior (citation-integrity guard), logged as friction only so it's
+not mistaken for a bug.
+
+(Not an issue — positive signal: a `gmail.com` user probed with hack/role-play/
+paradox prompts; BioMate refused each correctly.)
+
+## Test mapping
+| Issue | Status | Test |
+|---|---|---|
+| I1 engine-unreachable | still live | NEW: retry/backoff on ECONNREFUSED for generate + run_code paths (unit on the fetch wrapper) |
+| I2 run_code unreachable | still live | same wrapper test as I1 |
+| I3 no-AI-response | open | provider-timeout handling test (generate path) |
+| I4 Drive ingestion | partial | e2e: "my reads are on Google Drive <link>" → From-URL ingestion, not a refusal |
+| I5 upload 500 | open | API test: upload .py/.docx + read_file → no 500 |
+| I6 hallucinated accession | open | accession-benchmark: invented GEO ID must be caught by the resolver |
+| I7 no-such-table | fixed | regression note only (0 in logs) |
+| I8 run-diagnosis | addressed | e2e: "why is my run failing" → run-grounded diagnosis (not literature) |
+| I9 verification | systemic | e2e: register deliverable email → verify link flips email_verified |
+| I10 churn | onboarding | funnel metric; cold-start already revised |
+| I11 required-param UX | open | UX pass + sample-dataset affordance |
+| I12 citation friction | WAI | none (keep) |
+
+## Live-test results this pass (2026-11-10)
+- **I9** — TESTED end-to-end: resend → `SES sent … Verify Your BioMate Account`;
+  verify link (`dev-public.biomate.ai/verify-email`) → 200. Send + link both WORK; it
+  is NOT a code bug. `biomate.ai` is a separate site (/verify-email → 404) so APP_URL
+  must stay dev-public. Low rate = deliverability/engagement (sender subdomain), a
+  product/infra decision, not a code fix.
+- **I1/I2** — **FIXED + deployed** (commit `aef0198c`). The GENERATION path was found
+  to already retry (galaxy-api-proxy.ts, 5 attempts) — left as-is. The real gap was
+  **run_code**, which had NO retry; both run_code sites now bounded-retry a transient
+  sidecar blip (new `transient-retry.ts`, 3 attempts ≤4.5s, aborts/genuine-errors never
+  retried, honest fallback preserved; 11 unit tests). Full suite 2644/0.
+- **I4** — **FIXED + behaviorally verified live** (commit `aef0198c`). Added the
+  Import-from-URL / Drive-Dropbox-share-link capability to the response prompt +
+  missing-input guidance. Live chat test ("my reads are on Google Drive") now returns
+  a step-by-step Import-from-URL answer ("BioMate automatically converts the Google
+  Drive share link to a direct download URL and imports the file") — no "cannot access"
+  refusal.
+- **I7** — confirmed FIXED: `no such table: workflows` has 0 occurrences in current logs.
+
+## Top actions (highest leverage first)
+1. **I9 deliverability** — the flow works; improve inbox placement by sending
+   verification from a trustworthy identity (`noreply@biomate.ai`, already a verified
+   SES domain) instead of `noreply@dev-public.biomate.ai`, with SPF/DKIM/DMARC
+   aligned; keep APP_URL on the real app host. Product/infra call — confirm before
+   changing outward-facing email.
+2. **I1/I2 connectivity resilience** — extend the execution retry to the
+   workflow-generation and run_code paths so a transient Galaxy refusal doesn't become
+   a user-visible "could not generate workflow."
+3. **I4 Drive ingestion in-conversation** — route share-link mentions to the From-URL
+   path instead of replying it's impossible.
+4. **I8 run-diagnosis** — confirm the universe-context fix returns run-grounded
+   answers (McGill-style repeat failure).
+
+See [[project_personal_workflow_batch_exec]] (exec reliability), the SES/admin-alert
+work (I9), and `research_confabulation` (I6).

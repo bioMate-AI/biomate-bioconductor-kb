@@ -1,0 +1,5 @@
+S0 folds 5 train rows (first) 4153 test rows 2325
+[Parallel(n_jobs=7)]: Using backend LokyBackend with 7 concurrent workers.
+[Parallel(n_jobs=7)]: Done   2 out of   5 | elapsed:  1.1min remaining:  1.6min
+[Parallel(n_jobs=7)]: Done   5 out of   5 | elapsed:  1.1min finished
+done S0 66 s (2325, 17) (2544, 17)

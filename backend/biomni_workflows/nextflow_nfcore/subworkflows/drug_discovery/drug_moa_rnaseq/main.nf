@@ -76,9 +76,9 @@ process DIFFERENTIAL_EXPRESSION {
     label 'process_medium'
     publishDir "${params.outdir}/01_differential_expression", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path treated_counts   // count matrix TSV: genes × treated samples
@@ -189,9 +189,9 @@ process GENE_SET_ENRICHMENT {
     label 'process_medium'
     publishDir "${params.outdir}/02_gene_set_enrichment", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path de_results_tsv   // ranked gene list from DIFFERENTIAL_EXPRESSION
@@ -309,9 +309,9 @@ process LINCS_CMAP_LOOKUP {
     label 'process_single'
     publishDir "${params.outdir}/03_lincs_cmap", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path de_results_tsv   // ranked gene list from DIFFERENTIAL_EXPRESSION
@@ -444,9 +444,9 @@ process MOA_REPORT {
     label 'process_single'
     publishDir "${params.outdir}/04_moa_report", mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     path de_results_tsv   // from DIFFERENTIAL_EXPRESSION

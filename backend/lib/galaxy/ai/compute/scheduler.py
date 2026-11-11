@@ -10,13 +10,16 @@ scoring.
 Legacy decision order (from `execute_nextflow`, ~L4783–4872):
 
     1. NEXTFLOW_USE_AWS=true OR executor == "awsbatch"      -> awsbatch
-    2. nextflow_path under /tmp/biomate_user_nf/            -> local  (wins)
+    2. nextflow_path under /tmp/biomate_user_nf/ (personal) -> awsbatch when
+       on a Batch platform (NEXTFLOW_USE_AWS / awsbatch requested), else local
     3. outdir is s3:// and no executor set yet              -> awsbatch
     4. any s3:// param input and no executor set yet        -> awsbatch
     5. otherwise                                            -> local
 
-Rule 2 is applied *after* rule 1 in the source and overrides it, so a
-personal workflow always runs local even when NEXTFLOW_USE_AWS is true.
+Rule 2 is applied *after* rule 1 in the source. Before 2026-11-09 it forced
+local unconditionally (which could not run on SaaS — the Galaxy container has
+no docker); it now keeps the Batch routing on a Batch platform and only forces
+local on local/on-prem deployments.
 """
 
 from __future__ import annotations
@@ -67,10 +70,25 @@ class Scheduler:
         # code it is applied last and overrides everything else. Encoding it
         # first here yields the identical final result with less branching.
         if spec.is_personal_workflow:
+            # 2026-11-09: personal workflows run on Batch wherever Batch is the
+            # platform (SaaS: NEXTFLOW_USE_AWS, or an explicit awsbatch request) —
+            # the SaaS Galaxy container has no docker, so the former
+            # unconditional-local rule could not execute there (exit 127). They
+            # fall back to the local docker executor only on local/on-prem
+            # deployments. Isolation on Batch = the job boundary + the mandatory
+            # upload source pre-check (validate_nextflow_source).
+            if spec.use_aws_env or spec.executor_requested == BACKEND_AWSBATCH:
+                return BackendChoice(
+                    backend=BACKEND_AWSBATCH,
+                    reason="personal workflow on a Batch platform "
+                    "(NEXTFLOW_USE_AWS / awsbatch requested) — screened by the "
+                    "upload source pre-check",
+                    rule="personal_workflow_awsbatch",
+                )
             return BackendChoice(
                 backend=BACKEND_LOCAL,
-                reason="personal workflow under /tmp/biomate_user_nf/ — "
-                "ad-hoc user script, no Batch process labels / S3 workdir",
+                reason="personal workflow on a local/on-prem deployment "
+                "(local docker executor)",
                 rule="personal_workflow_local",
             )
 

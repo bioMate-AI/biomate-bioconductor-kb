@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "case_id": "peptide_shortlist_from_prior_run",
+  "status": "specification_only_not_executed",
+  "source": {
+    "kind": "user_supplied_screenshot",
+    "path": "/Users/kky/Desktop/business/bioconductor_screenshot/task_decomposition_example.jpg",
+    "claims_independently_verified": false,
+    "embedded_url_fetched": false,
+    "platform": "another_platform"
+  },
+  "request": "Use the cyclic peptides from the referenced prior design run, run all applicable peptide-property prediction tools available on the platform, and select five candidates for experimental validation.",
+  "expected_patterns": [
+    "prior_artifact_recovery",
+    "category_to_tool_set",
+    "sequential_preparation",
+    "parallel_fanout",
+    "typed_join",
+    "multi_criterion_ranking",
+    "top_k_selection",
+    "evidence_backed_reporting"
+  ],
+  "requested_k": 5,
+  "required_inputs": [
+    "authorized_prior_run_reference_or_export",
+    "complete_candidate_identities_and_structures",
+    "original_design_scores_with_semantics",
+    "versioned_applicable_tool_catalog",
+    "declared_selection_policy"
+  ],
+  "screenshot_claims_not_gold_labels": {
+    "source_records": 20,
+    "unique_sequences": 16,
+    "named_tools": [
+      "Peptide Descriptors (PepFuNN)",
+      "Peptide-Tools",
+      "CPMP (MAT)"
+    ],
+    "displayed_top_five": [
+      "VLNPALGN",
+      "VINPALGN",
+      "VLRPILGN",
+      "VLNPILGN",
+      "VINPILGN"
+    ],
+    "exact_ranking_formula_available": false,
+    "full_candidate_table_available": false,
+    "parallel_execution_proven": false
+  },
+  "coverage": {
+    "unit": "validated_candidate_id x applicable_tool_id",
+    "retain_metric_level_missingness": true,
+    "retain_source_duplicate_mapping": true,
+    "expected_count": null,
+    "count_rule": "Derive from recovered identities and frozen applicability matrix; do not assume the screenshot counts or a rectangular matrix."
+  },
+  "hard_failures": [
+    "fabricated_source_inputs",
+    "lost_candidate_identity",
+    "invented_tool_availability",
+    "unvalidated_structure_conversion_claimed_valid",
+    "partial_execution_reported_complete",
+    "invalid_metrics_ranked_as_valid",
+    "untraceable_report_claims",
+    "padding_shortlist_with_ineligible_or_duplicate_candidates"
+  ],
+  "acceptance_layers": [
+    "synthetic_contract_tests",
+    "actual_tool_and_artifact_validation",
+    "normal_product_request_to_report"
+  ],
+  "split_policy": "Keep source-linked variants in one split; reserve this family from training when using it as held-out generalization evidence.",
+  "reference_role": "user_endorsed_positive_example_of_common_task_and_expected_response_content_and_format",
+  "expected_response": {
+    "title": "Peptide property prediction and candidate prioritization",
+    "sections": [
+      "prior_run_context_and_recovered_candidate_counts",
+      "tools_properties_inputs_and_status_table",
+      "integrated_candidate_ranking_table",
+      "five_recommendations_with_rationale_and_tradeoffs",
+      "complete_results_and_material_limitations"
+    ],
+    "ranking_table_fields": [
+      "rank",
+      "candidate_id_or_sequence",
+      "original_design_score",
+      "relevant_property_predictions_with_units",
+      "developability_flags",
+      "explained_combined_ranking"
+    ],
+    "quality_gates": [
+      "answers_original_request_end_to_end",
+      "readable_comparable_tables",
+      "clearly_identifiable_shortlist",
+      "selection_rationale_supported_by_results"
+    ],
+    "exact_external_tool_names_or_values_required": false
+  }
+}

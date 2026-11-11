@@ -1,0 +1,182 @@
+[
+  {
+    "id": "CT-001",
+    "gold_MTD": 150,
+    "pred_mtd": 40,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.167
+  },
+  {
+    "id": "CT-002",
+    "gold_MTD": 20,
+    "pred_mtd": 10,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.6
+  },
+  {
+    "id": "CT-003",
+    "gold_MTD": 40,
+    "pred_mtd": 20,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.667
+  },
+  {
+    "id": "CT-004",
+    "gold_MTD": 400,
+    "pred_mtd": 50,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.2
+  },
+  {
+    "id": "CT-005",
+    "gold_MTD": null,
+    "pred_mtd": 80,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 0.0,
+    "fidelity": 0.5
+  },
+  {
+    "id": "CT-006",
+    "gold_MTD": 10,
+    "pred_mtd": 10,
+    "pred_no_mtd": false,
+    "outcome": 1.0,
+    "safety": 1.0,
+    "fidelity": 1.0
+  },
+  {
+    "id": "CT-007",
+    "gold_MTD": 200,
+    "pred_mtd": 100,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.8
+  },
+  {
+    "id": "CT-008",
+    "gold_MTD": 10,
+    "pred_mtd": 20,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.6
+  },
+  {
+    "id": "CT-009",
+    "gold_MTD": 200,
+    "pred_mtd": 20,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.167
+  },
+  {
+    "id": "CT-010",
+    "gold_MTD": 100,
+    "pred_mtd": 100,
+    "pred_no_mtd": false,
+    "outcome": 1.0,
+    "safety": 1.0,
+    "fidelity": 0.667
+  },
+  {
+    "id": "CT-011",
+    "gold_MTD": 1.2,
+    "pred_mtd": 3.0,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 0.0,
+    "fidelity": 0.167
+  },
+  {
+    "id": "CT-012",
+    "gold_MTD": 100,
+    "pred_mtd": 200,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 1.0
+  },
+  {
+    "id": "CT-013",
+    "gold_MTD": 800,
+    "pred_mtd": 100,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.4
+  },
+  {
+    "id": "CT-014",
+    "gold_MTD": 20,
+    "pred_mtd": 40,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 0.0,
+    "fidelity": 1.0
+  },
+  {
+    "id": "CT-015",
+    "gold_MTD": 200,
+    "pred_mtd": 50,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.2
+  },
+  {
+    "id": "CT-016",
+    "gold_MTD": 100,
+    "pred_mtd": 25,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 1.0,
+    "fidelity": 0.5
+  },
+  {
+    "id": "CT-017",
+    "gold_MTD": null,
+    "pred_mtd": 50,
+    "pred_no_mtd": false,
+    "outcome": 0.0,
+    "safety": 0.0,
+    "fidelity": 1.0
+  },
+  {
+    "id": "CT-018",
+    "gold_MTD": 80,
+    "pred_mtd": 80,
+    "pred_no_mtd": false,
+    "outcome": 1.0,
+    "safety": 1.0,
+    "fidelity": 0.857
+  },
+  {
+    "id": "CT-019",
+    "gold_MTD": 160,
+    "pred_mtd": 160,
+    "pred_no_mtd": false,
+    "outcome": 1.0,
+    "safety": 1.0,
+    "fidelity": 1.0
+  },
+  {
+    "id": "CT-020",
+    "gold_MTD": 80,
+    "pred_mtd": 80,
+    "pred_no_mtd": false,
+    "outcome": 1.0,
+    "safety": 1.0,
+    "fidelity": 0.833
+  }
+]

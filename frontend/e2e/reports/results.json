@@ -10,9 +10,7 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {
-      "actualWorkers": 1
-    },
+    "metadata": {},
     "preserveOutput": "always",
     "reporter": [
       [
@@ -42,9 +40,7 @@
         "outputDir": "/Users/kky/biomate-review/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 1,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "chromium",
         "name": "chromium",
         "testDir": "/Users/kky/biomate-review/frontend/e2e",
@@ -58,9 +54,7 @@
         "outputDir": "/Users/kky/biomate-review/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
         "retries": 1,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "demo",
         "name": "demo",
         "testDir": "/Users/kky/biomate-review/frontend/e2e",
@@ -74,9 +68,7 @@
         "outputDir": "/Users/kky/biomate-review/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 1,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "firefox",
         "name": "firefox",
         "testDir": "/Users/kky/biomate-review/frontend/e2e",
@@ -97,14 +89,14 @@
   },
   "suites": [
     {
-      "title": "project-file-chat-selection.e2e.ts",
-      "file": "project-file-chat-selection.e2e.ts",
+      "title": "dev-online-readiness.e2e.ts",
+      "file": "dev-online-readiness.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "chat can select two exact files from the active project",
-          "ok": false,
+          "title": "online readiness: drug-development requests and isolation",
+          "ok": true,
           "tags": [],
           "tests": [
             {
@@ -113,120 +105,13 @@
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 64879,
-                  "error": {
-                    "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n",
-                    "stack": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95",
-                    "location": {
-                      "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
-                      "column": 95,
-                      "line": 28
-                    },
-                    "snippet": "  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
-                        "column": 95,
-                        "line": 28
-                      },
-                      "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n\n  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95"
-                    }
-                  ],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-12T20:04:49.779Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
-                    "column": 95,
-                    "line": 28
-                  }
-                },
-                {
-                  "workerIndex": 1,
-                  "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 64503,
-                  "error": {
-                    "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n",
-                    "stack": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95",
-                    "location": {
-                      "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
-                      "column": 95,
-                      "line": 28
-                    },
-                    "snippet": "  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
-                        "column": 95,
-                        "line": 28
-                      },
-                      "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n\n  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95"
-                    }
-                  ],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 1,
-                  "startTime": "2026-09-12T20:05:57.933Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium-retry1/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium-retry1/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium-retry1/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
-                    "column": 95,
-                    "line": 28
-                  }
-                }
-              ],
-              "status": "unexpected"
+              "results": [],
+              "status": "skipped"
             }
           ],
-          "id": "1e0cf3f8ad486968ce58-9ed6a0627c8d717075a3",
-          "file": "project-file-chat-selection.e2e.ts",
-          "line": 4,
+          "id": "b9fc5f1898564aac1c52-e9ea759734328850c4ec",
+          "file": "dev-online-readiness.e2e.ts",
+          "line": 8,
           "column": 1
         }
       ]
@@ -234,11 +119,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-12T20:04:49.294Z",
-    "duration": 135357.488,
+    "startTime": "2026-11-08T04:54:59.667Z",
+    "duration": 168.17999999999995,
     "expected": 0,
-    "skipped": 0,
-    "unexpected": 1,
+    "skipped": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }

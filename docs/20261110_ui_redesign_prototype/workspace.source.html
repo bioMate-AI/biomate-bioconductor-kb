@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioMate redesign prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#F7F8FA; --surface:#FFFFFF; --elevated:#FFFFFF;
+    --ink:#111827; --body:#374151; --muted:#6B7280; --faint:#9CA3AF;
+    --line:#ECEEF1; --line-soft:#F3F4F6;
+    --accent:#4F46E5; --accent-soft:#EEF0FF; --accent-ink:#4338CA;
+    --ok:#059669; --ok-bg:#ECFDF5; --ok-line:#A7F3D0;
+    --warn:#B45309; --warn-bg:#FFFBEB; --warn-line:#FDE68A;
+    --err:#DC2626; --err-bg:#FEF2F2; --err-line:#FECACA;
+    --r:10px; --r-sm:7px; --r-xs:5px;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-lg:0 8px 28px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--canvas);color:var(--body);
+    font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif;
+    font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:-0.003em;}
+  .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;}
+  .tnum{font-variant-numeric:tabular-nums;}
+  .app{display:grid;grid-template-columns:216px 1fr 452px;height:720px;width:1120px;}
+
+  /* ── Sidebar ── */
+  .side{background:var(--canvas);padding:16px 12px;display:flex;flex-direction:column;gap:18px;border-right:1px solid var(--line);}
+  .brand{display:flex;align-items:center;gap:8px;padding:2px 6px;}
+  .brand .mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#6366F1,#4F46E5);}
+  .brand b{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-0.02em;}
+  .brand span{font-size:9px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 5px;border-radius:999px;letter-spacing:.02em;}
+  .nav{display:flex;flex-direction:column;gap:1px;}
+  .nav a{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--r-sm);color:var(--body);text-decoration:none;font-weight:500;font-size:12.5px;}
+  .nav a .i{width:15px;height:15px;color:var(--faint);}
+  .nav a.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+  .nav a.active .i{color:var(--accent);}
+  .seclabel{font-size:10.5px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:2px;}
+  .chat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r-sm);font-size:12px;color:var(--muted);cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chat-item .dot{width:6px;height:6px;border-radius:999px;flex:none;}
+  .dot.ok{background:var(--ok);} .dot.run{background:var(--accent);} .dot.err{background:var(--err);}
+  .side-foot{margin-top:auto;display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r-sm);}
+  .avatar{width:26px;height:26px;border-radius:999px;background:#E5E7EB;display:grid;place-items:center;font-weight:600;color:var(--muted);font-size:11px;}
+
+  /* ── Center: chat ── */
+  .center{display:flex;flex-direction:column;background:var(--surface);min-width:0;}
+  .topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--line);}
+  .crumb{font-size:11px;color:var(--faint);}
+  .title{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-0.01em;}
+  .thread{flex:1;overflow:hidden;padding:20px;display:flex;flex-direction:column;gap:16px;}
+  .msg-user{align-self:flex-end;max-width:76%;background:var(--accent);color:#fff;padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:12.5px;line-height:1.45;}
+  .msg-ai{max-width:92%;display:flex;flex-direction:column;gap:9px;}
+  .ai-head{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);font-weight:500;}
+  .ai-head .m{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,#6366F1,#4F46E5);}
+  .ai-text{font-size:13px;color:var(--body);line-height:1.55;}
+  .ai-text b{color:var(--ink);font-weight:600;}
+  /* result card — compact, NOT a duplicate of the panel tables */
+  .rcard{border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;}
+  .rcard-top{display:flex;align-items:center;gap:9px;}
+  .rcard-top .ic{width:26px;height:26px;border-radius:7px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;}
+  .rcard-top .t{font-weight:600;color:var(--ink);font-size:13px;flex:1;}
+  .pill{font-size:10.5px;font-weight:600;padding:2.5px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;}
+  .pill.ok{color:var(--ok);background:var(--ok-bg);}
+  .pill .pd{width:5px;height:5px;border-radius:999px;background:currentColor;}
+  .takeaway{font-size:12.5px;color:var(--body);line-height:1.5;}
+  .takeaway .flag{color:var(--warn);font-weight:600;}
+  .rcard-foot{display:flex;align-items:center;gap:8px;padding-top:2px;}
+  .btn{font-size:12px;font-weight:500;padding:6px 11px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);color:var(--body);cursor:default;display:inline-flex;align-items:center;gap:6px;}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.ghost{border-color:transparent;color:var(--muted);}
+  .composer{margin:0 20px 18px;border:1px solid var(--line);border-radius:14px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow);}
+  .composer .ph{font-size:13px;color:var(--faint);}
+  .composer-row{display:flex;align-items:center;gap:8px;}
+  .chipc{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;display:inline-flex;gap:5px;align-items:center;}
+  .send{margin-left:auto;width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;}
+
+  /* ── Right: inspector panel ── */
+  .panel{background:var(--canvas);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;}
+  .phead{padding:16px 18px 12px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .pkicker{font-size:10.5px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;}
+  .ptitle{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.01em;margin:3px 0 8px;}
+  .pmeta{display:flex;align-items:center;gap:8px;}
+  .prog{margin-top:11px;display:flex;align-items:center;gap:9px;}
+  .track{flex:1;height:5px;border-radius:999px;background:var(--line-soft);overflow:hidden;}
+  .track i{display:block;height:100%;width:100%;background:var(--accent);border-radius:999px;}
+  .prog .c{font-size:11px;color:var(--muted);font-weight:500;}
+  /* single segmented control (flattened nav) + one export button */
+  .segrow{display:flex;align-items:center;justify-content:space-between;padding:11px 18px 0;background:var(--surface);}
+  .seg{display:inline-flex;background:var(--line-soft);border-radius:8px;padding:2px;gap:2px;}
+  .seg a{font-size:12px;font-weight:500;color:var(--muted);padding:5px 11px;border-radius:6px;text-decoration:none;}
+  .seg a.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+  .exportwrap{position:relative;}
+  .exportbtn{font-size:12px;font-weight:500;color:var(--body);border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:6px 11px;display:inline-flex;gap:6px;align-items:center;box-shadow:var(--shadow);}
+  .menu{position:absolute;right:0;top:34px;background:var(--elevated);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-lg);padding:5px;width:210px;z-index:5;}
+  .menu .mi{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:var(--r-sm);font-size:12.5px;color:var(--body);}
+  .menu .mi:hover,.menu .mi.hl{background:var(--accent-soft);color:var(--accent-ink);}
+  .menu .mi .g{width:15px;height:15px;color:var(--faint);}
+  .menu .mi:hover .g{color:var(--accent);}
+  .menu .sep{height:1px;background:var(--line);margin:4px 6px;}
+  .pbody{flex:1;overflow:hidden;background:var(--surface);padding:14px 18px;display:flex;flex-direction:column;gap:14px;}
+  .summary{font-size:12.5px;color:var(--body);line-height:1.55;}
+  .sectlabel{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.01em;margin-bottom:7px;display:flex;align-items:center;gap:7px;}
+  /* clean table — nowrap headers, tabular numerals, row dividers not cell borders */
+  table.kr{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+  table.kr col.metric{width:auto;} table.kr col.val{width:68px;} table.kr col.src{width:118px;}
+  table.kr th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;padding:0 8px 7px;white-space:nowrap;border-bottom:1px solid var(--line);}
+  table.kr td{padding:8px;vertical-align:top;border-bottom:1px solid var(--line-soft);}
+  table.kr td.metric{font-weight:500;color:var(--ink);}
+  table.kr td.val{white-space:nowrap;}
+  table.kr td.interp{color:var(--body);line-height:1.45;}
+  table.kr td.interp .c{color:var(--ink);font-weight:600;}
+  table.kr td.src{color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .gate{border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:var(--r-sm);padding:10px 12px;display:flex;gap:9px;}
+  .gate .gi{color:var(--warn);flex:none;margin-top:1px;}
+  .gate .gt b{color:var(--warn);font-weight:600;}
+  .gate .gt{font-size:12px;color:#92400E;line-height:1.5;}
+  .pfoot{border-top:1px solid var(--line);background:var(--surface);padding:12px 18px;display:flex;align-items:center;gap:10px;}
+  svg{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="side">
+    <div class="brand"><div class="mark"></div><b>BioMate</b><span>BETA</span></div>
+    <nav class="nav">
+      <a class="active" href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New chat</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Data</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M8 6h6M8 18h6M14 6a4 4 0 0 1 4 4M14 18a4 4 0 0 0 4-4"/></svg>Workflows</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/></svg>Models</a>
+    </nav>
+    <div>
+      <div class="seclabel">Project</div>
+      <div class="chat-item" style="color:var(--ink);font-weight:600;"><svg class="i" style="width:14px;color:var(--faint)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z"/></svg>Drug discovery</div>
+      <div class="chat-item"><span class="dot ok"></span>Screen compounds for hERG</div>
+      <div class="chat-item"><span class="dot run"></span>RNA-seq differential expression</div>
+      <div class="chat-item"><span class="dot err"></span>WGS variant calling — cohort</div>
+    </div>
+    <div>
+      <div class="seclabel">Recent</div>
+      <div class="chat-item"><span class="dot ok"></span>ADMET screen — 2 compounds</div>
+      <div class="chat-item"><span class="dot ok"></span>PBPK dose projection</div>
+    </div>
+    <div class="side-foot"><div class="avatar">YZ</div><div><div style="font-size:12px;font-weight:600;color:var(--ink)">Yaoyun Z.</div><div style="font-size:10.5px;color:var(--faint)">Pro workspace</div></div></div>
+  </aside>
+
+  <!-- ============ CENTER CHAT ============ -->
+  <section class="center">
+    <div class="topbar">
+      <div><div class="crumb">Drug discovery · chat</div><div class="title">Screen compounds for hERG cardiotoxicity</div></div>
+      <div class="btn ghost" style="font-size:11px">Hide panel</div>
+    </div>
+    <div class="thread">
+      <div class="msg-user">Screen these 2 compounds for hERG &amp; DILI liability, then give me an ADMET readout.</div>
+      <div class="msg-ai">
+        <div class="ai-head"><span class="m"></span>BioMate</div>
+        <div class="ai-text">I ran <b>Predict ADMET Properties</b> on both compounds and evaluated them against the standard safety gates.</div>
+        <div class="rcard">
+          <div class="rcard-top">
+            <div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></div>
+            <div class="t">Predict ADMET Properties</div>
+            <span class="pill ok"><span class="pd"></span>Completed</span>
+          </div>
+          <div class="takeaway">Both compounds show acceptable hERG and oral bioavailability. <span class="flag">1 of 2 flagged</span> for elevated DILI liability (0.855) — review before advancing.</div>
+          <div class="rcard-foot">
+            <div class="btn primary">Inspect results <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="btn ghost">Explain the DILI flag</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="ph">Ask a follow-up, or describe the next analysis…</div>
+      <div class="composer-row">
+        <span class="chipc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15l-5-5L5 21"/><circle cx="8" cy="8" r="2"/></svg>Data</span>
+        <span class="chipc">Skills &amp; experts</span>
+        <div class="send"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT INSPECTOR ============ -->
+  <aside class="panel">
+    <div class="phead">
+      <div class="pkicker">Drug discovery · workflow</div>
+      <div class="ptitle">Predict ADMET Properties</div>
+      <div class="pmeta"><span class="pill ok"><span class="pd"></span>Completed</span><span style="font-size:11px;color:var(--faint)">2 compounds · 1 phase</span></div>
+      <div class="prog"><div class="track"><i></i></div><div class="c tnum">100% · 2/2</div></div>
+    </div>
+
+    <div class="segrow">
+      <div class="seg"><a class="active" href="#">Overview</a><a href="#">Data &amp; molecules</a><a href="#">Logs</a></div>
+      <div class="exportwrap">
+        <div class="exportbtn">Export <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="menu">
+          <div class="mi"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 8h10M7 12h10M7 16h6"/></svg>Markdown report</div>
+          <div class="mi hl"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8l2 8 2-5 2 5 2-8"/></svg>Word report (DOCX)</div>
+          <div class="mi"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg>PowerPoint deck (PPTX)</div>
+          <div class="sep"></div>
+          <div class="mi"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h7l2 2h7v9H4z"/></svg>Raw predictions (.csv)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pbody">
+      <div class="summary">ADMET prediction completed for 2 compounds. Key properties assessed against standard thresholds; one DILI gate raised for review.</div>
+
+      <div>
+        <div class="sectlabel">Key results <span style="color:var(--faint);font-weight:500">· per compound</span></div>
+        <table class="kr">
+          <colgroup><col class="metric"><col class="val"><col style="width:auto"><col class="src"></colgroup>
+          <thead><tr><th>Metric</th><th>Value</th><th>Interpretation</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td class="metric">hERG inhibition</td><td class="val tnum">0.003</td><td class="interp"><span class="c">(C1)</span> Acceptable hERG liability</td><td class="src mono" title="predict_admet_properties_output.txt">predict_admet…txt</td></tr>
+            <tr><td class="metric">DILI probability</td><td class="val tnum">0.855</td><td class="interp"><span class="c">(C1)</span> Elevated — potential liability</td><td class="src mono" title="predict_admet_properties_output.txt">predict_admet…txt</td></tr>
+            <tr><td class="metric">Oral bioavailability</td><td class="val tnum">0.873</td><td class="interp"><span class="c">(C1)</span> Acceptable</td><td class="src mono" title="predict_admet_properties_output.txt">predict_admet…txt</td></tr>
+            <tr><td class="metric">BBB penetration</td><td class="val tnum">0.811</td><td class="interp"><span class="c">(C2)</span> Crosses blood–brain barrier</td><td class="src mono" title="predict_admet_properties_output.txt">predict_admet…txt</td></tr>
+            <tr><td class="metric">Caco-2 logPapp</td><td class="val tnum">-4.285</td><td class="interp"><span class="c">(C2)</span> Moderate permeability</td><td class="src mono" title="predict_admet_properties_output.txt">predict_admet…txt</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="gate">
+        <svg class="gi" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div class="gt"><b>DILI gate · FAIL</b> — Compound 1 classified high (0.855, threshold 0.60). Hepatotoxicity panel recommended before clinical progression. <span style="color:var(--muted)">Grounded in DILIrank (Chen et al. 2016).</span></div>
+      </div>
+    </div>
+
+    <div class="pfoot">
+      <div class="btn primary">Run again</div>
+      <div class="btn">Edit parameters</div>
+      <div class="btn ghost" style="margin-left:auto">Reset defaults</div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>

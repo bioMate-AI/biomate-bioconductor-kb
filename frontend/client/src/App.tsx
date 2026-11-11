@@ -27,6 +27,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import { PanelLeft, Plus, FlaskConical, MessageCircle, Menu, FolderOpen, X } from "lucide-react";
 import { useActiveProject } from "@/contexts/active-project-context";
+import { useChatProjectLink } from "@/hooks/use-chat-project-link";
 import type { ChatSession } from "@shared/schema";
 import { analytics } from "@/lib/analytics"
 import { isDesktop, desktopGetPendingDeepLink, desktopOnDeepLink } from "@/lib/desktop";
@@ -135,6 +136,8 @@ function RootRoute({
   const { isAuthenticated, isLoading } = useAuth()
   const [, setLocation] = useLocation()
   const search = useSearch()
+  const { setActiveProjectId } = useActiveProject()
+  useChatProjectLink(search, !isLoading && isAuthenticated, setActiveProjectId)
   // All hooks must run before any conditional return (rules of hooks).
   const handledSessionParam = useRef(false)
 

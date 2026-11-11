@@ -109,11 +109,11 @@ params.gpu                  = false      // true = GPU-accelerated RL (much fast
 // Container
 // ============================================================================
 
-// local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-// aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+// local (ARM dev): biomate/drug-discovery-nf:latest
+// aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
 def _useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
-def _ECR_DD = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86'
-def _LOCAL  = 'biomate/biomni-drug-discovery-nf:latest'
+def _ECR_DD = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86'
+def _LOCAL  = 'biomate/drug-discovery-nf:latest'
 def RDKIT_CONTAINER     = _useAws ? _ECR_DD : _LOCAL
 
 // REINVENT4 image — carries the reinvent CLI + priors under /opt/reinvent4/priors.

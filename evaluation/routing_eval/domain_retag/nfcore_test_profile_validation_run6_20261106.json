@@ -1,0 +1,38 @@
+[
+ {
+  "name": "nf-core/eager",
+  "runId": "3e7fa8d3-ba8e-4763-8cf3-9ee7d93e94fd",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 43,
+  "error": "",
+  "minutes": 7.1
+ },
+ {
+  "name": "nf-core/proteogenomicsdb",
+  "runId": "bf9cc88b-c3e6-4e42-afd8-9baa89d1bb09",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 2,
+  "error": "",
+  "minutes": 7.1
+ },
+ {
+  "name": "nf-core/diaproteomics",
+  "runId": "d43b5fac-68de-44c5-a04e-4a8413a2369b",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 2,
+  "error": "",
+  "minutes": 6.1
+ },
+ {
+  "name": "nf-core/clipseq",
+  "runId": "16816c11-3718-450b-aa47-4abe01eb67d5",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 18,
+  "error": "",
+  "minutes": 6.1
+ }
+]

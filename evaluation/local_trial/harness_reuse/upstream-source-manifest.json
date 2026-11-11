@@ -1,0 +1,98 @@
+{
+  "inspection_date": "2026-10-09",
+  "purpose": "Pinned source inspection; Hermes registry component executed in offline and hosted-model fixture evaluations; full agent runtime not installed.",
+  "repositories": [
+    {
+      "repository": "NousResearch/hermes-agent",
+      "revision": "46d7718a52ff33accb15dc0501736fbdb6833cab",
+      "files": [
+        {
+          "path": "run_agent.py",
+          "sha256": "9fca746dde685859ed084d6f7651a94d8849e8944a145de77f8a177c839cb5ac",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/run_agent.py"
+        },
+        {
+          "path": "tools/registry.py",
+          "sha256": "4a05aae5b4dd40bf9a104d23582d4363326ad7ce3fdac1ac249e0af04334d909",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/tools/registry.py"
+        },
+        {
+          "path": "pyproject.toml",
+          "sha256": "cadde2f6a92574d292103f43abf66408b1d841cd9ea332ca7f3e3dfc5dcc87fd",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/pyproject.toml"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/LICENSE"
+        },
+        {
+          "path": "tools/__init__.py",
+          "sha256": "7bca460f476ac9ace706c8cfd07e98f8aae34d839862f0f68abafc3a8397cf35",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/tools/__init__.py"
+        },
+        {
+          "path": "hermes_constants.py",
+          "sha256": "97b73d1c39790c5c8efe5aaf18c5e4d51443ac65bf254575a619ed5899f3d976",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/hermes_constants.py"
+        },
+        {
+          "path": "agent/__init__.py",
+          "sha256": "21cdce89e9ffdb847634bf498b087410cd191a1e375db43928735846fb7ddc86",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/agent/__init__.py"
+        },
+        {
+          "path": "agent/agent_init.py",
+          "sha256": "6e41f40147150edbf876bd8a5044296774d97e5977e8d3fda3565316fc7c5481",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/agent/agent_init.py"
+        },
+        {
+          "path": "agent/turn_facade.py",
+          "sha256": "e9176a8ae1d7822fa45c75b680d5ae4be7c949e49c877673aea867cc146856a0",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/agent/turn_facade.py"
+        },
+        {
+          "path": "agent/prompt_builder.py",
+          "sha256": "a5f682406a5a230de5d922132ae1e219cae2f30b120c00cbe5d7a119c266a4d1",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/agent/prompt_builder.py"
+        },
+        {
+          "path": "model_tools.py",
+          "sha256": "872ca571c17379c8df19c0bcf639919bb0cb3a2706efc08e4dc6a1f3d8789662",
+          "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/46d7718a52ff33accb15dc0501736fbdb6833cab/model_tools.py"
+        }
+      ]
+    },
+    {
+      "repository": "deepseek-ai/deepseek-harness",
+      "revision": "d743267388641bc76f17c45ce8b4c231aed1d32c",
+      "files": [
+        {
+          "path": "packages/core/agent/README.md",
+          "sha256": "652a3283721fb5b52f0671c43d458b04c039d5bfe7e900894cc0f64229b68641",
+          "url": "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/core/agent/README.md"
+        },
+        {
+          "path": "packages/core/tools/README.md",
+          "sha256": "00a94b1ba504d2038b836913e3336ea4d493cc1c2854080ffe26dfca6c52ccc7",
+          "url": "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/core/tools/README.md"
+        },
+        {
+          "path": "packages/llm/llm/README.md",
+          "sha256": "0f18afcf93dfe0aabda082d43155594925e7729b2c3269b429ef930615fde3e3",
+          "url": "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/llm/llm/README.md"
+        },
+        {
+          "path": "package.json",
+          "sha256": "c89d8e465b5540df1fd9df63f328df925490a200b7ed657f31665495581683f6",
+          "url": "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/d743267388641bc76f17c45ce8b4c231aed1d32c/package.json"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+          "url": "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/d743267388641bc76f17c45ce8b4c231aed1d32c/LICENSE"
+        }
+      ]
+    }
+  ]
+}

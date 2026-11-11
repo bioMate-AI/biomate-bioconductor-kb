@@ -164,6 +164,25 @@ print('SMILES to SDF conversion done')
         exit 1
     fi
 
+    # A ligand taken from a crystal structure usually has no hydrogens; antechamber then fails
+    # ("Weird atomic valence"). Add them with RDKit, keeping the heavy-atom pose coordinates.
+    # Inputs that already carry explicit H are passed through unchanged.
+    if [ "\$in_fmt" = "sdf" ] || [ "\$in_fmt" = "mdl" ]; then
+        python3 - "\$lig_file" <<'ADDHEOF'
+import sys
+from rdkit import Chem
+src = sys.argv[1]
+mol = Chem.MolFromMolFile(src, removeHs=False)
+if mol is None:
+    sys.exit("ERROR: could not read ligand " + src)
+if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
+    mol = Chem.AddHs(mol, addCoords=True)
+    Chem.MolToMolFile(mol, "ligand_with_h.sdf")
+    print("added %d hydrogens to %s" % (sum(a.GetAtomicNum() == 1 for a in mol.GetAtoms()), src))
+ADDHEOF
+        [ -f ligand_with_h.sdf ] && { lig_file="ligand_with_h.sdf"; in_fmt="sdf"; }
+    fi
+
     # Run antechamber: AM1-BCC charges + GAFF2 atom types
     antechamber \
         -i "\$lig_file" -fi "\$in_fmt" \
@@ -1211,10 +1230,28 @@ print('Using receptor group %d (Protein) and ligand group %d (LIG)' % (prot, lig
 PYGROUPS
     source groups.env
 
+    # Frame window from the ACTUAL trajectory length. A fixed window fails on any run shorter than
+    # it ("start frame (10) > total frames (2)"), so when the requested window starts past the end,
+    # skip the first ~20% of frames instead, cap the end at the last frame, and shrink the interval
+    # so >=~10 frames are analysed where the trajectory has them. The window used is recorded below.
+    NFRAMES=\$(gmx check -f ${trajectory} 2>&1 | awk '\$1 == "Step" && \$2 ~ /^[0-9]+\$/ && !f {print \$2; f=1}')
+    read -r MMGBSA_START MMGBSA_END MMGBSA_INTERVAL < <(python3 -c "
+n = int('\${NFRAMES:-0}' or 0)
+s, e, i = ${start_fr}, ${end_fr}, ${interval}
+if n < 1:
+    raise SystemExit('ERROR: no readable frames in ${trajectory}')
+if s > n:
+    s = max(1, int(n * 0.2) + 1)
+e = min(e, n) if e > 0 else n
+i = max(1, min(i, (e - s) // 10 or 1))
+print(s, e, i)")
+    export NFRAMES MMGBSA_START MMGBSA_END MMGBSA_INTERVAL
+    echo "MM-GBSA frames: trajectory has \$NFRAMES; analysing \$MMGBSA_START..\$MMGBSA_END every \$MMGBSA_INTERVAL (requested ${start_fr}..${end_fr} every ${interval})"
+
     # gmx_MMPBSA input file
-    cat > mmgbsa.in << 'MMPBSA_IN_EOF'
+    cat > mmgbsa.in << MMPBSA_IN_EOF
 &general
-   startframe=${start_fr}, endframe=${end_fr}, interval=${interval},
+   startframe=\$MMGBSA_START, endframe=\$MMGBSA_END, interval=\$MMGBSA_INTERVAL,
    verbose=2,
 /
 &gb
@@ -1291,6 +1328,8 @@ if dg_bind is not None:
     import math
     ki_nm = round(10**(dg_bind / 1.364) * 1e9, 2)
 
+n_analysed = (int(os.environ['MMGBSA_END']) - int(os.environ['MMGBSA_START'])) // int(os.environ['MMGBSA_INTERVAL']) + 1
+
 summary = {
     'ligand':                  '${params.ligand}',
     'receptor':                '${params.receptor}',
@@ -1299,21 +1338,36 @@ summary = {
     'ki_estimate_nM':          ki_nm,
     'tool':                    'gmx_mmpbsa',
     'gb_model':                'igb2',
-    'startframe':              ${start_fr},
-    'endframe':                '${end_fr}',
-    'interval':                ${interval},
+    'trajectory_frames':       int(os.environ['NFRAMES']),
+    'startframe':              int(os.environ['MMGBSA_START']),
+    'endframe':                int(os.environ['MMGBSA_END']),
+    'interval':                int(os.environ['MMGBSA_INTERVAL']),
+    'requested_window':        {'startframe': ${start_fr}, 'endframe': ${end_fr}, 'interval': ${interval}},
     'trajectory_analysis':     traj_summary,
+    'frames_analysed':         n_analysed,
     'interpretation': (
-        'strong binder' if dg_bind and dg_bind < -10 else
-        'moderate binder' if dg_bind and dg_bind < -7 else
-        'weak binder' if dg_bind and dg_bind < -5 else
-        'unfavorable' if dg_bind else 'calculation failed'
+        'calculation failed' if dg_bind is None else
+        # Fewer than ~10 frames gives no usable estimate of the mean (a 10 ps smoke has 2), so the
+        # number is reported but not classified as binder strength.
+        'insufficient sampling (%d frames)' % n_analysed if n_analysed < 10 else
+        'strong binder' if dg_bind < -10 else
+        'moderate binder' if dg_bind < -7 else
+        'weak binder' if dg_bind < -5 else
+        'unfavorable'
     ),
     'timestamp': datetime.utcnow().isoformat() + 'Z',
 }
 with open('binding_summary.json', 'w') as jf:
     json.dump(summary, jf, indent=2)
 
+if dg_bind is None:
+    # gmx_MMPBSA runs under '|| true' so its log can be reported here; a missing DeltaG is a failed
+    # step, not a completed run with an empty result.
+    try:
+        tail = open('mmgbsa_run.log').read().splitlines()[-25:]
+    except OSError:
+        tail = ['(no mmgbsa_run.log)']
+    sys.exit('ERROR: gmx_MMPBSA produced no DELTA TOTAL; last log lines:\\n' + '\\n'.join(tail))
 print('MM-GBSA complete: dGbind = %s kcal/mol' % dg_bind)
 PYEOF
     """

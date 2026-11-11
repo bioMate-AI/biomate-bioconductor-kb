@@ -2,7 +2,7 @@
 <tool id="biomni_genetics_analyze_cas9_mutation_outcomes" name="Biomni: Analyze Cas9 Mutation Outcomes" version="1.0.0">
     <description>Analyzes and categorizes mutations induced by Cas9 at target sites.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_cas9_mutation_outcomes_wrapper.py' --output '$output'

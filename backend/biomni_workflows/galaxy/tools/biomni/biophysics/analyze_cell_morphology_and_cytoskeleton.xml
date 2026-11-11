@@ -2,7 +2,7 @@
 <tool id="biomni_biophysics_analyze_cell_morphology_and_cytoskeleton" name="Biomni: Analyze Cell Morphology And Cytoskeleton" version="1.0.0">
     <description>Quantifies cell morphology and cytoskeletal organization from fluorescence microscopy images.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_cell_morphology_and_cytoskeleton_wrapper.py' --output '$output'

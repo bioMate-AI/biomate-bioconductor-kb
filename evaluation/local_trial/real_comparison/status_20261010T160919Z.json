@@ -1,0 +1,180 @@
+{
+  "snf": {
+    "http_status": 200,
+    "response": {
+      "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+      "status": "running",
+      "progress": {
+        "totalSteps": 0,
+        "completedSteps": 0,
+        "percentComplete": 0
+      },
+      "metrics": {
+        "runtime": {
+          "totalSeconds": 15,
+          "perStepSeconds": {},
+          "startedAt": "2026-10-10T16:09:02.583Z"
+        },
+        "resources": {
+          "peakMemoryGB": 0,
+          "avgCpuPercent": 0,
+          "diskUsedGB": 0
+        },
+        "quality": {},
+        "outputs": {
+          "fileCount": 0,
+          "totalSizeBytes": 0,
+          "byType": {},
+          "bySize": {}
+        },
+        "perStepLlmCost": {}
+      },
+      "nextflowStatus": {
+        "run_id": "372658d6-c6a5-4f2d-8d16-82247c2735d6",
+        "invocation_id": "5a275665-9801-4698-a2bc-57ffef288083",
+        "status": "running",
+        "returncode": null,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b5106b02",
+        "work_dir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/372658d6-c6a5-4f2d-8d16-82247c2735d6",
+        "log_tail": [
+          "Oct-10 16:09:13.121 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m",
+          "Oct-10 16:09:13.144 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)",
+          "Oct-10 16:09:13.373 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:[path] volumes:[/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:3, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:[path] --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)",
+          "Oct-10 16:09:13.421 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'BIOC_SNF_MULTIOMICS': maxForks=0; fair=false; array=0",
+          "Oct-10 16:09:13.533 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: BIOC_SNF_MULTIOMICS",
+          "Oct-10 16:09:13.550 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:13.557 [main] DEBUG nextflow.Session - Igniting dataflow network (2)",
+          "Oct-10 16:09:13.559 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > BIOC_SNF_MULTIOMICS",
+          "Oct-10 16:09:13.562 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:",
+          "  Script_f761b2efb68a71e6: [path]",
+          "  Script_e8920adb28a1ae4f: [path]",
+          "Oct-10 16:09:13.562 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination",
+          "Oct-10 16:09:13.562 [main] DEBUG nextflow.Session - Session await",
+          "Oct-10 16:09:14.518 [FileTransfer-1] DEBUG nextflow.file.FilePorter - Copying foreign file [path] to work dir: [storage]",
+          "Oct-10 16:09:14.617 [FileTransfer-1] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=[path] to=[storage]",
+          "Oct-10 16:09:14.617 [FileTransfer-1] DEBUG nextflow.cloud.aws.nio.S3Client - Creating S3 transfer manager pool - max-treads=10;",
+          "Oct-10 16:09:14.619 [FileTransfer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Oct-10 16:09:14.683 [FileTransfer-2] DEBUG nextflow.file.FilePorter - Copying foreign file [path] to work dir: [storage]",
+          "Oct-10 16:09:14.774 [FileTransfer-2] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=[path] to=[storage]",
+          "Oct-10 16:09:16.425 [Actor Thread 4] INFO  nextflow.file.FilePorter - Staging foreign file: [path]",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:05.072 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
+          "Oct-10 16:09:11.234 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
+          "Oct-10 16:09:13.550 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD"
+        ],
+        "is_batch": true,
+        "s3_output_files": [],
+        "qc_report": null,
+        "qc_gates": [],
+        "started_at": 1791648542.5839431,
+        "completed_at": null,
+        "duration_s": 15,
+        "completedTasks": 0,
+        "failedTasks": 0,
+        "runningTasks": 0,
+        "totalTasks": 0,
+        "progressPercent": 0,
+        "processes": []
+      }
+    }
+  },
+  "mfa": {
+    "http_status": 200,
+    "response": {
+      "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+      "status": "running",
+      "progress": {
+        "totalSteps": 0,
+        "completedSteps": 0,
+        "percentComplete": 0
+      },
+      "metrics": {
+        "runtime": {
+          "totalSeconds": 13,
+          "perStepSeconds": {},
+          "startedAt": "2026-10-10T16:09:06.201Z"
+        },
+        "resources": {
+          "peakMemoryGB": 0,
+          "avgCpuPercent": 0,
+          "diskUsedGB": 0
+        },
+        "quality": {},
+        "outputs": {
+          "fileCount": 0,
+          "totalSizeBytes": 0,
+          "byType": {},
+          "bySize": {}
+        },
+        "perStepLlmCost": {}
+      },
+      "nextflowStatus": {
+        "run_id": "e46a0e05-41b0-4653-86b7-f257dd030de1",
+        "invocation_id": "72f17123-47f8-408e-a29c-2e0373c64464",
+        "status": "running",
+        "returncode": null,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/7d838397",
+        "work_dir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e46a0e05-41b0-4653-86b7-f257dd030de1",
+        "log_tail": [
+          "Oct-10 16:09:16.486 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution",
+          "Oct-10 16:09:17.454 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name BIOC_RGCCA_MULTIOMICS",
+          "Oct-10 16:09:17.479 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch",
+          "Oct-10 16:09:17.480 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'",
+          "Oct-10 16:09:17.514 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch",
+          "Oct-10 16:09:17.565 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:20, maxPoolSize:20, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)",
+          "Oct-10 16:09:17.603 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:20, maxPoolSize:20, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)",
+          "Oct-10 16:09:17.606 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m",
+          "Oct-10 16:09:17.633 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)",
+          "Oct-10 16:09:17.835 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:[path] volumes:[/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:3, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:[path] --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)",
+          "Oct-10 16:09:17.895 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'BIOC_RGCCA_MULTIOMICS': maxForks=0; fair=false; array=0",
+          "Oct-10 16:09:18.096 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: BIOC_RGCCA_MULTIOMICS",
+          "Oct-10 16:09:18.129 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:18.142 [main] DEBUG nextflow.Session - Igniting dataflow network (2)",
+          "Oct-10 16:09:18.144 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > BIOC_RGCCA_MULTIOMICS",
+          "Oct-10 16:09:18.152 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:",
+          "  Script_fb90380b5a192b88: [path]",
+          "  Script_a9e0e92dce849f4b: [path]",
+          "Oct-10 16:09:18.153 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination",
+          "Oct-10 16:09:18.153 [main] DEBUG nextflow.Session - Session await",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "Oct-10 16:09:09.516 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
+          "Oct-10 16:09:15.773 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
+          "Oct-10 16:09:18.129 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD"
+        ],
+        "is_batch": true,
+        "s3_output_files": [],
+        "qc_report": null,
+        "qc_gates": [],
+        "started_at": 1791648546.20193,
+        "completed_at": null,
+        "duration_s": 13,
+        "completedTasks": 0,
+        "failedTasks": 0,
+        "runningTasks": 0,
+        "totalTasks": 0,
+        "progressPercent": 0,
+        "processes": []
+      }
+    }
+  },
+  "benchmark": {
+    "http_status": 200,
+    "response": {
+      "benchmarkId": "bm_mv2la6qj_0",
+      "status": "running",
+      "children": [
+        {
+          "method": "snf",
+          "runId": "cab2c69d-fc91-4861-b7e0-4ac265847b59",
+          "status": "running"
+        },
+        {
+          "method": "mfa",
+          "runId": "e9acdf33-6575-44cb-82e5-725130386d7f",
+          "status": "running"
+        }
+      ]
+    }
+  }
+}

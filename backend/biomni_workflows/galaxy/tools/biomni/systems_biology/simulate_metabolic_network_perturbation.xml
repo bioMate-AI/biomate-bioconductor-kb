@@ -2,7 +2,7 @@
 <tool id="biomni_systems_biology_simulate_metabolic_network_perturbation" name="Biomni: Simulate Metabolic Network Perturbation" version="1.0.0">
     <description>Construct and simulate kinetic models of metabolic networks and analyze their responses to perturbations.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/simulate_metabolic_network_perturbation_wrapper.py' --output '$output'

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T0 — 入门：你的第一个问题</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t11">教程 0 · 入门 — 你的第一个问题</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">9</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+<!-- 1 — TITLE -->
+<section class="scene title" data-seconds="18.0">
+<div class="kicker">一个输入框 · 一个闭环</div>
+<h2>用自然语言描述目标，<br/>剩下的交给 BioMate。</h2>
+<p class="caption">无需在本地安装任何软件——描述目标即可，余下的交由 BioMate 完成。</p>
+<div class="scene-body"><div class="flowline"><span class="chip"><span class="i"></span>输入目标</span><span class="arrow">→</span><span class="chip"><span class="i"></span>检查并发送</span><span class="arrow">→</span><span class="chip"><span class="i"></span>阅读结果</span></div></div>
+</section>
+<!-- 2 — WHERE YOU START (screenshot) -->
+<section class="scene split" data-seconds="30.0">
+<div class="scene-head">
+<div class="kicker">起点</div>
+<h2>每个对话都从<br/>同一个地方开始。</h2>
+<p class="caption">卡片列出四类工作——你不需要先选，直接在输入框里描述目标即可。</p>
+<ul class="modlist"><li><b>搜索与证据</b><span>带引用的答案</span></li><li><b>数据分析</b><span>在你的数据上跑经过验证的流程</span></li><li><b>设计与生成</b><span>新的候选分子</span></li><li><b>模型</b><span>从实验结果中学习</span></li></ul>
+</div>
+<div class="scene-body"><div class="shots"><figure class="shot">
+<div class="frame"><img src="../assets/s1-1-sidebar.png" alt="BioMate 新对话界面——侧边栏、模块卡片、输入框"/></div>
+<figcaption><span class="lbl">真实产品</span>随时点侧边栏的“新对话”即可回到这里。</figcaption>
+</figure></div></div>
+</section>
+<!-- 3 — ASK (screenshot) -->
+<section class="scene split" data-seconds="28.0">
+<div class="scene-head">
+<div class="kicker">第 1 步 · 提问</div>
+<h2>输入一个真实的问题，<br/>然后按发送。</h2>
+<p class="caption">我们问一个证据类问题，因为几秒内就能得到答案。BioMate 会在后台决定如何处理——直接给出带引用的答案，或是一次需要你确认的完整分析。</p>
+<div class="query"><span class="lbl">我们的问题</span><q>JAK1 与类风湿关节炎相关的证据有哪些？证据有多强？</q></div>
+</div>
+<div class="scene-body"><div class="shots"><figure class="shot">
+<div class="frame"><img src="../assets/live/t0-composer.png" alt="输入框中键入了 JAK1 问题"/></div>
+<figcaption><span class="lbl">输入框</span>用回形针附上文件，或用数据库图标指向 BioMate 已有的数据。Shift+Enter 换行。</figcaption>
+</figure></div></div>
+</section>
+<!-- 4 — THE ANSWER (screenshot) -->
+<section class="scene split" data-seconds="36.0">
+<div class="scene-head">
+<div class="kicker">第 2 步 · 阅读</div>
+<h2>简短、带引用的答案——<br/>每条论断都可追溯。</h2>
+<p class="caption">BioMate 对我们 JAK1 问题的回答。三点让它值得信任：</p>
+<ol class="callouts"><li><b>编号标记</b> [1] [2] 把每条论断对应到它的来源。</li><li><b>真实引用</b> 每一条都能打开到出版方页面。</li><li><b>边界说明</b> 说明答案不能证明什么——它总结的是文献，而不是对你数据的结论。</li></ol>
+</div>
+<div class="scene-body"><div class="shots"><figure class="shot">
+<div class="frame"><img src="../assets/live/search-answer.png" alt="一份关于 JAK1 与类风湿关节炎的 BioMate 带引用答案"/></div>
+<figcaption><span class="lbl">真实答案</span></figcaption>
+</figure></div></div>
+</section>
+<!-- 5 — CLOSING -->
+<section class="scene title" data-seconds="22.0">
+<div class="kicker">回顾</div>
+<h2>记住这三点。</h2>
+<div class="scene-body"><div class="recap"><div class="rchip"><span class="rk">一处完成</span><span class="rv">检索、分析、分子设计与建模，同一个对话</span></div><div class="rchip"><span class="rk">按您所需</span><span class="rv">用自然语言描述；结果随您探索——应用内查看、下载，或在 Jupyter / RStudio 中打开</span></div><div class="rchip"><span class="rk">可追溯</span><span class="rv">每条结论标注来源，每次运行留有可复现记录</span></div></div></div>
+</section>
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

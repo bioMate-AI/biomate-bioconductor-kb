@@ -1,0 +1,25 @@
+/home/yzhang/immune_fm_spark/genetoken/logs/train.log-1-START Thu Oct 22 04:18:10 UTC 2026
+/home/yzhang/immune_fm_spark/genetoken/logs/train.log:2:[hyb] 04:18:11 DEVICE: CUDA present but self-test FAILED (RuntimeError: CUDA error: CUDA-capable device(s) is/are busy or unavailable
+/home/yzhang/immune_fm_spark/genetoken/logs/train.log-3-CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+/home/yzhang/immune_fm_spark/genetoken/logs/train.log-4-For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+/home/yzhang/immune_fm_spark/genetoken/logs/train.log-5-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+--
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log-155-  File "/usr/local/lib/python3.12/dist-packages/torch/utils/_device.py", line 104, in __torch_function__
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log-156-    return func(*args, **kwargs)
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log-157-           ^^^^^^^^^^^^^^^^^^^^^
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log:158:RuntimeError: CUDA error: operation not permitted
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log-159-CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log-160-For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+/home/yzhang/immune_fm_spark/debug_20261003/logs_constraintA_free/run_on_spark.log-161-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Nov 05 15:51:23 spark-d816 kernel: Out of memory: Killed process 2423059 (python) total-vm:35398044kB, anon-rss:1268kB, file-rss:25928kB, shmem-rss:1328kB, UID:1000 pgtables:6816kB oom_score_adj:0
+Nov 05 15:51:23 spark-d816 kernel: Out of memory: Killed process 2423049 (python) total-vm:40817576kB, anon-rss:1456kB, file-rss:28372kB, shmem-rss:1468kB, UID:1000 pgtables:6936kB oom_score_adj:0
+Nov 05 15:51:23 spark-d816 kernel: Out of memory: Killed process 2423055 (python) total-vm:34284244kB, anon-rss:1008kB, file-rss:25804kB, shmem-rss:1364kB, UID:1000 pgtables:6908kB oom_score_adj:0
+Nov 05 15:51:23 spark-d816 kernel: Out of memory: Killed process 2423052 (python) total-vm:32252488kB, anon-rss:788kB, file-rss:26324kB, shmem-rss:1864kB, UID:1000 pgtables:6868kB oom_score_adj:0
+Nov 05 15:51:23 spark-d816 kernel: Out of memory: Killed process 2423057 (python) total-vm:35136588kB, anon-rss:988kB, file-rss:25496kB, shmem-rss:832kB, UID:1000 pgtables:6920kB oom_score_adj:0
+Nov 05 11:45:14 spark-d816 kernel: Out of memory: Killed process 2423053 (python) total-vm:47439364kB, anon-rss:1336kB, file-rss:27860kB, shmem-rss:204kB, UID:1000 pgtables:7184kB oom_score_adj:0
+Nov 05 11:43:43 spark-d816 kernel: Out of memory: Killed process 3539719 (systemd) total-vm:20880kB, anon-rss:0kB, file-rss:3144kB, shmem-rss:0kB, UID:1000 pgtables:88kB oom_score_adj:100
+Nov 05 11:43:29 spark-d816 kernel: Out of memory: Killed process 3539814 (dbus-daemon) total-vm:9488kB, anon-rss:0kB, file-rss:3368kB, shmem-rss:0kB, UID:1000 pgtables:68kB oom_score_adj:200
+Nov 05 11:43:18 spark-d816 kernel: Out of memory: Killed process 3539806 (pipewire-pulse) total-vm:123628kB, anon-rss:0kB, file-rss:2936kB, shmem-rss:0kB, UID:1000 pgtables:112kB oom_score_adj:200
+Nov 05 11:43:07 spark-d816 kernel: Out of memory: Killed process 3539803 (pipewire) total-vm:121780kB, anon-rss:0kB, file-rss:4044kB, shmem-rss:0kB, UID:1000 pgtables:100kB oom_score_adj:200
+Nov 05 11:43:04 spark-d816 kernel: Out of memory: Killed process 3539805 (wireplumber) total-vm:420124kB, anon-rss:0kB, file-rss:3152kB, shmem-rss:0kB, UID:1000 pgtables:160kB oom_score_adj:200
+Nov 05 11:42:33 spark-d816 kernel: Out of memory: Killed process 2423044 (python) total-vm:41275692kB, anon-rss:297052kB, file-rss:27948kB, shmem-rss:4056kB, UID:1000 pgtables:7452kB oom_score_adj:0

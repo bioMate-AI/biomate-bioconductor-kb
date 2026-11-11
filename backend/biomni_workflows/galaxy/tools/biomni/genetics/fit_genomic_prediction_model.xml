@@ -2,7 +2,7 @@
 <tool id="biomni_genetics_fit_genomic_prediction_model" name="Biomni: Fit Genomic Prediction Model" version="1.0.0">
     <description>Fit a linear mixed model for genomic prediction using genotype and phenotype data.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/fit_genomic_prediction_model_wrapper.py' --output '$output'

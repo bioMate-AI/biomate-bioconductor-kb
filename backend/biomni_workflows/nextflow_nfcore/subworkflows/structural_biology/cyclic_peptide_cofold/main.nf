@@ -167,7 +167,7 @@ PYEOF
     "${task.process}":
         boltz: \$(python3 -c "import boltz; print(getattr(boltz,'__version__','unknown'))" 2>/dev/null || echo unknown)
         python: \$(python3 --version | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

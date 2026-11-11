@@ -1,0 +1,194 @@
+[
+  {
+    "suite": "public_export",
+    "task": "accession_routing",
+    "file": "evaluation/datasets/public_export/accession_routing/data.jsonl",
+    "records": 27
+  },
+  {
+    "suite": "public_export",
+    "task": "accession_routing",
+    "file": "evaluation/datasets/public_export/accession_routing/data_v2.jsonl",
+    "records": 166
+  },
+  {
+    "suite": "public_export",
+    "task": "autofix_benchmark",
+    "file": "evaluation/datasets/public_export/autofix_benchmark/data.jsonl",
+    "records": 100
+  },
+  {
+    "suite": "public_export",
+    "task": "boin_benchmark",
+    "file": "evaluation/datasets/public_export/boin_benchmark/data.jsonl",
+    "records": 20
+  },
+  {
+    "suite": "public_export",
+    "task": "boin_benchmark",
+    "file": "evaluation/datasets/public_export/boin_benchmark/data_v2_generated.jsonl",
+    "records": 20
+  },
+  {
+    "suite": "public_export",
+    "task": "cross_domain_routing",
+    "file": "evaluation/datasets/public_export/cross_domain_routing/data.jsonl",
+    "records": 200
+  },
+  {
+    "suite": "public_export",
+    "task": "cross_domain_routing",
+    "file": "evaluation/datasets/public_export/cross_domain_routing/data_paraphrased.jsonl",
+    "records": 200
+  },
+  {
+    "suite": "public_export",
+    "task": "drug_discovery_e2e",
+    "file": "evaluation/datasets/public_export/drug_discovery_e2e/data.jsonl",
+    "records": 15
+  },
+  {
+    "suite": "public_export",
+    "task": "findings_probe",
+    "file": "evaluation/datasets/public_export/findings_probe/data.jsonl",
+    "records": 50
+  },
+  {
+    "suite": "public_export",
+    "task": "intent_interpretation",
+    "file": "evaluation/datasets/public_export/intent_interpretation/data.jsonl",
+    "records": 96
+  },
+  {
+    "suite": "public_export",
+    "task": "litqa2",
+    "file": "evaluation/datasets/public_export/litqa2/data.jsonl",
+    "records": 199
+  },
+  {
+    "suite": "public_export",
+    "task": "param_prefill",
+    "file": "evaluation/datasets/public_export/param_prefill/data.jsonl",
+    "records": 170
+  },
+  {
+    "suite": "public_export",
+    "task": "pbpk_benchmark",
+    "file": "evaluation/datasets/public_export/pbpk_benchmark/data.jsonl",
+    "records": 15
+  },
+  {
+    "suite": "public_export",
+    "task": "pbpk_benchmark",
+    "file": "evaluation/datasets/public_export/pbpk_benchmark/data_v2_generated.jsonl",
+    "records": 15
+  },
+  {
+    "suite": "public_export",
+    "task": "protocol_thresholds",
+    "file": "evaluation/datasets/public_export/protocol_thresholds/data.jsonl",
+    "records": 100
+  },
+  {
+    "suite": "public_export",
+    "task": "task_decomposition",
+    "file": "evaluation/datasets/public_export/task_decomposition/data.jsonl",
+    "records": 30
+  },
+  {
+    "suite": "public_export",
+    "task": "workflow_generation",
+    "file": "evaluation/datasets/public_export/workflow_generation/data.jsonl",
+    "records": 40
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "admet_benchmark",
+    "file": "evaluation/datasets/drugdev_export/admet_benchmark/data.jsonl",
+    "records": 20
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "dose_decision",
+    "file": "evaluation/datasets/drugdev_export/dose_decision/data.jsonl",
+    "records": 3
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "dose_projection",
+    "file": "evaluation/datasets/drugdev_export/dose_projection/data.jsonl",
+    "records": 3
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "dose_schedule",
+    "file": "evaluation/datasets/drugdev_export/dose_schedule/data.jsonl",
+    "records": 3
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "fep_selection",
+    "file": "evaluation/datasets/drugdev_export/fep_selection/data.jsonl",
+    "records": 2
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "leadopt_triage",
+    "file": "evaluation/datasets/drugdev_export/leadopt_triage/data.jsonl",
+    "records": 3
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "process_knowledge",
+    "file": "evaluation/datasets/drugdev_export/process_knowledge/data.jsonl",
+    "records": 6
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "qsar_benchmark",
+    "file": "evaluation/datasets/drugdev_export/qsar_benchmark/data.jsonl",
+    "records": 2
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "rbfe_benchmark",
+    "file": "evaluation/datasets/drugdev_export/rbfe_benchmark/data.jsonl",
+    "records": 8
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "retrosynthesis_benchmark",
+    "file": "evaluation/datasets/drugdev_export/retrosynthesis_benchmark/data.jsonl",
+    "records": 2
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "special_population",
+    "file": "evaluation/datasets/drugdev_export/special_population/data.jsonl",
+    "records": 4
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "target_id_benchmark",
+    "file": "evaluation/datasets/drugdev_export/target_id_benchmark/data.jsonl",
+    "records": 2
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "target_structure_benchmark",
+    "file": "evaluation/datasets/drugdev_export/target_structure_benchmark/data.jsonl",
+    "records": 10
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "tissue_exposure",
+    "file": "evaluation/datasets/drugdev_export/tissue_exposure/data.jsonl",
+    "records": 3
+  },
+  {
+    "suite": "drugdev_export",
+    "task": "workflow_chain",
+    "file": "evaluation/datasets/drugdev_export/workflow_chain/data.jsonl",
+    "records": 3
+  }
+]

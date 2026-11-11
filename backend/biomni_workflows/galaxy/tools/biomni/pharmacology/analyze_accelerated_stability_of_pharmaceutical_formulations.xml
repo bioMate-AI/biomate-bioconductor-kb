@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_analyze_accelerated_stability_of_pharmaceutical_formulations" name="Biomni: Analyze Accelerated Stability Of Pharmaceutical Formulations" version="1.0.0">
     <description>Analyzes the stability of pharmaceutical formulations under accelerated storage conditions.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_accelerated_stability_of_pharmaceutical_formulations_wrapper.py' --output '$output'

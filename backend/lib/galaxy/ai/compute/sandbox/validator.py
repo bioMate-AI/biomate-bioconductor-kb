@@ -45,10 +45,24 @@ _RULES: List[Tuple[str, str, Pattern, str]] = [
      "namespace/chroot manipulation"),
 
     # --- cloud metadata / SSRF ----------------------------------------
-    ("cloud_metadata_ip", "block", _c(r"169\.254\.169\.254"),
+    # The IMDS IPv4 (169.254.169.254) plus the common SSRF-filter bypass encodings
+    # of it — IPv6 (AWS fd00:ec2::254), and the integer/hex/octal forms of the IPv4 —
+    # so an obfuscated probe cannot slip past the literal-IP match. Defence-in-depth
+    # only: the authoritative control is the runtime IMDSv2 hop-limit on the Batch
+    # task (a container one hop away cannot reach IMDS at all).
+    ("cloud_metadata_ip", "block", _c(
+        r"169\.254\.169\.254"                 # AWS/Azure/GCP IMDS (IPv4)
+        r"|\[?fd00:ec2::254\]?"               # AWS IMDS over IPv6
+        r"|(?<![0-9])2852039166(?![0-9])"     # 169.254.169.254 as a 32-bit decimal int
+        r"|0x0*a9fea9fe\b"                    # ... as a 32-bit hex int
+        r"|0x0*a9\.0x0*fe\.0x0*a9\.0x0*fe"    # ... as dotted hex
+        r"|0+251\.0+376\.0+251\.0+376"        # ... as dotted octal
+    ),
      "access to the cloud instance-metadata endpoint (credential theft)"),
-    ("link_local_metadata", "block", _c(r"metadata\.google\.internal"),
-     "access to GCP metadata server"),
+    ("alibaba_metadata_ip", "block", _c(r"(?<![0-9.])100\.100\.100\.200(?![0-9])"),
+     "access to the Alibaba Cloud instance-metadata endpoint (credential theft)"),
+    ("link_local_metadata", "block", _c(r"metadata\.google\.internal|metadata\.aliyuncs\.com"),
+     "access to a cloud metadata server by hostname"),
 
     # --- credential / secret exfiltration -----------------------------
     ("read_shadow", "block", _c(r"/etc/(shadow|gshadow)\b"),

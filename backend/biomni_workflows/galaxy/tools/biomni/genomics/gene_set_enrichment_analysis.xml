@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_gene_set_enrichment_analysis" name="Biomni: Gene Set Enrichment Analysis" version="1.0.0">
     <description>Perform enrichment analysis for a list of genes, with optional background gene set and plotting functionality.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/gene_set_enrichment_analysis_wrapper.py' --output '$output'

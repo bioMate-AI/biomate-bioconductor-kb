@@ -1,0 +1,472 @@
+{
+  "schema": "patent_source_review_candidates_v1",
+  "created": "2026-10-29",
+  "review_status": "AI_ASSISTED_CANDIDATE",
+  "purpose": "Source-review candidates; not executable approved corrections",
+  "method_prior_eligible": false,
+  "original_records_modified": false,
+  "source_hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+  "source_archive": "s3://biomate-nextflow-work/cyclic_peptide/allatom/k4/ext3/pilot/patent_kb_pilot.jsonl",
+  "review_document": "20261029_PATENT_SOURCE_RECOVERY_REVIEW.md",
+  "offset_policy": "No character offsets were inferred. Original passage IDs are extraction windows. Published paragraph/page locations are included only where independently observed online.",
+  "candidates": [
+    {
+      "item_id": "db28a398d88433ee",
+      "patent_number": "US-20100311648-A1",
+      "passage_id": "US-20100311648-A1:29",
+      "source": {
+        "url": "https://patents.google.com/patent/US20100311648A1/en",
+        "text_sha256": "b3720703224c2e4ee37e9005b354898fb5fd14c37eb1b4988046d9a6bc22270e",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "anchors": [
+          "TABLE 1",
+          "Ref Ex 2",
+          "0.1 ng/mL Doxycycline"
+        ],
+        "character_offset": null,
+        "online_verification": {
+          "date": "2026-10-29",
+          "status": "TEXTUAL_FIELDS_CORROBORATED",
+          "location": "Table 1, Ref Ex 2 row",
+          "medium": "Google Patents published-patent HTML",
+          "supported_fields": [
+            "sequence table-column separation",
+            "Ki 8 nM",
+            "EC50 3.0 nM",
+            "intrinsic activity 92%"
+          ],
+          "limitations": [
+            "PDF fetch failed; merged-header scope of doxycycline condition not visually verified"
+          ]
+        }
+      },
+      "compound_id": "Ref Ex 2",
+      "original": {
+        "structure_string": "Ac-Arg-cyclo(Glu- 8 3.0 92 Dab-D-Phe-Arg- Trp-Orn)-OH",
+        "activity": {
+          "assay": "intrinsic K i",
+          "value": 8,
+          "unit": "nM",
+          "relation": "="
+        }
+      },
+      "proposed": {
+        "structure_text": "Ac-Arg-cyclo(Glu-Dab-D-Phe-Arg-Trp-Orn)-OH",
+        "correction_basis": "Interleaved assay columns in a wrapped table row; do not apply generic numeric deletion",
+        "measurements": [
+          {
+            "endpoint": "Ki",
+            "value": 8,
+            "unit": "nM",
+            "relation": "="
+          },
+          {
+            "endpoint": "EC50",
+            "value": 3.0,
+            "unit": "nM",
+            "relation": "="
+          },
+          {
+            "endpoint": "intrinsic activity",
+            "value": 92,
+            "unit": "%",
+            "relation": "="
+          }
+        ],
+        "scope": "Source-reported Ref Ex 2 Table 1 row; table contains 0.1 ng/mL doxycycline header, but endpoint-specific header scope remains unverified; no universal modification effect",
+        "graph": null,
+        "unresolved": [
+          "Explicit closure sites",
+          "Dab stereochemistry",
+          "Terminal-group graph representation",
+          "Independent source confirmation of table reconstruction and assay protocol",
+          "Endpoint-specific scope of doxycycline table header"
+        ]
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "followup_20261030": {
+        "review_document": "20261030_PATENT_REFEX2_QUALIFICATION.md",
+        "status": "SOURCE_CONTEXT_AND_DAB_DRAWING_INSPECTED_CANDIDATE",
+        "resolved": [
+          "Dab side-chain connectivity shown in definition image C00009",
+          "Functional low-density hMC4R context distinguished from separate Ki binding assay"
+        ],
+        "supported_context_inference": "Glu/Orn side-chain lactam described in paragraph [0211]; exact application to Ref Ex2 still requires direct correspondence.",
+        "image_url": "https://patentimages.storage.googleapis.com/68/b1/b1/d08462ccaabe90/US20100311648A1-20101209-C00009.png",
+        "image_sha256": "5ca630864b2fa2e803636078c3b487ab1f75ee5840764d86f8a8a971cbbbb301",
+        "remaining": [
+          "Exact RefEx2 complete graph/closure correspondence",
+          "Absolute stereochemistry",
+          "Visual Table1 doxycycline header span",
+          "Parent applicability and split clearance"
+        ],
+        "graph": null,
+        "learned_conditioning_eligible": false,
+        "method_prior_eligible": false,
+        "historical_fields_policy": "Original 20261029 fields preserved; this dated follow-up supplies updated qualification state."
+      }
+    },
+    {
+      "item_id": "ba134a47b2b054df",
+      "patent_number": "EP-4170347-A1",
+      "passage_id": "EP-4170347-A1:140",
+      "source": {
+        "url": "https://patents.google.com/patent/EP4170347A1/en",
+        "text_sha256": "55a80db3859d9cb5492798f4044332c483d0d6d4d26093ad4aec83dfdfd20354",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "anchors": [
+          "Example 2",
+          "GIP-057",
+          "Solution Cyclization method A: Dibromoxylene or bis-(bromomethyl)-pyridin cyclization"
+        ],
+        "character_offset": null,
+        "online_verification": {
+          "date": "2026-10-29",
+          "status": "TEXTUAL_FIELDS_CORROBORATED",
+          "location": "Example 2, paragraph [0506], printed page 326 (PDF index 325)",
+          "medium": "Published EPO PDF extracted text and Google Patents HTML",
+          "supported_fields": [
+            "GIP-057 product identity",
+            "dibromoxylene selection for cyclization method A"
+          ],
+          "limitations": [
+            "PDF screenshot unavailable; PDF text extraction renders micromole symbol as m in synthesis scale, so do not normalize scale from PDF text alone"
+          ]
+        },
+        "published_pdf_url": "https://patentimages.storage.googleapis.com/2c/73/76/9cabcd3913f82a/EP4170347A1.pdf#page=326"
+      },
+      "compound_id": "GIP-057",
+      "original": {
+        "structure_string": "H-Met-Tyr-Asp-Trp-Trp-Pro-Glu-Leu-[Cys(3MeBn)-Ala-Leu-Ile-Cys]-Ttds-Lys(Bio)-NH 2",
+        "activity": null
+      },
+      "proposed": {
+        "structure_text": "H-Met-Tyr-Asp-Trp-Trp-Pro-Glu-Leu-[Cys(3MeBn)-Ala-Leu-Ile-Cys]-Ttds-Lys(Bio)-NH 2",
+        "correction_basis": "Retain product notation and attach example-level closure evidence rather than force unsupported residues through the converter",
+        "closure_evidence": "Example 2 selects dibromoxylene in Solution Cyclization method A; the general method names alpha,alpha-prime-dibromo-m-xylene",
+        "scope": "Synthesis of GIP-057; source separates linear precursor assembly and linker-mediated cyclization",
+        "measurements": [],
+        "graph": null,
+        "unresolved": [
+          "Exact 3MeBn linker attachment graph",
+          "Ttds and biotin component definitions",
+          "Complete stereochemistry and terminal groups",
+          "Compound-specific biological assay mapping"
+        ]
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "followup_20261030": {
+        "review_document": "20261030_PATENT_GIP_COMPONENT_QUALIFICATION.md",
+        "status": "PRIMARY_PRODUCT_DRAWING_AND_COMPONENT_DEFINITIONS_INSPECTED_CANDIDATE",
+        "resolved": [
+          "Ttds definition in Table5 p221",
+          "3MeBn distinguished from 3MeBz in Table5 p203",
+          "Bracket-boundary side-chain linker convention and thioether bonds in [0316] p225",
+          "Lys epsilon-amino branch amide convention in [0309-0310] p224",
+          "Exact compound-linked product drawing visually inspected",
+          "Two cysteine sulfur\u2013benzyl connections shown",
+          "C-terminal spacer to amidated Lys with biotin side-chain branch"
+        ],
+        "qualification_caution": "Table5 can depict installation reagents rather than installed residues; definitions alone do not yield complete product graph.",
+        "remaining": [
+          "Complete atom-level graph transcription and independent stereochemical validation",
+          "Compound-specific assay linkage",
+          "Generation-parent applicability and split clearance"
+        ],
+        "graph": null,
+        "learned_conditioning_eligible": false,
+        "method_prior_eligible": false,
+        "historical_fields_policy": "Original 20261029 fields retained; this dated follow-up supplies updated qualification state.",
+        "image_id": "imgb0119",
+        "image_url": "https://patentimages.storage.googleapis.com/8a/1d/10/729d912a61103e/imgb0119.png",
+        "image_sha256": "55f2650d015e3501b26b2533fec587cb9d1971d371d6232138a563c53b006326"
+      }
+    },
+    {
+      "item_id": "fa4169d82a10b247",
+      "patent_number": "EP-4170347-A1",
+      "passage_id": "EP-4170347-A1:140",
+      "source": {
+        "url": "https://patents.google.com/patent/EP4170347A1/en",
+        "text_sha256": "55a80db3859d9cb5492798f4044332c483d0d6d4d26093ad4aec83dfdfd20354",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "anchors": [
+          "Example 3",
+          "GIP-126",
+          "Solution Cyclization method A: Dibromoxylene or bis-(bromomethyl)-pyridin cyclization"
+        ],
+        "character_offset": null,
+        "online_verification": {
+          "date": "2026-10-29",
+          "status": "TEXTUAL_FIELDS_CORROBORATED",
+          "location": "Example 3, paragraph [0507], printed page 326 (PDF index 325)",
+          "medium": "Published EPO PDF extracted text and Google Patents HTML",
+          "supported_fields": [
+            "GIP-126 precursor/product distinction",
+            "dibromoxylene selection for cyclization method A"
+          ],
+          "limitations": [
+            "PDF screenshot unavailable; PDF text extraction renders micromole symbol as m in synthesis scale, so do not normalize scale from PDF text alone"
+          ]
+        },
+        "published_pdf_url": "https://patentimages.storage.googleapis.com/2c/73/76/9cabcd3913f82a/EP4170347A1.pdf#page=326"
+      },
+      "compound_id": "GIP-126",
+      "original": {
+        "structure_string": "DOTA-Ttds-Tyr-Asp-Trp-Trp-Pro-Glu-Leu-[Cys(3MeBn)-Ala-Leu-Ile-Cys]-NH 2",
+        "quote": "The linear sequence (DOTA-Ttds-Tyr-Asp-Trp-Trp-Pro-Glu-Leu-Cys-Ala-Leu-Ile-Cys-NH 2 ) of the peptide was assembled according to the 'General procedures for Automated/Semi-automated Solid-Phase Synthesis' in a 50 \u00b5mol scale on a Rink amide resin.",
+        "activity": null
+      },
+      "proposed": {
+        "precursor_text": "DOTA-Ttds-Tyr-Asp-Trp-Trp-Pro-Glu-Leu-Cys-Ala-Leu-Ile-Cys-NH 2",
+        "product_text": "DOTA-Ttds-Tyr-Asp-Trp-Trp-Pro-Glu-Leu-[Cys(3MeBn)-Ala-Leu-Ile-Cys]-NH 2",
+        "correction_basis": "Join the precursor quote to the product heading through Example 3; do not rewrite the quote as if it described the product",
+        "closure_evidence": "Example 3 selects dibromoxylene in Solution Cyclization method A",
+        "scope": "Synthesis of GIP-126; not evidence for head-to-tail or generic disulfide closure",
+        "measurements": [],
+        "graph": null,
+        "unresolved": [
+          "Exact linker and DOTA/Ttds definitions",
+          "Complete attachment sites and stereochemistry",
+          "Compound-specific biological assay mapping"
+        ]
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "followup_20261030": {
+        "review_document": "20261030_PATENT_GIP_COMPONENT_QUALIFICATION.md",
+        "status": "PRIMARY_PRODUCT_DRAWING_AND_COMPONENT_DEFINITIONS_INSPECTED_CANDIDATE",
+        "resolved": [
+          "Ttds definition in Table5 p221",
+          "3MeBn distinguished from 3MeBz in Table5 p203",
+          "Bracket-boundary side-chain linker convention and thioether bonds in [0316] p225",
+          "Lys epsilon-amino branch amide convention in [0309-0310] p224",
+          "Exact compound-linked product drawing visually inspected",
+          "Two cysteine sulfur\u2013benzyl connections shown",
+          "DOTA acetate-arm amide to spacer; succinyl end to Tyr nitrogen; terminal cysteine amide"
+        ],
+        "qualification_caution": "Table5 can depict installation reagents rather than installed residues; definitions alone do not yield complete product graph.",
+        "remaining": [
+          "Complete atom-level graph transcription and independent stereochemical validation",
+          "Compound-specific assay linkage",
+          "Generation-parent applicability and split clearance"
+        ],
+        "graph": null,
+        "learned_conditioning_eligible": false,
+        "method_prior_eligible": false,
+        "historical_fields_policy": "Original 20261029 fields retained; this dated follow-up supplies updated qualification state.",
+        "image_id": "imgb0188",
+        "image_url": "https://patentimages.storage.googleapis.com/2f/2a/0a/f735995300358d/imgb0188.png",
+        "image_sha256": "bd7388dc500cca07524a97932419f6475347f932faf25df572c7e03dfe010251"
+      }
+    },
+    {
+      "item_id": "35fcd616b1098727",
+      "patent_number": "WO-2024108198-A2",
+      "passage_id": "WO-2024108198-A2:76",
+      "source": {
+        "url": "https://patents.google.com/patent/WO2024108198A2/en",
+        "text_sha256": "ffddf6cc555352de7dfde6fe95579cf284ea30e5f777842a8f57a3efe567a719",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "anchors": [
+          "SEQ ID NO: 148",
+          "RM-511",
+          "Formula (II)",
+          "WO2008/147556"
+        ],
+        "character_offset": null,
+        "online_verification": {
+          "date": "2026-10-29",
+          "status": "TEXTUAL_FIELDS_CORROBORATED",
+          "location": "Formula II discussion immediately after SEQ ID NO:148\u2013186 list",
+          "medium": "Google Patents published-patent HTML",
+          "supported_fields": [
+            "SEQ ID NO:148 alias RM-511",
+            "reference to WO2008/147556"
+          ],
+          "limitations": [
+            "Exact structural drawing remains unreviewed"
+          ]
+        }
+      },
+      "compound_id": "(SEQ ID NO: 148)",
+      "original": {
+        "structure_string": "Hydantoin(C(O)-(Arg-Gly))-c(Cys-Glu-His-D-Phe-Arg-Trp-Cys)-NH 2",
+        "activity": null
+      },
+      "proposed": {
+        "structure_text": "Hydantoin(C(O)-(Arg-Gly))-c(Cys-Glu-His-D-Phe-Arg-Trp-Cys)-NH 2",
+        "alias": "RM-511",
+        "scope": "Formula II/SEQ ID NO:148 identity; structural drawing referenced but absent from inspected plain text",
+        "measurements": [],
+        "graph": null,
+        "unresolved": [
+          "Primary drawing inspection",
+          "Hydantoin connectivity",
+          "Specific closure bonds",
+          "Complete stereochemistry",
+          "Numerical assay linkage"
+        ]
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "followup_20261030": {
+        "review_document": "20261030_PATENT_RM511_DRAWING_QUALIFICATION.md",
+        "status": "PRIMARY_DRAWING_VISUALLY_INSPECTED_CANDIDATE",
+        "image_id": "imgf000101_0001",
+        "image_url": "https://patentimages.storage.googleapis.com/fa/98/ad/4b242244150ca2/imgf000101_0001.png",
+        "image_sha256": "0eaf082a2b27d196142cdf30ea6094245088eaae3c56a6b8f27ce21192808e90",
+        "resolved": [
+          "Exact compound-linked drawing located",
+          "Cysteine-side-chain disulfide closure explicitly drawn",
+          "Hydantoin-containing unit and terminal primary amide visible"
+        ],
+        "remaining": [
+          "Complete atom-level graph transcription and independent stereochemical validation",
+          "Compound-specific numerical assay linkage",
+          "Generation-parent applicability and split clearance"
+        ],
+        "graph": null,
+        "learned_conditioning_eligible": false,
+        "method_prior_eligible": false,
+        "historical_fields_policy": "Original and proposed 20261029 fields retained as historical record; this dated follow-up supplies the updated qualification state."
+      }
+    },
+    {
+      "item_id": "1dbd58d6798c1f37",
+      "patent_number": "WO-2014151634-A1",
+      "passage_id": "WO-2014151634-A1:544",
+      "source": {
+        "url": "https://patents.google.com/patent/WO2014151634A1/en",
+        "text_sha256": "5377bfcff5879026a07bbb2b0079955b5f6d898138c010e78cae967a67083905",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "anchors": [
+          "Table 8 - Compound No. 1 Variant Macrocyclic Peptides",
+          "Compound HTRF Human PD-Ll/PD-1 No. Binding Assay IC 50 (nM) 22 3"
+        ],
+        "character_offset": null,
+        "online_verification": {
+          "date": "2026-10-29",
+          "status": "TEXTUAL_FIELDS_CORROBORATED",
+          "location": "Table 8, compound 22 row",
+          "medium": "Google Patents published-patent HTML",
+          "supported_fields": [
+            "compound 22 / HTRF human PD-L1\u2013PD-1 binding IC50 / 3 nM"
+          ],
+          "limitations": [
+            "Compound 22 complete structure remains unreviewed"
+          ]
+        }
+      },
+      "compound_id": "Compound No. 22",
+      "original": {
+        "structure_string": "",
+        "activity": {
+          "assay": "HTRF Binding Assay",
+          "value": 3,
+          "unit": "nM",
+          "relation": "="
+        }
+      },
+      "proposed": {
+        "structure_text": null,
+        "measurements": [
+          {
+            "endpoint": "HTRF inhibition of human PD-1/PD-L1 binding IC50",
+            "value": 3,
+            "unit": "nM",
+            "relation": "="
+          }
+        ],
+        "scope": "Compound 22 in Table 8; not Kd or an isolated causal modification effect",
+        "graph": null,
+        "unresolved": [
+          "Join to compound 22 synthesis/structure entry",
+          "Closure and stereochemistry",
+          "Human verification of assay protocol and compound mapping"
+        ]
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false,
+      "followup_20261030": {
+        "review_document": "20261030_PATENT_COMPOUND22_QUALIFICATION.md",
+        "status": "COMPOUND_LINKED_PRIMARY_DRAWING_AND_ASSAY_ROW_INSPECTED_CANDIDATE",
+        "image_id": "imgf000161_0001",
+        "image_url": "https://patentimages.storage.googleapis.com/e0/cb/78/e705c0c8798fb2/imgf000161_0001.png",
+        "image_sha256": "3dae5f59e26cd94bd439bede9eec9b528adb9671ad3688c6d27c1e3de4e29460",
+        "resolved": [
+          "Compound22 synthesis/Example23 drawing joined by explicit compound identity",
+          "Table8 HTRF binding-inhibition IC50 row joined to same compound number"
+        ],
+        "source_reported_molecular_weight": 1767.06,
+        "constraint_interpretation": "Outside current completed-output MW upper bound1400; not an automatic prefix-parent exclusion in the implementation. Parent use remains unqualified.",
+        "remaining": [
+          "Complete graph transcription and independent stereochemical validation",
+          "Assay protocol review",
+          "Prefix-parent applicability and split clearance"
+        ],
+        "graph": null,
+        "learned_conditioning_eligible": false,
+        "method_prior_eligible": false,
+        "historical_fields_policy": "Original fields preserved; dated followup updates qualification state."
+      }
+    },
+    {
+      "item_id": "9688e01dfb0dcf72",
+      "related_item_ids": [
+        "7d3ea777c0cfb05f",
+        "188c887faedc55d2"
+      ],
+      "patent_number": "US-20240376154-A1",
+      "passage_id": "US-20240376154-A1:32",
+      "source": {
+        "url": "https://patents.google.com/patent/US20240376154A1/en",
+        "text_sha256": "4e6f2e6923613d8392ac4c7410496bba9069b1e6ffa87d2a2756da554dce3888",
+        "hash_status": "VERIFIED_RETAINED_TEXT_UTF8_SHA256",
+        "anchors": [
+          "Non-limiting examples of cathepsin B cleavable peptide sequences include Val-Ala"
+        ],
+        "character_offset": null,
+        "online_verification": {
+          "date": "2026-10-29",
+          "status": "TEXTUAL_FIELDS_CORROBORATED",
+          "location": "Linker L discussion, cathepsin-B-cleavable sequence examples",
+          "medium": "Google Patents published-patent HTML",
+          "supported_fields": [
+            "Val-Ala is listed as linker sequence context"
+          ],
+          "limitations": [
+            "No standalone cyclic-peptide structure or measurement established"
+          ]
+        }
+      },
+      "compound_id": "Val-Ala",
+      "original": {
+        "structure_string": "Val-Ala",
+        "activity": null
+      },
+      "proposed": {
+        "structure_text": "Val-Ala",
+        "entity_type": "linker_component_context",
+        "scope": "Example of a cathepsin-B-cleavable linker sequence, not a measured standalone cyclic peptide",
+        "disposition": "Exclude from cyclic-peptide structure/measurement eligibility; retain source context",
+        "measurements": [],
+        "graph": null,
+        "unresolved": [
+          "No standalone cyclic-peptide closure or compound-specific activity supported by this passage"
+        ]
+      },
+      "review_status": "AI_ASSISTED_CANDIDATE",
+      "method_prior_eligible": false
+    }
+  ],
+  "source_hash_verification": {
+    "date": "2026-10-29",
+    "input": "/tmp/k4_corpus.jsonl.gz",
+    "method": "SHA-256 of each selected stored text string encoded UTF-8, matching select_and_fetch.py provenance algorithm",
+    "result": "All five inspected patent text strings match their recorded hashes",
+    "limitation": "Verifies retained text integrity; not a byte comparison against current online HTML or PDF"
+  }
+}

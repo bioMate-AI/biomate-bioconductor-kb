@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_setup_nnunet_environment" name="Biomni: Setup Nnunet Environment" version="1.0.0">
     <description>Setup nnU-Net environment variables according to official documentation</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/setup_nnunet_environment_wrapper.py' --output '$output'

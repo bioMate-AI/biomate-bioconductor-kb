@@ -1,0 +1,8 @@
+HET    MN2  I   1       1                                                       
+HET    MN2  I   2       1                                                       
+HET    MN2  I   3       1                                                       
+CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1                      
+HETATM    1 MN   MN2 I   1       5.735  23.241  21.658  1.00 20.00          MN  
+HETATM    2 MN   MN2 I   2     -13.443  18.285   6.657  1.00 20.00          MN  
+HETATM    3 MN   MN2 I   3      30.107  -6.309   6.110  1.00 20.00          MN  
+END                                                                             

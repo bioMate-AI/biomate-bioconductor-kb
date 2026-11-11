@@ -12,7 +12,7 @@ export function modelSetupUrl(projectId: string, fileId: string, draft: string, 
 
 /** Setup produces a reviewable chat draft using the existing attachment bridge.
  * Sending the draft still requires the ordinary workflow proposal/confirmation. */
-export function ModelSetup({ rounds = false, onContinue }: { rounds?: boolean; onContinue?: (url: string) => void }) {
+export function ModelSetup({ rounds = false, onContinue, initialType = 'sklearn_tabular' }: { rounds?: boolean; onContinue?: (url: string) => void; initialType?: string }) {
   const context = useActiveProjectSafe();
   const [project, setProject] = useState(context?.activeProjectId ?? '');
   const [files, setFiles] = useState<ProjectFile[]>([]);
@@ -21,7 +21,7 @@ export function ModelSetup({ rounds = false, onContinue }: { rounds?: boolean; o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [target, setTarget] = useState('');
-  const [type, setType] = useState('sklearn_tabular');
+  const [type, setType] = useState(initialType);
   const [task, setTask] = useState('classification');
   const [modelName, setModelName] = useState('');
   const [metric, setMetric] = useState('accuracy');
@@ -60,7 +60,7 @@ export function ModelSetup({ rounds = false, onContinue }: { rounds?: boolean; o
       <label className="block text-xs">{tOr('models.setup_candidates', 'Candidate library')}<select className={field} value={candidate} onChange={event => setCandidate(event.target.value)} required><option value="">{tOr('models.setup_choose_dataset', 'Choose a project file')}</option>{files.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="block text-xs">{tOr('models.setup_budget', 'Assay proposal budget')}<input className={field} type="number" min="1" step="1" value={budget} onChange={event => setBudget(event.target.value)} required /></label>
     </> : <>
-      <label className="block text-xs">{tOr('models.setup_type', 'Model type')}<select className={field} value={type} onChange={event => setType(event.target.value)}><option value="sklearn_tabular">{tOr('models.setup_tabular', 'Tabular classifier / regressor (scikit-learn)')}</option><option value="chemprop_gnn">{tOr('models.setup_molecular', 'Molecular property predictor (Chemprop)')}</option></select></label>
+      <label className="block text-xs">{tOr('models.setup_type', 'Model type')}<select className={field} value={type} onChange={event => setType(event.target.value)}><option value="sklearn_tabular">{tOr('models.setup_tabular', 'Tabular classifier / regressor (scikit-learn)')}</option><option value="sklearn_gbr">{tOr('models.setup_molecular_gbr', 'Molecular property baseline (RDKit descriptors + gradient boosting)')}</option><option value="ludwig_tabular">{tOr('models.setup_molecular_dl', 'Molecular deep-learning model (Ludwig neural net)')}</option></select></label>
       <label className="block text-xs">{tOr('models.setup_name', 'Model name')}<input className={field} value={modelName} placeholder={target} onChange={event => setModelName(event.target.value)} /></label>
       <label className="block text-xs">{tOr('models.setup_task', 'Task type')}<select className={field} value={task} onChange={event => { setTask(event.target.value); setMetric(event.target.value === 'regression' ? 'r2' : 'accuracy'); }}><option value="classification">{tOr('models.setup_classification', 'Classification')}</option><option value="regression">{tOr('models.setup_regression', 'Regression')}</option></select></label>
       <label className="block text-xs">{tOr('models.setup_metric', 'Validation metric')}<select className={field} value={metric} onChange={event => setMetric(event.target.value)}>{task === 'regression' ? <option value="r2">R²</option> : <><option value="accuracy">{tOr('models.setup_accuracy', 'Accuracy')}</option><option value="auc">ROC AUC</option><option value="f1">F1</option><option value="prc_auc">PR AUC</option></>}</select></label>

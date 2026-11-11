@@ -278,11 +278,25 @@ deploy_frontend() {
     # bind-mounts /tmp/biomate_code/<session> which must resolve to the same
     # path inside the frontend container so paths match host-side.
     mkdir -p /tmp/biomate_code
+    # Interactive Tools (Jupyter/RStudio/CellxGene) are launchable ONLY when the
+    # Galaxy container actually has the host docker socket (ITs spawn docker child
+    # containers). Derive INTERACTIVE_TOOLS_ENABLED from the LIVE Galaxy container so
+    # the UI advertises the IT buttons exactly when they will work: set to 1 once the
+    # socket is enabled, and auto-cleared to 0 on the next frontend deploy if a
+    # rollback (or any recreate) ever drops the socket — no manual flag to keep in
+    # sync. /api/interactive/available gates on this; see routes.ts.
+    if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then
+      IT_ENABLED=1
+    else
+      IT_ENABLED=0
+    fi
+    echo "[frontend] INTERACTIVE_TOOLS_ENABLED=$IT_ENABLED (derived from Galaxy docker-socket mount)"
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
       -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
       -e MCP_UPSTREAM_URL=http://biomate-remote-mcp:8848 \
       -e BIOMATE_RESPONSE_MODEL=gpt-5.6-luna \
+      -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
       --restart unless-stopped \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v /tmp/biomate_code:/tmp/biomate_code \
@@ -564,7 +578,7 @@ for d in "$NFCORE_SRC"/*/; do
   if incomplete "$d" || { [ -n "$pin" ] && [ "$cur" != "$pin" ]; }; then
     tmp="$NFCORE_SRC/.fetch_$n"; rm -rf "$tmp"; ok=0
     if [ -n "$pin" ] && timeout 300 git clone -q --depth 1 --branch "$pin" "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then ok=1
-    elif [ -n "$pin" ] && echo "$pin" | grep -q dev && timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then
+    elif [ -n "$pin" ] && grep -q dev <<<"$pin" && timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then
       req=$(nfreq "$tmp"); { [ -z "$req" ] || [ -z "$NF_HAVE" ] || ver_le "$req" "$NF_HAVE"; } && ok=1   # dev snapshot: no tag
       # A "<x>dev" pin names no fetchable version, so the clone never matches it and every sync re-cloned
       # (7 pipelines, 2026-11-06). Record the version actually fetched as the pin — fetched once, then stable.
@@ -1076,13 +1090,15 @@ deploy_databases() {
     # Call _build_workflow_embeddings() directly — bypasses the runtime
     # staleness gate (which now refuses to rebuild in the request path).
     # No apostrophes in this block (see sync 9 root cause in CLAUDE.md).
-    # timeout 660: kills the SSH+docker-exec if embedding hangs (no-timeout bug caused
-    # a 30+ min hang when the container stalled; 660s = 11 min is 50% over the observed
-    # worst-case 424s so it won't false-positive on slow-but-working runs).
+    # timeout 1200: kills the SSH+docker-exec if embedding hangs (no-timeout bug caused
+    # a 30+ min hang when the container stalled). Raised from 660s on 2026-11-09: the catalog
+    # grew to ~4226 workflows and BGE encoding on dev CPU now exceeds 660s, so the 660 cap
+    # false-positived (sync f1b390df: embeddings left stale, server fell back to FTS-only).
+    # 1200s = 20 min covers the grown catalog with margin; still well under the old hang.
     ec2_ssh '
       GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
       GC="${GC:-biomate-galaxy-dev}"
-      timeout 660 docker exec -u galaxy "$GC" python3.9 -c "
+      timeout 1200 docker exec -u galaxy "$GC" python3.9 -c "
 import sys, time
 sys.path.insert(0, \"/app/lib\")
 t0 = time.time()
@@ -1222,7 +1238,7 @@ resync_galaxy_env() {
         # Skip PATH/HOME/TERM/HOSTNAME — Docker re-supplies these
         case "$k" in PATH|HOME|TERM|HOSTNAME|"") continue ;; esac
         # Skip keys present in the env file (file will supply them)
-        if echo "$NEW_KEYS" | grep -qxF "$k"; then continue; fi
+        if grep -qxF "$k" <<<"$NEW_KEYS"; then continue; fi
         echo "$line"
       done > "$LIVE_ENV"
 
@@ -1306,6 +1322,34 @@ enable_interactive_tools() {
   ec2_ssh "sudo env PYTHONDONTWRITEBYTECODE=1 BIOMATE_IT_SOCKET_APPROVED='${BIOMATE_IT_SOCKET_APPROVED:-0}' python3 '$stage/interactive_runtime_recovery.py' --deploy-lease '$REMOTE_SYNC_LEASE' --cli-sha256 2c0c7085014dab521228f90fc5fc714184cbba3ab1dd8d526840dd000ed478b5 $apply_args"
   local result=$?
   ec2_ssh "rm -f '$stage/interactive_runtime_recovery.py' '$stage/interactive_recreate_plan.py' '$stage/interactive_state_migration.py'; rmdir '$stage'" || true
+  # After a successful socket APPLY, the frontend must learn ITs are now launchable.
+  # This BIOMATE_ENABLE_IT path exits before the normal deploy_frontend runs, so the
+  # frontend would otherwise keep INTERACTIVE_TOOLS_ENABLED unset and hide the buttons
+  # even though ITs now work. Recreate the frontend from its current :latest image
+  # (no rebuild) with the flag DERIVED from the live Galaxy docker-socket mount — so
+  # /api/interactive/available flips to available and the IT buttons appear with no
+  # second sync. Non-fatal: a failure just means "run one normal sync to pick it up".
+  if [[ "$result" == "0" && "${BIOMATE_IT_APPLY:-0}" == "1" ]]; then
+    ec2_ssh '
+      if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then IT_ENABLED=1; else IT_ENABLED=0; fi
+      if docker image inspect biomate-dev-frontend:latest >/dev/null 2>&1; then
+        mkdir -p /tmp/biomate_code
+        docker rm -f biomate-dev-frontend 2>/dev/null || true
+        docker run -d --name biomate-dev-frontend --network biomate-dev-net \
+          -p 3000:3000 --env-file /opt/biomate/.env \
+          -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+          -e MCP_UPSTREAM_URL=http://biomate-remote-mcp:8848 \
+          -e BIOMATE_RESPONSE_MODEL=gpt-5.6-luna \
+          -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
+          --restart unless-stopped \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v /tmp/biomate_code:/tmp/biomate_code \
+          biomate-dev-frontend:latest >/dev/null
+        docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
+        echo "[galaxy-it] frontend refreshed: INTERACTIVE_TOOLS_ENABLED=$IT_ENABLED"
+      fi
+    ' || log "[galaxy-it] frontend IT-flag refresh failed (non-fatal; run a normal sync to pick it up)"
+  fi
   return "$result"
 }
 
@@ -1648,7 +1692,7 @@ try:
 except Exception as e:
     print(f\"FAIL parse_error={e}\"); sys.exit(1)
 " 2>&1)
-    if echo "$ok" | grep -q "^CLARIFY"; then
+    if grep -q "^CLARIFY" <<<"$ok"; then
       echo "[smoke] clarification_needed — retrying with specific query..."
       result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
         -X POST -H "Content-Type: application/json" \
@@ -1672,7 +1716,7 @@ except Exception as e:
 " 2>&1)
     fi
     echo "[smoke] $ok"
-    echo "$ok" | grep -q "^PASS" && exit 0 || exit 1
+    grep -q "^PASS" <<<"$ok" && exit 0 || exit 1
   '
 }
 
@@ -1702,21 +1746,21 @@ smoke_test_db_search() {
     for try in 1 2 3 4 5; do
       cs=$(q "{\"database\":\"chembl\",\"query\":\"CC(=O)Oc1ccccc1C(=O)O\",\"operation\":\"similarity\"}")
       ps=$(q "{\"database\":\"pdb\",\"query\":\"$UBIQ\",\"operation\":\"similarity\"}")
-      if echo "$cs" | grep -q "\"source\": *\"chembl\"" && echo "$ps" | grep -q "\"source\": *\"pdb\""; then break; fi
+      if grep -q "\"source\": *\"chembl\"" <<<"$cs" && grep -q "\"source\": *\"pdb\"" <<<"$ps"; then break; fi
       sleep 8
     done
-    if ! echo "$cs" | grep -q "\"source\": *\"chembl\"" || ! echo "$ps" | grep -q "\"source\": *\"pdb\""; then
+    if ! grep -q "\"source\": *\"chembl\"" <<<"$cs" || ! grep -q "\"source\": *\"pdb\"" <<<"$ps"; then
       echo "[smoke] db-search INCONCLUSIVE — no well-formed response after retries (transient); not failing the gate"
       exit 0
     fi
     # Well-formed responses in hand: a MISSING search tag now means the operation
     # param was dropped/ignored (proxy drop or stale code) — a real regression.
     fail=0
-    echo "$cs" | grep -q "\"search\": *\"tanimoto_similarity\"" || { echo "[smoke] FAIL chembl operation=similarity not routed (proxy drop / stale code)"; fail=1; }
-    echo "$ps" | grep -q "\"search\": *\"sequence_similarity\"" || { echo "[smoke] FAIL pdb operation=similarity not routed"; fail=1; }
+    grep -q "\"search\": *\"tanimoto_similarity\"" <<<"$cs" || { echo "[smoke] FAIL chembl operation=similarity not routed (proxy drop / stale code)"; fail=1; }
+    grep -q "\"search\": *\"sequence_similarity\"" <<<"$ps" || { echo "[smoke] FAIL pdb operation=similarity not routed"; fail=1; }
     pt=$(q "{\"database\":\"pdb\",\"query\":\"$UBIQ\",\"operation\":\"text\"}")
-    if echo "$pt" | grep -q "\"source\": *\"pdb\""; then
-      echo "$pt" | grep -q "\"search\": *\"sequence_similarity\"" && { echo "[smoke] FAIL pdb operation=text wrongly ran similarity (operation ignored)"; fail=1; }
+    if grep -q "\"source\": *\"pdb\"" <<<"$pt"; then
+      grep -q "\"search\": *\"sequence_similarity\"" <<<"$pt" && { echo "[smoke] FAIL pdb operation=text wrongly ran similarity (operation ignored)"; fail=1; }
     fi
     [ "$fail" -eq 1 ] && exit 1
     echo "[smoke] db-search operation routing OK (similarity != text)"
@@ -1724,7 +1768,7 @@ smoke_test_db_search() {
   ' 2>&1)"
   echo "$_dbs_out"
   # Roll back ONLY on a definitive regression signal; anything else is safe.
-  if echo "$_dbs_out" | grep -q '\[smoke\] FAIL'; then
+  if grep -q '\[smoke\] FAIL' <<<"$_dbs_out"; then
     return 1
   fi
   return 0
@@ -1749,7 +1793,7 @@ smoke_test_connector() {
   local _out
   _out="$(node "$REPO_ROOT/scripts/connector_contract_test.mjs" "$url" 2>&1)"
   echo "$_out" | grep -E '\[smoke\] (FAIL|.*inconclusive|.*summary|.*reachability|.*drift)'
-  if echo "$_out" | grep -q '\[smoke\] FAIL'; then
+  if grep -q '\[smoke\] FAIL' <<<"$_out"; then
     return 1
   fi
   return 0
@@ -1822,9 +1866,17 @@ rollback_sync() {
         docker tag biomate-dev-frontend:rollback biomate-dev-frontend:latest
         docker rm -f biomate-dev-frontend 2>/dev/null || true
         mkdir -p /tmp/biomate_code
+        # Keep INTERACTIVE_TOOLS_ENABLED in sync with the live Galaxy docker-socket
+        # mount even on a frontend rollback (same rule as deploy_frontend).
+        if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then
+          IT_ENABLED=1
+        else
+          IT_ENABLED=0
+        fi
         docker run -d --name biomate-dev-frontend --network biomate-dev-net \
           -p 3000:3000 --env-file /opt/biomate/.env \
           -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+          -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
           --restart unless-stopped \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v /tmp/biomate_code:/tmp/biomate_code \
@@ -1861,12 +1913,15 @@ do_sync() {
   # Determine what changed.
   # Test/spec files and e2e fixtures don't affect the production Docker image —
   # exclude them so a test-only commit doesn't force an expensive full rebuild.
+  # Membership tests read here-strings, not `echo | grep -q`: under pipefail, grep -q exits at its
+  # first match, echo then dies of SIGPIPE on a large list, and the test reads as "no match" — a
+  # 2,300-file change list silently skipped the backend + workflows layers (2026-11-08).
   _runtime_frontend="$(echo "$changed_paths" | grep "^frontend/" | \
     grep -vE '\.(test|spec)\.(ts|tsx|js)$|^frontend/e2e/' || true)"
   [[ -n "$_runtime_frontend" ]] && do_frontend=true
-  echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/|^infra/nfcore-patches/" && do_workflows=true
-  echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
+  grep -q "^backend/lib/" <<<"$changed_paths" && do_backend=true
+  grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/|^infra/nfcore-patches/" <<<"$changed_paths" && do_workflows=true
+  grep -q "^backend/database/" <<<"$changed_paths" && do_db=true
   # BIOMATE_SYNC_FORCE=frontend,backend,workflows re-deploys those layers even with no matching
   # change, e.g. to exercise a change to this script itself.
   [[ ",${BIOMATE_SYNC_FORCE:-}," == *",frontend,"* ]] && do_frontend=true

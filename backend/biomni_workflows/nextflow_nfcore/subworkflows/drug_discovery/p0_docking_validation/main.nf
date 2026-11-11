@@ -21,7 +21,7 @@
  *                approx (-10.2, 17.5, 50.1) in 7RFS frame, size 22x22x22
  *   Success criterion: RMSD <= 2.0 A vs crystal pose
  *
- * Container: biomate/biomni-tools:latest  (or ECR :x86 on AWS Batch)
+ * Container: biomate/workflow-tools:latest  (or ECR :x86 on AWS Batch)
  */
 
 nextflow.enable.dsl = 2
@@ -42,8 +42,8 @@ process P0_DOCKING_VALIDATION {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:molecular' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:molecular' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -366,7 +366,7 @@ PYEOF
         vina: \$(python3 -c "from vina import Vina; print('1.2')" 2>/dev/null || echo "unknown")
         rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "unknown")
         meeko: \$(python3 -c "import meeko; print(meeko.__version__)" 2>/dev/null || echo "unknown")
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

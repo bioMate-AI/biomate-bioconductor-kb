@@ -1,0 +1,235 @@
+{
+  "protocol": "leave_one_tissue_out_fullLabels_fixedC0.01_bootstrapCI",
+  "interpreter": "3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]",
+  "platform": "Linux-6.11.0-1016-nvidia-aarch64-with-glibc2.39",
+  "rows": [
+    {
+      "tissue": "bone_marrow",
+      "arm": "raw",
+      "n_train": 12002,
+      "n_test": 2998,
+      "n_pos": 60,
+      "auprc": 0.20504969963167985,
+      "auroc": 0.7619639210347176
+    },
+    {
+      "tissue": "bone_marrow",
+      "arm": "know_real",
+      "n_train": 12002,
+      "n_test": 2998,
+      "n_pos": 60,
+      "auprc": 0.20581990560889243,
+      "auroc": 0.7566882232811436
+    },
+    {
+      "tissue": "bone_marrow",
+      "arm": "know_shuf0",
+      "n_train": 12002,
+      "n_test": 2998,
+      "n_pos": 60,
+      "auprc": 0.14519877832989125,
+      "auroc": 0.7300431132289539
+    },
+    {
+      "tissue": "bone_marrow",
+      "arm": "raw_plus_know",
+      "n_train": 12002,
+      "n_test": 2998,
+      "n_pos": 60,
+      "auprc": 0.20116627728996303,
+      "auroc": 0.764017472203313
+    },
+    {
+      "tissue": "bone_marrow",
+      "boot_know_real_minus_raw": {
+        "mean": 0.0007927655180740292,
+        "lo": -0.06476824277815509,
+        "hi": 0.06473253728902187,
+        "frac_pos": 0.519
+      },
+      "boot_raw_plus_know_minus_raw": {
+        "mean": -0.0035937401304578166,
+        "lo": -0.01799294699809203,
+        "hi": 0.0073266914495316365,
+        "frac_pos": 0.275
+      },
+      "boot_know_real_minus_shuf": {
+        "mean": 0.05957146451789542,
+        "lo": -0.006469223062115343,
+        "hi": 0.12413448453173805,
+        "frac_pos": 0.959
+      }
+    },
+    {
+      "tissue": "lung",
+      "arm": "raw",
+      "n_train": 14098,
+      "n_test": 902,
+      "n_pos": 125,
+      "auprc": 0.837994326068794,
+      "auroc": 0.9512689832689832
+    },
+    {
+      "tissue": "lung",
+      "arm": "know_real",
+      "n_train": 14098,
+      "n_test": 902,
+      "n_pos": 125,
+      "auprc": 0.8067012774494885,
+      "auroc": 0.9469343629343628
+    },
+    {
+      "tissue": "lung",
+      "arm": "know_shuf0",
+      "n_train": 14098,
+      "n_test": 902,
+      "n_pos": 125,
+      "auprc": 0.8253682837980006,
+      "auroc": 0.9601647361647362
+    },
+    {
+      "tissue": "lung",
+      "arm": "raw_plus_know",
+      "n_train": 14098,
+      "n_test": 902,
+      "n_pos": 125,
+      "auprc": 0.8354758072508305,
+      "auroc": 0.9496731016731017
+    },
+    {
+      "tissue": "lung",
+      "boot_know_real_minus_raw": {
+        "mean": -0.03054592109355639,
+        "lo": -0.07006815594993282,
+        "hi": 0.007181860665265208,
+        "frac_pos": 0.071
+      },
+      "boot_raw_plus_know_minus_raw": {
+        "mean": -0.00247518776776206,
+        "lo": -0.008005882931747471,
+        "hi": 0.0033632025852616096,
+        "frac_pos": 0.181
+      },
+      "boot_know_real_minus_shuf": {
+        "mean": -0.017844711514723416,
+        "lo": -0.054970192840296035,
+        "hi": 0.019285281942210505,
+        "frac_pos": 0.154
+      }
+    },
+    {
+      "tissue": "lung_lymph_node",
+      "arm": "raw",
+      "n_train": 7065,
+      "n_test": 7935,
+      "n_pos": 1689,
+      "auprc": 0.9725255447708693,
+      "auroc": 0.9851835547752337
+    },
+    {
+      "tissue": "lung_lymph_node",
+      "arm": "know_real",
+      "n_train": 7065,
+      "n_test": 7935,
+      "n_pos": 1689,
+      "auprc": 0.9660959681879735,
+      "auroc": 0.983849746727189
+    },
+    {
+      "tissue": "lung_lymph_node",
+      "arm": "know_shuf0",
+      "n_train": 7065,
+      "n_test": 7935,
+      "n_pos": 1689,
+      "auprc": 0.957641431805641,
+      "auroc": 0.9781289036232449
+    },
+    {
+      "tissue": "lung_lymph_node",
+      "arm": "raw_plus_know",
+      "n_train": 7065,
+      "n_test": 7935,
+      "n_pos": 1689,
+      "auprc": 0.9718035174461114,
+      "auroc": 0.984863065470249
+    },
+    {
+      "tissue": "lung_lymph_node",
+      "boot_know_real_minus_raw": {
+        "mean": -0.0063360363916648,
+        "lo": -0.010101795326199106,
+        "hi": -0.002885448516268394,
+        "frac_pos": 0.0
+      },
+      "boot_raw_plus_know_minus_raw": {
+        "mean": -0.0007158207218951692,
+        "lo": -0.0012992850942960931,
+        "hi": -0.0001650499829263075,
+        "frac_pos": 0.008
+      },
+      "boot_know_real_minus_shuf": {
+        "mean": 0.008466310258153645,
+        "lo": 0.0042545853488642395,
+        "hi": 0.013019257652125759,
+        "frac_pos": 1.0
+      }
+    },
+    {
+      "tissue": "spleen",
+      "arm": "raw",
+      "n_train": 11835,
+      "n_test": 3165,
+      "n_pos": 267,
+      "auprc": 0.698295551125078,
+      "auroc": 0.8898323265690143
+    },
+    {
+      "tissue": "spleen",
+      "arm": "know_real",
+      "n_train": 11835,
+      "n_test": 3165,
+      "n_pos": 267,
+      "auprc": 0.6392163925390758,
+      "auroc": 0.8626548594794808
+    },
+    {
+      "tissue": "spleen",
+      "arm": "know_shuf0",
+      "n_train": 11835,
+      "n_test": 3165,
+      "n_pos": 267,
+      "auprc": 0.6360579977666737,
+      "auroc": 0.8435470155059798
+    },
+    {
+      "tissue": "spleen",
+      "arm": "raw_plus_know",
+      "n_train": 11835,
+      "n_test": 3165,
+      "n_pos": 267,
+      "auprc": 0.6981897950912117,
+      "auroc": 0.8884947128718502
+    },
+    {
+      "tissue": "spleen",
+      "boot_know_real_minus_raw": {
+        "mean": -0.058870732207800106,
+        "lo": -0.08776790541110828,
+        "hi": -0.032989091935224805,
+        "frac_pos": 0.0
+      },
+      "boot_raw_plus_know_minus_raw": {
+        "mean": -1.930033047930557e-05,
+        "lo": -0.004044658538161275,
+        "hi": 0.004099807691325237,
+        "frac_pos": 0.49
+      },
+      "boot_know_real_minus_shuf": {
+        "mean": 0.004042307744188129,
+        "lo": -0.02138866084381875,
+        "hi": 0.02843818088955936,
+        "frac_pos": 0.619
+      }
+    }
+  ]
+}

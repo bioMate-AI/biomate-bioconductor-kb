@@ -1,0 +1,17 @@
+{
+  "biomni-tools-base": "workflow-tools-base",
+  "biomni-tools": "workflow-tools",
+  "biomni-admet": "admet",
+  "biomni-pharma": "pharmacology-tools",
+  "biomni-structure-to-drug-gpu": "structure-to-drug-gpu",
+  "biomni-structure-to-drug": "structure-to-drug",
+  "biomni-drug-discovery-nf": "drug-discovery-nf",
+  "biomni-microbiology": "microbiology-tools",
+  "biomni-cloning": "cloning-tools",
+  "biomni-crispr": "crispr-tools",
+  "biomni-systems": "systems-biology-tools",
+  "biomni-synbio": "synthetic-biology-tools",
+  "biomni-structural": "structural-biology-tools",
+  "biomni-lite": "workflow-lite",
+  "biomni-docking": "docking-tools"
+}

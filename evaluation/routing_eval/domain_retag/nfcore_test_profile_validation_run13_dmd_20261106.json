@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/diseasemodulediscovery",
+  "runId": "a62f437c-d236-4fb9-99e5-71890aedfea0",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 209,
+  "error": "",
+  "minutes": 15.7
+ }
+]

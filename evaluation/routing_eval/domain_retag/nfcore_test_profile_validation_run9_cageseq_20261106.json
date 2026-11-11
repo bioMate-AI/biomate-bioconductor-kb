@@ -1,0 +1,11 @@
+[
+ {
+  "name": "nf-core/cageseq",
+  "runId": "a1b48e0c-f295-4fd5-ace3-7bfa5997ad61",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 3,
+  "error": "Process trim_adapters (cage_1) failed: Can't stage file https://github.com/nf-core/test-datasets/raw/cageseq/testdata/cage1.fastq.gz -- reason: Unable to access path: https://github.com/nf-core/test-datasets/raw/cageseq/testdata/cage1.fastq.gz",
+  "minutes": 1.0
+ }
+]

@@ -10,7 +10,7 @@ Last updated: 2026-01-28
 - **Parameter fixes needed**: 0 (all fixed)
 
 ## Recent Fixes (2026-01-28)
-- Added pylabrobot and nnunetv2 packages to biomni-tools Docker container
+- Added pylabrobot and nnunetv2 packages to workflow-tools Docker container
 - Created nextflow.config symlinks in all 235 workflow directories for proper Docker profile loading
 - Fixed molecular_biology/pcr_simple parameter names (sequence, forward_primer, reverse_primer)
 - Fixed molecular_biology/design_golden_gate_oligos with BsaI enzyme and proper sequences
@@ -61,7 +61,7 @@ Moved to `../archived_workflows_broken_api/`:
 
 ## Workflows with Docker Library Issues
 
-Most packages have now been installed in the biomni-tools Docker container. The following may still need attention:
+Most packages have now been installed in the workflow-tools Docker container. The following may still need attention:
 
 | Package Status | Notes |
 |----------------|-------|

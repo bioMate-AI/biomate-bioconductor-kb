@@ -1132,10 +1132,8 @@ export function ChatInterface({
 
       // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {
-        // Response already contains helpful context from Claude
-        if (!workflowInfo.toLowerCase().includes('workflow')) {
-          workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
-        }
+        // No canned "✅ I've generated a workflow" line: the card already says it, and the English
+        // check (`includes('workflow')`) appended it to every Chinese reply.
         // Generation already completed. Loading belongs to the transient typing
         // indicator, not persisted reply text that remains after a run finishes.
         if (data.workflow?.needs_user_feedback) {
@@ -2443,11 +2441,9 @@ export function ChatInterface({
         </div>
       )}
       {/* Reference design chat input wrap — padding clamp like layout.css */}
-      <div style={{
-        padding: '14px 24px 18px',
-        borderTop: '1px solid var(--bm-border)',
-        background: 'var(--bm-bg-elev)',
-      }}>
+      {/* Composer sits on the chat canvas (no separate footer bar) — the
+          input card itself carries the border/elevation. */}
+      <div style={{ padding: '14px 24px 18px' }}>
         {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
         <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={displayTyping || preparingExample}
           reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}

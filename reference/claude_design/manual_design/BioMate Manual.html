@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BioMate · User Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<header class="top">
+<button class="menu-btn" type="button" aria-label="Toggle navigation"><i></i><span>Menu</span></button>
+<a class="brand" href="#/"><img class="brand-mark" src="assets/biomate-logo.png" alt=""><span class="wm">BioMate</span><span class="sep"></span><span class="prod">Manual</span></a>
+<div class="search"><input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search the manual" aria-label="Search the manual"><kbd>/</kbd><div id="results" class="results" hidden></div></div>
+<div class="lang" role="group" aria-label="Language"><button type="button" data-l="en" aria-pressed="true">EN</button><button type="button" data-l="zh" aria-pressed="false">中文</button></div>
+<a class="trial" href="https://www.biomate.ai" target="_blank" rel="noopener"><span class="t">Free trial:</span> <b>www.biomate.ai</b></a>
+</header>
+<div class="shell">
+<nav id="nav" class="nav" aria-label="Manual contents"></nav>
+<main id="main" class="main"></main>
+<aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+<footer class="foot"><span>BioMate · User Manual</span><a href="https://www.biomate.ai" target="_blank" rel="noopener"><span class="t2">Free trial / 免费试用：</span>www.biomate.ai</a></footer>
+<div id="lb" class="lb" hidden><button class="lbclose" type="button">Close</button><img alt=""><div class="lbcap"></div></div>
+<div id="toast" class="toast" hidden></div>
+<script src="nav.js"></script>
+<script src="shotlist.js"></script>
+<script src="sanitize.js"></script>
+<script src="md.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

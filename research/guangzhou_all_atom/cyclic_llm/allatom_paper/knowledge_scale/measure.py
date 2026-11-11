@@ -3,6 +3,7 @@ import argparse, csv, json, random, re
 from collections import defaultdict
 from merge import toks, jacc
 from verify import norm, strict_ok
+from config import PROPERTIES, SUBSTRUCTURES
 
 
 GOLD_KIND_TOPIC = {"rule": "sar_rule", "fundamental": "structure_property", "card": "prior_work", "caution": "sar_rule"}
@@ -25,9 +26,16 @@ def _gold_fields(g):
     return stmt, quotes, ident, pm, GOLD_KIND_TOPIC.get(g.get("kind"), "sar_rule")
 
 
-def recall_vs_gold(gold, rules, corpus_pmcids, corpus_dois):
+def recall_vs_gold(gold, rules, corpus_pmcids, corpus_dois, classifications=None):
+    # Classifications must be explicit reviewed fields; do not infer a gold class
+    # from lexical overlap with the very extraction being evaluated.
+    classifications = classifications or {}
+    corpus_pmcids = {x.upper() for x in corpus_pmcids}
+    corpus_dois = {x.lower() for x in corpus_dois}
     by_paper = defaultdict(list)
-    for r in rules:
+    # Merged representatives must not erase the matching source member.
+    members = [m for r in rules for m in r.get("member_rules", [r])]
+    for r in members:
         c = r["citation"]
         by_paper[(c.get("doi") or "").lower()].append(r)
         by_paper[c["pmcid"].upper()].append(r)
@@ -39,20 +47,29 @@ def recall_vs_gold(gold, rules, corpus_pmcids, corpus_dois):
         if not ((pm and pm in corpus_pmcids) or (ident and ident in corpus_dois)):
             continue
         per_topic[topic]["in_corpus"] += 1
-        cand = by_paper.get(ident, []) + by_paper.get(pm, [])
+        cand = (by_paper.get(ident, []) if ident else []) + (by_paper.get(pm, []) if pm else [])
+        classification = classifications.get(g.get("id"), g)
+        prop, sub = classification.get("property"), classification.get("substructure_class")
+        classified = prop in PROPERTIES and sub in SUBSTRUCTURES
         ok = False
         for r in cand:
+            if not classified or r.get("property") != prop or r.get("substructure_class") != sub:
+                continue
             sj = jacc(toks(stmt), toks(r["statement"]))
             qj = max([jacc(set(q.lower().split()), set(r["quote"].lower().split())) for q in quotes] or [0.0])
             if sj >= 0.3 or qj >= 0.5:
                 ok = True
                 break
         per_topic[topic]["found"] += ok
-        rows.append({"gold": g.get("id") or stmt[:60], "topic": topic, "paper": ident or pm, "found": ok, "k2_rules_from_paper": len(cand)})
+        rows.append({"gold": g.get("id") or stmt[:60], "topic": topic, "paper": ident or pm, "found": ok, "k2_rules_from_paper": len(cand), "classification_available": classified,
+                     "property": prop, "substructure_class": sub})
     tot_in = sum(v["in_corpus"] for v in per_topic.values())
     tot_found = sum(v["found"] for v in per_topic.values())
-    return {"gold_total": len(gold), "gold_in_corpus": tot_in, "found": tot_found,
-            "recall_of_in_corpus": (tot_found / tot_in if tot_in else None), "per_topic": dict(per_topic), "rows": rows}
+    unresolved = sum(not row["classification_available"] for row in rows)
+    return {"metric_version": "same-paper-property-substructure-v2", "unclassified_in_corpus": unresolved,
+            "status": "INCONCLUSIVE" if unresolved or not tot_in else "MEASURED",
+            "recall_lower_bound": (tot_found / tot_in if tot_in else None), "gold_total": len(gold), "gold_in_corpus": tot_in, "found": tot_found,
+            "recall_of_in_corpus": (tot_found / tot_in if tot_in and not unresolved else None), "per_topic": dict(per_topic), "rows": rows}
 
 
 def audit_sample(rules, n=100, seed=20261031):
@@ -77,16 +94,27 @@ def main():
     ap.add_argument("--rules", required=True)
     ap.add_argument("--corpus-index", required=True, help="JSON list of {pmcid, doi}")
     ap.add_argument("--gold", help="K gold rules jsonl or json")
+    ap.add_argument("--gold-classifications", help="Reviewed JSON map from gold ID to property and substructure_class; absent mappings remain unmeasured")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
-    rules = [json.loads(l) for l in open(a.rules)]
+    loaded = [json.loads(l) for l in open(a.rules)]
+    # RAW/STRICT precision and recall measure individual extractions, never a
+    # representative carrying mixed provenance/entailment from hidden members.
+    unique = {}
+    for row in loaded:
+        for member in row.get("member_rules", [row]):
+            key = member["rule_id"]
+            if key in unique and unique[key] != member:
+                raise ValueError("conflicting duplicate rule_id: " + key)
+            unique[key] = member
+    rules = [unique[k] for k in sorted(unique)]
     idx = json.load(open(a.corpus_index))
     pm = {x["pmcid"].upper() for x in idx}
     dois = {(x.get("doi") or "").lower() for x in idx if x.get("doi")}
     res = {"n_rules": len(rules)}
     if a.gold:
         gold = load_gold(a.gold)
-        res["recall"] = recall_vs_gold(gold, rules, pm, dois)
+        res["recall"] = recall_vs_gold(gold, rules, pm, dois, json.load(open(a.gold_classifications)) if a.gold_classifications else None)
     by_topic = defaultdict(lambda: {"rules": 0, "entail_yes": 0, "papers": set()})
     for r in rules:
         t = by_topic[r.get("topic", "sar_rule")]

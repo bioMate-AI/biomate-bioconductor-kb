@@ -1,0 +1,10 @@
+{
+  "origin": "s3://biomate-nextflow-work/cyclic_peptide/allatom/k2/k2pilot7_20261029/",
+  "files": {
+    "k2_audit_sample_raw.csv": "b7989dc5c7a1efa56b10448688c20acfae40a300c1a0e835fa945224ffd2314d",
+    "k2_audit_sample_strict.csv": "3125f5a32bcb92580ac40280ffa0e25ef4d8529deb6054211b9319fe31752cab",
+    "knowledge_kb_scaled_v1.jsonl": "b328017025eaf1d050f82748acdc7c3b283bc67bd5306ca7457122297d7a3d40",
+    "corpus.jsonl.gz": "c76ba74f2f7330f54920ec010bcbe4f1fe88794e1c733599631d670599f8593e"
+  },
+  "scope": "immutable persisted v1 output; no statistical regeneration or extraction rerun"
+}

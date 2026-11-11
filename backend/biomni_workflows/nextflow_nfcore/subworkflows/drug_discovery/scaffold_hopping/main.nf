@@ -64,9 +64,9 @@ process SCAFFOLD_INPUT_VALIDATION {
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}/01_validation" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(smiles_file)
@@ -170,7 +170,7 @@ PYEOF
     "${task.process}":
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     '''
 
     stub:
@@ -181,7 +181,7 @@ PYEOF
     "${task.process}":
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -195,9 +195,9 @@ process RECAP_FRAGMENTATION {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/02_recap" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(validated_csv)
@@ -315,7 +315,7 @@ PYEOF
     "${task.process}":
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     '''
 
     stub:
@@ -326,7 +326,7 @@ PYEOF
     "${task.process}":
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -340,9 +340,9 @@ process MMP_ANALYSIS {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/03_mmp" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(validated_csv), path(fragments_csv)
@@ -443,7 +443,7 @@ PYEOF
         mmpdb: \$(mmpdb --version 2>&1 | head -1 || echo "N/A")
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 
     stub:
@@ -455,7 +455,7 @@ PYEOF
         mmpdb: "3.1"
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -469,9 +469,9 @@ process SCAFFOLD_HOPPING_CANDIDATES {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/04_candidates" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(fragments_csv), path(mmp_pairs_csv)
@@ -637,7 +637,7 @@ PYEOF
     "${task.process}":
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-    END_VERSIONS
+END_VERSIONS
     """
 
     stub:
@@ -649,7 +649,7 @@ PYEOF
     "${task.process}":
         rdkit: "2023.09.5"
         python: "3.10.0"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

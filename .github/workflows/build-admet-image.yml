@@ -1,9 +1,9 @@
-name: Build biomni-admet image
+name: Build admet image
 
-# Thin caller of the reusable build-biomni-image template. Builds the ADMET-AI
-# container, runs backend/docker/biomni-admet/smoke.py (ADMETModel.predict on aspirin)
+# Thin caller of the reusable build-workflow-image template. Builds the ADMET-AI
+# container, runs backend/docker/admet/smoke.py (ADMETModel.predict on aspirin)
 # inside the image, and only pushes :x86 if the smoke passes. Deps are locked via
-# backend/docker/biomni-admet/requirements.lock (see the Dockerfile).
+# backend/docker/admet/requirements.lock (see the Dockerfile).
 
 on:
   workflow_dispatch:
@@ -15,11 +15,11 @@ on:
         type: boolean
   push:
     paths:
-      - backend/docker/biomni-admet/Dockerfile
-      - backend/docker/biomni-admet/requirements.lock
-      - backend/docker/biomni-admet/smoke.py
+      - backend/docker/admet/Dockerfile
+      - backend/docker/admet/requirements.lock
+      - backend/docker/admet/smoke.py
       - .github/workflows/build-admet-image.yml
-      - .github/workflows/build-biomni-image.yml
+      - .github/workflows/build-workflow-image.yml
 
 permissions:
   id-token: write
@@ -31,11 +31,11 @@ concurrency:
 
 jobs:
   admet:
-    uses: ./.github/workflows/build-biomni-image.yml
+    uses: ./.github/workflows/build-workflow-image.yml
     with:
-      image_repo: biomate/biomni-admet
-      dockerfile: backend/docker/biomni-admet/Dockerfile
-      smoke_script: backend/docker/biomni-admet/smoke.py
+      image_repo: biomate/admet
+      dockerfile: backend/docker/admet/Dockerfile
+      smoke_script: backend/docker/admet/smoke.py
       emit_lockfile: ${{ github.event_name == 'workflow_dispatch' && inputs.emit_lockfile || false }}
       # arm64 disabled until biomate-nextflow-base:latest carries an arm64 manifest.
       # biomate/nextflow-base:arm64 exists in ECR — arm64 build enabled.

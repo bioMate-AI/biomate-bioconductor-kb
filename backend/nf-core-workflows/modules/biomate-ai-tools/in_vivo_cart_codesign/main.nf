@@ -34,8 +34,8 @@ process INVIVO_CART_ATLAS_SAFETY {
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas_safety", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -153,8 +153,8 @@ process INVIVO_CART_LNP_TROPISM {
     label 'process_low'
     publishDir "${params.outdir}/phaseB_lnp_tropism", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(atlas_json)
@@ -249,8 +249,8 @@ process INVIVO_CART_FRATRICIDE_CHECK {
     label 'process_low'
     publishDir "${params.outdir}/phaseC_fratricide", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(lnp_json)
@@ -329,8 +329,8 @@ process INVIVO_CART_CONSTRUCT_ASSEMBLY {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(frat_json)

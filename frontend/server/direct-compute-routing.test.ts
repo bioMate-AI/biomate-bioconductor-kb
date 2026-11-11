@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
+import { claimsProducedOutputFile, conversationHasComputableData, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
 
 // External-user replay on dev (2026-11-04): ad-hoc analysis of the user's own data — a Chinese
 // fold-change request on an attached CSV, a cell-viability comparison, DESeq2/clustering on pasted
@@ -63,4 +63,41 @@ describe('parseExecutionMode', () => {
     expect(parseExecutionMode('run_code')).toBeNull();
     expect(parseExecutionMode(undefined)).toBeNull();
   });
+});
+
+// EPAR dataset test on dev (2026-11-10): the dataset block was in the FIRST user turn only; the
+// classifier returned execution=direct_compute on "先做第一步" / "第2-5步…" / "不用工作流" (3/3), but a
+// current-message-only data check discarded it and generated workflows every time.
+describe('conversationHasComputableData', () => {
+  const history = [
+    { role: 'user', content: 'what this file is for [BioMate dataset: epar_study_tables.jsonl (id: ac170aeb)]' },
+    { role: 'assistant', content: '这是 EMA EPAR 临床研究表格……' },
+  ];
+  it('finds the dataset in an earlier user turn', () => {
+    expect(hasComputableData('你可以直接编程统计吗 不用工作流')).toBe(false);
+    expect(conversationHasComputableData('你可以直接编程统计吗 不用工作流', { previousMessages: history })).toBe(true);
+  });
+  it('counts UI-selected datasets', () => {
+    expect(conversationHasComputableData('先做第一步', { selectedDatasets: ['ac170aeb'] })).toBe(true);
+  });
+  it('ignores datasets the assistant merely mentioned', () => {
+    expect(conversationHasComputableData('先做第一步', {
+      previousMessages: [{ role: 'assistant', content: '[BioMate dataset: x.csv (id: 1)]' }],
+    })).toBe(false);
+  });
+});
+
+describe('claimsProducedOutputFile', () => {
+  it.each([
+    ['zh claim', '📁 输出文件\n已生成 `clinical_studies_structured.csv`，包含所有提取的字段'],
+    ['en claim', 'I saved the summary to summary_stats.json.'],
+    ['zh export', '结果已导出为 dosimetry_results.xlsx'],
+  ])('%s → true', (_n, t) => {
+    expect(claimsProducedOutputFile(t)).toBe(true);
+    expect(presentsUnexecutedCode(t)).toBe(true);
+  });
+  it.each([
+    ['mentions the input file', '这个文件 epar_study_tables.jsonl 包含 2,281 条记录'],
+    ['asks for a file', 'Please upload a CSV file with your counts.'],
+  ])('%s → false', (_n, t) => expect(claimsProducedOutputFile(t)).toBe(false));
 });

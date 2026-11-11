@@ -1,0 +1,14 @@
+[
+  {
+    "id": "BH1",
+    "title": "ADMET/hERG workflow card",
+    "verdict": "PASS",
+    "evidence": "Panel name=\"Herg Cardiac Safety Qsar\", kicker=\"DRUG DISCOVERY · WORKFLOW\". Chat mentions ADMET/hERG intent=true. "
+  },
+  {
+    "id": "BH2",
+    "title": "RNA-seq DE+GO pipeline card",
+    "verdict": "BUG",
+    "evidence": "No workflow panel rendered within 90000ms for a differential-expression + GO request."
+  }
+]

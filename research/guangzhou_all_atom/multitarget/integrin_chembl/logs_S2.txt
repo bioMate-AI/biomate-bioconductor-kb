@@ -1,0 +1,6 @@
+S2 folds 77 train rows (first) 4512 test rows 2325
+[Parallel(n_jobs=7)]: Using backend LokyBackend with 7 concurrent workers.
+[Parallel(n_jobs=7)]: Done   4 tasks      | elapsed:  1.6min
+[Parallel(n_jobs=7)]: Done  58 tasks      | elapsed: 16.5min
+[Parallel(n_jobs=7)]: Done  77 out of  77 | elapsed: 19.5min finished
+done S2 1173 s (2325, 16) (2544, 17)

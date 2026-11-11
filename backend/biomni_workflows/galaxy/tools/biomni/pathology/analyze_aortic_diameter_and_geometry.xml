@@ -2,7 +2,7 @@
 <tool id="biomni_pathology_analyze_aortic_diameter_and_geometry" name="Biomni: Analyze Aortic Diameter And Geometry" version="1.0.0">
     <description>Analyze aortic diameter and geometry from cardiovascular imaging data.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_aortic_diameter_and_geometry_wrapper.py' --output '$output'

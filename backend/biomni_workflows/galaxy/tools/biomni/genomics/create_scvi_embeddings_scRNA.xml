@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_create_scvi_embeddings_scRNA" name="Biomni: Create Scvi Embeddings Scrna" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/create_scvi_embeddings_scRNA_wrapper.py' --output '$output'

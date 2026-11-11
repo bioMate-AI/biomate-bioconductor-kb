@@ -29,8 +29,8 @@ process ATLAS_DATA_FETCH {
     label 'process_low'
     publishDir "${params.outdir}/phaseA_fetch", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -326,8 +326,8 @@ process ATLAS_TISSUE_TABULATION {
     label 'process_low'
     publishDir "${params.outdir}/phaseB_tabulation", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(raw_json)
@@ -432,8 +432,8 @@ process ATLAS_CRITICAL_CHECK {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(tab_json)

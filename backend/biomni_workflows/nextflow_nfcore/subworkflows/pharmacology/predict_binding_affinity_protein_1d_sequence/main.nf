@@ -21,7 +21,7 @@ process PREDICT_BINDING_AFFINITY_PROTEIN_1D_SEQUENCE {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -92,7 +92,7 @@ def predict_binding_affinity_protein_1d_sequence(smiles_list, amino_acid_sequenc
     except ImportError:
         # Install CPU torch FIRST so DeepPurpose does not drag in the multi-GB CUDA stack
         # (cuda-toolkit/nvidia-cu13), which OOM-killed the task on a CPU Batch node. The durable
-        # fix is DeepPurpose baked into the biomni-tools ECR image (see backend/docker/biomni-tools/
+        # fix is DeepPurpose baked into the workflow-tools ECR image (see backend/docker/workflow-tools/
         # Dockerfile); this fallback only fires if the image lacks it.
         subprocess.run(
             [sys.executable, "-m", "pip", "install", "--target", target_dir, "--no-cache-dir",

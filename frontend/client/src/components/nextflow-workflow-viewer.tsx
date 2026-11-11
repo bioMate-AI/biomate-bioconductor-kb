@@ -308,6 +308,32 @@ export function qcWorkflowDomain(definition: any, profile?: { domain_hint?: stri
   return aliases[explicit] || explicit;
 }
 
+// Sequencing-alignment QC metrics — only meaningful for workflows that consume
+// raw reads and perform trimming/alignment. Count-matrix differential-expression
+// workflows never produce these numbers, so they must not inherit these gates.
+const ALIGNMENT_QC_METRICS = new Set<string>([
+  'reads_surviving_pct', 'alignment_rate', 'mito_fraction_pct',
+  'mapped_pct', 'duplicate_rate', 'assigned_reads_pct',
+]);
+
+/**
+ * True for count-matrix differential-expression workflows — ones that start from
+ * a pre-computed count matrix (+ contrasts / samplesheet CSVs) and declare NO
+ * alignment or trimming steps (nf-core/differentialabundance, standalone
+ * DESeq2 / limma / edgeR). These are a transcriptomics-domain workflow, so the
+ * domain alias (transcriptomics → rnaseq) would otherwise make them inherit the
+ * sequencing-alignment QC family. We identify them conservatively by workflow
+ * identity (name / nextflow_path) so real sequencing pipelines — including
+ * single-cell sequencing like scdownstream — are untouched.
+ */
+export function isCountMatrixDeWorkflow(definition: any): boolean {
+  const identity = `${definition?.name || ''} ${definition?.nextflow_path || ''} ${definition?.workflow_name || ''}`.toLowerCase();
+  if (!identity.trim()) return false;
+  // Letter-only boundaries so separators (_, -, /, digits, spaces) delimit the
+  // token — "limma_voom" / "deseq2" match, "ledger" does not.
+  return /differential[_-]?abundance|(?:^|[^a-z])(?:deseq2?|limma|edger)(?=$|[^a-z])/.test(identity);
+}
+
 export function reportedStepDetails(process: any): { workDir?: string; jobId?: string; errorMessage?: string } {
   const text = (...values: unknown[]) => values.find(value => typeof value === 'string' && value.trim()) as string | undefined;
   const details = {
@@ -398,8 +424,12 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
   if (reqList.length > 0 || optList.length > 0) {
     // Build structured params from required/optional lists
     const structuredNames = new Set([...reqList, ...optList].map((p: any) => p?.name).filter(Boolean));
+    // A param declared in BOTH required_params and optional_params must render
+    // once, not twice (reqList first → the required entry wins the dedup).
+    const seenStructured = new Set<string>();
     const structured = [...reqList, ...optList]
       .filter((p: any) => p?.name && !String(p.name).startsWith("__"))
+      .filter((p: any) => { if (seenStructured.has(p.name)) return false; seenStructured.add(p.name); return true; })
       .map((p: any) => {
         const userValue = currentParams[p.name];
         const defaultVal = p.default ?? null;
@@ -827,9 +857,14 @@ function PhaseGroupSection({
                       {tOr('panel.required_suffix', '{{labels}} — required', { labels: phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).map(p => p.label).join(', ') })}
                     </span>
                   ) : (
-                    phaseRenderedParams.slice(0, 4).map(p =>
-                      `${p.label}: ${p.value ?? p.defaultValue ?? '—'}`
-                    ).join(' · ')
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {phaseRenderedParams.slice(0, 4).map(p => (
+                        <div key={p.id} style={{ display: 'flex', gap: 6, minWidth: 0 }}>
+                          <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{p.label}:</span>
+                          <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{p.value ?? p.defaultValue ?? '—'}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -1897,10 +1932,17 @@ export function NextflowWorkflowViewer({
   const displayedQcThresholds = React.useMemo(() => {
     const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
     const wfDomain = qcWorkflowDomain(workflowDefinition, activeQcProfile);
+    const countMatrixOnly = isCountMatrixDeWorkflow(workflowDefinition);
     Object.entries(qcDefaults).forEach(([k, meta]) => {
       // Skip domain-specific metrics that don't apply to this workflow
       const allowedDomains = (meta as any).domains as string[] | undefined;
       if (allowedDomains && !allowedDomains.includes(wfDomain)) return;
+      // Count-matrix differential-expression workflows (differentialabundance,
+      // DESeq2/limma/edgeR) consume a count matrix, not raw reads — they do no
+      // alignment/trimming, so the sequencing-alignment QC family doesn't apply
+      // even though their transcriptomics domain aliases to rnaseq. Drop just
+      // those metrics; real sequencing workflows keep them.
+      if (countMatrixOnly && ALIGNMENT_QC_METRICS.has(k)) return;
       merged[k] = { bound: meta.bound, direction: meta.direction, rationale: meta.rationale, source: 'default' };
     });
     if (activeQcProfile) {
@@ -1917,7 +1959,7 @@ export function NextflowWorkflowViewer({
       value: qcOverrides[key] !== undefined ? qcOverrides[key] : meta.bound,
       modified: qcOverrides[key] !== undefined,
     }));
-  }, [qcDefaults, activeQcProfile, qcOverrides]);
+  }, [qcDefaults, activeQcProfile, qcOverrides, workflowDefinition]);
 
   const handleParamChange = (id: string, value: any) => {
     setParams((prev: any) => ({ ...prev, [id]: value }));
@@ -2242,12 +2284,16 @@ export function NextflowWorkflowViewer({
     : renderedParameters
         .filter((p: any) => p.required === true)
         .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
-  // Block Run if file-type params have no value — even when schema marks them optional, the
-  // workflow will fail at runtime without them (e.g. samplesheet/matrix in differentialabundance).
+  // Block Run only for REQUIRED file-type params with no value and no default.
+  // Blocking optional file inputs too contradicted the per-row "optional — empty"
+  // label (which keys off p.required); the run gate must use the same required
+  // flag so the footer and the row agree (cf. commit 5e812ef429 — a param is
+  // required only when the workflow enforces it). A workflow that truly needs a
+  // file it marks optional is a schema bug to fix in its definition, not here.
   const missingFileInputs = prereqChecklist?.overrideAllowed
     ? []
     : renderedParameters.filter(
-        (p: any) => p.type === 'file' && !p.value && !p.default
+        (p: any) => p.type === 'file' && p.required === true && !p.value && !p.default
       );
   const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired || missingFileInputs.length > 0;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
@@ -3688,12 +3734,11 @@ export function NextflowWorkflowViewer({
                         {r.empty ? (
                           <span style={{ color: 'var(--text-dim)' }}>{tOr('panel.not_set', 'not set')}</span>
                         ) : (
-                          <>
-                            <span>{r.ds?.name || basename(r.val)}</span>
-                            <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-dim)', wordBreak: 'break-all' }}>
-                              {r.ds?.id ? tOr('panel.id_prefix', 'id {{id}}', { id: r.ds.id }) : String(r.val)}
-                            </span>
-                          </>
+                          // Show the clean basename only; the full value (S3 URI
+                          // or dataset id) stays available on hover, never inline.
+                          <span title={r.ds?.id ? String(r.ds.id) : String(r.val)}>
+                            {r.ds?.name || basename(r.val)}
+                          </span>
                         )}
                       </span>
                       {r.status === 'resolved' && (
@@ -3760,7 +3805,11 @@ export function NextflowWorkflowViewer({
 
             if (globalParams.length === 0 && !mismatch) return (
               <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-                <div style={{ marginBottom: 6 }}>{tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
+                {/* Don't claim "no parameters" when params exist but are pinned to
+                    individual phases — point the user to the Phases tab instead. */}
+                <div style={{ marginBottom: 6 }}>{allPhaseParamNames.size > 0
+                  ? tOr('panel.params_in_phases', 'Parameters are configured per phase — open the Phases tab to adjust them.')
+                  : tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
                 <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
               </div>
             );
@@ -4032,7 +4081,7 @@ export function NextflowWorkflowViewer({
                     onStopPhase={onCancel}
                     onPreviewFile={(file, step) => { setPreviewFile(file); setPreviewStep(step ?? null); }}
                     onOpenFullStepView={(step) => setFullViewStep(buildStepDetailStep(step))}
-                    qcThresholds={displayedQcThresholds}
+                    qcThresholds={idx === 0 ? displayedQcThresholds : []}
                     qcOverrides={qcOverrides}
                     onQcChange={(key, val) => {
                       if (val === null) setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; });
@@ -4083,16 +4132,8 @@ export function NextflowWorkflowViewer({
                     qcAdvisoryByStep={qcAdvisoryByStep}
                   />
                 ))}
-                <button
-                  className="suggest-step-row linkish"
-                  data-testid="button-suggest-step"
-                  onClick={() => {
-                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || tOr('panel.last_step', "last step");
-                    onAdjustViaChat?.(tOr('panel.add_step_msg', 'Add a step after "{{step}}" that ', { step: lastStep }));
-                  }}
-                >
-                  {tOr('panel.suggest_step', '+ Suggest a new step via chat')}
-                </button>
+                {/* "Suggest a new step via chat" removed — step authoring is not a
+                    supported action here; it only produced a free-text chat nudge. */}
               </div>
             )}
 
@@ -4117,19 +4158,33 @@ export function NextflowWorkflowViewer({
                 }, {});
               const skipPhases: PhaseSkipInfo[] = realGroups.map((g: any) => {
                 const real = byId[g.key];
-                const whyNotDeclared = tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key }) });
-                if (real) {
-                  // The backend sends `why` as free-form English prose. For the common
-                  // "not declared skippable" case it's a fixed template, so localize it
-                  // client-side; keep the backend's structured blocks/warn otherwise.
-                  if (!real.skippable && !(real.blocks && real.blocks.length)) {
-                    return { ...real, why: whyNotDeclared };
+                const phaseLabel = g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key });
+                // The backend sends `why` as free-form English prose. It's built from
+                // a fixed set of templates keyed on the same structured fields the
+                // viewer already has (skippable / blocks / warn / param), so we
+                // regenerate it localized here instead of rendering the raw English
+                // next to the Chinese chrome. Covers every case, not just the simple
+                // "not declared" one.
+                const localizeWhy = (info: PhaseSkipInfo): string => {
+                  if (info.skippable) {
+                    const param = info.param || '';
+                    return (info.warn && info.warn.length)
+                      ? tOr('panel.skip.why_skippable_reduced', '{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped. Downstream phases still run but with reduced input.', { phase: phaseLabel, param })
+                      : tOr('panel.skip.why_skippable', '{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped without affecting downstream phases.', { phase: phaseLabel, param });
                   }
-                  return real;
+                  return (info.blocks && info.blocks.length)
+                    ? tOr('panel.skip.why_blocked', '{{phase}} — this workflow does not declare a skip parameter for this phase, and its output feeds downstream phases, so it always runs.', { phase: phaseLabel })
+                    : tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: phaseLabel });
+                };
+                if (real) {
+                  return { ...real, why: localizeWhy(real) };
                 }
-                return { id: g.key, skippable: false, why: whyNotDeclared };
+                return { id: g.key, skippable: false, why: localizeWhy({ id: g.key, skippable: false, why: '' }) };
               });
-              if (skipPhases.length === 0) return null;
+              // Only surface the skip UI when at least one phase is actually
+              // skippable. When nothing is skippable the section is pure noise
+              // (four disabled rows + "cannot skip" warnings), so hide it.
+              if (!skipPhases.some((p) => p.skippable)) return null;
               return (
                 <div style={{ padding: '4px 18px 10px' }}>
                   <SkipDependency phases={skipPhases} />
@@ -4657,25 +4712,25 @@ export function NextflowWorkflowViewer({
             isLicenseBlocked ? (
               <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span>⚠</span>
-                <span>License required — see <strong>Tool Credentials</strong> in Workflow settings</span>
+                <span dangerouslySetInnerHTML={{ __html: tOr('panel.footer.license_required', 'License required — see <strong>Tool Credentials</strong> in Workflow settings') }} />
               </div>
             ) : globalRequiredUnfilledCount > 0 ? (
               <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
-                Fill in {globalRequiredUnfilledCount} required parameter{globalRequiredUnfilledCount > 1 ? 's' : ''} above before running
+                {tOr('panel.footer.fill_required_params', 'Fill in {{n}} required parameter{{s}} above before running', { n: globalRequiredUnfilledCount, s: globalRequiredUnfilledCount > 1 ? 's' : '' })}
               </div>
             ) : (missingFileInputs.length > 0) ? (
               <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
                 <span>⚠</span>
                 <span>
-                  Input files required:{' '}
+                  {tOr('panel.footer.input_files_required_prefix', 'Input files required:')}{' '}
                   <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
-                  {' '}— upload via the file button in chat or paste an S3 path in the parameter field above
+                  {' '}{tOr('panel.footer.input_files_required_suffix', '— upload via the file button in chat or paste an S3 path in the parameter field above')}
                 </span>
               </div>
             ) : (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ? (
               <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span>⚠</span>
-                <span>Prerequisites not met — see checklist above</span>
+                <span>{tOr('panel.footer.prereqs_not_met', 'Prerequisites not met — see checklist above')}</span>
               </div>
             ) : null
           )}

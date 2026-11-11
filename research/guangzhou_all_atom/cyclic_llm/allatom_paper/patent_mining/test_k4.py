@@ -54,7 +54,8 @@ def test_structure_string_must_be_verbatim_and_converts():
     it = {"kind": "example_compound", "statement": "Compound 12 sequence", "quote": "Compound 12 cyclo(Cys-Pro-D-Ala-N-Me-Phe-Gly-Leu) showed an IC50 of 5 nM",
           "structure_string": "cyclo(Cys-Pro-D-Ala-N-Me-Phe-Gly-Leu)", "structure_format": "sequence"}
     ok, why, enr = vp.verify(it, n, n)
-    assert ok and enr["structure_status"].startswith("ok")
+    assert ok and 'closure topology' in enr['structure_status']
+    assert not enr['method_prior_eligible']
     it["structure_string"] = "cyclo(Cys-Pro-Ala-Phe-Gly-Leu)"
     assert vp.verify(it, n, n)[1] == "structure_not_in_passage"
 

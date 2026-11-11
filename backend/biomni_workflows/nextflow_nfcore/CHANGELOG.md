@@ -78,5 +78,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of 237 Nextflow nf-core style modules
 - Support for 19 bioinformatics domains
-- Docker container support via `biomate/biomni-tools:latest`
+- Docker container support via `biomate/workflow-tools:latest`
 - Self-contained Python implementations (no external biomni dependency)

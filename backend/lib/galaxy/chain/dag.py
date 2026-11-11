@@ -75,8 +75,14 @@ def validate_coverage(steps, axes):
                          (sorted(expected - actual), sorted(actual - expected)))
 
 
-def bind_inputs(state, index, list_files, artifact_value, context_params):
-    """Resolve an exact output filename; ambiguity never picks an arbitrary file."""
+def bind_inputs(state, index, list_files, artifact_value, context_params, format_check=None):
+    """Resolve an exact output filename; ambiguity never picks an arbitrary file.
+
+    ``format_check(index, to_input, from_output) -> Optional[str]`` (optional) gates a no-transform
+    handoff on file-format compatibility: a truthy message raises ``ValueError`` so ``run_plan`` marks
+    the step failed BEFORE launch, matching the sequential path's format gate. A declared ``transform``
+    is assumed to convert, so it is skipped.
+    """
     params = dict(state['steps'][index].get('params') or {})
     for c in state.get('connections') or []:
         if c['to_step'] != index + 1:
@@ -88,6 +94,10 @@ def bind_inputs(state, index, list_files, artifact_value, context_params):
         if len(matches) != 1:
             raise ValueError('Expected one artifact %r from step %s; found %s' %
                              (c['from_output'], c['from_step'], len(matches)))
+        if format_check is not None and not c.get('transform'):
+            _fmm = format_check(index, c['to_input'], c['from_output'])
+            if _fmm:
+                raise ValueError(_fmm)
         params[c['to_input']] = next(iter(matches))
         inherited = context_params(c, source.get('resolved_params') or source.get('params') or {})
         for key, value in inherited.items():

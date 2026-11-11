@@ -199,13 +199,18 @@ def test_vcf_profile(tmp):
 # 7. Malformed / empty -> blocked, honest note, no fabricated fields.
 # ---------------------------------------------------------------------------
 def test_blocked_empty_and_missing(tmp):
-    # header only, 0 data rows
+    # header only, 0 data rows: a readable (empty) table, NOT "cannot read".
+    # The header columns must be surfaced so the stat grid shows cols>0, rows=0
+    # instead of "—"/blocked, with an honest note and no fabricated analysis.
     path = _write(tmp, "headeronly.csv", "a,b,label\n")
     prof = profile_dataset(path)
-    assert prof["quality"] == "blocked", prof
+    assert prof["quality"] != "blocked", prof
+    assert prof.get("shape", {}).get("cols") == 3, prof
+    assert prof.get("shape", {}).get("rows") == 0, prof
+    assert prof.get("columns") == ["a", "b", "label"], prof
     assert "leakage" not in prof and "classBalance" not in prof, prof
 
-    # missing file
+    # missing file still blocks (a real failure, not an empty table)
     prof2 = profile_dataset(os.path.join(tmp, "does_not_exist.csv"))
     assert prof2["quality"] == "blocked", prof2
     print("PASS test_blocked_empty_and_missing")
@@ -264,6 +269,29 @@ def test_yaml_recursive_alias(tmp):
     p = profile_dataset(_write(tmp, "recursive.yml", "loop: &loop [*loop]"))
     assert p["structured"]["nodes"] == 3, p
     print("PASS test_yaml_recursive_alias")
+
+
+# ---------------------------------------------------------------------------
+# JSON Lines -> one row per record (was profiled as CSV: every line split on commas,
+# columns like '{"source": "epar_table"'; EPAR dataset test 2026-11-10).
+# ---------------------------------------------------------------------------
+def test_jsonl_records_not_csv(tmp):
+    import json as _json
+    lines = [
+        {"source": "epar_table", "drug": f"d{i}", "page": i, "headers": ["A, B", ""], "rows": [["x", "y"]]}
+        for i in range(30)
+    ]
+    for name in ("t.jsonl", "t_noext"):  # by extension, and by content sniff
+        path = _write(tmp, name, "\n".join(_json.dumps(r) for r in lines) + "\n")
+        p = profile_to_dataclass(path)
+        assert p.rows == 30, (name, p.rows)
+        assert p.cols == 5, (name, p.cols)
+        assert p.columns == ["source", "drug", "page", "headers", "rows"], p.columns
+        assert p.sample_rows[0][3] == '["A, B",""]', p.sample_rows[0][3]
+        # 'source' is constant: flagged, and the note must not also claim "no constant-column issues".
+        assert any("near-constant" in s for s in (p.signal_summary or [])), p.signal_summary
+        assert not any("constant-column issues detected" in n for n in p.notes), p.notes
+    print("PASS test_jsonl_records_not_csv")
 
 
 def main():

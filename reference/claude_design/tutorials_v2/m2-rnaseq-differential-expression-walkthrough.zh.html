@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · RNA-seq —— 你的分组之间，哪些基因发生了变化？</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:22ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+.tag.ship{background:var(--green-bg); color:var(--green)}
+.tag.open{background:var(--amber-bg); color:var(--amber)}
+.tag.gap{background:var(--red-bg); color:var(--red)}
+
+/* screenshot + teaching split */
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:14px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+/* teaching bullet list */
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">RNA-seq · 差异表达 —— 你的分组之间哪些基因变了</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE / VALUE -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>RNA-seq 差异表达</b></div>
+    <div class="kicker">RNA-seq，写给亲手做实验的生物学家</div>
+    <h2>我的两组条件之间，哪些基因变了？</h2>
+    <p class="caption">实验是你亲手做的——加药组对照组、疾病组健康组。BioMate 回答接下来真正要问的问题：<b>哪些基因上调、哪些下调，又有哪些你可以信赖</b>。不用写代码，不用安装软件——你用大白话描述要比较什么，就能拿回一张结果表和一张可直接放进配图的火山图。</p>
+    <p class="caption sub">我们会完整走一遍一个真实的公开示例：<b>GSE52778</b>——用地塞米松处理过的气道平滑肌细胞，对照未处理的样本——正是你天天都在做的那种两组比较。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>你的计数 + 分组</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>经验证的 DESeq2 分析</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>结果表</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>火山图</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一份你拿得出手的记录</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker">这个功能要解决的问题</div>
+    <h2>靠肉眼比较成千上万个基因既不现实，也不安全。</h2>
+    <p class="caption">一次 RNA-seq 运行，会在每个样本上测出<b>成千上万个基因</b>。盯着表格去找哪些变了，既慢，又会悄悄埋下错误——比错了组，或是忘了：一次性检验两万个基因，总会凭运气冒出假命中。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">靠肉眼</div><h4>基因太多</h4><p>每个样本两万多行。没有哪种表格排序能告诉你哪些差异是真的。</p></div>
+          <div class="tile"><div class="n">易出错</div><h4>很容易搞错</h4><p>哪一组是对照？你有没有为"一次检验所有基因"做校正？一步走错，答案就变了。</p></div>
+          <div class="tile"><div class="n">难以佐证</div><h4>不留痕迹</h4><p>审稿人问你这份清单怎么来的，一段一次性脚本什么凭据都留不下。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>你需要的：正确的统计、被正确执行、带一份记录——而且不用写代码</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker">开始前要先懂的几个概念</div>
+    <h2>四个大白话概念，就能让整个结果读得懂。</h2>
+    <p class="caption">你完全不需要懂背后的数学——只要这四个词，结果就会自己讲出它的故事。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 计数矩阵</div><h4>每个基因，有多少</h4><p>一张表：一行一个基因，一列一个样本，每个格子记着有多少条读段落在那个基因上。这就是测到的表达量。</p></div>
+            <div class="tile"><div class="n">2 · 分组 / 设计</div><h4>要比较什么</h4><p>那些标签，说清哪些样本是加药、哪些是对照。这就是你想检验的那个比较。</p></div>
+            <div class="tile"><div class="n">3 · 差异表达</div><h4>哪些基因不一样</h4><p>对每个基因，它在两组之间变了多少——也就是 <b>log2 倍数变化</b>——以及这个变化是不是真的。</p></div>
+            <div class="tile"><div class="n">4 · 多重检验校正</div><h4>防着碰运气</h4><p>检验 20,000 个基因，总有些凭运气显得"显著"。<b>校正后 p 值</b>把这件事扳正，让命中站得住脚。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">log2 倍数变化：+1 表示翻倍，−1 表示减半。校正后 p 值（FDR）：越小越强，常用的界线是 0.05。变化大<b>并且</b>校正后 p 值小，才是一个扎实的命中。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——结果就是用这套词汇写成的</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker"><span class="st">第一步</span> · 你要带来什么</div>
+    <h2>两样东西：你的测量数据，以及每个样本属于哪一组。</h2>
+    <p class="caption">你手里有什么，就从什么开始。BioMate 会迁就你的数据，而不是反过来。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">方式 A</div><h4>一张计数矩阵</h4><p>已经有一张基因计数表（来自测序中心、合作者，或 GSE52778 这样的公开数据集）？直接带进来——分析就从这里起步。</p></div>
+          <div class="tile"><div class="n">方式 B</div><h4>原始读段（FASTQ）</h4><p>只有测序读段？<b>nf-core/rnaseq</b> 流水线会先把它们变成一张干净的计数矩阵——质控、比对、定量，按正确的顺序串好。</p></div>
+          <div class="tile"><div class="n">始终需要</div><h4>你的分组标签</h4><p>说清哪些样本是加药、哪些是对照。正是这一点上下文，定义了整个比较。</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>计数或读段——外加哪组是哪组</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">第二步</span> · 一次运行是怎么跑的</div>
+    <h2>用大白话描述；确认；它就在云端跑起来。</h2>
+    <p class="caption">没有流水线要你去拼装，也没有任何东西要安装。你说出目标，BioMate 挑中那个经过验证的分析并把配置摆给你看，你确认，这份工作便在云端计算机上运行，你则可以去忙别的。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"差异表达，地塞米松对照未处理"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>选中经验证的 DESeq2 分析</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>核对并确认</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>在云端算力上运行</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">在任何东西开跑<b>之前</b>，你都能看到所选的分析和它的设置——在你确认之前，什么都不会花掉。统计用的是 <b>DESeq2</b>，差异表达领域成熟、已发表的方法，所以结果依托的是其他科学家早已信赖的标准。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>大白话目标 → 经验证的方法 → 你的确认 → 云端运行</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — LIVE: RESULTS TABLE -->
+  <section class="scene" data-seconds="31.0">
+    <div class="kicker"><span class="st">第三步</span> · 结果 —— 哪些基因变了</div>
+    <h2>每个基因，按变化幅度和可信度排序。</h2>
+    <p class="caption">运行交回一张<b>结果表</b>：一行一个基因，带着它的 <b>log2 倍数变化</b>和<b>校正后 p 值</b>。排一排序，你最强、最可信的命中就升到了最上面。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实况产品 · 差异表达结果表</span>
+        <div class="frame"><img src="assets/live/de-results.png" alt="差异表达结果表，含基因名、log2 倍数变化和校正后 p 值"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>一行一个基因。</b>基因名、<b>log2 倍数变化</b>（方向与大小）、<b>校正后 p 值</b>（可信度）——并排摆着。</span></li>
+          <li><span class="b"></span><span><b>可排序。</b>按倍数变化排，看变化最大的；按校正后 p 值排，看最有把握的。</span></li>
+          <li><span class="b gr"></span><span><b>上调下调，都在。</b>倍数变化为正 = 在加药组里上调；为负 = 下调。正负号里就是生物学。</span></li>
+          <li><span class="b"></span><span>这里的每一个数字都直接来自那次运行——没有一处是手打的。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>你的基因清单，排好序、随时可用</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — LIVE: VOLCANO PLOT -->
+  <section class="scene" data-seconds="27.0">
+    <div class="kicker"><span class="st">第四步</span> · 火山图 —— 一眼看尽整个结果</div>
+    <h2>一张图：什么动了、动了多远、有多少把握。</h2>
+    <p class="caption"><b>火山图</b>把每个基因收进一张视图——倍数变化从左到右，可信度从下到上。真正要紧的基因都被推到了上方的两个角落。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实况产品 · 火山图</span>
+        <div class="frame"><img src="assets/live/de-volcano.png" alt="火山图，按倍数变化和显著性展示上调与下调的基因"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>左右方向是倍数变化。</b>越靠右 = 在加药组里强烈上调；越靠左 = 强烈下调。</span></li>
+          <li><span class="b"></span><span><b>越往上是把握度。</b>位置越高表示校正后 p 值越小——这个结果越不可能是碰运气。</span></li>
+          <li><span class="b gr"></span><span><b>上方两角就是你的命中。</b>变化大<i>并且</i>把握高——右上是上调，左上是下调。</span></li>
+          <li><span class="b"></span><span>一张可直接用作配图的图，和前面那张表出自同一批结果——下载下来放进你的论文。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>核心配图，一眼看尽</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — READING IT -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">第五步</span> · 有把握地读懂它</div>
+    <h2>一个扎实的命中，是变化大<i>并且</i>校正后 p 值小。</h2>
+    <p class="caption">两个数字，放在一起读。倍数变化告诉你一个基因<i>动了多少</i>；校正后 p 值告诉你<i>你能有多少把握</i>。两者缺一都可能误导。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">倍数变化</div><h4>动了多少</h4><p>log2 倍数变化：+1 是翻倍，−1 是减半。变化大固然有生物学意义——但前提是它得是真的。</p></div>
+          <div class="tile"><div class="n">校正后 p 值</div><h4>你有多少把握</h4><p>已经为"检验所有基因"做过校正。低于 0.05 是通常的界线；越小证据越强。</p></div>
+          <div class="tile"><div class="n">合在一起</div><h4>该信什么</h4><p>变化大<b>并且</b>校正后 p 值小 = 一个扎实的命中。变化虽大但 p 值很弱，可能只是噪声。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">值得一提：如果火山图上方两角几乎空着，那可能是真的"没有变化"——也可能是重复样本太少、根本没能力检测出变化。统计是诚实的；它不会替你无中生有地造出一个命中。</p>
+        <div><span class="verdict ok"><span class="mk"></span>把两个数字放在一起读——结果不会夸大其词</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — FROM RESULT TO REPORT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">第六步</span> · 从结果，到一个你拿得出手的结果</div>
+    <h2>每个输出都留存下来，带着一份证明你怎么得来的记录。</h2>
+    <p class="caption">表和图是答案；真正让它站得住脚的，是<b>输出</b>和<b>可复现记录</b>——当审稿人、专利审查员或合作者问起"怎么得来的"，它们就是凭据。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">输出</div><h4>每个文件，都归你</h4><p>完整的结果表、火山图、计数矩阵，以及运行质量报告——可以一个一个下载，也可以一起打包。</p></div>
+          <div class="tile"><div class="n">可复现记录</div><h4>审计轨迹</h4><p>你跑的那个确切比较、各项参数、工具版本，以及带可核验校验和的各个输出——把整次运行钉得死死的。</p></div>
+          <div class="tile"><div class="n">为什么重要</div><h4>随时可发表</h4><p>附在论文或递交材料里。"你这份清单怎么得来的？"有了一个完整、可复现的答案。</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>一份你站得住脚的基因清单</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">你的问题，有了答案——不用写代码，还带一份你拿得出手的记录。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">一次差异表达运行的全部意义，就是一句话：<b>我的两组条件之间哪些基因变了，又有哪些我可以信赖？</b>你带来计数和分组标签；BioMate 就在云端算力上跑完那个经过验证的 DESeq2 分析，再交回一张排好序的表、一张火山图，和一份完整记录——全程不用写一行代码。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>带来一张计数矩阵（或原始读段），说清哪组是哪组</li>
+            <li><span class="k">2</span>描述要做的比较；确认；它就在云端跑起来</li>
+            <li><span class="k">3</span>读结果表和火山图——变化和把握度并排着看</li>
+            <li><span class="k">4</span>下载输出和可复现记录</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>你的输入</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">计数或读段 + 分组</span></td></tr>
+            <tr><td>方法</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">经验证的 DESeq2，在云端</span></td></tr>
+            <tr><td>结果表</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">log2 FC + 校正后 p 值</span></td></tr>
+            <tr><td>火山图</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">可直接用作配图</span></td></tr>
+            <tr><td>可复现记录</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">完整的审计轨迹</span></td></tr>
+          </table>
+          <p class="footnote">一个非计算背景生物学家的问题，当天就有答案——正确的统计、被正确执行，配上可直接用于发表的图表和一份拿得出手的记录，且无需购买任何软件授权。差异表达是一次测量，而非一个定论：记得回到实验台去验证关键基因。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

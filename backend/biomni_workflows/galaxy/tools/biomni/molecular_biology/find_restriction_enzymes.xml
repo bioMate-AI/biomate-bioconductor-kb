@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_find_restriction_enzymes" name="Biomni: Find Restriction Enzymes" version="1.0.0">
     <description>Finds common restriction enzyme sites in a DNA sequence.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/find_restriction_enzymes_wrapper.py' --output '$output'

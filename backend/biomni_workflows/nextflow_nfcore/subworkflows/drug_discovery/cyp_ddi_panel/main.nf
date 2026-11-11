@@ -101,7 +101,7 @@ params.use_aws              = false
 // `params.X = …` declarations. Promote container selection to params so it
 // stays available to all process `container` directives below.
 params._useAws        = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
-params._ECR           = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86'
+params._ECR           = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86'
 // Unified container with RDKit + scikit-learn + matplotlib + transformers
 params.CHEM_CONTAINER = params._useAws ? params._ECR : 'condaforge/miniforge3:latest'
 

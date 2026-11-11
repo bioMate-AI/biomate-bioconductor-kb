@@ -1,6 +1,6 @@
 name: Build nextflow-base image
 
-# Builds biomate/nextflow-base — the shared base for all biomni-* Batch containers.
+# Builds biomate/nextflow-base — the shared base for all workflow-task Batch containers.
 #
 # Strategy: two independent native-runner jobs, no manifest merge.
 #   amd64 → ubuntu-latest  → tag :x86   (stable production path for AWS Batch)
@@ -14,8 +14,8 @@ name: Build nextflow-base image
 # the pull; only the push to ECR requires credentials (OIDC + ecr-login).
 #
 # Downstream images that FROM this base:
-#   biomate/biomni-admet, biomate/biomni-tools, biomate/biomni-pharma,
-#   biomate/biomni-structure-to-drug, biomate/genomics-germline,
+#   biomate/admet, biomate/workflow-tools, biomate/pharmacology-tools,
+#   biomate/structure-to-drug, biomate/genomics-germline,
 #   biomate/openfe-rbfe, biomate/sra-tools
 # All must be rebuilt after this image changes.
 

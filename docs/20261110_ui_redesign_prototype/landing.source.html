@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--canvas:#F7F8FA;--surface:#FFFFFF;--ink:#111827;--body:#374151;--muted:#6B7280;--faint:#9CA3AF;
+--line:#ECEEF1;--line-soft:#F3F4F6;--accent:#4F46E5;--accent-soft:#EEF0FF;--r:12px;--r-sm:7px;
+--shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);--shadow-h:0 10px 30px rgba(16,24,40,.10);}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--canvas);color:var(--body);font-family:Inter,-apple-system,system-ui,sans-serif;font-size:13px;letter-spacing:-0.003em;-webkit-font-smoothing:antialiased;}
+.app{display:grid;grid-template-columns:216px 1fr;height:720px;width:1120px;}
+.side{background:var(--canvas);padding:16px 12px;display:flex;flex-direction:column;gap:18px;border-right:1px solid var(--line);}
+.brand{display:flex;align-items:center;gap:8px;padding:2px 6px;}
+.brand .mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#6366F1,#4F46E5);}
+.brand b{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-0.02em;}
+.brand span{font-size:9px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 5px;border-radius:999px;}
+.nav{display:flex;flex-direction:column;gap:1px;}
+.nav a{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--r-sm);color:var(--body);text-decoration:none;font-weight:500;font-size:12.5px;}
+.nav a .i{width:15px;height:15px;color:var(--faint);}
+.nav a.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+.nav a.active .i{color:var(--accent);}
+.seclabel{font-size:10.5px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:2px;}
+.chat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r-sm);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-item .dot{width:6px;height:6px;border-radius:999px;flex:none;}
+.dot.ok{background:#059669;}.dot.run{background:var(--accent);}
+.side-foot{margin-top:auto;display:flex;align-items:center;gap:8px;padding:7px 8px;}
+.avatar{width:26px;height:26px;border-radius:999px;background:#E5E7EB;display:grid;place-items:center;font-weight:600;color:var(--muted);font-size:11px;}
+.main{background:var(--surface);display:flex;flex-direction:column;}
+.topbar{height:52px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--line);font-size:11px;color:var(--faint);}
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;}
+.hello{font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-0.02em;margin-bottom:6px;}
+.sub{font-size:13.5px;color:var(--muted);margin-bottom:28px;}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:680px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 17px;display:flex;gap:13px;align-items:flex-start;cursor:default;transition:.15s;}
+.card:hover{box-shadow:var(--shadow-h);transform:translateY(-1px);}
+.card .ic{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none;}
+.card h4{margin:0 0 3px;font-size:13.5px;font-weight:600;color:var(--ink);}
+.card p{margin:0;font-size:12px;color:var(--muted);line-height:1.45;}
+.composer{width:680px;margin:24px auto 0;border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow);}
+.composer .ph{font-size:14px;color:var(--faint);}
+.composer-row{display:flex;align-items:center;gap:8px;}
+.chipc{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;display:inline-flex;gap:5px;align-items:center;}
+.send{margin-left:auto;width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff;}
+.foot{height:60px;}
+svg{display:block;}
+</style></head>
+<body><div class="app">
+  <aside class="side">
+    <div class="brand"><div class="mark"></div><b>BioMate</b><span>BETA</span></div>
+    <nav class="nav">
+      <a class="active" href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New chat</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Data</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M8 6h6M8 18h6M14 6a4 4 0 0 1 4 4M14 18a4 4 0 0 0 4-4"/></svg>Workflows</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/></svg>Models</a>
+    </nav>
+    <div><div class="seclabel">Project</div>
+      <div class="chat-item" style="color:var(--ink);font-weight:600"><svg style="width:14px;height:14px;color:var(--faint)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z"/></svg>Drug discovery</div>
+      <div class="chat-item"><span class="dot ok"></span>Screen compounds for hERG</div>
+      <div class="chat-item"><span class="dot run"></span>RNA-seq differential expression</div>
+    </div>
+    <div class="side-foot"><div class="avatar">YZ</div><div><div style="font-size:12px;font-weight:600;color:var(--ink)">Yaoyun Z.</div><div style="font-size:10.5px;color:var(--faint)">Pro workspace</div></div></div>
+  </aside>
+  <section class="main">
+    <div class="topbar">Drug discovery · New chat</div>
+    <div class="stage">
+      <div class="hello">What would you like to do?</div>
+      <div class="sub">Describe a goal in plain language — BioMate routes it to the right workflow.</div>
+      <div class="cards">
+        <div class="card"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div><div><h4>Search &amp; evidence</h4><p>Answers grounded in literature, databases, patents — with citations.</p></div></div>
+        <div class="card"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg></div><div><h4>Analyze data</h4><p>Run a pipeline on your own data, or try a prepared sample dataset.</p></div></div>
+        <div class="card"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 8v6M4.9 4.9l4.2 4.2m5.8 5.8l4.2 4.2M2 12h6m8 0h6"/></svg></div><div><h4>Design &amp; generate</h4><p>Generate and optimize small molecules, peptides and proteins.</p></div></div>
+        <div class="card"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/></svg></div><div><h4>Models</h4><p>Train, fine-tune or apply a model to your data.</p></div></div>
+      </div>
+      <div class="composer">
+        <div class="ph">Screen these compounds for hERG and DILI liability…</div>
+        <div class="composer-row">
+          <span class="chipc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15l-5-5L5 21"/><circle cx="8" cy="8" r="2"/></svg>Attach data</span>
+          <span class="chipc">Skills &amp; experts</span>
+          <div class="send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"></div>
+  </section>
+</div></body></html>

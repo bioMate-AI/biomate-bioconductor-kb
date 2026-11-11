@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_analyze_abr_waveform_p1_metrics" name="Biomni: Analyze Abr Waveform P1 Metrics" version="1.0.0">
     <description>Extracts P1 amplitude and latency from Auditory Brainstem Response (ABR) waveform data.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_abr_waveform_p1_metrics_wrapper.py' --output '$output'

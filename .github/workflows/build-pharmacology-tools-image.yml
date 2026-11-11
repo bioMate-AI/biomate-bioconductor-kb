@@ -1,0 +1,20 @@
+name: Build pharmacology-tools image
+
+# Dispatch-only (large image, not currently broken). Applies the reusable
+# build+smoke+push template. NOTE: pharmacology-tools FROMs workflow-tools:x86, so build/push
+# workflow-tools first if that base changed.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  pharma:
+    uses: ./.github/workflows/build-workflow-image.yml
+    with:
+      image_repo: biomate/pharmacology-tools
+      dockerfile: backend/docker/pharmacology-tools/Dockerfile
+      smoke_script: backend/docker/pharmacology-tools/smoke.py

@@ -5,11 +5,13 @@
 # 用法: bash install.sh [--non-interactive] [--env-file /path/to/.env]
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.onprem.yml"
 ENV_FILE="$SCRIPT_DIR/.env"
-LOG_FILE="/tmp/biomate-install.log"
+INSTALL_LOG_DIR=$(mktemp -d "${TMPDIR:-/tmp}/biomate-install.XXXXXX")
+LOG_FILE="$INSTALL_LOG_DIR/install.log"
 BIOMATE_VERSION="${BIOMATE_VERSION:-latest}"
 
 # ── 颜色输出 ──────────────────────────────────────────────────────────────────
@@ -90,7 +92,7 @@ HOST_ARCH="$(uname -m)"
 case "$HOST_ARCH" in
   x86_64)          HOST_ARCH_NORM=amd64  ;;
   aarch64|arm64)   HOST_ARCH_NORM=arm64  ;;
-  *)               HOST_ARCH_NORM="$HOST_ARCH" ;;
+  *)               die "尚未验收的主机架构: $HOST_ARCH" ;;
 esac
 ok "主机架构: ${HOST_ARCH} (${HOST_ARCH_NORM})"
 
@@ -290,6 +292,12 @@ _check_required GALAXY_API_KEY
 
 ok "必填项校验通过"
 
+_check_image_architecture() {
+  local image="$1" actual
+  actual=$(docker image inspect --format '{{.Architecture}}' "$image" 2>/dev/null) || { error "无法验证必需镜像的架构"; return 1; }
+  [[ "$actual" == "$HOST_ARCH_NORM" ]] || { error "必需镜像不是当前主机的原生架构；安装未完成"; return 1; }
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. 拉取镜像
 # ─────────────────────────────────────────────────────────────────────────────
@@ -355,35 +363,37 @@ for _img in "$GALAXY_IMAGE" "$FRONTEND_IMAGE"; do
     fi
     ok "镜像拉取成功: $_img"
   fi
+  _check_image_architecture "$_img"
 done
 
-# ── 拉取并标记工作流任务容器镜像 ─────────────────────────────────────────────
-# BioMate 工作流的 .nf 文件引用本地镜像名 "biomate/biomni-tools:latest"。
-# install.sh 负责从 GHCR 拉取并重新标记；离线部署通过 docker load 预置后直接标记。
-_BIOMNI_REMOTE="${BIOMATE_BIOMNI_TOOLS_IMAGE:-ghcr.io/biomate-ai/biomni-tools:latest}"
-_BIOMNI_LOCAL="biomate/biomni-tools:latest"
-_BIOMATE_TOOLS="biomate/biomate-tools:latest"
+# ── 拉取并标记 workflow-tools 镜像（Nextflow 工作流任务容器） ──────────────────
+# BioMate 工作流（drug_discovery, clinical_trials 等）的 .nf 文件引用本地镜像名
+# "biomate/workflow-tools:latest"。install.sh 负责从 GHCR 拉取公共版本并重新标记。
+# 如果已通过离线包 docker load，则跳过拉取步骤直接标记。
+_WORKFLOW_REMOTE="${BIOMATE_WORKFLOW_TOOLS_IMAGE:-ghcr.io/biomate-ai/workflow-tools:latest}"
+_WORKFLOW_LOCAL="biomate/workflow-tools:latest"
 
 # Check if local tag already correct
-if docker image inspect "$_BIOMNI_LOCAL" &>/dev/null; then
-  ok "工作流镜像已就绪: $_BIOMNI_LOCAL"
+if docker image inspect "$_WORKFLOW_LOCAL" &>/dev/null; then
+  ok "workflow-tools 镜像已就绪: $_WORKFLOW_LOCAL"
 else
-  if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
-    info "重新标记工作流镜像..."
+  if docker image inspect "$_WORKFLOW_REMOTE" &>/dev/null; then
+    info "重新标记 workflow-tools 镜像..."
   else
-    info "拉取工作流镜像: $_BIOMNI_REMOTE ..."
-    if ! docker pull "$_BIOMNI_REMOTE" 2>&1; then
-      warn "工作流镜像拉取失败。工作流（ADMET、BOIN、药物发现等）将无法运行。"
-      warn "离线部署（架构: ${HOST_ARCH_NORM}）：docker load < biomate-images-${HOST_ARCH_NORM}.tar.gz，然后重新运行 install.sh"
+    info "拉取 workflow-tools 镜像: $_WORKFLOW_REMOTE ..."
+    if ! docker pull "$_WORKFLOW_REMOTE" 2>&1; then
+      die "必需的 workflow-tools 镜像未就绪；安装未完成。请加载对应架构的已验收离线镜像后重试。"
     fi
   fi
-  if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
-    docker tag "$_BIOMNI_REMOTE" "$_BIOMNI_LOCAL"
-    ok "工作流镜像已标记为: $_BIOMNI_LOCAL"
+  if docker image inspect "$_WORKFLOW_REMOTE" &>/dev/null; then
+    docker tag "$_WORKFLOW_REMOTE" "$_WORKFLOW_LOCAL"
+    ok "workflow-tools 已标记为: $_WORKFLOW_LOCAL"
   fi
 fi
+docker image inspect "$_WORKFLOW_LOCAL" >/dev/null 2>&1 || die "必需的本地任务镜像标签未就绪；安装未完成"
+_check_image_architecture "$_WORKFLOW_LOCAL"
 # 同时添加对外展示的 BioMate 品牌标签（docker images 中可见）
-docker tag "$_BIOMNI_LOCAL" "$_BIOMATE_TOOLS" 2>/dev/null || true
+docker tag "$_WORKFLOW_LOCAL" "biomate/biomate-tools:latest" 2>/dev/null || true
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. 创建 Nextflow 工作目录
@@ -454,24 +464,13 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # 4c. 多架构容器支持（ARM64 宿主机）
 # ─────────────────────────────────────────────────────────────────────────────
-# All BioMate service images (galaxy-backend, frontend, minio) publish multi-arch
-# manifests (amd64 + arm64) to GHCR. Docker auto-selects the ARM64 variant on
-# Graviton2/3 hosts — no QEMU and no platform override are needed.
-#
-# Workflow task images (biomni-admet, biomni-tools, etc.) also publish ARM64
-# variants. The Nextflow executor runs natively on ARM64 with the host JDK,
-# giving normal startup times instead of the 40-60 min QEMU overhead.
+# Each selected service/task image requires its own native qualification.
+# Architecture metadata alone is not a functional or performance benchmark.
 if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
-  info "ARM64 宿主机 (${HOST_ARCH}) — 使用原生 ARM64 镜像，无需 QEMU"
-  ok "docker-compose.onprem.yml 已移除 platform: linux/amd64 限制，Docker 自动选择 ARM64"
+  info "ARM64 宿主机 (${HOST_ARCH}) — 继续核对发行清单和实际工作流；不自动启用模拟。"
 
-  # Optional: install QEMU binfmt as fallback for any amd64-only workflow images
-  # that have not yet been rebuilt for arm64 (e.g. niche tools). Safe to skip.
-  if docker run --rm --privileged tonistiigi/binfmt --install amd64 >/dev/null 2>&1; then
-    ok "amd64 QEMU binfmt 已安装 (兼容性备用，非必需)"
-  else
-    info "amd64 QEMU binfmt 安装跳过 — 所有常用镜像已有 ARM64 版本"
-  fi
+  info "逐项验证所选任务镜像的原生架构；本脚本不会以 privileged 容器修改主机 binfmt。"
+  info "仅在管理员另行批准并验收后使用模拟执行；不保证所有任务镜像均有 ARM64 版本。"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -496,28 +495,25 @@ _wait_healthy() {
   info "等待 $container 就绪..."
   while true; do
     local status
-    status=$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "missing")
+    status=$(docker inspect --format '{{.State.Running}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || echo "missing")
     case "$status" in
-      healthy)
+      'true healthy')
         ok "$container 已就绪"
         return 0
         ;;
-      unhealthy)
+      'true unhealthy'|false*|missing)
         error "$container 健康检查失败"
-        docker logs --tail 30 "$container" 2>&1 || true
+        info "保留失败状态；敏感日志须经客户批准后按诊断手册采集。"
         return 1
         ;;
-      missing|"")
-        # 容器不存在或没有健康检查
-        if docker inspect "$container" &>/dev/null; then
-          ok "$container 运行中（无健康检查）"
-          return 0
-        fi
+      'true none'|"")
+        error "$container 缺少发行版要求的健康检查；不能判定就绪"
+        return 1
         ;;
     esac
     if [[ "$elapsed" -ge "$max_wait" ]]; then
       error "$container 在 ${max_wait}s 内未就绪，状态: $status"
-      docker logs --tail 30 "$container" 2>&1 || true
+      info "先检查元数据；不把原始容器日志自动输出到安装日志。"
       return 1
     fi
     sleep "$interval"
@@ -613,17 +609,35 @@ HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
 
 _check_endpoint() {
   local name="$1" url="$2"
-  if curl -sf --max-time 10 "$url" &>/dev/null; then
+  if curl -sf --connect-timeout 5 --max-time 10 "$url" &>/dev/null; then
     ok "$name → $url"
   else
-    warn "$name → $url (未响应，服务可能还在启动)"
+    error "$name 未通过 HTTP 就绪检查；安装未完成"
+    return 1
+  fi
+}
+
+_check_license() {
+  # A 200 response alone is not an active license; never print the body.
+  if curl -sf --connect-timeout 5 --max-time 10 "$1" | python3 -c '
+import json, sys
+try:
+    valid = json.load(sys.stdin).get("valid") is True
+except Exception:
+    valid = False
+sys.exit(0 if valid else 1)
+'; then
+    ok "许可证状态已确认有效"
+  else
+    error "许可证未确认有效；安装未完成"
+    return 1
   fi
 }
 
 _check_endpoint "前端"         "http://localhost:${FRONTEND_PORT}/api/health"
 _check_endpoint "Galaxy API"   "http://localhost:8081/api/version"
 _check_endpoint "MinIO API"    "http://localhost:9000/minio/health/ready"
-_check_endpoint "许可证 API"   "http://localhost:8081/api/license/status"
+_check_license "http://localhost:8081/api/license/status"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 10. 完成
@@ -632,7 +646,10 @@ step "安装完成 / Installation complete"
 
 cat <<EOF
 
-  ${GREEN}${BOLD}BioMate 已成功部署！${RESET}
+  ${GREEN}${BOLD}BioMate 基础服务就绪检查已通过${RESET}
+
+  这不是完整验收：仍需验证管理员登录、数据权限、模型调用、
+  文件上传/预览/下载及代表性工作流；未执行的项目不能记为通过。
 
   访问地址:
     • 前端界面:     http://${HOST_IP}:${FRONTEND_PORT}

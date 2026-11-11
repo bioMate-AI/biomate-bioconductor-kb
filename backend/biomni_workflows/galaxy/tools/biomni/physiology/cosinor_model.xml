@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_cosinor_model" name="Biomni: Cosinor Model" version="1.0.0">
     <description>Cosine function with baseline (mesor), amplitude, and phase shift.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/cosinor_model_wrapper.py' --output '$output'

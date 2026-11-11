@@ -1,4 +1,4 @@
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
 
 # Install foldseek static binary (AVX2) — statically linked.
 # NOTE: do NOT run `foldseek version` here; this image is built on ARM64 under QEMU

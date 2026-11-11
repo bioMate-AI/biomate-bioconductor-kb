@@ -30,8 +30,8 @@ process BASE_EDIT_ATLAS_TISSUE_CHECK {
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -133,8 +133,8 @@ process BASE_EDIT_EDITOR_SELECTION {
     label 'process_low'
     publishDir "${params.outdir}/phaseB_editor", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(atlas_json)
@@ -223,8 +223,8 @@ process BASE_EDIT_GRNA_DESIGN {
     label 'process_low'
     publishDir "${params.outdir}/phaseC_grna", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(editor_json), path(atlas_json)
@@ -283,8 +283,8 @@ process BASE_EDIT_CMC_FLAGS {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(grna_json)

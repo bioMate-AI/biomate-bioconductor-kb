@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "process": "DESEQ2_DIFFERENTIAL_ANALYSIS",
+  "domain": "transcriptomics",
+  "n_contrasts": 1,
+  "n_genes_tested": 34371,
+  "n_significant": 1242,
+  "pval_cutoff": 0.05,
+  "fc_cutoff": 2,
+  "gates_by_label": {
+    "differential expression": {
+      "gate_row": "deseq2_differential_expression",
+      "metric_name": "n_significant_genes",
+      "metric_value": 1242,
+      "passes": true,
+      "status": "1242 genes significant at padj<0.05, |FC|>=2"
+    }
+  },
+  "harness_version": "0.3.0-deseq2-val"
+}

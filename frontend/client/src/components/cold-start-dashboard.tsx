@@ -46,7 +46,7 @@
 
 import { useState } from "react";
 import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES, HOSPITAL_EXAMPLES } from "./cold-start-examples";
-import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown, Send } from "lucide-react";
+import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 import { t } from "@/lib/i18n";
 
@@ -522,123 +522,13 @@ export function readIntent(text: string | undefined | null): IntentRead | null {
   return { lane, laneLabel, domain: dom ? dom.dom : null };
 }
 
-interface IntentBarProps {
-  onSeed: (text: string) => void;
-}
-
-function IntentBar({ onSeed }: IntentBarProps) {
-  const [q, setQ] = useState("");
-  const read = readIntent(q);
-  const canSend = q.trim().length > 0;
-  return (
-    <div data-testid="cold-intent-bar" style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 10px",
-          border: "1px solid var(--bm-border, oklch(0.90 0.005 260))",
-          borderRadius: 10,
-          background: "var(--bm-surface, oklch(0.99 0.002 260))",
-        }}
-      >
-        <Sparkles size={15} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
-        <input
-          data-testid="cold-intent-input"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && q.trim()) onSeed(q.trim());
-          }}
-          placeholder={t('cold_start.describe_goal_placeholder')}
-          aria-label={t('cold_start.describe_goal')}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            fontSize: 13,
-            color: "var(--bm-text, oklch(0.22 0.01 260))",
-          }}
-        />
-        <button
-          type="button"
-          data-testid="cold-intent-send"
-          disabled={!canSend}
-          onClick={() => canSend && onSeed(q.trim())}
-          aria-label={t('cold_start.seed_composer')}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            border: "none",
-            cursor: canSend ? "pointer" : "default",
-            opacity: canSend ? 1 : 0.4,
-            background: "var(--bm-primary, oklch(0.55 0.20 265))",
-            color: "white",
-            flexShrink: 0,
-          }}
-        >
-          <Send size={13} />
-        </button>
-      </div>
-      {read && (
-        <div
-          data-testid="cold-intent-route"
-          data-lane={read.lane}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            rowGap: 4,
-            padding: "6px 10px",
-            border: "1px solid var(--bm-border, oklch(0.90 0.005 260))",
-            borderRadius: 8,
-            fontSize: 12,
-            color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 999,
-              flexShrink: 0,
-              background:
-                read.lane === "cloud"
-                  ? "var(--bm-primary, oklch(0.55 0.20 265))"
-                  : "var(--bm-ok, oklch(0.62 0.14 155))",
-            }}
-          />
-          <span data-testid="cold-intent-route-lane" style={{ fontWeight: 600, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
-            {read.laneLabel}
-          </span>
-          {read.domain && (
-            <span
-              data-testid="cold-intent-route-domain"
-              style={{
-                padding: "1px 8px",
-                borderRadius: 999,
-                background: "var(--bm-chip, oklch(0.95 0.01 260))",
-                color: "var(--bm-text, oklch(0.22 0.01 260))",
-                fontWeight: 500,
-              }}
-            >
-              {read.domain}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+// NOTE (2026-11-09): the cold-start "describe your goal" IntentBar was removed.
+// It duplicated the always-present bottom composer — a second text input into the
+// exact same onSeed→composer path — which the user flagged as redundant. The
+// cold-start now guides purely through the module cards + example rows (which seed
+// the composer on click) and leaves typing to the single pinned composer below.
+// `readIntent()` is retained and exported because the bottom composer's LanePreview
+// reuses it for the same lane/domain classification.
 
 interface ExampleRowProps {
   text: string;
@@ -1003,20 +893,14 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
         justifyContent: "center",
       }}
     >
-      {/* Cold-start hero: heading + a prominent "describe the goal" input,
-          re-mounted 2026-11-01 (per request). The cold-start view fills the empty
-          canvas with a clear primary action instead of relying solely on the
-          pinned bottom composer. It seeds the same composer the module cards +
-          example rows use, and the cold-start is replaced the moment the first
-          message is sent, so it does not persist alongside the bottom composer
-          during a conversation (which was the original "double composer" concern). */}
+      {/* Cold-start hero: just the framing heading. The "describe your goal" input
+          was removed 2026-11-09 — it duplicated the always-present bottom composer.
+          The heading now titles the module cards below; the single pinned composer
+          is the only place to type, and the cards/example rows seed it on click. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
         <span style={{ fontSize: 20, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
           {t('cold_start.heading')}
         </span>
-        <div style={{ width: "100%", maxWidth: 640 }}>
-          <IntentBar onSeed={onSeed} />
-        </div>
       </div>
       <div
         style={{

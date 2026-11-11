@@ -11,14 +11,21 @@
  * 2. SYSTEM_SETUP        -- tleap: protein+ligand complex, solvate (TIP3P), neutralize
  *                           Saves AMBER prmtop + inpcrd for downstream runs
  * 3. ENERGY_MINIMIZATION -- sander: 2500 H-only + 2500 all-atom steepest descent
- * 4. EQUILIBRATION       -- pmemd.cuda: 100ps NVT (heating 0->300K, restrained)
+ * 4. EQUILIBRATION       -- MD engine: 100ps NVT (heating 0->300K, restrained)
  *                                     + 100ps NPT (1 atm, restrained)
- * 5. PRODUCTION_MD       -- pmemd.cuda: N ns NPT unrestrained production
+ * 5. PRODUCTION_MD       -- MD engine: N ns NPT unrestrained production
+ *
+ * MD engine (params.md_engine = auto | pmemd | openmm). pmemd/pmemd.cuda is licensed AMBER (not in
+ * AmberTools), so it runs only from a licensed image the user provides (Settings -> Credentials ->
+ * AMBER, passed as params.pmemd_container). Without one, 'auto' runs steps 4-5 in OpenMM 8 on the
+ * GPU from the same AMBER prmtop/rst7 (same ff19SB/GAFF2/TIP3P force field, PME, SHAKE-equivalent
+ * H-bond constraints, Langevin thermostat, Monte Carlo barostat). Preparation (tleap), minimization
+ * (sander), analysis (cpptraj) and MM-GBSA (MMPBSA.py) are free AmberTools either way.
  * 6. TRAJECTORY_ANALYSIS -- cpptraj: RMSD, RMSF, H-bonds, radius of gyration
- * 7. MM_GBSA             -- MMPBSA.py: GB model (igb=2), per-residue decomposition
+ * 7. MM_GBSA             -- MMPBSA.py: GB model (igb=2); total binding DeltaG
  *
  * Outputs:
- *   trajectory.nc             -- NetCDF production trajectory
+ *   trajectory.nc|.dcd        -- production trajectory (NetCDF from pmemd, DCD from OpenMM)
  *   binding_summary.json      -- DeltaGbind, RMSD stats, system info
  *   rmsd_plot.png             -- RMSD over time (protein backbone + ligand)
  *   rmsf_per_residue.csv      -- per-residue RMSF table
@@ -54,6 +61,7 @@ params.box_padding          = 12         // Angstrom from protein surface to box
 
 // Simulation settings
 params.n_steps              = 5000000    // MD steps (2 fs dt -> 10 ns default)
+params.equil_steps          = 50000      // NVT and NPT equilibration steps EACH (smoke runs pass a small value)
 params.dt                   = 0.002      // ps (2 fs timestep)
 params.temperature          = 300        // K
 params.pressure             = 1.0        // atm
@@ -65,6 +73,13 @@ params.mmgbsa_interval      = 5          // analyse every Nth frame
 // Resources
 params.n_cpus               = 8
 params.gpu                  = true
+
+// MD engine for EQUILIBRATION + PRODUCTION_MD: 'auto' | 'pmemd' | 'openmm'
+params.md_engine            = 'auto'
+// Licensed AMBER image with pmemd.cuda, from the user's BYOL AMBER credential. The executor injects
+// it into the head env as AMBER_PMEMD_CONTAINER (credentials_api 'amber' → license_image); unset =
+// no licence = md_engine=auto runs the dynamics in OpenMM.
+params.pmemd_container      = System.getenv('AMBER_PMEMD_CONTAINER') ?: null
 
 // AWS Batch flag — set via profile (aws/gpu_batch) or --use_aws true
 params.use_aws              = false
@@ -78,6 +93,95 @@ def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
 def AMBER_CONTAINER      = _useAws ? _ECR : '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
 def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
+// OpenMM 8 + CUDA (built by scripts/build_mlip_md_image.sh; also serves MLIP MD)
+def OPENMM_CONTAINER     = _useAws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/mlip-md:cuda12-x86' : 'biomate/mlip-md:latest'
+
+// 'auto' uses pmemd only with a licensed image; BioMate's own images carry AmberTools, not pmemd.
+def MD_ENGINE = (params.md_engine ?: 'auto') == 'auto' ? (params.pmemd_container ? 'pmemd' : 'openmm') : params.md_engine
+if (!(MD_ENGINE in ['pmemd', 'openmm'])) {
+    error "params.md_engine must be auto, pmemd or openmm (got '${params.md_engine}')"
+}
+if (MD_ENGINE == 'pmemd' && _useAws && !params.pmemd_container) {
+    error "md_engine=pmemd needs a licensed AMBER image with pmemd.cuda (Settings -> Credentials -> AMBER); BioMate's images carry AmberTools only. Use md_engine=auto or openmm to run the dynamics in OpenMM."
+}
+def PMEMD_CONTAINER = params.pmemd_container ?: AMBER_CONTAINER
+def MD_CONTAINER    = MD_ENGINE == 'pmemd' ? PMEMD_CONTAINER : OPENMM_CONTAINER
+
+// OpenMM helpers shared by EQUILIBRATION and PRODUCTION_MD (written to omm_helpers.py in the task).
+// Conventions follow the pmemd inputs below: PME with an 8 A cutoff, H-bond constraints (ntc=ntf=2),
+// Langevin thermostat, Monte Carlo barostat, AMBER positional restraints E = k*dx^2 in kcal/mol/A^2.
+// Restarts are written as AMBER rst7 (positions, velocities, box) so every downstream step reads the
+// same files whichever engine ran. Positions are never wrapped (pmemd iwrap=0 equivalent): MM-GBSA
+// needs receptor and ligand in the same periodic image.
+def OPENMM_HELPERS = '''
+import math
+import numpy as np
+import openmm as mm
+from openmm import app, unit
+
+KCAL_A2_TO_KJ_NM2 = 4.184 * 100.0
+AMBER_VEL = 20.455  # AMBER time unit = 1/20.455 ps
+
+def platform():
+    for name, props in (("CUDA", {"Precision": "mixed"}), ("OpenCL", {"Precision": "mixed"}), ("CPU", {})):
+        try:
+            return mm.Platform.getPlatformByName(name), props
+        except Exception:
+            continue
+    raise SystemExit("no OpenMM platform available")
+
+def build_system(prmtop):
+    return prmtop.createSystem(nonbondedMethod=app.PME, nonbondedCutoff=0.8 * unit.nanometer,
+                               constraints=app.HBonds, rigidWater=True, ewaldErrorTolerance=0.0005)
+
+def backbone_restraint(system, topology, ref_nm, k_kcal_a2):
+    f = mm.CustomExternalForce("k_rest*periodicdistance(x, y, z, x0, y0, z0)^2")
+    f.addGlobalParameter("k_rest", k_kcal_a2 * KCAL_A2_TO_KJ_NM2)
+    for name in ("x0", "y0", "z0"):
+        f.addPerParticleParameter(name)
+    idx = [a.index for a in topology.atoms()
+           if a.name in ("CA", "C", "N") and a.residue.name not in ("LIG", "WAT", "HOH")]
+    for i in idx:
+        f.addParticle(i, [float(v) for v in ref_nm[i]])
+    system.addForce(f)
+    if not idx:
+        raise SystemExit("no backbone atoms (CA/C/N) found for the restraint mask")
+    return f, idx
+
+def move_restraint(force, idx, positions_nm, context):
+    for k, i in enumerate(idx):
+        force.setParticleParameters(k, i, [float(v) for v in positions_nm[i]])
+    force.updateParametersInContext(context)
+
+def load_state(sim, inpcrd):
+    sim.context.setPositions(inpcrd.getPositions())
+    if inpcrd.getBoxVectors() is not None:
+        sim.context.setPeriodicBoxVectors(*inpcrd.getBoxVectors())
+    # AmberInpcrdFile.getVelocities() RAISES when the rst7 has no velocities (a sander-minimized
+    # restart has none), so hasattr is true but the call throws — guard it and return None.
+    try:
+        vel = inpcrd.getVelocities()
+    except Exception:
+        vel = None
+    return vel
+
+def _angle(u, v):
+    return math.degrees(math.acos(float(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))))
+
+def write_rst7(path, state, title):
+    pos = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
+    vel = state.getVelocities(asNumpy=True).value_in_unit(unit.angstrom / unit.picosecond) / AMBER_VEL
+    a, b, c = state.getPeriodicBoxVectors(asNumpy=True).value_in_unit(unit.angstrom)
+    box = (np.linalg.norm(a), np.linalg.norm(b), np.linalg.norm(c), _angle(b, c), _angle(a, c), _angle(a, b))
+    with open(path, "w") as fh:
+        fh.write(title[:80] + "\\n")
+        fh.write("%6d%15.7e\\n" % (len(pos), state.getTime().value_in_unit(unit.picosecond)))
+        for block in (pos, vel):
+            flat = np.asarray(block).reshape(-1)
+            for i in range(0, len(flat), 6):
+                fh.write("".join("%12.7f" % v for v in flat[i:i + 6]) + "\\n")
+        fh.write("".join("%12.7f" % v for v in box) + "\\n")
+'''
 
 // ============================================================================
 // Processes
@@ -140,6 +244,25 @@ print('SMILES to SDF conversion done')
         else
             echo "Unsupported ligand format: \$input_ext" >&2
             exit 1
+        fi
+
+        # A ligand taken from a crystal structure usually has no hydrogens; antechamber then fails
+        # ("Weird atomic valence"). Add them with RDKit, keeping the heavy-atom pose coordinates.
+        # Inputs that already carry explicit H are passed through unchanged.
+        if [ "\$input_fmt" = "sdf" ] || [ "\$input_fmt" = "mdl" ]; then
+            python3 - "\$lig_input" <<'ADDHEOF'
+import sys
+from rdkit import Chem
+src = sys.argv[1]
+mol = Chem.MolFromMolFile(src, removeHs=False)
+if mol is None:
+        sys.exit("ERROR: could not read ligand " + src)
+if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
+        mol = Chem.AddHs(mol, addCoords=True)
+        Chem.MolToMolFile(mol, "ligand_with_h.sdf")
+        print("added %d hydrogens to %s" % (sum(a.GetAtomicNum() == 1 for a in mol.GetAtoms()), src))
+ADDHEOF
+            [ -f ligand_with_h.sdf ] && { lig_input="ligand_with_h.sdf"; input_fmt="sdf"; }
         fi
 
         antechamber \\
@@ -248,7 +371,7 @@ H-only minimization -- stage 1
   ntf=1, ntc=1,
   ntr=1, restraintmask='!@H=',
   restraint_wt=500.0,
-  ntpr=100, ntwx=0,
+  ntpr=100, ntwx=0, ntxo=1,
  /
 MIN1EOF
 
@@ -268,7 +391,7 @@ All-atom minimization -- stage 2
   ntb=1, ntp=0,
   ntf=2, ntc=2,
   ntr=0,
-  ntpr=100, ntwx=0,
+  ntpr=100, ntwx=0, ntxo=1,
  /
 MIN2EOF
 
@@ -294,7 +417,8 @@ process EQUILIBRATION {
      *   Stage 2: 100 ps NPT -- 1 atm Berendsen barostat, backbone restrained
      */
     tag "equilibration"
-    container AMBER_CONTAINER
+    label 'process_gpu'
+    container MD_CONTAINER
     publishDir "${params.outdir}/04_equilibration", mode: params.publish_dir_mode
 
     cpus params.n_cpus
@@ -309,6 +433,57 @@ process EQUILIBRATION {
     path "equil_npt.out",   emit: npt_log
 
     script:
+    if (MD_ENGINE == 'openmm')
+    """
+        set -euo pipefail
+        cat > omm_helpers.py << 'OMMEOF'
+${OPENMM_HELPERS}
+OMMEOF
+        python3 - << 'PYEOF'
+import sys
+sys.path.insert(0, ".")
+from omm_helpers import *
+
+T, P, DT, NSTEP = ${params.temperature}, ${params.pressure}, ${params.dt}, int(${params.equil_steps})
+prmtop = app.AmberPrmtopFile("${prmtop}")
+inpcrd = app.AmberInpcrdFile("${minimized_rst}")
+system = build_system(prmtop)
+baro = mm.MonteCarloBarostat(P * unit.atmosphere, T * unit.kelvin, 0)   # off during NVT
+system.addForce(baro)
+ref = inpcrd.getPositions(asNumpy=True).value_in_unit(unit.nanometer)
+restr, idx = backbone_restraint(system, prmtop.topology, ref, 10.0)     # restraintmask @CA,C,N, 10 kcal/mol/A^2
+integ = mm.LangevinMiddleIntegrator(1.0 * unit.kelvin, 2.0 / unit.picosecond, DT * unit.picosecond)  # gamma_ln=2
+plat, props = platform()
+sim = app.Simulation(prmtop.topology, system, integ, plat, props)
+load_state(sim, inpcrd)                                                  # tempi=0: no initial velocities
+
+# NVT: linear heating 0 -> T over NSTEP steps (nstlim=50000)
+rep = app.StateDataReporter("equil_nvt.out", 1000, step=True, time=True, potentialEnergy=True,
+                            temperature=True, speed=True)
+sim.reporters.append(rep)
+chunks = 50
+for i in range(chunks):
+    integ.setTemperature(T * (i + 1) / chunks * unit.kelvin)
+    sim.step(NSTEP // chunks)
+sim.reporters.remove(rep)
+
+# NPT: barostat on, restraints re-referenced to the end of NVT (-ref nvt.rst)
+st = sim.context.getState(getPositions=True)
+baro.setFrequency(25)
+sim.context.reinitialize(preserveState=True)
+move_restraint(restr, idx, st.getPositions(asNumpy=True).value_in_unit(unit.nanometer), sim.context)
+sim.reporters.append(app.StateDataReporter("equil_npt.out", 1000, step=True, time=True, potentialEnergy=True,
+                                           temperature=True, density=True, speed=True))
+sim.step(NSTEP)
+state = sim.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=False)
+write_rst7("equil.rst", state, "BioMate OpenMM equilibration")
+with open("equil_npt.out", "a") as fh:
+    fh.write("EQUILIBRATION complete (OpenMM %s, platform %s, %d restrained backbone atoms)\\n"
+             % (mm.__version__, plat.getName(), len(idx)))
+print("EQUILIBRATION complete on", plat.getName())
+PYEOF
+        """
+    else
     """
         set -euo pipefail
         source /opt/amber24/amber.sh || true
@@ -376,7 +551,8 @@ process PRODUCTION_MD {
      * Trajectory saved in NetCDF format every 10 ps (ntwx=5000 at dt=0.002 ps).
      */
     tag "production_md"
-    container AMBER_CONTAINER
+    label 'process_gpu'
+    container MD_CONTAINER
     publishDir "${params.outdir}/05_production", mode: params.publish_dir_mode
 
     cpus params.n_cpus
@@ -386,11 +562,48 @@ process PRODUCTION_MD {
     path equil_rst
 
     output:
-    path "trajectory.nc",  emit: trajectory
+    path "trajectory.{nc,dcd}", emit: trajectory   // pmemd: NetCDF; OpenMM: DCD (cpptraj/MMPBSA.py read both)
     path "md.out",         emit: log
     path "md.rst",         emit: rst
 
     script:
+    if (MD_ENGINE == 'openmm')
+    """
+        set -euo pipefail
+        cat > omm_helpers.py << 'OMMEOF'
+${OPENMM_HELPERS}
+OMMEOF
+        python3 - << 'PYEOF'
+import sys
+sys.path.insert(0, ".")
+from omm_helpers import *
+
+T, P, DT, NSTEPS = ${params.temperature}, ${params.pressure}, ${params.dt}, int(${params.n_steps})
+EVERY = min(5000, NSTEPS)                                                # ntwx=ntpr=5000
+prmtop = app.AmberPrmtopFile("${prmtop}")
+inpcrd = app.AmberInpcrdFile("${equil_rst}")
+system = build_system(prmtop)
+system.addForce(mm.MonteCarloBarostat(P * unit.atmosphere, T * unit.kelvin, 25))
+integ = mm.LangevinMiddleIntegrator(T * unit.kelvin, 1.0 / unit.picosecond, DT * unit.picosecond)  # gamma_ln=1
+plat, props = platform()
+sim = app.Simulation(prmtop.topology, system, integ, plat, props)
+vel = load_state(sim, inpcrd)                                            # irest=1, ntx=5
+if vel is not None:
+    sim.context.setVelocities(vel)
+else:
+    sim.context.setVelocitiesToTemperature(T * unit.kelvin)
+sim.reporters.append(app.DCDReporter("trajectory.dcd", EVERY, enforcePeriodicBox=False))
+sim.reporters.append(app.StateDataReporter("md.out", EVERY, step=True, time=True, potentialEnergy=True,
+                                           temperature=True, density=True, speed=True))
+sim.step(NSTEPS)
+state = sim.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=False)
+write_rst7("md.rst", state, "BioMate OpenMM production")
+with open("md.out", "a") as fh:
+    fh.write("PRODUCTION_MD complete (OpenMM %s, platform %s, %d steps)\\n" % (mm.__version__, plat.getName(), NSTEPS))
+print("PRODUCTION_MD complete on", plat.getName())
+PYEOF
+        """
+    else
     """
         set -euo pipefail
         source /opt/amber24/amber.sh || true
@@ -455,9 +668,8 @@ process TRAJECTORY_ANALYSIS {
         source /opt/amber24/amber.sh || true
 
         cat > analysis.in << CPPEOF
-trajin trajectory.nc
-reference minimized.rst parm complex.prmtop
-rmsd backbone_rmsd @CA,C,N,O ref reference out rmsd.dat
+trajin ${trajectory}
+rmsd backbone_rmsd @CA,C,N,O first out rmsd.dat
 atomicfluct rmsf_residue :1-9999 byres out rmsf.dat
 radgyr protein_radgyr @CA out radgyr.dat
 hbond lig_hbonds :LIG out hbond.dat avgout hbond_avg.dat
@@ -540,7 +752,8 @@ process MM_GBSA {
     /*
      * MM-GBSA binding free energy with MMPBSA.py:
      *   - GB model igb=2 (Onufriev-Bashford-Case GB)
-     *   - Per-residue energy decomposition (idecomp=1)
+     *   - Total binding free energy (no per-residue decomp: print_res within-distance is
+     *     gmx_MMPBSA syntax, not AmberTools MMPBSA.py which needs integer residues)
      *   - Frames: startframe=${params.mmgbsa_startframe}, interval=${params.mmgbsa_interval}
      * Outputs: mmgbsa_results.csv, binding_summary.json
      */
@@ -560,39 +773,54 @@ process MM_GBSA {
     script:
     """
         set -euo pipefail
-        source /opt/amber24/amber.sh || true
+        # MMPBSA.py / ante-MMPBSA.py require AMBERHOME. The conda AmberTools image has no
+        # /opt/amber24/amber.sh, so derive AMBERHOME from cpptraj's location (its grandparent is the
+        # conda prefix = AMBERHOME); source amber.sh if that layout has one.
+        if [ -z "\${AMBERHOME:-}" ]; then
+            _cpptraj="\$(command -v cpptraj || true)"
+            if [ -n "\$_cpptraj" ]; then AMBERHOME="\$(dirname "\$(dirname "\$_cpptraj")")"; else AMBERHOME=/opt/conda; fi
+            export AMBERHOME
+        fi
+        echo "MM-GBSA using AMBERHOME=\$AMBERHOME"
+        # amber.sh references unset vars (PYTHONPATH/LD_LIBRARY_PATH); under 'set -u' sourcing it
+        # aborts the whole script before ante-MMPBSA runs (|| true cannot catch a nounset abort in a
+        # sourced file). Disable nounset just for the source. AMBERHOME + PATH already suffice.
+        set +u; source "\$AMBERHOME/amber.sh" 2>/dev/null || true; set -u
 
-        cat > strip_receptor.in << STREOF
-parm complex.prmtop
-parmstrip :LIG
-parmwrite out receptor.prmtop
-quit
-STREOF
-        cpptraj -p ${prmtop} -i strip_receptor.in
+        # Dry topologies for MM-GBSA. The complex prmtop is solvated, so it is the -sp topology;
+        # complex/receptor/ligand are stripped of water and ions with ante-MMPBSA.py, with mbondi2
+        # radii as igb=2 requires. (Stripping only :LIG left the receptor with every water.)
+        ante-MMPBSA.py -p ${prmtop} -c com_dry.prmtop -r rec_dry.prmtop -l lig_dry.prmtop \
+            -s ':WAT:Na+:Cl-:K+' -n ':LIG' --radii=mbondi2
 
-        cat > strip_ligand.in << STLEOF
-parm complex.prmtop
-parmstrip !:LIG
-parmwrite out ligand_only.prmtop
-quit
-STLEOF
-        cpptraj -p ${prmtop} -i strip_ligand.in
+        # Frame window from the ACTUAL trajectory length: a fixed startframe (500) fails on any run
+        # shorter than 500 frames. When the requested start is past the end, skip the first ~20%,
+        # analyse to the last frame, and shrink the interval to keep >=~10 frames where possible.
+        NFRAMES=\$(cpptraj -p ${prmtop} -y ${trajectory} -tl | awk '\$1 == "Frames:" {print \$2}')
+        read -r MMGBSA_START MMGBSA_END MMGBSA_INTERVAL < <(python3 -c "
+n = int('\${NFRAMES:-0}' or 0)
+s, i = ${params.mmgbsa_startframe}, ${params.mmgbsa_interval}
+if n < 1:
+    raise SystemExit('ERROR: no readable frames in ${trajectory}')
+if s > n:
+    s = max(1, int(n * 0.2) + 1)
+e = n
+i = max(1, min(i, (e - s) // 10 or 1))
+print(s, e, i)")
+        export NFRAMES MMGBSA_START MMGBSA_END MMGBSA_INTERVAL
+        echo "MM-GBSA frames: trajectory has \$NFRAMES; analysing \$MMGBSA_START..\$MMGBSA_END every \$MMGBSA_INTERVAL (requested start ${params.mmgbsa_startframe} every ${params.mmgbsa_interval})"
 
         cat > mmgbsa.in << GBSEOF
 Input file for MM/GBSA calculation
 &general
-  startframe=${params.mmgbsa_startframe},
-  endframe=-1,
-  interval=${params.mmgbsa_interval},
+  startframe=\$MMGBSA_START,
+  endframe=\$MMGBSA_END,
+  interval=\$MMGBSA_INTERVAL,
   verbose=2,
   keep_files=0,
 /
 &gb
   igb=2, saltcon=0.15,
-/
-&decomp
-  idecomp=1,
-  print_res='within 6.0',
 /
 GBSEOF
 
@@ -600,29 +828,35 @@ GBSEOF
             -O \
             -i mmgbsa.in \
             -o mmgbsa_raw.dat \
-            -do mmgbsa_decomp.dat \
-            -cp ${prmtop} \
-            -rp receptor.prmtop \
-            -lp ligand_only.prmtop \
+            -sp ${prmtop} \
+            -cp com_dry.prmtop \
+            -rp rec_dry.prmtop \
+            -lp lig_dry.prmtop \
             -y ${trajectory} \
             2>&1 | tee mmpbsa.log
 
         python3 - << PYEOF
-import json, re, sys
+import json, os, re, sys
 delta_g = None; std_dg = None; components = {}
 try:
+    # AmberTools MMPBSA.py -o output is COLUMNAR ("KEY  average  stddev  stderr", no '='), and the
+    # binding energy is the 'Differences (Complex - Receptor - Ligand)' section — the per-system
+    # sections above it carry the same KEY names, so scope parsing to the Differences block.
+    _comp_keys = {'VDWAALS': 'vdw_kcal_mol', 'EEL': 'electrostatic_kcal_mol',
+                  'EGB': 'polar_solvation_kcal_mol', 'ESURF': 'nonpolar_solv_kcal_mol'}
+    _in_diff = False
     with open('mmgbsa_raw.dat') as fh:
         for line in fh:
-            m = re.search(r'VDWAALS\\s*=\\s*([-\\d.]+)', line)
-            if m: components['vdw_kcal_mol'] = float(m.group(1))
-            m = re.search(r'EEL\\s*=\\s*([-\\d.]+)', line)
-            if m: components['electrostatic_kcal_mol'] = float(m.group(1))
-            m = re.search(r'EGB\\s*=\\s*([-\\d.]+)', line)
-            if m: components['polar_solvation_kcal_mol'] = float(m.group(1))
-            m = re.search(r'ESURF\\s*=\\s*([-\\d.]+)', line)
-            if m: components['nonpolar_solv_kcal_mol'] = float(m.group(1))
-            m = re.search(r'DELTA TOTAL\\s*=\\s*([-\\d.]+)\\s*\\+/-\\s*([\\d.]+)', line)
-            if m: delta_g = float(m.group(1)); std_dg = float(m.group(2))
+            if 'Differences' in line and 'Complex' in line:
+                _in_diff = True; continue
+            if not _in_diff:
+                continue
+            for _k, _dest in _comp_keys.items():
+                m = re.match(r'\\s*' + _k + r'\\s+(-?\\d+\\.\\d+)', line)
+                if m: components[_dest] = float(m.group(1))
+            m = re.match(r'\\s*(?:DELTA\\s+TOTAL|\\u0394TOTAL)\\s+(-?\\d+\\.\\d+)(?:\\s+(\\d+\\.\\d+))?', line)
+            if m:
+                delta_g = float(m.group(1)); std_dg = float(m.group(2)) if m.group(2) else 0.0
 except Exception as e:
     print(f'Warning: mmgbsa_raw.dat: {e}', file=sys.stderr)
 res_data = []
@@ -651,24 +885,44 @@ with open('mmgbsa_results.csv', 'w') as fh:
         fh.write(f'{row["residue"]},{row["delta_g_gb"]},{row["delta_internal"]},'
                  f'{row["delta_electrostatic"]},{row["delta_vdw"]},{row["delta_polar_solv"]}\\n')
 top_res = sorted(res_data, key=lambda x: x['delta_g_gb'])[:10]
+n_analysed = (int(os.environ['MMGBSA_END']) - int(os.environ['MMGBSA_START'])) // int(os.environ['MMGBSA_INTERVAL']) + 1
 summary = {
     'pipeline': 'AMBER MM-GBSA',
     'gb_model': 'igb=2 (Onufriev-Bashford-Case)',
-    'startframe': ${params.mmgbsa_startframe}, 'interval': ${params.mmgbsa_interval},
+    'trajectory_frames': int(os.environ['NFRAMES']),
+    'startframe': int(os.environ['MMGBSA_START']), 'endframe': int(os.environ['MMGBSA_END']),
+    'interval': int(os.environ['MMGBSA_INTERVAL']),
+    'frames_analysed': n_analysed,
+    'requested_window': {'startframe': ${params.mmgbsa_startframe}, 'interval': ${params.mmgbsa_interval}},
+    'md_engine': '${MD_ENGINE}',
     'delta_g_bind': {
         'value_kcal_mol': round(delta_g, 2) if delta_g is not None else None,
         'std_kcal_mol':   round(std_dg,  2) if std_dg  is not None else None,
         **{k: round(v, 2) for k, v in components.items()}
     },
-    'classification': ('strong_binder' if delta_g is not None and delta_g < -8.0
-                        else 'moderate_binder'),
+    # Fewer than ~10 frames gives no usable estimate of the mean, so the value is reported but not
+    # classified. (Previously anything not < -8 was 'moderate_binder', including positive values.)
+    'classification': ('calculation_failed' if delta_g is None else
+                       'insufficient_sampling' if n_analysed < 10 else
+                       'strong_binder' if delta_g < -8.0 else
+                       'moderate_binder' if delta_g < -5.0 else
+                       'weak_binder' if delta_g < 0.0 else 'unfavorable'),
     'top_binding_residues': top_res[:10],
     'force_field': '${params.force_field}', 'water_model': '${params.water_model}'
 }
 with open('binding_summary.json', 'w') as fh:
     json.dump(summary, fh, indent=2)
-dg_str = f'{delta_g:.2f}' if delta_g is not None else 'N/A'
-print(f'MM_GBSA complete -- DeltaG_bind = {dg_str} kcal/mol (GB igb=2)')
+if delta_g is None:
+    # Print the actual binding section of the results file so any remaining format mismatch is
+    # diagnosable from the log (not the run-wide mmpbsa.log, which is mostly progress noise).
+    try:
+        _raw = open('mmgbsa_raw.dat').read().splitlines()
+        _start = next((i for i, l in enumerate(_raw) if 'Differences' in l), max(0, len(_raw) - 30))
+        tail = _raw[_start:_start + 30]
+    except OSError:
+        tail = ['(no mmgbsa_raw.dat)']
+    sys.exit('ERROR: could not parse DELTA TOTAL from mmgbsa_raw.dat; binding section:\\n' + '\\n'.join(tail))
+print(f'MM_GBSA complete -- DeltaG_bind = {delta_g:.2f} kcal/mol (GB igb=2, {n_analysed} frames)')
 PYEOF
         """
 }

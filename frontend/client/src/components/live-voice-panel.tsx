@@ -34,7 +34,9 @@ export function LiveVoicePanel({ busy, reply, onSend }: Props) {
   const wasBusy = useRef(busy);
   useEffect(() => { if (wasBusy.current && !busy) awaiting.current = false; wasBusy.current = busy; }, [busy]);
   function stopAudio() {
-    speechAbort.current?.abort(); audio.current?.pause();
+    speechAbort.current?.abort();
+    const player = audio.current; audio.current = undefined;
+    if (player) { player.onended = null; player.onerror = null; player.pause(); }
     if (objectURL.current) URL.revokeObjectURL(objectURL.current);
     objectURL.current = undefined;
   }

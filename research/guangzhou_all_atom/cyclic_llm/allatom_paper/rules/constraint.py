@@ -7,7 +7,7 @@ Soundness (tested on the golden set): the mask never removes the true next token
 """
 import numpy as np
 from .tracker import Tracker, ORG, ARO, BOND, expand2
-from .spec import satisfies_smiles, MW_HI, NME_HI
+from .spec import satisfies_smiles, MW_HI, NME_HI, NME_LO
 
 DEFAULT_RULES = None  # path set by the caller (kb_audit/peptide_sar_rules_v1.json)
 
@@ -28,9 +28,9 @@ def assert_priors_clean(rules_json, heldout_sources):
 
 
 class ChemFMConstraint:
-    def __init__(self, vocab, max_len=500, lam_soft=0.0, soft=None, forbidden_sources=()):
+    def __init__(self, vocab, max_len=500, lam_soft=0.0, soft=None, forbidden_sources=(), lookahead_nme=True):
         from .soft import SoftSource, assert_sources_disjoint
-        self.vocab = vocab; self.V = vocab.V; self.max_len = max_len; self.eos = vocab.eos
+        self.vocab = vocab; self.V = vocab.V; self.max_len = max_len; self.eos = vocab.eos; self.lookahead_nme = lookahead_nme
         t2i = vocab.tok2id
         self.real_ids = np.array(sorted(i for i in vocab.id2tok if i != vocab.eos), dtype=np.int64)
         self.atom_ids = [t2i[t] for t in t2i if (t in ORG or t in ARO or expand2(t) is not None)]
@@ -64,7 +64,7 @@ class ChemFMConstraint:
     def _tok_ok(self, st, tid):
         st2 = st.copy()
         if not st2.advance(self.vocab.id2tok[int(tid)]): return False
-        return st2.feasible(MW_HI, NME_HI, self.max_len - st2.n)
+        return st2.feasible(MW_HI, NME_HI, self.max_len - st2.n, NME_LO if self.lookahead_nme else 0)
 
     def _candidates(self, st):
         if st.br is not None: return self.bracket_ids + [self.rbr]       # strict grammar + mass filter in Tracker.advance/_tok_ok
@@ -100,27 +100,17 @@ class ChemFMConstraint:
         return ("other", tok)
 
     def mask(self, st):
-        """fast path: one representative per semantic class; per-token mass check for atoms. Equal to mask_ref (tested)."""
-        m = np.zeros(self.V, dtype=bool); cache = {}; id2 = self.vocab.id2tok; rem_after = lambda s2: self.max_len - s2.n
-        if st.br is not None:                       # inside a bracket atom every token is checked individually (element mass, grammar stage)
-            for tid in self._candidates(st):
-                if self._tok_ok(st, tid): m[tid] = True
-            m[self.eos] = self.eos_ok(st)
-            return m
+        """fast path: tokens that add no mass and whose effect depends only on a semantic class (bond / branch / ring digit / '[') are evaluated once per class with the real bounds; atoms
+        and everything inside a bracket (mass-adding, token-specific) are checked individually. Equal to mask_ref (tested)."""
+        m = np.zeros(self.V, dtype=bool); cache = {}; id2 = self.vocab.id2tok
         for tid in self._candidates(st):
-            tok = id2[int(tid)]; key = self._class_key(st, tok)
-            if key not in cache:
-                st2 = st.copy(); rep = "C" if key == ("atom",) else tok
-                if key == ("close",): rep = tok
-                if not st2.advance(rep): cache[key] = None
-                else: cache[key] = st2.feasible(float("inf"), NME_HI, rem_after(st2)) and (key != ("close",) or True)
-                if key == ("close",) and cache[key] is not None: cache[("close_mass",)] = st2.mass
-            ok = cache[key]
-            if not ok: continue
-            if key == ("atom",): ok = (st.mass + _atom_w(tok)) <= MW_HI
-            elif key == ("close",): ok = cache[("close_mass",)] <= MW_HI
-            else: ok = st.mass <= MW_HI
-            m[tid] = ok
+            tok = id2[int(tid)]
+            if st.br is not None or st.pct is not None or tok in ORG or tok in ARO or expand2(tok) is not None:
+                if self._tok_ok(st, tid): m[tid] = True
+                continue
+            key = self._class_key(st, tok)
+            if key not in cache: cache[key] = self._tok_ok(st, tid)
+            if cache[key]: m[tid] = True
         m[self.eos] = self.eos_ok(st)
         return m
 

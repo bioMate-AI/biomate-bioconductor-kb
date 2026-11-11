@@ -13,7 +13,7 @@ nextflow run subworkflows/microbiology/model_bacterial_growth_dynamics/main.nf \
   --growth_rate 0.5 \
   --clearance_rate 0.1 \
   --niche_size 100000 \
-  -with-docker biomate/biomni-tools:latest
+  -with-docker biomate/workflow-tools:latest
 ```
 
 ## Generated Workflows
@@ -57,7 +57,7 @@ subworkflows/{domain}/{function_name}/
 
 1. **Self-contained** - No external dependencies on biomni module
 2. **nf-core compatible** - Uses tuple input/output patterns
-3. **Docker support** - Uses `biomate/biomni-tools:latest` container
+3. **Docker support** - Uses `biomate/workflow-tools:latest` container
 4. **Auto type conversion** - String parameters converted to appropriate types
 5. **JSON + text output** - Results in both structured and human-readable formats
 6. **Version tracking** - `versions.yml` output for reproducibility
@@ -108,7 +108,7 @@ For dict parameters, pass JSON objects:
 
 ## Container
 
-Uses `biomate/biomni-tools:latest` which includes:
+Uses `biomate/workflow-tools:latest` which includes:
 - Python 3.x
 - NumPy, SciPy, pandas
 - BioPython

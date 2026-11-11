@@ -371,7 +371,8 @@ def _build_parameter_metadata_from_tools(
     except Exception:
         pass
 
-    _REQUIRED_KW = ('input', 'output', 'reference', 'sample', 'file', 'genome', 'fasta', 'fastq', 'bam')
+    _REQUIRED_KW = ('input', 'output', 'reference', 'sample', 'file', 'genome', 'fasta', 'fastq', 'bam',
+                    'matrix', 'contrast', 'counts', 'reads', 'vcf', 'h5ad')
     _INT_KW = ('threads', 'cpus', 'cores', 'jobs', 'count', 'num_', 'max_', 'min_', 'k_mer', 'length')
     _FLOAT_KW = ('pvalue', 'p_value', 'fdr', 'threshold', 'ratio', 'fraction', 'rate', 'score')
     _BOOL_KW = ('enable', 'disable', 'use_', 'skip_', 'paired', 'strand')
@@ -1234,10 +1235,26 @@ def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
                 val = raw_val
                 ptype = "string"
 
-            # Level — any param with null value is required (user must supply it)
+            # Level — a null param is required unless the workflow's own code handles its
+            # absence (galaxy.ai.nf_param_requirement; e.g. GROMACS MD box_center `?: ''`).
             _RECOMMENDED_PARAMS = {"spherical_aberration", "total_dose", "symmetry"}
+            # A primary DATA INPUT (a file the analysis cannot produce a real result
+            # without) is required even when the .nf ternary-guards it with a useless
+            # empty default — e.g. nf-core/differentialabundance's `params.matrix ?: ''`
+            # / `params.contrasts ?: ''`. Those guards avoid a null crash but leave the
+            # run with nothing to analyse, so the run "starts" and then fails (the MG
+            # PBMC start-failure). Only NON-data params defer to the
+            # "workflow handles absence" rule (box_center/box_size/etc.).
+            _DATA_INPUT_KW = ("input", "samplesheet", "sample_sheet", "matrix",
+                              "contrast", "counts", "reads", "design", "h5ad",
+                              "fastq", "fasta", "bam", "vcf")
             if val is None:
-                level = "required"
+                _nlow = name.lower()
+                if any(kw in _nlow for kw in _DATA_INPUT_KW):
+                    level = "required"
+                else:
+                    from galaxy.ai.nf_param_requirement import null_param_is_required  # noqa: PLC0415
+                    level = "required" if null_param_is_required(content, name) else "optional"
             elif name in _RECOMMENDED_PARAMS:
                 level = "recommended"
             else:
@@ -4159,6 +4176,33 @@ def generate_workflow_unified(
             if _inline_lines and _inline_lines not in effective_intent:
                 effective_intent = f"{effective_intent}\n[Inline parameters:\n{_inline_lines}]"
 
+        # ── Data-grounded input kinds ────────────────────────────────────────
+        # Ground the routing input-kind check in the SHAPE of the data the user actually attached,
+        # rather than the intent classifier's guess from prose. data_perception profiles each
+        # attached dataset (extension + column shape) and maps it to the closed input_kinds vocab
+        # (.fastq→fastq, .mzML→raw_spectra, abundance/DE TABLE→counts_matrix, proteinGroups→
+        # protein_table, …), then resolve_effective_input_kinds combines that with the prose kinds:
+        #   • attached PRIMARY data (raw file or processed table) OVERRIDES the prose guess, so step
+        #     8a owns raw-vs-processed — a processed TABLE demotes raw pipelines; raw files keep them;
+        #   • an AUXILIARY-only attachment (reference genome .fa, gene model .gtf, ligand library
+        #     .sdf, structure .pdb) is MERGED with the prose kinds, never replacing them, so a user
+        #     with prose-described FASTQ reads + an attached reference genome keeps {fastq} and its
+        #     compatibility boost (committee review 2026-11-09, finding 3);
+        #   • nothing profilable (or a design/sample sheet) → the prose value is returned unchanged.
+        # Without this a McGill user with processed DIA abundance tables was routed to raw
+        # nf-core/diaproteomics. (docs 2026-11-09 processed-vs-raw routing.)
+        effective_input_kinds = request.user_input_kinds
+        try:
+            from galaxy.ai.data_perception import resolve_effective_input_kinds as _resolve_input_kinds
+            effective_input_kinds = _resolve_input_kinds(request.user_input_kinds, uploaded_datasets or [])
+            if effective_input_kinds != request.user_input_kinds:
+                log.info(
+                    "[generate_workflow] data-grounded input_kinds=%s (prose classifier=%s)",
+                    effective_input_kinds, request.user_input_kinds,
+                )
+        except Exception as _ik_err:  # noqa: BLE001 — never block generation on perception
+            log.debug("[generate_workflow] input-kind inference failed (non-fatal): %s", _ik_err)
+
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
         if use_langgraph:
             result = ai_assistant.run_via_pipeline(
@@ -4177,7 +4221,7 @@ def generate_workflow_unified(
                 preferred_domains=request.preferred_domains or None,
                 penalized_domains=request.penalized_domains or None,
                 credential_map=credential_map or None,
-                user_input_kinds=request.user_input_kinds,
+                user_input_kinds=effective_input_kinds,
             )
 
         # Clarification requests from chain verifier — pass through with a clear error key

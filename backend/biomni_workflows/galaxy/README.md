@@ -10,13 +10,13 @@ The pre-built image is available locally:
 
 ```bash
 # List all available domains
-docker run --rm biomate/biomni-tools:latest biomni-tool --list-domains
+docker run --rm biomate/workflow-tools:latest biomni-tool --list-domains
 
 # List functions in a specific domain
-docker run --rm biomate/biomni-tools:latest biomni-tool genomics --list-functions
+docker run --rm biomate/workflow-tools:latest biomni-tool genomics --list-functions
 
 # Run a tool with data
-docker run --rm -v $(pwd)/data:/data biomate/biomni-tools:latest \
+docker run --rm -v $(pwd)/data:/data biomate/workflow-tools:latest \
     biomni-tool molecular_biology annotate_open_reading_frames \
     --sequence "ATGATGATGATGATG" --min_length 9 --output /data/results.json
 ```
@@ -27,7 +27,7 @@ You need to rebuild the image for your architecture:
 
 ```bash
 cd /path/to/Biomni
-docker build -t biomate/biomni-tools:latest -f biomni_galaxy/docker/Dockerfile .
+docker build -t biomate/workflow-tools:latest -f biomni_galaxy/docker/Dockerfile .
 ```
 
 Build time: ~10-15 minutes depending on network speed.
@@ -38,7 +38,7 @@ Build time: ~10-15 minutes depending on network speed.
 
 | Current Build | Architecture | Compatible Systems |
 |--------------|--------------|-------------------|
-| `biomate/biomni-tools:latest` | ARM64 | Apple Silicon Mac (M1/M2/M3), AWS Graviton, Raspberry Pi 4, Oracle Ampere |
+| `biomate/workflow-tools:latest` | ARM64 | Apple Silicon Mac (M1/M2/M3), AWS Graviton, Raspberry Pi 4, Oracle Ampere |
 
 **To run on AMD64/x86_64 systems**, you must rebuild the image (see above).
 
@@ -90,7 +90,7 @@ Build time: ~10-15 minutes depending on network speed.
 
 ```bash
 # Annotate ORFs in a DNA sequence
-docker run --rm biomate/biomni-tools:latest \
+docker run --rm biomate/workflow-tools:latest \
     biomni-tool molecular_biology annotate_open_reading_frames \
     --sequence "ATGATGATGATGATGATGATGATGATGATGATGATGATGATGATGATGATGATGATGATG" \
     --min_length 9
@@ -102,7 +102,7 @@ docker run --rm biomate/biomni-tools:latest \
 
 ```bash
 # Mount a local directory to /data in the container
-docker run --rm -v /path/to/your/data:/data biomate/biomni-tools:latest \
+docker run --rm -v /path/to/your/data:/data biomate/workflow-tools:latest \
     biomni-tool genomics gene_set_enrichment_analysis \
     --genes "TP53,BRCA1,EGFR,MYC" \
     --output /data/enrichment_results.json
@@ -112,7 +112,7 @@ docker run --rm -v /path/to/your/data:/data biomate/biomni-tools:latest \
 
 ```bash
 # Start an interactive shell inside the container
-docker run -it --rm -v $(pwd):/data biomate/biomni-tools:latest bash
+docker run -it --rm -v $(pwd):/data biomate/workflow-tools:latest bash
 
 # Inside container:
 biomni-tool --list-domains
@@ -123,7 +123,7 @@ python3 -c "from biomni.tool.genomics import gene_set_enrichment_analysis; help(
 ### 4. Get Help for a Specific Function
 
 ```bash
-docker run --rm biomate/biomni-tools:latest \
+docker run --rm biomate/workflow-tools:latest \
     biomni-tool molecular_biology annotate_open_reading_frames --help
 ```
 
@@ -195,7 +195,7 @@ Each tool in `galaxy_tools/` has two files:
 
 1. Copy XML files to your Galaxy tools directory:
    ```bash
-   docker cp $(docker create biomate/biomni-tools:latest):/opt/biomni/galaxy_tools ./galaxy_tools
+   docker cp $(docker create biomate/workflow-tools:latest):/opt/biomni/galaxy_tools ./galaxy_tools
    ```
 
 2. Add entries to `tool_conf.xml`:
@@ -221,7 +221,7 @@ docker buildx create --name multiarch --use
 
 # Build for both AMD64 and ARM64
 docker buildx build --platform linux/amd64,linux/arm64 \
-    -t biomate/biomni-tools:latest \
+    -t biomate/workflow-tools:latest \
     -f biomni_galaxy/docker/Dockerfile \
     --push .
 ```
@@ -230,7 +230,7 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ```bash
 docker build --platform linux/amd64 \
-    -t biomate/biomni-tools:amd64 \
+    -t biomate/workflow-tools:amd64 \
     -f biomni_galaxy/docker/Dockerfile .
 ```
 
@@ -238,7 +238,7 @@ docker build --platform linux/amd64 \
 
 ```bash
 docker build --platform linux/arm64 \
-    -t biomate/biomni-tools:arm64 \
+    -t biomate/workflow-tools:arm64 \
     -f biomni_galaxy/docker/Dockerfile .
 ```
 
@@ -252,7 +252,7 @@ You're trying to run an ARM64 image on AMD64 or vice versa. Rebuild for your arc
 ### Import errors inside container
 Run the verification script:
 ```bash
-docker run --rm biomate/biomni-tools:latest python3 -c "
+docker run --rm biomate/workflow-tools:latest python3 -c "
 domains = ['biochemistry', 'bioengineering', 'biophysics', 'cancer_biology', 'cell_biology',
            'database', 'genetics', 'genomics', 'glycoengineering', 'immunology',
            'lab_automation', 'literature', 'microbiology', 'molecular_biology', 'pathology',
@@ -270,7 +270,7 @@ for d in domains:
 ### Memory issues
 Some tools (especially those using PyTorch) require significant memory:
 ```bash
-docker run --rm --memory=8g biomate/biomni-tools:latest ...
+docker run --rm --memory=8g biomate/workflow-tools:latest ...
 ```
 
 ---

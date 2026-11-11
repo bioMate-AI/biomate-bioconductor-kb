@@ -12,6 +12,7 @@ import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pathlib import Path
+from galaxy.ai.nf_param_requirement import null_param_is_required as _null_required
 import sqlite3
 import re
 
@@ -2690,7 +2691,8 @@ Respond with a single JSON object — no other text:
             label = name.replace("_", " ").title()
             description = inline_desc if inline_desc else f"Workflow parameter: {label}"
             # A param is truly required only if it's null AND not in the known-optional set.
-            is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS)
+            # ...and the workflow's own code does not handle its absence (nf_param_requirement).
+            is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS) and _null_required(text, name)
             # null-default params get Python None (renders as empty in UI), not the string "null"
             default_str = None if (is_required or val_raw == "null") else val_raw.strip("'\"")
             param_type = self._detect_param_type(name, default_str or "")
@@ -5861,6 +5863,18 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 }
                 for m in (search_results or [])[:3]
             ]
+
+            # A match whose template has no steps (no workflow_json, no nextflow_path) is not a
+            # workflow. Returning it as success produced the empty "Custom workflow" card (0 phases)
+            # that also disabled run_code for the turn (2026-11-10 EPAR test).
+            if not ((workflow_ga or {}).get('steps') or {}):
+                log.warning("[UnifiedWorkflowGeneration] built workflow has no steps — returning no_runnable_workflow")
+                return {
+                    'success': False,
+                    'error': 'no_runnable_workflow',
+                    'message': 'No runnable workflow matched this request.',
+                    'candidate_workflows': candidate_workflows,
+                }
 
             return {
                 'success': True,

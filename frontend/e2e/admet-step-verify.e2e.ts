@@ -44,11 +44,25 @@ test("ADMET step attribution — real step name, not 'run'", async ({ page }) =>
   await send.scrollIntoViewIfNeeded().catch(() => {});
   await send.click({ timeout: 15_000 }).catch(async () => { await send.click({ force: true }); });
 
+  // Click "Confirm & Run" and VERIFY the run actually started (the button
+  // disappears / a running indicator appears). Retry the click if it didn't
+  // take — the button can be briefly non-actionable while the card settles.
   const confirm = page.getByRole("button", { name: /confirm.*run/i });
   await confirm.first().waitFor({ timeout: 220_000 });
-  await page.waitForTimeout(2000);
-  await confirm.first().click({ timeout: 30_000 }).catch(async () => { await confirm.first().click({ force: true }); });
-  log.push("clicked Confirm & Run");
+  let started = false;
+  for (let a = 0; a < 5 && !started; a++) {
+    await confirm.first().scrollIntoViewIfNeeded().catch(() => {});
+    await confirm.first().click({ timeout: 8_000 }).catch(async () => { await confirm.first().click({ force: true }).catch(() => {}); });
+    // Run started when "Confirm & Run" is gone and a running/terminal state shows.
+    started = await page.waitForFunction(() => {
+      const b = (document.body.innerText || "");
+      const confirmGone = !/confirm\s*&?\s*run/i.test(b);
+      const runningish = /Pause|Stop phase|Run again|Download report|COMPLETED|RUNNING|After run/i.test(b);
+      return confirmGone && runningish;
+    }, undefined, { timeout: 15_000 }).then(() => true).catch(() => false);
+    log.push(`confirm attempt ${a + 1}: started=${started}`);
+  }
+  expect(started, "run should start after Confirm & Run").toBe(true);
 
   // Drive to completion (safe panel → no gate; resume if one appears). 25 min budget.
   let completed = false;

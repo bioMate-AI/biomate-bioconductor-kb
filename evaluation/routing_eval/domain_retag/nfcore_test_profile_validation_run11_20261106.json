@@ -1,0 +1,20 @@
+[
+ {
+  "name": "nf-core/mnaseseq",
+  "runId": "0b994e27-5021-4ce9-9a18-19ed9bdaf886",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 507,
+  "error": "",
+  "minutes": 20.4
+ },
+ {
+  "name": "nf-core/rnaseq",
+  "runId": "45234805-14e5-4d07-85c4-dbdfe0918ce9",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 950,
+  "error": "",
+  "minutes": 23.0
+ }
+]

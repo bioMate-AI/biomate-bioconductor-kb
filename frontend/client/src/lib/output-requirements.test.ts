@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseOutputFormats, outputRequirementsToPrompt, EXAMPLE_OUTPUT_FORMATS, exampleOutputFormats, appendMissingOutputFormats } from './output-requirements';
+import { parseOutputFormats, outputRequirementsToPrompt, EXAMPLE_OUTPUT_FORMATS, exampleOutputFormats, appendMissingOutputFormats, parseOutputRequirements, checkOutputConformance } from './output-requirements';
 
 describe('output-requirements store parsing', () => {
   it('parses a JSON array of formats', () => {
@@ -57,6 +57,68 @@ describe('outputRequirementsToPrompt — only enabled formats reach the model', 
   });
 });
 
+
+describe('parseOutputRequirements — structured hints for non-LLM / server generators', () => {
+  it('extracts only ENABLED formats (a switched-off format never contributes a hint)', () => {
+    const raw = JSON.stringify([
+      { kind: 'report', name: 'memo', detail: 'Findings first (≤200 words). 300 dpi greyscale.', on: true },
+      { kind: 'report', name: 'off', detail: '≤50 words', on: false },
+    ]);
+    const r = parseOutputRequirements(raw);
+    expect(r.formats).toHaveLength(1);
+    expect(r.lengthCapWords).toBe(200); // not 50 — the 50-word format is off
+    expect(r.findingsFirst).toBe(true);
+    expect(r.figureDpi).toBe(300);
+    expect(r.grayscaleSafe).toBe(true);
+  });
+  it('keeps the MOST restrictive word cap across enabled formats', () => {
+    const raw = JSON.stringify([
+      { kind: 'report', name: 'a', detail: 'no more than 300 words', on: true },
+      { kind: 'report', name: 'b', detail: 'at most 120 words', on: true },
+    ]);
+    expect(parseOutputRequirements(raw).lengthCapWords).toBe(120);
+  });
+  it('parses varied phrasings of the word cap', () => {
+    for (const d of ['≤200 words', '<= 200 words', 'under 200 words', 'max 200 words', 'up to 200 words', '200 words']) {
+      const raw = JSON.stringify([{ kind: 'report', name: 'x', detail: d, on: true }]);
+      expect(parseOutputRequirements(raw).lengthCapWords).toBe(200);
+    }
+  });
+  it('is empty-safe: no formats ⇒ no hints', () => {
+    const r = parseOutputRequirements('');
+    expect(r.formats).toEqual([]);
+    expect(r.lengthCapWords).toBeUndefined();
+    expect(r.findingsFirst).toBeUndefined();
+    expect(r.figureDpi).toBeUndefined();
+    expect(r.grayscaleSafe).toBeUndefined();
+  });
+});
+
+describe('checkOutputConformance — cheap, non-blocking, never fabricates', () => {
+  it('flags a prose output that exceeds the word cap (beyond 10% tolerance)', () => {
+    const reqs = parseOutputRequirements(JSON.stringify([{ kind: 'report', name: 'x', detail: '≤10 words', on: true }]));
+    const long = Array.from({ length: 30 }, (_, i) => `w${i}`).join(' ');
+    expect(checkOutputConformance(long, reqs)[0]).toMatch(/length cap/);
+  });
+  it('does NOT flag output within the cap (plus tolerance)', () => {
+    const reqs = parseOutputRequirements(JSON.stringify([{ kind: 'report', name: 'x', detail: '≤10 words', on: true }]));
+    expect(checkOutputConformance('one two three four five', reqs)).toEqual([]);
+  });
+  it('flags findings-first when methods are introduced before any finding/result', () => {
+    const reqs = parseOutputRequirements(JSON.stringify([{ kind: 'report', name: 'x', detail: 'findings first', on: true }]));
+    const dev = checkOutputConformance('METHODS: we aligned reads. RESULTS: 42 variants.', reqs);
+    expect(dev.join(' ')).toMatch(/findings-first/);
+  });
+  it('does NOT flag when findings/results come first', () => {
+    const reqs = parseOutputRequirements(JSON.stringify([{ kind: 'report', name: 'x', detail: 'findings first', on: true }]));
+    expect(checkOutputConformance('RESULTS: 42 variants. METHODS: we aligned reads.', reqs)).toEqual([]);
+  });
+  it('returns [] for empty text or null reqs (safe, non-throwing)', () => {
+    expect(checkOutputConformance('', parseOutputRequirements(''))).toEqual([]);
+    expect(checkOutputConformance('anything', null)).toEqual([]);
+    expect(checkOutputConformance(null, parseOutputRequirements('x'))).toEqual([]);
+  });
+});
 
 describe('translated built-in output formats', () => {
   it('does not add translated duplicates or change existing enabled formats', () => {

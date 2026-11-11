@@ -2,7 +2,7 @@
 <tool id="biomni_cell_biology_analyze_flow_cytometry_immunophenotyping" name="Biomni: Analyze Flow Cytometry Immunophenotyping" version="1.0.0">
     <description>Analyze flow cytometry data to identify and quantify specific cell populations based on surface markers.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_flow_cytometry_immunophenotyping_wrapper.py' --output '$output'

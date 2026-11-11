@@ -3,19 +3,24 @@
 # BioMate 本地部署诊断脚本
 #
 # 用法:
-#   bash diag-onprem.sh              # 完整诊断 + 打包 tar.gz
-#   bash diag-onprem.sh --quick      # 跳过完整日志收集（只取最近 50 行 error）
+#   bash diag-onprem.sh              # 元数据诊断，不导出日志正文、密钥或运行数据
+#   bash diag-onprem.sh --quick      # 快速元数据诊断
+#   bash diag-onprem.sh --include-sensitive --confirm-authorized
+#                                   # 仅经客户授权后收集敏感日志，禁止直接外发
 #   bash diag-onprem.sh --no-pack    # 只打印到终端，不生成 tar.gz
 #
 # 输出: /tmp/biomate-diag-YYYYMMDD_HHMMSS.tar.gz
-# 将该文件发给 BioMate 支持工程师，或自行用 Claude Code 分析。
+# 请先在客户内网审查诊断包，再按客户批准的渠道处理。不可上传公共分享站点。
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
+umask 077
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PRIVACY_HELPER="$SCRIPT_DIR/onprem_diag_privacy.py"
+[[ -f "$PRIVACY_HELPER" ]] || { echo "请使用完整部署包：缺少诊断隐私过滤程序。" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "诊断需要 python3。" >&2; exit 1; }
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
-DIAG_DIR="/tmp/biomate-diag-${TIMESTAMP}"
-PACK_FILE="/tmp/biomate-diag-${TIMESTAMP}.tar.gz"
 COMPOSE_FILE=""          # 自动探测
 FRONTEND_PORT="${FRONTEND_PORT:-5000}"
 GALAXY_PORT="${GALAXY_PORT:-8081}"
@@ -35,13 +40,23 @@ CONTAINERS=(
 # ── 参数 ──────────────────────────────────────────────────────────────────────
 QUICK=false
 NO_PACK=false
+INCLUDE_SENSITIVE=false
+CONFIRM_AUTHORIZED=false
 for arg in "$@"; do
   case $arg in
     --quick)   QUICK=true ;;
-    --no-pack) NO_PACK=false ;;  # kept for backwards compat but always pack
-    *) ;;
+    --no-pack) NO_PACK=true ;;
+    --include-sensitive) INCLUDE_SENSITIVE=true ;;
+    --confirm-authorized) CONFIRM_AUTHORIZED=true ;;
+    *) echo "未知参数: $arg" >&2; exit 2 ;;
   esac
 done
+if $INCLUDE_SENSITIVE && ! $CONFIRM_AUTHORIZED; then
+  echo "敏感日志可能含患者数据和凭证；需要客户授权并显式提供 --confirm-authorized。" >&2
+  exit 2
+fi
+DIAG_DIR="$(mktemp -d "/tmp/biomate-diag-${TIMESTAMP}-XXXXXX")"
+PACK_FILE="${DIAG_DIR}.tar.gz"
 LOG_LINES=$( $QUICK && echo $LOG_LINES_QUICK || echo $LOG_LINES_FULL )
 
 # ── 颜色 ──────────────────────────────────────────────────────────────────────
@@ -161,7 +176,7 @@ collect_containers() {
           "$cname" "$status" "$health" "$restart" "${started:0:19}"
         printf "  image: %s\n" "$image"
         # 健康检查失败日志
-        if [[ "$health" == "unhealthy" ]]; then
+        if [[ "$health" == "unhealthy" ]] && $INCLUDE_SENSITIVE; then
           echo "  [健康检查失败原因]:"
           docker inspect --format \
             '{{range .State.Health.Log}}  exit={{.ExitCode}} {{.Output}}{{end}}' \
@@ -180,6 +195,10 @@ collect_containers() {
 # 4. 容器日志（每个容器单独文件）
 # ═════════════════════════════════════════════════════════════════════════════
 collect_logs() {
+  if ! $INCLUDE_SENSITIVE; then
+    hdr "4. 日志正文未收集（默认隐私模式）"
+    return
+  fi
   hdr "4. 容器日志（最近 ${LOG_LINES} 行，error 级别）"
   local log_dir="$DIAG_DIR/logs"
   mkdir -p "$log_dir"
@@ -212,6 +231,13 @@ collect_api_checks() {
   hdr "5. API 健康检查"
   local out="$DIAG_DIR/api-checks.txt"
   {
+    if ! $INCLUDE_SENSITIVE; then
+      for endpoint in "http://localhost:${FRONTEND_PORT}/api/health" "http://localhost:${GALAXY_PORT}/api/version"; do
+        code=$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' "$endpoint" 2>/dev/null) || code="unreachable"
+        echo "HTTP status: $code"
+      done
+      return
+    fi
     # 前端健康
     echo "=== 前端 (port ${FRONTEND_PORT}) ==="
     frontend_health=$(curl -sf --max-time 5 "http://localhost:${FRONTEND_PORT}/api/health" 2>/dev/null || echo "FAIL")
@@ -271,7 +297,10 @@ collect_inspect() {
   mkdir -p "$inspect_dir"
   for cname in "${CONTAINERS[@]}"; do
     if docker inspect "$cname" &>/dev/null; then
-      docker inspect "$cname" > "$inspect_dir/${cname}.json" 2>/dev/null
+      if ! docker inspect "$cname" 2>/dev/null | python3 "$PRIVACY_HELPER" inspect > "$inspect_dir/${cname}.json"; then
+        fail "Inspect 隐私投影失败；没有回退导出原始数据。"
+        return 1
+      fi
       echo "  $cname → inspect/${cname}.json"
     fi
   done
@@ -282,6 +311,10 @@ collect_inspect() {
 # 7. 最近工作流运行记录
 # ═════════════════════════════════════════════════════════════════════════════
 collect_recent_runs() {
+  if ! $INCLUDE_SENSITIVE; then
+    hdr "7. 运行记录未收集（可能包含患者/研究数据）"
+    return
+  fi
   hdr "7. 最近工作流运行"
   local out="$DIAG_DIR/recent-runs.txt"
   {
@@ -325,20 +358,7 @@ collect_env_summary() {
       if [[ -f "$envfile" ]]; then
         echo "来源: $envfile"
         echo ""
-        # 脱敏：只保留 KEY=（值部分用 *** 代替，或显示非敏感值）
-        while IFS= read -r line; do
-          # 跳过注释和空行
-          [[ "$line" =~ ^# ]] && { echo "$line"; continue; }
-          [[ -z "$line" ]] && { echo; continue; }
-          key="${line%%=*}"
-          val="${line#*=}"
-          # 敏感字段脱敏
-          if echo "$key" | grep -qiE "password|secret|key|token|credential|api_key"; then
-            [[ -n "$val" ]] && echo "${key}=***已设置***" || echo "${key}=（未设置）"
-          else
-            echo "$line"
-          fi
-        done < "$envfile"
+        python3 "$PRIVACY_HELPER" env "$envfile" || return 1
         break
       fi
     done
@@ -376,7 +396,7 @@ generate_summary() {
     done
     echo ""
     echo "── 前端健康 ──"
-    frontend_health=$(curl -sf --max-time 3 "http://localhost:${FRONTEND_PORT}/api/health" 2>/dev/null && echo "✓ OK" || echo "✗ 无响应")
+    frontend_health=$(curl -sf --max-time 3 -o /dev/null "http://localhost:${FRONTEND_PORT}/api/health" 2>/dev/null && echo "✓ OK" || echo "✗ 无响应")
     echo "  $frontend_health"
     echo ""
     echo "── 错误日志统计 ──"
@@ -392,7 +412,8 @@ generate_summary() {
     find "$DIAG_DIR" -type f | sed "s|$DIAG_DIR/||" | sort
     echo ""
     echo "======================================================"
-    echo "  请将 $PACK_FILE 发送给 BioMate 支持工程师"
+    echo "  请先在客户内网审查：$PACK_FILE"
+    $INCLUDE_SENSITIVE && echo "  SENSITIVE：包含日志/运行数据，未经客户批准禁止外发。"
     echo "======================================================"
   } | tee "$out"
 }
@@ -402,7 +423,7 @@ generate_summary() {
 # ═════════════════════════════════════════════════════════════════════════════
 pack() {
   hdr "10. 打包诊断文件"
-  tar -czf "$PACK_FILE" -C /tmp "biomate-diag-${TIMESTAMP}" 2>/dev/null
+  tar -czf "$PACK_FILE" -C /tmp "$(basename "$DIAG_DIR")" || return 1
   local size
   size=$(du -sh "$PACK_FILE" 2>/dev/null | cut -f1)
   echo ""
@@ -411,10 +432,7 @@ pack() {
   echo -e "${GRN}  大小: ${size}${NC}"
   echo -e "${GRN}════════════════════════════════════════════════${NC}"
   echo ""
-  echo "  发送方式（任选其一）："
-  echo "  ① 直接发给工程师：scp $PACK_FILE <engineer>@<host>:~/"
-  echo "  ② 上传临时分享：curl -F 'file=@$PACK_FILE' https://tmpfiles.org/api/v1/upload"
-  echo "  ③ 微信/钉钉传文件"
+  echo "  使用客户批准的加密渠道；不要上传公共分享服务。"
   echo ""
 }
 
@@ -440,11 +458,11 @@ main() {
   collect_containers
   collect_logs
   collect_api_checks
-  collect_inspect
+  collect_inspect || return 1
   collect_recent_runs
-  collect_env_summary
+  collect_env_summary || return 1
   generate_summary
-  pack
+  if ! $NO_PACK; then pack; fi
 }
 
 main "$@"

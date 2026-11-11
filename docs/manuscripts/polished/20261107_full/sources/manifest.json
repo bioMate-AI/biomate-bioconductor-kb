@@ -1,0 +1,42 @@
+[
+  {
+    "path": "docs/20260817_REALBIO_BENCHMARK_PAPER_DRAFT.md",
+    "sha256": "66528bf67ff7b2a9867f975b8fec57886957401c3dcf445f9c6e81d5595b910a",
+    "words": 5080
+  },
+  {
+    "path": "docs/20261026_PAPER_SUITE_MERGED_v1.md",
+    "sha256": "baa979bc135e840d117338dbaa33b096cac694d3c600a4d2b11e6611b42cb064",
+    "words": 1019
+  },
+  {
+    "path": "docs/20261027_PAPER_REALBIO_WORKFLOW_v2.md",
+    "sha256": "26c3831e05f383fae529bf6b8bf4b5e03983bb88c85c307cd771edcadf14c008",
+    "words": 2298
+  },
+  {
+    "path": "docs/manuscripts/20261027_RealBio_workflow_automation_benchmark.md",
+    "sha256": "b61914c79ca55950fa46cc2d099d4a8bf19023eec8027c7881705c23e556ed83",
+    "words": 3015
+  },
+  {
+    "path": "research_repos/biomate_drug_discovery_paper/manuscript/DRUGDEV_BENCHMARK.md",
+    "sha256": "e515fb5db64ef9b1297602b4002715a86172b73494e6aac2fde792b4c23790ef",
+    "words": 1880
+  },
+  {
+    "path": "docs/manuscripts/20261027_DrugDev_decision_benchmark.md",
+    "sha256": "602c76ad5fd223c9da3a21c001631bfab644b61b41d0f60edf419c6aa16da80c",
+    "words": 2920
+  },
+  {
+    "path": "docs/20261021_DRUGDEV_BENCHMARK_LANDSCAPE_AND_SERIES.md",
+    "sha256": "97e6f6ac8c6b8504dda57be17db41058cd83af65b7d46e6f549e0588074fdcbd",
+    "words": 2607
+  },
+  {
+    "path": "research_repos/flagship_paper/manuscript/supplementary_error_taxonomy.md",
+    "sha256": "da2c50a91ec72e652bfb372433c35d22acf31970e641d6e145c94dfa83629cc8",
+    "words": 1351
+  }
+]

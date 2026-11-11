@@ -24,6 +24,7 @@ import { canonicalTier, canCollaborate, FREE_PROJECT_LIMIT, tierEnforcementEnabl
 import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import { validateRemoteFileUrl } from "./remote-source-validation";
+import { emailService } from "./email-service";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
 import path from "path";
@@ -55,11 +56,23 @@ async function ensureProjectShareTokensTable(): Promise<void> {
       role        TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'editor')),
       created_by  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      expires_at  TIMESTAMPTZ
+      expires_at  TIMESTAMPTZ,
+      -- NULL = the owner's generic /share-link token (one per project; the
+      -- /share-link GET/POST/DELETE endpoints scope to invited_email IS NULL).
+      -- Set = a per-email invite token carrying THAT invite's own role, minted
+      -- by POST /members for an unregistered email. Keeping them distinct is
+      -- what stops a later invite from escalating a still-pending lower-role one.
+      invited_email TEXT
     )
   `);
+  // Idempotent migration for pre-existing single-row installs (their one row is
+  // the generic link → invited_email stays NULL, preserving backward behavior).
+  await pool.query(`ALTER TABLE project_share_tokens ADD COLUMN IF NOT EXISTS invited_email TEXT`);
   await pool.query(`CREATE INDEX IF NOT EXISTS pst_project_idx ON project_share_tokens(project_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS pst_token_idx   ON project_share_tokens(token)`);
+  // Lookups for "the generic link" and "a pending invite to this email" both
+  // filter on (project_id, invited_email); index the pair.
+  await pool.query(`CREATE INDEX IF NOT EXISTS pst_project_email_idx ON project_share_tokens(project_id, invited_email)`);
 }
 ensureProjectShareTokensTable().catch(e => console.error("[project_share_tokens] table init failed:", e?.message ?? e));
 
@@ -108,7 +121,7 @@ async function _getUserRole(
   return r.rows[0].role === 'editor' ? 'editor' : 'viewer';
 }
 
-async function _isOwnerOrEditor(projectId: string, uid: string): Promise<boolean> {
+export async function _isOwnerOrEditor(projectId: string, uid: string): Promise<boolean> {
   const role = await _getUserRole(projectId, uid);
   return role === 'owner' || role === 'editor';
 }
@@ -202,6 +215,16 @@ async function _findProjectFileByName(projectId: string, name: string): Promise<
  *  row (design §4.4 — nothing a finished run read can change underneath it). The
  *  current bytes stay at their existing s3_key; this just records them as a past
  *  version so the new content can take over the project_files row. */
+/** Parse tabular text into headers + rows (capped). Delimiter from the extension,
+ *  else sniffed. Used by the version Compare/diff (design §4.4). */
+function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
+  const e = (ext || "").toLowerCase();
+  const delim = (e === "tsv" || e === "tab") ? "\t" : (e === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
+  const lines = text.split(/\r?\n/).filter((l) => l.length > 0).slice(0, 500);
+  const rows = lines.map((l) => l.split(delim));
+  return { headers: rows[0] || [], rows: rows.slice(1) };
+}
+
 async function _archiveCurrentAsVersion(cur: any, projectId: string, note: string, author: string): Promise<void> {
   await pool.query(
     `INSERT INTO project_file_versions
@@ -277,6 +300,7 @@ ensureProjectActivityTable().catch(e => console.error("[project_activity] table 
 // event_type or payload — both are rendered server-side from known entities.
 export type ProjectActivityEvent =
   | "member_added"
+  | "member_invited"
   | "member_removed"
   | "role_changed"
   | "ownership_transferred"
@@ -317,6 +341,21 @@ export async function recordProjectActivity(
   } catch (e: any) {
     console.error(`[project_activity] record failed (${eventType} on ${projectId}):`, e?.message ?? e);
   }
+}
+
+/** Browsers send no / a generic type for scientific formats (.jsonl arrived as
+ *  application/octet-stream and was then shown as such in the dataset panel). Fill it from the
+ *  extension when the client didn't provide a specific one. */
+const EXT_CONTENT_TYPES: Record<string, string> = {
+  ".jsonl": "application/x-ndjson", ".ndjson": "application/x-ndjson", ".json": "application/json",
+  ".csv": "text/csv", ".tsv": "text/tab-separated-values", ".tab": "text/tab-separated-values",
+  ".txt": "text/plain", ".vcf": "text/x-vcf", ".fasta": "text/x-fasta", ".fa": "text/x-fasta",
+  ".fastq": "text/x-fastq", ".fq": "text/x-fastq", ".yaml": "application/yaml", ".yml": "application/yaml",
+  ".parquet": "application/vnd.apache.parquet", ".h5ad": "application/x-hdf5", ".gz": "application/gzip",
+};
+export function uploadContentType(fileName: string, clientType?: string | null): string {
+  if (clientType && clientType !== "application/octet-stream") return clientType;
+  return EXT_CONTENT_TYPES[path.extname(fileName || "").toLowerCase()] || "application/octet-stream";
 }
 
 export function registerProjectRoutes(app: Express): void {
@@ -704,7 +743,7 @@ export function registerProjectRoutes(app: Express): void {
         const contentHash = createHash("sha256").update(buf).digest("hex");
         const dup = await _findProjectFileByHash(id, contentHash);
         if (dup) return res.status(200).json({ file: dup, deduplicated: true });
-        const ctype = req.file.mimetype || "application/octet-stream";
+        const ctype = uploadContentType(originalName, req.file.mimetype);
         // Versioning (§4.4): re-uploading the SAME NAME with DIFFERENT content writes
         // a NEW version (append-only) rather than a second file. The old bytes stay
         // at their key (archived as a version); the new content takes a versioned key
@@ -728,7 +767,7 @@ export function registerProjectRoutes(app: Express): void {
           `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
            VALUES ($1, $2, $3, $4, $5, $6, 'upload', $7)
            RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-          [id, uid, originalName, key, req.file.size, req.file.mimetype || "application/octet-stream", contentHash]
+          [id, uid, originalName, key, req.file.size, ctype, contentHash]
         );
         await recordProjectActivity(id, uid, "file_added", {
           fileId: ins.rows[0].id,
@@ -887,6 +926,139 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── GET /api/projects/:id/files/:fileId/versions/:versionNo/diff ─────
+  // Compare a past version against the CURRENT one (design §4.4 — "cell-level and
+  // column-level diff against the current version, side by side"). Reads both
+  // versions' bytes (readTextPrefix, capped), parses tabular, and returns the
+  // column set diff + position-aligned changed cells (capped). Non-tabular files
+  // report a metadata-only diff (size/hash differ) honestly.
+  app.get("/api/projects/:id/files/:fileId/versions/:versionNo/diff", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId, versionNo } = req.params;
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const cur = await pool.query(
+        `SELECT name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
+      const tgt = await pool.query(
+        `SELECT s3_key, size, content_hash FROM project_file_versions WHERE file_id = $1 AND version_no = $2`,
+        [fileId, Number(versionNo)]
+      );
+      if (!tgt.rows[0]) return res.status(404).json({ error: "Version not found" });
+      const c = cur.rows[0], t = tgt.rows[0];
+      const identical = Boolean(c.content_hash && t.content_hash && c.content_hash === t.content_hash);
+      const ext = (String(c.name).split(".").pop() || "").toLowerCase();
+      const tabular = ["csv", "tsv", "tab", "txt"].includes(ext);
+      const base = {
+        current: { version: c.version_no, size: Number(c.size) },
+        target: { version: Number(versionNo), size: Number(t.size) },
+        identical,
+        tabular,
+      };
+      if (identical || !tabular) return res.json(base);
+      const CAP = 256 * 1024;
+      const [curText, tgtText] = await Promise.all([
+        s3Service.readTextPrefix(c.s3_key, CAP).catch(() => ""),
+        s3Service.readTextPrefix(t.s3_key, CAP).catch(() => ""),
+      ]);
+      const A = _parseTabular(curText, ext);  // current
+      const B = _parseTabular(tgtText, ext);  // target (older)
+      const added = A.headers.filter((h) => !B.headers.includes(h));
+      const removed = B.headers.filter((h) => !A.headers.includes(h));
+      const changedCells: Array<{ row: number; col: string; from: string; to: string }> = [];
+      const nRows = Math.min(A.rows.length, B.rows.length);
+      const nCols = Math.min(A.headers.length, B.headers.length);
+      for (let i = 0; i < nRows && changedCells.length < 100; i++) {
+        for (let j = 0; j < nCols; j++) {
+          const av = A.rows[i]?.[j] ?? "", bv = B.rows[i]?.[j] ?? "";
+          if (av !== bv) changedCells.push({ row: i, col: A.headers[j] ?? String(j), from: bv, to: av });
+        }
+      }
+      res.json({
+        ...base,
+        columns: { added, removed },
+        rowsCompared: nRows,
+        changedCells,
+        truncated: (A.rows.length >= 500 || B.rows.length >= 500),
+      });
+    } catch (e: any) {
+      console.error("[project_files] diff failed:", e?.message ?? e);
+      res.status(500).json({ error: "Diff failed" });
+    }
+  });
+
+  // ─── POST /api/projects/:id/files/:fileId/edit ────────────────────────
+  // Edit-in-place → write a new version (design §4.3/§4.4 — "saving an edit writes
+  // a new version; it never overwrites"). The preview is only a SAMPLE, so the
+  // client sends cell EDITS {row,col,value} (row = index among the first rows the
+  // user saw); we apply them to the FULL file server-side and version it. Tabular
+  // only, size-capped (10 MiB) — larger files edit in Jupyter/RStudio.
+  app.post("/api/projects/:id/files/:fileId/edit", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    const edits = Array.isArray(req.body?.edits) ? req.body.edits : null;
+    if (!edits || edits.length === 0) return res.status(400).json({ error: "No edits provided" });
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const row = await pool.query(
+        `SELECT name, s3_key, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!row.rows[0]) return res.status(404).json({ error: "File not found" });
+      const cur = row.rows[0];
+      const ext = (String(cur.name).split(".").pop() || "").toLowerCase();
+      if (!["csv", "tsv", "tab", "txt"].includes(ext)) {
+        return res.status(400).json({ error: "Only tabular files (csv/tsv) can be edited in place. Open it in Jupyter/RStudio for other formats." });
+      }
+      const CAP = 10 * 1024 * 1024;
+      const size = await s3Service.getFileSize(cur.s3_key).catch(() => 0);
+      if (size > CAP) return res.status(413).json({ error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
+      const text = await s3Service.readTextPrefix(cur.s3_key, CAP);
+      const delim = (ext === "tsv" || ext === "tab") ? "\t" : (ext === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
+      const keepTrailingNL = /\n$/.test(text);
+      const lines = text.replace(/\n$/, "").split(/\r?\n/);
+      const header = (lines[0] || "").split(delim);
+      let applied = 0;
+      for (const e of edits) {
+        const r = Number(e?.row);               // 0-based DATA row (header excluded)
+        const colName = String(e?.col ?? "");
+        const value = String(e?.value ?? "");
+        const lineIdx = r + 1;                   // +1 for the header line
+        if (!Number.isInteger(r) || r < 0 || lineIdx >= lines.length) continue;
+        const cols = lines[lineIdx].split(delim);
+        let j = header.indexOf(colName);
+        if (j < 0) { const n = Number(colName); j = Number.isInteger(n) ? n : -1; }
+        if (j < 0 || j >= Math.max(cols.length, header.length)) continue;
+        while (cols.length <= j) cols.push("");
+        cols[j] = value;
+        lines[lineIdx] = cols.join(delim);
+        applied++;
+      }
+      if (applied === 0) return res.status(400).json({ error: "None of the edits matched a cell." });
+      const newText = lines.join("\n") + (keepTrailingNL ? "\n" : "");
+      const buf = Buffer.from(newText, "utf-8");
+      const contentHash = createHash("sha256").update(buf).digest("hex");
+      const safeName = String(cur.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+      const vkey = `projects/${id}/inputs/${safeName}.v${cur.version_no + 1}`;
+      await s3Service.putObject(vkey, buf, cur.content_type, uid);
+      await _archiveCurrentAsVersion({ ...cur, id: fileId, size }, id, `v${cur.version_no}`, uid);
+      const upd = await pool.query(
+        `UPDATE project_files SET s3_key = $1, size = $2, content_hash = $3, version_no = version_no + 1 WHERE id = $4
+         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
+        [vkey, buf.length, contentHash, fileId]
+      );
+      await recordProjectActivity(id, uid, "file_versioned", { fileId, name: cur.name, version: cur.version_no + 1, editedCells: applied });
+      res.json({ file: upd.rows[0], versioned: true, editedCells: applied });
+    } catch (e: any) {
+      console.error("[project_files] edit failed:", e?.message ?? e);
+      res.status(500).json({ error: "Edit failed" });
+    }
+  });
+
   // ─── DELETE /api/projects/:id/files/:fileId ───────────────────────────
   app.delete("/api/projects/:id/files/:fileId", authenticateToken, async (req: Request, res: Response) => {
     const uid = userId(req);
@@ -990,8 +1162,49 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const existing = await memoryService.projects.getProject(id);
       if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
-      const invitee = await pool.query(`SELECT id, email, full_name AS "fullName" FROM users WHERE email = $1`, [email.toLowerCase().trim()]);
-      if (!invitee.rows.length) return res.status(404).json({ error: "No user found with that email" });
+      const normEmail = email.toLowerCase().trim();
+      const invitee = await pool.query(`SELECT id, email, full_name AS "fullName" FROM users WHERE email = $1`, [normEmail]);
+      if (!invitee.rows.length) {
+        // New (not-yet-registered) email: mint a PER-INVITE share token that
+        // carries THIS invite's role + the target email, and email it. One
+        // invite box serves both existing members and new people — no separate
+        // "generate link" step, and no 404.
+        //
+        // PROPER FIX (committee review 2026-11-10 — per-invite tokens): we never
+        // reuse or mutate the owner's generic /share-link row (invited_email IS
+        // NULL). Each invite gets its own token keyed on invited_email, so
+        // inviting A as viewer then B as editor leaves A's token at viewer —
+        // the earlier shared-token escalation is gone. If a pending invite to
+        // the SAME email already exists we update THAT row's role in place
+        // (so re-inviting adjusts the pending role) rather than minting a
+        // duplicate; otherwise we insert a fresh per-email token. The
+        // /share-link GET/POST/DELETE endpoints are scoped to invited_email IS
+        // NULL and never touch these per-invite rows.
+        const prior = await pool.query(
+          `SELECT token FROM project_share_tokens WHERE project_id = $1 AND invited_email = $2 LIMIT 1`,
+          [id, normEmail]
+        );
+        let token: string;
+        if (prior.rows.length) {
+          token = prior.rows[0].token;
+          await pool.query(
+            `UPDATE project_share_tokens SET role = $1, created_by = $2 WHERE project_id = $3 AND invited_email = $4`,
+            [role, uid, id, normEmail]
+          );
+        } else {
+          token = randomBytes(18).toString('base64url');
+          await pool.query(
+            `INSERT INTO project_share_tokens (project_id, token, role, created_by, invited_email) VALUES ($1, $2, $3, $4, $5)`,
+            [id, token, role, uid, normEmail]
+          );
+        }
+        const inviter = await pool.query(`SELECT full_name AS "fullName", email FROM users WHERE id::text = $1`, [String(uid)]);
+        const inviterName = inviter.rows[0]?.fullName || inviter.rows[0]?.email || "A BioMate user";
+        const projectName = (existing as any)?.name || "a project";
+        const emailed = await emailService.sendProjectInviteEmail(normEmail, token, projectName, inviterName, role).catch(() => false);
+        await recordProjectActivity(id, uid, "member_invited", { email: normEmail, role, emailed });
+        return res.status(200).json({ invited: true, pending: true, email: normEmail, emailed });
+      }
       const inviteeId = invitee.rows[0].id;
       if (inviteeId === uid) return res.status(400).json({ error: "Cannot invite yourself" });
       await pool.query(
@@ -1124,8 +1337,10 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      // Scope to the generic share link only (invited_email IS NULL); per-invite
+      // tokens are addressed individually and must never surface here.
       const row = await pool.query(
-        `SELECT token, role, created_at, expires_at FROM project_share_tokens WHERE project_id = $1 LIMIT 1`,
+        `SELECT token, role, created_at, expires_at FROM project_share_tokens WHERE project_id = $1 AND invited_email IS NULL LIMIT 1`,
         [id]
       );
       if (!row.rows.length) return res.json({ token: null });
@@ -1149,18 +1364,21 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      // Operate ONLY on the generic link row (invited_email IS NULL). Setting
+      // the share-link role must never mutate a pending per-invite token.
       const existing = await pool.query(
-        `SELECT token, role FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]
+        `SELECT token, role FROM project_share_tokens WHERE project_id = $1 AND invited_email IS NULL LIMIT 1`, [id]
       );
       if (existing.rows.length) {
         // Idempotent on the token, but allow CHANGING the role of the existing
         // link without revoke+regenerate (closes the create-time-only gap).
         if (existing.rows[0].role !== role) {
-          await pool.query(`UPDATE project_share_tokens SET role = $1 WHERE project_id = $2`, [role, id]);
+          await pool.query(`UPDATE project_share_tokens SET role = $1 WHERE project_id = $2 AND invited_email IS NULL`, [role, id]);
         }
         return res.json({ token: existing.rows[0].token, role });
       }
       const token = randomBytes(18).toString('base64url'); // 24-char URL-safe token
+      // invited_email omitted → NULL → this is the generic link.
       await pool.query(
         `INSERT INTO project_share_tokens (project_id, token, role, created_by) VALUES ($1, $2, $3, $4)`,
         [id, token, role, uid]
@@ -1173,7 +1391,9 @@ export function registerProjectRoutes(app: Express): void {
   });
 
   // ─── DELETE /api/projects/:id/share-link ─────────────────────────────────────
-  // Owner only — revokes the share token so the link stops working.
+  // Owner only — revokes the GENERIC share link so that link stops working.
+  // Pending per-invite tokens (invited_email IS NOT NULL) are intentionally left
+  // intact: revoking the public link must not silently cancel individual invites.
   app.delete("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
@@ -1181,7 +1401,7 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
-      await pool.query(`DELETE FROM project_share_tokens WHERE project_id = $1`, [id]);
+      await pool.query(`DELETE FROM project_share_tokens WHERE project_id = $1 AND invited_email IS NULL`, [id]);
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[project_share] revoke failed:", e?.message ?? e);

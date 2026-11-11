@@ -137,6 +137,18 @@ def _env_float(name: str, default: float) -> float:
 
 _INPUT_KIND_MISMATCH_PENALTY: float = _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0)
 
+# Downstream multi-omics INTEGRATION intent (step 8c). A user who ALREADY holds processed/summarised
+# tables (DE tables, protein-abundance tables, count matrices) and wants to INTEGRATE them — overlap,
+# concordant/discordant genes, MOFA, multi-omics integration, pathway enrichment on existing results —
+# must NOT be routed to a RAW-data processing pipeline (nf-core/diaproteomics, raw nf-core/rnaseq
+# alignment, raw mass-spec pipelines). A real multi-omics user (docs/20261109 issue #2, "U-MOFA") had to
+# forbid nf-core/diaproteomics twice because routing keyed on the "proteomics" modality and ignored the
+# "already-processed / integrate existing tables" signal. The penalty is sized to the input-kind term so a
+# raw-only pipeline is disqualified in practice; the boost (bounded) lifts integration workflows over
+# near-ties without overriding a strong exact-name match. Both are env-tunable.
+_INTEGRATION_RAW_PENALTY: float = _env_float("BIOMATE_INTEGRATION_RAW_PENALTY", 25.0)
+_INTEGRATION_WF_BOOST: float = _env_float("BIOMATE_INTEGRATION_WF_BOOST", 6.0)
+
 
 def _enforce_executable() -> bool:
     """executable=0 rows are excluded from search results when on. Default OFF until the stale flags are corrected
@@ -1375,6 +1387,66 @@ class UnifiedWorkflowSearch:
         q = query.lower()
         return any(signal in q for signal in self._RAW_DATA_INTENT_SIGNALS)
 
+    # ── Downstream multi-omics integration intent (step 8c) ───────────────────
+    # Verbs/nouns that signal the user wants to COMBINE / cross-reference existing results
+    # (not generate them from raw data).
+    _INTEGRATION_INTENT_TERMS = (
+        'integrate', 'integration', 'multi-omic', 'multiomic', 'multi omic', 'multi-omics',
+        'cross-omic', 'cross omic', 'joint analysis', 'jointly analys', 'jointly analyz',
+        'mofa', 'concordant', 'discordant', 'concordance', 'discordance',
+        'overlapping gene', 'overlapping protein', 'overlap between', 'overlap of',
+        'overlapping genes/proteins', 'co-inertia', 'coinertia', 'combine omics',
+        'combine the omics', 'data integration', 'integrative analysis',
+    )
+    # Possession signals for ALREADY-processed / summarised tables (not raw instrument data).
+    # These justify the "downstream" read of the integration intent — generic "integrate my data"
+    # with no processed-table signal does NOT fire (it could still be raw), keeping the guard
+    # conservative (hybrid rule-first; one clause must be an explicit table/result possession).
+    _PROCESSED_TABLE_TERMS = (
+        'already processed', 'already-processed', 'pre-processed', 'preprocessed',
+        'processed table', 'processed de', 'processed data', 'processed rna', 'processed count',
+        'processed expression', 'processed proteomic', 'summarized table', 'summarised table',
+        'de table', 'de results', 'de result', 'deg table', 'deg list',
+        'differential expression table', 'differential-expression table',
+        'differential expression result', 'differential-expression result',
+        'differential abundance table', 'differential-abundance table',
+        'differential protein', 'protein-abundance', 'protein abundance',
+        'abundance table', 'abundance matrix', 'count matrix', 'counts matrix',
+        'count table', 'counts table', 'expression matrix', 'proteingroups',
+        'log2fc', 'logfc', 'log2 fold', 'fold-change table',
+        'deseq2 result', 'edger result', 'limma result', 'existing differential',
+    )
+    # Workflow-side signals that a candidate IS a downstream integration / combine route.
+    _INTEGRATION_WF_SIGNALS = (
+        'integration', 'integrate', 'multiomic', 'multi-omic', 'multi omic', 'mofa',
+        'differentialabundance', 'differential abundance', 'concordan', 'co-inertia',
+        'coinertia', 'mixomic', 'iclusterplus', 'intnmf', 'wgcna', 'jive', 'mefisto',
+    )
+    # Workflow domains that are downstream-integration homes for processed tables.
+    _INTEGRATION_WF_DOMAINS = frozenset({'systems_biology'})
+
+    def _detect_integration_intent(self, query: str) -> bool:
+        """True when the user HAS processed/summarised tables AND wants to INTEGRATE them.
+
+        Deterministic guard (rule-first per CLAUDE.md): fires only when BOTH an integration
+        verb/noun AND a processed-table possession signal are present. "Run DIA proteomics on my
+        raw files" (no processed-table term) and "integrate these FASTQ into one pipeline" (no
+        processed-table term) therefore do NOT fire — those correctly stay on the raw pipeline.
+        """
+        q = query.lower()
+        has_integration = any(t in q for t in self._INTEGRATION_INTENT_TERMS)
+        has_processed = any(t in q for t in self._PROCESSED_TABLE_TERMS)
+        return has_integration and has_processed
+
+    def _is_integration_workflow(self, name: str, description: Optional[str],
+                                 domain: Optional[str], tags: Optional[List[str]]) -> bool:
+        """True when a candidate is a downstream multi-omics integration / combine workflow
+        (differentialabundance, MOFA2, iClusterPlus, mixOmics, WGCNA, systems-biology integration)."""
+        if (domain or '').lower() in self._INTEGRATION_WF_DOMAINS:
+            return True
+        hay = f"{name} {description or ''} {' '.join(tags or [])}".lower()
+        return any(sig in hay for sig in self._INTEGRATION_WF_SIGNALS)
+
     @staticmethod
     def _normalise_pipeline_slug(raw: str) -> str:
         return re.sub(r"[^a-z0-9]", "", (raw or "").lower())
@@ -1989,15 +2061,22 @@ class UnifiedWorkflowSearch:
                     score += 2.0
 
         # 8. Input-type compatibility scoring.
+        # The user's input kinds are "known" (a real data shape) when they were SUPPLIED and valid —
+        # whether grounded in the user's actually-attached datasets (data_perception.infer_input_kinds,
+        # threaded from the generate_workflow endpoint) or the intent classifier. A shape derived from
+        # the ATTACHED DATA is authoritative: step 8a's data-grounded compatibility then owns the
+        # raw-vs-processed decision, and the prose keyword guard (8c) stands down (see 8c).
+        _supplied_kinds = self._valid_kinds(user_input_kinds) if user_input_kinds is not None else None
+        _user_shape_known = bool(_supplied_kinds)
         # 8a. Preferred: the closed-vocabulary input_kinds (LLM-labelled per workflow). input_types holds
         # free-form names — channel names or placeholders such as ["input"] for many nf-core pipelines —
         # so a raw-spectra pipeline was never penalised for a processed protein table (2026-11-05).
         # A workflow that accepts both raw and processed kinds is never penalised.
         if input_kinds:
-            # The intent classifier's input_kinds (what the user HAS — not outputs wanted, not data said to be
-            # missing) when supplied; [] means "states no input data". The text regex only as a fallback: it
+            # The supplied input_kinds (what the user HAS — not outputs wanted, not data said to be
+            # missing) when present; [] means "states no input data". The text regex only as a fallback: it
             # cannot tell mentions from possession or handle negation (committee review 2026-11-05).
-            user_kinds = (self._valid_kinds(user_input_kinds) if user_input_kinds is not None
+            user_kinds = (_supplied_kinds if _supplied_kinds is not None
                           else self._query_input_kinds(query))
             if user_kinds:
                 if user_kinds & input_kinds:
@@ -2021,6 +2100,36 @@ class UnifiedWorkflowSearch:
                         score -= 4.0  # user has raw data but workflow needs processed input
                     elif (user_types & self._PROCESSED_TYPES) and not (user_types & self._RAW_TYPES) and (wf_types & self._RAW_TYPES):
                         score -= 4.0  # user has processed data only but workflow needs raw input
+
+        # 8c. Downstream multi-omics integration guard (docs/20261109 issue #2, "U-MOFA").
+        # The guard deterministically detects the "processed tables + integrate" intent from prose
+        # ("integrate my DE tables, find overlapping genes with MOFA") and does TWO things — they are
+        # gated differently (committee review 2026-11-09, finding 4):
+        #   (i) PENALISE raw-only pipelines — FALLBACK ONLY. It fires solely when NO real input-kind
+        #       shape is known (`not _user_shape_known`). When a data shape IS known (e.g. the user
+        #       attached processed abundance TABLES → data_perception maps them to processed kinds),
+        #       step 8a's data-grounded compatibility already demotes the raw pipeline, so 8c stands
+        #       down here to avoid DOUBLE-penalising it.
+        #   (ii) BOOST the downstream integration route — applies REGARDLESS of `_user_shape_known`,
+        #       but only for workflows step 8a cannot up-rank: UNLABELLED ones (input_kinds NULL, so
+        #       8a's `if input_kinds:` skips them). A LABELLED integration workflow is already handled
+        #       by 8a's +3 overlap when the shape is known, so boosting it again would double-count;
+        #       in the prose-only fallback 8a has no shape to act on, so 8c owns the boost there too.
+        # A raw-only pipeline is one whose labelled input_kinds are all raw instrument kinds;
+        # unlabelled workflows are left untouched by the penalty.
+        if self._detect_integration_intent(query):
+            wf_raw_only = bool(input_kinds) and input_kinds <= self._RAW_KINDS
+            if not _user_shape_known:
+                # Prose-only fallback: 8a has no data shape to act on → 8c owns raw-vs-integration.
+                if wf_raw_only:
+                    score -= _INTEGRATION_RAW_PENALTY   # raw pipeline cannot run on processed tables
+                elif self._is_integration_workflow(name, description, workflow_domain, tags):
+                    score += _INTEGRATION_WF_BOOST       # prefer the downstream integration route
+            elif not input_kinds and self._is_integration_workflow(name, description, workflow_domain, tags):
+                # Shape is known → 8a owns the raw penalty (no double-penalty). But 8a can only boost
+                # LABELLED workflows; an UNLABELLED integration workflow is invisible to it and would
+                # otherwise lose its up-rank entirely — so 8c still boosts exactly those here.
+                score += _INTEGRATION_WF_BOOST
 
         # 9. Preferred/legacy tag scoring — steer generic queries toward the AI-backed version
         tags_lower = [t.lower() for t in (tags or [])]

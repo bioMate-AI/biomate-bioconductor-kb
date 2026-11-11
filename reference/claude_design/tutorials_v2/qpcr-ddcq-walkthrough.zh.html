@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · qPCR —— ΔΔCq 相对定量</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:22ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+.tag.ship{background:var(--green-bg); color:var(--green)}
+.tag.open{background:var(--amber-bg); color:var(--amber)}
+.tag.gap{background:var(--red-bg); color:var(--red)}
+
+/* screenshot + teaching split */
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:14px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+/* teaching bullet list */
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">免费试用 · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">仪器教程 · qPCR ΔΔCq 相对定量</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">8</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="32">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>qPCR ΔΔCq 分析</b></div>
+    <div class="kicker">qPCR —— 从原始循环数到相对表达量</div>
+    <h2>一次请求，把一张 Cq 表变成倍数变化。</h2>
+    <p class="caption">你的 qPCR 仪器会为每个孔输出一个 <b>Cq</b> 值——即信号越过阈值时所处的循环数。BioMate 接过这张表，完成标准的 <b>ΔΔCq</b> 相对定量分析：以你的参考基因做归一化，比较处理组与对照组，并给出<b>每个靶基因的倍数变化</b>——在云端计算完成，无需代码，也无需电子表格。</p>
+    <p class="caption sub">整个过程中，你还会留下一份经得起检验的记录：参考基因、对照标签，以及产生每个数字的那些输出。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Cq 表</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>以参考基因归一化</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>处理组对比对照组</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>每个基因的倍数变化</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">问题所在</div>
+    <h2>原始 Cq 不是答案——而手工做 ΔΔCq 又很繁琐。</h2>
+    <p class="caption">你的基因 Cq 为 24，这个数字本身没有任何意义：它取决于加入孔中的样本量、移液操作以及反应效率。要判断一个基因是上调还是下调，这些数字必须先归一化再比较。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · 大量减法</div><h4>每个孔，每个基因</h4><p>每个样本都要用靶基因 Cq 减去参考基因 Cq，再减去对照组均值，最后取 2 的幂。</p></div>
+            <div class="tile"><div class="n">2 · 容易出错</div><h4>一个格子填错</h4><p>一个复制错的公式、一个标错的对照，就会悄悄改变后面所有的倍数变化。</p></div>
+            <div class="tile"><div class="n">3 · 难以佐证</div><h4>没有清晰的记录</h4><p>电子表格往往看不出是哪些基因、哪一组对照得出了某个数字。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">方法本身是标准、成熟的。我们的目标，是每一次都以一致的方式去应用它。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>背景——一句话说清问题</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">开始前要先懂的几个概念</div>
+    <h2>四个概念，就能读懂倍数变化。</h2>
+    <p class="caption">ΔΔCq 是一条由三个简单步骤组成的短链。这四个概念，就把它全讲明白了。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · Cq 值</div><h4>原始的数字</h4><p>一个孔的信号越过那条线时所处的循环数。<b>Cq 越低，说明起始模板越多。</b></p></div>
+            <div class="tile"><div class="n">2 · 参考基因</div><h4>归一化的基准</h4><p>在不同条件之间应当保持不变的基因，例如 GAPDH 或 ACTB。减去它们，就抵消了上样量的差异。</p></div>
+            <div class="tile"><div class="n">3 · ΔΔCq</div><h4>与对照相比</h4><p>每个样本归一化后的值，减去对照组的平均值。结果为零，就表示"与对照相同"。</p></div>
+            <div class="tile"><div class="n">4 · 倍数变化</div><h4>读得懂的答案</h4><p>2 的负 ΔΔCq 次方：2.0 是对照的两倍，0.5 是一半。大约相差一个循环，就是两倍的变化。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">比较的对象始终是处理组对比对照组。倍数变化大于 1，表示在处理组中更高；小于 1，表示更低；接近 1，表示基本不变。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>背景——ΔΔCq 的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">第一步</span> · 你需要提供什么</div>
+    <h2>三样东西，而且都是你早已掌握的。</h2>
+    <p class="caption">除了你在实验设计里早已确定的内容，没有任何别的要配置。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · 一张 Cq 表</div><h4>你导出的数值</h4><p>每个孔一行：样本、靶基因，以及 Cq。任何仪器导出的 CSV 或文本文件都可以。</p></div>
+            <div class="tile"><div class="n">2 · 参考基因</div><h4>哪些用来归一化</h4><p>你设计了引物的那一个或几个参考基因，按名称列出——例如 GAPDH 和 ACTB。</p></div>
+            <div class="tile"><div class="n">3 · 分组</div><h4>哪一组是对照</h4><p>标明对照样本的标签，这样每个处理组样本都能与它们比较。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">生物学重复会让结果更可靠——每组最好三个以上。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>三样输入，别无其他</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">第二步</span> · 一次运行如何进行</div>
+    <h2>用大白话提问；确认；它就跑起来。</h2>
+    <p class="caption">你像对同事交代任务那样描述分析需求——比如，对这张 Cq 表做相对表达分析，处理组对比对照组，参考基因为 GAPDH 和 ACTB。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>大白话请求</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>选用标准 ΔΔCq 方法</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>核对并确认</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>在云端算力上运行</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>标准方法替你选好。</b>BioMate 打开 ΔΔCq 分析，它基于已发表的 Bioconductor NormqPCR 软件包。</span></li>
+            <li><span class="b"></span><span><b>在任何计算开始前，你先核对。</b>参考基因和对照标签会预先填好、可编辑地摆出来，并附上你的 Cq 表。</span></li>
+            <li><span class="b"></span><span><b>然后"确认并运行"。</b>这是一个小型表格的计算，很快就能完成。</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>在你确认之前，什么都不会跑</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — LIVE RESULTS -->
+  <section class="scene" data-seconds="28">
+    <div class="kicker"><span class="st">第三步</span> · 结果 —— 每个靶标的倍数变化</div>
+    <h2>一张表：每个基因变了多少。</h2>
+    <p class="caption">运行返回 ΔΔCq 结果——每个靶基因一个倍数变化，处理组对比对照组。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">结果 · ΔΔCq 倍数变化表</span>
+        <div class="frame"><img src="assets/live/qpcr-results.png" alt="qPCR ΔΔCq 结果 —— 每个靶基因的倍数变化"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>每个靶基因一行，</b>已用你的参考基因做过归一化。</span></li>
+          <li><span class="b gr"></span><span><b>大于 1 表示在处理组中更高；</b>小于 1 表示更低；接近 1 表示基本不变。</span></li>
+          <li><span class="b"></span><span><b>可下载的表格，</b>供你作图或作为补充材料。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>每个靶基因的倍数变化</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">第四步</span> · 如何解读并建立信任</div>
+    <h2>标准的方法、清晰的记录，再加一个好习惯。</h2>
+    <p class="caption">这套计算采用的是已发表的 ΔΔCq 方法，每次运行都以同样的方式执行。真正让它站得住脚的，是你能随结果一并出示的内容。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>检查参考基因。</b>一个可信的结果，其参考基因在各条件下应当看起来平稳。如果它大幅波动，归一化就不可靠。</span></li>
+            <li><span class="b"></span><span><b>重复很重要。</b>来自单个孔的大幅倍数变化只是线索；每组三个以上的重复，它才能构成一个结论。</span></li>
+            <li><span class="b gr"></span><span><b>一份你可以引用的记录。</b>参考基因、对照标签、软件版本以及输出校验值，会一并保存为可复现记录。</span></li>
+            <li><span class="b am"></span><span><b>给第一次运行做个合理性核验。</b>用你自己的数据，把其中一个倍数变化与你手工计算的数值对照一下。这只是良好的做法，也能很快建立起信任。</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>一个你站得住脚的结果</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">一眼看懂的流程</div>
+    <h2 style="font-size:40px">Cq 表 → 指明参考基因与对照 → 运行 → 读倍数变化。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">价值很简单：只需一次请求，原始循环数就能用标准的已发表方法、在云端变成相对表达量，并附上一份你可以在论文或组会上从容出示的记录。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>带来你的 Cq 表</li>
+            <li><span class="k">2</span>指明参考基因和对照标签</li>
+            <li><span class="k">3</span>确认并运行</li>
+            <li><span class="k">4</span>读每个基因的倍数变化；保存好记录</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>输入</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">你的 Cq 表</span></td></tr>
+            <tr><td>方法</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">标准 ΔΔCq</span></td></tr>
+            <tr><td>结果</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">每个基因的倍数变化</span></td></tr>
+            <tr><td>记录</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">可复现记录</span></td></tr>
+          </table>
+          <p class="footnote">无需代码，无需电子表格公式，也无需购买软件授权。请务必用手工计算的数值核对你的第一次运行结果。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

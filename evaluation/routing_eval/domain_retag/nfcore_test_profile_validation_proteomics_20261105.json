@@ -1,0 +1,19 @@
+[
+ {
+  "name": "nf-core/proteomicslfq",
+  "status": "launch_failed",
+  "http": 400,
+  "detail": {
+   "error": "{\"error\":\"missing_required_params\",\"message\":\"Workflow \\\"nf-core/proteomicslfq\\\" needs 4 required parameter(s) before it can run. No compute was launched.\",\"missing\":[{\"name\":\"input\",\"label\":\"Input files (*.raw, *.mzML, *.mzml)\",\"description\":\"Input files (*.raw, *.mzML, *.mzml)\",\"type\":\"string\"},{\"name\":\"database\",\"label\":\"FASTA protein database\",\"description\":\"FASTA protein database\",\"type\":\"string\"},{\"name\":\"labeling_reagent\",\"label\":\"Isobaric label: TMT16plex | TMT11plex | TMT10plex | TMT6pl"
+  }
+ },
+ {
+  "name": "nf-core/diaproteomics",
+  "runId": "23503233-e379-4e5d-b134-33a037ce2b07",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "",
+  "minutes": 2.4
+ }
+]

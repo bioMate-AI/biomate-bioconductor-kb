@@ -1,7 +1,7 @@
 [
   {
     "model": "anthropic/claude-opus-5",
-    "n": 15,
+    "n": 8,
     "decision_acc": 1.0,
     "over_clarify": 0.0,
     "under_clarify": 0.0,
@@ -9,10 +9,18 @@
   },
   {
     "model": "openai/gpt-6.1-sol-pro",
-    "n": 15,
+    "n": 8,
     "decision_acc": 1.0,
     "over_clarify": 0.0,
     "under_clarify": 0.0,
     "outcome": 1.0
+  },
+  {
+    "model": "anthropic/claude-opus-5.5",
+    "n": 8,
+    "decision_acc": 0.875,
+    "over_clarify": 0.0,
+    "under_clarify": 0.0,
+    "outcome": 0.875
   }
 ]

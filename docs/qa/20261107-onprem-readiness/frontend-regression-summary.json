@@ -1,0 +1,10 @@
+{
+  "scope": "local complete frontend Vitest suite, not live on-prem installation",
+  "passed": 2285,
+  "failed": 0,
+  "skipped": 32,
+  "success": true,
+  "source_report": "docs/qa/20261107-onprem-readiness/frontend-vitest-after-reconciliation.json",
+  "source_sha256": "bc587d2074c07a6c931b7f323e16a87d981fff34c84cbecd6a4e522d040917bc",
+  "skips_are_not_passes": true
+}

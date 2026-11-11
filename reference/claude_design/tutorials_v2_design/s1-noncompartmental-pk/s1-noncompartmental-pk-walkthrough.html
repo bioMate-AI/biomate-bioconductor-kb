@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Non-compartmental PK analysis (NCA)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t3">S1 · Non-compartmental PK analysis — a concentration-time curve becomes defensible exposure numbers</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="kicker">For anyone who measures drug concentration over time</div>
+    <h2>You have a concentration-time curve. BioMate turns it into exposure numbers you can defend.</h2>
+    <p class="caption lead">A table of concentration over time becomes defensible exposure numbers — no model fitted.</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>Concentration-time CSV</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Nca Pknca</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Validate the curve</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>AUC · Cmax · t&frac12; · CL · Vd</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Report you can defend</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Exposure is the first question in PK — computed the standard way.</h2>
+    <p class="caption lead">How much drug the body saw, and for how long — read straight off the observed curve.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 820 384" style="width:100%; max-width:900px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <!-- AUC shaded area -->
+          <path d="M90,340 C150,282 210,102 270,90 C360,78 440,172 540,232 C620,276 700,302 760,314 L760,340 Z" fill="#e9f2fd"/>
+          <!-- axes -->
+          <line x1="90" y1="40" x2="90" y2="340" stroke="#d3d8df" stroke-width="2"/>
+          <line x1="90" y1="340" x2="788" y2="340" stroke="#d3d8df" stroke-width="2"/>
+          <!-- terminal slope (dashed) -->
+          <line x1="500" y1="214" x2="802" y2="334" stroke="#94600f" stroke-width="2.6" stroke-dasharray="7 6"/>
+          <!-- concentration-time curve -->
+          <path d="M90,340 C150,282 210,102 270,90 C360,78 440,172 540,232 C620,276 700,302 760,314" fill="none" stroke="#1d5fa6" stroke-width="3.8"/>
+          <!-- Cmax / Tmax guides -->
+          <line x1="90" y1="90" x2="270" y2="90" stroke="#5c6573" stroke-width="1.6" stroke-dasharray="5 5"/>
+          <line x1="270" y1="90" x2="270" y2="340" stroke="#5c6573" stroke-width="1.6" stroke-dasharray="5 5"/>
+          <circle cx="270" cy="90" r="8.5" fill="#1d5fa6"/>
+          <!-- labels -->
+          <text x="300" y="268" text-anchor="middle" font-family="IBM Plex Mono" font-size="22" fill="#1d5fa6" font-weight="600">AUC</text>
+          <text x="284" y="80" font-family="IBM Plex Mono" font-size="18" fill="#1d5fa6" font-weight="600">Cmax</text>
+          <text x="270" y="364" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" fill="#5c6573">Tmax</text>
+          <text x="690" y="286" font-family="IBM Plex Mono" font-size="16" fill="#94600f" font-weight="600">slope &rarr; t&frac12;</text>
+          <text x="440" y="378" text-anchor="middle" font-family="IBM Plex Mono" font-size="15" fill="#5c6573">time (h)</text>
+          <text x="52" y="196" font-family="IBM Plex Mono" font-size="15" fill="#5c6573" transform="rotate(-90 52 196)">concentration</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:24px">
+        <div class="stat"><div class="si tag">HOW MUCH</div><div class="sh">AUC — total exposure</div><div class="sp">The shaded area under the curve.</div></div>
+        <div class="stat"><div class="si tag">HOW HIGH</div><div class="sh">Cmax at Tmax</div><div class="sp">The peak, and when it happened.</div></div>
+        <div class="stat"><div class="si tag">HOW LONG</div><div class="sh">Terminal t&frac12;</div><div class="sp">From the log-linear tail slope.</div></div>
+        <div class="stat"><div class="si tag">HOW FAST</div><div class="sh">CL/F · Vd/F</div><div class="sp">Clearance and apparent volume.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four plain ideas are the whole of NCA.</h2>
+    <p class="caption lead">No compartment model, no differential equation — four things read off the observed curve.</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">THE CURVE</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+          </svg>
+          <div class="gl-lbl">Concentration vs. time — the raw measurement</div></div>
+        <div class="glyph"><div class="n">AUC</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82 L172,92 Z" fill="#e9f2fd"/>
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+          </svg>
+          <div class="gl-lbl">Area under the curve — total exposure</div></div>
+        <div class="glyph"><div class="n">PEAK</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <line x1="86" y1="24" x2="86" y2="92" stroke="#5c6573" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+            <circle cx="86" cy="24" r="6.5" fill="#1d5fa6"/>
+          </svg>
+          <div class="gl-lbl">Cmax &amp; Tmax — height and timing of the peak</div></div>
+        <div class="glyph"><div class="n">TAIL</div>
+          <svg width="186" height="112" viewBox="0 0 186 112">
+            <line x1="18" y1="92" x2="172" y2="92" stroke="#d3d8df" stroke-width="2"/>
+            <path d="M18,92 C44,72 64,26 86,24 C114,22 134,60 172,82" fill="none" stroke="#1d5fa6" stroke-width="3.2"/>
+            <line x1="100" y1="40" x2="182" y2="98" stroke="#94600f" stroke-width="2.8" stroke-dasharray="6 5"/>
+          </svg>
+          <div class="gl-lbl">Terminal slope &rarr; half-life &amp; clearance</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">In BioMate</span> · goal + a CSV → a run</div>
+    <h2>Say the goal, attach a CSV; BioMate routes to Nca Pknca.</h2>
+    <p class="caption lead">A plain-English goal plus a concentration-time CSV — PKNCA runs on cloud compute.</p>
+    <div class="scene-body" style="flex:1 1 auto; align-items:stretch; min-height:0">
+      <figure class="shotcol">
+        <span class="lbl">Live product · the Nca Pknca workflow in BioMate</span>
+        <div class="frame"><img src="../assets/live/nca-live-panel.png" alt="BioMate workflow panel for the Nca Pknca non-compartmental PK workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>Routes to <b>Nca Pknca</b> — tagged <b>Drug Discovery</b>, one phase.</span></li>
+          <li><span class="b"></span><span>One required input: the concentration-time CSV (<b>Input Csv</b>).</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run</b> launches PKNCA on the cloud — nothing to install.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real NCA workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">The input</span> · the concentration-time table</div>
+    <h2>A tidy concentration-time table, plus dose and route.</h2>
+    <p class="caption lead">One row per sample — validated before any computation, so a bad table fails fast.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis">
+        <svg viewBox="0 0 640 196" style="width:100%; max-width:720px; margin:0 auto" preserveAspectRatio="xMidYMid meet">
+          <rect x="20" y="12" width="600" height="44" rx="7" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="1.6"/>
+          <rect x="20" y="60" width="600" height="40" fill="#fff" stroke="#e3e7ec" stroke-width="1.2"/>
+          <rect x="20" y="100" width="600" height="40" fill="#f7f8fa" stroke="#e3e7ec" stroke-width="1.2"/>
+          <rect x="20" y="140" width="600" height="40" fill="#fff" stroke="#e3e7ec" stroke-width="1.2"/>
+          <g font-family="IBM Plex Mono" font-size="17" fill="#1d5fa6" font-weight="600" text-anchor="middle">
+            <text x="80" y="40">subject_id</text><text x="200" y="40">time</text><text x="320" y="40">conc</text><text x="440" y="40">dose</text><text x="560" y="40">route</text>
+          </g>
+          <g font-family="IBM Plex Mono" font-size="16" fill="#323846" text-anchor="middle">
+            <text x="80" y="85">S01</text><text x="200" y="85">0.5</text><text x="320" y="85">12.4</text><text x="440" y="85">100</text><text x="560" y="85">oral</text>
+            <text x="80" y="125">S01</text><text x="200" y="125">2.0</text><text x="320" y="125">48.1</text><text x="440" y="125">100</text><text x="560" y="125">oral</text>
+            <text x="80" y="165">S02</text><text x="200" y="165">1.0</text><text x="320" y="165">35.6</text><text x="440" y="165">100</text><text x="560" y="165">iv</text>
+          </g>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:24px">
+        <div class="stat"><div class="si tag">COLUMNS</div><div class="sh">One row per sample</div><div class="sp"><code>subject_id · time · conc · dose · route</code></div></div>
+        <div class="stat"><div class="si tag">DESIGN</div><div class="sh">Dose &amp; route</div><div class="sp">Route sets extravascular vs. intravascular.</div></div>
+        <div class="stat"><div class="si tag">UNITS</div><div class="sh">Labelled, not guessed</div><div class="sp">Defaults <code>h</code> and <code>ng/mL</code> label the axes.</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:22px; display:flex; align-items:center; justify-content:center; gap:14px"><span class="vflag green">VALIDATE</span> Step 1 floors negative concentrations to zero and rejects negative times.</div>
+    </div>
+  </section>
+
+  <!-- 5 — WHAT NCA COMPUTES -->
+  <section class="scene" data-seconds="52.0">
+    <div class="kicker"><span class="st">The computation</span> · PKNCA, per subject</div>
+    <h2>The standard exposure parameters, computed by convention.</h2>
+    <p class="caption lead">R/PKNCA over the validated curve — per subject, all derived from the data, none fitted.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si tag">AUClast / AUCinf</div><div class="sh">Total exposure</div><div class="sp">Observed, then extrapolated to infinity.</div></div>
+        <div class="stat"><div class="si tag">Cmax</div><div class="sh">The peak</div><div class="sp">Highest observed concentration.</div></div>
+        <div class="stat"><div class="si tag">Tmax</div><div class="sh">Time of peak</div><div class="sp">Read off the sampling points.</div></div>
+      </div>
+      <div class="statrow" style="margin-top:22px">
+        <div class="stat"><div class="si tag">t&frac12;</div><div class="sh">Persistence</div><div class="sp">Terminal half-life from the log-linear tail.</div></div>
+        <div class="stat"><div class="si tag">CL/F</div><div class="sh">Apparent clearance</div><div class="sp">Rate the body removes the drug.</div></div>
+        <div class="stat"><div class="si tag">Vd/F</div><div class="sh">Apparent volume</div><div class="sp">The space the drug spreads into.</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:24px">Method: <b>linear-up / log-down trapezoidal</b> · per subject in <code>nca_results.csv</code>, summarised in <code>nca_summary.json</code></div>
+    </div>
+  </section>
+
+  <!-- 6 — DOSE-RESPONSE CONTEXT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">In context</span> · from exposure to effect</div>
+    <h2>Exposure is half the story — the other half is what it does.</h2>
+    <p class="caption lead">NCA anchors the exposure numbers the dose-selection chain consumes next.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · OBSERVED</div><div class="pc">Concentration curve</div><div class="pt"><span>conc vs. time</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">NCA</span></div>
+        <div class="pstep"><div class="pn">2 · EXPOSURE</div><div class="pc">AUC · Cmax</div><div class="pt"><span class="eg">Nca Pknca</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">fit</span></div>
+        <div class="pstep"><div class="pn">3 · RESPONSE</div><div class="pc">Exposure vs. effect</div><div class="pt"><span class="eg">Exposure Response</span><span>Emax / Hill</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">select</span></div>
+        <div class="pstep"><div class="pn">4 · DOSE</div><div class="pc">A dose rationale</div><div class="pt"><span class="eg">Dose Response</span><span>LL.4 / LL.5</span></div></div>
+      </div>
+      <div class="ploop">&#8626; each link is a real BioMate workflow — NCA produces the exposure the others consume</div>
+    </div>
+  </section>
+
+  <!-- 7 — READING THE PARAMETERS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">Interpretation</span> · each number answers a dosing question</div>
+    <h2>Reading the parameters: each one sets a decision.</h2>
+    <p class="caption lead">The report pairs a log-linear plot and a per-subject table with stated assumptions.</p>
+    <div class="scene-body" style="justify-content:center">
+      <div class="criteria">
+        <div class="crit"><div class="cn">AUC</div><div class="ct">Is exposure adequate?</div><div class="cd">Against a target — and tests dose-proportionality.</div></div>
+        <div class="crit"><div class="cn">Cmax / Tmax</div><div class="ct">How fast, how high?</div><div class="cd">Sharp early peak vs. slow, extended absorption.</div></div>
+        <div class="crit"><div class="cn">t&frac12;</div><div class="ct">How often to dose?</div><div class="cd">Sets the interval and time to steady state.</div></div>
+        <div class="crit"><div class="cn">CL/F · Vd/F</div><div class="ct">Scaling the dose</div><div class="cd">Clearance drives the maintenance dose.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="56.0">
+    <div class="kicker">What NCA is for · the conventions that make it defensible</div>
+    <h2>Defensible because it follows explicit conventions — and gates every run.</h2>
+    <p class="caption lead">NCA summarises the data you have; it hands off to PBPK to predict beyond it.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow">
+        <div class="stat"><div class="si tag">SAMPLING</div><div class="sh">The schedule is the ceiling</div><div class="sp">Tmax can only be a sampled point.</div></div>
+        <div class="stat"><div class="si tag">METHOD</div><div class="sh">Stated assumptions</div><div class="sp">Linear PK, single dose, log-linear tail.</div></div>
+        <div class="stat"><div class="si tag">HANDOFF</div><div class="sh">NCA &rarr; PBPK (S2)</div><div class="sp">Summary first, mechanism when you predict forward.</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">EXTRAP &gt; 20%</span> AUCinf flagged unreliable — the FDA BA/BE convention bounds the extrapolated tail.</div>
+      <div class="sc-note" style="margin-top:16px"><span class="flag amber">&lt; 3 TERMINAL PTS</span> no half-life fitted — the subject is flagged, not guessed.</div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="42.0">
+    <div class="kicker">The value at a glance</div>
+    <h2>A concentration-time curve in. Defensible exposure numbers out.</h2>
+    <p class="caption lead">Validate the curve, compute by convention, gate the result, render a report — on the cloud.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · INPUT</div><div class="pc">Concentration-time CSV</div><div class="pt"><span>subject · time · conc</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">check</span></div>
+        <div class="pstep"><div class="pn">2 · VALIDATE</div><div class="pc">Curve checked</div><div class="pt"><span class="eg">NCA_INPUT_VALIDATION</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">compute</span></div>
+        <div class="pstep"><div class="pn">3 · PKNCA</div><div class="pc">AUC · Cmax · t&frac12;</div><div class="pt"><span class="eg">trapezoidal</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">gate</span></div>
+        <div class="pstep"><div class="pn">4 · QC</div><div class="pc">Extrap · terminal slope</div><div class="pt"><span class="eg">FDA &le; 20%</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">report</span></div>
+        <div class="pstep"><div class="pn">5 · REPORT</div><div class="pc">Defensible, reproducible</div><div class="pt"><span class="eg">nca_report.html</span></div></div>
+      </div>
+      <div class="ploop">&#8634; model-independent — pairs with PBPK (S2) when you need to predict forward</div>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

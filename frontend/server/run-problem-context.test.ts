@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asksAboutRunProblem, runErrorSummary } from './galaxy-assistant';
+import { asksAboutRunProblem, runErrorSummary, runFailureExplanation } from './galaxy-assistant';
 
 // External users asked "why is the run failing?" (3×) and got literature answers; the failure reasons
 // recorded on their runs were "Could not resolve Nextflow script …" and, for nf-core/mag, a log whose
@@ -43,6 +43,51 @@ describe('runErrorSummary', () => {
   });
   it('says so when nothing was recorded', () => {
     expect(runErrorSummary({ error: 'Caused by:' })).toMatch(/no recorded error message/);
+  });
+});
+
+// Issue #3 (2026-11-09): "why is the run failing?" must get a plain-language cause +
+// the input at fault + a next action in ONE message — composed from the run's real
+// error, not a generic "failed" / "resume from last step". runFailureExplanation is
+// what the assistant relays (and what the recent-runs-with-errors block carries).
+describe('runFailureExplanation', () => {
+  it('explains a bad-contrast failure with cause + at-fault column + next action', () => {
+    const e = {
+      status: 'failed',
+      error: 'The following contrast variables are not present in the sample sheet: condition',
+      processes: [{ id: '1', name: 'DIFFERENTIALABUNDANCE', status: 'FAILED' }],
+    };
+    const reply = runFailureExplanation(e)!;
+    expect(reply).toMatch(/Why it failed:/);
+    expect(reply).toMatch(/condition/);           // the specific at-fault column
+    expect(reply).toMatch(/sample ?sheet/i);
+    expect(reply).toMatch(/Next:/);               // concrete next action
+    expect(reply).not.toMatch(/resume from (?:the )?last step/i);
+    expect(reply).not.toMatch(/^failed$/i);
+  });
+
+  it('explains a missing-input-file failure and names the file', () => {
+    const reply = runFailureExplanation({
+      status: 'error',
+      nextflowLog: ['No such file or directory: /data/SRR999_R1.fastq.gz'],
+    })!;
+    expect(reply).toMatch(/could not be found/i);
+    expect(reply).toMatch(/SRR999_R1\.fastq\.gz/);
+    expect(reply).toMatch(/Next:/);
+  });
+
+  it('does not invent a cause for an unknown error — shows the step + raw error', () => {
+    const reply = runFailureExplanation({
+      status: 'failed',
+      error: "Error executing process > 'MYSTERY'\nopaque failure with no rule",
+    })!;
+    expect(reply).toMatch(/MYSTERY/);
+    expect(reply).toMatch(/Error:/);
+    expect(reply).toMatch(/investigate|can't pin/i);
+  });
+
+  it('returns null for a run that did not fail', () => {
+    expect(runFailureExplanation({ status: 'completed' })).toBeNull();
   });
 });
 

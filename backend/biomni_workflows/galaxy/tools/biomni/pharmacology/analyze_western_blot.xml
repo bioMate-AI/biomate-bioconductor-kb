@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_analyze_western_blot" name="Biomni: Analyze Western Blot" version="1.0.0">
     <description>Performs densitometric analysis of Western blot images to quantify relative protein expression.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_western_blot_wrapper.py' --output '$output'

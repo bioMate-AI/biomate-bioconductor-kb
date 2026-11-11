@@ -2507,6 +2507,56 @@ class ResearchAgent:
                     f"outside the search.")
         return answer.rstrip() + "\n\n" + note
 
+    @staticmethod
+    def _is_about_user_runs(question: str) -> bool:
+        """Conservative detector: is the question about the USER'S OWN
+        run / outputs / data (answer from the supplied universe context) rather
+        than a general knowledge/literature question?
+
+        Deliberately NARROW so genuine knowledge questions ("what is the evidence
+        linking APOE4 to Alzheimer's?", "which aligner is best for long reads?")
+        never match and keep their pure-literature answer. Fires only on:
+          - an explicit run-problem/outcome phrasing ("why did my run fail?",
+            "why is it failing?", "what did my run produce?"), or
+          - a first-person possessive (my/our) immediately followed by a
+            run/output noun ("my run", "my last workflow", "my results",
+            "my outputs", "my data"), or
+          - a this/that demonstrative on a run noun ("this run", "that job").
+
+        The possessive branch requires the noun to closely follow my/our (regex),
+        so "in my view, the best results in the literature…" does NOT match.
+        """
+        if not question:
+            return False
+        q = question.lower()
+        # Explicit run-problem / run-outcome phrasings (possessive optional).
+        problem = (
+            "why did it fail", "why did my", "why is it failing", "why is my",
+            "why did the run", "why did my run", "did it fail", "did my run",
+            "why didn't it", "why wasn't it", "what did it produce",
+            "what did my run", "what did my", "where are my results",
+            "where is my output", "what went wrong",
+        )
+        if any(p in q for p in problem):
+            return True
+        # Possessive (my/our) closely followed by a run/output noun.
+        if re.search(
+            r"\b(my|our)\s+(?:\w+\s+){0,2}("
+            r"run|runs|job|jobs|workflow|workflows|pipeline|pipelines|"
+            r"analysis|analyses|execution|executions|result|results|"
+            r"output|outputs|report|reports|finding|findings|data|"
+            r"dataset|datasets)\b",
+            q,
+        ):
+            return True
+        # This/that demonstrative on a run noun.
+        if re.search(
+            r"\b(this|that)\s+(run|job|workflow|pipeline|analysis|execution)\b",
+            q,
+        ):
+            return True
+        return False
+
     def _build_synthesis_prompt(
         self,
         question: str,
@@ -2516,6 +2566,45 @@ class ResearchAgent:
     ) -> str:
         """Build the prompt for LLM synthesis."""
         prompt_parts = []
+
+        # ── Universe context (the user's OWN workspace state) ─────────────────
+        # The frontend threads the user's recent-runs block (status · outputs ·
+        # failed-run diagnosis) + standing memory in as context['user_context'].
+        # When the question is about the user's OWN run/data, THIS is the primary
+        # source: the answer must come from the recorded run state, not general
+        # literature. Only injected (and only made primary) when the conservative
+        # detector fires — a genuine knowledge question keeps its literature answer
+        # and never has this block forced into it.
+        user_ctx = None
+        if isinstance(context, dict):
+            _uc = context.get("user_context")
+            if _uc and str(_uc).strip():
+                user_ctx = str(_uc).strip()
+        run_referential = bool(user_ctx) and self._is_about_user_runs(question)
+
+        if run_referential:
+            prompt_parts.append(
+                "<universe_context>\n"
+                "This is the user's OWN workspace state — their recent workflow runs "
+                "(each line: run id · workflow · status · date · N outputs, and for a "
+                "FAILED run a plain-language diagnosis: cause · at-fault input · next "
+                "action, from the run's own recorded error) and standing memory. The "
+                "user's question is about THEIR OWN run/data, so THIS is your PRIMARY "
+                "source.\n"
+                "- Answer directly from this block: state the specific run's status, "
+                "what it produced, or why it failed, using the EXACT status / outcome / "
+                "recorded error shown here.\n"
+                "- Treat any literature below as SECONDARY background only. NEVER cite a "
+                "paper as the reason a specific run failed, and never substitute a "
+                "literature finding for the recorded status/error.\n"
+                "- If this block does NOT contain what was asked (the run isn't here, or "
+                "no cause was recorded), say so plainly (e.g. \"your run records here "
+                "don't show that\") and only THEN add general literature background, "
+                "clearly marked as general. Do NOT invent a run status, output, or "
+                "failure cause that is not written here.\n\n"
+                f"{user_ctx[:8000]}\n"
+                "</universe_context>"
+            )
 
         # Attached paper content — HIGHEST priority source.
         # When the user has provided a PDF, the LLM must reason from this first.
@@ -2752,9 +2841,20 @@ class ResearchAgent:
             )
             prompt_parts.append(figure_section)
 
-        # Add context if available
+        # Add context if available. user_context (the user's runs/memory block) is
+        # handled explicitly as <universe_context> above when the question is about
+        # the user's own runs; it is kept OUT of this generic dump either way — it
+        # carries its own strong "answer from this, not literature" directive, so
+        # dumping it verbatim into a pure-literature question would wrongly suppress
+        # the literature answer. Remaining keys (domain, information_need, …) stay as
+        # lightweight background.
         if context:
-            prompt_parts.append(f"## Context\n{json.dumps(context, indent=2)}")
+            bg_context = (
+                {k: v for k, v in context.items() if k != "user_context"}
+                if isinstance(context, dict) else context
+            )
+            if bg_context:
+                prompt_parts.append(f"## Context\n{json.dumps(bg_context, indent=2)}")
 
         # Retrieved literature — inject the ACTUAL papers as a NUMBERED list so the
         # model cites real sources ([N]) instead of inventing citations from memory.
@@ -2855,6 +2955,26 @@ Provide a concise, evidence-based answer to the research question.
 
 Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers.
 """ + _CONFLICT_INSTRUCTION
+
+        # Universe-first override: the question is about the user's OWN run/data, so
+        # the primary task is to answer it from <universe_context> above. This is
+        # prepended to whichever instruction variant (deep / normal) so it takes
+        # precedence over the generic literature-synthesis guidance.
+        if run_referential:
+            instructions = (
+                "## PRIMARY TASK — answer from the user's own workspace\n"
+                "The user is asking about THEIR OWN run/data (see <universe_context> "
+                "above). Answer that FIRST and directly from the universe context: give "
+                "the specific run's status, its outputs, or its failure cause / at-fault "
+                "input / next action exactly as recorded there, quoting the recorded "
+                "status/error rather than paraphrasing it away. NEVER attribute a specific "
+                "run's failure to a paper or literature finding. If the universe context "
+                "does not contain what was asked, say so plainly and then you may add "
+                "general literature background, clearly marked as general (not about their "
+                "run). The literature-citation rules below still apply to any general "
+                "background you add.\n\n"
+                + instructions
+            )
 
         prompt_parts.append(f"""
 ## Research Question

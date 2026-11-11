@@ -2,7 +2,7 @@
 <tool id="biomni_biophysics_predict_protein_disorder_regions" name="Biomni: Predict Protein Disorder Regions" version="1.0.0">
     <description>Predicts intrinsically disordered regions (IDRs) in a protein sequence using IUPred2A.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/predict_protein_disorder_regions_wrapper.py' --output '$output'

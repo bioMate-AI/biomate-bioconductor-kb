@@ -12,13 +12,9 @@
 # Usage:
 #   scripts/setup_github_env.sh <source-env-file> [--dry-run] [--repo owner/name]
 #
-# Source-of-value priority (pick the most authoritative .env you have):
-#   1. The WORKING dev EC2 /opt/biomate/.env  ← most correct (values proven live)
-#         dump it first, e.g. via SSM:
-#         aws ssm send-command --document-name AWS-RunShellScript \
-#           --parameters 'commands=["cat /opt/biomate/.env"]' ...  > opt-biomate.env
-#   2. env-files/frontend/.env + backend/.env  ← dev values; localhost DATABASE_URL
-#         / REDIS_URL / GALAXY_URL are WRONG for the EC2 containers — override them.
+# Use an approved, owner-readable source file or secret-manager export. Never
+# print a live .env through SSM, CI logs, screenshots or chat. Check that values
+# belong to the intended deployment; local URLs are not container endpoints.
 #
 # Empty values are skipped (never overwrite a configured secret with blank).
 # Re-running is safe (gh updates existing secrets/variables in place).
@@ -59,7 +55,8 @@ if [[ "$DRY_RUN" == false ]]; then
   fi
 fi
 
-# Sensitive vars → GitHub Secrets. Everything else in the manifest → Variables.
+# Only explicitly reviewed non-sensitive settings become Variables. Unknown
+# names default to Secrets: adding a new API key cannot silently publish it.
 #
 # INVARIANT: GALAXY_JWT_SECRET (used by the Node billing proxy in server/routes.ts
 # to re-sign the JWT it forwards to Galaxy) MUST equal the Galaxy backend's
@@ -79,14 +76,32 @@ SECRETS=(
 is_secret() {
   local n="$1"
   for s in "${SECRETS[@]}"; do [[ "$s" == "$n" ]] && return 0; done
-  return 1
+  case "$n" in
+    *KEY*|*SECRET*|*PASSWORD*|*TOKEN*|*CREDENTIAL*|*LICENSE*) return 0 ;;
+  esac
+  for s in "${PUBLIC_VARIABLES[@]}"; do [[ "$s" == "$n" ]] && return 1; done
+  return 0
 }
+
+PUBLIC_VARIABLES=(
+  GALAXY_URL AWS_REGION S3_BUCKET_NAME NODE_ENV APP_URL CORS_ORIGINS FORCE_HTTPS
+  ENABLE_HSTS LAGO_API_URL JAVA_BILLING_SERVICE_URL JAVA_BILLING_ENABLED BILLING_DEV_MODE
+  AWS_S3_NEXTFLOW_BUCKET AWS_S3_BUCKET AWS_DEFAULT_REGION AWS_BATCH_QUEUE GPU_BATCH_QUEUE
+  NEXTFLOW_USE_AWS BIOMATE_NF_PROFILE POSTGRES_DB POSTGRES_USER EMAIL_HOST EMAIL_PORT
+  EMAIL_SECURE EMAIL_USER EMAIL_FROM BIOMATE_INTENT_MODEL BIOMATE_RESPONSE_MODEL
+  BIOMATE_CHAT_VIA_CHAIN BIOMATE_MULTITASK_DAG_ENABLED BIOMATE_PATTERN_ROUTER_ENABLED
+  ADMIN_ALERT_EMAIL CRYOSPARC_AMI_ID CRYOSPARC_HOST CRYOSPARC_PORT CRYOSPARC_EMAIL
+  CRYOSPARC_INSTANCE_REGION CRYOSPARC_INSTANCE_TYPE CRYOSPARC_MOVIES_S3
+  CRYOSPARC_PROJECT_DIR CRYOSPARC_DEFAULT_MOVIE_DIR CRYOSPARC_SSH_USER
+  JWT_EXPIRY REDIS_PORT DATABASE_PATH
+)
 
 get_value() { sed -n "s/^$1=//p" "$SOURCE_ENV" | head -n1; }
 
 set_secret=0; set_var=0; skipped=0
 while read -r name _req _; do
   [[ -z "$name" || "$name" == \#* ]] && continue
+  [[ "$name" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "Invalid manifest name" >&2; exit 1; }
   val="$(get_value "$name")"
   if [[ -z "$val" ]]; then
     skipped=$((skipped+1)); continue
@@ -96,10 +111,17 @@ while read -r name _req _; do
   else
     kind="variable"
   fi
+  # Credential-bearing URLs must not become public even under a reviewed name.
+  # Query/fragment credentials have too many spellings (API_KEY, Sig, encoded
+  # names, vendor-specific parameters) for a safe small-name denylist. Keep any
+  # URL carrying them private, even under an otherwise public setting name.
+  if [[ "$val" =~ ://[^/]*@ ]] || [[ "$val" == *://* && ( "$val" == *\?* || "$val" == *\#* ) ]]; then
+    kind="secret"
+  fi
   if [[ "$DRY_RUN" == true ]]; then
     printf 'WOULD set %-9s %s\n' "$kind" "$name"
   else
-    gh "$kind" set "$name" --body "$val" "${REPO_ARG[@]}"
+    printf '%s' "$val" | gh "$kind" set "$name" "${REPO_ARG[@]}"
     printf 'set %-9s %s\n' "$kind" "$name"
   fi
   [[ "$kind" == secret ]] && set_secret=$((set_secret+1)) || set_var=$((set_var+1))
@@ -107,4 +129,6 @@ done < "$MANIFEST"
 
 echo ""
 echo "Done. secrets=$set_secret variables=$set_var skipped(empty)=$skipped"
-[[ "$DRY_RUN" == true ]] && echo "(dry-run — nothing was changed)"
+if [[ "$DRY_RUN" == true ]]; then
+  echo "(dry-run — nothing was changed)"
+fi

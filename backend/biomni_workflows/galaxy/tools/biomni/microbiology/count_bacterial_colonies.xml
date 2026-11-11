@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_count_bacterial_colonies" name="Biomni: Count Bacterial Colonies" version="1.0.0">
     <description>Count bacterial colonies from an image of agar plate using computer vision techniques.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/count_bacterial_colonies_wrapper.py' --output '$output'

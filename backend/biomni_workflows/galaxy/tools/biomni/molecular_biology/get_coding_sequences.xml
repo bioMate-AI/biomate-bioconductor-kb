@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_get_coding_sequences" name="Biomni: Get Coding Sequences" version="1.0.0">
     <description>Extract coding sequences from RefSeq record.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_coding_sequences_wrapper.py' --output '$output'

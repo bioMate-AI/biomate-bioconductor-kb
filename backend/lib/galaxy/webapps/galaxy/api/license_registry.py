@@ -107,18 +107,61 @@ LICENSE_REGISTRY: Dict[str, Dict[str, Any]] = {
     # Phase 3: licensed MD / drug-discovery tools
     # ------------------------------------------------------------------
     "amber": {
-        "display_name": "AMBER",
+        "display_name": "AMBER (pmemd.cuda)",
         "vendor": "University of California San Diego",
-        "type": "license_agreement",    # no runtime key -- free academic since Amber24
+        # BYOL container image: pmemd / pmemd.cuda is the LICENSED AMBER engine and is NOT part of
+        # free AmberTools, so BioMate's image does not contain it. A user who holds an AMBER licence
+        # supplies their own image with pmemd.cuda; the executor passes it to the workflow as
+        # AMBER_PMEMD_CONTAINER (-> params.pmemd_container). Credential shape: {container_image}.
+        "type": "license_image",
         "registration_url": "https://ambermd.org/GetAmber.php",
-        "approval_time": "instant (web form)",
-        "cost": "free (academic/non-profit); $500–$2,000/yr commercial",
+        "approval_time": "instant (web form) for the licence; you build/push the pmemd image",
+        "cost": "free (academic/non-profit) licence; $500–$2,000/yr commercial",
         "container_patterns": ["pmemd", "amber24", "ambertools", "amber-cuda"],
-        # No env_key: BioMate ships pmemd in its ECR image; no user action needed
+        "env_key_image": "AMBER_PMEMD_CONTAINER",
+        # No image provided -> the AMBER workflows run EQUILIBRATION/PRODUCTION_MD in OpenMM 8 on the
+        # GPU from the same AMBER prmtop/rst7 (md_engine=auto). So this is advisory, never blocking
+        # (see has_fallback for 'amber' in credentials_api.get_license_requirements).
+        "user_must_provide": True,
         "open_alternatives": [
-            {"id": "openmm", "label": "OpenMM", "note": "Python API, GPU, free, slightly slower"},
+            {"id": "openmm", "label": "OpenMM 8 (default)", "note": "GPU, free; runs the AMBER-prepared system natively (ff19SB/GAFF2/TIP3P, PME, Langevin, MC barostat). Used automatically when no pmemd image is supplied."},
             {"id": "gromacs", "label": "GROMACS", "note": "Free, HPC-optimized, wide FF support"},
         ],
+    },
+    "netmhc": {
+        "display_name": "NetMHCpan / NetMHCIIpan",
+        "vendor": "DTU Health Tech",
+        # BYOL: the NetMHC tools are free for academic/non-profit use but CANNOT be redistributed,
+        # so BioMate's image does not contain them. A user who accepts the DTU academic licence
+        # downloads the tarball and supplies its URI; the executor flows it into the epitopeprediction
+        # workflow as params.netmhcpan_path / params.netmhciipan_path (the params the run + validator
+        # already consume). Credential shape: {netmhcpan_path, netmhciipan_path} — each an s3:// URI
+        # to the licensed tarball (either/both; class II needs netMHCIIpan).
+        "type": "license_file",
+        "registration_url": "https://services.healthtech.dtu.dk/software.php",
+        "approval_time": "instant–~1 day (academic web form + e-mailed download link)",
+        "cost": "free (academic/non-profit licence); commercial licence negotiated separately",
+        "container_patterns": ["netmhcpan", "netmhciipan", "netmhc", "epitopeprediction"],
+        # Executor reads these credential keys and sets the matching params (see nextflow_executor).
+        "cred_key_netmhcpan": "netmhcpan_path",
+        "cred_key_netmhciipan": "netmhciipan_path",
+        "user_must_provide": True,
+        # Class I has a license-free path; class II (HLA-DR/DP/DQ) does NOT — it requires this BYOL
+        # licence, since there is no redistributable class-II predictor equivalent to NetMHCIIpan.
+        "open_alternatives": [
+            {"id": "mhcflurry", "label": "MHCflurry 2 (class I only)",
+             "note": "License-free class-I peptide×HLA binding — workflow immunology/mhc_binding_prediction. "
+                     "No open class-II equivalent; HLA class II requires this NetMHCIIpan BYOL licence."},
+        ],
+        "byol_instructions": (
+            "1. Register at DTU Health Tech (https://services.healthtech.dtu.dk/software.php), "
+            "accept the academic licence (free for non-profit). "
+            "2. Download the netMHCpan and/or netMHCIIpan tarball from the e-mailed link. "
+            "3. Upload the tarball to your BioMate storage (an s3:// URI). "
+            "4. Enter the URI(s) in Settings → Credentials → NetMHC. "
+            "Class II (HLA-DR/DP/DQ) requires netMHCIIpan; for class I you can instead use the "
+            "license-free MHCflurry workflow (no credential)."
+        ),
     },
     "schrodinger": {
         "display_name": "Schrödinger Suite",

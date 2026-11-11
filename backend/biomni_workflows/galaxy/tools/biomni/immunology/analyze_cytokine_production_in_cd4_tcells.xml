@@ -2,7 +2,7 @@
 <tool id="biomni_immunology_analyze_cytokine_production_in_cd4_tcells" name="Biomni: Analyze Cytokine Production In Cd4 Tcells" version="1.0.0">
     <description>Analyze cytokine production (IFN-γ, IL-17) in CD4+ T cells after antigen stimulation.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_cytokine_production_in_cd4_tcells_wrapper.py' --output '$output'

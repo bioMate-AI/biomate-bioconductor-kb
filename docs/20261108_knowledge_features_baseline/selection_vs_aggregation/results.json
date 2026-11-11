@@ -1,0 +1,32 @@
+{
+  "protocol": "selection_vs_aggregation_leave_tissue_out",
+  "n_member": 1995,
+  "interpreter": "3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]",
+  "platform": "Linux-6.11.0-1016-nvidia-aarch64-with-glibc2.39",
+  "rows": [
+    {
+      "tissue": "lung",
+      "n_test": 902,
+      "n_pos": 125,
+      "raw": 0.8434946644245324,
+      "raw_knowgenes": 0.8448162949514303,
+      "know_pc": 0.8214809068059762,
+      "know_rich": 0.8062565261780233,
+      "raw_knowgenes_minus_raw": 0.0013216305268979323,
+      "know_pc_minus_raw": -0.022013757618556173,
+      "know_rich_minus_raw": -0.03723813824650901
+    },
+    {
+      "tissue": "spleen",
+      "n_test": 3165,
+      "n_pos": 267,
+      "raw": 0.6987830724405174,
+      "raw_knowgenes": 0.6986843436236863,
+      "know_pc": 0.6670355732550401,
+      "know_rich": 0.6910128938543411,
+      "raw_knowgenes_minus_raw": -9.872881683115065e-05,
+      "know_pc_minus_raw": -0.03174749918547726,
+      "know_rich_minus_raw": -0.007770178586176346
+    }
+  ]
+}

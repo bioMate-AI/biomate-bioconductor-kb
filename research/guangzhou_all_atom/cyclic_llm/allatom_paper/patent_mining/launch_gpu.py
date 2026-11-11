@@ -6,14 +6,41 @@ AMI = "ami-04f7da1c787a89267"; SG = "sg-0de9af2d4437a8c90"
 SUBNETS = ["subnet-0254e4c3634b41bfc", "subnet-03b277a7a08d388c1", "subnet-09e4dce46682a6c60"]
 TYPES = ["g6.2xlarge", "g5.2xlarge", "g6.xlarge", "g5.xlarge", "g6e.xlarge", "g6e.2xlarge", "g5.4xlarge", "g6.4xlarge"]
 UD = r'''#!/bin/bash
+set -Eeuo pipefail
 P=__P__
 mkdir -p /w/out /w/code && cd /w
+finish() {
+  rc=$?
+  trap - EXIT
+  set +e
+  if [ "$rc" -eq 0 ]; then
+    printf '{"status":"success","exit_code":0}\n' > /w/out/terminal_status.json
+    printf DONE > /w/out/done.flag
+  else
+    rm -f /w/out/done.flag
+    printf '{"status":"failed","exit_code":%s}\n' "$rc" > /w/out/terminal_status.json
+  fi
+  aws s3 sync /w/out "$P/" --only-show-errors
+  sync_rc=$?
+  if [ "$sync_rc" -ne 0 ]; then
+    if [ "$rc" -eq 0 ]; then rc=$sync_rc; fi
+    rm -f /w/out/done.flag
+    printf '{"status":"failed","exit_code":%s,"sync_failed":true}\n' "$rc" > /w/out/terminal_status.json
+    aws s3 rm "$P/done.flag" --only-show-errors || true
+    aws s3 sync /w/out "$P/" --only-show-errors || true
+  fi
+  if [ -n "${SYNC:-}" ]; then kill "$SYNC" 2>/dev/null; fi
+  shutdown -h now
+  exit "$rc"
+}
+trap finish EXIT
 shutdown -h +180
 exec > >(tee -a /w/out/boot.log) 2>&1
 echo "boot $(date -u +%FT%TZ) $(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
-( while true; do aws s3 sync /w/out $P/ --only-show-errors; sleep 30; done ) &
+( while true; do aws s3 sync /w/out $P/ --only-show-errors || true; sleep 30; done ) &
 SYNC=$!
-aws s3 cp __CODE__ /w/code.tgz --only-show-errors && tar xzf /w/code.tgz -C /w/code
+aws s3 cp __CODE__ /w/code.tgz --only-show-errors
+tar xzf /w/code.tgz -C /w/code
 aws s3 cp __CORPUS__ /w/corpus.jsonl.gz --only-show-errors
 cd /w/code
 nvidia-smi --query-gpu=name,memory.total --format=csv | tee /w/out/gpu.txt
@@ -30,8 +57,7 @@ python extract_patents.py --corpus /w/corpus.jsonl.gz --outdir /w/out/extract __
 T1=$(date +%s)
 HRS=$(python -c "print(round(($T1-$T0)/3600,3))")
 python postprocess.py --extract /w/out/extract --corpus /w/corpus.jsonl.gz --out /w/out/pilot --bindingdb /w/bd.zip --cmpdb /w/code/annotations.csv.gz --cost-hours $HRS --cost-rate 0.0 > /w/out/postprocess.log 2>&1; echo "post rc=$?" | tee -a /w/out/stage.log
-echo DONE > /w/out/done.flag; aws s3 sync /w/out $P/ --only-show-errors
-kill $SYNC; shutdown -h now
+exit 0
 '''
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("run_id"); ap.add_argument("corpus"); ap.add_argument("--max-patents", type=int, default=0)

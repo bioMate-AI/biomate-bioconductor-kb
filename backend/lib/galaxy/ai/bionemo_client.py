@@ -92,6 +92,23 @@ _FUNCTIONS = {
     "vista3d":            ("72311276-923f-4478-a506-d5b80914728a", "bc599fe9-4814-43a2-a5ae-bf98cc9d5755"),
 }
 
+# ── Hosted API (health.api.nvidia.com) routes ─────────────────────────────────
+# NVIDIA retired direct NVCF pexec invocation for these functions: every call to
+# _NVCF_BASE/<fn_id> returned 410 Gone (dev, 2026-11-10 — the whole "Run a model"
+# panel failed). The public hosted routes below were each verified live with a real
+# inference on 2026-11-10. A model listed here is invoked ONLY via its hosted route.
+#   AlphaFold2: hosted endpoint end-of-life 2026-09-24 (NVIDIA 410) — not listed.
+#   OpenFold2: route returned NVIDIA-side 500 (CUDA launch failure) on 2026-11-10 —
+#              listed; the error is surfaced, not masked.
+_HOSTED_BASE = "https://health.api.nvidia.com/v1"
+_HOSTED_STATUS = "https://health.api.nvidia.com/v1/status"
+_HOSTED_PATHS = {
+    "boltz2":    "/biology/mit/boltz2/predict",
+    "openfold2": "/biology/openfold/openfold2/predict-structure-from-msa-and-template",
+    "evo2_7b":   "/biology/arc/evo2-7b/generate",
+    "evo2_40b":  "/biology/arc/evo2-40b/generate",
+}
+
 # ── Self-host NIM path map ────────────────────────────────────────────────────
 # Per-model HTTP path appended to BIONEMO_SELF_HOST_URL when a NIM is
 # self-hosted. NIM containers expose a REST route per model; the exact route
@@ -139,6 +156,18 @@ def _resolve_mode(mode: Optional[str], self_host_url: str, api_key: str) -> str:
         return MODE_HOSTED_API
     return MODE_STUB
 
+
+
+def _error_detail(resp) -> str:
+    """Short human-readable reason from an NVIDIA error response (problem+json 'detail'
+    or 'title'); the old code logged an empty string for 410 bodies."""
+    try:
+        j = resp.json()
+        if isinstance(j, dict):
+            return str(j.get("detail") or j.get("title") or j.get("error") or j)[:300]
+        return str(j)[:300]
+    except Exception:  # noqa: BLE001
+        return (resp.text or "")[:300]
 
 class BioNeMoClient:
     """Thin client for NVIDIA BioNeMo NIM biology models (self-host / hosted / stub)."""
@@ -218,6 +247,8 @@ class BioNeMoClient:
         if eff == MODE_SELF_HOST:
             return self._self_host_call(model, payload)
         # hosted_api
+        if model in _HOSTED_PATHS:
+            return self._hosted_call(model, payload, poll_seconds=poll_seconds)
         if model not in _FUNCTIONS:
             raise RuntimeError(f"BioNeMo hosted_api: no NVCF function id for {model!r}")
         return self._nvcf_call(model, payload, poll_seconds=poll_seconds)
@@ -279,6 +310,20 @@ class BioNeMoClient:
 
     # ── Low-level NVCF call with polling (hosted_api mode) ────────────────────
 
+    def _hosted_call(self, model: str, payload: dict, poll_seconds: int = 60) -> dict:
+        """POST to the model's public hosted route; 202 → poll the hosted status URL."""
+        url = f"{_HOSTED_BASE}{_HOSTED_PATHS[model]}"
+        resp = self._session.post(url, json=payload, headers={"NVCF-POLL-SECONDS": str(poll_seconds)},
+                                  timeout=self.timeout)
+        if resp.status_code == 200:
+            return resp.json()
+        if resp.status_code == 202:
+            req_id = resp.headers.get("NVCF-REQID") or resp.headers.get("nvcf-reqid")
+            if not req_id:
+                raise RuntimeError(f"BioNeMo {model}: 202 without NVCF-REQID")
+            return self._poll(req_id, status_base=_HOSTED_STATUS)
+        raise RuntimeError(f"BioNeMo {model} error {resp.status_code}: {_error_detail(resp)}")
+
     def _nvcf_call(self, model: str, payload: dict, poll_seconds: int = 60) -> dict:
         """
         POST to NVCF function; handle both sync (200) and async (202) responses.
@@ -306,14 +351,10 @@ class BioNeMoClient:
                 raise RuntimeError("NVCF 202 but no NVCF-REQID header")
             return self._poll(req_id)
 
-        try:
-            err = resp.json()
-        except Exception:
-            err = resp.text
-        raise RuntimeError(f"BioNeMo {model} error {resp.status_code}: {err}")
+        raise RuntimeError(f"BioNeMo {model} error {resp.status_code}: {_error_detail(resp)}")
 
-    def _poll(self, req_id: str) -> dict:
-        poll_url = f"https://api.nvcf.nvidia.com/v2/nvcf/pexec/status/{req_id}"
+    def _poll(self, req_id: str, status_base: str = "https://api.nvcf.nvidia.com/v2/nvcf/pexec/status") -> dict:
+        poll_url = f"{status_base}/{req_id}"
         deadline = time.time() + self.timeout
         while time.time() < deadline:
             r = self._session.get(poll_url, timeout=30)

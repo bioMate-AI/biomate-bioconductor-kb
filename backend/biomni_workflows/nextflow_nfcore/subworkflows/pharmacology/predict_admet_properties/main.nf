@@ -24,6 +24,10 @@ params.ADMET_model_type = 'MPNN'
 // the expensive ADMET-AI inference runs as one parallel Batch job per shard.
 // N <= admet_shard_size  →  exactly one shard  →  identical to single-job behavior.
 params.admet_shard_size = 25
+// Gate for the passed_compounds.smi handoff (e.g. ADMET -> docking): a compound passes when its
+// ADMET-AI hERG and DILI probabilities are at or below these cutoffs.
+params.herg_pass_prob = 0.5
+params.dili_pass_prob = 0.9   // lenient: ADMET-AI DILI baseline is high; hERG is the primary cardio gate
 
 // ── MAP: run ADMET-AI (Chemprop) inference on one shard of SMILES ─────────────
 // Emits raw per-compound rows only; NO aggregation here (that lives in the reduce).
@@ -31,7 +35,7 @@ process ADMET_INFER_SHARD {
     tag "$meta.id"
     label 'process_medium'
 
-    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest')
+    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86' : 'biomate/admet:latest')
 
     input:
     tuple val(meta), val(smiles_json)
@@ -97,10 +101,10 @@ process PREDICT_ADMET_PROPERTIES {
     // so outputs attribute to the real step instead of a phantom "run" step.
     publishDir path: "${params.outdir}/02_predict_admet_properties", mode: 'copy'
 
-    // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
-    // Starts from biomate-nextflow-base directly — lean, not biomni-tools
+    // admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
+    // Starts from biomate-nextflow-base directly — lean, not workflow-tools
     // On-prem (S3_ENDPOINT_URL set = MinIO) and AWS both use ECR image; pure local dev uses Docker Hub.
-    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest')
+    container System.getenv('BIOMATE_ADMET_CONTAINER') ?: ((System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/admet:x86' : 'biomate/admet:latest')
 
     input:
     path shard_admets
@@ -111,6 +115,7 @@ process PREDICT_ADMET_PROPERTIES {
     path("toxicity_report.json"), emit: toxicity_report
     path("pk_summary.json"), emit: pk_summary
     path("qc_metrics.json"), emit: qc_metrics
+    path("passed_compounds.smi"), optional: true, emit: passed_compounds
     path "versions.yml", emit: versions
 
     script:
@@ -118,6 +123,8 @@ process PREDICT_ADMET_PROPERTIES {
     # Full compound list drives RDKit/Ames/PK recompute (cheap, deterministic).
     export PARAM_SMILES_LIST="${params.smiles_list?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ADMET_MODEL_TYPE="${params.ADMET_model_type?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_HERG_PASS_PROB="${params.herg_pass_prob}"
+    export PARAM_DILI_PASS_PROB="${params.dili_pass_prob}"
 
     # Merge ADMET-AI per-compound rows from all parallel shards
     python3 << 'MERGE'
@@ -534,7 +541,7 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
     except ImportError:
         research_log = (
             "ADMET-AI not available — using RDKit structural safety estimates (Phase 1 only).\\n"
-            "Container: ensure biomni-admet:x86 is used for Chemprop-backed predictions.\\n"
+            "Container: ensure admet:x86 is used for Chemprop-backed predictions.\\n"
         )
     except Exception as _admet_err:
         research_log = f"ADMET-AI error: {_admet_err}\\nFalling back to RDKit structural estimates.\\n"
@@ -543,6 +550,27 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
     # ── Always write toxicity_report.json ───────────────────────────────────
     with open("toxicity_report.json", "w") as f:
         json.dump(tox_report, f, indent=2, default=str)
+
+    # ── passed_compounds.smi: SMILES clearing the ADMET gates, for the next chain step (e.g. docking).
+    # predict_admet_properties previously emitted no filtered compound set, so ADMET->docking chains
+    # had nothing to hand off. Gate on per-compound ADMET-AI hERG/DILI probabilities.
+    try:
+        _hc = float(os.environ.get("PARAM_HERG_PASS_PROB", "0.5") or 0.5)
+        _dc = float(os.environ.get("PARAM_DILI_PASS_PROB", "0.9") or 0.9)
+        _rows = tox_report.get("per_compound_admet_ai") or tox_report.get("per_compound") or []
+        def _passes(r):
+            h = r.get("hERG_prob"); d = r.get("DILI_prob")
+            return ((h is None or float(h) <= _hc) and (d is None or float(d) <= _dc))
+        _passed = [r.get("smiles") for r in _rows if r.get("smiles") and _passes(r)]
+        with open("passed_compounds.smi", "w") as _pf:
+            _pf.write(("\\n".join(_passed) + "\\n") if _passed else "")
+        print("passed_compounds: %d of %d cleared gates (hERG<=%s, DILI<=%s)" % (len(_passed), len(_rows), _hc, _dc))
+        if _rows and not _passed:
+            print("passed_compounds: WARNING 0 of %d compounds cleared the ADMET gate (hERG<=%s, DILI<=%s) — "
+                  "a downstream step consuming passed_compounds will have no input; relax the gates or "
+                  "review the compounds." % (len(_rows), _hc, _dc), file=sys.stderr)
+    except Exception as _pce:
+        print("passed_compounds skipped: %s" % _pce, file=sys.stderr)
 
     return research_log if research_log else "Structural safety estimates computed. See toxicity_report.json."
 
@@ -830,7 +858,7 @@ PYEOF
     "${task.process}":
         python: \$(python3 --version | cut -d' ' -f2)
         biomni_function: "predict_admet_properties"
-    END_VERSIONS
+END_VERSIONS
     """
 }
 

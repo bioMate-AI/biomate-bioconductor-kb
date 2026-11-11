@@ -1,0 +1,19 @@
+........................................................................ [ 48%]
+........................................................................ [ 96%]
+......                                                                   [100%]
+=============================== warnings summary ===============================
+hybrid/test_initialization.py::test_real_peft_merge_preserves_adapted_logits_and_reference
+  /w/out/integration-qa/venv/lib64/python3.11/site-packages/peft/utils/save_and_load.py:236: UserWarning: Could not find a config file in  - will assume that the vocabulary was not modified.
+    warnings.warn(
+
+hybrid/test_initialization.py::test_real_peft_merge_preserves_adapted_logits_and_reference
+  /w/out/integration-qa/venv/lib64/python3.11/site-packages/peft/peft_model.py:569: UserWarning: Found missing adapter keys while loading the checkpoint: ['base_model.model.model.layers.0.self_attn.k_proj.lora_A.default.weight'].
+    warnings.warn(warn_message)
+
+hybrid/test_initialization.py::test_real_peft_merge_preserves_adapted_logits_and_reference
+  /w/out/integration-qa/venv/lib64/python3.11/site-packages/peft/tuners/tuners_utils.py:167: UserWarning: Already found a `peft_config` attribute in the model. This will lead to having multiple adapters in the model. Make sure to know what you are doing!
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+------------- generated xml file: /w/out/integration-qa/junit.xml --------------
+150 passed, 3 warnings in 12.29s

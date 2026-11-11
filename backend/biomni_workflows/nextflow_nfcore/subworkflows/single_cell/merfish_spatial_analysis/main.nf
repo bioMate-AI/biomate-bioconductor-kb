@@ -22,7 +22,7 @@
  *      summarized as spatial domains/compartments.
  *   6. Plots: spatial scatter of the top SVG + the Moran's I ranking.
  *
- * Tooling is REAL (squidpy / scanpy / anndata, all present in biomni-tools:x86);
+ * Tooling is REAL (squidpy / scanpy / anndata, all present in workflow-tools:x86);
  * there is no fabricated / RNG output. If squidpy is unavailable or the dataset
  * cannot be obtained the process exits non-zero (honest failure, never fake data).
  *
@@ -50,7 +50,7 @@ process MERFISH_SPATIAL_ANALYSIS {
     // squidpy biocontainer (squidpy+scanpy+anndata in the base python3) — probe-verified.
     // NOTE: this process-level directive is what actually runs on AWS Batch (it overrides
     // the DB docker_image for this single_cell workflow), so the container MUST be set here.
-    // Legacy biomni-tools:x86 did NOT ship squidpy — see docs/20261001_MERFISH_SPATIAL.md.
+    // Legacy workflow-tools:x86 did NOT ship squidpy — see docs/20261001_MERFISH_SPATIAL.md.
     container 'quay.io/biocontainers/squidpy:1.5.0'
 
     input:
@@ -77,7 +77,7 @@ process MERFISH_SPATIAL_ANALYSIS {
     # in the image's default python3 — verified: anndata 0.10.x, scanpy 1.10.x,
     # squidpy 1.5.x; squidpy.datasets.merfish() downloads the Moffitt-2018 atlas over
     # the Batch network). The DB docker_image for this workflow is set accordingly.
-    # (Legacy biomni-tools:x86 did NOT ship squidpy — see docs/20261001_MERFISH_SPATIAL.md.)
+    # (Legacy workflow-tools:x86 did NOT ship squidpy — see docs/20261001_MERFISH_SPATIAL.md.)
     # Resolve a squidpy-capable interpreter robustly across images:
     BT_PY=\$(command -v python3 || command -v python)
     for _cand in /opt/conda/envs/biotools/bin/python /opt/conda/bin/python; do

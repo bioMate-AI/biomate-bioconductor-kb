@@ -47,6 +47,9 @@ def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
         learning_rate=args.learning_rate, ensemble_size=args.ensemble_size, seed=args.seed,
     )
     llm = None
+    diffusion = None
+    sc = None
+    tabular = None
     from .config import LLM_MODEL_TYPES
     if args.model_type in LLM_MODEL_TYPES:
         from .config import LLMSpec
@@ -59,11 +62,53 @@ def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
         if args.task_type == "classification":
             args.task_type = "text_generation"
         ds.split = "random"
+    elif args.model_type == "protein_diffusion":
+        from .config import DiffusionSpec
+        diffusion = DiffusionSpec(
+            framework=args.framework, base_checkpoint=args.base_checkpoint,
+            finetune=args.finetune, target_pdb=args.target_pdb,
+            hotspot_residues=args.hotspot_residues, motif_pdb=args.motif_pdb,
+            contig=args.contig, length_min=args.length_min, length_max=args.length_max,
+            num_designs=args.num_designs, diffusion_steps=args.diffusion_steps,
+            noise_schedule=args.noise_schedule)
+        # Structure generation uses the structure_generation task regardless of
+        # the molecular default.
+        if args.task_type == "classification":
+            args.task_type = "structure_generation"
+    elif args.model_type == "scrna_diffusion":
+        from .config import SCDiffusionSpec
+        sc = SCDiffusionSpec(
+            framework=args.sc_framework, base_checkpoint=args.sc_base_checkpoint,
+            base_model=args.sc_base_model, finetune=args.sc_finetune,
+            cell_type=args.sc_cell_type, condition_label=args.sc_condition_label,
+            n_cells_to_generate=args.sc_n_cells_to_generate, n_genes=args.sc_n_genes,
+            guidance_scale=args.sc_guidance_scale, diffusion_steps=args.sc_diffusion_steps,
+            noise_schedule=args.sc_noise_schedule,
+        )
+        # scrna_diffusion always uses expression_generation + random split.
+        if args.task_type == "classification":
+            args.task_type = "expression_generation"
+        ds.split = "random"
+    elif args.model_type == "tabular_diffusion":
+        from .config import TabularDiffusionSpec
+        tabular = TabularDiffusionSpec(
+            framework=args.tab_framework, base_checkpoint=args.tab_base_checkpoint,
+            finetune=args.tab_finetune, target_column=args.tab_target_column,
+            n_rows_to_generate=args.tab_n_rows_to_generate,
+            guidance_scale=args.tab_guidance_scale,
+            diffusion_steps=args.tab_diffusion_steps,
+            noise_schedule=args.tab_noise_schedule,
+        )
+        # tabular_diffusion always uses tabular_generation + random split.
+        if args.task_type == "classification":
+            args.task_type = "tabular_generation"
+        ds.split = "random"
     return TrainingConfig(
         name=args.model_name, task_type=args.task_type, model_type=args.model_type,
         featurizer=args.featurizer, dataset=ds, hyperparams=hp,
         mlflow_experiment=args.mlflow_experiment, campaign_id=args.campaign_id,
         metric=args.metric, gate_threshold=args.gate_threshold, llm=llm,
+        diffusion=diffusion, sc=sc, tabular=tabular,
     ).validate()
 
 
@@ -104,6 +149,63 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--reward", default="length", help="GRPO reward: length|keyword|numeric_answer")
     p.add_argument("--reward-keyword", default="", dest="reward_keyword",
                    help="keyword for --reward keyword")
+    # Protein/peptide structure diffusion (model-type=protein_diffusion)
+    p.add_argument("--framework", default="rfdiffusion",
+                   help="diffusion framework: rfdiffusion|chroma|genie")
+    p.add_argument("--base-checkpoint", default="rfdiffusion/Base_ckpt.pt", dest="base_checkpoint",
+                   help="warm-start checkpoint for fine-tuning")
+    p.add_argument("--finetune", dest="finetune", action="store_true", default=True,
+                   help="fine-tune a checkpoint (default)")
+    p.add_argument("--from-scratch", dest="finetune", action="store_false",
+                   help="train the diffusion model from scratch")
+    p.add_argument("--target-pdb", default="", dest="target_pdb",
+                   help="target/receptor PDB for binder design")
+    p.add_argument("--hotspot-residues", default="", dest="hotspot_residues",
+                   help="target hotspot residues, e.g. A30,A33,A34")
+    p.add_argument("--motif-pdb", default="", dest="motif_pdb", help="scaffolding motif PDB")
+    p.add_argument("--contig", default="", help="RFdiffusion contig/scaffold spec")
+    p.add_argument("--length-min", type=int, default=60, dest="length_min")
+    p.add_argument("--length-max", type=int, default=100, dest="length_max")
+    p.add_argument("--num-designs", type=int, default=8, dest="num_designs")
+    p.add_argument("--diffusion-steps", type=int, default=50, dest="diffusion_steps")
+    p.add_argument("--noise-schedule", default="linear", dest="noise_schedule",
+                   help="linear|cosine")
+    # Single-cell expression diffusion (model-type=scrna_diffusion)
+    p.add_argument("--sc-framework", default="scdiffusion", dest="sc_framework",
+                   help="scdiffusion|cfgen")
+    p.add_argument("--sc-base-checkpoint", default="", dest="sc_base_checkpoint",
+                   help="pretrained diffusion checkpoint for fine-tune warm-start")
+    p.add_argument("--sc-base-model", default="", dest="sc_base_model",
+                   help="pretrained autoencoder/foundation weight (e.g. SCimilarity)")
+    p.add_argument("--sc-finetune", action=argparse.BooleanOptionalAction, default=True,
+                   dest="sc_finetune", help="fine-tune a pretrained checkpoint vs. train-from-scratch")
+    p.add_argument("--sc-cell-type", default="", dest="sc_cell_type",
+                   help="obs cell type to condition generation on")
+    p.add_argument("--sc-condition-label", default="", dest="sc_condition_label",
+                   help="obs column for perturbation/condition conditioning")
+    p.add_argument("--sc-n-cells-to-generate", type=int, default=1000,
+                   dest="sc_n_cells_to_generate")
+    p.add_argument("--sc-n-genes", type=int, default=0, dest="sc_n_genes",
+                   help="0 = infer from the h5ad var axis")
+    p.add_argument("--sc-guidance-scale", type=float, default=1.0, dest="sc_guidance_scale")
+    p.add_argument("--sc-diffusion-steps", type=int, default=1000, dest="sc_diffusion_steps")
+    p.add_argument("--sc-noise-schedule", default="cosine", dest="sc_noise_schedule",
+                   help="cosine|linear|sqrt")
+    # Generic tabular diffusion (model-type=tabular_diffusion)
+    p.add_argument("--tab-framework", default="tabddpm", dest="tab_framework",
+                   help="tabddpm|tabsyn")
+    p.add_argument("--tab-base-checkpoint", default="", dest="tab_base_checkpoint",
+                   help="pretrained diffusion checkpoint for fine-tune warm-start")
+    p.add_argument("--tab-finetune", action=argparse.BooleanOptionalAction, default=True,
+                   dest="tab_finetune", help="fine-tune a pretrained checkpoint vs. train-from-scratch")
+    p.add_argument("--tab-target-column", default="", dest="tab_target_column",
+                   help="categorical column to condition synthesis on ('' = unconditional)")
+    p.add_argument("--tab-n-rows-to-generate", type=int, default=1000,
+                   dest="tab_n_rows_to_generate")
+    p.add_argument("--tab-guidance-scale", type=float, default=1.0, dest="tab_guidance_scale")
+    p.add_argument("--tab-diffusion-steps", type=int, default=1000, dest="tab_diffusion_steps")
+    p.add_argument("--tab-noise-schedule", default="cosine", dest="tab_noise_schedule",
+                   help="cosine|linear|sqrt")
     p.add_argument("--mlflow-experiment", default="biomate-ml-training", dest="mlflow_experiment")
     p.add_argument("--campaign-id", default="default", dest="campaign_id")
     p.add_argument("--out", default="results", help="output dir for metrics.json + artifact")

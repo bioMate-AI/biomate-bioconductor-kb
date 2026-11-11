@@ -283,8 +283,9 @@ export function ChatMessage({
   const awaitingWorkflowInput = awaitsWorkflowInput(message.metadata?.workflow, message.metadata)
   const isWorkflowMessage = !isUser && !awaitingWorkflowInput && message.metadata?.type === "workflow" && !!message.metadata?.workflow
   // Keep workflow intent readable throughout execution. Research streaming uses its existing disclosure.
-  const foldResponse = !isUser && isStreaming && !isWorkflowMessage
-  const ResponseContainer = foldResponse ? "details" : "div"
+  // The answer streams visibly (no closed "Writing response…" <details>): hiding it behind a
+  // toggle read as a stuck/locked reply.
+  const ResponseContainer = "div"
   // "Compute/analysis result" answer — an instant-lane reply that ran code or
   // a tool (metadata.toolBlocks) or otherwise produced a numeric/analysis
   // result, but is NOT already a validated (Cloud-lane) workflow message.
@@ -609,8 +610,10 @@ export function ChatMessage({
       </div>}
 
       <div className={cn("w-full min-w-0 max-w-full space-y-3", isUser && "flex flex-col items-end")}>
-        {(progressMessages.length > 0 || (isWorkflowMessage && message.content?.trim())) && (
-          <ProgressStreamBox messages={progressMessages} inline plan={isWorkflowMessage ? responseContent : undefined} />
+        {/* Progress box = progress events only. The answer is NEVER passed in as `plan`: that put
+            every workflow-turn reply inside the 132px auto-scrolling box, clipped top and bottom. */}
+        {progressMessages.length > 0 && (
+          <ProgressStreamBox messages={progressMessages} inline />
         )}
         <div className={cn(
           isUser
@@ -678,8 +681,7 @@ export function ChatMessage({
                 </div>
               )}
               <ResponseContainer className="w-full">
-              {foldResponse && <summary className="cursor-pointer text-sm text-muted-foreground py-2">Writing response…</summary>}
-              {!isWorkflowMessage && responseContent}
+              {responseContent}
               </ResponseContainer>
               </>
             )}

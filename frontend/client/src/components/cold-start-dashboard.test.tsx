@@ -50,13 +50,13 @@ describe("<ColdStartDashboard>", () => {
     );
   });
 
-  it("shows the cold-start prompt heading and the re-mounted goal intent bar", () => {
+  it("shows the cold-start prompt heading but NOT a duplicate goal intent bar", () => {
     render(<ColdStartDashboard onSeed={() => {}} />);
     expect(screen.getByText("What are you trying to do?")).toBeInTheDocument();
-    // The prominent "describe the goal" intent bar was re-mounted 2026-11-01 (per
-    // request) as the cold-start hero input; it is replaced on first send, so it
-    // doesn't persist alongside the pinned composer during a conversation.
-    expect(screen.getByTestId("cold-intent-bar")).toBeInTheDocument();
+    // The "describe your goal" intent bar was removed 2026-11-09 — it duplicated the
+    // always-present bottom composer (same onSeed→composer path). The cold-start now
+    // guides via the module cards/example rows and leaves typing to the one composer.
+    expect(screen.queryByTestId("cold-intent-bar")).toBeNull();
   });
 
   it("expands a card on click (body + tracks + examples visible) and collapses on a second click", async () => {

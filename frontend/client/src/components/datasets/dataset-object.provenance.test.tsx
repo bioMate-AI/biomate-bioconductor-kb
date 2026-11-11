@@ -170,6 +170,68 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(usedby.textContent).toMatch(/2/)  // two consumer runs in routeFetch
   })
 
+  it("Edit view — editing a cell and saving writes a new version (§4.3/§4.4)", async () => {
+    let edited: any = null
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/perception/profile")) {
+        return ({ ok: true, status: 200, json: async () => ({ ...PROFILE, columns: ["gene", "label"], sampleRows: [["TP53", "ctrl"]] }), text: async () => "" }) as unknown as Response
+      }
+      if (/\/files\/[^/]+\/edit$/.test(url)) {
+        edited = JSON.parse(init.body)
+        return ({ ok: true, status: 200, json: async () => ({ file: { version_no: 2 }, versioned: true, editedCells: 1 }), text: async () => "" }) as unknown as Response
+      }
+      if (/\/files\/[^/]+\/versions$/.test(url)) return ({ ok: true, status: 200, json: async () => ({ versions: [] }), text: async () => "" }) as unknown as Response
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={{ ...RUN, name: "data.csv", source: "upload" }} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(await screen.findByTestId("dataset-preview-toggle-edit", {}, { timeout: 4000 }))
+    const cell = await screen.findByTestId("dataset-edit-cell-0-1")
+    fireEvent.change(cell, { target: { value: "control" } })
+    fireEvent.click(screen.getByTestId("dataset-edit-save"))
+    await waitFor(() => expect(edited?.edits?.[0]).toMatchObject({ row: 0, col: "label", value: "control" }))
+    await screen.findByTestId("dataset-edit-saved")
+  })
+
+  it("Versions tab — Compare shows the column + cell diff against current (§4.4)", async () => {
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (/\/versions\/[^/]+\/diff$/.test(url)) {
+        return ({ ok: true, status: 200, json: async () => ({
+          tabular: true, identical: false, current: { version: 2 }, target: { version: 1 },
+          columns: { added: ["batch"], removed: [] }, rowsCompared: 3,
+          changedCells: [{ row: 0, col: "label", from: "ctrl", to: "control" }], truncated: false,
+        }), text: async () => "" }) as unknown as Response
+      }
+      if (/\/files\/[^/]+\/versions$/.test(url)) {
+        return ({ ok: true, status: 200, json: async () => ({ versions: [
+          { version: "2", label: "v2", current: true }, { version: "1", label: "v1", current: false },
+        ] }), text: async () => "" }) as unknown as Response
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={{ ...RUN, source: "upload" }} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-versions"))
+    const cmp = await screen.findByTestId("dataset-version-compare-1", {}, { timeout: 4000 })
+    fireEvent.click(cmp)
+    const diff = await screen.findByTestId("dataset-version-diff-1", {}, { timeout: 4000 })
+    expect(diff.textContent).toContain("batch")          // added column
+    expect(diff.textContent).toContain("control")        // changed cell new value
+    expect(within(diff).getByTestId("dataset-diff-cellcount").textContent).toMatch(/1/)
+  })
+
   it("Versions tab — app-level versions from the Node store, with append-only Restore (§4.4)", async () => {
     let restored = false
     const base = global.fetch as any

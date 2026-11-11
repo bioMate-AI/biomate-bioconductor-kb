@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_annotate_bacterial_genome" name="Biomni: Annotate Bacterial Genome" version="1.0.0">
     <description>Annotate a bacterial genome using Prokka to identify genes, proteins, and functional features.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/annotate_bacterial_genome_wrapper.py' --output '$output'

@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_analyze_xenograft_tumor_growth_inhibition" name="Biomni: Analyze Xenograft Tumor Growth Inhibition" version="1.0.0">
     <description>Analyze tumor growth inhibition in xenograft models across different treatment groups.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_xenograft_tumor_growth_inhibition_wrapper.py' --output '$output'

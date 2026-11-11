@@ -1,0 +1,101 @@
+[
+ {
+  "name": "nf-core/proteomicslfq",
+  "runId": "a377c73b-54ac-4fb2-a91b-4d368b96bf38",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 0,
+  "error": "Nov-06 02:53:31.575 [main] ERROR nextflow.Nextflow - EITHER spectra data (mzML/raw) OR an SDRF needs to be provided as input.",
+  "minutes": 1.0
+ },
+ {
+  "name": "nf-core/eager",
+  "runId": "d338bf29-444e-4f13-a3a9-099659be1838",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 1,
+  "error": "",
+  "minutes": 6.2
+ },
+ {
+  "name": "nf-core/diaproteomics",
+  "runId": "e23c31f6-562a-4b77-893e-cd0c5fe956d8",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 2,
+  "error": "",
+  "minutes": 5.0
+ },
+ {
+  "name": "nf-core/mnaseseq",
+  "runId": "5f2dcbd4-7f1d-477e-8042-49a5f9baf1f5",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 17,
+  "error": "Process TrimGalore (DEGRON_R2_T1) failed: Essential container in task exited \u2014 Cutadapt terminated with exit signal: '256'. | Terminating Trim Galore run, please check error message(s) to get an idea what went wrong...",
+  "minutes": 4.0
+ },
+ {
+  "name": "nf-core/clipseq",
+  "runId": "3e287642-a859-4554-89b9-39586ae25a33",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 24,
+  "error": "",
+  "minutes": 7.1
+ },
+ {
+  "name": "nf-core/imcyto",
+  "runId": "2e54605f-773d-4368-8493-9f0b60087452",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 29,
+  "error": "Process PREPROCESS_ILASTIK_STACK (20191121_BRAC3438.6f.roi_1) failed: Essential container in task exited \u2014 [s6-finish] sending all processes the TERM signal. | [s6-finish] sending all processes the KILL signal and exiting.",
+  "minutes": 6.1
+ },
+ {
+  "name": "nf-core/scdownstream",
+  "runId": "a1cee964-186f-4a23-b5b3-4aa84238b51c",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 5,
+  "error": "Process SOUPX (SRR28679756) failed: Essential container in task exited \u2014 No plausible marker genes found.  Is the channel low complexity (see help)?  If not, reduce tfidfMin or soupQuantile | Execution halted",
+  "minutes": 9.2
+ },
+ {
+  "name": "nf-core/slamseq",
+  "runId": "843b639c-bd1b-4292-acff-e2e417aeb3f3",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 5,
+  "error": "Process map (MOLM-13_nvp.hi_3) failed: Essential container in task exited \u2014 raise RuntimeError(\"Error while executing command: \\\"\" + cmd + \"\\\"\") | RuntimeError: Error while executing command: \"ngm -b -r ref.fa -q MOLM-13_nvp.hi_3_trimmed.fq.gz -t 2 --no-progress --slam-seq 2 -5 12 --max-polya 4 -l  --rg-id 0 --rg-sm MOLM-13_nvp.hi_3:pulse:60 -n 100 --strata  -o map/MOLM-13_nvp.hi_3_trimmed.fq_slam",
+  "minutes": 6.7
+ },
+ {
+  "name": "nf-core/createpanelrefs",
+  "runId": "8c61dd8a-e604-42c1-aa8f-08b7bf530582",
+  "status": "completed",
+  "exit_code": null,
+  "output_files": 22,
+  "error": "",
+  "minutes": 6.7
+ },
+ {
+  "name": "nf-core/proteogenomicsdb",
+  "runId": "77992462-8ff7-46c3-9580-748287679cee",
+  "status": "succeeded",
+  "exit_code": null,
+  "output_files": 2,
+  "error": "",
+  "minutes": 7.1
+ },
+ {
+  "name": "nf-core/diseasemodulediscovery",
+  "runId": "c4aadabc-2577-4680-b561-63033eb2fccf",
+  "status": "failed",
+  "exit_code": null,
+  "output_files": 54,
+  "error": "",
+  "minutes": 8.1
+ }
+]
