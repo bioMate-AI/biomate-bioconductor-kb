@@ -24,6 +24,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
+import { EXECUTE_NOW_NUDGE, attachedInputNames, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
 import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
@@ -818,6 +819,8 @@ export interface ChatContext {
   turnMessage?: string;
   /** Successful Python run_code cells of the current turn (replayed before the next call). */
   runCodeHistory?: { turn: string; codes: string[] };
+  /** $OUTPUT_DIR artifacts run_code produced in this turn — the only files a reply may present as produced. */
+  runCodeOutputFiles?: { turn: string; names: string[] };
   /** Set by the authenticated server route, never inferred from proxy fallback. */
   skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
@@ -2512,25 +2515,6 @@ export function alternativeWorkflowNames(payload: any): string[] {
     .slice(0, 4);
 }
 
-/** Real-pipeline vocabulary for the ad-hoc-analysis check: any of these means the user is asking
- *  for a workflow, never ad-hoc compute. */
-const PIPELINE_REQUEST_RE =
-  /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|edger|limma|differential\s+(expression|abundance|accessibility)|enrichment|epitope|docking|autodock|codon|pocket|target\s+evidence|peak\s+calling|segmentation|free\s+energy|fep|rbfe|abfe|molecular\s+dynamics|crispr|mageck|hit[- ]calling)\b/i;
-
-/** Ad-hoc analysis of data the user ATTACHED ("Summarise this assay table and plot potency
- *  against logP", "Correlate predicted and measured IC50 for these compounds", "Reshape this
- *  plate readout into long format") — a run_code task, not a pipeline. Measured 2026-11-04 with
- *  the exact cold-start UI payloads + real uploads: such requests were forced into workflow
- *  generation and landed on lexical near-misses (Run Audit Export, QSAR RF model, nf-core/demo),
- *  and the card then disabled run_code. Requires the UI's attached-dataset block, an ad-hoc
- *  verb in the request's own first paragraph, and no pipeline vocabulary. */
-export function isAdhocAnalysisOfAttachedData(message: string): boolean {
-  const text = message || '';
-  if (!/\[(?:Uploaded datasets?|Attached files?|BioMate dataset|Galaxy dataset)\s*:/i.test(text)) return false;
-  const task = text.split(/\n\s*\n|\n\s*\[(?:Attached files?|Uploaded datasets?)/i)[0];
-  const adhoc = /\b(summari[sz]e|summary\s+of|plot|chart|graph|visuali[sz]e|correlat\w*|regress\w*|reshape|pivot|melt|tabulate|cross-?tab\w*|histogram|scatter|describe\s+(the|this)\s+(data|table|file)|compute|calculate)\b/i;
-  return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
-}
 
 /** The user asks about one of their runs failing / not starting / stuck (EN + ZH). */
 export function asksAboutRunProblem(message: string): boolean {
@@ -3636,7 +3620,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     onResponseDelta?: (text: string) => void,
     maxTokens = 4096,
     modelOverride?: string,
-    toolContext?: { tools: typeof BIOMATE_TOOLS; context: ChatContext; onToolEvent?: (e: AgentToolEvent) => void },
+    toolContext?: { tools: typeof BIOMATE_TOOLS; context: ChatContext; onToolEvent?: (e: AgentToolEvent) => void; requireExecution?: boolean },
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
     const geminiModelName = modelOverride
@@ -3705,6 +3689,8 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     // Agentic loop: handle tool calls (up to 12 turns, then force a final answer)
     const MAX_TOOL_TURNS = 12;
     let currentMessage: string | object = lastMessage;
+    let _geminiRanRunCode = false;
+    let _geminiNudged = false;
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
       // Use streaming so tokens flow to the client as they arrive instead of
       // appearing all at once after the full model round-trip completes.
@@ -3749,7 +3735,21 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         const _decls = geminiTools ? ((geminiTools[0] as any).functionDeclarations || []).length : 0;
         onResponseDelta?.(`[[GTOOLS decls=${_decls} fnCalls=${fnCalls.length} hasCtx=${!!toolContext} textLen=${rawResponse.length}]]`);
       }
+      if (fnCalls.length === 0 && toolContext && shouldRequireExecution({
+        directCompute: !!toolContext.requireExecution,
+        runCodeOffered: toolContext.tools.some(t => t.name === 'run_code'),
+        ranRunCode: _geminiRanRunCode, alreadyNudged: _geminiNudged, proseSignal: false,
+      })) {
+        // Classifier said direct_compute but the reply ran no code: re-prompt once to execute. The
+        // pre-nudge text is discarded from the returned message (the final message replaces the preview).
+        console.warn('[GeminiLoop] direct_compute turn ended without run_code — asking the model to execute');
+        _geminiNudged = true;
+        rawResponse = '';
+        currentMessage = EXECUTE_NOW_NUDGE;
+        continue;
+      }
       if (fnCalls.length === 0 || !toolContext) break;  // No tools or no context — done
+      if (fnCalls.some((p: any) => p.functionCall?.name === 'run_code')) _geminiRanRunCode = true;
 
       // Execute all function calls
       const functionResults: object[] = [];
@@ -9949,7 +9949,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             fn: () => this._generateWithGemini(
               systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
               toolsEnabledThisTurn
-                ? { tools: [...BIOMATE_TOOLS, ...userMcpTools], context, onToolEvent }
+                ? { tools: [...BIOMATE_TOOLS, ...userMcpTools], context, onToolEvent, requireExecution: (intent as any)?.execution === 'direct_compute' }
                 : undefined,
             ),
             available: !!this.gemini && responseModel.startsWith('gemini-'),
@@ -10054,6 +10054,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           finalMessage += _disclaimer;
           if (onResponseDelta) onResponseDelta(_disclaimer);
         }
+        const _unbackedNoteNc = this._unbackedFilesNote(finalMessage, message, context);
+        if (_unbackedNoteNc) { finalMessage += _unbackedNoteNc; if (onResponseDelta) onResponseDelta(_unbackedNoteNc); }
         return { message: finalMessage, truncated: false };
       }
       // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
@@ -10066,13 +10068,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       let _codeNudged = false;
       let _shownBeforeNudge = '';
       const _runCodeOffered = Array.isArray(agentTools) && (agentTools as any[]).some((t: any) => t?.name === 'run_code');
-      const _shouldNudgeUnexecutedCode = (text: string) =>
-        _runCodeOffered && !_ranRunCode && !_codeNudged && presentsUnexecutedCode(text)
-        && conversationHasComputableData(message, context) && !wantsCodeItself(message);
-      const _unexecutedCodeNudge = 'You presented analysis code, or said you produced an output file, but run_code '
-        + 'did not run, so no result or file exists. The user\'s data is already staged (see the run_code inputs). '
-        + 'Call run_code now (write files to $OUTPUT_DIR), then report only the actual output. Do not state results '
-        + 'or files that were not produced.';
+      // Structural first: the classifier decided direct_compute → a reply without a run_code call cannot
+      // hold real results. The prose regex is only a secondary signal (execution-integrity.ts).
+      const _directCompute = (intent as any)?.execution === 'direct_compute';
+      const _shouldNudgeUnexecutedCode = (text: string) => shouldRequireExecution({
+        directCompute: _directCompute, runCodeOffered: _runCodeOffered, ranRunCode: _ranRunCode, alreadyNudged: _codeNudged,
+        proseSignal: presentsUnexecutedCode(text) && conversationHasComputableData(message, context) && !wantsCodeItself(message),
+      });
+      const _unexecutedCodeNudge = EXECUTE_NOW_NUDGE;
 
       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         const isFirstTurn = turn === 0;
@@ -10290,8 +10293,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         if (onResponseDelta) onResponseDelta(emptyFallback);
         return { message: emptyFallback, truncated: false };
       }
+      const _unbackedNote = this._unbackedFilesNote(qualityEnforcedMessage, message, context);
+      if (_unbackedNote && onResponseDelta) onResponseDelta(_unbackedNote);
       return {
-        message: qualityEnforcedMessage,
+        message: qualityEnforcedMessage + _unbackedNote,
         thinking: thinkingResult.hasThinking ? thinkingResult : undefined,
         truncated: wasTruncated,
       };
@@ -10659,9 +10664,23 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (input.language === 'python' && result.exit_code === 0 && context?.runCodeHistory) {
       context.runCodeHistory.codes.push(String(input.code || ''));
     }
+    if (context) {
+      if (context.runCodeOutputFiles?.turn !== turn) context.runCodeOutputFiles = { turn, names: [] };
+      context.runCodeOutputFiles.names.push(...(result.output_files || []).map(f => f.name));
+    }
     return autoStaged
       ? { ...result, note: 'input_datasets was empty; staged the datasets attached to this message — open them via INPUT_FILES / staged_inputs.' }
       : result;
+  }
+
+  /** Output files a reply presents as produced must be this turn's run_code $OUTPUT_DIR artifacts. */
+  private _unbackedFilesNote(text: string, message: string, context: ChatContext): string {
+    const turn = context?.turnMessage || '';
+    const produced = context?.runCodeOutputFiles?.turn === turn ? context.runCodeOutputFiles.names : [];
+    const inputs = attachedInputNames(message, ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : ''));
+    const unbacked = unbackedOutputFileClaims(text, produced, inputs);
+    if (unbacked.length) console.warn(`[GalaxyAssistant] reply claims files not produced this turn: ${unbacked.join(', ')}`);
+    return unbackedFilesNote(unbacked, /[\u4e00-\u9fff]/.test(message));
   }
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */

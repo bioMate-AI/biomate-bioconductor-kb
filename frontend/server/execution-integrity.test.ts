@@ -1,0 +1,76 @@
+import { describe, it, expect } from 'vitest';
+import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { requireNonEmptyResponse, stripDatasetReferenceParams, parseUploadedDatasetRefs, groundInlineParameters } from './galaxy-assistant';
+
+describe('structural execution guard', () => {
+  const base = { runCodeOffered: true, ranRunCode: false, alreadyNudged: false, proseSignal: false };
+  it('classifier direct_compute + no run_code ⇒ re-prompt, with no prose signal needed', () => {
+    expect(shouldRequireExecution({ ...base, directCompute: true })).toBe(true);
+  });
+  it('once only, and never after run_code ran or when run_code is not offered', () => {
+    expect(shouldRequireExecution({ ...base, directCompute: true, alreadyNudged: true })).toBe(false);
+    expect(shouldRequireExecution({ ...base, directCompute: true, ranRunCode: true })).toBe(false);
+    expect(shouldRequireExecution({ ...base, directCompute: true, runCodeOffered: false })).toBe(false);
+  });
+  it('prose regex is a secondary signal for non-direct_compute turns', () => {
+    expect(shouldRequireExecution({ ...base, directCompute: false })).toBe(false);
+    expect(shouldRequireExecution({ ...base, directCompute: false, proseSignal: true })).toBe(true);
+  });
+});
+
+describe('output files must be run_code artifacts', () => {
+  const reply = '已生成结果文件 summary_by_area.csv，并保存为 approvals.png。[下载](sandbox:/out/report.xlsx)';
+  it('extracts claimed files (zh/en verbs, links)', () => {
+    expect(claimedOutputFiles(reply).sort()).toEqual(['approvals.png', 'report.xlsx', 'summary_by_area.csv']);
+    expect(claimedOutputFiles('I saved the table as counts.tsv')).toEqual(['counts.tsv']);
+  });
+  it('flags only files run_code did not produce, and not the user\'s inputs', () => {
+    expect(unbackedOutputFileClaims(reply, ['summary_by_area.csv'])).toEqual(['approvals.png', 'report.xlsx']);
+    expect(unbackedOutputFileClaims('Generated from epar.jsonl: done', [], ['epar.jsonl'])).toEqual([]);
+    expect(unbackedOutputFileClaims(reply, ['summary_by_area.csv', 'approvals.png', 'report.xlsx'])).toEqual([]);
+  });
+  it('honest note in the user\'s language; empty when nothing is unbacked', () => {
+    expect(unbackedFilesNote([], true)).toBe('');
+    expect(unbackedFilesNote(['a.csv'], true)).toContain('并未由本轮执行的代码生成');
+    expect(unbackedFilesNote(['a.csv'])).toContain('not produced');
+  });
+  it('reads attached input names', () => {
+    expect(attachedInputNames('x\n\n[Attached files: epar.jsonl, b.csv]')).toEqual(['epar.jsonl', 'b.csv']);
+  });
+});
+
+describe('empty provider reply fails over (root cause of the removed mustGenerateWorkflow)', () => {
+  it('throws on empty / whitespace, passes text through', () => {
+    expect(() => requireNonEmptyResponse('', 'Gemini')).toThrow(/empty/);
+    expect(() => requireNonEmptyResponse('  \n', 'Gemini')).toThrow();
+    expect(() => requireNonEmptyResponse(undefined, 'Gemini')).toThrow();
+    expect(requireNonEmptyResponse('ok', 'Gemini')).toBe('ok');
+  });
+});
+
+describe('W4: dataset references are never workflow params', () => {
+  const msg = 'go\n\n[Attached files: epar.jsonl]\n[Uploaded datasets: epar.jsonl: dataset_id=6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c, galaxy_dataset_id=f2db41e8fa331b3e, s3_uri=s3://b/u1/epar.jsonl]';
+  it('parses upload refs', () => {
+    const r = parseUploadedDatasetRefs(msg);
+    expect(r.get('6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c')).toEqual({ name: 'epar.jsonl', s3Uri: 's3://b/u1/epar.jsonl' });
+    expect(r.get('f2db41e8fa331b3e')?.name).toBe('epar.jsonl');
+  });
+  it('drops dataset-reference keys the schema does not declare; rebinds id values to the file URI', () => {
+    const out = stripDatasetReferenceParams({
+      dataset_id: '6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c', 'Dataset Id': 'x', galaxy_dataset_id: 'f2db41e8fa331b3e', s3_uri: 's3://b/u1/epar.jsonl',
+      input_table: '6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c', threshold: '0.05',
+    }, msg);
+    expect(out).toEqual({ input_table: 's3://b/u1/epar.jsonl', threshold: '0.05' });
+  });
+  it('keeps a dataset_id param the chosen workflow declares, bound to the file (shown by name)', () => {
+    const out = stripDatasetReferenceParams({ dataset_id: '6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c' }, msg, new Set(['dataset_id']));
+    expect(out).toEqual({ dataset_id: 's3://b/u1/epar.jsonl' });
+  });
+  it('groundInlineParameters never emits the upload UUID, schema-less or not', async () => {
+    const raw = { dataset_id: '6f1c2a9e-3b7d-4c55-9a0e-1d2e3f4a5b6c', alpha: '0.1' };
+    const noSchema = await groundInlineParameters({ workflowName: 'some_wf', rawParams: raw, userQuery: msg });
+    expect(JSON.stringify(noSchema.params)).not.toContain('6f1c2a9e');
+    const withSchema = await groundInlineParameters({ workflowName: 'some_wf', rawParams: raw, userQuery: msg, requiredParams: ['alpha'] });
+    expect(withSchema.params).toEqual({ alpha: '0.1' });
+  });
+});

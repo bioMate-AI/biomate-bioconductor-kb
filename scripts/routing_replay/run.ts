@@ -64,6 +64,11 @@ async function runCase(c: Case, rep: number) {
     id: c.id, group: c.group, rep, expect: c.expect, raw, rawOutcome, final, boinClarify: boin,
     ok: c.expect.includes(final), degraded: !!decomposition.degraded, ms: Date.now() - t0,
     rationale: decomposition.rationale?.slice(0, 200),
+    // what the backend catalog search receives (for relevance-floor calibration)
+    search: decomposition.intents.filter((i: any) => i.actions?.needsWorkflowGeneration).map((i: any) => ({
+      subQuery: i.subQuery, taskSpec: i.taskSpec, inputKinds: i.inputKinds ?? decomposition.inputKinds ?? null,
+    })),
+    keyTerms: decomposition.keyTerms, preferredDomains: decomposition.preferredDomains, penalizedDomains: decomposition.penalizedDomains,
   };
 }
 
