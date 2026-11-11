@@ -36,8 +36,13 @@ export function fileKind(name: string): FileKind {
   return 'other';
 }
 
-const SMILES_CHARS = /^[A-Za-z0-9@+\-[\]()=#$\\/.%*:]{2,}$/;
-const SMILES_STRUCTURE = /[=#()[\]]|[cnos]\d|[CNOS]\d|^[CNOcno][CNOcno]/;
+const SMILES_CHARS = /^[A-Za-z0-9@+\-[\]()=#$\\/.%*:]{4,}$/;
+// A SMILES string has structure: a bond/branch/bracket character, or a ring that
+// opens AND closes (c1ccccc1). Short identifiers like "c1" / "S1" / "TP53" have
+// neither, so they are never mistaken for molecules.
+const SMILES_STRUCTURE = /[=#()[\]]|([A-Za-z])(\d).*[A-Za-z]\2/;
+// At least two organic-subset atoms, so ring-bearing gene/sample ids do not qualify.
+const SMILES_ATOMS = /[BCNOPSFI]|Cl|Br|[bcnops]/g;
 
 function nonEmpty(values: unknown[]): string[] {
   return values.map(v => (v === null || v === undefined ? '' : String(v).trim())).filter(v => v !== '');
@@ -45,13 +50,17 @@ function nonEmpty(values: unknown[]): string[] {
 
 /** Columns whose name says SMILES, or whose sampled values read as SMILES strings. */
 export function detectSmilesColumns(columns: string[], sampleRows: unknown[][]): string[] {
-  return columns.filter((col, i) => {
-    if (/smiles|^smi$/i.test(col)) return true;
+  const named = columns.filter(col => /smiles|^smi$/i.test(col));
+  const byValue = columns.filter((col, i) => {
+    if (named.includes(col)) return false;
     const values = nonEmpty(sampleRows.map(r => r?.[i]));
     if (values.length < 2) return false;
-    const hits = values.filter(v => SMILES_CHARS.test(v) && SMILES_STRUCTURE.test(v) && !/^-?\d+(\.\d+)?$/.test(v));
+    const hits = values.filter(v => SMILES_CHARS.test(v) && SMILES_STRUCTURE.test(v)
+      && (v.match(SMILES_ATOMS) ?? []).length >= 2 && !/^-?\d+(\.\d+)?$/.test(v));
     return hits.length / values.length >= 0.8;
   });
+  // A column NAMED smiles is the most reliable signal, so it is offered first.
+  return [...named, ...byValue];
 }
 
 /** Suggest classification for non-numeric or few-valued labels, else regression. */
@@ -60,10 +69,11 @@ export function suggestTaskType(values: unknown[]): TaskType {
   if (!vals.length) return 'classification';
   const numeric = vals.every(v => Number.isFinite(Number(v)));
   if (!numeric) return 'classification';
+  // A fractional value (7.1, 0.35) is a measurement, never a class label.
+  if (!vals.every(v => Number.isInteger(Number(v)))) return 'regression';
   const distinct = new Set(vals).size;
   if (distinct <= 2) return 'classification';
-  const allInts = vals.every(v => Number.isInteger(Number(v)));
-  if (allInts && distinct <= 10 && distinct < vals.length / 2) return 'classification';
+  if (distinct <= 10 && distinct < vals.length / 2) return 'classification';
   return 'regression';
 }
 
