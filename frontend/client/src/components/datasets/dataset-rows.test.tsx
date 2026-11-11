@@ -89,7 +89,8 @@ describe("DatasetObject preview — full rows", () => {
   it("Load all rows → whole-file sort/filter, and Columns stats say they cover all rows", async () => {
     renderObj()
     await waitFor(() => expect(rowCalls).toHaveLength(1))
-    fireEvent.click(screen.getByTestId("dataset-rows-load-all"))
+    // The fetch firing is not the page rendering: wait for the button the response brings.
+    fireEvent.click(await screen.findByTestId("dataset-rows-load-all", {}, { timeout: 5000 }))
     await waitFor(() => expect(screen.getByTestId("dataset-preview-rowcount")).toHaveTextContent("All 2,281 rows loaded"), { timeout: 5000 })
     expect(screen.getByTestId("dataset-preview-scope")).toHaveTextContent("apply to all rows")
     fireEvent.click(screen.getByTestId("dataset-preview-toggle-columns"))

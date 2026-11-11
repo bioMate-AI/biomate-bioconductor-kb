@@ -236,6 +236,41 @@ async function _archiveCurrentAsVersion(cur: any, projectId: string, note: strin
   );
 }
 
+/**
+ * Store a project input file (browser upload or URL import): the same name with
+ * different bytes becomes a new version (append-only, §4.4) — never an overwrite of
+ * bytes a completed run used; otherwise a new file row. Caller has already done
+ * content-hash dedup and resolved `key` through projectInputPath.
+ */
+async function _storeProjectInput(o: {
+  id: string; uid: string; name: string; key: string; buf: Buffer;
+  contentType: string; contentHash: string; source: "upload" | "url";
+}): Promise<{ file: any; versioned: boolean }> {
+  const prior = await _findProjectFileByName(o.id, o.name);
+  if (prior && prior.content_hash && prior.content_hash !== o.contentHash) {
+    const vkey = `${o.key}.v${prior.version_no + 1}`;
+    await s3Service.putObject(vkey, o.buf, o.contentType, o.uid);
+    await _archiveCurrentAsVersion(prior, o.id, `v${prior.version_no}`, o.uid);
+    const upd = await pool.query(
+      `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
+         version_no = version_no + 1 WHERE id = $5
+       RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
+      [vkey, o.buf.length, o.contentType, o.contentHash, prior.id]
+    );
+    await recordProjectActivity(o.id, o.uid, "file_versioned", { fileId: prior.id, name: o.name, version: prior.version_no + 1 });
+    return { file: upd.rows[0], versioned: true };
+  }
+  await s3Service.putObject(o.key, o.buf, o.contentType, o.uid);
+  const ins = await pool.query(
+    `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
+    [o.id, o.uid, o.name, o.key, o.buf.length, o.contentType, o.source, o.contentHash]
+  );
+  await recordProjectActivity(o.id, o.uid, "file_added", { fileId: ins.rows[0].id, name: o.name, source: o.source });
+  return { file: ins.rows[0], versioned: false };
+}
+
 function userId(req: Request): string | null {
   const u = (req as any).user;
   return u?.id ? String(u.id) : null;
@@ -749,37 +784,8 @@ export function registerProjectRoutes(app: Express): void {
         const dup = await _findProjectFileByHash(id, contentHash);
         if (dup) return res.status(200).json({ file: dup, deduplicated: true });
         const ctype = uploadContentType(originalName, req.file.mimetype);
-        // Versioning (§4.4): re-uploading the SAME NAME with DIFFERENT content writes
-        // a NEW version (append-only) rather than a second file. The old bytes stay
-        // at their key (archived as a version); the new content takes a versioned key
-        // and becomes current. Never overwrites — a completed run keeps the exact bytes.
-        const prior = await _findProjectFileByName(id, originalName);
-        if (prior && prior.content_hash && prior.content_hash !== contentHash) {
-          const vkey = `${key}.v${prior.version_no + 1}`;
-          await s3Service.putObject(vkey, buf, ctype, uid);
-          await _archiveCurrentAsVersion(prior, id, `v${prior.version_no}`, uid);
-          const upd = await pool.query(
-            `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
-               version_no = version_no + 1 WHERE id = $5
-             RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
-            [vkey, req.file.size, ctype, contentHash, prior.id]
-          );
-          await recordProjectActivity(id, uid, "file_versioned", { fileId: prior.id, name: originalName, version: prior.version_no + 1 });
-          return res.status(200).json({ file: upd.rows[0], versioned: true });
-        }
-        await s3Service.putObject(key, buf, ctype, uid);
-        const ins = await pool.query(
-          `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
-           VALUES ($1, $2, $3, $4, $5, $6, 'upload', $7)
-           RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-          [id, uid, originalName, key, req.file.size, ctype, contentHash]
-        );
-        await recordProjectActivity(id, uid, "file_added", {
-          fileId: ins.rows[0].id,
-          name: originalName,
-          source: "upload",
-        });
-        res.status(201).json({ file: ins.rows[0] });
+        const stored = await _storeProjectInput({ id, uid, name: originalName, key, buf, contentType: ctype, contentHash, source: "upload" });
+        res.status(stored.versioned ? 200 : 201).json(stored.versioned ? { file: stored.file, versioned: true } : { file: stored.file });
       } catch (e: any) {
         if (req.file?.path) fs.unlink(req.file.path, () => {});
         console.error("[project_files] upload failed:", e?.message ?? e);
@@ -836,21 +842,16 @@ export function registerProjectRoutes(app: Express): void {
       const contentHash = createHash("sha256").update(buf).digest("hex");
       const dup = await _findProjectFileByHash(id, contentHash);
       if (dup) return res.status(200).json({ file: dup, deduplicated: true });
+      // Same name/key rules as a browser upload: the original name is kept for display
+      // and the S3 key is collision-safe (a lossy basename let "数据.csv" and "样本.csv"
+      // share one object), and the same name with new bytes becomes a new version
+      // instead of overwriting bytes a completed run used.
       const rawName = String(req.body?.filename || validated.filename || "download");
-      const safeExt = path.extname(rawName).toLowerCase().replace(/[^a-z0-9.]/g, "");
-      const safeBase = path.basename(rawName, path.extname(rawName)).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200) || "download";
-      const filename = `${safeBase}${safeExt}`;
-      const key = `projects/${id}/inputs/${filename}`;
+      const { name: filename, keyPath } = projectInputPath(rawName);
+      const key = `projects/${id}/inputs/${keyPath}`;
       const contentType = (resp.headers.get("content-type") || "").split(";")[0].trim() || "application/octet-stream";
-      await s3Service.putObject(key, buf, contentType, uid);
-      const ins = await pool.query(
-        `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
-         VALUES ($1, $2, $3, $4, $5, $6, 'url', $7)
-         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-        [id, uid, filename, key, buf.length, contentType, contentHash]
-      );
-      await recordProjectActivity(id, uid, "file_added", { fileId: ins.rows[0].id, name: filename, source: "url" });
-      res.status(201).json({ file: ins.rows[0] });
+      const stored = await _storeProjectInput({ id, uid, name: filename, key, buf, contentType, contentHash, source: "url" });
+      res.status(stored.versioned ? 200 : 201).json(stored.versioned ? { file: stored.file, versioned: true } : { file: stored.file });
     } catch (e: any) {
       const msg = e?.name === "TimeoutError" ? "The URL took too long to fetch (120s limit)." : (e?.message ?? "Import failed");
       console.error("[project_files] url import failed:", msg);

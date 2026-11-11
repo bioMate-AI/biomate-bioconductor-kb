@@ -10,12 +10,20 @@
  * green compatibility "ok" we did not actually check.
  */
 
+import {
+  isDataInputParam,
+  isOptionalFileOverride,
+  isBoundValue,
+  type DataInputParamLike,
+} from '../../../shared/workflow-data-inputs';
+
 export interface InputParam {
   id?: string;
   name?: string;
   label?: string;
   type?: string;
   value?: unknown;
+  defaultValue?: unknown;
   required?: boolean;
 }
 
@@ -26,7 +34,7 @@ export interface SessionDataset {
   source_url?: string | null;
 }
 
-export interface ParamDef {
+export interface ParamDef extends DataInputParamLike {
   name?: string;
   format_mismatch_warning?: string | null;
 }
@@ -107,4 +115,55 @@ export function blockingInputRows(rows: readonly InputMappingRow[]): InputMappin
 /** Whether the run is blocked by unresolved/mismatched inputs. */
 export function runIsBlockedByInputs(rows: readonly InputMappingRow[]): boolean {
   return blockingInputRows(rows).length > 0;
+}
+
+/**
+ * The pre-run Inputs card model. Splits the workflow's params into:
+ *  - `primary`   — the user's data inputs (required data inputs first, even when
+ *                  the schema types them as plain strings, e.g. nf-core/rnaseq's
+ *                  `input` samplesheet), plus any optional file the user/AI bound;
+ *  - `overrides` — optional file overrides still on their default (reference
+ *                  FASTA/GTF from the genome, the rRNA manifest, …). These are NOT
+ *                  "mapped inputs"; the card shows them collapsed.
+ * Classification comes from shared/workflow-data-inputs (same classifier the chat
+ * reply state uses), reading schema metadata from the workflow's param defs.
+ */
+export interface PrerunInputsModel {
+  primary: InputMappingRow[];
+  overrides: InputMappingRow[];
+  requiredCount: number;
+  requiredUnset: number;
+  boundCount: number;
+}
+
+export function derivePrerunInputs(
+  params: readonly InputParam[],
+  sessionDatasets: readonly SessionDataset[],
+  paramDefs: readonly ParamDef[],
+): PrerunInputsModel {
+  const defFor = (p: InputParam) => paramDefs.find(d => d?.name && d.name === (p.id || p.name));
+  // Viewer fields (resolved type/required/value) win over the raw def.
+  const merged = (p: InputParam): DataInputParamLike => ({ ...(defFor(p) || {}), ...p });
+  const primaryParams: InputParam[] = [];
+  const overrideParams: InputParam[] = [];
+  for (const p of params) {
+    const m = merged(p);
+    if (isDataInputParam(m)) { primaryParams.push(p); continue; }
+    if (!isOptionalFileOverride(m)) continue;
+    // An optional file the user/AI actually bound (value differs from its default)
+    // IS a mapped input; one still on its default is only an override.
+    const userBound = isBoundValue(p.value) && String(p.value) !== String(p.defaultValue ?? '');
+    (userBound ? primaryParams : overrideParams).push(p);
+  }
+  primaryParams.sort((a, b) => Number(!!b.required) - Number(!!a.required));
+  const primary = deriveInputMappingRows(primaryParams, sessionDatasets, paramDefs);
+  const overrides = deriveInputMappingRows(overrideParams, sessionDatasets, paramDefs);
+  const required = primary.filter(r => r.param.required);
+  return {
+    primary,
+    overrides,
+    requiredCount: required.length,
+    requiredUnset: required.filter(r => r.empty).length,
+    boundCount: primary.filter(r => !r.empty).length,
+  };
 }

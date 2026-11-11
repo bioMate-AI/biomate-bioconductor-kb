@@ -69,3 +69,43 @@ export function attachedInputNames(...texts: string[]): string[] {
   }
   return names;
 }
+
+/** run_code that had NO staged inputs and generated its own values (random draws / an explicit
+ *  simulation). Its "results" describe numbers the code made up, not the user's data or a
+ *  workflow's real built-in data (dev 2026-11-11: "Run analyze_ebv_antibody_titers on its built-in
+ *  data" → run_code simulated OD readings "from literature-based distributions" and reported
+ *  group titers as results). Structural: zero staged inputs + a generation call. */
+const SYNTHETIC_DATA_RE = /\bnp\.random\b|\bdefault_rng\b|\brandom\.(?:normal|uniform|randint|choice|gauss|seed|random)\b|\b(?:rnorm|runif|rbinom|rpois|rexp|rgamma|rbeta)\s*\(|\bset\.seed\s*\(|\bsimulat\w*/i;
+export function generatesSyntheticData(code: string, stagedInputCount: number): boolean {
+  return stagedInputCount === 0 && SYNTHETIC_DATA_RE.test(code || '');
+}
+
+/** The user explicitly asked for a simulation (power analysis, Monte Carlo, bootstrap, simulated
+ *  PK/curves, synthetic data …): generating values IS the task, so run_code may do it. */
+const SIMULATION_REQUEST_RE = /simulat|synthetic|monte\s*carlo|bootstrap|permutation|power\s+(?:analysis|calculation)|sample\s+size|random(?:ly)?\s+(?:generat|sampl|draw)|toy\s+(?:data|example)|模拟|仿真|合成数据|蒙特卡[洛罗]|自助法|功效分析|样本量|随机生成/i;
+export function requestAsksForSimulation(userMessage: string): boolean {
+  return SIMULATION_REQUEST_RE.test(userMessage || '');
+}
+
+/** run_code is refused (not executed) when it would invent its own input data and the user did not
+ *  ask for a simulation — made-up numbers must never become a reply (founder 2026-11-11: disclosing
+ *  a simulation still lowers confidence; prevent it). The model gets this instead of a result. */
+export const SYNTHETIC_DATA_REFUSAL = 'NOT EXECUTED: this code generates its own input values (random draws / '
+  + 'assumed distributions) but no input data was provided, and the user did not ask for a simulation. Do not '
+  + 'simulate or invent data. Use real data only: the dataset the user attached, or — when the request names a '
+  + 'workflow or its built-in sample data — that workflow (it runs on its real built-in data). If neither is '
+  + 'available, ask the user for the data. Do not report any numbers from this attempt.';
+
+/** Storage URIs never reach the user (founder directive 2026-11-10: no S3 anywhere in user-facing
+ *  text). Prompt rules are not enforcement — the model still echoed a staged prefix from an
+ *  example's notes (cryo-EM, dev 2026-11-11). A file URI becomes its file name; a folder prefix
+ *  becomes "the staged dataset" / "已准备好的数据集". Code blocks are left alone (tool code, not prose). */
+export function redactStoragePaths(text: string, zh = false): string {
+  const parts = String(text || '').split(/(```[\s\S]*?```)/g);
+  return parts.map((part, i) => i % 2 === 1 ? part : part.replace(/`?s3:\/\/[^\s`)\]>"']+`?/gi, (m) => {
+    const uri = m.replace(/`/g, '');
+    const last = uri.replace(/\/+$/, '').split('/').pop() || '';
+    const isFolder = uri.endsWith('/') || !/\.[A-Za-z0-9]{1,8}(?:\.gz)?$/.test(last);
+    return isFolder ? (zh ? '已准备好的数据集' : 'the staged dataset') : last;
+  })).join('');
+}

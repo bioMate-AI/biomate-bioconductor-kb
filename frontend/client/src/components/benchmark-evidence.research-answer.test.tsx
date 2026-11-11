@@ -10,14 +10,12 @@ const base: ResearchResponseData = {
 };
 
 describe("ResearchResponseDisplay — research answer under the chat reply", () => {
-  it("ALWAYS renders a boundary, even when the response supplies none", () => {
-    render(<ResearchResponseDisplay response={base} />);
-    expect(screen.getByTestId("research-answer-boundary").textContent).toMatch(/not validated against your project/i);
-  });
-
-  it("shows the response's specific boundary when provided", () => {
+  it("renders NO boundary banner, even when the response supplies one (founder review 2026-11-10)", () => {
     render(<ResearchResponseDisplay response={{ ...base, boundary: "Not evidence for dosing in humans." }} />);
-    expect(screen.getByTestId("research-answer-boundary").textContent).toContain("Not evidence for dosing in humans.");
+    expect(screen.queryByTestId("research-answer-boundary")).toBeNull();
+    expect(screen.queryByText(/Boundary:/)).toBeNull();
+    expect(screen.queryByText(/not validated against your project/i)).toBeNull();
+    expect(screen.queryByText("Not evidence for dosing in humans.")).toBeNull();
   });
 
   it("has NO second button row: no 'Save to project' and no 'Plan analysis with my data' (founder review 2026-11-10)", () => {

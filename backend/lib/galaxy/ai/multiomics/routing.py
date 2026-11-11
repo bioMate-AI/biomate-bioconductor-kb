@@ -15,7 +15,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 
-from .method_selector import Modality, recommend
+from .method_selector import METHODS, Modality, recommend
 from .integration_planner import METHOD_WORKFLOW
 
 # Integration-intent verbs (the request must express *combining* modalities).
@@ -76,6 +76,35 @@ def _infer_goal(text: str) -> Optional[str]:
         if pat.search(text):
             return goal
     return None
+
+
+# An integration METHOD the request names outright ("integrate … with SNF", "用 MOFA2 整合"). The
+# selector recommends a method from the DATA SHAPE; it never looked at the one the user asked for,
+# so "Integrate a multi-omics cohort (RNA, protein, methylation) with SNF" came back as a MOFA2
+# card on dev (2026-11-11) — the shape-based cascade falls through to MOFA2 whenever no goal is
+# detected. Matched case-insensitively on word boundaries, so a gene called MFAP5 cannot trigger it.
+_NAMED_METHOD_PATTERNS: List[tuple] = [
+    (re.compile(r"\bsnf\b|similarity\s+network\s+fusion|相似性网络融合", re.I), "SNF"),
+    (re.compile(r"\bmofa\s*\+?2?\b|multi-?omics\s+factor\s+analysis", re.I), "MOFA2"),
+    (re.compile(r"\bmcia\b|multiple\s+co-?inertia", re.I), "MCIA"),
+    (re.compile(r"\biclusterplus\b|\bicluster\+?\b", re.I), "iClusterPlus"),
+    (re.compile(r"\bintnmf\b|integrative\s+nmf", re.I), "intNMF"),
+    (re.compile(r"\bjive\b", re.I), "JIVE"),
+    (re.compile(r"\bmfa\b|multiple\s+factor\s+analysis|\brgcca\b", re.I), "MFA"),
+]
+
+
+def named_method(text: str) -> Optional[str]:
+    """The integration method the request names, when it names exactly one runnable method.
+
+    Two methods named ("MOFA2 or SNF?") is a question for the selector, not an instruction, so the
+    data-shape recommendation stands. A method with no packaged workflow is likewise left to the
+    selector (the card must stay runnable)."""
+    found = {m for pat, m in _NAMED_METHOD_PATTERNS if pat.search(text or "")}
+    if len(found) != 1:
+        return None
+    method = found.pop()
+    return method if method in METHOD_WORKFLOW else None
 
 
 def detect_multiomics_intent(text: str) -> bool:
@@ -150,6 +179,19 @@ def route_multiomics_result(
     if not (_INTEGRATE.search(text) and len(mods) >= 2):
         return None
     rec = recommend(mods, goal=_infer_goal(text))
+    # A method the user NAMED is an instruction, not a hint: the card runs that method, and the
+    # shape-based recommendation is demoted to an alternative so the reasoning is still shown.
+    _asked = named_method(text)
+    if _asked and _asked != rec.get("recommended_method"):
+        _shape_method = rec.get("recommended_method")
+        rec = dict(rec)
+        rec["recommended_method"] = _asked
+        rec["method_description"] = METHODS.get(_asked, _asked)
+        rec["alternatives"] = [a for a in ([_shape_method] + list(rec.get("alternatives") or []))
+                               if a and a != _asked]
+        rec["rationale"] = (f"You asked for {_asked}, so the card runs {_asked}. "
+                            f"From the data shape alone the selector would have suggested "
+                            f"{_shape_method}: {rec.get('rationale') or ''}").strip()
     ga = _build_card(rec, mods)
     return {
         "success": True,

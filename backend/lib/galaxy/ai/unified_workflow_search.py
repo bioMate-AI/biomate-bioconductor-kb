@@ -150,6 +150,108 @@ _INTEGRATION_RAW_PENALTY: float = _env_float("BIOMATE_INTEGRATION_RAW_PENALTY", 
 _INTEGRATION_WF_BOOST: float = _env_float("BIOMATE_INTEGRATION_WF_BOOST", 6.0)
 
 
+# The analysis OPERATION a query asks for must be matched under all of its surface forms, or the
+# ranker falls back to matching the INPUT format alone. "differential protein abundance",
+# "differentially abundant proteins", "differentially expressed genes" and "differential protein
+# expression" all name the same operation (a between-group differential test), but the phrase
+# bonus only knew the literal 'differential expression' — so for "Quantify differential protein
+# abundance between my two groups" + a MaxQuant proteinGroups.txt, no DE workflow (DEqMS/DEP/proDA)
+# got the operation bonus and a pulldown enrichment-QC workflow won on the shared input terms
+# (MaxQuant, proteinGroups.txt) — docs/20261110_COLDSTART_EXAMPLES_LIVE_AUDIT.md §4.2. ~120 catalog
+# descriptions use "differential(ly) … abundance/abundant/expressed" wording.
+_DIFFERENTIAL_TEST_RE = re.compile(
+    r"\bdifferential(?:ly)?\s+(?:[a-z0-9]+\s+){0,2}?(?:expression|expressed|abundance|abundant)\b"
+)
+
+
+def canonicalize_operation_phrases(text: str) -> str:
+    """Rewrite surface forms of a between-group differential test to the canonical
+    'differential expression' KEY_PHRASE, so the phrase bonus matches the operation regardless of
+    the measured entity (gene / protein / taxon) or the wording (expression / abundance)."""
+    return _DIFFERENTIAL_TEST_RE.sub("differential expression", text or "")
+
+
+# Machine-appended PLUMBING blocks in a chat intent. The chat composer appends the upload wiring
+# ("[Uploaded datasets: x.csv: dataset_id=<uuid>, galaxy_dataset_id=<hex>, s3_uri=s3://…]") and the
+# Node layer appends "[Inline parameters: …]" / "[Upload warnings: …]". None of it describes the
+# ANALYSIS: it is identifiers, bucket paths and param plumbing, yet it was tokenised into the FTS
+# query, where bucket/path words ("nextflow", "work", "uploads", "dataset", "audit") scored real
+# catalog matches — dev 2026-11-11 put "Run Audit Export" in the top 5 for a nanobody design
+# request. The filenames themselves DO carry signal, so "[Attached files: …]" is kept.
+_PLUMBING_BLOCK_RE = re.compile(
+    r"\[(?:Uploaded\s+datasets|Inline\s+parameters|Upload\s+warnings)\s*:.*?\]",
+    re.I | re.S,
+)
+
+
+def strip_plumbing_blocks(text: str) -> str:
+    """Drop machine-appended upload/param plumbing from a retrieval query (see above). Pure
+    deletion — the user's words, the attached filenames and any prepared context are untouched."""
+    return _PLUMBING_BLOCK_RE.sub(" ", text or "")
+
+
+# ── Biologic FORMAT families (step 4d) ───────────────────────────────────────────────────────────
+# A therapeutic-format request is not interchangeable with another format's pipeline: a bispecific
+# pipeline needs TWO targets and builds a two-arm construct, so it cannot serve "design nanobody
+# candidates against this epitope" (ONE epitope, single-domain format) — dev 2026-11-11 routed
+# exactly that to `bispecific_antibody_design` (card format "nanobody_fusion", target indication
+# "oncology"). The confusion is lexical: a multispecific workflow's DESCRIPTION lists every format
+# it can emit ("… BiTE, CrossMab, DART, DVD-Ig, Knob-into-Hole, and nanobody fusion formats"), so it
+# matches the words of a request for any one of them. The workflow's NAME, by contrast, states what
+# it IS — so the format a workflow declares is read from its name, and the format a user wants from
+# their request.
+_MULTISPECIFIC_Q_RE = re.compile(
+    r"\b(bi|tri|multi)[- ]?specific\b|\b(bite|crossmab|dart|dvd-?ig|knob[- ]?in(?:to)?[- ]?hole|"
+    r"bispecifics?|t[- ]cell\s+engager)\b|双特异|多特异", re.I)
+_MONOSPECIFIC_Q_RE = re.compile(
+    r"\b(nanobod(?:y|ies)|vhh|sdabs?|single[- ]domain\s+antibod\w*|scfvs?|"
+    r"single[- ]chain\s+(?:variable\s+)?fragments?|intrabod\w*|"
+    r"fab\s+(?:fragments?|arms?)|"  # not a bare "FAB" — that is also the AML FAB classification
+    r"monoclonal\s+antibod\w*|\bmabs?\b)\b|纳米抗体|单域抗体|单链抗体|单克隆抗体", re.I)
+_MULTISPECIFIC_NAME_RE = re.compile(
+    r"(bi|tri|multi)[-_ ]?specific|\bbite\b|crossmab|knob[-_ ]?in(?:to)?[-_ ]?hole|dvd[-_]?ig", re.I)
+_MONOSPECIFIC_NAME_RE = re.compile(
+    r"nanobod|vhh|sdab|single[-_ ]domain|scfv|intrabod|monoclonal", re.I)
+# Sized like _INPUT_KIND_MISMATCH_PENALTY: the FTS term is 85-90% of a long chat query's score, so a
+# small bonus cannot correct a lexical near-miss — a mismatch has to be disqualifying to be real.
+_FORMAT_MISMATCH_PENALTY: float = _env_float("BIOMATE_FORMAT_MISMATCH_PENALTY", 25.0)
+
+# A workflow that cannot run the OPERATION the request names (step 9b) loses this much. Smaller
+# than the input-kind penalty (the workflow can at least read the data) but larger than the Pass-0
+# re-rank (3.0) + dense bonus (0.5) it has to survive.
+_OPERATION_MISMATCH_PENALTY: float = _env_float("BIOMATE_OPERATION_MISMATCH_PENALTY", 12.0)
+
+# Tools that ARE a between-group differential test — a workflow named after one ("deqms", "msqrob2")
+# performs the operation even when its one-line description never spells it out.
+_DIFFERENTIAL_TOOLS = frozenset({
+    "deseq2", "edger", "limma", "limma-voom", "voom", "deqms", "msqrob2", "msqrob", "proda",
+    "dep", "msstats", "maaslin2", "ancombc", "aldex2", "metagenomeseq", "deseq", "dexseq",
+    "sleuth", "ballgown", "nbinomtest", "ttest", "wilcoxon",
+})
+
+
+def biologic_format_conflict(query: str, name: str) -> bool:
+    """True when the request names one therapeutic format family and the workflow NAME declares the
+    other (mono-specific antibody/fragment vs multi-specific construct).
+
+    A request that names BOTH (e.g. "a nanobody-fusion bispecific") conflicts with neither: the
+    rule only fires when the request is unambiguously on one side. Workflows whose name declares no
+    format (antibody_developability, boltz, …) are never penalised here."""
+    q = query or ""
+    q_multi = bool(_MULTISPECIFIC_Q_RE.search(q))
+    q_mono = bool(_MONOSPECIFIC_Q_RE.search(q))
+    if q_multi == q_mono:          # both or neither → no declared preference
+        return False
+    n = (name or "").lower()
+    n_multi = bool(_MULTISPECIFIC_NAME_RE.search(n))
+    n_mono = bool(_MONOSPECIFIC_NAME_RE.search(n)) and not n_multi
+    if q_mono and n_multi:
+        return True
+    if q_multi and n_mono:
+        return True
+    return False
+
+
 def _enforce_executable() -> bool:
     """executable=0 rows are excluded from search results when on. Default OFF until the stale flags are corrected
     from execution evidence (9 nf-core pipelines disabled for a 2026-10-01 stub that no longer runs — §15.3);
@@ -997,6 +1099,12 @@ class UnifiedWorkflowSearch:
         Returns:
             List of WorkflowMatch objects sorted by relevance
         """
+        # Retrieval text = what the user asked, not how their files were uploaded. The chat intent
+        # arrives with machine-appended upload/param blocks (dataset ids, s3:// URIs); they are
+        # dropped here, once, so FTS, the LLM browse, dense retrieval and the re-rank all score the
+        # same clean text (see strip_plumbing_blocks).
+        query = strip_plumbing_blocks(query)
+
         # ── Pass 0: LLM catalog browse ─────────────────────────────────────────
         # Ask the fast LLM to pick the most semantically relevant workflow IDs
         # from a broad FTS candidate set.  Returns [] when LLM is unavailable
@@ -1974,9 +2082,9 @@ class UnifiedWorkflowSearch:
         # Normalize description too (remove hyphens so "rna-seq" matches query "rna seq").
         # Use word-boundary check (' phrase ') to avoid false substring matches
         # (e.g. 'rna seq' inside 'scrna seq').
-        desc_norm = (description or '').lower().replace('-', ' ')
-        phrase_haystack = ' ' + name_lower + ' ' + desc_norm + ' '
-        padded_query = ' ' + query_expanded + ' '
+        desc_norm = canonicalize_operation_phrases((description or '').lower().replace('-', ' '))
+        phrase_haystack = ' ' + canonicalize_operation_phrases(name_lower) + ' ' + desc_norm + ' '
+        padded_query = ' ' + canonicalize_operation_phrases(query_expanded) + ' '
         phrase_matches = 0
         for phrase in self.KEY_PHRASES:
             padded = ' ' + phrase + ' '
@@ -2007,6 +2115,14 @@ class UnifiedWorkflowSearch:
         negated_slugs = self._extract_negated_pipeline_slugs(query_lower)
         if self._normalise_pipeline_slug(name_lower.split("/")[-1]) in negated_slugs:
             score -= 35.0
+
+        # 4d. Therapeutic-FORMAT conflict — the workflow's name declares a biologic format the
+        # request rules out (mono-specific request vs multi-specific pipeline, or the reverse).
+        # See biologic_format_conflict(): a bispecific pipeline builds a two-arm construct against
+        # two targets and cannot serve a single-epitope nanobody request, however many of its
+        # supported formats its description happens to list.
+        if biologic_format_conflict(query, name):
+            score -= _FORMAT_MISMATCH_PENALTY
 
         # 5. Source priority — boosted to make nfcore clearly win over bioconductor
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
@@ -2139,6 +2255,21 @@ class UnifiedWorkflowSearch:
             # Only penalise if the user isn't explicitly asking for the old version by name
             if "legacy" not in query_lower and "admet_pred" not in query_lower.replace(" ", "_"):
                 score -= 6.0
+
+        # 9b. Operation mismatch on PROCESSED data — the differential test the user asked for is a
+        # CAPABILITY, not a keyword. A request that says "quantify differential protein abundance"
+        # about a table they already hold can only be answered by a workflow that runs a
+        # between-group differential test; a QC / enrichment-ratio workflow shares every input term
+        # (MaxQuant, proteinGroups.txt, LFQ) and wins on them. The phrase bonus (+5 +3) that §4.2
+        # added is smaller than the Pass-0 re-rank (up to +3.0) plus the dense bonus, so on dev the
+        # pulldown QC workflow still won by a point or two; a capability the workflow does not have
+        # must cost more than a re-rank can give back (dev 2026-11-11, 2nd report).
+        # Gated exactly like 8c's raw penalty: ONLY when the data shape is known AND processed, so
+        # a raw-FASTQ "find the differentially expressed genes" request keeps its full pipelines.
+        if (_supplied_kinds and not (_supplied_kinds & self._RAW_KINDS)
+                and ' differential expression ' in padded_query
+                and not self._performs_differential_test(phrase_haystack, tools, tags_lower)):
+            score -= _OPERATION_MISMATCH_PENALTY
 
         # 10. Execution-quality bonus (B-4: "Routing prefers runnable").
         # Small additive signal (capped at ±2.0) from per-workflow exec-status
@@ -2843,6 +2974,22 @@ class UnifiedWorkflowSearch:
     def _query_input_kinds(cls, query: str) -> frozenset:
         return frozenset(cls._QUERY_TYPE_TO_KIND[t] for t in cls._detect_query_data_types(query)
                          if t in cls._QUERY_TYPE_TO_KIND)
+
+    @staticmethod
+    def _performs_differential_test(haystack: str, tools: List[str], tags_lower: List[str]) -> bool:
+        """True when the workflow's own text says it runs a between-group differential test.
+
+        ``haystack`` is the already-canonicalised name + description (so every surface form of the
+        operation reads as 'differential expression'); a workflow named after a differential tool
+        (deqms, msqrob2, DESeq2 …) qualifies on the tool alone, because the catalog's one-line
+        descriptions for those rows often omit the operation."""
+        if " differential expression " in (haystack or ""):
+            return True
+        blob = f"{haystack} {' '.join(tools or [])} {' '.join(tags_lower or [])}".lower()
+        if "differential" in blob:
+            return True
+        words = set(re.findall(r"[a-z0-9]+", blob))
+        return bool(words & _DIFFERENTIAL_TOOLS)
 
     @classmethod
     def _kinds_mismatch(cls, user_kinds: frozenset, wf_kinds: frozenset) -> bool:

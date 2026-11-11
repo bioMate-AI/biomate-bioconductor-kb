@@ -116,3 +116,39 @@ it('shows partial parent status without allowing resubmission of the same graph'
   expect(screen.getByTestId('pipeline-parent-status')).toHaveTextContent('partial')
   expect(screen.queryByTestId('pipeline-confirm-run')).not.toBeInTheDocument()
 })
+
+// P2 (2026-11-11): a decomposed plan step says what runs, what it waits on, and what is still needed
+// — the demo card showed steps with no inputs and no hint (looked empty).
+describe('PipelineListView — plan step inputs', () => {
+  const PLAN: PipelineStep[] = [
+    makeStep({ id: 'p1', stepNumber: 1, workflowName: 'Adapt the generator to our series',
+      resolution: 'catalog_workflow', workflowLabel: 'Reinvent4 Finetune Rl', missingInputs: ['train_smiles'] }),
+    makeStep({ id: 'p2', stepNumber: 2, workflowName: 'Rank the generated molecules',
+      workflowLabel: 'rank_candidates', dependsOn: [1], needsInputMapping: true }),
+    makeStep({ id: 'p3', stepNumber: 3, workflowName: 'Plain step' }),
+  ]
+
+  it('names the workflow each step runs', () => {
+    render(<PipelineListView steps={PLAN} />)
+    expect(screen.getByTestId('plan-step-runs-p1').textContent).toMatch(/Reinvent4 Finetune Rl.*catalog workflow/)
+    expect(screen.queryByTestId('plan-step-runs-p3')).toBeNull() // no label → no line (other cards unchanged)
+  })
+
+  it('says which inputs are still needed instead of rendering an empty step', () => {
+    render(<PipelineListView steps={PLAN} />)
+    expect(screen.getByTestId('plan-step-needs-p1').textContent).toContain('train_smiles')
+    expect(screen.getByTestId('plan-step-needs-p2').textContent).toMatch(/Map inputs from earlier steps/)
+    expect(screen.queryByTestId('plan-step-needs-p3')).toBeNull()
+  })
+
+  it('shows what a step waits on', () => {
+    render(<PipelineListView steps={PLAN} />)
+    expect(screen.getByTestId('plan-step-after-p2')).toBeTruthy()
+    expect(screen.queryByTestId('plan-step-after-p1')).toBeNull()
+  })
+
+  it('drops the needed-inputs hint once the step is no longer pending', () => {
+    render(<PipelineListView steps={[{ ...PLAN[0], status: 'running' }]} />)
+    expect(screen.queryByTestId('plan-step-needs-p1')).toBeNull()
+  })
+})

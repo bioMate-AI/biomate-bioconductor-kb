@@ -2357,6 +2357,9 @@ def search_ranked(
                 "format": getattr(r, "format", ""),
                 "score": round(r.score, 3),
                 "type": "workflow",
+                # Catalog identity, so a "Run" on this result can select exactly this row.
+                "id": getattr(r, "id", None),
+                "nextflow_path": getattr(r, "filename", None) or None,
             })
     except Exception as exc:
         log.warning("[search_ranked] workflow search failed: %s", exc)
@@ -3183,6 +3186,7 @@ class AIRequestModel(BaseModel):
     user_input_kinds: Optional[List[str]] = Field(None, description="Kinds of data the user has (closed vocabulary), from the intent classifier; None = detect from the text")
     credential_map: Optional[Dict[str, bool]] = Field(None, description="Per-tool credential availability (True=available, False=not). When provided, takes precedence over server-side vault lookup.")
     inline_parameters: Optional[Dict[str, Any]] = Field(None, description="Inline parameters extracted from the user message (file paths, accessions, etc.) by the Node.js layer.")
+    selected_workflow: Optional[Dict[str, Any]] = Field(None, description="Workflow the user explicitly selected ({name, nextflow_path?, id?}). When set, routing and search are skipped and exactly this workflow's card is built.")
 
 
 class AIResponseModel(BaseModel):
@@ -4204,7 +4208,8 @@ def generate_workflow_unified(
             log.debug("[generate_workflow] input-kind inference failed (non-fatal): %s", _ik_err)
 
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
-        if use_langgraph:
+        # An explicit selection never goes through the routing pipeline: there is nothing to route.
+        if use_langgraph and not request.selected_workflow:
             result = ai_assistant.run_via_pipeline(
                 user_intent=effective_intent,
                 session_id=session_id,
@@ -4222,6 +4227,7 @@ def generate_workflow_unified(
                 penalized_domains=request.penalized_domains or None,
                 credential_map=credential_map or None,
                 user_input_kinds=effective_input_kinds,
+                selected_workflow=request.selected_workflow or None,
             )
 
         # Clarification requests from chain verifier — pass through with a clear error key
@@ -6907,6 +6913,8 @@ class PlanDagRequest(BaseModel):
     tasks: List[PlanDagTask]
     name: Optional[str] = None
     max_parallel: Optional[int] = None
+    # Files the user attached this turn ({name, s3_uri}); bound to each root step's declared params.
+    uploaded_datasets: Optional[List[Dict[str, Any]]] = None
 
 
 @router.post(
@@ -6927,7 +6935,8 @@ def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTran
         if sa is None:
             return {"success": False, "reason": "assistant_unavailable"}
         from galaxy.ai.decomposed_dag import plan_dag_from_tasks
-        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel)
+        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel,
+                                   uploaded_datasets=request.uploaded_datasets)
     except Exception as exc:  # noqa: BLE001 — planning is best-effort; the chat falls back
         log.warning("[plan_dag] failed: %s", exc)
         log.warning("[plan_dag] failed: %s", exc)

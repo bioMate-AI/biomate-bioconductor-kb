@@ -1,3 +1,4 @@
+import { originLabel } from "./model-origin"
 /**
  * ModelObject — a model presented like a dataset: identity, evidence, lineage,
  * consumers (blast radius), interface, versions. Never a leaderboard, never a
@@ -138,7 +139,7 @@ export function ModelObject({
             <Badge variant="outline" className="text-fs-xs">{identity.confidenceBand} confidence</Badge>
           )}
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-fs-xs text-muted-foreground">{identity.origin}</span>
+            <span className="text-fs-xs text-muted-foreground">{originLabel(identity.origin)}</span>
             {/* Only render an action when its handler is wired — otherwise the
                 button is an inert no-op in the live /models route. */}
             {onSupersede && (

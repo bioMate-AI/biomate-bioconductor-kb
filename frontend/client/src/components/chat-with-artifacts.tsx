@@ -28,17 +28,17 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
+import { applyClarificationAnswer } from "@/lib/clarify-param-bridge"
 import { type Message } from "./chat-message"
 import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
-import { t } from "@/lib/i18n"
+import { locale, t, tStatus } from "@/lib/i18n"
 import { ChatHeaderTitle } from "./chat-header-title"
 import { useApplyInitialDraft } from "@/lib/one-shot-url-param"
 import {
-  getOutputReadinessHint,
   getRunPrimaryCta,
   isRunNeedsAttention,
   mapRunBucket,
@@ -48,6 +48,8 @@ import {
   workflowPanelProjectId,
   workflowPanelProjectName,
   runManagerListParams,
+  outputReadinessLabel,
+  runPrimaryCtaLabel,
 } from "./run-manager-utils"
 
 function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cancelled' | null {
@@ -80,23 +82,23 @@ type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
 
 function formatRunTime(raw?: string): string {
-  if (!raw) return "n/a"
+  if (!raw) return t('runs_ui.time_unknown')
   const date = new Date(raw)
-  if (Number.isNaN(date.getTime())) return "n/a"
-  return date.toLocaleTimeString()
+  if (Number.isNaN(date.getTime())) return t('runs_ui.time_unknown')
+  return date.toLocaleTimeString(locale === 'zh' ? 'zh-CN' : locale)
 }
 
 function formatFreshness(raw?: string): string {
-  if (!raw) return "freshness unknown"
+  if (!raw) return t('runs_ui.fresh_unknown')
   const date = new Date(raw)
-  if (Number.isNaN(date.getTime())) return "freshness unknown"
+  if (Number.isNaN(date.getTime())) return t('runs_ui.fresh_unknown')
   const deltaMs = Date.now() - date.getTime()
-  if (deltaMs < 0 || deltaMs < 60_000) return "just now"
+  if (deltaMs < 0 || deltaMs < 60_000) return t('runs_ui.fresh_just_now')
   const deltaMinutes = Math.floor(deltaMs / 60_000)
-  if (deltaMinutes < 60) return `${deltaMinutes}m ago`
+  if (deltaMinutes < 60) return t('runs_ui.fresh_minutes', { n: deltaMinutes })
   const deltaHours = Math.floor(deltaMinutes / 60)
-  if (deltaHours < 24) return `${deltaHours}h ago`
-  return `${Math.floor(deltaHours / 24)}d ago`
+  if (deltaHours < 24) return t('runs_ui.fresh_hours', { n: deltaHours })
+  return t('runs_ui.fresh_days', { n: Math.floor(deltaHours / 24) })
 }
 
 function shortenId(raw?: string, prefix = "", maxLen = 8): string {
@@ -211,6 +213,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       onWorkflowPanelOpenChange?.(true)
     } catch {}
   }, [currentChatSession?.id, currentChatSession?.messages, panelOpen, onWorkflowPanelOpenChange])
+
+  // Live view of this session's messages for window-event handlers registered
+  // once for the component lifetime (the clarification bridge below reads the
+  // attachments off the user's turns).
+  const sessionMessagesRef = useRef<Array<{ role?: string; content?: unknown }>>([])
+  useEffect(() => {
+    sessionMessagesRef.current = (currentChatSession?.messages ?? []) as Array<{ role?: string; content?: unknown }>
+  }, [currentChatSession?.messages])
+
   // True while the AI is streaming a response — used to show a skeleton in the panel.
   const [panelGenerating, setPanelGenerating] = useState(false)
   // Set to true just before a message with file attachments is submitted so
@@ -498,13 +509,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (!paramName) return
       setPanelWorkflow((prev: any) => {
         if (!prev) return prev
-        return {
-          ...prev,
-          inline_parameters: {
-            ...((prev as any).inline_parameters || {}),
-            [paramName]: value,
-          },
+        // An answer that refers to an attachment ("use the attached file",
+        // "用附件", or the file's name) binds THAT FILE's dataset reference, not
+        // the sentence the user typed — otherwise the panel keeps showing the
+        // required input as unset (founder report: "Confirm and configure" did
+        // nothing). Any other answer is a real value and passes through.
+        const applied = applyClarificationAnswer(prev, { paramName, value }, sessionMessagesRef.current)
+        if (applied.file) {
+          console.log(`[clarify-bridge] ${paramName} ← attached file "${applied.file.name}"`)
         }
+        return applied.workflow
       })
     }
     const onSkipped = (_e: Event) => {
@@ -2139,7 +2153,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               >
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {bucket === "needs_attention" ? "Needs Attention" : bucket}
+                    {bucket === "needs_attention" ? t('runs_ui.status_needs_attention') : t(`workflow.status.${bucket}`)}
                   </p>
                   <span
                     className="text-xs text-muted-foreground"
@@ -2151,7 +2165,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 <div className="space-y-1.5">
                   {runBuckets[bucket].slice(0, 6).map((run) => (
                     (() => {
-                      const readinessHint = getOutputReadinessHint(run)
+                      const readinessHint = outputReadinessLabel(run)
                       return (
                         <button
                           key={run.id}
@@ -2164,20 +2178,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                           data-testid={`run-manager-item-${run.id}`}
                           onClick={() => handleSwitchRun(run.id)}
                         >
-                          <p className="font-medium truncate">{run.workflowName || "Untitled run"}</p>
+                          <p className="font-medium truncate">{run.workflowName || t('runs_ui.untitled_run')}</p>
                           <p className="text-muted-foreground">
-                            {run.execution?.status || "unknown"} · {formatRunTime(run.updatedAt || run.createdAt)}
+                            {tStatus(run.execution?.status || "unknown")} · {formatRunTime(run.updatedAt || run.createdAt)}
                           </p>
                           <p className="text-fs-xs text-muted-foreground">
-                            {shortenId(run.id, "run ")}
-                            {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, "inv ")}` : ""}
+                            {shortenId(run.id, t('runs_ui.id_run') + " ")}
+                            {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, t('runs_ui.id_invocation') + " ")}` : ""}
                             {` · ${formatFreshness(run.updatedAt || run.createdAt)}`}
                           </p>
                           <p
                             className="mt-1 inline-flex rounded border border-border px-1.5 py-0.5 text-fs-xs font-medium text-foreground/90"
                             data-testid={`run-manager-item-cta-${run.id}`}
                           >
-                            {getRunPrimaryCta(run)}
+                            {runPrimaryCtaLabel(getRunPrimaryCta(run))}
                           </p>
                           {readinessHint && (
                             <p className="text-fs-xs text-muted-foreground">{readinessHint}</p>
@@ -2187,7 +2201,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     })()
                   ))}
                   {runBuckets[bucket].length === 0 && (
-                    <p className="text-xs text-muted-foreground">No runs</p>
+                    <p className="text-xs text-muted-foreground">{t('runs_ui.no_runs')}</p>
                   )}
                 </div>
               </div>

@@ -23,7 +23,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Play, Loader2, Sparkles } from "lucide-react"
-import { useModels, useInfer, useInferenceResult } from "./models-api"
+import { useModels, useInfer, useInferenceResult, useRunStatus, launchFold, TrainingLaunchError } from "./models-api"
+import { TERMINAL_STATUSES, openRunManager, runStatusLabel } from "./training-logic"
 import { InferenceResultView } from "./inference-result"
 import type { EvidenceClass, ModelSummary } from "./types"
 
@@ -74,6 +75,15 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
   const [domainId, setDomainId] = useState<EvidenceClass>("structure")
   const [inputText, setInputText] = useState("")
   const [runId, setRunId] = useState<string | null>(null)
+  // Structure folds run on OUR AWS Batch (Boltz-2) as a tracked workflow run,
+  // not NVIDIA's hosted API — launchFold → /api/workflows/execute → poll status.
+  const [foldRunId, setFoldRunId] = useState<string | null>(null)
+  const [foldBusy, setFoldBusy] = useState(false)
+  const [foldError, setFoldError] = useState("")
+  const isStructure = domainId === "structure"
+  const foldStatus = useRunStatus(foldRunId, (sx) => TERMINAL_STATUSES.has(String(sx).toLowerCase()))
+  const foldState = String(foldStatus.data?.status ?? "").toLowerCase()
+  const foldDone = TERMINAL_STATUSES.has(foldState)
 
   const { data: catalog } = useModels()
   const infer = useInfer()
@@ -82,8 +92,12 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
   const domain = useMemo(() => DOMAINS.find((d) => d.id === domainId)!, [domainId])
   const modelId = useMemo(() => pickModelId(domain, catalog), [domain, catalog])
 
-  const canRun = inputText.trim().length > 0 && !!modelId && !infer.isPending
-  const running = infer.isPending || result?.status === "running"
+  const canRun = inputText.trim().length > 0 && (isStructure
+    ? !foldBusy && !(foldRunId && !foldDone)
+    : (!!modelId && !infer.isPending))
+  const running = isStructure
+    ? (foldBusy || (!!foldRunId && !foldDone))
+    : (infer.isPending || result?.status === "running")
 
   const buildInputs = (): Record<string, unknown> => {
     if (domain.inputKey === "smiles") {
@@ -94,6 +108,18 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
   }
 
   const run = () => {
+    if (isStructure) {
+      setFoldRunId(null); setFoldError(""); setFoldBusy(true)
+      launchFold({ sequence: inputText.trim() })
+        .then(({ runId: id }) => setFoldRunId(id))
+        .catch((cause) => setFoldError(
+          cause instanceof TrainingLaunchError
+            ? t("models.fold_launch_failed", { detail: cause.detail })
+            : (cause instanceof Error ? cause.message : String(cause)),
+        ))
+        .finally(() => setFoldBusy(false))
+      return
+    }
     setRunId(null)
     infer.mutate(
       { modelId, inputs: buildInputs() },
@@ -104,6 +130,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
   const selectDomain = (id: EvidenceClass) => {
     setDomainId(id)
     setRunId(null)
+    setFoldRunId(null); setFoldError("")
     setInputText("")
   }
 
@@ -196,7 +223,10 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
                 </>
               )}
             </Button>
-            {infer.isError && (
+            {isStructure && foldError && (
+              <span className="text-fs-xs text-destructive" data-testid="run-pretrained-error">{foldError}</span>
+            )}
+            {!isStructure && infer.isError && (
               <span className="text-fs-xs text-destructive" data-testid="run-pretrained-error">
                 {infer.error instanceof Error ? infer.error.message : t("models.inference_failed")}
               </span>
@@ -205,8 +235,37 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
         </CardContent>
       </Card>
 
+      {/* Structure fold result — a tracked Batch run (our own Boltz-2). */}
+      {isStructure && foldRunId && (
+        <Card className="mt-3" data-testid="fold-run-card">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-sm">{t("models.fold_run_heading")}</CardTitle>
+              <Badge variant={foldState === "failed" ? "destructive" : "outline"} className="text-fs-xs gap-1" data-testid="fold-run-status">
+                {!foldDone && <Loader2 className="h-3 w-3 animate-spin" />}
+                {foldState ? runStatusLabel(foldState) : t("models.run_status_running")}
+              </Badge>
+              <span className="text-fs-xs text-muted-foreground ml-auto">AWS Batch · Boltz-2</span>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-xs text-muted-foreground" data-testid="fold-run-note">
+              {foldDone && foldState !== "failed"
+                ? t("models.fold_done_note")
+                : foldState === "failed"
+                  ? (foldStatus.data?.errorMessage || t("models.fold_failed_note"))
+                  : t("models.fold_running_note")}
+            </p>
+            <Button size="sm" variant="outline" className="h-7 text-xs" data-testid="fold-run-open"
+              onClick={() => openRunManager()}>
+              {t("models.fold_open_run")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Result */}
-      {runId && (
+      {!isStructure && runId && (
         <Card className="mt-3" data-testid="run-pretrained-result-card">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 flex-wrap">

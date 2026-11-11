@@ -128,3 +128,11 @@ def test_s3_collector_reads_the_failed_task_and_caches(monkeypatch):
 
 def test_s3_collector_rejects_non_s3():
     assert NS["_collect_failed_task_errors_s3"]("/tmp/x") == ""
+
+
+def test_tool_exception_after_executor_prefix_is_found():
+    line = ("Process FOLD_COMPLEX (fmc63) failed: Essential container in task exited — "
+            "RuntimeError: DataLoader worker (pid(s) 2349) exited unexpectedly")
+    exc = NS["_tool_exception"](line)
+    assert exc and exc["type"] == "RuntimeError"
+    assert exc["message"].startswith("DataLoader worker")

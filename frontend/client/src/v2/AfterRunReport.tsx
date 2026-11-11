@@ -126,6 +126,9 @@ import { InteractiveLauncher } from "@/components/interactive-launcher";
 interface AfterRunReportProps {
   /** Parent workflow tab already names this region. */
   embedded?: boolean;
+  /** The host (workflow panel) already states the failure cause in its diagnosis
+   *  card; show only failed steps, raw error and log tail here (one cause, once). */
+  hideFailureDiagnosis?: boolean;
   runId: string;
   invocationId?: string;       // backend Galaxy/Nextflow invocation id (for /qc-events)
   workflowName?: string;
@@ -199,6 +202,7 @@ export function AfterRunReport({
   projectId,
   targetTab,
   embedded = false,
+  hideFailureDiagnosis = false,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
@@ -496,6 +500,7 @@ export function AfterRunReport({
           invocationId={invocationId}
           runId={runId}
           parameters={parameters}
+          hideDiagnosis={hideFailureDiagnosis}
         />
       )}
       <div role="tablist" style={styles.tabBar} data-visible-tabs={visibleTabs.map(([id]) => id).join(',')}>
@@ -643,7 +648,9 @@ function FailedRunSection({
   invocationId,
   runId,
   parameters,
+  hideDiagnosis = false,
 }: {
+  hideDiagnosis?: boolean;
   status: string;
   errorMessage?: string;
   failedSteps?: string[];
@@ -785,7 +792,7 @@ function FailedRunSection({
           it is hidden and only the raw error below is shown — we never invent a
           cause. The raw error stays available in the block beneath. */}
       {(() => {
-        const diag = errorMessage ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
+        const diag = errorMessage && !hideDiagnosis ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
         if (!diag || !diag.known || !diag.cause) return null;
         const { i18n } = diag;
         const cause = i18n.cause ? tOr(i18n.cause, diag.cause, i18n.vars) : diag.cause;

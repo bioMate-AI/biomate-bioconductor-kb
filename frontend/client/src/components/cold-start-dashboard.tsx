@@ -78,7 +78,7 @@ export interface ColdShape {
   /**
    * An optional real, staged sample dataset attached to this example so a
    * first-time user can run it directly — or edit the seed to swap in their own.
-   * `ref` is a public accession or S3 path that BioMate can fetch/stage; the
+   * `ref` is a public accession (or a path BioMate has already staged); the
    * same accession is embedded in `seed`, so clicking pre-loads a runnable goal.
    * Only set when the dataset genuinely exists (no fabricated demo data).
    */
@@ -104,7 +104,7 @@ export const COLD_DOMAINS: ColdDomain[] = [
     shapes: [
       { t: "Screen a compound set for ADMET liabilities", needs: "sample provided — or your own SMILES/SDF", time: "~15 min", seed: "Screen these SMILES for ADMET liabilities and rank them by developability: CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1", sampleDataset: { label: "example SMILES", ref: "inline" } },
       { t: "Dock a series against a target and rank poses", needs: "sample provided — ligands + target structure", time: "~1 h", seed: "Dock this series against my target and rank the poses." },
-      { t: "Explain why a hit series is failing on one property", needs: "sample provided — compounds and assay context", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence." },
+      { t: "Explain why a hit series is failing on one property", needs: "sample provided — a series with measured target and hERG IC50s", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence.", sampleDataset: { label: "MCHR1 chromone series", ref: "ChEMBL CHEMBL1137327" } },
     ],
   },
   {
@@ -124,17 +124,17 @@ export const COLD_DOMAINS: ColdDomain[] = [
     name: "Genomics",
     shapes: [
       { t: "Call variants and flag the clinically relevant ones", needs: "sample provided — reads + reference build", time: "~2 h", seed: "Call variants on these samples and flag the clinically relevant ones. Human GRCh38." },
-      { t: "Compare variant burden between two cohorts", needs: "sample provided — two variant sets", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts." },
-      { t: "Check contamination and relatedness before analysis", needs: "sample provided — reads", time: "~25 min", seed: "Check these samples for contamination and relatedness before I analyse them." },
+      { t: "Compare variant burden between two cohorts", needs: "sample provided — cohort mutation calls + response labels", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts.", sampleDataset: { label: "NSCLC anti-PD-1 cohort", ref: "Rizvi 2015, Science (PMID 25765070)" } },
+      { t: "Check contamination and relatedness before analysis", needs: "sample provided — multi-sample genotypes + a pedigree", time: "~25 min", seed: "Check these genotypes for contamination and relatedness before I analyse them.", sampleDataset: { label: "CEPH 1463 pedigree", ref: "Illumina Platinum Genomes" } },
     ],
   },
   {
     id: "fgen",
     name: "Functional genomics",
     shapes: [
-      { t: "Call hits from a pooled CRISPR screen", needs: "sample provided — screen read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes." },
-      { t: "Compare screen hits across two conditions", needs: "sample provided — two screen count tables", time: "~35 min", seed: "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies." },
-      { t: "QC a screen before hit-calling", needs: "sample provided — screen read counts", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling." },
+      { t: "Call hits from a pooled CRISPR screen", needs: "sample provided — plasmid + replicate read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes.", sampleDataset: { label: "HT-29 MiniLibCas9 screen", ref: "CRISPRcleanR example" } },
+      { t: "Compare screen hits across two cell lines", needs: "sample provided — initial/final counts for two lines", time: "~35 min", seed: "Compare my CRISPR screen hits between the two cell lines and flag line-specific dependencies.", sampleDataset: { label: "HL60 / KBM7 screen", ref: "MAGeCK demo" } },
+      { t: "QC a screen before hit-calling", needs: "sample provided — replicate counts + control gene sets", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling.", sampleDataset: { label: "HT-29 Brunello screen", ref: "CRISPRcleanR example" } },
     ],
   },
   {
@@ -152,14 +152,14 @@ export const COLD_DOMAINS: ColdDomain[] = [
     shapes: [
       { t: "Quantify differential protein abundance between groups", needs: "sample provided — search output + design", time: "~45 min", seed: "Quantify differential protein abundance between my two groups." },
       { t: "Reconcile a proteomic signal with a transcriptomic one", needs: "sample provided — two result tables", time: "~35 min", seed: "Reconcile my proteomic signal with the transcriptomic result." },
-      { t: "Assess run-to-run quality across a batch", needs: "sample provided — raw or search output", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch." },
+      { t: "Assess run-to-run quality across a batch", needs: "sample provided — a 12-run search output + design", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch.", sampleDataset: { label: "LFQ-Analyst example batch", ref: "J Proteome Res 2020" } },
     ],
   },
   {
     id: "clin",
     name: "Clinical",
     shapes: [
-      { t: "Stratify a cohort by response and test the endpoint", needs: "sample provided — a cohort table", time: "~20 min", seed: "Stratify this cohort by response and test the primary endpoint." },
+      { t: "Compare trial arms and test the primary endpoint", needs: "sample provided — a randomised trial cohort", time: "~20 min", seed: "Compare the treatment arms in this trial cohort and test the primary endpoint.", sampleDataset: { label: "Mayo PBC trial cohort", ref: "survival::pbc" } },
       { t: "Discover a biomarker panel and build a risk model", needs: "sample provided — a cohort table + labels", time: "~30 min", seed: "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate." },
       { t: "Assemble the analysis section of a submission", needs: "sample provided — inputs for a first run", time: "~1 h", seed: "Assemble the analysis section of my submission from these runs." },
     ],
@@ -326,9 +326,39 @@ export const COLD_MODULES: ColdModule[] = [
             "Generate macrocycle candidates with good permeability.",
           ],
           bio: [
-            "Design nanobody candidates against this epitope.",
+            "Design scFv antibody sequences from this antibody structure.",
             "Graft these CDRs onto a stable human framework.",
             "Propose enzyme variants with a redesigned active-site pocket.",
+          ],
+        },
+      },
+      {
+        // Fold the candidate (or its complex with the target) and read where to
+        // trust it — Boltz-2 cofold on Cloud GPU. Separate from "Predict & filter"
+        // (affinity/dock): this produces the 3D structure + confidence, the input
+        // the downstream pose/affinity steps read. Routes to the Structure
+        // prediction domain (DOMAIN_RULES).
+        k: "Fold & complex",
+        ex: [
+          "Predict the structure of this protein\u2013ligand complex and show me the pose.",
+          "Model this complex and tell me where the model is unsure.",
+          "Predict the fold of this candidate and flag the low-pLDDT regions.",
+        ],
+        exBy: {
+          sm: [
+            "Predict the structure of this protein\u2013ligand complex and show me the pose.",
+            "Model this complex and tell me where the model is unsure.",
+            "Predict the fold of this candidate and flag the low-pLDDT regions.",
+          ],
+          pep: [
+            "Predict the structure of this cyclic peptide bound to my target.",
+            "Model this complex for a macrocycle against my target, with interface confidence.",
+            "Predict the fold of this stapled peptide and where to trust it.",
+          ],
+          bio: [
+            "Predict the structure of this antibody\u2013antigen complex and report interface confidence.",
+            "Model this complex for a nanobody and its antigen.",
+            "Predict the fold of this designed binder against its target.",
           ],
         },
       },

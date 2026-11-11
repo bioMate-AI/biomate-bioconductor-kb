@@ -233,6 +233,21 @@ def _bionemo_catalog() -> List[Dict[str, Any]]:
         log.warning("models: bionemo_client unavailable: %s", exc)
         return []
 
+    # Report the REAL backend, not a hard-coded "self-host". With no
+    # BIONEMO_SELF_HOST_URL the client falls back to NVIDIA's hosted API, so a
+    # "self-host" label was false and hid the external dependency the panel
+    # actually has (and that is currently failing). The UI localises the code.
+    try:
+        from galaxy.ai.bionemo_client import BioNeMoClient, MODE_SELF_HOST, MODE_HOSTED_API
+        _mode = BioNeMoClient()._effective_mode()
+        origin = {
+            MODE_SELF_HOST: "self_host",
+            MODE_HOSTED_API: "hosted_nvidia",
+        }.get(_mode, "unconfigured")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("models: could not resolve BioNeMo backend mode: %s", exc)
+        origin = "unconfigured"
+
     rows: List[Dict[str, Any]] = []
     for fn_name, meta in _BIONEMO_META.items():
         if fn_name not in _FUNCTIONS:
@@ -244,7 +259,7 @@ def _bionemo_catalog() -> List[Dict[str, Any]]:
                 "name": meta["name"],
                 "family": meta["family"],
                 "version": meta["version"],
-                "origin": "self-host",  # BioNeMo NIM / self-host path
+                "origin": origin,
                 "usedByCount": 0,
             }
         )
