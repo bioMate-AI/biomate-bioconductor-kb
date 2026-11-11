@@ -25,11 +25,14 @@ const SERVER = path.join(__dirname);
 describe("chat_sessions.project_id wiring (Q4 follow-on)", () => {
   const ROUTES = fs.readFileSync(path.join(SERVER, "routes.ts"), "utf-8");
 
-  it("_resolvedProjectId is HOISTED to handler scope, declared before persistAssistantMessage", () => {
+  it("_resolvedProjectId is HOISTED to handler scope, declared before the assistant persister closure", () => {
     const declMatch = ROUTES.match(/let _resolvedProjectId\s*:\s*string\s*\|\s*undefined\s*;/);
     expect(declMatch).not.toBeNull();
     const declIdx = ROUTES.indexOf("let _resolvedProjectId:");
-    const persistFnIdx = ROUTES.indexOf("const persistAssistantMessage = async");
+    // The persister (server/chat-stream-persistence.ts) owns the write closure
+    // that reads _resolvedProjectId; persistAssistantMessage delegates to it.
+    const persistFnIdx = ROUTES.indexOf("createAssistantPersister({");
+    expect(persistFnIdx).toBeGreaterThan(0);
     // Closure-over-mutable-var pattern: the declaration must precede the closure.
     expect(declIdx).toBeLessThan(persistFnIdx);
     expect(declIdx).toBeGreaterThan(0);
