@@ -511,7 +511,8 @@
       "transferring": "Transferring…",
       "transfer": "Transfer ownership",
       "transfer_body": "This makes {{name}} the owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.",
-      "message_count": "{{n}} messages"
+      "message_count": "{{n}} messages",
+      "add_tag": "tag"
     }
   },
   "file_tree": {
@@ -985,6 +986,14 @@
       "cat_tool_error_detail": "The step stopped with an error from the tool itself: {{detail}}",
       "cat_workflow_code": "This looks like a defect in the workflow itself, not your input. A plain re-run would hit the same error; it has been flagged for the BioMate team.",
       "cat_unknown": "The run stopped before completing."
+    },
+    "env": {
+      "preparing": "Preparing the run environment (first run)",
+      "ready": "Environment ready",
+      "ready_starting": "Environment ready, starting…",
+      "pull_failed": "Image download failed",
+      "auto_resume": "Backend restart detected — resuming automatically in {{n}}s…",
+      "cancel": "Cancel"
     }
   },
   "preview": {

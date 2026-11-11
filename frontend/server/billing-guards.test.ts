@@ -1,3 +1,6 @@
+// @vitest-environment node
+// (server source checks: under jsdom, `URL` is the jsdom class and node:url fileURLToPath
+// rejects it on CI's Node — ERR_INVALID_ARG_TYPE for every guard.)
 // Regression guards for billing fixes that have NO other test coverage and each
 // caused (or would cause) a silent production failure. These are deliberately
 // source-invariant checks (read the file, assert the fix is present) — cheap, no

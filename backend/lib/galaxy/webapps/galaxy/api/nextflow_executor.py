@@ -1034,7 +1034,9 @@ def _collect_task_errors_any(work_dir: str) -> str:
 # R `Error in f(x) : …`. Nextflow/JVM exceptions are the executor's wrapper,
 # not the tool's statement of cause, so they are excluded.
 _TOOL_EXC_RE = re.compile(
-    r'^\s*(?:(?P<qual>[\w.]+)\.)?(?P<type>[A-Z]\w*(?:Error|Exception)):\s+(?P<msg>\S.*)$'
+    # at line start, or after the executor's " — " / ": " prefix
+    # ("Process X failed: Essential container in task exited — RuntimeError: …")
+    r'(?:^\s*|\s—\s|:\s)(?:(?P<qual>[\w.]+)\.)?(?P<type>[A-Z]\w*(?:Error|Exception)):\s+(?P<msg>\S.*)$'
     r'|^\s*Error in [^:\n]+:\s*(?P<rmsg>\S.*)$',
     re.MULTILINE)
 

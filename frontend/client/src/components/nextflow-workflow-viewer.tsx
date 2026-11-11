@@ -1,5 +1,6 @@
 import type { WorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { canControlExecutionFromQc } from "@shared/qc-assessment";
+import { classifyRunFailure } from "@shared/run-failure-classifier";
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
@@ -2043,6 +2044,10 @@ export function NextflowWorkflowViewer({
   const canResumeFailed = status === 'failed' && !wasCancelled && !!activeRunId && !!_failure
     && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '')
     && anyStepCompleted;
+  // The diagnosis card below is the ONE place a failed run's cause is stated; the
+  // embedded AfterRunReport then shows only the failed steps + log tail.
+  const showsFailureDiagnosis = status === 'failed' && !wasCancelled
+    && !!(aiDiagnosis?.user_message || _failure?.user_message);
   const handleResumeFromFailed = async () => {
     if (!activeRunId || rerunInProgress) return;
     setRerunInProgress(true);
@@ -3279,8 +3284,8 @@ export function NextflowWorkflowViewer({
               )}
               <div>
                 <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)' }}>
-                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
-                   containerPullStatus.status === 'ready' ? '环境就绪' : '镜像下载失败'}
+                  {containerPullStatus.status === 'pulling' ? tOr('panel.env.preparing', 'Preparing the run environment (first run)') :
+                   containerPullStatus.status === 'ready' ? tOr('panel.env.ready', 'Environment ready') : tOr('panel.env.pull_failed', 'Image download failed')}
                 </div>
                 <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                   {containerPullStatus.message}
@@ -3305,7 +3310,7 @@ export function NextflowWorkflowViewer({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 'var(--fs-body)' }}>⚡</span>
                 <span style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.35 0.03 230)', fontWeight: 500 }}>
-                  检测到后台重启，{autoResumeCountdown}秒后自动恢复运行…
+                  {tOr('panel.env.auto_resume', 'Backend restart detected — resuming automatically in {{n}}s…', { n: autoResumeCountdown ?? 0 })}
                 </span>
               </div>
               <button
@@ -3320,7 +3325,7 @@ export function NextflowWorkflowViewer({
                   color: 'oklch(0.42 0.04 230)', whiteSpace: 'nowrap', flexShrink: 0,
                 }}
               >
-                取消
+                {tOr('panel.env.cancel', 'Cancel')}
               </button>
             </div>
           )}
@@ -3349,9 +3354,35 @@ export function NextflowWorkflowViewer({
                     {tOr('panel.diag.title', 'AI diagnosis')}
                   </span>
                 </div>
-                <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
-                  {failureDiagnosisMessage(diag.user_message, canResumeFailed, (diag as any).category, (diag as any).error_detail)}
-                </p>
+                {(() => {
+                  // The rule classifier names specific causes (too few rows, missing
+                  // column, bad contrast, OOM …) from the task's own error text; when it
+                  // recognises one, it leads. Otherwise the server's category sentence.
+                  const ts = classifyRunFailure([snippet, errorMessage].filter(Boolean).join('\n'));
+                  if (ts.known && ts.i18n.cause) {
+                    const culprit = ts.culprit ? (ts.i18n.culprit ? tOr(ts.i18n.culprit, ts.culprit, ts.i18n.vars) : ts.culprit) : '';
+                    return (
+                      <div data-testid="failure-diagnosis-cause" data-failure-class={ts.klass} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                          {tOr(ts.i18n.cause, ts.cause, ts.i18n.vars)}
+                        </p>
+                        {culprit && !ts.cause.includes(ts.culprit!) && (
+                          <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', margin: 0 }}>
+                            <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {culprit}
+                          </p>
+                        )}
+                        <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', margin: 0 }}>
+                          <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {tOr(ts.i18n.next, ts.nextAction, ts.i18n.vars)}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                      {failureDiagnosisMessage(diag.user_message, canResumeFailed, (diag as any).category, (diag as any).error_detail)}
+                    </p>
+                  );
+                })()}
                 {failureRecoveryAdvice(diag.suggested_action, canResumeFailed) && (
                   <p data-testid="failure-recovery-advice" style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
                     {failureRecoveryAdvice(diag.suggested_action, canResumeFailed)}
@@ -3382,6 +3413,7 @@ export function NextflowWorkflowViewer({
           })()}
           <AfterRunReport
             embedded
+            hideFailureDiagnosis={showsFailureDiagnosis}
             runId={runId || invocationId || ''}
             invocationId={invocationId}
             // C2: Stream 2 adds `targetTab?` to AfterRunReportProps; cast-spread
@@ -3530,8 +3562,8 @@ export function NextflowWorkflowViewer({
               )}
               <div>
                 <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)' }}>
-                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
-                   containerPullStatus.status === 'ready' ? '环境就绪，正在启动…' : '镜像下载失败'}
+                  {containerPullStatus.status === 'pulling' ? tOr('panel.env.preparing', 'Preparing the run environment (first run)') :
+                   containerPullStatus.status === 'ready' ? tOr('panel.env.ready_starting', 'Environment ready, starting…') : tOr('panel.env.pull_failed', 'Image download failed')}
                 </div>
                 <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                   {containerPullStatus.message}

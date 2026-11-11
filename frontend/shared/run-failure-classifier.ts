@@ -77,9 +77,14 @@ function extractExit(raw: string): string | undefined {
 function toolException(raw: string): { type: string; message: string; line: string } | undefined {
   const lines = (raw || '').split('\n').map(l => l.trim());
   for (let i = lines.length - 1; i >= 0; i--) {
-    const m = /^(?:[\w.]+\.)?([A-Z]\w*(?:Error|Exception)):\s+(.+)$/.exec(lines[i]) ||
-      /^(Error) in [^:]+:\s*(.+)$/.exec(lines[i]);
-    if (m) return { type: m[1], message: m[2].slice(0, 300), line: lines[i].slice(0, 400) };
+    // At line start, or after the executor's " — " / ": " prefix ("Process X failed:
+    // Essential container in task exited — RuntimeError: …").
+    const m = /(?:^|\s—\s|:\s)((?:[\w.]+\.)?([A-Z]\w*(?:Error|Exception))):\s+(.+)$/.exec(lines[i]);
+    if (m && !/^(?:nextflow|groovy|java|org\.|com\.amazonaws|software\.amazon)/i.test(m[1])) {
+      return { type: m[2], message: m[3].trim().slice(0, 300), line: lines[i].slice(0, 400) };
+    }
+    const r = /^(Error) in [^:]+:\s*(.+)$/.exec(lines[i]);
+    if (r) return { type: r[1], message: r[2].slice(0, 300), line: lines[i].slice(0, 400) };
   }
   return undefined;
 }
