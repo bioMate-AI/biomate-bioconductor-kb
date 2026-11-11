@@ -50,14 +50,6 @@ export function unbackedOutputFileClaims(text: string, produced: string[], known
   return claimedOutputFiles(text).filter(n => !have.has(n.toLowerCase()) && !inputs.has(n.toLowerCase()));
 }
 
-export function unbackedFilesNote(files: string[], zh = false): string {
-  if (files.length === 0) return '';
-  const list = files.map(f => `\`${f}\``).join(', ');
-  return zh
-    ? `\n\n> ⚠️ ${list} 并未由本轮执行的代码生成，因此不存在可下载的文件。只有 run_code 实际输出到 $OUTPUT_DIR 的文件才会显示为附件。`
-    : `\n\n> ⚠️ ${list} ${files.length === 1 ? 'was' : 'were'} not produced by any code executed in this turn, so no such downloadable file exists. Only files run_code actually wrote to $OUTPUT_DIR are attached.`;
-}
-
 /** Names of input files attached in the conversation ("[Attached files: a.csv, b.tsv]"). */
 export function attachedInputNames(...texts: string[]): string[] {
   const names: string[] = [];

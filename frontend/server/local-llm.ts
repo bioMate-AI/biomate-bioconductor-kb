@@ -262,6 +262,29 @@ export async function openaiCompatCompletion(
   }
 }
 
+/** OpenRouter counts hidden reasoning tokens against `max_tokens`. A reasoning model given the
+ *  caller's answer budget (e.g. analyzeIntent's 4096) could spend all of it thinking and return
+ *  `finish_reason: "length"` with empty content (glm-5.3-prime: reasoning_tokens 4094 / 4096,
+ *  docs/20261111_OPENROUTER_VISION_AND_REASONING_BUDGET.md §2). Cap reasoning separately and add the
+ *  cap on top, so the caller's budget stays an ANSWER budget. OpenRouter-only: `reasoning` is its
+ *  parameter (ignored by models without reasoning); other OpenAI-compatible servers are untouched. */
+export function reasoningBudgetBody(url: string, answerTokens: number): Record<string, any> {
+  if (!/(^|\/\/)([^/]*\.)?openrouter\.ai(\/|$)/.test(url)) return { max_tokens: answerTokens };
+  const r = Number(process.env.BIOMATE_OPENROUTER_REASONING_TOKENS || 2048);
+  const reasoning = Number.isFinite(r) && r > 0 ? Math.floor(r) : 2048;
+  return { max_tokens: answerTokens + reasoning, reasoning: { max_tokens: reasoning } };
+}
+
+/** No silent skip: a length-stopped reply with no content and no tool call means the budget went to
+ *  reasoning — fail loudly (callers fall back and log) instead of passing on an empty answer. */
+export function assertNotReasoningExhausted(result: any): void {
+  const c = result?.choices?.[0];
+  if (c?.finish_reason === 'length' && !String(c?.message?.content || '').trim() && !(c?.message?.tool_calls || []).length) {
+    const rt = result?.usage?.completion_tokens_details?.reasoning_tokens;
+    throw new Error(`Model spent its output budget on reasoning${rt != null ? ` (${rt} reasoning tokens)` : ''} and returned no answer`);
+  }
+}
+
 /** Config-parameterized Anthropic-Messages shim over any OpenAI-compatible endpoint.
  *  Generalizes localMessagesClient so OpenRouter (and any OpenAI-compatible provider)
  *  gets the SAME agentic tool loop as on-prem: BIOMATE_TOOLS → OpenAI functions,
@@ -274,9 +297,10 @@ export function openaiCompatMessagesClient(cfg: { url: string; model: string; ke
     });
     const vision = hasImages(params) && await modelAcceptsImages(cfg);
     const result = await openaiCompatCompletion(cfg, { messages: localMessages(params, { vision }),
-      max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
+      ...reasoningBudgetBody(cfg.url, params.max_tokens ?? 4096), temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
       ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
+    assertNotReasoningExhausted(result);
     const choice = result.choices[0];
     const calls = choice.message.tool_calls || [];
     if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete tool call');

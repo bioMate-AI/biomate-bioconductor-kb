@@ -553,7 +553,8 @@
     "import": "Import",
     "import_url_title": "Import a file from a URL into this project",
     "import_url_placeholder": "Paste a file URL (https://…)",
-    "err_import_url": "Could not import from that URL"
+    "err_import_url": "Could not import from that URL",
+    "analysis_outputs": "Analysis outputs"
   },
   "dataset_obj": {
     "quality_good": "Good",

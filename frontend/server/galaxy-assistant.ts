@@ -2,7 +2,7 @@ import { responseLanguageDirective } from "./response-language";
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
-import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
+import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
 import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
@@ -25,7 +25,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
-import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, shouldRequireExecution, SYNTHETIC_DATA_REFUSAL, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, shouldRequireExecution, SYNTHETIC_DATA_REFUSAL, unbackedOutputFileClaims } from './execution-integrity';
 import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
@@ -134,7 +134,11 @@ NEVER generate, simulate or hard-code measurements to stand in for data that was
 available and the request names a workflow or its built-in sample data, do not compute — the
 workflow card runs on its real built-in data; otherwise ask the user for the data.
 
-Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']) — they will be shown to the user.
+Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']). Each file a call writes is saved as a
+dataset of this conversation: the user gets a download link, and its dataset_id is returned in
+output_files. $OUTPUT_DIR persists for the whole conversation — a file written in an earlier call or
+turn is still at os.path.join(os.environ['OUTPUT_DIR'], '<name>'), so read it from there instead of
+recomputing it. Only files actually written there exist; never describe a file you did not write.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
 Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2), set timeout_seconds=120.`,
     input_schema: {
@@ -782,6 +786,9 @@ export interface ChatContext {
    * corrections — so a correction made in project A never surfaces in project B.
    */
   projectId?: string;
+  /** Set by routes.ts: store a run_code output file as a dataset of this session (download link,
+   *  visible to later turns, survives restarts) — the same store as an upload. */
+  persistGeneratedFile?: (hostPath: string, name: string) => Promise<{ dataset_id: string; galaxy_dataset_id?: string; project_file_id?: string; project_id?: string; download_url: string } | undefined>;
   /** When the user has a run's report open in the panel, the client may pass the
    *  exact markdown it is showing (buildFullReportMarkdown) + that run's id. The
    *  edit_report tool uses this as the faithful base so a chat edit forks from
@@ -2935,11 +2942,12 @@ export async function decomposeViaOpenRouter(model: string, key: string, system:
       const r = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'BioMate' },
-        body: JSON.stringify({ model, max_tokens: 4096, temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        body: JSON.stringify({ model, ...reasoningBudgetBody('https://openrouter.ai/api/v1', 4096), temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
         signal: AbortSignal.timeout(45000),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
       const j: any = await r.json();
+      assertNotReasoningExhausted(j);
       const text = j?.choices?.[0]?.message?.content;
       if (typeof text !== 'string' || !text.trim()) throw new Error('empty response');
       return text;
@@ -10665,8 +10673,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           finalMessage += _disclaimer;
           if (onResponseDelta) onResponseDelta(_disclaimer);
         }
-        const _unbackedNoteNc = this._unbackedFilesNote(finalMessage, message, context);
-        if (_unbackedNoteNc) { finalMessage += _unbackedNoteNc; if (onResponseDelta) onResponseDelta(_unbackedNoteNc); }
+        this._logUnbackedFileClaims(finalMessage, message, context);
         return { message: redactStoragePaths(finalMessage, /[\u4e00-\u9fff]/.test(message)), truncated: false };
       }
       // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
@@ -10925,10 +10932,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         if (onResponseDelta) onResponseDelta(emptyFallback);
         return { message: emptyFallback, truncated: false };
       }
-      const _unbackedNote = this._unbackedFilesNote(qualityEnforcedMessage, message, context);
-      if (_unbackedNote && onResponseDelta) onResponseDelta(_unbackedNote);
+      this._logUnbackedFileClaims(qualityEnforcedMessage, message, context);
       return {
-        message: redactStoragePaths(qualityEnforcedMessage + _unbackedNote, /[\u4e00-\u9fff]/.test(message)),
+        message: redactStoragePaths(qualityEnforcedMessage, /[\u4e00-\u9fff]/.test(message)),
         thinking: thinkingResult.hasThinking ? thinkingResult : undefined,
         truncated: wasTruncated,
       };
@@ -11300,6 +11306,11 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
       prior_code: prior.length ? [...prior] : undefined,
+      // One workspace per chat session (reference harnesses: Biomni cwd, ScienceBuddy per-episode
+      // container): files in $OUTPUT_DIR survive into later calls and turns.
+      workspaceKey: context?.sessionId ? `chat:${context.sessionId}` : undefined,
+      persistOutputFile: context?.persistGeneratedFile
+        ? (f) => context.persistGeneratedFile!(f.hostPath, f.name) : undefined,
     }), { label: 'run_code tool' });
     if (input.language === 'python' && result.exit_code === 0 && context?.runCodeHistory) {
       context.runCodeHistory.codes.push(String(input.code || ''));
@@ -11318,15 +11329,16 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   }
 
   /** Output files a reply presents as produced must be this turn's run_code $OUTPUT_DIR artifacts. */
-  private _unbackedFilesNote(text: string, message: string, context: ChatContext): string {
+  private _logUnbackedFileClaims(text: string, message: string, context: ChatContext): void {
+    // Diagnostics only — never appended to the reply (founder 2026-11-11: remove that footer; it also
+    // misfired on attached input files). Real outputs are now persisted with download links.
     const turn = context?.turnMessage || '';
-    const zh = /[\u4e00-\u9fff]/.test(message);
     const produced = context?.runCodeOutputFiles?.turn === turn ? context.runCodeOutputFiles.names : [];
     const inputs = attachedInputNames(message, ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : ''));
     const unbacked = unbackedOutputFileClaims(text, produced, inputs);
     if (unbacked.length) console.warn(`[GalaxyAssistant] reply claims files not produced this turn: ${unbacked.join(', ')}`);
-    return unbackedFilesNote(unbacked, zh);
   }
+
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */
   private async _toolReadFile(input: any, _context: ChatContext): Promise<unknown> {
