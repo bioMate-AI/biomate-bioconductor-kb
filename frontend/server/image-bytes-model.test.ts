@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { GalaxyAssistant, stripImageBytesForModel, plotImageBlocks } from './galaxy-assistant';
-import { localMessages } from './local-llm';
+import { localMessages, modelAcceptsImages } from './local-llm';
 import { scanOutputDir } from './code-runner';
 
 // Committee review 2026-11-11 (blocker): run_code plot previews (image_data_uri, base64) were
@@ -63,6 +63,45 @@ describe('text-only model path (OpenAI-compatible shim)', () => {
     const tool = msgs.find((m: any) => m.role === 'tool');
     expect(tool.content).toContain('not visible to this model');
     expect(tool.content).not.toContain(B64.slice(0, 1000));
+  });
+});
+
+describe('vision-capable OpenAI-compatible model (OpenRouter)', () => {
+  const turn = { messages: [
+    { role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'run_code', input: {} },
+      { type: 'tool_use', id: 't2', name: 'run_code', input: {} }] },
+    { role: 'user', content: [
+      { type: 'tool_result', tool_use_id: 't1', content: [{ type: 'text', text: '{"ok":1}' },
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } }] },
+      { type: 'tool_result', tool_use_id: 't2', content: '{"ok":2}' }] }] };
+
+  it('keeps tool messages contiguous and sends the plot as an image_url part after them', () => {
+    const msgs = localMessages(turn, { vision: true });
+    expect(msgs.map((m: any) => m.role)).toEqual(['assistant', 'tool', 'tool', 'user']);
+    expect(msgs[1].content).toBe('{"ok":1}');
+    const parts = msgs[3].content;
+    expect(parts[0]).toMatchObject({ type: 'text' });
+    expect(parts[0].text).toContain('t1');
+    expect(parts[1]).toEqual({ type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } });
+  });
+
+  it('without vision the same turn has no image part and no extra message', () => {
+    const msgs = localMessages(turn);
+    expect(msgs.map((m: any) => m.role)).toEqual(['assistant', 'tool', 'tool']);
+    expect(JSON.stringify(msgs)).not.toContain('image_url');
+  });
+
+  it('reads image support from the provider model listing; unreachable → text', async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({ ok: true, json: async () => ({ data: [
+      { id: 'v/model', architecture: { input_modalities: ['text', 'image'] } },
+      { id: 't/model', architecture: { input_modalities: ['text'] } }] }) })) as any;
+    try {
+      expect(await modelAcceptsImages({ url: 'https://p.example/api/v1', model: 'v/model' })).toBe(true);
+      expect(await modelAcceptsImages({ url: 'https://p.example/api/v1', model: 't/model' })).toBe(false);
+      globalThis.fetch = (async () => { throw new Error('down'); }) as any;
+      expect(await modelAcceptsImages({ url: 'https://q.example/api/v1', model: 'v/model' })).toBe(false);
+    } finally { globalThis.fetch = realFetch; }
   });
 });
 
