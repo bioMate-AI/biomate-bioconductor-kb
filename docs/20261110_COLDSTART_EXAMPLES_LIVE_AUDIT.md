@@ -424,3 +424,19 @@ A stale remote deploy lock was cleared earlier with the founder's approval.
 |---|---|
 | 1. Library pick | PASS. No search stage; nf-core/rnaseq card. The reply leads with "**nf-core/rnaseq** — …", names the one input it needs (a sample sheet) and how to give it (📎 or an SRR/GSE accession). No "无法生成" / "缺少输入数据", no airway, no S3 |
 | 2. "SRR1039508" | PASS. No search stage (value-only binding pinned the open workflow); the card stays rnaseq with SRR1039508 as the input |
+
+### 10.8 Simulation is blocked, never disclosed as an ending (`baf85d3d05`, live on `a856c613`)
+
+- **Founder direction:** telling the user a simulation was detected is fine, but it must not be the ending, and simulated numbers lower confidence even when disclosed.
+- **Prevention:** `run_code` that would generate its own input values (no staged inputs, random draws or assumed distributions) is **refused before it runs**, unless the user explicitly asked for a simulation (power analysis, Monte Carlo, bootstrap, "simulate…", 模拟/蒙特卡洛…). The model receives a refusal that tells it to use real data, so no simulated number can reach a reply.
+- **Recovery (Step 6r):** if that refusal happened and no workflow card exists, the real workflow is built: the one the user named, otherwise normal routing.
+  - The turn ends on that **workflow card**, with one line: "A simulated-data attempt was detected and stopped."
+  - If no workflow fits, the reply asks for the data.
+  - `run_code` itself never has a card; it answers inline with real numbers, code and output files.
+- **Deploy note:** the first frontend-only sync (`5744952d`) auto-rolled back. The smoke test's 25 s limit on Galaxy workflow generation was shorter than measured generation times (9.5 s, 11 s, 40 s). Raised to 90 s per CLAUDE.md rule 6 (`a856c613`); the re-sync passed.
+
+**Live check on `a856c613`: EBV example × 5 (real chat API)**
+
+| Run | Card | Search stage | run_code | Simulated numbers | S3 |
+|---|---|---|---|---|---|
+| 1–5 | Analyze Ebv Antibody Titers (`workflow_ready`) | no (pinned by name) | none | none | none |
