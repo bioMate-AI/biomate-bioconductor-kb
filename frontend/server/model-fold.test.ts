@@ -55,3 +55,16 @@ describe('planModelFold', () => {
     expect(r.body.workflow_ga.domain).toBe('structural_biology');
   });
 });
+
+describe('fold route registration', () => {
+  it('registers POST /api/models/fold/plan BEFORE the /api/models/* catch-all (else it proxies to Galaxy)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(resolve(__dirname, 'routes.ts'), 'utf8');
+    const fold = src.indexOf('app.post("/api/models/fold/plan"');
+    const catchAll = src.indexOf('app.all("/api/models/*"');
+    expect(fold).toBeGreaterThan(-1);
+    expect(catchAll).toBeGreaterThan(-1);
+    expect(fold).toBeLessThan(catchAll);
+  });
+});
