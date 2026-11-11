@@ -1,6 +1,60 @@
 # VCC 2026 Community Monitor Log
 
-## 2026-10-20 (Run 1 — initial)
+Daily monitoring log for the Arc Institute Virtual Cell Challenge 2026.
+Competition closes: **November 5, 2026 23:59 UTC**
+Final test set release: **October 22, 2026** (contexts D/E/F)
+Our current baseline: Overall ~0.104, pds ~0.43
+
+---
+
+## 2026-10-02 (Run 1 — initial)
+
+### Leaderboard (live, validation contexts A/B/C)
+Active top scores found; board was updated as recently as 4–13 hours before scan:
+- **#1 Illumina AI** ("PerturbationAI"): Overall **0.4185** — 55 submissions, ~4h ago
+- **#2 cqawesome** ("m0949r"): Overall **0.3282** — 78 submissions, ~13h ago
+- #82 kaipengm2: Overall **0.1545** — "Simple Atlas Transfer Method" (open source, MIT)
+- yashnil (rank 370): Overall **0.139** — 3-source ensemble
+- MMatinGerami (rank 433): Overall **0.137** — 8-source norm-restored transfer
+- ferry-ai: Overall **0.1448** — reported at t28
+- Our team: ~**0.104** (estimated rank ~500–700)
+
+Direct leaderboard URL blocked by proxy; scores sourced from GitHub repos and search snippets.
+
+### New/notable GitHub repos
+- `kaipengm2/Virtual-Cell-Challenge-2026` — **ACTIONABLE** (MIT, open source)
+  - 5-source weighted ensemble: K562_GWPS + HCT116 + HEK293T + H1_2025 + CD4_DE
+  - Adds "promoter-neighbor correction" (mechanism TBD — code in repo)
+  - Integer counts generated to match mean CPM + pseudobulk profiles
+  - Adding H1_2025 and the correction could lift us from 0.104 → 0.15+
+- `MMatinGerami/zero-shot-perturbation` — uses 8 sources incl. Nadig HepG2+Jurkat, CD4+ T
+- `yashnil/virtual-cell-generalization` — key finding: priors for never-perturbed genes fail externally (0.51 → 0.06), direct measurements maintain 0.30–0.32 across 19 lines
+
+### New datasets (Awesome-Virtual-Cell PR #16 by MMatinGerami)
+- **Primary CD4+ T cell Perturb-seq** (Zhu et al., Cell 2026) — genome-scale, primary human
+- **TRADE HepG2/Jurkat** (Nadig et al., Nat Genetics 2025) — GEO: GSE264667
+- ACTIONABLE: Adding these two atlases could improve Jurkat (our A context) and expand immune/liver coverage
+
+### New papers
+- **D²R²** (arxiv 2608.15288): Discrete diffusion + gene regulatory network for perturbation prediction. Best on Norman19 + VCC-H1. DL approach, not directly applicable to our mean-transfer, but shows frontier.
+- **"Locked Evaluation"** (arxiv 2608.00152): Geneformer FAILS zero-shot transfer (negative Spearman rho = −0.139 to −0.267). VALIDATES that direct perturbation evidence >> foundation model embeddings. Supports our multi-source-mean approach.
+- **VCC 2026 benchmark paper** published in Cell: "Virtual Cell Challenge 2026: Benchmarking zero-shot generalization across cellular contexts" (Cell S0092-8674(26)00931-1). New this cycle.
+
+### Deadline / rule changes
+- Final test set (D/E/F) releases **October 22** — ~20 days away
+- Final submissions due **November 5** — ~34 days away
+- No rule changes detected
+
+### Blocked sources
+- virtualcellchallenge.org (leaderboard) — blocked by proxy
+- arcinstitute.org/news — blocked by proxy
+- arxiv.org — blocked by proxy
+- ingenix.substack.com — blocked by proxy
+- blog.pebblous.ai — blocked by proxy
+
+---
+
+## 2026-10-20 (Run 2)
 
 ### Sources scanned
 - virtualcellchallenge.org (DNS unreachable from container; used search snapshot)
@@ -9,8 +63,6 @@
 - GitHub solution repos
 - bioRxiv/arXiv
 - pebblous.ai blog
-
-### Previously reported: N/A (first run)
 
 ### Items surfaced today
 
