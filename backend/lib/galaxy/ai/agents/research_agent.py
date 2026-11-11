@@ -673,16 +673,26 @@ def lookup_hpo_genes(hp_terms: List[str], limit: int = 20) -> Dict[str, List[dic
     return out
 
 
-def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
-    """NCBI ClinVar E-utils — pathogenic variants for a gene symbol."""
+def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5,
+                        pathogenic_only: bool = True, signal_errors: bool = False):
+    """NCBI ClinVar E-utils — variants for a gene symbol.
+
+    pathogenic_only=True (default) returns only pathogenic[CLNSIG] variants. For
+    VALIDATION pass pathogenic_only=False to return ALL significances — otherwise a real
+    benign / risk-factor / VUS variant (e.g. the LRRK2 risk allele G2385R, which ClinVar
+    classes "risk factor", not "pathogenic") is absent and would be wrongly flagged as a
+    fabrication. signal_errors=True returns None on a network/HTTP failure (vs [] for a
+    genuinely empty result) so a caller can say "could not check", not "not found"
+    (committee review, 2026-11-11)."""
+    _clnsig = "+pathogenic%5BCLNSIG%5D" if pathogenic_only else ""
     search_url = (
         f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-        f"?db=clinvar&term={urllib.parse.quote(gene_symbol)}%5Bgene%5D+pathogenic%5BCLNSIG%5D"
+        f"?db=clinvar&term={urllib.parse.quote(gene_symbol)}%5Bgene%5D{_clnsig}"
         f"&retmax={max_results}&retmode=json"
     )
     search = _http_get(search_url, timeout=10)
     if not search:
-        return []
+        return None if signal_errors else []
     ids = search.get("esearchresult", {}).get("idlist", [])
     if not ids:
         return []
@@ -692,7 +702,7 @@ def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
     )
     summary = _http_get(summary_url, timeout=10)
     if not summary:
-        return []
+        return None if signal_errors else []
     results = []
     for uid, doc in summary.get("result", {}).items():
         if uid == "uids":
@@ -1828,21 +1838,37 @@ class ResearchAgent:
                 _fed_entities = [e for e in (ids.get("gene_symbols") or []) if e][:2]
                 if _fed_entities:
                     _fed_sources = _select_sources(question, entities=_fed_entities)
+
+                    def _fed_one(e, s=_fed_sources):
+                        return _federated_query(str(e)[:80], sources=s)
+
+                    # Run the per-entity fan-outs in PARALLEL under ONE overall budget, so
+                    # the hot path can't add 2x the per-call timeout sequentially — the
+                    # worst case was +30s on every gene-named question (committee review,
+                    # 2026-11-11). return_exceptions so one failure doesn't sink the other;
+                    # non-fatal overall.
+                    _loop = asyncio.get_event_loop()
+                    _fed_results = await asyncio.wait_for(
+                        asyncio.gather(
+                            *[_loop.run_in_executor(None, _fed_one, _e) for _e in _fed_entities],
+                            return_exceptions=True,
+                        ),
+                        timeout=20,
+                    )
                     _fed_out: Dict[str, Any] = {}
-                    for _ent in _fed_entities:
-                        _r = await asyncio.get_event_loop().run_in_executor(
-                            None,
-                            lambda e=_ent, s=_fed_sources: _federated_query(str(e)[:80], sources=s),
-                        )
-                        if _r and _r.get("merged"):
+                    for _ent, _r in zip(_fed_entities, _fed_results):
+                        if isinstance(_r, dict) and _r.get("merged"):
                             _fed_out[_ent] = {
                                 "sources_queried": _r.get("sources_queried", []),
+                                "sources_succeeded": _r.get("sources_succeeded", []),
                                 "merged": _r["merged"][:8],
                             }
                     if _fed_out:
                         db_facts["federated_evidence"] = _fed_out
                         log.info("federated evidence: %s via %s",
                                  list(_fed_out.keys()), _fed_sources)
+            except asyncio.TimeoutError:
+                log.warning("federated evidence fan-out timed out (non-fatal)")
             except Exception as _fe:
                 log.warning(f"federated evidence fan-out skipped (non-fatal): {_fe}")
 
@@ -1868,7 +1894,12 @@ class ResearchAgent:
                             _tid = await asyncio.get_event_loop().run_in_executor(
                                 None, lambda: _orch.identify(question, context={"query": question}))
                             if _tid:
-                                db_facts["target_ranking"] = _tid
+                                # Store the serialized form: the renderer reads a dict
+                                # (targets[].target/score/tier); the raw OrchestratorResult
+                                # dataclass fails its isinstance(dict) check and renders nothing
+                                # (committee review, 2026-11-11).
+                                db_facts["target_ranking"] = (
+                                    _tid.to_dict() if hasattr(_tid, "to_dict") else _tid)
                                 log.info("target-id ranking attached for a target-ranking question")
             except Exception as _te:
                 log.warning(f"target-id ranking skipped (non-fatal): {_te}")
@@ -2444,9 +2475,14 @@ class ResearchAgent:
             _dbf = evidence.get('db_facts') or {}
             for _k, _v in _dbf.items():
                 if _k == 'federated_evidence' and isinstance(_v, dict):
+                    # Count ONE channel per entity that actually returned merged evidence —
+                    # NOT the attempted source list (sources_queried). The attempted count
+                    # inflated confidence: any real gene attempts ~5-9 sources and UniProt
+                    # returns an identity record regardless, so every gene read "reasonable"
+                    # even with zero on-topic data (committee review, 2026-11-11).
                     for _blk in _v.values():
                         if isinstance(_blk, dict) and _blk.get('merged'):
-                            _n_db_channels += len(_blk.get('sources_queried') or []) or 1
+                            _n_db_channels += 1
                 elif _v:
                     _n_db_channels += 1
             confidence = self._grounding_confidence(evidence_verdict, len(citations), _n_db_channels)
@@ -3343,18 +3379,26 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             try:
                 if ctype == "variant":
                     gene = subject or (text.split()[0] if text.split() else "")
-                    hits = lookup_clinvar_gene(gene, max_results=20) if gene else []
-                    titles = [h.get("title", "") for h in (hits or [])]
+                    # Validate against ALL ClinVar significances (not just pathogenic) so a
+                    # real benign/risk-factor/VUS variant isn't flagged a fabrication; and
+                    # signal_errors so an OUTAGE reads "could not check", not "not found".
+                    hits = (lookup_clinvar_gene(gene, max_results=40, pathogenic_only=False,
+                                                signal_errors=True) if gene else None)
                     if hits is None:
-                        status, note = "unverified", "ClinVar unreachable"
-                    elif _variant_in_clinvar_titles(text, titles):
-                        sig = next((h.get("clinical_significance", "") for h in hits
-                                    if _variant_in_clinvar_titles(text, [h.get("title", "")])), "")
-                        status, note = "verified", (f"ClinVar: {sig}" if sig else "in ClinVar")
-                    elif titles:
-                        status, note = "not_found", f"{gene} has ClinVar variants but not {text}"
+                        status, note = "unverified", (
+                            "could not check (ClinVar unreachable)" if gene
+                            else "could not check (no gene context for the variant)")
                     else:
-                        status, note = "not_found", f"no pathogenic ClinVar variants for {gene}"
+                        titles = [h.get("title", "") for h in hits]
+                        if _variant_in_clinvar_titles(text, titles):
+                            sig = next((h.get("clinical_significance", "") for h in hits
+                                        if _variant_in_clinvar_titles(text, [h.get("title", "")])), "")
+                            # carry significance so a risk-factor isn't read as a pathogenic mutation
+                            status, note = "verified", (f"ClinVar: {sig}" if sig else "in ClinVar")
+                        elif titles:
+                            status, note = "not_found", f"{gene} is in ClinVar but {text} is not a recorded variant"
+                        else:
+                            status, note = "not_found", f"{gene} not found in ClinVar"
                 else:
                     from galaxy.ai.federated_query import federated_query as _fq
                     _r = _fq(subject or text, entity_type=(ctype or None))

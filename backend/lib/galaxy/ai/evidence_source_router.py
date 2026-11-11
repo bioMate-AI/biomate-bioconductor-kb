@@ -62,10 +62,13 @@ LITERATURE_SOURCES: List[str] = ["pubmed", "europepmc", "semantic_scholar", "cor
 _FACET_CUES: Dict[str, Sequence[str]] = {
     "structure":   ["structure", "crystal", "fold", "domain", "conformation", "binding site",
                     "pocket", "3d", "apo", "holo", "dfg", "allosteric", "cryo-em", "cryoem"],
-    "bioactivity": ["sar", "potency", "affinity", "ic50", "ec50", "\\bki\\b", "\\bkd\\b",
+    # NB: bare "sar"/"scaffold" are word-bounded — unbounded they matched "SARS-CoV-2"
+    # and genome-assembly "scaffold N50" and mis-fired the bioactivity facet
+    # (committee review, 2026-11-11).
+    "bioactivity": ["\\bsar\\b", "potency", "affinity", "ic50", "ec50", "\\bki\\b", "\\bkd\\b",
                     "binding", "inhibitor", "inhibition", "bioactivity", "ligand", "pharmacophore",
                     "selectivity", "nanomolar", "dose-response", "dose response", "structure-activity",
-                    "structure activity", "medicinal chemistry", "scaffold", "analog", "analogue"],
+                    "structure activity", "medicinal chemistry", "scaffold hop", "analogue"],
     "target":      ["target", "druggable", "druggability", "tractability", "target identification",
                     "target id", "disease association", "therapeutic target", "actionab"],
     "pathway":     ["pathway", "signalling", "signaling", "network", "interaction", "interactome",
@@ -77,18 +80,22 @@ _FACET_CUES: Dict[str, Sequence[str]] = {
 }
 
 
-def _known_live_ids() -> set:
-    """Ids that exist in the registry and are live (empty set → skip validation)."""
+def _federation_serveable_ids() -> set:
+    """Ids the FEDERATED fan-out can actually serve — registry sources that are live AND
+    reachable via the federation surface. Gating on live-status alone advertised sources
+    (bindingdb/pharos/opentargets/pdbe) that federated_query silently drops because they
+    have no federation fetcher — overstating coverage (committee review, 2026-11-11).
+    Open Targets / Pharos reach the answer via the target_id path, not this fan-out."""
     if _registry is None:
         return set()
+    _fed = getattr(_registry, "SURFACE_FEDERATION", "federation")
     ids = set()
     for s in getattr(_registry, "SOURCES", []):
-        try:
-            d = s.to_dict()
-        except Exception:
-            continue
-        if d.get("status", "live") == "live":
-            ids.add(d.get("id"))
+        _status = getattr(s, "status", "live")
+        _surfaces = getattr(s, "surfaces", None) or []
+        _sid = getattr(s, "id", None)
+        if _sid and _status == "live" and _fed in _surfaces:
+            ids.add(_sid)
     return ids
 
 
@@ -163,7 +170,7 @@ def select_sources(
             if sid not in ordered:
                 ordered.append(sid)
 
-    known = _known_live_ids()
+    known = _federation_serveable_ids()
     if known:
         ordered = [sid for sid in ordered if sid in known]
     return ordered[:max_sources]

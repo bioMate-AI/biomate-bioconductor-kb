@@ -708,9 +708,13 @@ class UnifiedLiteratureClient:
                     # (citation count) over recency, so seminal papers surface instead of
                     # being buried by recent reviews and truncated. Default keeps recency
                     # as the tiebreaker (best for "latest work" / tangential-review avoidance).
+                    # coalesce citation_count: Semantic Scholar can return null -> None,
+                    # and the recency_balance sort uses it as a PRIMARY key, so a None
+                    # would raise TypeError on comparison (committee review, 2026-11-11).
+                    _cites = c.citation_count or 0
                     if recency_balance:
-                        return (overlap, c.citation_count, c.year or 0)
-                    return (overlap, c.year or 0, c.citation_count)
+                        return (overlap, _cites, c.year or 0)
+                    return (overlap, c.year or 0, _cites)
 
                 unique.sort(key=_relevance, reverse=True)
                 if verify_ids:
