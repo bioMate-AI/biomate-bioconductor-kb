@@ -32,6 +32,7 @@ collect_ignore = [
     "e2e_pilot_qc_professional_test.py",
     "e2e_real_qc_gate_test.py",
     "e2e_sgi_bench_test.py",
+    # Browser UI suite (its conftest imports Playwright-for-Python and drives a
+    # running UI) — not installed in CI, not a unit test.
+    "e2e_ui",
 ]
-# Browser UI suite: Playwright-for-Python against a running UI (not installed in CI).
-collect_ignore_glob = ["e2e_ui/*"]
