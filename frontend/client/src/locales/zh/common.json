@@ -949,6 +949,7 @@
       "prereqs_not_met": "前置条件未满足 — 请查看上方清单"
     },
     "params_only_no_inputs": "此工作流仅接受参数——没有需要绑定的数据输入。",
+    "attachments_not_used": "本次会话中上传的文件不会被此工作流使用。可在对话中让 BioMate 找一个能读取这些数据的工作流。",
     "parameters": "参数",
     "required_parameters": "必需参数",
     "optional_parameters": "可选参数",

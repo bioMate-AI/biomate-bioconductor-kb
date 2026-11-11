@@ -49,6 +49,63 @@ describe('actual viewer mapped-reference copy', () => {
   });
 });
 
+describe('attached data the workflow cannot read (founder report 20261111)', () => {
+  /** The panel loads the session's uploads from /api/datasets/session. */
+  function withSessionDatasets(datasets: Array<{ id: string; name: string }>) {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+      ok: true, status: 200, text: async () => '',
+      json: async () => (String(url).includes('/api/datasets/session') ? { datasets } : {}),
+    })));
+  }
+
+  /** "Antibody Antigen Complex" — inline-content params, no file input at all. */
+  function showParamsOnly() {
+    render(<NextflowWorkflowViewer status="idle" onExecute={vi.fn()} workflowDefinition={{
+      id: 'antibody-antigen-complex', name: 'Antibody Antigen Complex', domain: 'drug_discovery',
+      steps: { s1: { name: 'Complex prediction', tool_id: 'af' } },
+      required_params: [],
+      optional_params: [
+        { name: 'target', type: 'string', default: 'demo_target' },
+        { name: 'max_models', type: 'number', default: 5 },
+      ],
+    }} />);
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    return screen.getByTestId('prerun-inputs-mapped');
+  }
+
+  it('tells the user their uploads are not used by a parameters-only workflow', async () => {
+    withSessionDatasets([{ id: 'd1', name: '6Z43.pdb' }, { id: 'd2', name: 'nanobody_candidates.fasta' }]);
+    const card = showParamsOnly();
+    expect(card.textContent).toContain('parameters only');
+    const warn = await within(card).findByTestId('prerun-attachments-unused');
+    expect(warn.textContent).toMatch(/not used by this workflow/i);
+    expect(card.textContent).not.toMatch(/s3:\/\//);
+  });
+
+  it('says nothing about attachments when the session has no uploads', async () => {
+    withSessionDatasets([]);
+    const card = showParamsOnly();
+    expect(card.textContent).toContain('parameters only');
+    expect(within(card).queryByTestId('prerun-attachments-unused')).toBeNull();
+  });
+
+  it('shows an attachment bound to a non-canonical file input as mapped', () => {
+    render(<NextflowWorkflowViewer status="idle" onExecute={vi.fn()} workflowDefinition={{
+      id: 'scaffold-hopping', name: 'Scaffold Hopping', domain: 'drug_discovery',
+      steps: { s1: { name: 'Hop scaffold', tool_id: 'rdkit' } },
+      required_params: [{ name: 'input_smiles', label: 'Input Smiles', type: 'string', default: null,
+        description: 'path to SMILES file (one "SMILES compound_id" per line)' }],
+      optional_params: [],
+      inline_parameters: { input_smiles: 's3://biomate-nextflow-work/uploads/78ff4255/bace_assays.csv' },
+    }} />);
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    const card = screen.getByTestId('prerun-inputs-mapped');
+    expect(card.textContent).toContain('bace_assays.csv');
+    expect(card.textContent).not.toMatch(/required parameter|not set/i);
+    expect(card.textContent).not.toMatch(/s3:\/\//);
+  });
+});
+
 describe('nf-core/rnaseq-like pre-run inputs (audit 20261110 §7.3)', () => {
   function showRnaseq() {
     render(<NextflowWorkflowViewer status="idle" onExecute={vi.fn()} workflowDefinition={{

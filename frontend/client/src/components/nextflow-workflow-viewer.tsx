@@ -3767,6 +3767,21 @@ export function NextflowWorkflowViewer({
                   <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)', marginTop: 4 }}>
                     {tOr('panel.params_only_no_inputs', 'This workflow takes parameters only — no data inputs to bind.')}
                   </div>
+                  {/* The user uploaded data but this workflow reads none of it —
+                      say so here instead of leaving them to infer it from an
+                      empty Inputs card (founder report: 5 files attached, panel
+                      said "parameters only"). */}
+                  {sessionDatasets.length > 0 && (
+                    <div
+                      data-testid="prerun-attachments-unused"
+                      style={{ fontSize: 'var(--fs-micro)', color: 'var(--warn, #b45309)', marginTop: 6 }}
+                    >
+                      {tOr(
+                        'panel.attachments_not_used',
+                        'Files you uploaded in this session are not used by this workflow. Ask in the chat for a workflow that reads them.',
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             }
