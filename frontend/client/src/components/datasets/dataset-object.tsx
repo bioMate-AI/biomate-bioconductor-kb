@@ -38,7 +38,10 @@ import {
   Pencil,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
-import { t } from "@/lib/i18n"
+import { t, locale } from "@/lib/i18n"
+
+// Dates follow the APP language (not the browser default), so a Chinese UI never shows "Nov 10".
+const INTL_LOCALE = locale === "zh" ? "zh-CN" : "en-US"
 import {
   usePerceptionProfile,
   useDatasetLineage,
@@ -391,7 +394,7 @@ export function DatasetObject({
               className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
               data-testid="dataset-header-quality"
               data-quality={profile.quality}
-              title={t('file_tree.quality', { quality: profile.quality })}
+              title={t('file_tree.quality', { quality: t('dataset_obj.quality_' + profile.quality) })}
             >
               <span className={`h-2 w-2 rounded-full ${HEADER_QUALITY[profile.quality].dot}`} />
               {t('dataset_obj.quality_' + profile.quality)}
@@ -787,7 +790,7 @@ export function DatasetObject({
                       <span className="ml-auto text-xs text-muted-foreground">
                         {new Date(
                           typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
-                        ).toLocaleString()}
+                        ).toLocaleString(INTL_LOCALE)}
                       </span>
                     )}
                   </div>
@@ -902,7 +905,7 @@ export function DatasetObject({
               ) : null}
               <Row
                 k={t('dataset_obj.added')}
-                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
+                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString(INTL_LOCALE) : "—"}
               />
               {/* Content hash (design §4.5.1) — the dedup identity. Same bytes added
                   twice link to one entry. Shown abbreviated; full value on hover. */}

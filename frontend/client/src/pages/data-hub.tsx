@@ -40,7 +40,7 @@ import {
   type ProjectFile,
 } from "@/components/project-file-tree"
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
-import { t, tOr } from "@/lib/i18n"
+import { t, tOr, locale } from "@/lib/i18n"
 
 function toDatasetRef(f: ProjectFile): DatasetRef {
   return {
@@ -82,7 +82,7 @@ function formatDate(iso?: string | null): string | null {
   if (!iso) return null
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+  return d.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "short", day: "numeric" })
 }
 
 /**

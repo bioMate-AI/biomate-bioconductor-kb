@@ -94,7 +94,8 @@ describe("DataHubPage — project picker", () => {
 
     // Real fields surface: name, status, domain, description.
     expect(rna.textContent).toContain("RNA-seq pilot")
-    expect(rna.textContent).toContain("transcriptomics")
+    // Domain renders through the shared domains.* translations, not the raw enum.
+    expect(rna.textContent).toContain("Transcriptomics")
     expect(rna.textContent).toContain("Bulk RNA-seq of the cohort")
     expect(admet.textContent).toContain("ADMET screen")
     // Status renders as the localized lifecycle label (statusLabel → t("data_hub.status_completed")),
@@ -108,6 +109,24 @@ describe("DataHubPage — project picker", () => {
 })
 
 describe("DataHubPage — two-pane hub", () => {
+  it("header is one clean title: a small Data crumb over the project name — no status badge, no intro", async () => {
+    ctx.projects = PROJECTS
+    ctx.activeProjectId = "proj-rna"
+    ctx.activeProject = PROJECTS[0]
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ files: [] }), text: async () => "{}",
+    } as unknown as Response)
+    render(<DataHubPage />, { wrapper: wrapper() })
+    const header = screen.getByTestId("data-hub-header")
+    expect(screen.getByTestId("data-hub-title")).toHaveTextContent("RNA-seq pilot")
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1)
+    expect(header.textContent).not.toContain("Active") // lifecycle badge dropped
+    expect(screen.queryByText(/Every dataset is an object/)).toBeNull() // intro paragraph dropped
+    // The empty detail pane is sized to fill the column (matches the file list).
+    expect(screen.getByTestId("data-hub-detail-empty").className).toContain("data-hub-detail-empty")
+    await waitFor(() => expect(screen.getByTestId("project-file-tree")).toBeInTheDocument())
+  })
+
   it("shows the file-tree pane + honest detail prompt when a project is active", async () => {
     ctx.projects = PROJECTS
     ctx.activeProjectId = "proj-rna"
@@ -187,6 +206,15 @@ describe("DataHubPage — two-pane hub", () => {
           text: async () => JSON.stringify(PROFILE),
         } as unknown as Response
       }
+      if (url.includes("/api/projects/proj-rna/files/file-counts/rows")) {
+        // The paged FULL-rows endpoint (true total, all columns).
+        const body = {
+          kind: "table", offset: 0, limit: 200, totalRows: 12000,
+          columns: ["gene", "sample_a", "sample_b", "sample_c"],
+          rows: [["TP53", "104", "98", "110"], ["EGFR", "12", "9", "15"]],
+        }
+        return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) } as unknown as Response
+      }
       if (url.includes("/api/projects/proj-rna/files")) {
         return {
           ok: true,
@@ -226,7 +254,8 @@ describe("DataHubPage — two-pane hub", () => {
     // The breadcrumb shows the human filename; the immutable id stays on hover.
     expect(screen.getByTestId("dataset-object-name").textContent).toContain("counts.csv")
     expect(screen.getByTestId("dataset-object-id").textContent).toContain("counts.csv")
-    expect(screen.getByTestId("dataset-object-id").getAttribute("title")).toBe("file-counts")
+    // The crumb truncates long names, so its tooltip is the full NAME (not an opaque id).
+    expect(screen.getByTestId("dataset-object-id").getAttribute("title")).toBe("counts.csv")
 
     // Real quality: the default Preview tab renders the actual profiled table
     // (columns + a real sample row), not a placeholder.
@@ -235,11 +264,13 @@ describe("DataHubPage — two-pane hub", () => {
     )
     expect(screen.getByTestId("dataset-preview-table").textContent).toContain("TP53")
 
-    // Quality at ingest lives in the "Where it came from" tab (design §4.5.2):
-    // opening it renders the honest verdict from the profile (watch), proving
-    // quality is real.
-    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    // The table states the TRUE row count from the rows endpoint, not the sample size.
+    expect(screen.getByTestId("dataset-preview-rowcount").textContent).toContain("2 of 12,000 rows loaded")
+
+    // Data QC sits in the Preview tab directly under the table (moved out of Provenance)
+    // and renders the honest verdict from the profile (watch).
     const dp = await screen.findByTestId("data-perception", {}, { timeout: 4000 })
+    expect(screen.getByTestId("dataset-preview")).toContainElement(dp)
     expect(dp.getAttribute("data-quality")).toBe("watch")
   })
 

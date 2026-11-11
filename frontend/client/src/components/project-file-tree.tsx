@@ -48,7 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { t } from "@/lib/i18n";
+import { t, locale } from "@/lib/i18n";
 import { filesFromDataTransfer, relativePathOf } from "@/lib/folder-drop";
 
 export interface ProjectFile {
@@ -131,7 +131,7 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
     const wfName = firstFile?.workflow_name ?? t('workflow.labels.workflow');
     // Format: "nf-core/rnaseq · Jul 11 14:23" — lets users distinguish multiple runs
     const ts = firstFile?.created_at
-      ? new Date(firstFile.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      ? new Date(firstFile.created_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
       : runId.slice(0, 8);
     const label = `${wfName} · ${ts}`;
     root.push({
@@ -227,7 +227,7 @@ function QualityDot({ file }: { file: ProjectFile }) {
 
   const cls = QUALITY_DOT[quality] ?? QUALITY_DOT.unknown;
   const title = profilable
-    ? t('file_tree.quality', { quality })
+    ? t('file_tree.quality', { quality: quality === 'unknown' ? '—' : t(`dataset_obj.quality_${quality}`) })
     : t('file_tree.quality_unprofiled');
   return (
     <span
