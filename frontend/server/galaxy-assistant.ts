@@ -5303,7 +5303,7 @@ Rules:
     let userInputKinds: string[] | undefined;  // classifier's input_kinds for this turn (guards card swaps)
     if (needsGeneration) {
       try {
-        // No "Searching 4,000+ workflows…" for a pinned workflow: nothing is searched.
+        // No "Searching…" stage for a pinned workflow: nothing is searched.
         if (!pinnedWorkflow) onProgress?.('search');
         log('Step 4: Generating workflow');
         // Preserve original message keywords alongside the LLM-distilled subQuery.

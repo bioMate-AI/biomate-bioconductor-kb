@@ -3,7 +3,7 @@
  *
  *  §7.2 — a workflow the user picked (Workflows library "Run") arrives as structured
  *         context.selectedWorkflow; the server builds THAT workflow (backend selected_workflow)
- *         with no catalog search and no "Searching 4,000+ workflows" progress.
+ *         with no catalog search and no "Searching…" progress stage.
  *  §7.4 — with nf-core/rnaseq open in the panel, the reply "SRR1039508" fills that workflow;
  *         it is not re-routed to nf-core/differentialabundance, and the Step 6c guard never
  *         keeps a card that contradicts the open workflow.
