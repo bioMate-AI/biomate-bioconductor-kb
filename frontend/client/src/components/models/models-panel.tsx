@@ -32,7 +32,7 @@ import { ModelObjectLoader } from "./model-object"
 import { OwnedTrainingRegistry } from "./owned-training-registry"
 import { RunPretrained } from "./run-pretrained"
 import { TrainingLauncher } from "./training-launcher"
-import { runStatusLabel } from "./training-logic"
+import { openRunManager, runStatusLabel } from "./training-logic"
 import { TrainingRegistration } from "./training-registration"
 import type { ModelSummary } from "./types"
 
@@ -203,13 +203,14 @@ export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenMo
                   <TrainingRegistration runId={r.runId} eligible={r.registrationEligible} />
                 )}
                 {r.runId && (
-                  <a
+                  <button
+                    type="button"
                     className="ml-auto text-primary hover:underline"
                     data-testid={`train-run-open-run-${r.runId}`}
-                    href={`/?run=${encodeURIComponent(r.runId)}`}
+                    onClick={() => openRunManager()}
                   >
                     {t("models.open_in_run_manager")}
-                  </a>
+                  </button>
                 )}
                 {r.modelId && (
                   <button

@@ -784,7 +784,7 @@
     "no_model_for_domain": "no model registered for this domain",
     "no_registered_versions": "No registered version for this run. Older runs may lack the launch snapshot needed for registration.",
     "not_recorded": "Not recorded",
-    "open_in_run_manager": "Open in Run Manager",
+    "open_in_run_manager": "View in Run Manager",
     "open_model": "Open model",
     "panel_title": "Models",
     "reason_unavailable": "no reason was reported",

@@ -150,7 +150,8 @@ describe("ModelsPanel — 训练 (Train) tab", () => {
     await waitFor(() => expect(screen.getByTestId("train-run-potency-gp fit")).toBeTruthy())
     expect(screen.getByTestId("train-run-status-potency-gp fit").textContent).toContain("Completed")
     expect(screen.getByTestId("train-run-status-herg refit").textContent).toContain("Running")
-    expect(screen.getByTestId("train-run-open-run-run-8").getAttribute("href")).toBe("/?run=run-8")
+    // Opens the Run Manager on the all-chats scope (it has no per-run deep link).
+    expect(screen.getByTestId("train-run-open-run-run-8").tagName).toBe("BUTTON")
     // "Not recorded" is localized, never leaked as the raw server token.
     expect(screen.getByTestId("train-run-herg refit").textContent).toContain("Not recorded")
     fireEvent.click(screen.getByTestId("train-run-open-potency-gp fit"))

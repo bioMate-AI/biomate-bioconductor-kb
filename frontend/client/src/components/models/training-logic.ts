@@ -135,3 +135,20 @@ export function runStatusLabel(status: string): string {
   const key = String(status || '').toLowerCase();
   return t(`models.run_status_${RUN_STATUSES.includes(key) ? key : 'queued'}`);
 }
+
+/**
+ * Open the chat page's Run Manager listing runs from all chats.
+ *
+ * The Run Manager persists its open state and scope in localStorage
+ * (chat-with-artifacts.tsx: biomate-run-manager-open / -scope) and has no
+ * per-run deep link, so a panel-launched run is shown by opening the manager on
+ * the all-chats scope, where the run is listed. Storage can be unavailable
+ * (private mode); navigation still happens.
+ */
+export function openRunManager(navigate: (url: string) => void = url => window.location.assign(url)): void {
+  try {
+    localStorage.setItem('biomate-run-manager-open', 'true');
+    localStorage.setItem('biomate-run-manager-scope', 'all_chats');
+  } catch { /* storage unavailable — the manager can still be opened by hand */ }
+  navigate('/');
+}

@@ -14,7 +14,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { TrainingLauncher } from "./training-launcher"
 import {
   availableModelTypes, backendModelType, defaultModelName, detectSmilesColumns,
-  fileKind, metricsFor, suggestTaskType,
+  fileKind, metricsFor, openRunManager, suggestTaskType,
 } from "./training-logic"
 import { specPayload } from "./training-specs"
 
@@ -131,7 +131,7 @@ describe("TrainingLauncher — general data", () => {
     expect(exec.body.workflowDefinition.domain).toBe("ml_training")
     expect(exec.body.executionConfig).toMatchObject({ mode: "production", executionEngine: "nextflow" })
     expect(exec.body.projectId).toBe(PROJECT)
-    expect(screen.getByTestId("launcher-run-link").getAttribute("href")).toBe("/?run=run-42")
+    expect(screen.getByTestId("launcher-run-link").tagName).toBe("BUTTON")
     await waitFor(() => expect(screen.getByTestId("launcher-run-status").textContent).toContain("Running"))
   })
 
@@ -274,6 +274,16 @@ describe("training-logic", () => {
   it("builds a language-neutral default model name", () => {
     expect(defaultModelName("expression.jsonl", "subtype")).toBe("expression-subtype")
     expect(defaultModelName("cells.h5ad", "")).toBe("cells")
+  })
+})
+
+describe("openRunManager", () => {
+  it("opens the Run Manager on the all-chats scope, then navigates to chat", () => {
+    const go = vi.fn()
+    openRunManager(go)
+    expect(localStorage.getItem("biomate-run-manager-open")).toBe("true")
+    expect(localStorage.getItem("biomate-run-manager-scope")).toBe("all_chats")
+    expect(go).toHaveBeenCalledWith("/")
   })
 })
 

@@ -22,7 +22,7 @@ import { Loader2, Play } from 'lucide-react';
 import { t } from '@/lib/i18n';
 import {
   availableModelTypes, backendModelType, columnValues, defaultModelName, detectSmilesColumns,
-  fileKind, isSupervised, LLM_TYPES, metricIsCeiling, metricsFor, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
+  fileKind, isSupervised, LLM_TYPES, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
   type LauncherFamily, type PanelModelType, type TaskType,
 } from './training-logic';
 import { launchTraining, TrainingLaunchError, useRunStatus, type TrainingPlan } from './models-api';
@@ -310,8 +310,8 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
             <Badge variant="outline" className="text-fs-xs" data-testid="launcher-run-status">
               {runStatusLabel(String(runStatus.data?.status ?? 'queued'))}
             </Badge>
-            <a className="ml-auto text-primary hover:underline" href={`/?run=${encodeURIComponent(runId)}`}
-              data-testid="launcher-run-link">{t('models.open_in_run_manager')}</a>
+            <button type="button" className="ml-auto text-primary hover:underline" onClick={() => openRunManager()}
+              data-testid="launcher-run-link">{t('models.open_in_run_manager')}</button>
           </div>
           <p className="font-mono text-fs-xs text-muted-foreground break-all">{runId}</p>
           {runStatus.data?.errorMessage && (

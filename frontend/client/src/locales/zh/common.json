@@ -1302,7 +1302,7 @@
     "no_model_for_domain": "该方向暂无已登记的模型",
     "no_registered_versions": "该运行没有已登记的版本。较早的运行可能缺少登记所需的启动快照。",
     "not_recorded": "未记录",
-    "open_in_run_manager": "在运行管理器中打开",
+    "open_in_run_manager": "在运行管理器中查看",
     "open_model": "查看模型",
     "panel_title": "模型",
     "reason_unavailable": "未返回失败原因",
