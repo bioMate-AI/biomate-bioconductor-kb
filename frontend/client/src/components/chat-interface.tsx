@@ -2,7 +2,7 @@ import { stageAnalysisPlanDraft } from "@/lib/analysis-plan-draft"
 import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { awaitsWorkflowInput, hasGeneratedWorkflow } from "@/lib/workflow-response-state"
 import { LiveVoicePanel } from "./live-voice-panel"
-import { prepareColdStartSelection } from "./cold-start-examples"
+import { prepareColdStartSelection, preparedInputsBlock } from "./cold-start-examples"
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
@@ -498,6 +498,10 @@ export function ChatInterface({
   const preparingExampleRef = useRef(false)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
   const localExampleFilesRef = useRef<((files: File[]) => void) | null>(null)
+  // Model-facing notes for the seeded example's files (never shown to the user).
+  // Sent as a hidden [Prepared inputs: …] block only while those files are still
+  // attached — if the user swaps in their own data the notes no longer apply.
+  const exampleContextRef = useRef<{ context: string; fileNames: string[] } | null>(null)
   // Track whether we've pre-loaded the GSE227835 de_genes.txt for Turn 2
   const deGenesPreloadedRef = useRef(false)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
@@ -1784,12 +1788,18 @@ export function ChatInterface({
           : ''
       const failedContext = failedUploads.length > 0 ? failedUploads.join(', ') : ''
 
+      const prepared = exampleContextRef.current
+      const preparedBlock = prepared && prepared.fileNames.every((n) => files.some((f) => f.name === n))
+        ? `\n${preparedInputsBlock(prepared.context)}`
+        : ''
+      exampleContextRef.current = null
       content =
         content +
         (content ? '\n\n' : '') +
         `[Attached files: ${fileNames}]` +
         (uploadedContext ? `\n[Uploaded datasets: ${uploadedContext}]` : '') +
-        (failedContext ? `\n[Upload warnings: ${failedContext}]` : '')
+        (failedContext ? `\n[Upload warnings: ${failedContext}]` : '') +
+        preparedBlock
     }
 
     // Create user message
@@ -2193,6 +2203,9 @@ export function ChatInterface({
                   if (!localSetDraftRef.current || (example.files.length && !localExampleFilesRef.current)) {
                     throw new Error("The composer is still loading. Please try again.");
                   }
+                  exampleContextRef.current = example.hiddenContext
+                    ? { context: example.hiddenContext, fileNames: example.files.map((f) => f.name) }
+                    : null;
                   localExampleFilesRef.current?.(example.files);
                   localSetDraftRef.current(example.prompt);
                 } catch (error) {

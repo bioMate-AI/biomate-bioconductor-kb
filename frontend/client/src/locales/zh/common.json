@@ -610,7 +610,7 @@
       "license_required": "需要许可证 — 请在工作流设置中查看<strong>工具凭据</strong>",
       "fill_required_params": "运行前请先在上方填写 {{n}} 个必填参数",
       "input_files_required_prefix": "需要输入文件：",
-      "input_files_required_suffix": "— 可通过聊天中的文件按钮上传，或在上方参数框中粘贴 S3 路径",
+      "input_files_required_suffix": "— 请通过聊天中的文件按钮上传",
       "prereqs_not_met": "前置条件未满足 — 请查看上方清单"
     },
     "inputs_mapped": "输入已映射",

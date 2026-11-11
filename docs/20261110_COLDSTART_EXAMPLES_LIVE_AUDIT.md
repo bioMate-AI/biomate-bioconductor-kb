@@ -154,3 +154,32 @@ cd frontend && BIOMATE_URL=https://dev-public.biomate.ai \
    - extend the uniqueness test from Search to every module.
 4. Investigate the routing failures in 4.2: EBV refusal, stalled "I'll run…" turns, the Bad Gateway, and proteomics DE → pull-down.
 5. Re-run the live harness after each fix. A pass means every row green on dev, not unit tests.
+
+---
+
+## 7. Founder-reported issues (2026-11-10, screenshots `UI_refinement/`)
+
+### 7.1 Research answer clutter — `remove_squared_content.png`
+
+Remove the "**Boundary:** Synthesizes retrieved literature only — not validated against your project's data…" banner, the **Save to project** button and the **规划我的数据分析 / Plan my data analysis** button from research answers.
+
+### 7.2 Running a known workflow re-searches the catalogue — `overcomplicating_process.png`
+
+- **Symptom:** clicking run on nf-core/rnaseq in the Workflows panel sends "运行 nf-core/rnaseq 工作流。"; chat then shows "正在检索 4,000+ 个工作流…".
+- **Root cause:** `workflow-history-dialog.tsx` `handleRunCatalog` discards the selected workflow's identity (`name` / `source` / path) and seeds plain text (`workflows_library.seed_prompt`). The server must rediscover the workflow through intent → search → generate.
+- **System-wide:** there is no structured "user selected this exact workflow" path; even the disambiguation card re-sends text ("Use X").
+
+### 7.3 Contradictory pre-run state — `Confusing_optional_parameters.png`
+
+- **Chat:** says "无法生成工作流 / 缺少必要的输入数据" while showing the nf-core/rnaseq card.
+  - **Root cause:** the response-format rules in `galaxy-assistant.ts` (~10020) have only "generated" and "not generated" cases. There is no case for "workflow identified, required input not yet provided", so the model writes "cannot generate".
+- **Panel:** "输入已映射 (9 个输入)" lists 8 optional reference overrides (Fasta, Gtf, Gff, Gene Bed, …) as "未设置 · 可选——留空", plus a ribo manifest default. The real required input (samplesheet / reads) is absent. There are also 86 optional parameters.
+  - **Root cause:** the inputs card in `nextflow-workflow-viewer.tsx` (~3700) lists every `type: 'file'` parameter. For rnaseq those are the reference overrides; the samplesheet is not typed `file`. The header says "mapped" even when nothing is mapped.
+
+### 7.4 Follow-up input re-routes to the wrong workflow — `wrong_routing.png`
+
+- **Symptom:** after 7.3 the user replies "SRR1039508". The reply text describes nf-core/rnaseq, but the card is **nf-core/differentialabundance**.
+- **Dev log of this exact turn:**
+  - `User intent: SRR1039508 … Inline parameters: {"accession":"SRR1039508","domain_hint":"rna_seq"}` → `source: template_reuse` → `Found workflow: nf-core/differentialabundance` (confidence 54);
+  - then `Step 6c: text mentions "nf-core/rnaseq", not a search candidate for this request — keeping "nf-core/differentialabundance"`.
+- **Root cause:** a turn that supplies the missing input for the workflow open in the panel is routed as a brand-new request. `context.currentWorkflow` is sent by the client but used only for domain inference (`galaxy-assistant.ts` ~9429) and panel parameter edits (`routes.ts` ~7630), never to bind the follow-up to the open workflow. The Step 6c guard then keeps the wrong card over the text that names the right one.

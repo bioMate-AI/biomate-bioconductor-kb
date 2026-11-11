@@ -1,6 +1,6 @@
 import hospitalProvenance from '../../public/demo/sysucc_synthetic/provenance.json';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PREPARED_EXAMPLES, prepareColdStartExample, ensureInternalDemoProject, DEMO_PROJECT_NAME, HOSPITAL_EXAMPLES, HOSPITAL_DEMO_PROJECT_NAME, prepareColdStartSelection } from './cold-start-examples';
+import { PREPARED_EXAMPLES, prepareColdStartExample, ensureInternalDemoProject, DEMO_PROJECT_NAME, HOSPITAL_EXAMPLES, HOSPITAL_DEMO_PROJECT_NAME, prepareColdStartSelection, preparedInputsBlock } from './cold-start-examples';
 afterEach(() => vi.unstubAllGlobals());
 const reply = (body: unknown) => ({ ok: true, json: async () => body });
 describe('prepared examples', () => {
@@ -90,4 +90,32 @@ it('reuses verified hospital bytes and resumes only missing uploads', async () =
   expect(await ensureInternalDemoProject([new File(['fixture'], 'rna.csv'), new File(['fixture'], 'protein.csv')], true)).toBe('demo');
   expect(fetcher).toHaveBeenCalledTimes(3);
   expect(fetcher.mock.calls[2][1].body.get('file').name).toBe('protein.csv');
+});
+
+describe('what the user sees never contains storage paths or model scaffolding', () => {
+  // Founder directive 2026-11-10: no S3 anywhere in user-facing text, and no
+  // "Prepared demo context" / project id leaking into the user's own words.
+  const FORBIDDEN = /s3:\/\/|\bS3\b|Prepared demo context|demo_notes|\(Project /i;
+
+  it('every catalog-backed example seeds only the natural goal; notes travel hidden', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, blob: async () => new Blob(['x'], { type: 'text/plain' }) })));
+    const { COLD_DEMO_INTENTS } = await import('./cold-start-demo-catalog');
+    for (const text of COLD_DEMO_INTENTS.keys()) {
+      const result = await prepareColdStartExample(text);
+      expect(result.prompt, text).not.toMatch(FORBIDDEN);
+      expect(result.files.map(f => f.name), text).not.toContain('demo_notes.md');
+      expect(result.hiddenContext, text).toBeTruthy();
+    }
+  });
+
+  it('prepared examples (labels and seeded prompts) carry no storage paths', () => {
+    for (const example of PREPARED_EXAMPLES) {
+      expect(example.label).not.toMatch(FORBIDDEN);
+      expect(example.prompt, example.label).not.toMatch(FORBIDDEN);
+    }
+  });
+
+  it('the hidden block is bracket-safe so the chat bubble can strip it whole', () => {
+    expect(preparedInputsBlock('use rows [1-5] of a.csv')).toBe('[Prepared inputs: use rows 1-5 of a.csv]');
+  });
 });

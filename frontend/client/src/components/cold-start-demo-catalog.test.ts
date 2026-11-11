@@ -21,6 +21,10 @@ describe('every cold-start path has prepared inputs', () => {
     expect(demo!.files.length).toBeGreaterThan(0);
     expect(demo!.context.length).toBeGreaterThan(100);
   });
+  it('no card text (labels, shapes, needs, seeds) mentions storage paths', () => {
+    const visible = [...seeds, ...COLD_DOMAINS.flatMap(d => d.shapes.flatMap(sh => [sh.t, sh.needs]))];
+    for (const text of visible) expect(text).not.toMatch(/s3:\/\/|\bS3\b/i);
+  });
   it('does not give the Search & evidence tracks one shared input set', () => {
     const search = COLD_MODULES.find(module => module.id === 'search')!;
     const perTrack = search.tracks.filter(track => track.k !== 'Internal').map(track =>

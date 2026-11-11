@@ -4724,7 +4724,7 @@ export function NextflowWorkflowViewer({
                 <span>
                   {tOr('panel.footer.input_files_required_prefix', 'Input files required:')}{' '}
                   <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
-                  {' '}{tOr('panel.footer.input_files_required_suffix', '— upload via the file button in chat or paste an S3 path in the parameter field above')}
+                  {' '}{tOr('panel.footer.input_files_required_suffix', '— attach them with the file button in chat')}
                 </span>
               </div>
             ) : (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ? (

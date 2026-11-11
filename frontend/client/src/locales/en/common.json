@@ -603,7 +603,7 @@
       "license_required": "License required — see <strong>Tool Credentials</strong> in Workflow settings",
       "fill_required_params": "Fill in {{n}} required parameter{{s}} above before running",
       "input_files_required_prefix": "Input files required:",
-      "input_files_required_suffix": "— upload via the file button in chat or paste an S3 path in the parameter field above",
+      "input_files_required_suffix": "— attach them with the file button in chat",
       "prereqs_not_met": "Prerequisites not met — see checklist above"
     },
     "phase": {

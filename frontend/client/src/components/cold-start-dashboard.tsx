@@ -65,7 +65,7 @@ export interface ColdShape {
   /**
    * An optional real, staged sample dataset attached to this example so a
    * first-time user can run it directly — or edit the seed to swap in their own.
-   * `ref` is a public accession or S3 path that BioMate can fetch/stage; the
+   * `ref` is a public accession (or a path BioMate has already staged); the
    * same accession is embedded in `seed`, so clicking pre-loads a runnable goal.
    * Only set when the dataset genuinely exists (no fabricated demo data).
    */

@@ -4,7 +4,7 @@
  * (e.g. Search & evidence) need none. No keyword/fallback dataset.
  */
 export interface ColdDemoBundle { files: string[]; context: string }
-const notes = 'These are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.';
+const notes = 'These are public tutorial inputs prepared for this example, not new experimental results; report their provenance and limitations honestly.';
 export const COLD_DEMO_BUNDLES: Record<string, ColdDemoBundle> = {
   // Search & evidence: questions name their own subject, so most need no files.
   // Only the two patent questions about the USER's compounds attach a set, and

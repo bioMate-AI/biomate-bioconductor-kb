@@ -649,7 +649,7 @@ export function ChatMessage({
               })
               // Strip all metadata blocks from the visible text
               const visibleText = raw
-                .replace(/\n?\[(?:BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?)[^\]]*\]/gi, '')
+                .replace(/\n?\[(?:BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?|Prepared inputs)[^\]]*\]/gi, '')
                 .replace(/\n?\[Paper content:[^\]]*\][\s\S]*$/i, '')
                 .trim()
               return (
