@@ -1110,14 +1110,18 @@ export function registerProjectRoutes(app: Express): void {
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
       // On-prem (MinIO): presigned URLs embed internal minio:9000 hostname
       // unreachable from the browser — return a Node.js proxy URL instead.
+      // ?redirect=1: a plain <a href> download (chat file chips) — same authorization as the JSON form.
+      // The presigned URL then carries Content-Disposition: attachment, so S3 makes the browser save
+      // the file (cross-origin, the <a download> attribute is ignored).
+      const asDownload = req.query.redirect === "1";
       let url: string;
       if (process.env.S3_ENDPOINT_URL) {
         url = `/api/s3/proxy-download?key=${encodeURIComponent(fileRow.rows[0].s3_key)}`;
       } else {
-        url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900);
+        url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900,
+          asDownload ? String(fileRow.rows[0].name) : undefined);
       }
-      // ?redirect=1: a plain <a href> download (chat file chips) — same authorization as the JSON form.
-      if (req.query.redirect === "1") return res.redirect(302, url);
+      if (asDownload) return res.redirect(302, url);
       res.json({ url, name: fileRow.rows[0].name });
     } catch (e: any) {
       console.error("[project_files] url failed:", e?.message ?? e);

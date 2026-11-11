@@ -7565,7 +7565,7 @@ ${paramLines || '(none recorded)'}`;
         // run_code outputs → session datasets (download link + later turns), the same store as uploads.
         persistGeneratedFile: async (hostPath: string, name: string) => {
           // A project chat saves into the project automatically (versioned project file, shown under
-          // "Analysis outputs"); otherwise the file becomes a dataset of this chat session.
+          // "Analysis outputs").
           const _uid = req.user?.id != null ? String(req.user.id) : '';
           if (_resolvedProjectId && _uid) {
             const stored = await storeGeneratedFileInProject({ projectId: _resolvedProjectId, uid: _uid, hostPath, name });
@@ -7574,10 +7574,15 @@ ${paramLines || '(none recorded)'}`;
                 download_url: `/api/projects/${encodeURIComponent(_resolvedProjectId)}/files/${encodeURIComponent(stored.file.id)}/url?redirect=1` };
             }
           }
-          if (!_registerDatasetFileRef) return undefined;
-          const d = await _registerDatasetFileRef(req, hostPath, name, { source: 'run_code' });
-          return { dataset_id: d.datasetId, galaxy_dataset_id: d.galaxyDatasetId,
-            download_url: `/api/datasets/${encodeURIComponent(d.datasetId)}/download` };
+          // Non-project chats: not saved (founder 2026-11-11: "only project" — new chats can only be
+          // started inside a project; project-less chats are legacy). Their files stay in the chat's
+          // session workspace for later turns; figures still download from their inline bytes.
+          // To re-enable, register the file as a session dataset:
+          //   if (!_registerDatasetFileRef) return undefined;
+          //   const d = await _registerDatasetFileRef(req, hostPath, name, { source: 'run_code' });
+          //   return { dataset_id: d.datasetId, galaxy_dataset_id: d.galaxyDatasetId,
+          //     download_url: `/api/datasets/${encodeURIComponent(d.datasetId)}/download` };
+          return undefined;
         },
         openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
