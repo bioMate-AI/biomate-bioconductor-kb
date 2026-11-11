@@ -6,7 +6,10 @@
  *   - Expand / collapse folder nodes (inputs/, outputs/<runId>/)
  *   - Single-click → copy S3 path to clipboard
  *   - Download button → presigned URL
- *   - Upload via drag-drop or file picker
+ *   - Upload via drag-drop or the "Add ▾ Files / Folder" picker. A folder (picked or
+ *     dropped, walked recursively) uploads file-by-file with its folder-relative path,
+ *     which the server keeps in the stored name, so the tree shows the folders. One
+ *     failed file never aborts the batch; failures are listed per file, localized.
  *   - Delete uploaded files (source='upload' only)
  */
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -33,10 +36,20 @@ import {
   FileArchive,
   Eye,
   EyeOff,
+  FolderUp,
+  FilePlus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { filesFromDataTransfer, relativePathOf } from "@/lib/folder-drop";
 
 export interface ProjectFile {
   id: string;
@@ -66,26 +79,53 @@ interface FileNode {
 }
 type TreeNode = FolderNode | FileNode;
 
-function buildTree(files: ProjectFile[]): TreeNode[] {
-  const inputs: FileNode[] = [];
+/** Number of files below a folder (recursively) — the count shown on its row. */
+function countFiles(node: FolderNode): number {
+  return node.children.reduce((n, c) => n + (c.type === "file" ? 1 : countFiles(c)), 0);
+}
+
+/** Place an input file under its folder path ("run1/fastq/S1.fq" → inputs/run1/fastq). */
+function insertInput(root: FolderNode, f: ProjectFile): void {
+  const parts = f.name.split("/").filter(Boolean);
+  const leaf = parts.pop() ?? f.name;
+  let node = root;
+  for (const part of parts) {
+    const path = `${node.path}/${part}`;
+    let next = node.children.find((c): c is FolderNode => c.type === "folder" && c.path === path);
+    if (!next) {
+      next = { type: "folder", name: part, path, children: [] };
+      node.children.push(next);
+    }
+    node = next;
+  }
+  node.children.push({ type: "file", name: leaf, file: f });
+}
+
+/** Folders before files at every level; files keep their (newest-first) order. */
+function sortFoldersFirst(node: FolderNode): void {
+  node.children.sort((x, y) => (x.type === y.type ? 0 : x.type === "folder" ? -1 : 1));
+  node.children.forEach((c) => { if (c.type === "folder") sortFoldersFirst(c); });
+}
+
+export function buildTree(files: ProjectFile[]): TreeNode[] {
+  const inputs: FolderNode = { type: "folder", name: "inputs", path: "inputs", children: [] };
   const outputsByRun: Record<string, FileNode[]> = {};
 
   for (const f of files) {
     // Only run outputs are "results"; everything else the user ingested
     // (upload, pasted URL, connector pull) is an input, regardless of source.
     if (f.source !== "run_output") {
-      inputs.push({ type: "file", name: f.name, file: f });
+      insertInput(inputs, f);
     } else {
       const run = f.run_id || "unknown";
       if (!outputsByRun[run]) outputsByRun[run] = [];
       outputsByRun[run].push({ type: "file", name: f.name, file: f });
     }
   }
+  sortFoldersFirst(inputs);
 
   const root: TreeNode[] = [];
-  if (inputs.length > 0) {
-    root.push({ type: "folder", name: "inputs", path: "inputs", children: inputs });
-  }
+  if (inputs.children.length > 0) root.push(inputs);
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
     const firstFile = nodes[0]?.file;
     const wfName = firstFile?.workflow_name ?? t('workflow.labels.workflow');
@@ -101,11 +141,17 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
       children: nodes,
     });
   }
-  if (inputs.length === 0 && Object.keys(outputsByRun).length === 0) {
-    return [];
-  }
   return root;
 }
+
+/** Localized reason for a failed upload response. */
+export function uploadErrorReason(status: number): string {
+  if (status === 413) return t("data_hub.tree_err_too_large");
+  if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
+  return t("data_hub.tree_err_server", { status });
+}
+
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)
 
 function fileIcon(name: string, contentType: string) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
@@ -200,13 +246,13 @@ function FilePreview({ url, name }: { url: string; name: string }) {
 
   useEffect(() => {
     if (isImage) return;
-    fetch(url).then(r => r.text()).then(t => setContent(t)).catch(() => setContent("(preview failed)"));
+    fetch(url).then(r => r.text()).then(txt => setContent(txt)).catch(() => setContent(t("data_hub.tree_preview_failed")));
   }, [url, isImage]);
 
   if (isImage) {
     return <img src={url} alt={name} className="max-w-[200px] max-h-40 rounded mt-1 mb-1 ml-9" />;
   }
-  if (content === null) return <div className="ml-9 mt-1 text-xs text-muted-foreground">Loading…</div>;
+  if (content === null) return <div className="ml-9 mt-1 text-xs text-muted-foreground">{t("data_hub.tree_preview_loading")}</div>;
   const lines = content.split("\n").slice(0, ext === "csv" || ext === "tsv" ? 6 : 20);
   if ((ext === "csv" || ext === "tsv") && lines.length > 0) {
     const sep = ext === "tsv" ? "\t" : ",";
@@ -241,6 +287,8 @@ function FileRow({
   onCopy,
   onOpenDataset,
   canEdit = true,
+  label,
+  depth = 1,
 }: {
   file: ProjectFile;
   projectId: string;
@@ -251,8 +299,13 @@ function FileRow({
   /** Open this file as a first-class DatasetObject (data hub). */
   onOpenDataset?: (file: ProjectFile) => void;
   canEdit?: boolean;
+  /** Text shown for the row (the basename inside a folder); defaults to file.name. */
+  label?: string;
+  /** Nesting depth (1 = directly under a top-level folder). */
+  depth?: number;
 }) {
   const Icon = fileIcon(file.name, file.content_type);
+  const shown = label ?? file.name;
   const isCopied = copiedId === file.id;
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -272,8 +325,8 @@ function FileRow({
     <div>
       <div
         className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/60 text-sm cursor-default"
-        style={{ paddingLeft: 36 }}
-        title={file.s3_key}
+        style={{ paddingLeft: 16 + depth * 20 }}
+        title={file.name}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <QualityDot file={file} />
@@ -285,13 +338,13 @@ function FileRow({
             title={t('file_tree.open_dataset')}
             data-testid={`file-open-${file.id}`}
           >
-            {file.name}
+            {shown}
           </button>
         ) : (
-          <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+          <span className="flex-1 truncate text-xs text-foreground">{shown}</span>
         )}
         {file.step_name && (
-          <span className="text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
+          <span className="text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
             {file.step_name}
           </span>
         )}
@@ -339,7 +392,7 @@ function FileRow({
             <div className="italic text-foreground/80">"{file.input_context.intent}"</div>
           )}
           {Array.isArray(file.input_context.inputFiles) && (file.input_context.inputFiles as string[]).length > 0 && (
-            <div><span className="text-muted-foreground">Input files: </span>{(file.input_context.inputFiles as string[]).join(", ")}</div>
+            <div><span className="text-muted-foreground">{t("data_hub.tree_input_files")}</span>{(file.input_context.inputFiles as string[]).join(", ")}</div>
           )}
         </div>
       )}
@@ -351,10 +404,12 @@ function FolderRow({
   node,
   expanded,
   onToggle,
+  depth = 0,
 }: {
   node: FolderNode;
   expanded: boolean;
   onToggle: () => void;
+  depth?: number;
 }) {
   const FIcon = expanded ? FolderOpen : Folder;
   const CIcon = expanded ? ChevronDown : ChevronRight;
@@ -362,13 +417,13 @@ function FolderRow({
     <button
       onClick={onToggle}
       className="flex items-center gap-1.5 w-full px-2 py-1 rounded hover:bg-muted/40 text-left"
-      style={{ paddingLeft: 16 }}
+      style={{ paddingLeft: 16 + depth * 20 }}
       data-testid={`folder-${node.path}`}
     >
       <CIcon className="h-3 w-3 text-muted-foreground shrink-0" />
       <FIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
-      <span className="text-xs font-medium text-foreground">{node.name}</span>
-      <span className="ml-auto text-xs text-muted-foreground">{node.children.length}</span>
+      <span className="min-w-0 truncate text-xs font-medium text-foreground" title={node.name}>{node.name}</span>
+      <span className="ml-auto text-xs text-muted-foreground" title={t("data_hub.tree_folder_count", { n: countFiles(node) })}>{countFiles(node)}</span>
     </button>
   );
 }
@@ -401,6 +456,14 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["inputs"]));
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Batch upload progress + per-file outcome (localized; never a raw fetch error).
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [uploadReport, setUploadReport] = useState<{
+    ok: number;
+    deduped: number;
+    failures: { name: string; reason: string }[];
+  } | null>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [urlOpen, setUrlOpen] = useState(false);
   const [urlVal, setUrlVal] = useState("");
   const [importingUrl, setImportingUrl] = useState(false);
@@ -413,13 +476,13 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     setError(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/files`, { credentials: "include" });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_load"), status: res.status }));
       const data = await res.json();
       const loaded: ProjectFile[] = data.files ?? [];
       setFiles(loaded);
       onFilesChanged?.(loaded.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
     } catch (e: any) {
-      setError(e?.message ?? t('file_tree.err_load'));
+      setError(e instanceof Error && e.message.startsWith(t("file_tree.err_load")) ? e.message : t('file_tree.err_load'));
     } finally {
       setLoading(false);
     }
@@ -447,25 +510,71 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     return () => window.removeEventListener('biomate:project-files-updated', handler);
   }, [load]);
 
-  const handleUpload = async (fileList: FileList | null) => {
-    if (!fileList?.length) return;
+  /**
+   * Upload files one request each — a folder's files carry their folder-relative path
+   * (webkitRelativePath) so the server stores the structure. One failure never aborts
+   * the batch; each failure is reported with a localized reason.
+   */
+  const handleUpload = async (incoming: File[] | FileList | null) => {
+    const files = Array.from(incoming ?? []);
+    if (!files.length) return;
     setUploading(true);
-    try {
-      for (const file of Array.from(fileList)) {
-        const form = new FormData();
-        form.append("file", file);
-        const res = await fetch(`/api/projects/${projectId}/files/upload`, {
-          method: "POST",
-          credentials: "include",
-          body: form,
-        });
-        if (!res.ok) throw new Error(await res.text());
+    setError(null);
+    setUploadReport(null);
+    setProgress({ done: 0, total: files.length });
+    let ok = 0;
+    let deduped = 0;
+    const failures: { name: string; reason: string }[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const rel = relativePathOf(file);
+      const display = rel || file.name;
+      if (file.size > MAX_UPLOAD_BYTES) {
+        failures.push({ name: display, reason: t("data_hub.tree_err_too_large") });
+      } else {
+        try {
+          const form = new FormData();
+          // Field BEFORE the file part; also sent for a plain pick (= file.name) because
+          // text fields arrive as UTF-8 while multipart filenames are decoded as latin1.
+          form.append("relativePath", rel || file.name);
+          form.append("file", file, file.name);
+          const res = await fetch(`/api/projects/${projectId}/files/upload`, {
+            method: "POST",
+            credentials: "include",
+            body: form,
+          });
+          if (!res.ok) {
+            failures.push({ name: display, reason: uploadErrorReason(res.status) });
+          } else {
+            ok += 1;
+            const body = await res.json().catch(() => null);
+            if (body?.deduplicated) deduped += 1;
+          }
+        } catch (e) {
+          // fetch rejects with TypeError on a network failure; a DOMException means the
+          // browser could not read the file's bytes.
+          const reason = e instanceof TypeError ? t("data_hub.tree_err_network") : t("data_hub.tree_err_unreadable");
+          failures.push({ name: display, reason });
+        }
       }
+      setProgress({ done: i + 1, total: files.length });
+    }
+    setUploadReport({ ok, deduped, failures });
+    setProgress(null);
+    setUploading(false);
+    if (ok > 0) {
+      // Uploaded folders open so the new structure is visible.
+      setExpandedFolders((prev) => {
+        const next = new Set(prev);
+        next.add("inputs");
+        for (const f of files) {
+          const parts = relativePathOf(f).split("/").filter(Boolean).slice(0, -1);
+          let path = "inputs";
+          for (const part of parts) { path = `${path}/${part}`; next.add(path); }
+        }
+        return next;
+      });
       await load();
-    } catch (e: any) {
-      setError(e?.message ?? t('file_tree.err_upload'));
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -481,14 +590,13 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         body: JSON.stringify({ url }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as any)?.error || `Import failed (${res.status})`);
+        throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_import_url"), status: res.status }));
       }
       setUrlVal("");
       setUrlOpen(false);
       await load();
     } catch (e: any) {
-      setError(e?.message ?? t('file_tree.err_import_url'));
+      setError(e instanceof Error && e.message.startsWith(t("file_tree.err_import_url")) ? e.message : t('file_tree.err_import_url'));
     } finally {
       setImportingUrl(false);
     }
@@ -501,21 +609,21 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         method: "DELETE",
         credentials: "include",
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_delete"), status: res.status }));
       setFiles((prev) => {
         const next = prev.filter((f) => f.id !== fileId);
         onFilesChanged?.(next.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
         return next;
       });
     } catch (e: any) {
-      setError(e?.message ?? t('file_tree.err_delete'));
+      setError(e instanceof Error && e.message.startsWith(t("file_tree.err_delete")) ? e.message : t('file_tree.err_delete'));
     }
   };
 
   const handleDownload = async (fileId: string) => {
     try {
       const res = await fetch(`/api/projects/${projectId}/files/${fileId}/url`, { credentials: "include" });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_download"), status: res.status }));
       const data = await res.json();
       // On desktop: fetch blob and show native save dialog
       if (isDesktop()) {
@@ -529,7 +637,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       a.download = data.name;
       a.click();
     } catch (e: any) {
-      setError(e?.message ?? t('file_tree.err_download'));
+      setError(e instanceof Error && e.message.startsWith(t("file_tree.err_download")) ? e.message : t('file_tree.err_download'));
     }
   };
 
@@ -546,18 +654,59 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   const q = search.trim().toLowerCase();
   const tree = buildTree(q ? files.filter((f) => f.name.toLowerCase().includes(q)) : files);
 
+  const toggleFolder = (path: string) => {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
+  // Recursive tree rows: folders (any depth) then files; a search expands everything.
+  const renderNode = (node: TreeNode, depth: number): JSX.Element => {
+    if (node.type === "file") {
+      return (
+        <FileRow
+          key={node.file.id}
+          file={node.file}
+          label={node.name}
+          depth={depth}
+          projectId={projectId}
+          onDelete={handleDelete}
+          onDownload={handleDownload}
+          copiedId={copiedId}
+          onCopy={handleCopy}
+          onOpenDataset={onOpenDataset}
+          canEdit={canEdit}
+        />
+      );
+    }
+    const isOpen = Boolean(q) || expandedFolders.has(node.path);
+    return (
+      <div key={node.path}>
+        <FolderRow node={node} depth={depth} expanded={isOpen} onToggle={() => toggleFolder(node.path)} />
+        {isOpen && node.children.map((child) => renderNode(child, depth + 1))}
+      </div>
+    );
+  };
+
   return (
     <div
       className={cn(
-        "flex flex-col h-full border rounded-md bg-background overflow-hidden",
+        "relative flex flex-col h-full border rounded-md bg-background overflow-hidden",
         dragOver && "ring-2 ring-primary"
       )}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragOver={(e) => { e.preventDefault(); if (canEdit) setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        if (canEdit) handleUpload(e.dataTransfer.files);
+        if (!canEdit) return;
+        // Walk dropped folders recursively (webkitGetAsEntry) — the entries must be read
+        // synchronously inside the event, which filesFromDataTransfer does before awaiting.
+        // A dropped folder's own "directory pseudo-file" is never uploaded.
+        void filesFromDataTransfer(e.dataTransfer).then((files) => handleUpload(files));
       }}
       data-testid="project-file-tree"
     >
@@ -577,8 +726,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
               try {
                 await desktopPickAndUpload(projectId);
                 await load();
-              } catch (e: any) {
-                setError(e?.message ?? t('file_tree.err_upload'));
+              } catch {
+                setError(t('file_tree.err_upload'));
               } finally {
                 setUploading(false);
               }
@@ -588,21 +737,34 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             {t('file_tree.add')}
           </Button>
         ) : (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 px-2 text-xs gap-1"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            data-testid="project-files-upload-btn"
-          >
-            {uploading ? (
-              <RefreshCw className="h-3 w-3 animate-spin" />
-            ) : (
-              <Plus className="h-3 w-3" />
-            )}
-            {t('file_tree.add')}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-xs gap-1"
+                disabled={uploading}
+                title={t("data_hub.tree_add_menu")}
+                data-testid="project-files-upload-btn"
+              >
+                {uploading ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Plus className="h-3 w-3" />
+                )}
+                {t('file_tree.add')}
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[8rem]">
+              <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} data-testid="project-files-add-files">
+                <FilePlus className="h-3.5 w-3.5 mr-2" />{t("data_hub.tree_add_files")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => folderInputRef.current?.click()} data-testid="project-files-add-folder">
+                <FolderUp className="h-3.5 w-3.5 mr-2" />{t("data_hub.tree_add_folder")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ))}
         {canEdit && (
           <Button
@@ -634,8 +796,18 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
           type="file"
           multiple
           className="hidden"
-          onChange={(e) => handleUpload(e.target.files)}
+          onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.currentTarget.value = ""; void handleUpload(picked); }}
           data-testid="project-files-input"
+        />
+        {/* Folder picker — same attribute set as the chat composer / upload panel. */}
+        <input
+          ref={folderInputRef}
+          type="file"
+          multiple
+          {...({ webkitdirectory: "", directory: "", mozdirectory: "" } as Record<string, string>)}
+          className="hidden"
+          onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.currentTarget.value = ""; void handleUpload(picked); }}
+          data-testid="project-files-folder-input"
         />
       </div>
       {/* Paste-a-URL ingest (design §4.6) — fetches into the project and shows in the tree. */}
@@ -660,6 +832,47 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
           >
             {importingUrl ? <RefreshCw className="h-3 w-3 animate-spin" /> : t('file_tree.import')}
           </Button>
+        </div>
+      )}
+
+      {/* Upload progress + per-file outcome (localized). */}
+      {(progress || uploadReport) && (
+        <div className="px-3 py-1.5 border-b text-xs space-y-1" data-testid="project-files-upload-status">
+          {progress ? (
+            <p role="status" className="text-muted-foreground" data-testid="project-files-upload-progress">
+              {t("data_hub.tree_uploading", { done: progress.done, total: progress.total })}
+            </p>
+          ) : uploadReport && (
+            <>
+              <div className="flex items-start gap-2">
+                <p className={cn("flex-1", uploadReport.failures.length ? "text-destructive" : "text-muted-foreground")} data-testid="project-files-upload-summary">
+                  {t("data_hub.tree_upload_summary", { ok: uploadReport.ok, failed: uploadReport.failures.length })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setUploadReport(null)}
+                  title={t("data_hub.tree_dismiss")}
+                  aria-label={t("data_hub.tree_dismiss")}
+                  className="p-0.5 rounded hover:bg-muted"
+                  data-testid="project-files-upload-dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              {uploadReport.deduped > 0 && (
+                <p className="text-muted-foreground">{t("data_hub.tree_upload_deduped", { n: uploadReport.deduped })}</p>
+              )}
+              {uploadReport.failures.length > 0 && (
+                <ul className="max-h-24 overflow-y-auto space-y-0.5" data-testid="project-files-upload-failures">
+                  {uploadReport.failures.map((f, i) => (
+                    <li key={i} className="text-destructive [overflow-wrap:anywhere]">
+                      {t("data_hub.tree_err_item", { name: f.name, reason: f.reason })}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -691,53 +904,13 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             <p className="text-xs opacity-70">{t('file_tree.drop_hint')}</p>
           </div>
         )}
-        {tree.map((node) => {
-          if (node.type === "folder") {
-            const isOpen = expandedFolders.has(node.path);
-            return (
-              <div key={node.path}>
-                <FolderRow
-                  node={node}
-                  expanded={isOpen}
-                  onToggle={() => {
-                    setExpandedFolders((prev) => {
-                      const next = new Set(prev);
-                      if (isOpen) next.delete(node.path);
-                      else next.add(node.path);
-                      return next;
-                    });
-                  }}
-                />
-                {isOpen &&
-                  node.children.map((child) => {
-                    if (child.type === "file") {
-                      return (
-                        <FileRow
-                          key={child.file.id}
-                          file={child.file}
-                          projectId={projectId}
-                          onDelete={handleDelete}
-                          onDownload={handleDownload}
-                          copiedId={copiedId}
-                          onCopy={handleCopy}
-                          onOpenDataset={onOpenDataset}
-                          canEdit={canEdit}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-              </div>
-            );
-          }
-          return null;
-        })}
+        {tree.map((node) => renderNode(node, 0))}
       </div>
 
       {/* Drop hint */}
       {dragOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 pointer-events-none rounded-md border-2 border-dashed border-primary z-10">
-          <p className="text-sm font-medium text-primary">Drop files to upload</p>
+          <p className="text-sm font-medium text-primary">{t("data_hub.tree_drop_overlay")}</p>
         </div>
       )}
     </div>
