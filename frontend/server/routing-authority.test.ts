@@ -67,16 +67,23 @@ describe('retrieval hints never change the workflow decision', () => {
 });
 
 describe('reconcileExecutionMode — the classifier\'s execution mode wins over its own flag', () => {
-  it('direct_compute ⇒ no workflow card (run_code stays enabled)', () => {
+  it('direct_compute with data in the conversation ⇒ no workflow card (run_code stays enabled)', () => {
     const i = mk(true, { execution: 'direct_compute' });
-    reconcileExecutionMode(i);
+    reconcileExecutionMode(i, true);
     expect(i.actions.needsWorkflowGeneration).toBe(false);
     expect(i.actions.needsLLMReasoning).toBe(true);
   });
+  it('direct_compute with NO data anywhere contradicts its own contract ⇒ the workflow card stays (EBV, dev 2026-11-11)', () => {
+    const i = mk(true, { execution: 'direct_compute' });
+    reconcileExecutionMode(i, false);
+    expect(i.actions.needsWorkflowGeneration).toBe(true);
+  });
   it('pipeline / null leave the flag alone', () => {
     for (const execution of ['pipeline', null] as const) {
-      const a = mk(true, { execution }); reconcileExecutionMode(a); expect(a.actions.needsWorkflowGeneration).toBe(true);
-      const b = mk(false, { execution }); reconcileExecutionMode(b); expect(b.actions.needsWorkflowGeneration).toBe(false);
+      for (const hasData of [true, false]) {
+        const a = mk(true, { execution }); reconcileExecutionMode(a, hasData); expect(a.actions.needsWorkflowGeneration).toBe(true);
+        const b = mk(false, { execution }); reconcileExecutionMode(b, hasData); expect(b.actions.needsWorkflowGeneration).toBe(false);
+      }
     }
   });
 });

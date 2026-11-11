@@ -115,7 +115,7 @@
       "intent": "正在理解您的目标…",
       "matched": "已匹配到工作流",
       "plan": "正在准备方案…",
-      "search": "正在检索 4,000+ 个工作流…"
+      "search": "正在检索…"
     },
     "delete_chat": "删除对话",
     "delete_confirm": "确认删除",
@@ -390,7 +390,25 @@
       "pull_every_reported_structure_for_kras_g12c": "检索 KRAS G12C 的全部已报道结构。",
       "known_off_targets_for_the_celecoxib_diarylpyrazole_sulfonamide_c": "塞来昔布类二芳基吡唑磺酰胺化学型有哪些已知脱靶？",
       "which_trials_targeted_pd_1_pd_l1_in_non_small_cell_lung_cancer_a": "哪些临床试验在非小细胞肺癌中靶向 PD-1/PD-L1？其终点指标是什么？",
-      "who_holds_composition_of_matter_claims_on_the_sotorasib_scaffold": "谁持有索托拉西布骨架的化合物专利权利要求？"
+      "who_holds_composition_of_matter_claims_on_the_sotorasib_scaffold": "谁持有索托拉西布骨架的化合物专利权利要求？",
+      "sample_provided_a_series_with_measured_target_and_herg_ic50s": "提供样例 — 一个已测靶点活性与 hERG IC50 的化合物系列",
+      "mchr1_chromone_series": "MCHR1 色原酮系列",
+      "sample_provided_cohort_mutation_calls_response_labels": "提供样例 — 队列突变数据 + 疗效标签",
+      "nsclc_anti_pd_1_cohort": "NSCLC 抗 PD-1 治疗队列",
+      "sample_provided_multi_sample_genotypes_a_pedigree": "提供样例 — 多样本基因型 + 家系信息",
+      "ceph_1463_pedigree": "CEPH 1463 家系",
+      "sample_provided_plasmid_replicate_read_counts": "提供样例 — 质粒 + 重复样本读段计数",
+      "ht_29_minilibcas9_screen": "HT-29 MiniLibCas9 筛选",
+      "compare_screen_hits_across_two_cell_lines": "比较两个细胞系之间的筛选命中基因",
+      "sample_provided_initial_final_counts_for_two_lines": "提供样例 — 两个细胞系的起始/终点计数",
+      "hl60_kbm7_screen": "HL60 / KBM7 筛选",
+      "sample_provided_replicate_counts_control_gene_sets": "提供样例 — 重复样本计数 + 对照基因集",
+      "ht_29_brunello_screen": "HT-29 Brunello 筛选",
+      "sample_provided_a_12_run_search_output_design": "提供样例 — 12 次运行的搜库结果 + 实验设计",
+      "lfq_analyst_example_batch": "LFQ-Analyst 示例批次",
+      "compare_trial_arms_and_test_the_primary_endpoint": "比较各试验组并检验主要终点",
+      "sample_provided_a_randomised_trial_cohort": "提供样例 — 随机对照试验队列",
+      "mayo_pbc_trial_cohort": "Mayo PBC 试验队列"
     },
     "sample_title_inline": "使用目标中附带的示例运行。编辑目标即可改用您自己的数据。"
   },
@@ -857,10 +875,9 @@
       "license_required": "需要许可证 — 请在工作流设置中查看<strong>工具凭据</strong>",
       "fill_required_params": "运行前请先在上方填写 {{n}} 个必填参数",
       "input_files_required_prefix": "需要输入文件：",
-      "input_files_required_suffix": "— 可通过聊天中的文件按钮上传，或在上方参数框中粘贴 S3 路径",
+      "input_files_required_suffix": "— 请通过聊天中的文件按钮上传",
       "prereqs_not_met": "前置条件未满足 — 请查看上方清单"
     },
-    "inputs_mapped": "输入已映射",
     "params_only_no_inputs": "此工作流仅接受参数——没有需要绑定的数据输入。",
     "parameters": "参数",
     "required_parameters": "必需参数",
@@ -999,7 +1016,6 @@
     "id_prefix": "id {{id}}",
     "inputs_all_bound": "这些输入将按绑定原样使用。可从数据集标签重新打开，以查看其溯源。",
     "inputs_blocking": "在解析 {{n}} 个输入之前不会运行——请在上方选择文件或修正映射。",
-    "inputs_count": "{{n}} 个输入",
     "key_findings": "关键发现",
     "last_step": "上一步",
     "limitations": "局限性：",
@@ -1080,6 +1096,17 @@
     "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。",
     "inputs_linked_review": "已设置输入文件引用，请核对下方映射。",
     "run_stopped": "运行在完成前停止。",
+    "inputs_title": "输入",
+    "inputs_required_unset": "{{n}} 个必需输入尚未设置",
+    "inputs_mapped_count": "已映射 {{n}} 个",
+    "inputs_none_required": "无必需的数据输入",
+    "inputs_attach_or_accession": "请用下方消息框中的回形针（📎）附加文件，或在对话中回复公共数据编号（如 SRR…、GSE…）。",
+    "inputs_attach_hint": "请用下方消息框中的回形针（📎）附加文件——BioMate 会自动将其接入工作流。",
+    "only_optional_overrides": "无需上传数据——以下文件均为可选覆盖项。",
+    "reference_overrides": "参考文件覆盖",
+    "reference_overrides_hint": "可选——默认取自所选基因组或流程",
+    "not_set_default_used": "未设置——使用默认值",
+    "uses_default": "默认",
     "diag": {
       "title": "AI 诊断",
       "error_details": "错误详情",
@@ -1694,6 +1721,11 @@
     "skill_importing": "正在导入技能…",
     "skill_imported": "技能已导入，可在“技能与专家”中使用。",
     "all_kinds": "返回连接器类型"
+  },
+  "citation_reader": {
+    "retrieved_excerpt": "检索摘录",
+    "no_abstract_excerpt": "此来源未提供摘要或摘录。",
+    "no_source_link": "此来源未提供链接。"
   },
   "project_instructions": {
     "instructions": "项目指令",

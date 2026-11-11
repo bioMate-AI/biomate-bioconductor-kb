@@ -178,9 +178,13 @@ describe("<ColdStartDashboard>", () => {
     const body = within(cardFor("analysis")).getByTestId("cold-module-body");
     await user.click(within(body).getByTestId("cold-track-validated-workflows"));
 
-    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows.
+    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows;
+    // one badge per shape that names a dataset, in shape order.
     await user.click(within(body).getByTestId("cold-domain-dd"));
-    expect(within(body).getByTestId("cold-shape-sample")).toHaveTextContent(/example SMILES/i);
+    const dd = COLD_DOMAINS.find((d) => d.id === "dd")!;
+    const badges = within(body).getAllByTestId("cold-shape-sample");
+    expect(badges).toHaveLength(dd.shapes.filter((s) => s.sampleDataset).length);
+    expect(badges[0]).toHaveTextContent(/example SMILES/i);
 
     // Data integrity: every attached sample has a real label + ref (no empty
     // "sample provided" that can't run), and the seed asks to run on it.

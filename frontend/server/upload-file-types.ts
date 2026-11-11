@@ -16,7 +16,7 @@ export const ALLOWED_UPLOAD_EXTENSIONS: readonly string[] = [
   // chat-attached .md uploads 500 (fileFilter reject -> Internal server error).
   '.md', '.markdown',
   '.fasta', '.fa', '.fna', '.fas', '.faa', '.fap',
-  '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
+  '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf', '.ped',
   '.h5ad', '.h5', '.hdf5', '.loom',
   '.json', '.xml',
   // Research papers / literature

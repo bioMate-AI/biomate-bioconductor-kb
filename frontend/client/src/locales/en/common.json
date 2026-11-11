@@ -355,7 +355,25 @@
       "pull_every_reported_structure_for_kras_g12c": "Pull every reported structure for KRAS G12C.",
       "known_off_targets_for_the_celecoxib_diarylpyrazole_sulfonamide_c": "Known off-targets for the celecoxib diarylpyrazole sulfonamide chemotype?",
       "which_trials_targeted_pd_1_pd_l1_in_non_small_cell_lung_cancer_a": "Which trials targeted PD-1/PD-L1 in non-small-cell lung cancer, and what were their endpoints?",
-      "who_holds_composition_of_matter_claims_on_the_sotorasib_scaffold": "Who holds composition-of-matter claims on the sotorasib scaffold?"
+      "who_holds_composition_of_matter_claims_on_the_sotorasib_scaffold": "Who holds composition-of-matter claims on the sotorasib scaffold?",
+      "sample_provided_a_series_with_measured_target_and_herg_ic50s": "sample provided — a series with measured target and hERG IC50s",
+      "mchr1_chromone_series": "MCHR1 chromone series",
+      "sample_provided_cohort_mutation_calls_response_labels": "sample provided — cohort mutation calls + response labels",
+      "nsclc_anti_pd_1_cohort": "NSCLC anti-PD-1 cohort",
+      "sample_provided_multi_sample_genotypes_a_pedigree": "sample provided — multi-sample genotypes + a pedigree",
+      "ceph_1463_pedigree": "CEPH 1463 pedigree",
+      "sample_provided_plasmid_replicate_read_counts": "sample provided — plasmid + replicate read counts",
+      "ht_29_minilibcas9_screen": "HT-29 MiniLibCas9 screen",
+      "compare_screen_hits_across_two_cell_lines": "Compare screen hits across two cell lines",
+      "sample_provided_initial_final_counts_for_two_lines": "sample provided — initial/final counts for two lines",
+      "hl60_kbm7_screen": "HL60 / KBM7 screen",
+      "sample_provided_replicate_counts_control_gene_sets": "sample provided — replicate counts + control gene sets",
+      "ht_29_brunello_screen": "HT-29 Brunello screen",
+      "sample_provided_a_12_run_search_output_design": "sample provided — a 12-run search output + design",
+      "lfq_analyst_example_batch": "LFQ-Analyst example batch",
+      "compare_trial_arms_and_test_the_primary_endpoint": "Compare trial arms and test the primary endpoint",
+      "sample_provided_a_randomised_trial_cohort": "sample provided — a randomised trial cohort",
+      "mayo_pbc_trial_cohort": "Mayo PBC trial cohort"
     },
     "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },
@@ -850,7 +868,7 @@
       "license_required": "License required — see <strong>Tool Credentials</strong> in Workflow settings",
       "fill_required_params": "Fill in {{n}} required parameter{{s}} above before running",
       "input_files_required_prefix": "Input files required:",
-      "input_files_required_suffix": "— upload via the file button in chat or paste an S3 path in the parameter field above",
+      "input_files_required_suffix": "— attach them with the file button in chat",
       "prereqs_not_met": "Prerequisites not met — see checklist above"
     },
     "phase": {
@@ -869,6 +887,27 @@
       "why_skippable_reduced": "{{phase}} — the workflow declares `{{param}}`, so this phase can be skipped. Downstream phases still run but with reduced input.",
       "why_blocked": "{{phase}} — this workflow does not declare a skip parameter for this phase, and its output feeds downstream phases, so it always runs."
     },
+    "inputs_title": "Inputs",
+    "inputs_required_unset": "{{n}} required, not set",
+    "inputs_mapped_count": "{{n}} mapped",
+    "inputs_none_required": "no required data inputs",
+    "inputs_attach_or_accession": "Attach your files with the paperclip (📎) in the message box below, or reply in the chat with a public accession (e.g. SRR…, GSE…).",
+    "inputs_attach_hint": "Attach your file with the paperclip (📎) in the message box below — BioMate wires it into the workflow.",
+    "only_optional_overrides": "No data upload needed — the files below are optional overrides.",
+    "reference_overrides": "Reference overrides",
+    "reference_overrides_hint": "optional — defaults come from the selected genome or pipeline",
+    "not_set_default_used": "not set — default used",
+    "uses_default": "default",
+    "not_set": "not set",
+    "required_not_set": "required — not set",
+    "optional_empty": "optional — empty",
+    "needs_mapping": "needs mapping",
+    "choose_file": "Choose file",
+    "resolved_format_unchecked": "resolved · format not checked",
+    "resolved_tip": "Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.",
+    "inputs_blocking": "Nothing will run until {{n}} input{{verb}} resolved — pick the file or fix the mapping above.",
+    "inputs_all_bound": "These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.",
+    "params_only_no_inputs": "This workflow takes parameters only — no data inputs to bind.",
     "diag": {
       "title": "AI diagnosis",
       "error_details": "Error details",
@@ -1176,6 +1215,11 @@
     "skill_importing": "Importing skill…",
     "skill_imported": "Skill imported. It is available in Skills & experts.",
     "all_kinds": "Back to connector kinds"
+  },
+  "citation_reader": {
+    "retrieved_excerpt": "Retrieved excerpt",
+    "no_abstract_excerpt": "No abstract or excerpt was supplied for this source.",
+    "no_source_link": "No source link was supplied."
   },
   "project_instructions": {
     "instructions": "Instructions",

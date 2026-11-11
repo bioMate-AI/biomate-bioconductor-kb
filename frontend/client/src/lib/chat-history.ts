@@ -1,5 +1,6 @@
 import type { ChatSession, Message, DatasetConfig, WorkflowStepWithDatasets } from '@shared/schema';
 import { fetchWithRetry } from './fetch-retry';
+import { buildAssistantMessageFromFinal } from './assistant-message-from-final';
 import { fallbackTitle, titleHasSystemBlock } from '@shared/chat-system-blocks';
 
 /** Titles saved before the system-block sanitizer existed may read
@@ -123,7 +124,7 @@ class ChatHistoryService {
         // Carry the session's project link so it round-trips (Option A) and the
         // client knows which project a chat belongs to.
         ...(bs.project_id ? { projectId: bs.project_id } as any : {}),
-        messages: (bs.messages || []).map((m: any) => ({
+        messages: (bs.messages || []).map((m: any) => restoreServerFinal({
           id: m.message_id,
           role: m.role,
           content: m.content,
@@ -135,7 +136,7 @@ class ChatHistoryService {
           // Preserve any metadata the backend returns (invocationId, workflow type, etc.)
           ...(m.metadata ? { metadata: m.metadata } : {}),
           ...(m.invocation_id ? { invocationId: m.invocation_id } : {}),
-        })),
+        }, m)),
         workflows: (bs.workflows || []).map((w: any) => ({
           id: w.workflow_id,
           title: w.workflow_name,
@@ -966,3 +967,25 @@ class ChatHistoryService {
 
 // Export singleton instance
 export const chatHistoryService = new ChatHistoryService();
+
+/**
+ * The server persists its own copy of each streamed assistant turn, including
+ * the `final` SSE payload (`finalPayload`) that carries the workflow card. The
+ * browser normally overwrites that row with its own `metadata` a moment later;
+ * when it never does (tab closed / reloaded / navigated during the turn) the
+ * stored row has text but no `metadata`, and the card must be rebuilt from
+ * `finalPayload` with the same builder the live stream uses.
+ */
+export function restoreServerFinal<T extends { id: string; metadata?: any; suggestions?: any; invocationId?: any }>(
+  msg: T,
+  stored: any,
+): T {
+  if (msg.metadata || !stored?.finalPayload || stored.role !== 'assistant') return msg
+  const { message } = buildAssistantMessageFromFinal(stored.finalPayload, msg.id)
+  return {
+    ...msg,
+    metadata: message.metadata,
+    suggestions: msg.suggestions ?? message.suggestions,
+    ...(message.invocationId && !msg.invocationId ? { invocationId: message.invocationId } : {}),
+  }
+}

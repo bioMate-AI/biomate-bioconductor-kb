@@ -25,7 +25,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
-import { COLD_DEMO_BUNDLES } from "../client/src/components/cold-start-demo-catalog";
+import { COLD_DEMO_BUNDLES, COLD_DEMO_INTENTS } from "../client/src/components/cold-start-demo-catalog";
 
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "execshots", "coldstart-data-analysis");
 fs.mkdirSync(OUT, { recursive: true });
@@ -57,7 +57,7 @@ const expectsCard = (r: Row) => (r.kind === "domain" ? !(r.domain === "dd" && r.
 const rowId = (r: Row) => (r.kind === "track" ? `${r.track}-${r.index}` : `domain-${r.domain}-${r.index}`);
 
 const CLARIFY = /\b(which|what) (target|dataset|data|compound|series|file|samples?|organism|genome)\b.{0,40}\?|please (provide|upload|attach|share|specify)|could you (share|provide|upload|clarify|specify)|i (need|would need) (you to|the|your) (upload|data|file)|no (files?|data) (were|was|is|are) (attached|provided)/i;
-const SCAFFOLD = /\(Project [0-9a-f-]{8,}|Project [0-9a-f]{8}-[0-9a-f]{4}|use the attached files — these are inputs/i;
+const SCAFFOLD = /\(Project [0-9a-f-]{8,}|Project [0-9a-f]{8}-[0-9a-f]{4}|Prepared demo context|Prepared inputs|s3:\/\/|\bS3\b/i;
 
 async function openAnalysis(page: Page) {
   await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
@@ -79,8 +79,15 @@ async function rowLocator(page: Page, r: Row) {
 function expectedFiles(label: string, prompt: string): string[] | null {
   const prepared = PREPARED_EXAMPLES.find((e) => e.label === label) as { files?: readonly string[] } | undefined;
   if (prepared) return prepared.files ? [...prepared.files] : [];
-  const bundle = Object.values(COLD_DEMO_BUNDLES).find((b) => prompt.includes(b.context));
-  return bundle ? [...bundle.files, "demo_notes.md"] : null;
+  // The composer shows only the goal; the bundle is identified from the hidden
+  // [Prepared inputs: …] block actually sent (see expectedFromSent).
+  const key = COLD_DEMO_INTENTS.get(label) ?? COLD_DEMO_INTENTS.get(prompt);
+  return key ? [...COLD_DEMO_BUNDLES[key].files] : null;
+}
+
+function expectedFromSent(body: string): string[] | null {
+  const bundle = Object.values(COLD_DEMO_BUNDLES).find((b) => body.includes(b.context.slice(0, 120)));
+  return bundle ? [...bundle.files] : null;
 }
 
 test.describe.configure({ mode: "parallel" });
@@ -109,8 +116,15 @@ for (const r of ROWS) {
     const label = (await row.innerText()).split("\n")[0].trim().replace(/^[“"]|[”"]$/g, "");
     const sent: { url: string; body: string }[] = [];
     page.on("request", (req) => {
-      if (req.method() === "POST" && /chat|stream|upload|files/.test(req.url())) sent.push({ url: req.url(), body: (req.postData() || "").slice(0, 4000) });
+      if (req.method() === "POST" && /chat|stream|upload|files/.test(req.url())) sent.push({ url: req.url(), body: req.postData() || "" });
     });
+    // Diagnostics: the raw SSE the browser received + the client's own chat logs.
+    const sse: string[] = [];
+    const consoleLog: string[] = [];
+    page.on("response", async (res) => {
+      if (/\/api\/chat\/stream/.test(res.url())) sse.push(await res.text().catch((e) => `<<unreadable: ${e}>>`));
+    });
+    page.on("console", (m) => { const t = m.text(); if (/ChatInterface|workflow|Workflow|stream|SSE/.test(t)) consoleLog.push(`${m.type()}: ${t.slice(0, 400)}`); });
     await row.click();
 
     const composer = page.getByTestId("chat-input");
@@ -140,21 +154,38 @@ for (const r of ROWS) {
     }
     const answer = (await page.locator('[data-role="assistant"]').allInnerTexts()).join("\n---\n");
     const userText = (await page.locator('[data-role="user"]').allInnerTexts()).join("\n");
-    const workflowNames = await page.locator('.wf-chip-name, [data-testid="workflow-artifact-panel"] .panel-name').allInnerTexts();
+    // Ground truth for "did this produce a workflow card": the stored session's
+    // assistant message metadata.workflow (anchors render as empty divs, and the
+    // card can land after the text). Poll the real session API for up to 90 s.
+    const chatReq = sent.find((x) => /\/api\/chat\/stream/.test(x.url));
+    const sessionId = chatReq ? (() => { try { return JSON.parse(chatReq.body).context?.sessionId as string | undefined; } catch { return chatReq.body.match(/"sessionId":"([^"]+)"/)?.[1]; } })() : undefined;
+    let workflowNames: string[] = [];
+    for (let i = 0; sessionId && i < 18; i++) {
+      const res = await page.request.get(`${BASE_URL}/api/sessions/${sessionId}`);
+      if (res.ok()) {
+        const msgs: any[] = (await res.json()).messages ?? [];
+        workflowNames = msgs.filter((m) => m.role === "assistant" && m.metadata?.workflow).map((m) => String(m.metadata.workflow.name ?? m.metadata.workflow.display_name ?? m.metadata.workflow.workflow_type ?? "unnamed"));
+        if (workflowNames.length) break;
+      }
+      await page.waitForTimeout(5_000);
+    }
     await page.screenshot({ path: path.join(OUT, `${rowId(r)}-answer.png`), fullPage: true }).catch(() => {});
 
+    const wantFinal = want ?? (chatReq ? expectedFromSent(chatReq.body) : null);
     const result = {
-      row: rowId(r), label, prompt, attached, expectedFiles: want,
+      row: rowId(r), sessionId, label, prompt, attached, expectedFiles: wantFinal,
       userText, workflowNames: workflowNames.map((t) => t.slice(0, 200)), answer: answer.slice(0, 6000),
       clarifying: CLARIFY.exec(answer)?.[0] ?? null,
-      leaks: answer.match(/s3:\/\/[^\s)]+|\/uploads\/[0-9a-f-]{36}/g) ?? [],
+      leaks: answer.match(/s3:\/\/[^\s)]+|\bS3\b|\/uploads\/[0-9a-f-]{36}/g) ?? [],
       timedOutInProgress: PLACEHOLDER.test(answer.trim()),
       requests: sent.map((s) => s.url),
     };
     fs.writeFileSync(path.join(OUT, `${rowId(r)}.json`), JSON.stringify(result, null, 2));
+    fs.writeFileSync(path.join(OUT, `${rowId(r)}.sse.txt`), sse.join("\n=====\n"));
+    fs.writeFileSync(path.join(OUT, `${rowId(r)}.console.txt`), consoleLog.join("\n"));
 
-    expect.soft(want, `A: no bundle resolved for "${label}"`).not.toBeNull();
-    if (want) expect.soft([...attached].sort(), `A: attachments for "${label}"`).toEqual([...want].sort());
+    expect.soft(wantFinal, `A: no bundle resolved for "${label}"`).not.toBeNull();
+    if (wantFinal) expect.soft([...attached].sort(), `A: attachments for "${label}"`).toEqual([...wantFinal].sort());
     expect.soft(userText + prompt, "B: project id / scaffolding in the query").not.toMatch(SCAFFOLD);
     expect.soft(result.clarifying, `C: AI asked for inputs the example should provide`).toBeNull();
     expect.soft(answer.trim().length + workflowNames.join("").length, "D: empty response").toBeGreaterThan(80);
