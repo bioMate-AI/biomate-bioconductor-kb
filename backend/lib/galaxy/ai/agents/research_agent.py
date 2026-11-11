@@ -2311,7 +2311,8 @@ class ResearchAgent:
                                 doi=result.get('doi')
                             ))
 
-            confidence = parsed.get('confidence', 0.8)
+            # Confidence is computed AFTER grounding is finalized (below) — not the
+            # old hardcoded 0.8 that printed "reasonable confidence" on every answer.
             # Existence check + explicit refusal when nothing is grounded (gap T8).
             # Fail-soft: any error here leaves the answer unchanged.
             ev_status, ev_rows = None, []
@@ -2331,6 +2332,20 @@ class ResearchAgent:
             # Evidence-boundary guarantee (Spec 01 §1.2): every answer states what
             # the evidence does / does not establish. If the model didn't write a
             # caveat, append an honest one derived from the grounding.
+            # Coverage-aware confidence (replaces the flat 0.8 stub): derive from the
+            # model's own evidence verdict + grounded literature citations + the live
+            # DB / federated channels that contributed, so a non-answer can no longer
+            # print "reasonable confidence".
+            _n_db_channels = 0
+            _dbf = evidence.get('db_facts') or {}
+            for _k, _v in _dbf.items():
+                if _k == 'federated_evidence' and isinstance(_v, dict):
+                    for _blk in _v.values():
+                        if isinstance(_blk, dict) and _blk.get('merged'):
+                            _n_db_channels += len(_blk.get('sources_queried') or []) or 1
+                elif _v:
+                    _n_db_channels += 1
+            confidence = self._grounding_confidence(evidence_verdict, len(citations), _n_db_channels)
             answer_text = self._ensure_evidence_boundary(answer_text, len(citations), confidence)
 
             return ResearchResponse(
@@ -2514,6 +2529,37 @@ class ResearchAgent:
         new_answer = marker_re.sub(_repl, answer)
         grounded = [pool[old - 1] for old in ordered]
         return new_answer, grounded
+
+    def _grounding_confidence(self, evidence_verdict, n_citations: int, n_db_channels: int = 0) -> float:
+        """Confidence derived from GROUNDING, not a constant.
+
+        The former `_parse_llm_response` stub returned a flat 0.8, so every answer —
+        including a non-answer that restates the question — printed "reasonable
+        confidence". Calibrate from signals we actually have:
+          * the synthesis model's own EVIDENCE: addresses|insufficient verdict
+            (`evidence_verdict`: True / False / None), and
+          * how many channels grounded the answer — literature citations plus the
+            live DB / federated sources that contributed.
+
+        Mapped by `_ensure_evidence_boundary` to limited (<0.5) / moderate (<0.8) /
+        reasonable (>=0.8). "Reasonable" requires the model to AFFIRM the evidence
+        addresses the question AND real grounding (>=3 channels) — a 2-paper hedge
+        can no longer read as reasonable. A later increment can replace/augment this
+        with `verification_layer.self_consistent` (sampled agreement) for a measured
+        rather than heuristic confidence.
+        """
+        grounded = (n_citations or 0) + (n_db_channels or 0)
+        # Model judged the evidence INSUFFICIENT, or nothing grounded it → "limited".
+        if evidence_verdict is False or grounded <= 0:
+            return 0.3
+        if evidence_verdict is True:
+            if grounded >= 3:
+                return 0.85   # reasonable: affirmed coverage + breadth
+            if grounded == 2:
+                return 0.7    # moderate
+            return 0.6        # moderate: single affirmed channel
+        # evidence_verdict is None — the model did not affirm coverage; cap at moderate.
+        return 0.6 if grounded >= 2 else 0.5
 
     def _ensure_evidence_boundary(self, answer: str, n_citations: int, confidence: float) -> str:
         """Guarantee a one-line evidence boundary/caveat. If the model already
