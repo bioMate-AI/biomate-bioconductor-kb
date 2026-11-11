@@ -440,3 +440,24 @@ A stale remote deploy lock was cleared earlier with the founder's approval.
 | Run | Card | Search stage | run_code | Simulated numbers | S3 |
 |---|---|---|---|---|---|
 | 1–5 | Analyze Ebv Antibody Titers (`workflow_ready`) | no (pinned by name) | none | none | none |
+
+### 10.9 Full live pass, 39 rows (dev `a856c613` → `d303eca6`, redeployed mid-run by another session; both contain all fixes through `a856c613`)
+
+- **All 39 rows recorded.**
+  - Attachments correct: 39/39.
+  - Storage-path leaks: 0.
+  - Simulated results or clarification bounce-backs: none.
+- **Try sample data:** 11/12 end on a workflow card. EBV and Cox are now pinned by name. The classifier-training row computes inline.
+- **Call variants with FASTQ attached:** nf-core/sarek card (the raw-reads rule); no "configured" claim without a card.
+- **Remaining real defects** (in progress on agent branches):
+  - Proteomics differential abundance still routes to Chemoproteomics Pulldown.
+  - Hospital SNF multi-omics: a MOFA2 card was chosen although SNF was requested, and a "Which omics?" clarify card appeared although rna/protein/methyl CSVs were attached (the multi-file input was not bound).
+- **Harness false positives (fixed in the harness):** "still in progress" matched words like "Analyzing" anywhere in a finished answer, so it now checks only the reply's ending. For proteomics batch QC, the stored session and screenshot show a complete answer (5 run_code calls + full QC table); the text capture was taken before the final text replaced the narration.
+
+### 10.10 Dev ↔ git alignment (founder rule 2026-11-11)
+
+- PR #365 was merged at `e04ec5f2`. Commits pushed to the branch afterwards were deployed while no open PR contained them; they are all on `integration/tracks-20261111` now, which dev runs.
+- **Follow-up PR #374** (into `integration/tracks-20261111`) holds everything not yet on dev: the Gemini key-in-header fix, phase lettering, and the in-progress binding and routing fixes.
+- **Rule from now on:**
+  1. Sync only the pushed head of a branch in an **open** PR, after confirming dev's commit is an ancestor.
+  2. After the sync, verify `build-info.json` equals that commit.

@@ -140,7 +140,7 @@ for (const r of ROWS) {
     await assistant.waitFor({ state: "visible", timeout: ANSWER_TIMEOUT });
     // Done = no stop button, no progress placeholder, and the reply text has
     // been stable for 10 s (the stream can pause between plan and answer).
-    const PLACEHOLDER = /Preparing the plan|Understanding your goal|Thinking|Analy[sz]ing|Searching|Working on it|Finding|Generating|…\s*$/i;
+    const PLACEHOLDER = /(?:Preparing the plan|Understanding your goal|Thinking|Analy[sz]ing|Searching|Working on it|Finding|Generating)\b[^\n]{0,80}$|…\s*$/i;
     const panelReady = page.locator('[data-testid="workflow-artifact-panel"] [data-testid="button-run-workflow-panel"]');
     const deadline = Date.now() + ANSWER_TIMEOUT;
     let last = "", stableSince = Date.now();
@@ -177,7 +177,8 @@ for (const r of ROWS) {
       userText, workflowNames: workflowNames.map((t) => t.slice(0, 200)), answer: answer.slice(0, 6000),
       clarifying: CLARIFY.exec(answer)?.[0] ?? null,
       leaks: answer.match(/s3:\/\/[^\s)]+|\bS3\b|\/uploads\/[0-9a-f-]{36}/g) ?? [],
-      timedOutInProgress: PLACEHOLDER.test(answer.trim()),
+      // Only the reply's ENDING can show it is still in progress (words like 'Analyzing' occur in finished answers).
+      timedOutInProgress: PLACEHOLDER.test(answer.trim().slice(-160)),
       requests: sent.map((s) => s.url),
     };
     fs.writeFileSync(path.join(OUT, `${rowId(r)}.json`), JSON.stringify(result, null, 2));
