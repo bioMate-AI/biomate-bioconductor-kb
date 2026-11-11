@@ -107,9 +107,21 @@ process BOLTZ_SUMMARISE_RESULTS {
     python3 - <<'EOF'
 import json, glob, os
 
-structures = glob.glob("${results_dir}/**/*.mmcif", recursive=True) + \
-             glob.glob("${results_dir}/**/*.pdb", recursive=True)
+# Boltz writes mmCIF with a .cif extension (not .mmcif); globbing only *.mmcif
+# reported 0 structures for a successful fold (live validation 2026-11-11).
+structures = (glob.glob("${results_dir}/**/*.cif", recursive=True) +
+              glob.glob("${results_dir}/**/*.mmcif", recursive=True) +
+              glob.glob("${results_dir}/**/*.pdb", recursive=True))
 confidence_files = glob.glob("${results_dir}/**/confidence_*.json", recursive=True)
+
+# Fail loudly on a no-structure run: Boltz can exit 0 after an input/parse error
+# or OOM with no prediction. A silent "completed" with zero structures is the
+# pitfall the antibody workflow's loud-fail guard already closes.
+if not structures:
+    import sys as _sys
+    _sys.stderr.write("FATAL: Boltz produced no structure (empty or failed fold). "
+                      "Check the BOLTZ_PREDICT task log for a parse error / OOM.\n")
+    raise SystemExit(1)
 
 confidence_data = []
 for f in confidence_files:
