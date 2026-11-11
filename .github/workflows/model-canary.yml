@@ -1,0 +1,63 @@
+name: Model canary (dev)
+
+# Daily real inference on every model in GET /api/models on dev, as the
+# canonical E2E fixture user. Fails (red) when any model does not return a
+# real payload, with the backend's real error in the job summary.
+# Script: scripts/model_canary.py  ·  Doc: docs/20261110_LIVE_JOURNEY_TESTS_AND_CI.md
+#
+# Required repository secrets:
+#   E2E_FIXTURE_PASSWORD  — password of lifeifei163361@163.com on dev
+# Optional repository secrets:
+#   E2E_TEST_TOKEN        — dev rate-limit bypass token (default in script)
+# Optional repository variable:
+#   BIOMATE_DEV_URL       — default https://dev-public.biomate.ai
+
+on:
+  schedule:
+    - cron: '17 13 * * *'   # daily 13:17 UTC (07:17 US Central)
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Comma-separated model ids to restrict to (blank = all)'
+        required: false
+        default: ''
+
+concurrency:
+  group: model-canary
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check secret is configured
+        env:
+          E2E_FIXTURE_PASSWORD: ${{ secrets.E2E_FIXTURE_PASSWORD }}
+        run: |
+          if [ -z "$E2E_FIXTURE_PASSWORD" ]; then
+            echo "::error::Repository secret E2E_FIXTURE_PASSWORD is not set — the canary cannot log in."
+            exit 1
+          fi
+      - name: Run model canary
+        env:
+          BIOMATE_URL: ${{ vars.BIOMATE_DEV_URL || 'https://dev-public.biomate.ai' }}
+          E2E_FIXTURE_PASSWORD: ${{ secrets.E2E_FIXTURE_PASSWORD }}
+          E2E_TEST_TOKEN: ${{ secrets.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only' }}
+          CANARY_ONLY: ${{ github.event.inputs.only }}
+        run: python3 scripts/model_canary.py --json model-canary.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-canary
+          path: model-canary.json
+          if-no-files-found: ignore
