@@ -128,7 +128,21 @@ PYEOF
     # 2) Fold the complex. --num_workers 0: the default DataLoader worker subprocess crashes on AWS
     #    Batch ("DataLoader worker exited unexpectedly") for Fv+antigen-sized inputs (small /dev/shm);
     #    loading in-process avoids it (same fix boltz_structure_prediction uses).
-    boltz predict in.yaml --out_dir out --use_msa_server --no_kernels --num_workers 0 --override
+    boltz predict in.yaml --out_dir out --use_msa_server --no_kernels --num_workers 0 --override 2>&1 | tee boltz_run.log
+
+    # 2b) FAIL LOUDLY on an OOM-skip / failed example. Boltz exits 0 even when it
+    #     skips a batch for GPU OOM ("ran out of memory, skipping batch" /
+    #     "Number of failed examples: N>0") and writes no structure — which otherwise
+    #     surfaces as a silent "no_structure" success (the summary below runs fine on
+    #     0 cifs). A fold that produced no structure must FAIL the task so the run is
+    #     not reported as complete. Root cause when this fires: the complex is too
+    #     large for this GPU — crop the antigen to the binding domain or use a
+    #     larger-memory GPU instance.
+    if grep -qiE "ran out of memory|Number of failed examples: [1-9]" boltz_run.log \
+       && [ -z "$(find out -name '*.cif' 2>/dev/null)" ]; then
+      echo "[antibody_antigen_complex] Boltz produced NO structure (GPU OOM / failed example). Likely the complex is too large for this GPU — crop the antigen to its binding domain or use a larger-memory GPU." >&2
+      exit 42
+    fi
 
     # 3) Summarise: complex confidence + per-antigen antibody<->antigen interface
     #    iptm from pair_chains_iptm (0-based chain position). Null if Boltz did
