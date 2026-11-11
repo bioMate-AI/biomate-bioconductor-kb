@@ -12,6 +12,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+_SYS_MODULES_BEFORE_STUBS = dict(sys.modules)
+
 # ── Load nextflow_executor.py with a unique module name to avoid clashing ──
 # with mocked galaxy.* packages.
 _NF_EXEC_PATH = (
@@ -29,6 +31,7 @@ def _make_stub(name: str) -> types.ModuleType:
 for _sname in [
     "galaxy", "galaxy.managers", "galaxy.managers.context",
     "galaxy.webapps", "galaxy.webapps.galaxy",
+    "galaxy.ai", "galaxy.ai.runs", "galaxy.ai.runs.bootstrap", "galaxy.ai.s3_utils",
     "a2wsgi", "a2wsgi.wsgi", "dotenv",
 ]:
     sys.modules.setdefault(_sname, _make_stub(_sname))
@@ -37,6 +40,15 @@ for _sname in [
 _ctx_stub = sys.modules["galaxy.managers.context"]
 if not hasattr(_ctx_stub, "ProvidesUserContext"):
     _ctx_stub.ProvidesUserContext = object
+
+# Executor imports from galaxy.ai.s3_utils / galaxy.ai.runs (added after this
+# test was written) — same stubs as test_nextflow_false_success.py.
+if not hasattr(sys.modules["galaxy.ai.s3_utils"], "make_s3_client"):
+    sys.modules["galaxy.ai.s3_utils"].make_s3_client = MagicMock()
+if not hasattr(sys.modules["galaxy.ai.runs"], "get_run_state_store"):
+    sys.modules["galaxy.ai.runs"].get_run_state_store = MagicMock()
+if not hasattr(sys.modules["galaxy.ai.runs.bootstrap"], "ensure_poller_started"):
+    sys.modules["galaxy.ai.runs.bootstrap"].ensure_poller_started = MagicMock()
 
 # Stub pydantic.BaseModel (used as a base class)
 _pydantic_stub = _make_stub("pydantic")
@@ -51,6 +63,10 @@ class _FakeHTTPException(Exception):
 
 _fastapi_stub = _make_stub("fastapi")
 _fastapi_stub.HTTPException = _FakeHTTPException
+# The executor now also imports Request/Response (kept in step with
+# test_nextflow_false_success.py, which stubs the same module).
+_fastapi_stub.Request = object
+_fastapi_stub.Response = object
 _fastapi_stub.responses = _make_stub("fastapi.responses")
 _fastapi_stub.responses.HTMLResponse = MagicMock()
 sys.modules["fastapi"] = _fastapi_stub
@@ -70,6 +86,15 @@ sys.modules["galaxy.webapps.galaxy.api"] = _gwa_api_stub
 _spec = importlib.util.spec_from_file_location("_nf_executor_under_test", _NF_EXEC_PATH)
 _nf_mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_nf_mod)  # type: ignore[union-attr]
+
+# Restore sys.modules: the stubs above were needed only to load the executor
+# under a private name. Leaving fake pydantic/fastapi/galaxy.* modules
+# installed poisoned every LATER test module in the same pytest session
+# (ImportError: cannot import name 'ConfigDict' from 'pydantic' (unknown
+# location)). The loaded executor keeps its own references to the stubs.
+for _k in [k for k in sys.modules if k not in _SYS_MODULES_BEFORE_STUBS]:
+    del sys.modules[_k]
+sys.modules.update(_SYS_MODULES_BEFORE_STUBS)
 
 _classify_accession = _nf_mod._classify_accession
 _is_public_accession = _nf_mod._is_public_accession
