@@ -1750,6 +1750,65 @@ class ResearchAgent:
             ids = extract_biomedical_identifiers(question)
             db_facts: Dict[str, Any] = {}
 
+            # ── Intent-selected multi-source federated fan-out ────────────────
+            # Source choice follows the QUESTION'S INTENT, not just the detected
+            # entity type: a SAR / potency / target question reaches ChEMBL /
+            # BindingDB / PDB / Pharos / Open Targets — the sources the entity-type
+            # map skips when the target reads as a plain "gene". This is what lets
+            # "research" draw on ALL relevant sources for every evidence task
+            # (selector: galaxy.ai.evidence_source_router; human/LLM-readable
+            # companion: skills/evidence-source-selection.md). Non-fatal + cached.
+            try:
+                from galaxy.ai.evidence_source_router import select_sources as _select_sources
+                from galaxy.ai.federated_query import federated_query as _federated_query
+                _fed_entities = [e for e in (ids.get("gene_symbols") or []) if e][:2]
+                if _fed_entities:
+                    _fed_sources = _select_sources(question, entities=_fed_entities)
+                    _fed_out: Dict[str, Any] = {}
+                    for _ent in _fed_entities:
+                        _r = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda e=_ent, s=_fed_sources: _federated_query(str(e)[:80], sources=s),
+                        )
+                        if _r and _r.get("merged"):
+                            _fed_out[_ent] = {
+                                "sources_queried": _r.get("sources_queried", []),
+                                "merged": _r["merged"][:8],
+                            }
+                    if _fed_out:
+                        db_facts["federated_evidence"] = _fed_out
+                        log.info("federated evidence: %s via %s",
+                                 list(_fed_out.keys()), _fed_sources)
+            except Exception as _fe:
+                log.warning(f"federated evidence fan-out skipped (non-fatal): {_fe}")
+
+            # ── Target-ranking questions → the target_id engine (fuse_channels) ──
+            # "which targets for disease X" wants a RANKED candidate list, not a
+            # literature narrative. Reuse the implemented orchestrator (Open Targets
+            # / STRING / LLM channels fused by the arbiter) instead of re-deriving it.
+            # FLAG-GATED + inert by default: it does live network + an LLM-channel
+            # call, so it stays OFF until explicitly enabled
+            # (BIOMATE_TARGETID_IN_RESEARCH=1), and is non-fatal when on.
+            try:
+                import os as _os_tid
+                if (_os_tid.environ.get("BIOMATE_TARGETID_IN_RESEARCH", "").strip().lower()
+                        in ("1", "true", "yes")):
+                    from galaxy.ai.evidence_source_router import is_target_ranking_question as _is_tr
+                    if _is_tr(question):
+                        from galaxy.ai.target_id import TargetIDOrchestrator, default_channels
+                        _tid_llm = getattr(self, "llm_client", None)
+                        _channels = default_channels(disease_id=None, llm_client=_tid_llm,
+                                                     include_network=True)
+                        if _channels:
+                            _orch = TargetIDOrchestrator(_channels, llm_client=_tid_llm)
+                            _tid = await asyncio.get_event_loop().run_in_executor(
+                                None, lambda: _orch.identify(question, context={"query": question}))
+                            if _tid:
+                                db_facts["target_ranking"] = _tid
+                                log.info("target-id ranking attached for a target-ranking question")
+            except Exception as _te:
+                log.warning(f"target-id ranking skipped (non-fatal): {_te}")
+
             # ENSG IDs → gene symbols + descriptions (Ensembl REST)
             if ids["ensg_ids"]:
                 ensembl_info = lookup_ensembl_ids(ids["ensg_ids"])
@@ -2279,7 +2338,8 @@ class ResearchAgent:
                                 doi=result.get('doi')
                             ))
 
-            confidence = parsed.get('confidence', 0.8)
+            # Confidence is computed AFTER grounding is finalized (below) — not the
+            # old hardcoded 0.8 that printed "reasonable confidence" on every answer.
             # Existence check + explicit refusal when nothing is grounded (gap T8).
             # Fail-soft: any error here leaves the answer unchanged.
             ev_status, ev_rows = None, []
@@ -2299,6 +2359,20 @@ class ResearchAgent:
             # Evidence-boundary guarantee (Spec 01 §1.2): every answer states what
             # the evidence does / does not establish. If the model didn't write a
             # caveat, append an honest one derived from the grounding.
+            # Coverage-aware confidence (replaces the flat 0.8 stub): derive from the
+            # model's own evidence verdict + grounded literature citations + the live
+            # DB / federated channels that contributed, so a non-answer can no longer
+            # print "reasonable confidence".
+            _n_db_channels = 0
+            _dbf = evidence.get('db_facts') or {}
+            for _k, _v in _dbf.items():
+                if _k == 'federated_evidence' and isinstance(_v, dict):
+                    for _blk in _v.values():
+                        if isinstance(_blk, dict) and _blk.get('merged'):
+                            _n_db_channels += len(_blk.get('sources_queried') or []) or 1
+                elif _v:
+                    _n_db_channels += 1
+            confidence = self._grounding_confidence(evidence_verdict, len(citations), _n_db_channels)
             answer_text = self._ensure_evidence_boundary(answer_text, len(citations), confidence)
 
             return ResearchResponse(
@@ -2483,6 +2557,37 @@ class ResearchAgent:
         grounded = [pool[old - 1] for old in ordered]
         return new_answer, grounded
 
+    def _grounding_confidence(self, evidence_verdict, n_citations: int, n_db_channels: int = 0) -> float:
+        """Confidence derived from GROUNDING, not a constant.
+
+        The former `_parse_llm_response` stub returned a flat 0.8, so every answer —
+        including a non-answer that restates the question — printed "reasonable
+        confidence". Calibrate from signals we actually have:
+          * the synthesis model's own EVIDENCE: addresses|insufficient verdict
+            (`evidence_verdict`: True / False / None), and
+          * how many channels grounded the answer — literature citations plus the
+            live DB / federated sources that contributed.
+
+        Mapped by `_ensure_evidence_boundary` to limited (<0.5) / moderate (<0.8) /
+        reasonable (>=0.8). "Reasonable" requires the model to AFFIRM the evidence
+        addresses the question AND real grounding (>=3 channels) — a 2-paper hedge
+        can no longer read as reasonable. A later increment can replace/augment this
+        with `verification_layer.self_consistent` (sampled agreement) for a measured
+        rather than heuristic confidence.
+        """
+        grounded = (n_citations or 0) + (n_db_channels or 0)
+        # Model judged the evidence INSUFFICIENT, or nothing grounded it → "limited".
+        if evidence_verdict is False or grounded <= 0:
+            return 0.3
+        if evidence_verdict is True:
+            if grounded >= 3:
+                return 0.85   # reasonable: affirmed coverage + breadth
+            if grounded == 2:
+                return 0.7    # moderate
+            return 0.6        # moderate: single affirmed channel
+        # evidence_verdict is None — the model did not affirm coverage; cap at moderate.
+        return 0.6 if grounded >= 2 else 0.5
+
     def _ensure_evidence_boundary(self, answer: str, n_citations: int, confidence: float) -> str:
         """Guarantee a one-line evidence boundary/caveat. If the model already
         stated caveats/limitations/a boundary, leave it; otherwise append an
@@ -2633,6 +2738,48 @@ class ResearchAgent:
             db_section = ["## Live Database Facts (retrieved from GWAS Catalog / Open Targets / Ensembl / Monarch / MyGene / ClinVar)"]
             db_section.append("Use these EXACT values in your answer — do not substitute from memory.\n")
             df = evidence['db_facts']
+
+            # ── Intent-selected federated multi-source evidence ──────────────────
+            # The sources chosen by evidence_source_router for THIS question
+            # (structure/bioactivity/target/pathway/variant → PDB/ChEMBL/BindingDB/
+            # Pharos/Open Targets/STRING/KEGG …). Real records, not model memory.
+            if df.get('federated_evidence'):
+                db_section.append(
+                    "### Federated multi-source evidence "
+                    "(UniProt/PDB/AlphaFold/ChEMBL/BindingDB/Pharos/Open Targets/STRING/KEGG/Reactome …)")
+                for _ent, _blk in df['federated_evidence'].items():
+                    _qs = ", ".join((_blk.get('sources_queried') or [])[:14])
+                    db_section.append(f"**{_ent}** — queried: {_qs}")
+                    for _m in (_blk.get('merged') or [])[:8]:
+                        if not isinstance(_m, dict):
+                            continue
+                        _src = _m.get('source') or _m.get('db') or _m.get('database') or '?'
+                        _label = (_m.get('name') or _m.get('title') or _m.get('id')
+                                  or _m.get('accession') or _m.get('chembl_id') or '')
+                        _detail = (_m.get('summary') or _m.get('description')
+                                   or _m.get('activity') or _m.get('value') or _m.get('type') or '')
+                        db_section.append(
+                            f"- [{_src}] {str(_label)[:90]}"
+                            f"{(' — ' + str(_detail)[:140]) if _detail else ''}")
+
+            # ── Ranked candidate targets (target_id fuse_channels), when attached ─
+            if df.get('target_ranking'):
+                _tr = df['target_ranking']
+                _rows = []
+                if isinstance(_tr, dict):
+                    _rows = _tr.get('targets') or _tr.get('ranked') or _tr.get('results') or []
+                if _rows:
+                    db_section.append("### Ranked candidate targets (target_id engine — evidence channels fused + z-gated)")
+                    for _t in _rows[:12]:
+                        if not isinstance(_t, dict):
+                            continue
+                        _sym = _t.get('target') or _t.get('symbol') or _t.get('entity') or _t.get('gene') or '?'
+                        _sc = _t.get('score', _t.get('gate_score', ''))
+                        _tier = _t.get('tier') or ''
+                        db_section.append(
+                            f"- {_sym}"
+                            f"{(' [' + str(_tier) + ']') if _tier else ''}"
+                            f"{(' score=' + str(_sc)[:8]) if _sc != '' else ''}")
 
             # ── GWAS Catalog associations — for SNP prioritization tasks ──────────
             if df.get('gwas_catalog'):

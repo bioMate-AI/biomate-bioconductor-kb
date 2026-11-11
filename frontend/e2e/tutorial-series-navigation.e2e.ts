@@ -12,7 +12,10 @@ test('series: open each real cold-start module',async({page})=>{
  try {
   await loginAsFixture(page);
   await page.goto(BASE_URL+'/',{waitUntil:'domcontentloaded'});
-  await page.getByTestId('button-new-chat').click();
+  // New Chat was removed from the expanded sidebar (founder request); the home
+  // route already renders the cold-start dashboard, so click it only if present.
+  const _nc = page.getByTestId('button-new-chat').first();
+  if (await _nc.isVisible({ timeout: 3000 }).catch(() => false)) await _nc.click();
   await expect(page.getByTestId('cold-start-dashboard')).toBeVisible();
   await expect(page.getByTestId('cold-module-card')).toHaveCount(4);
   await page.getByTestId('button-sidebar-toggle').click();
