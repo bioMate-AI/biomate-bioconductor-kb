@@ -200,13 +200,13 @@ async function _findProjectFileByHash(projectId: string, hash: string): Promise<
 
 /** The current user-ingested file with this name in the project (upload/url only —
  *  run outputs are immutable results, never versioned by a re-upload). */
-async function _findProjectFileByName(projectId: string, name: string): Promise<any | null> {
+async function _findProjectFileByName(projectId: string, name: string, sources: string[] = ['upload', 'url']): Promise<any | null> {
   try {
     const r = await pool.query(
       `SELECT id, name, s3_key, size, content_type, content_hash, version_no
        FROM project_files
-       WHERE project_id = $1 AND name = $2 AND source IN ('upload','url') LIMIT 1`,
-      [projectId, name]
+       WHERE project_id = $1 AND name = $2 AND source = ANY($3::text[]) LIMIT 1`,
+      [projectId, name, sources]
     );
     return r.rows[0] || null;
   } catch { return null; }
@@ -244,9 +244,10 @@ async function _archiveCurrentAsVersion(cur: any, projectId: string, note: strin
  */
 async function _storeProjectInput(o: {
   id: string; uid: string; name: string; key: string; buf: Buffer;
-  contentType: string; contentHash: string; source: "upload" | "url";
+  contentType: string; contentHash: string; source: "upload" | "url" | "run_code";
 }): Promise<{ file: any; versioned: boolean }> {
-  const prior = await _findProjectFileByName(o.id, o.name);
+  // A regenerated analysis file versions the earlier generated one; an upload versions an upload.
+  const prior = await _findProjectFileByName(o.id, o.name, o.source === "run_code" ? ["run_code"] : ["upload", "url"]);
   if (prior && prior.content_hash && prior.content_hash !== o.contentHash) {
     const vkey = `${o.key}.v${prior.version_no + 1}`;
     await s3Service.putObject(vkey, o.buf, o.contentType, o.uid);
@@ -1115,6 +1116,8 @@ export function registerProjectRoutes(app: Express): void {
       } else {
         url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900);
       }
+      // ?redirect=1: a plain <a href> download (chat file chips) — same authorization as the JSON form.
+      if (req.query.redirect === "1") return res.redirect(302, url);
       res.json({ url, name: fileRow.rows[0].name });
     } catch (e: any) {
       console.error("[project_files] url failed:", e?.message ?? e);
@@ -1712,6 +1715,25 @@ export function registerProjectRoutes(app: Express): void {
 // output_files auto-register path). Inserts each file as source='run_output'
 // using an ON CONFLICT DO NOTHING upsert on (project_id, s3_key) so repeated
 // calls are idempotent.
+/**
+ * Save a file BioMate generated in a project chat (a run_code report, table or plot) as a project
+ * file: S3 under projects/<id>/generated/, the same content-hash dedup and by-name versioning as
+ * uploads (a regenerated QC_Report.txt becomes v2), activity log. Owner/editor only; null otherwise.
+ */
+export async function storeGeneratedFileInProject(o: {
+  projectId: string; uid: string; hostPath: string; name: string;
+}): Promise<{ file: any; versioned: boolean; deduplicated?: boolean } | null> {
+  if (!(await _isOwnerOrEditor(o.projectId, o.uid))) return null;
+  const { name, keyPath } = projectInputPath(o.name);
+  const key = `projects/${o.projectId}/generated/${keyPath}`;
+  const buf = fs.readFileSync(o.hostPath);
+  const contentHash = createHash("sha256").update(buf).digest("hex");
+  const dup = await _findProjectFileByHash(o.projectId, contentHash);
+  if (dup) return { file: dup, versioned: false, deduplicated: true };
+  return _storeProjectInput({ id: o.projectId, uid: o.uid, name, key, buf,
+    contentType: uploadContentType(name), contentHash, source: "run_code" });
+}
+
 export async function registerRunOutputsInProject(opts: {
   projectId: string;
   userId: string;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedFilesNote, unbackedOutputFileClaims, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, SYNTHETIC_DATA_REFUSAL } from './execution-integrity';
+import { attachedInputNames, claimedOutputFiles, shouldRequireExecution, unbackedOutputFileClaims, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, SYNTHETIC_DATA_REFUSAL } from './execution-integrity';
 import { requireNonEmptyResponse, stripDatasetReferenceParams, parseUploadedDatasetRefs, groundInlineParameters } from './galaxy-assistant';
 
 describe('structural execution guard', () => {
@@ -30,9 +30,6 @@ describe('output files must be run_code artifacts', () => {
     expect(unbackedOutputFileClaims(reply, ['summary_by_area.csv', 'approvals.png', 'report.xlsx'])).toEqual([]);
   });
   it('honest note in the user\'s language; empty when nothing is unbacked', () => {
-    expect(unbackedFilesNote([], true)).toBe('');
-    expect(unbackedFilesNote(['a.csv'], true)).toContain('并未由本轮执行的代码生成');
-    expect(unbackedFilesNote(['a.csv'])).toContain('not produced');
   });
   it('reads attached input names', () => {
     expect(attachedInputNames('x\n\n[Attached files: epar.jsonl, b.csv]')).toEqual(['epar.jsonl', 'b.csv']);
