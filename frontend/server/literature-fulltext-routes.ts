@@ -49,7 +49,7 @@ export interface FulltextResponse {
   fullTextStatus: FulltextStatus;
   sections: FulltextSection[];
   truncated: boolean;
-  links: { publisher: string | null; europepmc: string | null };
+  links: { publisher: string | null; pubmed: string | null; pmc: string | null; europepmc: string | null };
 }
 
 export interface SourceIds {
@@ -186,6 +186,14 @@ export async function resolveFulltext(ids: SourceIds, fetcher: Fetch = fetch): P
   const rec: any = searchJson?.resultList?.result?.[0];
 
   const doiLink = (doi: string | null) => (doi ? `https://doi.org/${doi}` : null);
+  // Europe PMC *article pages* (europepmc.org/article/...) return 403 to automated
+  // clients, so they can't be opened from a citation link. Surface NCBI PubMed / PMC
+  // links (which resolve) as the primary "read" targets; keep Europe PMC only as a
+  // last resort. (The Europe PMC REST API we query above is unaffected — it's the
+  // human article page that is blocked.)
+  const pubmedLink = (pmid: string | null) => (pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : null);
+  const pmcLink = (pmcid: string | null) =>
+    (pmcid ? `https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid.startsWith("PMC") ? pmcid : "PMC" + pmcid}/` : null);
   if (!rec) {
     return {
       found: false, source: "europepmc",
@@ -194,6 +202,8 @@ export async function resolveFulltext(ids: SourceIds, fetcher: Fetch = fetch): P
       openAccess: false, license: null, fullTextStatus: "not_found", sections: [], truncated: false,
       links: {
         publisher: doiLink(ids.doi ?? null),
+        pubmed: pubmedLink(ids.pmid ?? null),
+        pmc: pmcLink(ids.pmcid ?? null),
         europepmc: ids.pmid ? `https://europepmc.org/article/MED/${ids.pmid}` : null,
       },
     };
@@ -239,6 +249,8 @@ export async function resolveFulltext(ids: SourceIds, fetcher: Fetch = fetch): P
     truncated,
     links: {
       publisher: doiLink(doi),
+      pubmed: pubmedLink(pmid),
+      pmc: pmcLink(pmcid),
       europepmc: pmcid
         ? `https://europepmc.org/article/PMC/${pmcid}`
         : pmid ? `https://europepmc.org/article/MED/${pmid}` : null,

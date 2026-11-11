@@ -40,7 +40,7 @@ export interface ReaderFulltext {
   fullTextStatus: "available" | "not_open_access" | "unavailable" | "not_found"
   sections: Array<{ heading: string | null; paragraphs: string[] }>
   truncated: boolean
-  links: { publisher: string | null; europepmc: string | null }
+  links: { publisher: string | null; pubmed: string | null; pmc: string | null; europepmc: string | null }
 }
 
 interface SourceReaderPaneProps {
@@ -141,7 +141,11 @@ export function SourceReaderPane({
         .filter(Boolean)
         .join(" · ")
     : ""
-  const url = source ? sourceUrl(source) || data?.links.publisher || data?.links.europepmc || null : null
+  // Europe PMC article pages 403, so prefer working targets (DOI/PubMed/PMC) and
+  // fall back to the Europe PMC link only if nothing else resolves.
+  const url = source
+    ? sourceUrl(source) || data?.links.publisher || data?.links.pubmed || data?.links.pmc || data?.links.europepmc || null
+    : null
   const abstract = source?.abstract?.trim() || data?.abstract?.trim() || ""
   const authors = source?.authors?.filter(a => a.trim()).join(", ") || data?.authors || ""
   const statusText = !source

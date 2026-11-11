@@ -6,7 +6,7 @@ vi.mock("@/lib/i18n", async () => {
   const en = (await import("@/locales/en/common.json")).default
   return strictI18n(en as any, "en")
 })
-vi.mock("@/lib/api", () => ({ api: { request: vi.fn(async () => ({ found: true, openAccess: false, fullTextStatus: "not_open_access", sections: [], abstract: null, links: { publisher: "https://doi.org/10.1/x", europepmc: null } })) } }))
+vi.mock("@/lib/api", () => ({ api: { request: vi.fn(async () => ({ found: true, openAccess: false, fullTextStatus: "not_open_access", sections: [], abstract: null, links: { publisher: "https://doi.org/10.1/x", pubmed: null, pmc: null, europepmc: null } })) } }))
 import { renderChatSurfaces } from "./chat-surfaces.harness"
 
 describe("chat surfaces — en locale", () => {

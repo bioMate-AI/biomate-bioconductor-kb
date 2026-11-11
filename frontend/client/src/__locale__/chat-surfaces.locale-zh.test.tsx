@@ -10,7 +10,7 @@ vi.mock("@/lib/i18n", async () => {
   const zh = (await import("@/locales/zh/common.json")).default
   return strictI18n(zh as any, "zh")
 })
-vi.mock("@/lib/api", () => ({ api: { request: vi.fn(async () => ({ found: true, openAccess: false, fullTextStatus: "not_open_access", sections: [], abstract: null, links: { publisher: "https://doi.org/10.1/x", europepmc: null } })) } }))
+vi.mock("@/lib/api", () => ({ api: { request: vi.fn(async () => ({ found: true, openAccess: false, fullTextStatus: "not_open_access", sections: [], abstract: null, links: { publisher: "https://doi.org/10.1/x", pubmed: null, pmc: null, europepmc: null } })) } }))
 import { renderChatSurfaces, DATA_STRINGS } from "./chat-surfaces.harness"
 
 /** Proper nouns, product names, file names and scientific identifiers. */
