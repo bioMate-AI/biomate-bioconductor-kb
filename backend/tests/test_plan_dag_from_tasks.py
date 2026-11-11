@@ -208,3 +208,24 @@ def test_workflow_label_prefers_the_catalog_name():
     sa.workflow_search = _Named()
     out = plan_dag_from_tasks(sa, FORK_JOIN)
     assert out["workflow"]["pipeline_steps"][0]["workflow_label"] == "DESeq2 differential expression"
+
+
+def test_unbound_header_declared_data_input_is_needed_not_silently_sample_data():
+    """dev 2026-11-11: root workflows that declare data only via '// Input:' headers (surfaced as
+    OPTIONAL file params because the executor falls back to sample data) reported nothing missing —
+    the plan looked ready but would have analyzed sample data. Unbound data files are needed."""
+    class HeaderAssistant(FakeAssistant):
+        def _parse_nextflow_params(self, path):
+            return {"required": [],
+                    "optional": [{"name": "proteinGroups", "type": "file", "default": None},
+                                 {"name": "reference_fasta", "type": "file", "default": "s3://ref/genome.fa"},
+                                 {"name": "fdr", "type": "number", "default": None}]}
+
+        def _bind_uploaded_datasets_to_params(self, req, opt, uploaded):
+            return req, opt
+
+    out = plan_dag_from_tasks(HeaderAssistant(), FORK_JOIN, uploaded_datasets=UPLOADS)
+    root = out["workflow"]["pipeline_steps"][0]
+    assert root["missing_inputs"] == ["proteinGroups"]   # data file not provided → needed
+    # a file param with a real default, and a non-file optional param, are not flagged
+    assert "reference_fasta" not in root["missing_inputs"] and "fdr" not in root["missing_inputs"]

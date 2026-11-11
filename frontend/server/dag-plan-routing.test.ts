@@ -157,6 +157,7 @@ describe('plan inputs', () => {
       { bound_from_uploads: [], missing_inputs: [] }], false);
     expect(lines.join('\n')).toMatch(/Filled from your files: step 1 — matrix/);
     expect(lines.join('\n')).toMatch(/Still needed before running: step 1 — contrast_variable/);
+    expect(lines.join("\n")).toMatch(/built-in sample data, not yours/);
   });
   it('never claims inputs are complete when the backend does not report them', () => {
     expect(dagInputStatus([{}, {}], false)[0]).toMatch(/Fill in each branch's input files/);
