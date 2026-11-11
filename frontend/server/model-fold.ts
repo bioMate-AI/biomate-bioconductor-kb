@@ -22,7 +22,13 @@ export const BOLTZ_FOLD_NEXTFLOW_PATH =
 // Standard one-letter amino-acid codes (X = unknown is allowed by Boltz).
 const AA = /^[ACDEFGHIKLMNPQRSTVWYX]+$/i;
 const MIN_LEN = 10;
-const MAX_LEN = 2000; // a single-GPU Boltz monomer fold; longer belongs in a complex workflow.
+// Boltz-2 monomer fold on a single Batch GPU. The cofold-bench learned the
+// practical ceiling empirically — runs were capped at 1200 true tokens because a
+// bigger input OOMs on a 16 GB T4 (the same OOM the 840-residue antibody complex
+// hit, docs/20261111_MODELS_PANEL_OWN_EXECUTION.md). The spot GPU queue can still
+// place a job on a T4, so we cap at 1000 residues here; a larger fold needs the
+// ≥24 GB GPU routing decision first.
+const MAX_LEN = 1000;
 
 export interface ModelFoldDependencies {
   /** Write `content` as an object under the Batch bucket and return its s3:// URI

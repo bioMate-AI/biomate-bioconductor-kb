@@ -9,7 +9,7 @@ describe('cleanSequence', () => {
   it('rejects empty, too short, too long, and non-amino-acid input', () => {
     expect(cleanSequence('')).toHaveProperty('error');
     expect(cleanSequence('MKT')).toHaveProperty('error'); // < 10
-    expect(cleanSequence('A'.repeat(2001))).toHaveProperty('error'); // > 2000
+    expect(cleanSequence('A'.repeat(1001))).toHaveProperty('error'); // > 1000
     expect(cleanSequence('MKTAYIAK12')).toHaveProperty('error'); // digits
     expect(cleanSequence(42 as unknown)).toHaveProperty('error');
   });
