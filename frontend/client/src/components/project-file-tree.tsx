@@ -353,10 +353,12 @@ export function treeIndent(depth: number): number {
   return INDENT_BASE_PX + Math.min(Math.max(depth, 0), INDENT_MAX_DEPTH) * INDENT_STEP_PX;
 }
 const NAME_STYLE: CSSProperties = { flex: "1 1 auto", minWidth: NAME_MIN_PX };
-/** Hidden until the row is hovered or a control inside it has keyboard focus; never takes width. */
+/** Hidden until the row is hovered or a control inside it has keyboard focus; never takes width.
+ *  A touch screen has no hover, so there the actions are always shown. */
 const ACTIONS_CLASS =
   "absolute inset-y-0 right-1 flex items-center gap-0.5 pl-1 rounded-r bg-muted opacity-0 pointer-events-none " +
-  "group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
+  "group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto " +
+  "[@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto";
 const ACTIONS_STYLE: CSSProperties = { position: "absolute" };
 
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)

@@ -127,11 +127,12 @@ def test_1_crossed_donor_and_id_column_raise_nothing(tmp):
     prof = dp.profile_dataset(_tsv(tmp, "crossed.tsv", _HEAD, _design(lambda i: f"D{(i // 2) % 30 + 1:02d}")))
     by = _codes(prof)
     assert not {"group_nested", "leaked_feature", "leaked_id", "batch_confound"} & set(by), prof["findings"]
-    # A unique sample ID naming the condition is an identifier, not a nested grouping.
+    # A unique sample ID naming the condition is an identifier, not a nested grouping — it is a
+    # leaked ID (round 6: its name part gives the group away), never a confounded design.
     rows = [[f"{'ctrl' if i % 2 == 0 else 'treat'}_{i:03d}", "ctrl" if i % 2 == 0 else "treat", (i * 7) % 50]
             for i in range(60)]
     prof = dp.profile_dataset(_tsv(tmp, "ids.tsv", ["sample_id", "condition", "value"], rows))
-    assert "group_nested" not in _codes(prof) and "drop_leaky_column" not in _codes(prof), prof["findings"]
+    assert "group_nested" not in _codes(prof) and "leaked_id" in _codes(prof), prof["findings"]
     assert _roles(prof)["sample_id"] == "identifier", prof["columnStats"]
 
 

@@ -145,7 +145,7 @@ def test_n4_small_record_file_is_not_watch_for_metadata_columns(tmp):
     prof = dp.profile_dataset(_w(tmp, "epar_study_tables.jsonl", _jsonl(6)))
     by = _codes(prof)
     assert prof["quality"] != "watch", prof["findings"]
-    nc = by["near_constant"]
+    nc = by["constant_columns"]
     assert nc["level"] == "info" and nc["params"]["expected"] == "few_rows", nc
     assert nc["columns"] == ["source", "drug"], nc
     assert "table_clean_unlabelled" not in by, prof["findings"]  # it would say "no constant column"
@@ -154,7 +154,7 @@ def test_n4_small_record_file_is_not_watch_for_metadata_columns(tmp):
 
 def test_n4_large_record_file_provenance_is_expected(tmp):
     prof = dp.profile_dataset(_w(tmp, "records.jsonl", _jsonl(40)))
-    nc = _codes(prof)["near_constant"]
+    nc = _codes(prof)["constant_columns"]
     assert prof["quality"] == "good", prof["findings"]
     assert nc["level"] == "info" and nc["params"]["expected"] == "record_metadata" and nc["columns"] == ["source", "drug"], nc
     # A data column that is near-constant in a large record file is still Watch (and the
@@ -168,11 +168,11 @@ def test_n4_large_record_file_provenance_is_expected(tmp):
 def test_n4_tables_below_the_row_floor_and_above_it(tmp):
     rows = ["sample,batch,value"] + [f"S{i},b1,{i * 3}" for i in range(6)]
     prof = dp.profile_dataset(_w(tmp, "small.csv", "\n".join(rows) + "\n"))
-    nc = _codes(prof)["near_constant"]
+    nc = _codes(prof)["constant_columns"]
     assert prof["quality"] == "good" and nc["level"] == "info" and nc["params"]["expected"] == "few_rows", prof["findings"]
     rows = ["sample,batch,value"] + [f"S{i},b1,{i * 3}" for i in range(dp.NEAR_CONSTANT_MIN_ROWS)]
     prof = dp.profile_dataset(_w(tmp, "big.csv", "\n".join(rows) + "\n"))
-    nc = _codes(prof)["near_constant"]
+    nc = _codes(prof)["constant_columns"]
     assert prof["quality"] == "watch" and nc["level"] == "watch" and "expected" not in nc["params"], prof["findings"]
 
 

@@ -154,7 +154,7 @@ def test_constant_and_missing_columns(tmp):
     prof = profile_dataset(path)
     assert prof["quality"] == "watch", prof
     sig = " ".join(prof["signalSummary"]).lower()
-    assert "near-constant" in sig, prof
+    assert "constant columns" in sig, prof
     assert "missing" in sig, prof
     print("PASS test_constant_and_missing_columns")
 
@@ -171,7 +171,9 @@ def test_fastq_profile(tmp):
     prof = profile_dataset(path)
     assert prof["shape"]["rows"] == 10, prof
     assert prof["shape"]["cols"] == 10, prof  # mean read length
-    assert any("single-end" in n.lower() for n in prof["notes"]), prof
+    # The note states the observation (no mate checked), the plan the decision (single-end) —
+    # the decision is not restated in the note (round 6).
+    assert not any("single-end" in n.lower() for n in prof["notes"]) and prof["notes"], prof
     assert any("single-end" in pi["effect"].lower() for pi in prof["planImpact"]), prof
     assert prof["quality"] == "good", prof
     print("PASS test_fastq_profile")
@@ -300,7 +302,7 @@ def test_jsonl_records_not_csv(tmp):
         assert p.columns == ["source", "drug", "page", "headers", "rows"], p.columns
         assert p.sample_rows[0][3] == '["A, B",""]', p.sample_rows[0][3]
         # 'source' is constant: flagged, and the note must not also claim "no constant-column issues".
-        assert any("near-constant" in s.lower() for s in (p.signal_summary or [])), p.signal_summary
+        assert any("constant columns" in s.lower() for s in (p.signal_summary or [])), p.signal_summary
         assert not any("constant-column issues detected" in n for n in p.notes), p.notes
     print("PASS test_jsonl_records_not_csv")
 
@@ -353,7 +355,7 @@ def test_watch_findings_name_their_columns(tmp):
     assert p["quality"] == "watch", p
     watch = [f for f in p["findings"] if f["level"] == "watch"]
     by = {f["code"]: f["params"] for f in watch}
-    assert by["near_constant"]["columns"] == ["constant"], by
+    assert by["constant_columns"]["columns"] == ["constant"], by
     assert by["high_missing"]["columns"] == ["mostly_empty"], by
     # Every legacy free-text line has a structured twin (so the UI never shows raw English).
     n_text = len(p["notes"]) + len(p.get("signalSummary", [])) + len(p["planImpact"])

@@ -104,7 +104,7 @@ MAX_PREVIEW_CELL_CHARS = 300
 # (matched as WHOLE tokens of the column name: "gene_symbol" is not "y", "assay" is not "y").
 _LABEL_NAME_TOKENS = (
     "label", "target", "class", "y", "outcome", "diagnosis", "response", "responder",
-    "phenotype", "condition", "group", "status",
+    "phenotype", "condition", "genotype", "treatment", "group", "status",
 )
 
 # Column-name tokens that mark a plausible BATCH / grouping / id column, most batch-like first.
@@ -258,7 +258,7 @@ _EN_TEXT: Dict[str, str] = {
     'structured_only': "Valid {{format}} syntax ({{root}} root). Only the structure was checked; scientific quality has not been assessed.",
     'fastq_reads': "Reads scanned: {{reads}}; mean read length {{mean_len}} bp.",
     'fastq_mean_quality': "Mean base quality: Phred {{q}} (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).",
-    'fastq_single_file': "A single FASTQ file was profiled — treated as single-end unless a mate file is present.",
+    'fastq_single_file': "Profiled on its own: whether it has a read-2 mate was not checked.",
     'fastq_single_end': "Single FASTQ file",
     'fastq_single_end_effect': "single-end pipeline suggested (override if a paired mate exists)",
     'fastq_low_quality': "Mean base quality Phred {{q}} is below 20 (more than 1 error in 100 bases) — consider trimming.",
@@ -267,6 +267,7 @@ _EN_TEXT: Dict[str, str] = {
     'vcf_no_variants': "No variant records were found (header only).",
     'no_columns': "No columns could be parsed from the table.",
     'header_only': "A header is present but there are no data rows.",
+    'constant_columns': "Constant columns (the same value in every row): {{columns}}.",
     'near_constant': "Near-constant columns (over {{pct}}% a single value): {{columns}}.",
     'high_missing': "Columns with at least {{pct}}% missing values: {{columns}}.",
     'label_spellings': "Two spellings of the same label: “{{a}}” and “{{b}}”.",
@@ -322,7 +323,7 @@ _EN_TEXT: Dict[str, str] = {
     'alignment_not_coordinate_sorted': "Sort order is {{order_words}}, not by coordinate: sort the file before indexing or variant calling.",
     'alignment_read_groups': "Read groups: {{count}}; samples: {{samples}}.",
     'alignment_no_read_groups': "No read groups (@RG) in the header: GATK and most variant callers require them.",
-    'structure_chains': "Chains ({{count}}): {{chains}}.",
+    'structure_chains': "Chain IDs: {{chains}}.",
     'spreadsheet_sheets': "Sheets ({{count}}): {{sheets}}.",
     'spreadsheet_convert': "Spreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.",
     'fasta_gc': "GC content {{pct}}%.",
@@ -331,13 +332,13 @@ _EN_TEXT: Dict[str, str] = {
     'fasta_empty_records': "Headers with no sequence: {{count}}.",
     'fasta_orphan_lines': "Sequence lines before the first “>” header, which were ignored: {{count}}.",
     'fasta_profiled_subset': "Statistics cover the first {{mb}} MB of the file.",
-    'fastq_paired_mate': "Paired-end: read {{read}} of sample {{sample}}; its mate {{mate}} is in the same folder.",
-    'fastq_paired_end': "Mate file in the same folder",
+    'fastq_paired_mate': "Read {{read}} of sample {{sample}}; its mate {{mate}} is in the same folder.",
+    'fastq_paired_end': "Both reads of the pair present",
     'fastq_paired_end_effect': "paired-end pipeline (sample {{sample}})",
-    'fastq_mate_missing': "Read {{read}} of sample {{sample}}, but no read-{{missing}} mate is in this folder — it runs single-end unless the mate is added.",
-    'fastq_orphan_single_end': "Mate file missing from the folder",
+    'fastq_mate_missing': "Read {{read}} of sample {{sample}}; no read-{{missing}} mate is in this folder.",
+    'fastq_orphan_single_end': "Read pair incomplete",
     'fastq_orphan_single_end_effect': "single-end for sample {{sample}} until the mate is added",
-    'fastq_single_end_named': "No read-1/read-2 naming and no mate in this folder: a single-end sample.",
+    'fastq_single_end_named': "No read-1/read-2 naming and no mate in this folder.",
     'tenx_member_headerless': "Part of the 10x matrix {{matrix}} in this folder: header-less by the 10x specification, so line 1 is data.",
     'mtx_tenx_set': "10x matrix: rows are the features in {{features}}, columns are the cells in {{barcodes}} (same folder).",
     'name_content_mismatch': "Named as {{named}}, but the content is {{detected}} — it is shown and checked as {{detected}}.",
@@ -362,7 +363,7 @@ _EN_TEXT: Dict[str, str] = {
     'anndata_layers': "Layers stored beside X ({{count}}): {{layers}}.",
     'anndata_no_layers': "No layers: the expression values are in X only.",
     'anndata_components': "Stored components ({{count}}): {{components}}.",
-    'label_few_rows': "Column “{{column}}” looks like a group column (e.g. condition), but with {{rows}} rows (at least {{min_rows}} needed) group sizes and columns that reveal the group were not checked.",
+    'label_few_rows': "“{{column}}” looks like the group column, but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
     'label_no_features': "Column “{{column}}” looks like a group column, but the other columns are identifiers or annotation, so there is nothing to compare between the groups.",
     'table_clean_label_unchecked': "Rows: {{rows}} · columns: {{cols}}; no constant columns or missing-value problems.",
     'duplicate_rows': "Exact duplicate rows: {{count}}.",
@@ -1267,7 +1268,10 @@ def _open_text(path: str) -> io.TextIOBase:
 
 
 # Decoding errors are replaced by U+FFFD and counted per thread (see _damage()["replaced"]).
-_COUNT_REPLACE = "biomate.count_replace"
+# The codec error-handler registry is process-global: under one fixed name, a second copy of this
+# module (a re-import, another loader) took over the handler and counted into ITS _DAMAGE, so the
+# copy that read the file reported nothing replaced. The name is unique to this module object.
+_COUNT_REPLACE = f"biomate.count_replace.{id(_DAMAGE):x}"
 
 
 def _count_replace(exc: UnicodeError) -> Tuple[str, int]:
@@ -2750,9 +2754,11 @@ def _profile_fastq(path: str, sample_reads: int = 4000, layout: Optional[Dict[st
 # VCF
 # ---------------------------------------------------------------------------
 def _fastq_layout_findings(p: DataProfile, layout: Optional[Dict[str, Any]]) -> None:
+    """The note states what was observed (the mate, its absence); the plan states what follows
+    (single- / paired-end). Each fact is said once: the note never restates the decision."""
     if not layout:
         emit(p, "note", "fastq_single_file",
-             "Single FASTQ file profiled — single-end unless a mate file is present.")
+             "Profiled on its own: whether it has a read-2 mate was not checked.")
         emit(p, "plan", "fastq_single_end", "single FASTQ observed",
              effect_text="suggested single-end pipeline (override if paired mate exists)")
         return
@@ -2763,21 +2769,20 @@ def _fastq_layout_findings(p: DataProfile, layout: Optional[Dict[str, Any]]) -> 
         return
     if layout["status"] == "paired":
         emit(p, "note", "fastq_paired_mate",
-             f"Paired-end: read {read} of sample {sample}; its mate {layout['mate']} is in the same folder.",
+             f"Read {read} of sample {sample}; its mate {layout['mate']} is in the same folder.",
              read=read, sample=sample, mate=layout["mate"])
-        emit(p, "plan", "fastq_paired_end", "mate file in the same folder",
+        emit(p, "plan", "fastq_paired_end", "both reads of the pair present",
              effect_text=f"paired-end pipeline (sample {sample})", sample=sample)
     elif layout["status"] == "orphan":
         missing = "1" if read == "2" else "2"
         emit(p, "note", "fastq_mate_missing",
-             f"Read {read} of sample {sample}, but no read-{missing} mate is in this folder — it runs "
-             f"single-end unless the mate is added.",
+             f"Read {read} of sample {sample}; no read-{missing} mate is in this folder.",
              "watch", read=read, missing=missing, sample=sample)
-        emit(p, "plan", "fastq_orphan_single_end", "mate file missing from the folder",
+        emit(p, "plan", "fastq_orphan_single_end", "read pair incomplete",
              effect_text="single-end for this sample until the mate is added", sample=sample)
     else:
         emit(p, "note", "fastq_single_end_named",
-             "No read-1/read-2 naming and no mate in this folder: a single-end sample.")
+             "No read-1/read-2 naming and no mate in this folder.")
         emit(p, "plan", "fastq_single_end", "single FASTQ observed",
              effect_text="suggested single-end pipeline (override if paired mate exists)")
 
@@ -3799,6 +3804,10 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     # --- constant / high-missingness columns (numeric-first signal) ---
     # Annotation columns of a recognised layout (featureCounts' Chr / Strand / Length …) are
     # constant or sparse BY DESIGN on many inputs (one chromosome, one strand): not a finding.
+    # A column with ONE value in every row is constant, stated as such; "over 99% a single value"
+    # is the near-constant rule. Each kind is flagged (watch) or, when expected, noted (info).
+    constant: List[str] = []
+    expected_full: List[str] = []
     near_constant: List[str] = []
     expected_constant: List[str] = []
     high_missing: List[str] = []
@@ -3813,18 +3822,27 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         if non_missing:
             top = Counter(non_missing).most_common(1)[0][1]
             if top / len(non_missing) >= NEAR_CONSTANT_FRAC:
+                full = top == len(non_missing)
                 if _near_constant_expected(col, n_rows, records=reader is not None):
-                    expected_constant.append(header[j])
+                    (expected_full if full else expected_constant).append(header[j])
                 else:
-                    near_constant.append(header[j])
+                    (constant if full else near_constant).append(header[j])
+    why_expected = "few_rows" if n_rows < NEAR_CONSTANT_MIN_ROWS else "record_metadata"
+    flagged = bool(constant or near_constant)
+    if constant:
+        emit(p, "signal", "constant_columns", "", "watch", count=len(constant), columns=_named(constant))
+    elif expected_full and not flagged:
+        # Stated once, as information (below the row floor, or per-record provenance) — and not
+        # beside a flagged column, where it would read as one more problem.
+        emit(p, "signal", "constant_columns", "", count=len(expected_full), columns=_named(expected_full),
+             expected=why_expected)
     if near_constant:
         emit(p, "signal", "near_constant", "", "watch", count=len(near_constant), columns=_named(near_constant),
              pct=int(NEAR_CONSTANT_FRAC * 100))
-    elif expected_constant:
+    elif expected_constant and not flagged:
         # Stated once, as information: below the row floor, or per-record provenance.
         emit(p, "signal", "near_constant", "", count=len(expected_constant), columns=_named(expected_constant),
-             pct=int(NEAR_CONSTANT_FRAC * 100),
-             expected="few_rows" if n_rows < NEAR_CONSTANT_MIN_ROWS else "record_metadata")
+             pct=int(NEAR_CONSTANT_FRAC * 100), expected=why_expected)
     if high_missing:
         emit(p, "signal", "high_missing", "", "watch", count=len(high_missing), columns=_named(high_missing),
              pct=int(HIGH_MISSING_FRAC * 100))
@@ -3917,7 +3935,8 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         groups = _sample_name_groups(sample_cols)
         if groups:
             emit(p, "note", "sample_groups_from_names", "", groups=groups)
-    if any(f["level"] in ("watch", "blocked") or f["code"] == "near_constant" for f in p.findings):
+    if any(f["level"] in ("watch", "blocked") or f["code"] in ("near_constant", "constant_columns")
+           for f in p.findings):
         emit(p, "note", "table_summary", "", rows=total, cols=n_cols)
     elif confident:
         emit(p, "note", "table_clean", "", rows=total, cols=n_cols)
@@ -3942,6 +3961,9 @@ _SAMPLE_NAME_SUFFIX = re.compile(r"\.(?:sorted\.)?(?:bam|sam|cram|bw|bigwig|bed|
 # A sample name = group prefix (with a letter) + replicate number; a separated replicate word
 # before the number ("ctrl_rep1", "WT-r2", "KO_Rep_3") is not part of the group's name.
 _SAMPLE_NAME_GROUP = re.compile(r"^(.*?)(\d+)$")
+# A plate well position at the end of a name: one row letter A–P (96/384-well) standing alone
+# (start or after a non-letter, so "KO1" is not well O1) + column 1–24.
+_PLATE_WELL = re.compile(r"(?:^|[^A-Za-z])[A-Pa-p](?:0?[1-9]|1[0-9]|2[0-4])$")
 _SAMPLE_REPLICATE_WORD = re.compile(r"(?:[ _.\-]+(?:rep(?:licate)?|r)|(?<=[a-z0-9])Rep)[ _.\-]*$", re.I)
 
 
@@ -3993,6 +4015,8 @@ def _sample_name_groups(names: Sequence[str]) -> Optional[List[Dict[str, Any]]]:
         counts[g] += 1
     if len(order) < 2:
         return None
+    if all(_PLATE_WELL.search(_SAMPLE_NAME_SUFFIX.sub("", str(raw).strip())) for raw in names):
+        return None  # A01, B12, sample_C3 …: plate positions, not groups
     return [{"name": g, "n": counts[g]} for g in order]
 
 
@@ -4300,12 +4324,19 @@ def _detect_leakage(
             continue
         acc, base, total = _loo_value_accuracy(per_value)
         distinct_vals = len(per_value)
+        near_unique = distinct_vals >= 0.95 * total
+        if near_unique:
+            # A value seen once carries no leave-one-out evidence, so a unique-per-row column is
+            # scored by its NAME part instead: "ctrl_017" / "KO-3" give the group away through
+            # "ctrl" / "ko"; a running ID (S0001 …), a hex code or a number has no telling stem.
+            per_value = _per_stem(col, label_col)
+            acc, base, total = _loo_value_accuracy(per_value) if len(per_value) >= 2 else (0.0, 0.0, 0)
         # Leakage = the column predicts the label for rows it has NOT memorised, well beyond the
         # majority-class baseline. (Scoring each value by its own rows' majority made every
         # unique-per-row measurement — a float column — "perfectly predict" any label.)
         if (acc >= LEAKAGE_ACC_THRESHOLD and (acc - base) >= 0.5 * (1.0 - base) and acc > base
                 and total >= max(4, int(0.5 * n_rows))):
-            if distinct_vals >= 0.95 * total:
+            if near_unique:
                 emit(p, "leakage", "leaked_id",
                      f"column {header[j]!r} is (near-)unique per row and perfectly predicts the label — leaked id.",
                      "watch", column=header[j])
@@ -4429,6 +4460,20 @@ def _nested_in_groups(per_value: Dict[str, Counter]) -> bool:
         groups.add(present[0])
     total = sum(sum(c.values()) for c in per_value.values())
     return len(groups) >= 2 and len(per_value) > len(groups) and total >= 2 * len(per_value)
+
+
+def _per_stem(col: Sequence[str], label_col: Sequence[str]) -> Dict[str, Counter]:
+    """Label counts per NAME stem of an ID column — its letter runs, lower-cased, with digits and
+    separators dropped ("ctrl_017" → "ctrl", "WT-r2" → "wt r"). Values without a letter have no
+    stem and are left out."""
+    out: Dict[str, Counter] = {}
+    for v, lbl in zip(col, label_col):
+        if v == "" or lbl == "":
+            continue
+        stem = " ".join(t.lower() for t in re.findall(r"[A-Za-z]+", v))
+        if stem:
+            out.setdefault(stem, Counter())[lbl] += 1
+    return out
 
 
 def _loo_value_accuracy(per_value: Dict[str, Counter]) -> Tuple[float, float, int]:

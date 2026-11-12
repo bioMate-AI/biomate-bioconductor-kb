@@ -96,3 +96,23 @@ describe('redactInternalRefs — never show s3 references to the user', () => {
     expect(redactInternalRefs('bucket is s3://biomate-nextflow-work')).toBe('bucket is a data file');
   });
 });
+
+describe("fallbackTitle — a title is a whole phrase, never a sentence cut mid-way", () => {
+  it("a short first sentence is the title, whole", () => {
+    expect(fallbackTitle("QC report: design_nested.tsv. Run quality control (QC) on this file and write a QC report."))
+      .toBe("QC report: design_nested.tsv")
+  })
+  it("a long sentence is cut at a word boundary and marked as cut", () => {
+    const title = fallbackTitle("design_nested.tsv: run quality control (QC) on this file and write a QC report.")
+    expect(title.endsWith("…")).toBe(true)
+    expect(title.length).toBeLessThanOrEqual(51)
+    expect("design_nested.tsv: run quality control (QC) on this file and write a QC report.").toContain(title.slice(0, -1))
+    expect(title.slice(0, -1)).not.toMatch(/\s$/)
+  })
+  it("a dot inside a file name does not end the sentence", () => {
+    expect(fallbackTitle("Compare a.csv with b.csv")).toBe("Compare a.csv with b.csv")
+  })
+  it("Chinese: the first sentence (。) is the title", () => {
+    expect(fallbackTitle("QC 报告：design.tsv。对此文件运行质量控制（QC），并生成 QC 报告。")).toBe("QC 报告：design.tsv")
+  })
+})
