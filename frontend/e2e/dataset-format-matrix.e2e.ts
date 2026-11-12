@@ -261,6 +261,11 @@ function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled:
     add("no-table-controls", false, bad.length === 0, `non-table kind shows toggles: ${bad.join(", ")}`);
   }
 
+  const needIds: string[] = (ex.requirePreviewTestids ?? []).filter((id: string) => !snap.previewTestids.includes(id));
+  if ((ex.requirePreviewTestids ?? []).length) {
+    add("preview-testids", false, needIds.length === 0, `Preview lacks ${needIds.join(", ")}; has [${snap.previewTestids.slice(0, 20).join(", ")}]`);
+  }
+
   const allowed: string[] = EXPECTATIONS.qualitySets[ex.quality] ?? [];
   add("quality-class", false, snap.qc.quality !== null && allowed.includes(snap.qc.quality),
     `data-quality=${snap.qc.quality ?? `(none; qc ${snap.qc.state})`} want ${ex.quality} [${allowed.join("|")}]`);

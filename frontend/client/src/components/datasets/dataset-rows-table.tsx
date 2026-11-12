@@ -37,6 +37,9 @@ export interface DatasetRowsTableProps {
   editable?: boolean
   edits?: Record<string, { from: string; value: string }>
   onEdit?: (row: number, col: number, from: string, value: string) => void
+  /** What these rows are, when they are a fixed preview rather than a paged read of the file
+   *  ("Sheet “Data” · first 20 rows"): replaces the loaded-of-total count and the sort/filter scope. */
+  scope?: string
 }
 
 /** Short structural label for a nested cell (a JSONL list/object), instead of truncated JSON text. */
@@ -250,7 +253,7 @@ function MultilineCellEditor({ value, className, onChange, ...aria }: {
 
 export function DatasetRowsTable({
   columns, rows, total, loading, error, onNeedMore, onLoadAll, onRetry, loadAllCap = Infinity,
-  editable = false, edits = {}, onEdit,
+  editable = false, edits = {}, onEdit, scope,
 }: DatasetRowsTableProps) {
   const [sortCol, setSortCol] = useState<number | null>(null)
   const [sortAsc, setSortAsc] = useState(true)
@@ -440,14 +443,16 @@ export function DatasetRowsTable({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="dataset-preview-rowcount">
         {hasNested && !openRow && !editable && <span>{t("dataset_obj.record_hint")}</span>}
         {moreRight && <span data-testid="dataset-preview-more-columns">{t("dataset_obj.scroll_more_columns")}</span>}
-        <span>
-          {allLoaded
-            ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
-            : t("dataset_obj.rows_loaded", { loaded: fmt(rows.length), total: total != null ? fmt(total) : "?" })}
-        </span>
+        {scope == null && (
+          <span>
+            {allLoaded
+              ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
+              : t("dataset_obj.rows_loaded", { loaded: fmt(rows.length), total: total != null ? fmt(total) : "?" })}
+          </span>
+        )}
         {filterText.trim() && <span>{t("dataset_obj.rows_matching", { n: fmt(view.length) })}</span>}
         <span data-testid="dataset-preview-scope">
-          {allLoaded ? t("dataset_obj.rows_scope_full") : t("dataset_obj.rows_scope_partial")}
+          {scope ?? (allLoaded ? t("dataset_obj.rows_scope_full") : t("dataset_obj.rows_scope_partial"))}
         </span>
         {loading && <span role="status">{t("dataset_obj.loading_more")}</span>}
         {error != null && (

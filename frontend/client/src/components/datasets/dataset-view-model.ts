@@ -52,8 +52,18 @@ export interface DatasetViewModel {
   tableShape: boolean
   canEdit: boolean
   canRunQC: boolean
+  /** The kind can be opened in Jupyter / RStudio (a project file of a kind those tools read). */
+  openInSupported: boolean
+  /** Open-in is OFFERED: supported AND the launch path is available (OPEN_IN_AVAILABLE). Every
+   *  panel element that points to Open-in (the button, notes that say "open it in Jupyter")
+   *  follows this — never the kind alone. */
   canOpenIn: boolean
 }
+
+/** Whether the Open-in (Jupyter / RStudio) launch from the dataset panel is available. Off since
+ *  2026-11-11 (founder): the interactive-tool launch path is not working yet. One switch, so the
+ *  button and the copy that mentions it can never disagree. */
+export const OPEN_IN_AVAILABLE = false
 
 // ── kind from the file extension (older profiles without viewKind) ───────────
 const EXT_KIND: Record<string, ViewKind> = {}
@@ -153,7 +163,7 @@ export function datasetViewModel(
   if (opts.empty) {
     return {
       kind, views: ["content"], content: "empty", useRows: CONTENT[kind] === "rows", tableShape: false,
-      canEdit: false, canRunQC: false, canOpenIn: false,
+      canEdit: false, canRunQC: false, openInSupported: false, canOpenIn: false,
     }
   }
   const tabular = kind === "table" || kind === "records"
@@ -168,6 +178,7 @@ export function datasetViewModel(
   const content: ContentRenderer = tabular && !tableAvailable ? "summary"
     : kind === "document" && SUMMARY_DOCUMENT_EXT.has(ext) ? "summary"
     : CONTENT[kind]
+  const openInSupported = Boolean(opts.projectFile) && (OPEN_IN_KINDS.has(kind) || R_OBJECT_EXT.has(ext))
   return {
     kind,
     views,
@@ -176,7 +187,8 @@ export function datasetViewModel(
     tableShape: tabular,
     canEdit,
     canRunQC: QC_KINDS.has(kind),
-    canOpenIn: Boolean(opts.projectFile) && (OPEN_IN_KINDS.has(kind) || R_OBJECT_EXT.has(ext)),
+    openInSupported,
+    canOpenIn: OPEN_IN_AVAILABLE && openInSupported,
   }
 }
 

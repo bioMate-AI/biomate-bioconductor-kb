@@ -67,6 +67,11 @@ const NAMES: Label[] = [
   { en: "R data", zh: "R 数据" },
   { en: "Log", zh: "日志" },
   { en: "Excel", zh: "Excel 表格" },
+  // Recognised tool-output tables (data_perception.py KNOWN_TABLE_LAYOUTS → format.layout + label).
+  { en: "featureCounts counts", zh: "featureCounts 计数表" },
+  { en: "MAGeCK counts", zh: "MAGeCK sgRNA 计数表" },
+  { en: "Salmon quantification", zh: "Salmon 定量结果" },
+  { en: "RSEM quantification", zh: "RSEM 定量结果" },
 ]
 
 /** Qualifier words in brackets ("FASTQ (gzip)", "CSV (semicolon-separated)"). */

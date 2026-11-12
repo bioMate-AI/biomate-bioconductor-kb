@@ -162,7 +162,7 @@ describe("<DataPerception> — e2e contract: every rendered finding carries its 
     const codes = Array.from(document.querySelectorAll("[data-testid=perception-finding]")).map((e) => e.getAttribute("data-code"));
     expect(codes.sort()).toEqual(["comment_lines_skipped", "drop_leaky_column", "leaked_id", "table_summary"]);
     expect(screen.getByTestId("perception-why-item")).toHaveAttribute("data-code", "ragged_rows");
-    expect(screen.getByTestId("perception-why")).toHaveTextContent("Rows whose number of fields differs from the header (3 fields): 2.");
+    expect(screen.getByTestId("perception-why")).toHaveTextContent("Rows whose number of fields differs from the header's (3): 2.");
   });
 
   it("a backend 'at least' stat reads 'at least N' (QC card)", () => {
