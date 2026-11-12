@@ -133,7 +133,7 @@ def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
             log.warning("[federated_query] local literature mirror unavailable: %s", e)
     log.debug("[federated_query] OFFLINE_MODE — skipping external call %s", url)
     return None
-_POOL_SIZE = 12
+_POOL_SIZE = 16  # >= facet router max_sources (14) so all selected sources run concurrently
 _CACHE_TTL_STABLE = 86400   # 24h — UniProt, PDB, AlphaFold, etc.
 _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
 _CACHE_TTL_DURABLE = 30 * 86400  # 30d — "last-known-good" for outage fallback (stale-while-error)
@@ -1143,7 +1143,7 @@ def federated_query(
                     failed.append(src)
                     results[src] = {"source": src, "error": "timeout", "results": []}
 
-    merged = _merge_results(results, detected)
+    merged = _merge_results(results, detected, source_order=target_sources)
 
     out = {
         "query": query,
@@ -1190,7 +1190,7 @@ def federated_query(
                 "sources_failed": _still_failed,      # what we could NOT recover
                 "sources_stale": _recovered,          # served from last-known-good
                 "results": _merged_results,
-                "merged": _merge_results(_merged_results, detected),
+                "merged": _merge_results(_merged_results, detected, source_order=target_sources),
                 "_stale": True,
                 "_stale_reason": "served last-known-good for %s (live unavailable); %s"
                                  % (",".join(_recovered[:6]),
@@ -1201,15 +1201,23 @@ def federated_query(
 
 # ── Result merging ─────────────────────────────────────────────────────────────
 
-def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
+def _merge_results(results: Dict[str, Dict], entity_type: str,
+                   source_order: Optional[List[str]] = None) -> List[Dict]:
     """
     Produce a unified flat list across all sources, deduped by name/id,
     each item annotated with its source.
+
+    `source_order`, when given, is the INTENT-selected source list from the facet
+    router (e.g. chembl/bindingdb/pharos first for a SAR query, pdb/pdbe/alphafold
+    first for a structure query). The merge round-robins in THAT order so the top-N
+    cap downstream surfaces the sources the QUESTION needs. Without it, a generic
+    entity-type priority is used (fallback for callers that don't pass a source list).
     """
     seen_names: set = set()
     merged: List[Dict] = []
 
-    # Source priority order for merge (most trusted first)
+    # Generic entity-type priority — FALLBACK only, used when the caller did not pass an
+    # intent-selected `source_order` (most trusted first).
     priority = {
         # bindingdb/pharos are placed among the high-value sources (BEFORE literature) so
         # their top row survives the round-robin + merged[:8] cap in a broad multi-source
@@ -1226,7 +1234,15 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
         "disease":    ["hpo", "clinvar", "europepmc", "pubmed", "semantic_scholar"],
         "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
     }
-    ordered = priority.get(entity_type, list(results.keys()))
+    # Prefer the intent-selected order (facet router) over the generic entity-type priority:
+    # the facet router already ranked the sources the QUESTION needs first, so a broad SAR
+    # query's bindingdb/chembl/pharos are no longer buried behind structure/identity sources
+    # and cut by the downstream top-N cap (dev finding 2026-11-12: broad ABL1 returned
+    # literature-only because bindingdb landed at merge position ~9 → cut by merged[:8]).
+    if source_order:
+        ordered = [s for s in source_order if s in results]
+    else:
+        ordered = priority.get(entity_type, list(results.keys()))
     remaining = [s for s in results if s not in ordered]
     src_order = [s for s in (ordered + remaining) if s in results]
 
