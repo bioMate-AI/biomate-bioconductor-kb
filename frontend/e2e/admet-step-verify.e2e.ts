@@ -25,12 +25,6 @@ const QUERY =
 test("ADMET step attribution — real step name, not 'run'", async ({ page }) => {
   test.setTimeout(45 * 60 * 1000);
   await loginAsFixture(page);
-  await page.route(/amazonaws\.com/, async (route) => {
-    const h = { ...route.request().headers() };
-    delete h["authorization"]; delete h["Authorization"];
-    delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-    await route.continue({ headers: h });
-  });
   const log: string[] = [];
 
   await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });

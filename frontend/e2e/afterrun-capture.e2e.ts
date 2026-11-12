@@ -25,13 +25,6 @@ const RUN_ID = "e2c3e772-580d-4a59-be1c-487999a072b4";
 test("after-run: outputs + enlarged preview pop-up + download icon", async ({ page }) => {
   test.setTimeout(4 * 60 * 1000);
   await loginAsFixture(page);
-  // S3 presigned URLs reject an Authorization header (harness artifact) — strip it.
-  await page.route(/amazonaws\.com/, async (route) => {
-    const h = { ...route.request().headers() };
-    delete h["authorization"]; delete h["Authorization"];
-    delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-    await route.continue({ headers: h });
-  });
 
   await page.goto(`${BASE_URL}/debug/afterrun/${RUN_ID}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.waitForTimeout(6000);

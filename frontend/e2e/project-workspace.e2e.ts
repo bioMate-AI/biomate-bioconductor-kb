@@ -49,6 +49,7 @@
  */
 
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
+import { deleteProjectLoudly } from './_project-ui';
 import {
   sendAndWait,
   clickRunAndWait,
@@ -183,7 +184,7 @@ test.describe.serial('project-workspace', () => {
   test.afterAll(async ({ request }) => {
     if (!sharedProjectId) return;
     await apiLoginRequest(request);
-    await request.delete(`${BASE_URL}/api/projects/${sharedProjectId}`).catch(() => {});
+    await deleteProjectLoudly(request, sharedProjectId, { inHook: true });
     console.log(`[teardown] project deleted: ${sharedProjectId}`);
   });
 
