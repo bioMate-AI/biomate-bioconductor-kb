@@ -29,17 +29,30 @@ export function needsTranslation(s: string): boolean {
 }
 
 const cache = new Map<string, string>(); // `${lang}\u0000${src}` → translation
-const key = (lang: LabelLang, s: string) => `${lang}\u0000${s}`;
+const key = (lang: LabelLang, s: string) => `${PROMPT_VERSION}\u0000${lang}\u0000${s}`;
 
 /** Test hook. */
 export function _resetLabelCache() { cache.clear(); }
 
+/** Bump when the instruction changes so cached entries from an older prompt are not served. */
+const PROMPT_VERSION = 3;
+
+/** v3 — measured offline on 114 real catalog labels (phase names, step descriptions,
+ *  param labels) with the production model: v1 left ordinary English inside 15/114
+ *  ("Count 矩阵", "Peak Calling", "下载 samplesheet 与 count …"); v3 leaves none and
+ *  keeps code identifiers (getAssociation, fetch(), pifit) exact. A regex "English
+ *  leftover" check + repair pass was tried and REMOVED: it could not tell function
+ *  names from English and made the model translate them ("pifit" → "π 拟合"). */
 const SYSTEM = [
   'You translate short UI labels from a bioinformatics workflow panel into Simplified Chinese for scientists.',
   'Input: a JSON array of English labels. Output: a JSON object {"t": {"<exact input>": "<translation>"}} covering EVERY input.',
-  'Rules: concise, idiomatic professional Chinese (as a Chinese bioinformatics paper would write it);',
-  'keep tool, software, method, file-format and gene names verbatim (DESeq2, MACS2, PCA, BAM, FASTQ, HTML, nf-core, …);',
-  'keep any file name verbatim; do not add explanations, punctuation at the end, or quotes.',
+  'Translate the MEANING, idiomatically, the way a Chinese bioinformatics methods section would phrase it — never word by word.',
+  'Translate generic nouns fully (samplesheet, count matrix, normalisation, contrast, report, …).',
+  'Keep ONLY proper names verbatim: software/tool names, gene/protein symbols, file names, file-format acronyms (DESeq2, MultiQC, Seurat, TP53, counts_matrix.csv, BAM, FASTQ, HTML).',
+  'Function and method names written in code style (camelCase or snake_case identifiers, names followed by "()", or the X in "using X" when X is a code identifier) are proper names: keep them exactly, never translate or explain them.',
+  'Never leave an ordinary English word inside the Chinese. No explanations, quotes, or trailing punctuation.',
+  'Style examples: "Input Download" → "获取输入文件"; "Download samplesheet and count matrix" → "获取样本表与计数矩阵";',
+  '"Run DESeq2 per contrast" → "按对比组运行 DESeq2"; "Samplesheet" → "样本表".',
 ].join(' ');
 
 /**
@@ -63,13 +76,7 @@ export async function translateLabels(
   if (todo.length) {
     let parsed: Record<string, unknown> = {};
     try {
-      const raw = await llm({
-        system: SYSTEM,
-        messages: [{ role: 'user', content: JSON.stringify(todo) }],
-        maxTokens: 4096,
-        temperature: 0,
-        jsonMode: true,
-      });
+      const raw = await llm({ system: SYSTEM, messages: [{ role: 'user', content: JSON.stringify(todo) }], maxTokens: 4096, temperature: 0, jsonMode: true });
       const obj = JSON.parse(String(raw).replace(/```json\n?|```/g, '').trim());
       parsed = obj && typeof obj === 'object' && obj.t && typeof obj.t === 'object' ? obj.t : {};
     } catch {
@@ -77,10 +84,9 @@ export async function translateLabels(
     }
     for (const s of todo) {
       const v = typeof parsed[s] === 'string' ? (parsed[s] as string).trim() : '';
-      // A translation (contains CJK), or the model deliberately keeping a name
-      // verbatim (e.g. "MultiQC"). Anything else — missing key, parse failure, some
-      // other English string — falls back to the source and is NOT cached, so a
-      // transient failure is retried next time.
+      // A translation (contains CJK), or the model deliberately keeping a proper name
+      // verbatim ("MultiQC"). A missing key / parse failure / other English string
+      // falls back to the source and is NOT cached, so it is retried next time.
       const ok = !!v && v.length <= MAX_LABEL_LEN * 2 && (CJK.test(v) || v === s.trim());
       out[s] = ok ? v : s;
       if (ok) cache.set(key(lang, s), v);
