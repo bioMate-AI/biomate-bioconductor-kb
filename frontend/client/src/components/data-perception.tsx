@@ -21,6 +21,8 @@ import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight, CircleDashed } f
 import { cn } from "@/lib/utils";
 import { t, tOr, locale } from "@/lib/i18n";
 import { AT_LEAST_STAT, datasetKind, effectiveQuality, profileStats, type StatItem, type ViewKind } from "@/components/datasets/dataset-view-model";
+import { formatLabelText } from "@/components/datasets/format-labels";
+import { breakAtSeparators } from "@/components/datasets/name-breaks";
 
 // ---------------------------------------------------------------------------
 // Types — the shape the backend profiler emits (DataProfile.to_dict()).
@@ -91,6 +93,13 @@ export interface DataProfile {
   structure?: StructureEvidence;
   /** The kind's headline numbers, rendered as `perception.stat.<code>`; absent on older profiles. */
   stats?: { code: string; value: number | string; atLeast?: boolean }[];
+  /** The column the profiler took as the group / class label, when it found one. Effective N,
+   *  group balance and "a column gives the group away" only mean something for such a table. */
+  labelColumn?: string | null;
+  /** A table's decimal mark when it is not "." (e.g. "," for "1,5"). */
+  decimal?: string | null;
+  /** AnnData: the names of the real expression layers (`adata.layers`), apart from X. */
+  layers?: string[];
 }
 
 /** The profiler's evidence about a structure file's origin (data_perception.py
@@ -124,6 +133,8 @@ export interface DataPerceptionProps {
   datasetName?: string;
   /** The file's data kind (from the dataset view model); derived from the profile/name when absent. */
   kind?: ViewKind;
+  /** The kind's measures are shown by the host (the dataset object's stat grid): do not repeat them. */
+  hideStats?: boolean;
   className?: string;
 }
 
@@ -180,6 +191,10 @@ function fmtPct(frac: number): string {
 }
 
 const SORT_ORDER_KEYS = new Set(["unknown", "unsorted", "queryname", "coordinate"]);
+/** Matrix Market value types (the header's `field`): a closed vocabulary shown in the UI language. */
+const MTX_FIELD_KEYS = new Set(["integer", "real", "complex", "pattern", "double"]);
+/** Params that hold a format NAME (e.g. "Text", "PNG"): shown in the UI language like the format chip. */
+const FORMAT_NAME_PARAMS = new Set(["named", "detected"]);
 const STRUCTURE_METHOD_KEYS = new Set(["xray", "em", "nmr", "neutron", "fiber", "electron_crystallography"]);
 
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
@@ -192,6 +207,8 @@ function findingVars(f: PerceptionFinding): Record<string, string | number> {
     else if (Array.isArray(v)) vars[k] = v.map(String).join(t("perception.list_sep"));
     else if (typeof v === "number") vars[k] = Number.isInteger(v) ? fmtInt(v) : String(v);
     else if (k === "root" && typeof v === "string") vars[k] = tOr(`perception.root_${v}`, v);
+    else if (FORMAT_NAME_PARAMS.has(k) && typeof v === "string") vars[k] = formatLabelText({ label: v });
+    else if (k === "field" && typeof v === "string" && MTX_FIELD_KEYS.has(v.toLowerCase())) vars[k] = t(`perception.mtx_field.${v.toLowerCase()}`);
     else if (v != null) vars[k] = String(v);
   }
   // A BAM/SAM sort order is a closed vocabulary (`order_key`): shown in the UI language, never the
@@ -229,6 +246,7 @@ export function DataPerception({
   planImpact,
   datasetName,
   kind: kindProp,
+  hideStats,
   className,
 }: DataPerceptionProps) {
   const quality = effectiveQuality(profile);
@@ -248,10 +266,15 @@ export function DataPerception({
   const leakageItems = findings.filter((f) => f.section === "leakage" && !isReason(f));
   const planItems = findings.filter((f) => f.section === "plan");
 
+  // Effective N, group balance and "a column gives the group away" are about a table with a group /
+  // class label column. A sample sheet, gene list, count matrix or barcode list without one gets
+  // none of them. The profiler names the label column (`labelColumn`); an older profile that only
+  // sends a balance breakdown found one too.
   const hasClassBalance = !!profile.classBalance && profile.classBalance.length > 0;
+  const labelDetected = (typeof profile.labelColumn === "string" && profile.labelColumn.trim() !== "") || hasClassBalance;
 
   // The kind's own measures (reads, cells × genes, variants…) — rows × columns only for tables.
-  const stats = profile.structured ? [] : profileStats(profile, kind);
+  const stats = profile.structured || hideStats ? [] : profileStats(profile, kind);
 
   // Effective-N hint states the REAL reason the backend reported — never a generic guess.
   const effBase = profile.profiledRows ?? profile.shape?.rows ?? 0;
@@ -270,6 +293,9 @@ export function DataPerception({
   if (typeof profile.effectiveN === "number" && profile.profiledRows != null) {
     effHints.push(t("perception.effn_hint_subset", { n: fmtInt(profile.profiledRows) }));
   }
+  // Only for a labelled table, and only when it says something the row count does not.
+  const showEffectiveN = labelDetected && typeof profile.effectiveN === "number" && profile.effectiveN < effBase;
+  const showStatStrip = Boolean(profile.structured) || stats.length > 0 || showEffectiveN;
 
   const legacyNotes = !structuredMode ? profile.notes : [];
   const legacySignal = !structuredMode ? profile.signalSummary ?? [] : [];
@@ -292,7 +318,7 @@ export function DataPerception({
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="text-sm font-semibold leading-tight">{t("perception.title")}</div>
           {datasetName && (
-            <div className="font-mono text-xs text-muted-foreground [overflow-wrap:anywhere]">{datasetName}</div>
+            <div className="font-mono text-xs text-muted-foreground [overflow-wrap:break-word]" title={datasetName}>{breakAtSeparators(datasetName)}</div>
           )}
         </div>
         <span
@@ -308,28 +334,29 @@ export function DataPerception({
       </div>
 
       {/* Shape + effective-N stat strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {showStatStrip && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {profile.structured ? <>
           <Stat k={t("perception.stat_format")} v={profile.structured.format} />
           <Stat k={t("perception.stat_root")} v={tOr(`perception.root_${profile.structured.root}`, profile.structured.root)} />
-          <Stat k={t("perception.stat_values")} v={fmtInt(profile.structured.nodes)} />
-          <Stat k={t("perception.stat_keys")} v={fmtInt(profile.structured.keys)} />
+          {/* Counted at every nesting level — said so, with what each counts on hover. */}
+          <Stat k={t("perception.stat_values")} gloss={t("perception.gloss_values")} v={fmtInt(profile.structured.nodes)} testId="perception-structured-values" />
+          <Stat k={t("perception.stat_keys")} gloss={t("perception.gloss_keys")} v={fmtInt(profile.structured.keys)} testId="perception-structured-keys" />
           <Stat k={t("perception.stat_nulls")} v={fmtInt(profile.structured.nulls)} />
           <Stat k={t("perception.stat_depth")} v={fmtInt(profile.structured.depth)} />
         </> : stats.map((s) => (
           <Stat key={s.code} k={tOr(`perception.stat.${s.code}`, s.code)} v={formatStatValue(s)} testId={`perception-stat-${s.code}`} stat={s.code} />
         ))}
-        {typeof profile.effectiveN === "number" && (
+        {showEffectiveN && (
           <Stat
             k={t("perception.stat_effective_n")}
             gloss={t("perception.gloss_effective_n")}
-            v={fmtInt(profile.effectiveN)}
+            v={fmtInt(profile.effectiveN!)}
             hints={effHints}
             testId="perception-effective-n"
             wide={effHints.length > 0}
           />
         )}
-      </div>
+      </div>}
 
       {/* Why Watch / Blocked — the signals that set the verdict. */}
       {structuredMode && quality !== "good" && quality !== "unassessed" && (
@@ -351,7 +378,7 @@ export function DataPerception({
       )}
 
       {/* Leakage callout (info-level leakage, or a legacy profile's free text) */}
-      {(leakageItems.length > 0 || (!structuredMode && profile.leakage)) && (
+      {labelDetected && (leakageItems.length > 0 || (!structuredMode && profile.leakage)) && (
         <div
           data-testid="perception-leakage"
           className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs"
@@ -376,28 +403,20 @@ export function DataPerception({
         </div>
       )}
 
-      {/* Class balance */}
+      {/* Groups in the label column, in words a scientist uses: "Groups (condition): control 50% ·
+          treated 50%" — not "class balance". */}
       {hasClassBalance && (
-        <div className="flex flex-col gap-2" data-testid="perception-class-balance">
-          <div className="text-xs font-semibold text-muted-foreground">{t("perception.section_class_balance")}</div>
-          <div className="flex flex-col gap-1.5">
-            {profile.classBalance!.map((c, i) => (
-              <div key={`${c.label}-${i}`} className="flex items-center gap-2">
-                <span className="w-28 shrink-0 truncate font-mono text-xs" title={c.label}>
-                  {c.label}
-                </span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn("h-full rounded-full", c.frac < 0.1 ? "bg-amber-500" : "bg-primary")}
-                    style={{ width: `${Math.max(2, Math.min(100, c.frac * 100))}%` }}
-                  />
-                </div>
-                <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                  {fmtPct(c.frac)}
-                </span>
-              </div>
-            ))}
+        <div className="flex flex-col gap-1" data-testid="perception-class-balance">
+          <div className="text-xs font-semibold text-muted-foreground">
+            {profile.labelColumn ? t("perception.section_groups_in", { column: profile.labelColumn }) : t("perception.section_class_balance")}
           </div>
+          <p className="text-xs text-foreground [overflow-wrap:break-word]" data-testid="perception-groups">
+            {profile.classBalance!.map((c, i) => (
+              <span key={`${c.label}-${i}`} className={c.frac < 0.1 ? "text-amber-600 dark:text-amber-400" : undefined} data-testid="perception-group">
+                {i > 0 ? " · " : ""}<span className="font-mono">{c.label}</span> {fmtPct(c.frac)}
+              </span>
+            ))}
+          </p>
         </div>
       )}
 

@@ -32,6 +32,10 @@ export function useOneShotUrlParam(name: string): [string | undefined, () => voi
   return [value, consume]
 }
 
+/** How a draft is put into the composer: `send` = submit it once its attached files are linked
+ *  (a one-click action such as "Run full QC"); otherwise it waits for the user to review it. */
+export interface DraftOptions { send?: boolean }
+
 /**
  * Apply an initial draft into the composer once the composer's setter is ready,
  * then report consumption so the owner drops the payload (a remount must not
@@ -39,16 +43,18 @@ export function useOneShotUrlParam(name: string): [string | undefined, () => voi
  */
 export function useApplyInitialDraft(
   draft: string | undefined,
-  getSetter: () => ((draft: string) => void) | undefined,
+  getSetter: () => ((draft: string, opts?: DraftOptions) => void) | undefined,
   readyKey: unknown,
   onConsumed?: () => void,
+  opts?: DraftOptions,
 ) {
   const appliedRef = useRef(false)
   useEffect(() => {
     const setter = getSetter()
     if (!draft || appliedRef.current || !setter) return
     appliedRef.current = true
-    setter(draft)
+    if (opts?.send) setter(draft, { send: true })
+    else setter(draft)
     onConsumed?.()
   }, [readyKey, draft]) // eslint-disable-line react-hooks/exhaustive-deps
 }

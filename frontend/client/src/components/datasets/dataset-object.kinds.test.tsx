@@ -112,9 +112,10 @@ describe("AnnData (U5)", () => {
         { section: "note", code: "anndata_obs", level: "info", params: { count: 3, columns: ["n_genes", "louvain", "batch"] } },
         { section: "note", code: "anndata_var", level: "info", params: { count: 1, columns: ["gene_ids"] } },
         { section: "note", code: "anndata_embeddings", level: "info", params: { count: 2, embeddings: ["X_pca", "X_umap"] } },
-        { section: "note", code: "hdf5_groups", level: "info", params: { count: 1, groups: ["counts"] } },
+        { section: "note", code: "hdf5_groups", level: "info", params: { count: 5, groups: ["X", "obs", "obsm", "var", "varm"] } },
         { section: "note", code: "format_metadata_only", level: "watch", params: { format: "AnnData" } },
       ],
+      layers: ["counts"],
     }
     renderObj("pbmc3k.h5ad")
     const sum = await screen.findByTestId("dataset-anndata-summary")
@@ -123,11 +124,16 @@ describe("AnnData (U5)", () => {
     expect(within(sum).getByTestId("dataset-anndata-obs")).toHaveTextContent("louvain")
     expect(within(sum).getByTestId("dataset-anndata-var")).toHaveTextContent("gene_ids")
     expect(within(sum).getByTestId("dataset-anndata-embeddings")).toHaveTextContent("X_umap")
+    // Real layers (adata.layers) apart from the file's stored HDF5 groups (W5).
+    expect(within(sum).getByTestId("dataset-anndata-layers")).toHaveTextContent("Layers · 1")
     expect(within(sum).getByTestId("dataset-anndata-layers")).toHaveTextContent("counts")
+    expect(within(sum).getByTestId("dataset-anndata-layers")).not.toHaveTextContent("obsm")
+    expect(within(sum).getByTestId("dataset-anndata-groups")).toHaveTextContent("Stored groups (HDF5) · 5")
     expect(screen.queryByTestId("dataset-preview-toggle-table")).toBeNull()
-    // QC card: cells × genes, not "rows 1 / columns 1".
+    // cells × genes, not "rows 1 / columns 1" — shown once, in the stat grid (P3), not again in the QC card.
     const card = screen.getByTestId("data-perception")
-    expect(within(card).getByTestId("perception-stat-cells")).toHaveTextContent("2,700")
+    expect(within(card).queryByTestId("perception-stat-cells")).toBeNull()
+    expect(screen.getByTestId("dataset-stat-grid").querySelector('[data-stat="cells"]')).toHaveTextContent("2,700")
     expect(card).not.toHaveTextContent(/Rows/)
     expect(rowCalls).toBe(0)
   })
@@ -251,6 +257,8 @@ describe("restore re-reads the rows (the next edit is based on the restored vers
     expect(rowCalls).toBe(1)
     fireEvent.click(screen.getByTestId("dataset-tab-versions"))
     fireEvent.click(await screen.findByTestId("dataset-version-restore-6"))
+    // Restore asks first (W1); confirming sends it.
+    fireEvent.click(await screen.findByTestId("dataset-version-restore-yes-6"))
     // The restore is made against the version the list showed as current.
     await waitFor(() => expect(restoreBodies).toEqual([{ baseVersion: 7 }]))
     await waitFor(() => expect(rowCalls).toBe(2))

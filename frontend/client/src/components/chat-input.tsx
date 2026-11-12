@@ -13,6 +13,7 @@ import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
 import { filesFromDataTransfer } from "@/lib/folder-drop"
 import { t } from "@/lib/i18n"
+import type { DraftOptions } from "@/lib/one-shot-url-param"
 import { outputRequirementsToPrompt } from "@/lib/output-requirements"
 
 interface AttachedFile {
@@ -101,7 +102,7 @@ interface ChatInputProps {
   isStreaming?: boolean
   onStop?: () => void
   /** Register a setter function that can externally pre-fill the draft */
-  onRegisterSetDraft?: (setter: (draft: string) => void) => void
+  onRegisterSetDraft?: (setter: (draft: string, opts?: DraftOptions) => void) => void
   /** Register an adder function that can programmatically attach File objects */
   onRegisterAddFiles?: (adder: (files: File[]) => void) => void
   /** Replace previous example inputs while preserving user-picked files. */
@@ -292,11 +293,17 @@ export function ChatInput({
     onFilesSelected?.(files)
   }
 
+  // A draft to SEND as soon as the composer can: its attached project files linked, the project's
+  // settings loaded ("Run full QC" — the user already chose to run). Never sent twice; a link
+  // failure leaves it in the composer with the error, for the user to decide.
+  const [pendingSend, setPendingSend] = useState<string | null>(null)
+
   // Register an external draft setter so parent can pre-fill the textarea
   useEffect(() => {
     if (onRegisterSetDraft) {
-      onRegisterSetDraft((draft: string) => {
+      onRegisterSetDraft((draft: string, opts?: DraftOptions) => {
         setMessage(draft)
+        if (opts?.send) setPendingSend(draft)
         setTimeout(() => {
           const textarea = textareaRef.current
           if (!textarea) return
@@ -395,6 +402,17 @@ export function ChatInput({
       }
     }
   }
+
+  // Send the pending draft once nothing it depends on is still in flight.
+  useEffect(() => {
+    if (pendingSend === null) return
+    if (datasetLinkError || message !== pendingSend) { setPendingSend(null); return }
+    const linkPending = typeof window !== "undefined" && new URLSearchParams(window.location.search).getAll("attachFile").some(Boolean)
+    if (disabled || linkingDataset || linkPending || projectSettingsLoading || projectSettingsError) return
+    setPendingSend(null)
+    handleSend()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSend, message, disabled, linkingDataset, selectedDatasets, projectSettingsLoading, projectSettingsError, datasetLinkError])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

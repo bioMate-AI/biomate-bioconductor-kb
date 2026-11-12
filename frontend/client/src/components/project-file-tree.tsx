@@ -260,9 +260,15 @@ function InlineRename({
 }) {
   const [value, setValue] = useState(initial);
   const [err, setErr] = useState<string | null>(null);
-  // A concrete example of moving: "data/<this name>" puts it into a folder named data.
-  const base = initial.split("/").filter(Boolean).pop() || initial;
-  const hint = t("file_tree.rename_hint", { example: `data/${base}`, folder: "data" });
+  // The visible hint is ONE short line (the tree is ~280 px; a long example wrapped mid-word). The
+  // full hint — with an example that keeps the item in its CURRENT folder, moving it into a
+  // subfolder here, never out to the top — is on hover and read to screen readers.
+  const parts = initial.split("/").filter(Boolean);
+  const base = parts.pop() || initial;
+  const example = [...parts, "archive", base].join("/");
+  const hint = t("file_tree.rename_hint_short");
+  const hintFull = t("file_tree.rename_hint", { example, folder: "archive" });
+  const hintId = `${testid}-hint`;
   const [saving, setSaving] = useState(false);
   // The editor (and its hint / error below the input) must be fully visible inside the
   // tree's scroll box — a rename on the last row otherwise leaves the hint cut off.
@@ -282,7 +288,13 @@ function InlineRename({
       <input
         value={value}
         autoFocus
-        onFocus={(e) => e.currentTarget.select()}
+        onFocus={(e) => {
+          // Select the whole path with the caret at its START, so the box shows where the path
+          // begins (its folders) rather than scrolling to the tail of a long name.
+          const el = e.currentTarget;
+          el.setSelectionRange(0, el.value.length, "backward");
+          el.scrollLeft = 0;
+        }}
         onChange={(e) => { setValue(e.target.value); setErr(null); }}
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.preventDefault(); void save(); }
@@ -290,14 +302,21 @@ function InlineRename({
         }}
         disabled={saving}
         aria-label={t("file_tree.rename_label")}
-        title={hint}
+        aria-describedby={hintId}
+        title={hintFull}
         className={cn("w-full h-6 px-1.5 text-xs rounded border bg-background font-mono", err && "border-destructive")}
         data-testid={`${testid}-input`}
       />
       {err ? (
         <p className="text-fs-xs text-destructive [overflow-wrap:anywhere]" role="alert" data-testid={`${testid}-error`}>{err}</p>
       ) : (
-        <p className="text-fs-xs text-muted-foreground [overflow-wrap:anywhere]" data-testid={`${testid}-hint`}>{hint}</p>
+        <p
+          id={hintId}
+          className="truncate whitespace-nowrap text-fs-xs text-muted-foreground"
+          title={hintFull}
+          data-testid={`${testid}-hint`}
+          data-example={example}
+        >{hint}<span className="sr-only"> {hintFull}</span></p>
       )}
     </div>
   );
@@ -742,9 +761,11 @@ export interface ProjectFileTreeProps {
   onOpenFolder?: (path: string) => void;
   /** The input folder currently open in the folder view (same relative path). */
   selectedFolder?: string | null;
+  /** Bump to reload the file list (e.g. after the open file was saved as a new version). */
+  reloadKey?: number;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, reloadKey = 0 }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
@@ -787,7 +808,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     }
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   // Deep-link: when a `selectFileId` is supplied and its file has loaded, open
   // it as an object exactly once. This is what makes a dataset reference in the

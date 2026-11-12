@@ -30,7 +30,7 @@ beforeEach(() => {
     if (url.pathname === "/api/perception/profile") {
       return ok({
         shape: { rows: TOTAL, cols: 5 }, quality: "watch", notes: [], columns: COLUMNS, sampleRows: [record(0)],
-        effectiveN: 2280, effectiveNReason: "dedup", duplicateRows: 1,
+        effectiveN: 2280, effectiveNReason: "dedup", duplicateRows: 1, labelColumn: "drug",
         findings: [{ section: "signal", code: "near_constant", level: "watch", params: { count: 1, columns: ["source"], pct: 99 } }],
       })
     }

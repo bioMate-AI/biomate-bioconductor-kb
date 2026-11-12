@@ -7,7 +7,9 @@
  * - Note: an automatic note that only repeats the label ("v1") is not repeated.
  * - Compare: changed cells are numbered from 1 (data row 1 = the first row under the header);
  *   the diff API reports a 0-based `row`.
+ * - Restore asks first: it writes a NEW current version with the old content (append-only).
  */
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { t, locale } from "@/lib/i18n"
 import type { DatasetVersion } from "./datasets-api"
@@ -75,6 +77,8 @@ function shownValue(v: unknown): string {
 export function DatasetVersionsList({
   versions, usedByCount, versionable, error, diffFor, diffData, diffLoading, restoringVersion, onCompare, onRestore,
 }: DatasetVersionsListProps) {
+  // The version whose Restore was clicked and awaits confirmation.
+  const [confirmFor, setConfirmFor] = useState<string | null>(null)
   return (
     <>
       {error && <p className="text-xs text-destructive" data-testid="dataset-version-error">{error}</p>}
@@ -116,7 +120,8 @@ export function DatasetVersionsList({
                   className="text-xs text-primary hover:underline disabled:opacity-50"
                   data-testid={`dataset-version-restore-${v.version}`}
                   disabled={restoringVersion === v.version}
-                  onClick={() => onRestore(v.version)}
+                  aria-expanded={confirmFor === v.version}
+                  onClick={() => setConfirmFor(confirmFor === v.version ? null : v.version)}
                 >{restoringVersion === v.version ? t("dataset_obj.restoring") : t("dataset_obj.restore")}</button>
               )}
               {time && (
@@ -125,6 +130,23 @@ export function DatasetVersionsList({
                 </span>
               )}
             </div>
+            {versionable && !v.current && confirmFor === v.version && (
+              <div role="group" className="mt-1.5 flex flex-wrap items-center gap-2 rounded border border-amber-500/40 bg-amber-500/5 p-2" data-testid={`dataset-version-restore-confirm-${v.version}`}>
+                <span className="text-sm text-foreground">{t("dataset_obj.restore_confirm", { v: v.label })}</span>
+                <button
+                  type="button"
+                  className="rounded border border-primary bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+                  data-testid={`dataset-version-restore-yes-${v.version}`}
+                  onClick={() => { setConfirmFor(null); onRestore(v.version) }}
+                >{t("dataset_obj.restore_confirm_yes", { v: v.label })}</button>
+                <button
+                  type="button"
+                  className="rounded border px-2 py-0.5 text-xs"
+                  data-testid={`dataset-version-restore-cancel-${v.version}`}
+                  onClick={() => setConfirmFor(null)}
+                >{t("actions.cancel")}</button>
+              </div>
+            )}
             {(note || author) && (
               <p className="text-sm text-foreground pt-0.5" data-testid={`dataset-version-meta-${v.version}`}>
                 {note}

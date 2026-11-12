@@ -51,6 +51,7 @@ import {
   Layers
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { DraftOptions } from "@/lib/one-shot-url-param"
 
 interface WorkflowProgress {
   id: string
@@ -100,7 +101,7 @@ interface ChatInterfaceProps {
    *  workflow cards (viewer, pipeline, chain) are suppressed in chat messages
    *  so workflow UI lives exclusively in the panel. */
   isPanelOpen?: boolean
-  onRegisterSetDraft?: (setter: (draft: string) => void) => void
+  onRegisterSetDraft?: (setter: (draft: string, opts?: DraftOptions) => void) => void
   /**
    * Registers a parent-triggered send. Useful for the
    * IntentClarificationCard re-submit flow: when the user picks a
@@ -494,7 +495,7 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const followChatTailRef = useRef(true)
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
-  const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
+  const localSetDraftRef = useRef<((draft: string, opts?: DraftOptions) => void) | null>(null)
   const [preparingExample, setPreparingExample] = useState(false)
   const preparingExampleRef = useRef(false)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)

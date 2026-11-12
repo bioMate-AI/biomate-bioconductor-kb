@@ -178,6 +178,9 @@ function RootRoute({
   // draft param is stripped (?project= / ?attachFile= stay for the composer), and the
   // value is consumed once applied — see lib/one-shot-url-param.ts.
   const [initialDraft, consumeInitialDraft] = useOneShotUrlParam('draft')
+  // `?send=1` with a draft: the user already chose to run it (data panel "Run full QC") — the
+  // composer submits the draft once its attached files are linked. Read once, like the draft.
+  const [initialDraftSend] = useOneShotUrlParam('send')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -225,6 +228,7 @@ function RootRoute({
         initialMessage={initialMessage}
         initialDemoFiles={initialDemoFiles}
         initialDraft={initialDraft}
+        initialDraftSend={initialDraftSend === '1'}
         // One-shot URL payloads (?q= auto-send, ?draft= prefill) are consumed
         // HERE, at their source. ChatWithArtifacts is keyed by session id, so the
         // first send (new chat → real session) remounts it; if these props were

@@ -143,7 +143,8 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
 
             {prof.tenx && prof.tenx.sets.length > 0 && (
               <div className="space-y-2" data-testid="folder-tenx">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("folder_profile.tenx_heading")}</p>
+                {/* A proper name ("10x Genomics"): its own capitalisation, never forced to all caps. */}
+                <p className="text-xs font-semibold text-muted-foreground" data-testid="folder-tenx-heading">{t("folder_profile.tenx_heading")}</p>
                 {prof.tenx.sets.map((s) => (
                   <div key={`${s.dir}/${s.prefix ?? ""}`} className="rounded border p-2.5 space-y-1" data-testid={`folder-tenx-set-${s.dir || "."}`} data-complete={String(s.complete)}>
                     <div className="flex items-center gap-2 flex-wrap text-sm">

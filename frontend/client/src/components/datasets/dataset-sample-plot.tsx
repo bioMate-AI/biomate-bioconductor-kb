@@ -15,12 +15,29 @@ import {
 export interface DatasetSamplePlotProps {
   columns: string[];
   sampleRows: string[][];
+  /** The table's decimal mark when the reader reports one ("," → "1,5" is 1.5). */
+  decimal?: string | null;
   /** i18n passthrough; (key, vars) — matches the app's narrowed t signature. */
   t?: (key: string, vars?: any) => string;
 }
 
+/**
+ * A cell as a number, or NaN. With a decimal comma ("1,5", "1.234,5") the comma is the decimal
+ * mark and a dot only groups thousands; otherwise the usual "1.5".
+ */
+export function parseCellNumber(raw: string | null | undefined, decimal?: string | null): number {
+  let v = (raw ?? "").trim();
+  if (v === "") return NaN;
+  if (decimal === ",") {
+    if (!/^[+-]?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?([eE][+-]?\d+)?$/.test(v)) return NaN;
+    v = v.replace(/\./g, "").replace(",", ".");
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 /** Indices of columns whose sample cells are >=60% finite numbers (>=2 non-empty). */
-export function numericColumnIndices(columns: string[], rows: string[][]): number[] {
+export function numericColumnIndices(columns: string[], rows: string[][], decimal?: string | null): number[] {
   const out: number[] = [];
   columns.forEach((_, ci) => {
     let num = 0, tot = 0;
@@ -28,15 +45,15 @@ export function numericColumnIndices(columns: string[], rows: string[][]): numbe
       const v = (r?.[ci] ?? "").trim();
       if (v === "") continue;
       tot++;
-      if (Number.isFinite(Number(v))) num++;
+      if (Number.isFinite(parseCellNumber(v, decimal))) num++;
     }
     if (tot >= 2 && num / tot >= 0.6) out.push(ci);
   });
   return out;
 }
 
-export function hasNumericColumns(columns: string[], rows: string[][]): boolean {
-  return numericColumnIndices(columns, rows).length > 0;
+export function hasNumericColumns(columns: string[], rows: string[][], decimal?: string | null): boolean {
+  return numericColumnIndices(columns, rows, decimal).length > 0;
 }
 
 export interface HistogramBin {
@@ -93,20 +110,19 @@ export function histogramBins(values: number[], targetBins = 12, tag?: string): 
   });
 }
 
-export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotProps) {
-  const tr = t || ((_k: string, v?: any) =>
-    `Distribution of ${v?.col} across the ${v?.n}-row sample — open in Jupyter/RStudio for the full dataset.`);
-  const numCols = useMemo(() => numericColumnIndices(columns, sampleRows), [columns, sampleRows]);
+export function DatasetSamplePlot({ columns, sampleRows, decimal, t }: DatasetSamplePlotProps) {
+  const tr = t || ((_k: string, v?: any) => `Distribution of column “${v?.col}” · rows loaded: ${v?.n}`);
+  const numCols = useMemo(() => numericColumnIndices(columns, sampleRows, decimal), [columns, sampleRows, decimal]);
   const [sel, setSel] = useState<number>(numCols[0] ?? -1);
   const colIdx = numCols.includes(sel) ? sel : (numCols[0] ?? -1);
 
   const data = useMemo(() => {
     if (colIdx < 0) return [];
     const vals = sampleRows
-      .map((r) => Number((r?.[colIdx] ?? "").trim()))
+      .map((r) => parseCellNumber(r?.[colIdx], decimal))
       .filter((v) => Number.isFinite(v));
     return histogramBins(vals);
-  }, [colIdx, sampleRows]);
+  }, [colIdx, sampleRows, decimal]);
 
   if (colIdx < 0 || data.length === 0) return null; // caller renders the fallback
 
@@ -136,8 +152,8 @@ export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotP
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {tr("dataset_obj.plot_sample_caveat", { col: columns[colIdx], n: sampleRows.length })}
+      <p className="text-xs text-muted-foreground" data-testid="dataset-sample-plot-caption">
+        {tr("dataset_obj.plot_sample_caveat", { col: columns[colIdx], n: sampleRows.length.toLocaleString(locale === "zh" ? "zh-CN" : "en-US") })}
       </p>
     </div>
   );

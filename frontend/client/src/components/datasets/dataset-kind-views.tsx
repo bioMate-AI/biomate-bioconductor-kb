@@ -51,8 +51,15 @@ export function AnnDataSummary({ profile, kind, onAnalyze }: { profile?: DataPro
   const obs = findingOf(profile, loom ? "loom_col_attrs" : "anndata_obs")
   const varF = findingOf(profile, loom ? "loom_row_attrs" : "anndata_var")
   const emb = findingOf(profile, "anndata_embeddings")
-  const layers = findingOf(profile, loom ? "loom_layers" : "hdf5_groups")
-  const known = cells != null || genes != null || obs || varF || emb || layers
+  // Real expression layers (`adata.layers`: counts, spliced…) are NOT the file's HDF5 groups
+  // (X, obs, obsm, var, varm — the AnnData containers themselves). Layers come from the profile's
+  // `layers` (or an `anndata_layers` / Loom `loom_layers` finding); the groups are listed apart,
+  // under their own name.
+  const layersF = findingOf(profile, loom ? "loom_layers" : "anndata_layers")
+  const layerNames = Array.isArray(profile?.layers) ? profile!.layers!.map(String) : listParam(layersF, "layers")
+  const layersTotal = Array.isArray(profile?.layers) ? profile!.layers!.length : (layersF?.params?.count as number | undefined)
+  const groups = loom ? undefined : findingOf(profile, "hdf5_groups")
+  const known = cells != null || genes != null || obs || varF || emb || layerNames.length || groups
   return (
     <div className="space-y-3 rounded border p-3" data-testid="dataset-anndata-summary">
       {known ? (
@@ -67,7 +74,8 @@ export function AnnDataSummary({ profile, kind, onAnalyze }: { profile?: DataPro
           <ChipList testId="dataset-anndata-obs" label={t("dataset_obj.summary_obs")} names={listParam(obs, "columns")} total={obs?.params?.count as number | undefined} />
           <ChipList testId="dataset-anndata-var" label={t("dataset_obj.summary_var")} names={listParam(varF, "columns")} total={varF?.params?.count as number | undefined} />
           <ChipList testId="dataset-anndata-embeddings" label={t("dataset_obj.summary_embeddings")} names={listParam(emb, "embeddings")} total={emb?.params?.count as number | undefined} />
-          <ChipList testId="dataset-anndata-layers" label={t("dataset_obj.summary_layers")} names={listParam(layers, loom ? "layers" : "groups")} total={layers?.params?.count as number | undefined} />
+          <ChipList testId="dataset-anndata-layers" label={t("dataset_obj.summary_layers")} names={layerNames} total={layersTotal} />
+          <ChipList testId="dataset-anndata-groups" label={t("dataset_obj.summary_groups")} names={listParam(groups, "groups")} total={groups?.params?.count as number | undefined} />
           <p className="text-xs text-muted-foreground">{t("dataset_obj.summary_anndata_note")}</p>
         </>
       ) : (
