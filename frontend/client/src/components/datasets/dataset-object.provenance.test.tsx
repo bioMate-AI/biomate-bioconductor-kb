@@ -174,13 +174,17 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(usedby.textContent).toMatch(/2/)  // two consumer runs in routeFetch
   })
 
-  it("Edit view — editing a cell and saving writes a new version (§4.3/§4.4)", async () => {
+  it("Edit view — edits the full-rows table; sends row, column index and the shown value (§4.3/§4.4)", async () => {
     let edited: any = null
     const base = global.fetch as any
     global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
       const url = typeof input === "string" ? input : input.toString()
       if (url.includes("/perception/profile")) {
         return ({ ok: true, status: 200, json: async () => ({ ...PROFILE, columns: ["gene", "label"], sampleRows: [["TP53", "ctrl"]] }), text: async () => "" }) as unknown as Response
+      }
+      if (/\/files\/[^/]+\/rows\?/.test(url)) {
+        // Full value — the profile sample would have truncated it.
+        return ({ ok: true, status: 200, json: async () => ({ tabular: true, columns: ["gene", "label"], rows: [["TP53", "ctrl"], ["EGFR", "a, quoted"]], totalRows: 2 }), text: async () => "" }) as unknown as Response
       }
       if (/\/files\/[^/]+\/edit$/.test(url)) {
         edited = JSON.parse(init.body)
@@ -196,10 +200,11 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
       </QueryClientProvider>,
     )
     fireEvent.click(await screen.findByTestId("dataset-preview-toggle-edit", {}, { timeout: 4000 }))
-    const cell = await screen.findByTestId("dataset-edit-cell-0-1")
+    const cell = await screen.findByTestId("dataset-edit-cell-1-1")
+    expect((cell as HTMLInputElement).value).toBe("a, quoted")
     fireEvent.change(cell, { target: { value: "control" } })
     fireEvent.click(screen.getByTestId("dataset-edit-save"))
-    await waitFor(() => expect(edited?.edits?.[0]).toMatchObject({ row: 0, col: "label", value: "control" }))
+    await waitFor(() => expect(edited?.edits).toEqual([{ row: 1, col: 1, from: "a, quoted", value: "control" }]))
     await screen.findByTestId("dataset-edit-saved")
   })
 
