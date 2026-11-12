@@ -477,17 +477,14 @@ function PlatformLayout({
               <HintTip hint={t('hint.rail.expand')}>
               <button
                 onClick={toggleSidebar}
-                className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
-                style={{
-                  background: 'var(--bm-text, hsl(var(--foreground)))',
-                  color: 'var(--bm-bg-elev, white)',
-                  fontSize: 'var(--fs-base)',
-                  letterSpacing: '-0.03em',
-                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+                style={{ padding: 0, background: 'transparent', border: 'none' }}
                 data-testid="button-sidebar-expand"
                 aria-label={t('nav.expand_sidebar')}
               >
-                B
+                {/* Brand mark = the site's browser icon (favicon), not a plain "B"
+                    (founder: "use the browser icon of biomate website"). */}
+                <img src="/favicon.png" alt="BioMate" className="w-full h-full object-cover rounded-lg" />
               </button>
               </HintTip>
               {/* Icon buttons */}
