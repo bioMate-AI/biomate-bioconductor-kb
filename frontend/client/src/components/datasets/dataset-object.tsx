@@ -433,8 +433,10 @@ export function DatasetObject({
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
-                project file into the user's Galaxy history and launches the IT. */}
-            {canOpenIn && (
+                project file into the user's Galaxy history and launches the IT.
+                DISABLED 2026-11-11 (founder): not functioning — commented out via
+                `false &&` until the interactive-tool launch path works. */}
+            {false && canOpenIn && (
               <Button
                 variant="outline"
                 size="sm"

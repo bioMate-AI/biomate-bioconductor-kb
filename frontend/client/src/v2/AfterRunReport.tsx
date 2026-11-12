@@ -1692,7 +1692,9 @@ function OutputsTab({
         )}
       </div>
 
-      <InteractiveToolsRow outputs={scientificOutputs} />
+      {/* Interactive tools panel DISABLED 2026-11-11 (founder): not functioning.
+          Re-enable when the interactive-tool launch path works.
+          <InteractiveToolsRow outputs={scientificOutputs} /> */}
 
       {/* Outputs gallery — each output as an inline preview card. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '2px 0 10px' }}>
