@@ -122,7 +122,9 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(within(screen.getByTestId("dataset-quality")).getByText("Data QC")).toBeInTheDocument()
   })
 
-  it("Open-in — a data file stages + launches an interactive tool (§4.3.1)", async () => {
+  // SKIPPED 2026-11-11: the open-in Jupyter/RStudio button is disabled (not
+  // functioning) in dataset-object.tsx. Re-enable this test when the button returns.
+  it.skip("Open-in — a data file stages + launches an interactive tool (§4.3.1)", async () => {
     const openSpy = vi.fn()
     vi.stubGlobal("open", openSpy)
     const base = global.fetch as any
@@ -313,7 +315,9 @@ describe("DatasetObject — unavailable metadata and action error scope", () => 
     expect(within(grid).getAllByText("—")).toHaveLength(2)
   })
 
-  it("shows a useful launch failure and clears it when another file opens", async () => {
+  // SKIPPED 2026-11-11: exercises the open-in button, which is disabled (not
+  // functioning). Re-enable when the button returns.
+  it.skip("shows a useful launch failure and clears it when another file opens", async () => {
     routeFetch()
     const original = global.fetch
     global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
