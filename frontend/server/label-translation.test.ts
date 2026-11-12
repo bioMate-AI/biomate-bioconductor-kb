@@ -44,3 +44,11 @@ describe('translateLabels', () => {
     expect(await translateLabels(['Visualisation & Report'], 'zh', boom as any)).toEqual({ 'Visualisation & Report': 'Visualisation & Report' });
   });
 });
+
+describe('translateLabels — single pass, no regex second-guessing of names', () => {
+  it('one call per batch; a mixed output is accepted as returned (no repair re-ask)', async () => {
+    const llm = vi.fn(async () => JSON.stringify({ t: { 'Fetch genotypes using fetch()': '使用 fetch() 获取基因型' } }));
+    expect(await translateLabels(['Fetch genotypes using fetch()'], 'zh', llm as any)).toEqual({ 'Fetch genotypes using fetch()': '使用 fetch() 获取基因型' });
+    expect(llm).toHaveBeenCalledTimes(1);
+  });
+});
