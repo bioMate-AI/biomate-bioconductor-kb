@@ -1211,10 +1211,14 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
 
     # Source priority order for merge (most trusted first)
     priority = {
+        # bindingdb/pharos are placed among the high-value sources (BEFORE literature) so
+        # their top row survives the round-robin + merged[:8] cap in a broad multi-source
+        # query — omitting them relegated them to `remaining`, cutting BindingDB affinities
+        # out of synthesis on a broad ABL1 query (dev verify finding, 2026-11-12).
         "gene":       ["uniprot", "ncbi_gene", "ensembl", "string", "kegg",
-                       "go", "gnomad", "pubmed", "semantic_scholar"],
+                       "go", "gnomad", "pharos", "pubmed", "semantic_scholar"],
         "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
-                       "go", "chembl", "pubmed", "semantic_scholar"],
+                       "go", "chembl", "bindingdb", "pharos", "pubmed", "semantic_scholar"],
         "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
         "variant":    ["clinvar", "dbsnp", "gnomad", "pubmed", "semantic_scholar"],
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
