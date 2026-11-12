@@ -2508,6 +2508,22 @@ class ResearchAgent:
             # Existence check + explicit refusal when nothing is grounded (gap T8).
             # Fail-soft: any error here leaves the answer unchanged.
             ev_status, ev_rows = None, []
+            # DB-grounding signal: when the answer rests on authoritative database records
+            # (resolved structures/variants/interactions/activities with stable ids), an
+            # absence of literature citations must be framed as database-grounded, NOT as
+            # "unreferenced background" — otherwise the resolver + federated evidence we
+            # fetch is thrown away by the literature-only refusal (dev finding 2026-11-12:
+            # ABL1 structures fetched but the answer said "no structures").
+            _dbf_pre = evidence.get('db_facts') or {}
+            _has_db_grounding = False
+            for _k, _v in _dbf_pre.items():
+                if _k == 'federated_evidence' and isinstance(_v, dict):
+                    if any(isinstance(b, dict) and b.get('merged') for b in _v.values()):
+                        _has_db_grounding = True
+                elif _v:
+                    _has_db_grounding = True
+                if _has_db_grounding:
+                    break
             try:
                 from galaxy.ai.agents.citation_check import check_answer_citations
                 _n_lit = len(lit_pool)
@@ -2516,7 +2532,7 @@ class ResearchAgent:
                           for i, c in enumerate(citations)]
                 answer_text, _kept, ev_status, ev_rows = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: check_answer_citations(
-                        answer_text, _cites, n_numbered=_n_lit))
+                        answer_text, _cites, n_numbered=_n_lit, db_grounded=_has_db_grounding))
                 citations = [c for c, r in zip(citations, ev_rows)
                              if r['status'] not in ('not_found', 'title_mismatch')]
             except Exception as _e:
@@ -2942,12 +2958,24 @@ class ResearchAgent:
                             continue
                         _src = _m.get('source') or _m.get('db') or _m.get('database') or '?'
                         _label = (_m.get('name') or _m.get('title') or _m.get('id')
-                                  or _m.get('accession') or _m.get('chembl_id') or '')
+                                  or _m.get('accession') or _m.get('chembl_id')
+                                  or _m.get('pdb_id') or _m.get('patent_id')
+                                  or _m.get('partner') or _m.get('uniprot') or '')
+                        # Fall back to the remaining scalar fields so each source's own
+                        # shape renders — PDBe (pdb_id/resolution), STRING (partner/score),
+                        # ChEMBL (chembl_target_id/activity) etc. were being DROPPED because
+                        # the prompt only knew name/summary (dev finding 2026-11-12: ABL1
+                        # structures fetched but rendered blank → LLM said "no structures").
+                        _skip = {'source', 'db', 'database'}
+                        _fields = [f"{_k2}={_v2}" for _k2, _v2 in _m.items()
+                                   if _k2 not in _skip and _v2 not in (None, '', [])
+                                   and not isinstance(_v2, (dict, list))
+                                   and str(_v2) != str(_label)]
                         _detail = (_m.get('summary') or _m.get('description')
-                                   or _m.get('activity') or _m.get('value') or _m.get('type') or '')
+                                   or _m.get('activity') or ", ".join(_fields[:6]))
                         db_section.append(
                             f"- [{_src}] {str(_label)[:90]}"
-                            f"{(' — ' + str(_detail)[:140]) if _detail else ''}")
+                            f"{(' — ' + str(_detail)[:200]) if _detail else ''}")
 
             # ── Ranked candidate targets (target_id fuse_channels), when attached ─
             if df.get('target_ranking'):
