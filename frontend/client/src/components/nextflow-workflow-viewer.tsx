@@ -6,6 +6,7 @@ import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
 import { analytics } from '@/lib/analytics';
 import { t, tOr, tStatus } from '@/lib/i18n';
+import { HintTip } from '@/components/ui/hint-tip';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
@@ -3270,21 +3271,20 @@ export function NextflowWorkflowViewer({
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
         const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const showAfterRunDot = status === 'completed' || status === 'failed';
-        // Per-tab hover tips so the user can see what each tab contains
-        // without clicking. Native `title` keeps this dependency-free.
+        // Per-tab hover hints so the user can see what each tab contains
+        // without clicking.
         const tabTips: Record<'settings' | 'phases' | 'after-run', string> = {
           settings: t('panel.tab_tips.settings'),
           phases: t('panel.tab_tips.phases'),
           'after-run': t('panel.tab_tips.after_run'),
         };
         const tabBtn = (key: 'settings' | 'phases' | 'after-run', label: string, badge?: React.ReactNode): React.ReactElement => (
+          <HintTip key={key} hint={tabTips[key]} side="bottom">
           <button
-            key={key}
             type="button"
             onClick={() => { setActiveTab(key); setTabAutoDefault(false); }}
             data-testid={`panel-tab-${key}`}
             aria-selected={activeTab === key}
-            title={tabTips[key]}
             style={{
               background: 'transparent',
               border: 'none',
@@ -3302,6 +3302,7 @@ export function NextflowWorkflowViewer({
             {label}
             {badge}
           </button>
+          </HintTip>
         );
         const countBadge = (n: number) =>
           n > 0 ? (

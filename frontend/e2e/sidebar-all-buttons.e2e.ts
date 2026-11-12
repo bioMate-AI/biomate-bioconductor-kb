@@ -385,11 +385,11 @@ test("SB-11: history dots reflect run status (idle=neutral gray, completed=green
     return;
   }
 
-  // Inspect each visible dot's title attribute (reflects run status)
+  // Inspect each visible dot's data-status attribute (reflects run status)
   const dotStatuses: string[] = [];
   for (let i = 0; i < Math.min(dotCount, 6); i++) {
     const dot = allDots.nth(i);
-    const title = await dot.getAttribute("title").catch(() => "");
+    const title = await dot.getAttribute("data-status").catch(() => "");
     dotStatuses.push(title ?? "");
   }
   console.log("[SB-12] Dot statuses:", dotStatuses);
@@ -397,7 +397,7 @@ test("SB-11: history dots reflect run status (idle=neutral gray, completed=green
   // Every dot title must be one of the known values
   for (const status of dotStatuses) {
     expect(
-      ["idle", "running", "completed", "failed", ""],
+      ["idle", "running", "completed", "failed", "cancelled", ""],
       `dot title '${status}' must be a known run state`,
     ).toContain(status);
   }

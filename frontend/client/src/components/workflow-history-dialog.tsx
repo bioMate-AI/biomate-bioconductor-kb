@@ -18,6 +18,7 @@ import { Loader2, Search, Upload, Play, CheckCircle2, Info, Trash2, Sparkles } f
 import { analytics } from '@/lib/analytics';
 import { parseNfParams } from '@/lib/parse-nf-params';
 import { tOr } from '@/lib/i18n';
+import { HintTip } from '@/components/ui/hint-tip';
 import type { WorkflowSelection } from '@/lib/workflow-selection';
 
 /** One ranked catalog match returned by POST /api/ai_assistant/search_ranked. */
@@ -406,7 +407,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
 
         {/* Tabs */}
         <div className="flex gap-1 border-b pb-0 -mb-px">
-          {library && <button
+          {library && <HintTip hint={tOr('hint.workflows_library.browse', '')} side="bottom"><button
             data-testid="tab-browse"
             onClick={() => setActiveTab('browse')}
             className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
@@ -417,7 +418,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           >
             <Sparkles className="w-3.5 h-3.5" />
             {tOr('workflows_library.tab_browse', 'Browse')}
-          </button>}
+          </button></HintTip>}
           {!importOnly && !library && <button
             data-testid="tab-runs"
             onClick={() => setActiveTab('runs')}
@@ -427,9 +428,9 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            Run History
+            {tOr('workflows_library.tab_runs', 'Run history')}
           </button>}
-          <button
+          <HintTip hint={library ? tOr('hint.workflows_library.my', '') : ''} side="bottom"><button
             data-testid="tab-my-imports"
             onClick={() => setActiveTab('imports')}
             className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
@@ -438,9 +439,9 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {library ? tOr('workflows_library.tab_my', 'My workflows') : 'My Imports'}
-          </button>
-          <button
+            {library ? tOr('workflows_library.tab_my', 'My workflows') : tOr('workflows_library.tab_my_imports', 'My imports')}
+          </button></HintTip>
+          <HintTip hint={library ? tOr('hint.workflows_library.import', '') : ''} side="bottom"><button
             data-testid="tab-upload"
             onClick={() => { setActiveTab('upload'); resetUpload(); }}
             className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
@@ -451,7 +452,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           >
             <Upload className="w-3.5 h-3.5" />
             {tOr('workflows_library.tab_import', 'Import Workflow')}
-          </button>
+          </button></HintTip>
         </div>
 
         {!importOnly && activeTab === 'runs' && (

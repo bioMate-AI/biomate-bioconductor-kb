@@ -22,7 +22,11 @@
     "recent_tools": "Recent tools",
     "design_generate": "Molecule design & generate",
     "run_manager": "Run Manager",
-    "beta_tooltip": "Early-access beta — features may change"
+    "beta_tooltip": "Early-access beta — features may change",
+    "shared": "shared",
+    "expand_sidebar": "Expand sidebar",
+    "new_chat": "New chat",
+    "chat_history": "Chat history"
   },
   "actions": {
     "run": "Run",
@@ -928,7 +932,7 @@
     "tab_tips": {
       "settings": "Workflow-wide datasets and configuration that apply to every phase. Required ones must be set before you run.",
       "phases": "Phases and steps of the workflow — live progress while running, per-step parameters that only affect a single step, QC thresholds with self-correct toggle, and the output files each step produces.",
-      "after_run": "Available after the run completes — outputs, findings, QC report, methods write-up, and citations."
+      "after_run": "Available after the run completes — summary of findings, output files, and the run report."
     },
     "run_kind": {
       "workflow": "Workflow",
@@ -1453,7 +1457,12 @@
     "source_unavailable": "The cited output could not be uniquely located in this run: {{file}}",
     "why_failed": "Why it failed",
     "at_fault": "At fault",
-    "next_action": "Next"
+    "next_action": "Next",
+    "tab": {
+      "summary": "Summary",
+      "outputs": "Outputs",
+      "report": "Report"
+    }
   },
   "datasets_dialog": {
     "title": "Select dataset",
@@ -1530,7 +1539,9 @@
     "import_uploading": "Uploading…",
     "import_success": "{{name}} imported successfully",
     "import_another": "Import another",
-    "import_view_mine": "View in My workflows"
+    "import_view_mine": "View in My workflows",
+    "tab_runs": "Run history",
+    "tab_my_imports": "My imports"
   },
   "citations": {
     "boundary_default": "Synthesizes retrieved literature only — not validated against your project's data. Check against your own data before relying on it.",
@@ -1810,5 +1821,111 @@
     "hint": "Only changed parameters will be applied. The workflow resumes from this step.",
     "submitting": "Submitting…",
     "rerun": "Rerun from this step"
+  },
+  "hint": {
+    "nav": {
+      "data": "Datasets in the current project — files you uploaded or fetched and files your runs produced, each with a quality rating, versions and where it came from.",
+      "workflows": "Search the workflow catalog, open your own workflows, or import a new one.",
+      "models": "Train models on your data, browse and run available models, and follow molecular design loops.",
+      "projects": "Each project keeps its chats, data, runs and standing instructions together. Click to show or hide the list.",
+      "new_project": "Create a project to group related chats, data and runs.",
+      "project_instructions": "Standing instructions the assistant applies to every chat in this project.",
+      "project_files": "Open this project's datasets.",
+      "project_new_chat": "Start a new chat inside this project.",
+      "settings": "Language, API keys, language-model provider, connectors and workflow import.",
+      "admin": "System administration — service health, run and user statistics, and the system language-model setup.",
+      "sign_out": "Sign out of this account on this device.",
+      "collapse": "Collapse the sidebar to a narrow rail to give the chat and panel more room.",
+      "project_row": "Show or hide this project's chats, files and instructions."
+    },
+    "rail": {
+      "expand": "Expand the sidebar.",
+      "new_chat": "Start a new chat.",
+      "history": "Show your chats and projects (expands the sidebar)."
+    },
+    "chat_status": {
+      "running": "A workflow from this chat is running.",
+      "failed": "A workflow run in this chat failed.",
+      "completed": "All workflow runs in this chat have completed.",
+      "idle": "No workflow run in this chat yet.",
+      "cancelled": "A workflow run in this chat was cancelled or paused."
+    },
+    "afterrun": {
+      "summary": "Headline findings from this run, any flagged quality checks, and a link from each finding to the output it was read from.",
+      "outputs": "Every file the run produced — preview or download each one.",
+      "report": "A read-only report of the saved run: what was run, its outputs, methods and quality checks."
+    },
+    "models": {
+      "train": "Train a model on your own dataset and follow its training runs.",
+      "library": "Pre-trained models and the models you registered — run one, or open it to see its evidence, lineage and versions.",
+      "molecular": "Train molecular (SMILES) models and follow design–make–test–analyse loops: their rounds, surrogate models and proposals."
+    },
+    "model_obj": {
+      "evidence": "The model's held-out test result against its acceptance threshold, and the verdict — shown as not evaluated until a test has been run.",
+      "lineage": "Where this model came from: its training dataset, training run and prior versions, when they are recorded.",
+      "used": "Where this model is used in your account, such as the campaigns that registered it.",
+      "iface": "How the model is called: the inputs it takes and the outputs it returns.",
+      "versions": "Every version of this model and the verdict each one received."
+    },
+    "settings": {
+      "api_keys": "Personal keys for connecting chat apps and MCP clients to BioMate, and the language-model provider used in chat.",
+      "connectors": "Public data sources, your private databases, MCP servers and instrument connections.",
+      "import": "Add your own Nextflow or Galaxy workflow so it can be run from any chat."
+    },
+    "workflows_library": {
+      "browse": "Search the curated workflow catalog by task, method or data type.",
+      "my": "Workflows you imported — launch any of them from a chat.",
+      "import": "Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow."
+    },
+    "dataset": {
+      "preview": "Look inside the file — a table, image or text view of its contents.",
+      "versions": "Every saved version of this dataset.",
+      "wherefrom": "Where this dataset came from: the upload, public source or run that produced it."
+    },
+    "project": {
+      "chat": "Conversations that belong to this project.",
+      "files": "Files in this project — your uploads and the outputs of its runs."
+    },
+    "connectors": {
+      "databases": "Public protein, genomics, omics, chemical, pathway, disease, literature and imaging sources BioMate can query from chat.",
+      "ai": "Language-model providers and the messaging / IDE apps BioMate works with — for reference; not configured here.",
+      "skills": "Available expert packs; pick packs for a request in the chat composer.",
+      "mcp": "Manage your MCP server connections."
+    }
+  },
+  "model_obj": {
+    "tab": {
+      "evidence": "Evidence",
+      "lineage": "Built from",
+      "used": "Used by",
+      "iface": "Interface",
+      "versions": "Versions"
+    }
+  },
+  "tool_card": {
+    "tool": {
+      "run_code": "Run code",
+      "read_file": "Read file",
+      "query_domain_knowledge": "Domain knowledge",
+      "search_literature": "Search literature",
+      "query_database": "Query database",
+      "search_my_data": "Search my data",
+      "search_chat_history": "Search chat history",
+      "list_history": "List my datasets",
+      "list_run_outputs": "List run outputs",
+      "edit_report": "Edit report",
+      "list_data_sources": "List data sources",
+      "search_workflows": "Search workflows"
+    },
+    "download": "Download",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copy_code": "Copy code",
+    "input": "Input",
+    "result": "Result",
+    "console_output": "Console output",
+    "output_files": "Output files",
+    "exit_code": "Exit code: {{code}}",
+    "more_lines": "+{{n}} more lines"
   }
 }
