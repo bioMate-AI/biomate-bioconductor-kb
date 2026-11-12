@@ -268,7 +268,7 @@ _EN_TEXT: Dict[str, str] = {
     'effective_n_dedup': "Effective N ({{n}}) is below the row count ({{rows}}) — duplicate rows ({{duplicates}}) reduce the independent samples.",
     'label_free_text': "Column “{{column}}” looks like a label, but its distinct values ({{distinct}}) make it free text, not a class target.",
     'table_summary': "Rows: {{rows}} · columns: {{cols}}.",
-    'table_clean': "Rows: {{rows}} · columns: {{cols}}; no leakage, imbalance or constant-column issues detected.",
+    'table_clean': "Rows: {{rows}} · columns: {{cols}}; groups are balanced, no column gives the group away, and no column is constant.",
     'profiled_subset': "Statistics were computed on the first {{profiled}} of {{rows}} rows.",
     'leaked_id': "Column “{{column}}” is (nearly) unique per row and perfectly predicts the label — a leaked identifier.",
     'leaked_feature': "Column “{{column}}” predicts the label with {{pct}}% accuracy — the target has leaked into the features.",
