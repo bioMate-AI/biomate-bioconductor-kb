@@ -3,6 +3,8 @@ import { stepFileDisposition } from "./step-file-disposition";
 import { waitForInteractiveSession, waitForDatasetReady } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
+import { proxyTarget, rejectProxyPath } from "./proxy-path";
+import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
@@ -198,45 +200,6 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
 
 // fetchGalaxyAsUser (user key, else shared admin key, with mid-session recovery) lives in
 // ./galaxy-user-fetch so project-routes.ts shares the exact same key choice.
-
-/**
- * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
- * same path + query, JSON body for methods other than GET/HEAD/DELETE, and the response relayed
- * back (JSON parsed, otherwise raw bytes; Content-Type and Content-Disposition passed through).
- * The key and its mid-session recovery come from fetchGalaxyAsUser. Shared by the ind-report,
- * regulatory, grounded and DL passthroughs (previously four copies of this body).
- */
-function backendPassthrough(label: string) {
-  return async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      return res.send(Buffer.from(await resp.arrayBuffer()));
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: `${label} proxy error`, detail: err.message });
-    }
-  };
-}
 
 // NOTE: the IND report module is PAUSED (feature-flagged off, IND_REPORT_ENABLED) and
 // its document generator runs in the Galaxy backend, out of this proxy's reach — so it is
@@ -5548,12 +5511,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.all("/api/drug-discovery/*", optionalAuth, async (req: any, res: any) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const targetPath = req.path; // already /api/drug-discovery/...
+      // Only a path under /api/drug-discovery (proxy-path.ts).
+      const target = proxyTarget(req, '/api/drug-discovery');
+      if (!target.ok) return rejectProxyPath(res, target);
+      const targetPath = target.path; // /api/drug-discovery/...
       const method = req.method.toUpperCase();
-
-      // Build query string
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${targetPath}${queryStr}`;
+      const fullPath = `${targetPath}${target.query}`;
 
       // Forward with user's Galaxy API key if available
       const headers: Record<string, string> = {
@@ -5704,9 +5667,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const _dlProxyHandler = backendPassthrough("DL surface");
   const _modelsOwnerProxy = async (req: any, res: any) => {
     try {
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
       await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
-      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const response = await fetchOwnedModelSurface(req.user?.id, `${req.path}${query}`, {
+      const response = await fetchOwnedModelSurface(req.user?.id, `${target.path}${target.query}`, {
         method: req.method,
         ...(!['GET', 'HEAD'].includes(req.method) ? { body: JSON.stringify(req.body || {}) } : {}),
       });
@@ -5727,9 +5691,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let galaxyJson: any = {};
     let galaxyStatus = 200;
     try {
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
       await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
+      const fullPath = `${target.path}${target.query}`;
       const resp = await fetchOwnedModelSurface(req.user?.id, fullPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -6024,7 +5989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
-      const path = req.path;
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
+      const path = target.path;
       const method = req.method.toLowerCase();
       let response: any;
       if (method === 'get') {
@@ -18680,7 +18647,9 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   app.all("/api/billing/*", optionalAuth, async (req: any, res) => {
     if (!req.user) return res.status(401).json({ error: "Not authenticated" });
     try {
-      const target = `${GALAXY_URL}${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
+      const confined = proxyTarget(req);
+      if (!confined.ok) return rejectProxyPath(res, confined);
+      const target = `${GALAXY_URL}${confined.path}${confined.query}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       // Prefer re-signed Galaxy JWT from cookie auth (supports httpOnly cookie sessions).
       // Fallback: forward raw Authorization header (for clients that still send Bearer tokens).
@@ -20788,7 +20757,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   const _mcpHost = _mcpUp.hostname;
   const _mcpPort = Number(_mcpUp.port) || (_mcpUp.protocol === "https:" ? 443 : 80);
   function mcpProxy(req: express.Request, res: express.Response) {
-    const url = new URL(req.url, MCP_UPSTREAM);
+    // Only the path of the route that matched (/mcp/…, /oauth/tools/…, the exact discovery paths).
+    const confined = proxyTarget(req);
+    if (!confined.ok) return rejectProxyPath(res, confined);
+    const url = new URL(`${confined.path}${confined.query}`, MCP_UPSTREAM);
     const opts = {
       hostname: _mcpHost,
       port: _mcpPort,
