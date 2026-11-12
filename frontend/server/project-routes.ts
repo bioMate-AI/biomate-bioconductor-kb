@@ -230,6 +230,25 @@ export function _isUuid(v: unknown): boolean {
 
 /** Project file routes: project and file ids are UUIDs. Anything else names nothing → 404 (it
  *  used to reach a uuid-typed comparison and come back as a 500/502 cast error). */
+/** Stored bytes a TIFF preview may send to the renderer (the backend checks it again). */
+export const MAX_PREVIEW_INPUT_BYTES = 256 * 1024 * 1024;
+/** Bumped when the renderer's picture for the same bytes changes (invalidates ETags). */
+const PREVIEW_RENDER_VERSION = 1;
+/** Renderer statuses forwarded as-is (with its code + reason). 403 (a refused ref) is not one:
+ *  the route only sends this project's keys, so a refusal there is a server fault (502). */
+const PREVIEW_PASSTHROUGH = new Set([400, 404, 413, 415, 422, 503]);
+
+/** ?series=&page= of a preview: non-negative integers (default 0), else null. */
+export function parsePreviewSelection(q: Record<string, unknown>): { series: number; page: number } | null {
+  const one = (v: unknown): number | null => {
+    if (v === undefined || v === "") return 0;
+    if (typeof v !== "string" || !/^\d{1,6}$/.test(v)) return null;
+    return Number(v);
+  };
+  const series = one(q.series), page = one(q.page);
+  return series === null || page === null ? null : { series, page };
+}
+
 export function _projectFileIds(req: Request, res: Response, next: () => void): void {
   const { id, fileId } = req.params as Record<string, string | undefined>;
   if (!_isUuid(id)) { res.status(404).json({ error: "Project not found" }); return; }
@@ -1748,6 +1767,78 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);
       res.status(502).json({ error: "rows_unavailable" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/preview.png?series=&page= ──
+  // A TIFF / OME-TIFF drawn as PNG (browsers cannot decode TIFF): one plane, ≤1024 px, rendered
+  // by the Python backend (galaxy/ai/tiff_preview.py via POST /api/perception/preview_image).
+  // Owner/member scoped like /rows; the object is the project_files row's s3_key — a client names
+  // only a file id of a project it may read, never a path or key — and the backend reads it only
+  // inside projects/<id>/ (audit S5). `X-Preview-Info` (JSON) says what was drawn.
+  app.get("/api/projects/:id/files/:fileId/preview.png", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    const sel = parsePreviewSelection(req.query);
+    if (!sel) return res.status(400).json({ error: "invalid_selection" });
+    const refuse = (status: number, error: string, reason?: string) => {
+      res.removeHeader("ETag");
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(status).json({ error, ...(reason ? { reason } : {}) });
+    };
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return refuse(404, "Project not found");
+      const fileRow = await pool.query(
+        `SELECT s3_key, size, content_hash FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
+        [fileId, id]
+      );
+      if (!fileRow.rows.length) return refuse(404, "File not found");
+      const { s3_key, size, content_hash } = fileRow.rows[0];
+      // The backend reads only objects inside projects/<id>/ (S5); a run output registered under
+      // another prefix is said to be not previewable instead of being sent to be refused.
+      if (typeof s3_key !== "string" || !s3_key.startsWith(`projects/${id}/`)) {
+        return refuse(422, "not_previewable", "this file is stored outside the project's storage");
+      }
+      if (Number(size) > MAX_PREVIEW_INPUT_BYTES) {
+        return refuse(413, "too_large", `previews read files of at most ${MAX_PREVIEW_INPUT_BYTES / 2 ** 20} MiB`);
+      }
+      // The picture is a function of the bytes (content_hash) and the selection: revalidated every
+      // time (a new version keeps the file id), 304 while the bytes are the same.
+      const etag = content_hash ? `"tiffprev-${PREVIEW_RENDER_VERSION}-${content_hash}-${sel.series}-${sel.page}"` : null;
+      if (etag && String(req.headers["if-none-match"] ?? "").split(/\s*,\s*/).includes(etag)) {
+        res.setHeader("ETag", etag);
+        res.setHeader("Cache-Control", "private, no-cache");
+        return res.status(304).end();
+      }
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await _galaxyUserFetch();
+      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/preview_image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: id, datasetRef: s3_key, series: sel.series, page: sel.page }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (resp.ok && (resp.headers.get("content-type") || "").startsWith("image/png")) {
+        const png = Buffer.from(await resp.arrayBuffer());
+        const info = resp.headers.get("x-preview-info");
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("Cache-Control", etag ? "private, no-cache" : "private, no-store");
+        if (etag) res.setHeader("ETag", etag);
+        if (info) res.setHeader("X-Preview-Info", info);
+        return res.send(png);
+      }
+      const body: any = await resp.json().catch(() => null);
+      // The renderer's refusals (not a TIFF, too large, empty, out-of-range page, renderer not
+      // installed) carry a code + reason the panel shows; anything else is a 502.
+      if (PREVIEW_PASSTHROUGH.has(resp.status) && body && typeof body.error === "string") {
+        return refuse(resp.status, body.error, typeof body.reason === "string" ? body.reason : undefined);
+      }
+      console.error(`[project_files] preview backend ${resp.status} (${body?.error ?? "?"}) for file ${fileId}`);
+      return refuse(502, "preview_unavailable");
+    } catch (e: any) {
+      console.error("[project_files] preview failed:", e?.message ?? e);
+      if (!res.headersSent) refuse(502, "preview_unavailable");
     }
   });
 

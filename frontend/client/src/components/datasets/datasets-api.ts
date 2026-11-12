@@ -315,6 +315,11 @@ export function fileDownloadUrl(projectId: string, fileId: string): string {
   return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url?redirect=1`
 }
 
+/** A TIFF project file's first plane rendered as PNG by the server (owner/member scoped, like Download). */
+export function filePreviewPngUrl(projectId: string, fileId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/preview.png`
+}
+
 /** Start a download of a project file through the same-origin redirect (see fileDownloadUrl). */
 export function downloadProjectFile(projectId: string, fileId: string, name: string): void {
   const a = document.createElement("a")

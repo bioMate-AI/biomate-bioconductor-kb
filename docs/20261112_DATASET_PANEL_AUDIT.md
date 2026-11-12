@@ -89,3 +89,28 @@ copy fixes.
 E. Tests/harness (frontend/e2e): cookie-based fixture login (no page.route), matrix asserts expected
 verdicts per format, cleanup failures fail loudly, no tests pinned to known data defects.
 Every fix ships with a behavioural test that fails without it.
+
+## Follow-up: TIFF / OME-TIFF preview (branch fix/ds-tiff-preview-20261112)
+The panel showed "TIFF can't be displayed in the browser" (`data-preview-kind=none`); the format
+matrix expects `image`. Browsers cannot decode TIFF, so the server renders one plane to PNG:
+- `backend/lib/galaxy/ai/tiff_preview.py` — first (or `series`/`page`-selected) plane → 8-bit PNG,
+  ≤1024 px. uint8 as stored (a 0–15 mask is min–max stretched); bool black/white; other dtypes
+  0.5–99.5 percentile stretch (reported); ≤3 channels → RGB, more → channel 1 + note; pyramidal
+  OME-TIFF read at the smallest level covering 1024 px; otherwise a plane over 256 MiB decoded is
+  refused (`too_large`). Compressions tifffile cannot decode without the optional `imagecodecs`
+  (LZW, JPEG; CCITT fax always) are decoded by Pillow's libtiff for the selected pages only — the dev
+  Galaxy container has no imagecodecs, and Galaxy's own `1.tiff` fixture is CCITT G4.
+  numpy/tifffile/Pillow are imported lazily: without them the endpoint answers 503 `preview_unavailable`.
+- `POST /api/perception/preview_image {projectId, datasetRef, series, page}` (perception.py) reads only
+  `projects/<projectId>/…` objects of the uploads bucket (S5 `folder_object_ref`), ≤256 MiB stored,
+  two renders at a time per worker; `X-Preview-Info` = JSON of what was drawn. Not reachable through the
+  generic `/api/perception/*` proxy (gate allowlist → 404).
+- `GET /api/projects/:id/files/:fileId/preview.png` (project-routes.ts) — owner/member, key from
+  project_files, ETag from content_hash + selection (304 on revalidation), 256 MiB cap, keys outside the
+  project prefix (run outputs under `nextflow/…`) → 422 `not_previewable`.
+- Panel: a TIFF-family format (or `.tif/.tiff/.btf/.tf8` name without a format) fetches the PNG, shows it
+  with a caption ("first of 3 pages · 16-bit, contrast stretched · 56 × 49 px"); any refusal / decode
+  failure → the honest download state with the localized reason.
+Open: run-output TIFFs stored outside `projects/<id>/` are not previewable until the backend can
+verify a server-attested ref for them; only plane 0 / series 0 is reachable from the panel (no page
+picker yet); the format-matrix e2e on dev needs this branch deployed.

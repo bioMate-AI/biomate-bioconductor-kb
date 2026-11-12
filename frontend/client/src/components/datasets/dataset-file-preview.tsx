@@ -3,7 +3,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { FileContentView } from "../file-content-view"
 import { t } from "@/lib/i18n"
-import { fileDownloadUrl } from "./datasets-api"
+import { fileDownloadUrl, filePreviewPngUrl } from "./datasets-api"
+import { isTiff, parseTiffPreviewInfo, tiffCaption, type TiffPreviewInfo } from "./tiff-preview-info"
 import { fileExt, type ViewKind } from "./dataset-view-model"
 import type { StructureEvidence } from "@/components/data-perception"
 import { Button } from "@/components/ui/button"
@@ -40,8 +41,8 @@ const TEXT = new RegExp(`\\.(${TEXT_EXTS})$`, "i")
 // gzip / bgzip-compressed text (.vcf.gz, .fastq.gz, .bed.gz, .bgz …): decoded in the
 // browser (gzip-text.ts) and dispatched exactly like the uncompressed extension.
 const GZ_TEXT = new RegExp(`\\.(${TEXT_EXTS})\\.(gz|bgz)$`, "i")
-// Browsers cannot decode TIFF in <img>; show an honest download state instead.
-const TIFF = /\.tiff?$/i
+// Browsers cannot decode TIFF in <img>: the server renders one plane to PNG (preview.png); when it
+// cannot, the honest download state is shown.
 const IMAGE = /\.(png|jpe?g|gif|webp|svg)$/i
 /** Formats the density viewer reads (MRC / CCP4 maps). `.map` and `.rec` are NOT decided by name:
  *  a PLINK `.map` is a text table and an IMOD `.rec` may be anything — only the profiler's format
@@ -66,7 +67,7 @@ function isDensity(name: string, kind?: string, format?: string): boolean {
 /** How a file is previewed: by its content kind when the profiler read it, else by its name. */
 function previewMode(name: string, kind?: string, format?: string): Mode {
   if (GZ_TEXT.test(name)) return "gz"
-  if (TIFF.test(name)) return "tiff"
+  if (isTiff(name, format)) return "tiff"
   // A cryo-EM map is an image kind (the profiler's vocabulary) drawn by the density viewer —
   // never by <img>, which cannot decode MRC.
   if (isDensity(name, kind, format)) return "density"
@@ -158,11 +159,38 @@ function ImagePreview({ url, name, broken, onBroken }: { url: string; name: stri
   return <img src={url} alt={name} className="max-h-[60vh] max-w-full object-contain" data-testid="dataset-preview-image" onError={onBroken} />
 }
 
+/** The rendered TIFF plane with its caption (what was drawn: page / series / bit depth / stretch). */
+function TiffImage({ src, name, info, onBroken }: { src: string; name: string; info: TiffPreviewInfo | null; onBroken: () => void }) {
+  const caption = tiffCaption(info)
+  // A tiny image (a 32 × 32 test plane) is enlarged by a whole factor with crisp pixels, not blurred.
+  const w = Number(info?.width) || 0, h = Number(info?.height) || 0
+  const zoom = w && h && Math.max(w, h) < 256 ? Math.floor(256 / Math.max(w, h)) : 1
+  return (
+    <figure className="space-y-1.5" data-testid="dataset-preview-tiff-image">
+      <img src={src} alt={t("dataset_obj.preview_tiff_alt", { name: name.split("/").pop() || name })}
+        className={`max-h-[60vh] max-w-full rounded-md border bg-black/5 object-contain${zoom > 1 ? " [image-rendering:pixelated]" : ""}`}
+        style={zoom > 1 ? { width: w * zoom, height: h * zoom } : undefined}
+        data-testid="dataset-preview-image" onError={onBroken} />
+      {caption && <figcaption className="text-xs text-muted-foreground" data-testid="dataset-preview-tiff-caption">{caption}</figcaption>}
+    </figure>
+  )
+}
+
+/** Why the server could not draw a TIFF (its refusal code), as a localized line; null if unknown. */
+function tiffWhy(code: string | undefined, reason: string | undefined): string | null {
+  switch (code) {
+    case "too_large": return t("dataset_obj.preview_tiff_why_too_large", { reason: reason || "—" })
+    case "not_tiff": case "empty_image": case "unreadable": case "preview_unavailable": case "not_previewable": case "decode":
+      return t(`dataset_obj.preview_tiff_why_${code}`)
+    default: return null
+  }
+}
+
 /**
  * What the preview is showing, for the dataset object (its `data-preview-kind` / `aria-busy`):
  * `loading` while it fetches, `ready` when the content is drawn, `error` for a failure the user
  * sees, `none` when nothing of the content can be shown here (unsupported, empty, a TIFF the
- * browser cannot draw, no decompressor).
+ * server could not render, no decompressor).
  */
 export type FilePreviewStatus = "loading" | "ready" | "error" | "none"
 
@@ -178,22 +206,43 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
   /** Told every status change (DatasetObject passes it). */
   onStatus?: (status: FilePreviewStatus) => void
 }) {
-  const [state, setState] = useState<{ url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean; broken?: boolean }>({})
+  const [state, setState] = useState<{
+    url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean; broken?: boolean
+    /** TIFF: an object URL of the rendered PNG + what it shows, or why it could not be drawn. */
+    png?: string; pngInfo?: TiffPreviewInfo | null; tiffFallback?: { code?: string; reason?: string }
+  }>({})
   const mode = previewMode(name, kind, format)
   const status: FilePreviewStatus =
     mode === "none" || state.noDecompress ? "none"
     : state.error || state.broken ? "error"
     : state.text !== undefined ? (state.text ? "ready" : "none")
-    : state.url ? (mode === "tiff" ? "none" : "ready")
+    : state.tiffFallback ? "none"
+    : state.png || state.url ? "ready"
     : "loading"
   useEffect(() => { onStatus?.(status) }, [status, onStatus])
   useEffect(() => {
     const abort = new AbortController()
+    let objectUrl: string | null = null
     setState({})
     ;(async () => {
       if (mode === "none") return
       const gz = mode === "gz"
       if (gz && !decompressionAvailable()) { setState({ noDecompress: true }); return }
+      if (mode === "tiff") {
+        // Rendered on the server (same owner/member check as Download); the header says what it shows.
+        const r = await fetch(filePreviewPngUrl(projectId, fileId), { credentials: "include", signal: abort.signal })
+        if (!r.ok || !(r.headers.get("content-type") || "").startsWith("image/png")) {
+          const body: any = await r.json().catch(() => null)
+          if (!abort.signal.aborted) setState({ tiffFallback: { code: typeof body?.error === "string" ? body.error : undefined, reason: typeof body?.reason === "string" ? body.reason : undefined } })
+          return
+        }
+        const info = parseTiffPreviewInfo(r.headers.get("x-preview-info"))
+        const blob = await r.blob()
+        if (abort.signal.aborted) return
+        objectUrl = URL.createObjectURL(blob)
+        setState({ png: objectUrl, pngInfo: info })
+        return
+      }
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url`, {
         credentials: "include", signal: abort.signal,
       })
@@ -230,9 +279,10 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
     })().catch(error => {
       if (abort.signal.aborted) return
       if (error instanceof DecompressionUnavailableError) { setState({ noDecompress: true }); return }
+      if (mode === "tiff") { setState({ tiffFallback: {} }); return }
       setState({ error: error instanceof PreviewError ? error.message : t("dataset_obj.preview_unavailable") })
     })
-    return () => abort.abort()
+    return () => { abort.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [projectId, fileId, name, mode])
   if (mode === "none") return (
     <p className="text-muted-foreground" data-testid="dataset-file-preview-unsupported">{t("dataset_obj.preview_unsupported")}</p>
@@ -246,9 +296,18 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
     {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind, structure) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
     {state.truncated && <p className="text-muted-foreground">{t(state.compressed ? "dataset_obj.preview_truncated_gz" : "dataset_obj.preview_truncated")}</p>}
   </div>
-  if (state.url && mode === "tiff") return (
+  if (state.png && mode === "tiff") return (
+    <TiffImage src={state.png} name={name} info={state.pngInfo ?? null}
+      onBroken={() => setState((s) => ({ ...s, png: undefined, tiffFallback: { code: "decode" } }))} />
+  )
+  if (state.tiffFallback && mode === "tiff") return (
     <div className="space-y-2" data-testid="dataset-preview-tiff">
       <p className="text-muted-foreground">{t("dataset_obj.preview_tiff")}</p>
+      {tiffWhy(state.tiffFallback.code, state.tiffFallback.reason) && (
+        <p className="text-xs text-muted-foreground" data-testid="dataset-preview-tiff-why" data-code={state.tiffFallback.code}>
+          {tiffWhy(state.tiffFallback.code, state.tiffFallback.reason)}
+        </p>
+      )}
       <Button asChild variant="outline" size="sm" className="gap-1.5">
         {/* Same-origin redirect: saved under the display name, the tab never opens the storage URL. */}
         <a href={fileDownloadUrl(projectId, fileId)} download={name.split("/").pop() || name} data-testid="dataset-preview-tiff-download">
@@ -266,5 +325,5 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
     </Suspense>
   )
   if (state.url) return <iframe title={name} src={state.url} className="h-[60vh] w-full rounded-md border" />
-  return <p role="status" aria-busy="true" className="text-muted-foreground" data-testid="dataset-file-preview-loading">{t("dataset_obj.preview_loading")}</p>
+  return <p role="status" aria-busy="true" className="text-muted-foreground" data-testid="dataset-file-preview-loading">{t(mode === "tiff" ? "dataset_obj.preview_tiff_loading" : "dataset_obj.preview_loading")}</p>
 }

@@ -4,6 +4,7 @@ Data-perception API — thin endpoint over the rules-first profiler.
 POST /api/perception/profile  { datasetRef }  ->  DataProfile
 POST /api/perception/rows     { datasetRef, offset, limit }  ->  one page of FULL rows
 POST /api/perception/folder_profile { path, projectId, files: [{name, datasetRef}] } -> FolderProfile
+POST /api/perception/preview_image  { projectId, datasetRef, series, page } -> image/png (a TIFF plane)
 
 Both per-file calls accept an optional ``folderContext`` = ``{name, siblings}`` (the file's
 project path and the other paths of its folder). The Node server that owns the project's file
@@ -27,8 +28,9 @@ import json
 import logging
 import os
 import tempfile
+import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -480,3 +482,83 @@ def perception_folder_profile(request: FolderProfileRequest) -> Dict[str, Any]:
         read_head=lambda name: _read_head(refs.get(name)),
         classify=_galaxy_classifier(),
     )
+
+
+# ─── Image preview — a TIFF / OME-TIFF drawn as PNG (browsers cannot decode TIFF) ──────────────
+
+class PreviewImageRequest(BaseModel):
+    # Set by the Node server from project_files after its owner/member check — never by a client:
+    # GET /api/projects/:id/files/:fileId/preview.png is the only caller, and the generic
+    # /api/perception/* proxy does not forward this path (perception-proxy-gate.ts).
+    projectId: Optional[str] = None
+    datasetRef: Optional[str] = None
+    series: int = 0
+    page: int = 0
+
+
+# Stored (compressed) bytes one preview downloads; the renderer has its own decoded-bytes budget.
+MAX_PREVIEW_INPUT_BYTES = 256 * 1024 * 1024
+# Renders at once in this worker (each may hold a plane of up to tiff_preview.MAX_READ_BYTES).
+_PREVIEW_SLOTS = threading.BoundedSemaphore(2)
+
+
+def _s3_size(bucket: str, key: str) -> Optional[int]:
+    try:
+        import boto3  # available in the Galaxy backend
+
+        return int(boto3.client("s3").head_object(Bucket=bucket, Key=key)["ContentLength"])
+    except Exception as exc:  # noqa: BLE001
+        log.warning("[perception] head failed for s3://%s/%s: %s", bucket, key, exc)
+        return None
+
+
+def _preview_error(status: int, code: str, reason: str) -> Tuple[int, Dict[str, str], Dict[str, Any]]:
+    return status, {}, {"error": code, "reason": reason}
+
+
+def preview_image_result(request: PreviewImageRequest) -> Tuple[int, Dict[str, str], Any]:
+    """(status, headers, body) of a preview: body is PNG bytes on 200, else ``{error, reason}``.
+
+    Only a server-resolved object of the request's project is read (:func:`folder_object_ref`,
+    audit S5): a local path, another bucket or another project's key is refused (403) before
+    anything is touched. Headers on 200: ``X-Preview-Info`` = JSON of what was drawn (series /
+    page counts, original dtype / shape, pyramid level, contrast stretch, notes)."""
+    from galaxy.ai import tiff_preview
+
+    project_id = request.projectId if isinstance(request.projectId, str) and request.projectId else None
+    obj = folder_object_ref(request.datasetRef, project_id)
+    if obj is None:
+        log.warning("[perception] preview_image refused datasetRef outside projects/%s/", project_id or "?")
+        return _preview_error(403, "ref_refused", "only an object of the request's project can be previewed")
+    if not tiff_preview.preview_available():
+        return _preview_error(503, "preview_unavailable", "TIFF rendering is not installed on this server")
+    size = _s3_size(*obj)
+    if size is None:
+        return _preview_error(404, "unresolvable_ref", "the stored object could not be found")
+    if size > MAX_PREVIEW_INPUT_BYTES:
+        return _preview_error(413, "too_large", f"the file is {size / 2**20:.0f} MiB; previews read at most "
+                                                f"{MAX_PREVIEW_INPUT_BYTES // 2**20} MiB")
+    path = _cached_s3_path(*obj)
+    if not path:
+        return _preview_error(404, "unresolvable_ref", "the stored object could not be downloaded")
+    if not _PREVIEW_SLOTS.acquire(timeout=60):
+        return _preview_error(503, "busy", "the preview renderer is busy; try again")
+    t0 = time.time()
+    try:
+        png, info = tiff_preview.render_tiff_preview(path, series=int(request.series), page=int(request.page))
+    except tiff_preview.TiffPreviewError as exc:
+        return _preview_error(exc.status, exc.code, exc.reason)
+    finally:
+        _PREVIEW_SLOTS.release()
+    info["renderMs"] = int((time.time() - t0) * 1000)
+    return 200, {"X-Preview-Info": json.dumps(info, ensure_ascii=True, separators=(",", ":"), allow_nan=False)}, png
+
+
+@router.post("/api/perception/preview_image", summary="Render one plane of a project TIFF as PNG")
+def perception_preview_image(request: PreviewImageRequest):
+    from starlette.responses import JSONResponse, Response
+
+    status, headers, body = preview_image_result(request)
+    if isinstance(body, (bytes, bytearray)):
+        return Response(content=bytes(body), media_type="image/png", headers=headers)
+    return JSONResponse(status_code=status, content=body)
