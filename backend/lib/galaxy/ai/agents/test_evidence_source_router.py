@@ -27,17 +27,11 @@ def test_sar_question_selects_bioactivity_sources():
     q = "Known SAR for imatinib-like phenylaminopyrimidines — what drives ABL1 potency?"
     assert "bioactivity" in detect_facets(q)
     srcs = select_sources(q, entities=["ABL1"])
-    # The federation-serveable bioactivity/structure sources the entity-type ('gene')
-    # router would have skipped are now reached:
-    for needed in ("chembl", "pubchem", "chebi", "pdb"):
+    # The bioactivity/structure sources the entity-type ('gene') router would have skipped
+    # are now reached — including bindingdb (measured affinities) + pharos (tractability),
+    # which gained federation fetchers 2026-11-11:
+    for needed in ("chembl", "bindingdb", "pharos", "pubchem", "chebi", "pdb"):
         assert needed in srcs, f"{needed} missing for a SAR/potency question: {srcs}"
-    # bindingdb/pharos ARE listed in the bioactivity facet map, but have no federation
-    # fetcher yet, so `_federation_serveable_ids` drops them rather than advertise coverage
-    # that `federated_query` would silently discard (honest-coverage gate, committee review
-    # 2026-11-11). Adding fetchers for them is a tracked future gap, not a regression.
-    for not_yet_serveable in ("bindingdb", "pharos"):
-        assert not_yet_serveable not in srcs, (
-            f"{not_yet_serveable} has no federation fetcher; must be filtered: {srcs}")
 
 
 def test_structure_question_selects_structure_sources():

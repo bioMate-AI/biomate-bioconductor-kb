@@ -144,9 +144,9 @@ _CACHE_TTL_DURABLE = 30 * 86400  # 30d — "last-known-good" for outage fallback
 
 ENTITY_SOURCES: Dict[str, List[str]] = {
     "gene":       ["ncbi_gene", "ensembl", "uniprot", "string", "kegg",
-                   "go", "gnomad", "opentargets", "pubmed", "semantic_scholar"],
+                   "go", "gnomad", "opentargets", "pharos", "pubmed", "semantic_scholar"],
     "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
-                   "go", "chembl", "pubmed", "semantic_scholar"],
+                   "go", "chembl", "bindingdb", "pharos", "pubmed", "semantic_scholar"],
     "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
@@ -696,6 +696,59 @@ def _fetch_opentargets(query: str) -> Dict:
                for r in rows[:5] if r.get("disease")]
     return {"source": "opentargets", "results": results}
 
+def _fetch_bindingdb(query: str) -> Dict:
+    # BindingDB measured binding affinities (Ki/Kd/IC50/EC50, in nM) for a TARGET, keyed by
+    # UniProt accession — the experimental SAR/affinity answer the bioactivity facet
+    # advertised but never served (no fan-out fetcher; committee review 2026-11-11). Resolve
+    # a symbol → accession, then surface the most POTENT measurements (lowest nM). NB: the
+    # upstream response key is the vendor typo "getLindsByUniprotResponse".
+    q = query.strip()
+    acc = q.upper() if _UNIPROT_ACC_RE.match(q) else (resolve_gene(q).get("uniprot") or "")
+    if not acc:
+        return {"source": "bindingdb", "results": []}
+    data = _get("https://www.bindingdb.org/rest/getLigandsByUniprot"
+                "?uniprot=%s&cutoff=10000&response=application/json" % urllib.parse.quote(acc))
+    resp = (data or {}).get("getLindsByUniprotResponse") or {}
+    affs = resp.get("bdb.affinities") or []
+    if isinstance(affs, dict):      # single hit comes back as an object, not a list
+        affs = [affs]
+
+    def _nm(a):
+        try:
+            return float(str(a.get("bdb.affinity", "")).strip())
+        except Exception:
+            return float("inf")     # unparseable affinity sorts last
+
+    ranked = sorted((a for a in affs if isinstance(a, dict)), key=_nm)[:5]
+    results = [{"target_uniprot": acc,
+                "monomer_id": a.get("bdb.monomerid"),
+                "affinity_type": a.get("bdb.affinity_type"),
+                "affinity_nm": str(a.get("bdb.affinity", "")).strip(),
+                "smiles": a.get("bdb.smile")}
+               for a in ranked]
+    return {"source": "bindingdb", "results": results}
+
+
+def _fetch_pharos(query: str) -> Dict:
+    # Pharos (NCATS) target development level — the druggability/tractability tier
+    # (Tclin > Tchem > Tbio > Tdark) plus protein family + novelty — the 'target' facet's
+    # tractability answer. GraphQL by gene symbol; the facet map advertised pharos but there
+    # was no fan-out fetcher (committee review 2026-11-11).
+    q = query.strip()
+    sym = (resolve_gene(q).get("symbol") or q).replace('"', '')
+    if not sym:
+        return {"source": "pharos", "results": []}
+    gql = '{target(q:{sym:"%s"}){name sym tdl fam novelty}}' % sym
+    data = _post_json("https://pharos-api.ncats.io/graphql", {"query": gql})
+    t = (((data or {}).get("data") or {}).get("target")) or {}
+    if not t:
+        return {"source": "pharos", "results": []}
+    return {"source": "pharos", "results": [{
+        "symbol": t.get("sym"), "name": t.get("name"),
+        "development_level": t.get("tdl"), "family": t.get("fam"),
+        "novelty": t.get("novelty")}]}
+
+
 def _fetch_ncbi_entrez(query: str, db: str) -> Dict:
     q = urllib.parse.quote(query)
     search = _get(f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -972,6 +1025,8 @@ _FETCHERS = {
     "interpro":         _fetch_interpro,
     "gnomad":           _fetch_gnomad,
     "opentargets":      _fetch_opentargets,
+    "bindingdb":        _fetch_bindingdb,
+    "pharos":           _fetch_pharos,
     "dbsnp":            lambda q: _fetch_ncbi_entrez(q, "snp"),
     "clinvar":          lambda q: _fetch_ncbi_entrez(q, "clinvar"),
     "pubmed":           lambda q: _fetch_ncbi_entrez(q, "pubmed"),
