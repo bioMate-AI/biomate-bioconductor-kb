@@ -812,3 +812,37 @@ it('drops sequencing-alignment QC gates for count-matrix DE workflows but keeps 
  expect(view.container.querySelector('[data-qc-key="alignment_rate"]')).toBeNull();
  expect(view.container.querySelector('[data-qc-key="mito_fraction_pct"]')).toBeNull();
 });
+
+// Founder no-S3 rule (2026-11-11 phase-view review): a param bound to a stored
+// file shows ONLY its filename — collapsed summary and edit mode alike. The live
+// dev panel was printing s3://biomate-nextflow-work/uploads/<uuid>/sample_metadata.csv.
+describe('phase params never show a storage path', () => {
+  it('collapsed and edit views show the filename chip, not s3:// or the upload UUID', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => '',
+    } as Response));
+    const S3 = 's3://biomate-nextflow-work/uploads/0238d454-8be2-42db-9bc7-9e76e274f317/sample_metadata.csv';
+    render(<NextflowWorkflowViewer {...({
+      workflowId: 'wf-da',
+      workflowDefinition: {
+        id: 'wf-da', name: 'nf-core/differentialabundance',
+        steps: { '0': { name: 'Download samplesheet and count matrix from S3', tool_id: 'INPUT',
+          phase_group: 'A', phase_label: 'Input Download', parameters: { samplesheet: S3 } } },
+        required_params: [{ name: 'samplesheet', type: 'string', description: 'Samplesheet' }],
+        optional_params: [], inline_parameters: { samplesheet: S3 },
+      },
+      progress: 0, onExecute: vi.fn(),
+    } as any)} status="idle" />);
+    const card = await screen.findByTestId('phase-group-A');
+    // Step label names the work, not the infrastructure.
+    expect(card.textContent).toContain('Download samplesheet and count matrix');
+    expect(card.textContent).not.toMatch(/\bS3\b|s3:\/\/|0238d454/);
+    expect(card.textContent).toContain('sample_metadata.csv');
+    // Edit mode: still the filename only (read-only chip), with a clear action.
+    fireEvent.click(await screen.findByTestId('phase-params-toggle-A'));
+    expect(await screen.findByTestId('param-file-samplesheet')).toHaveTextContent('sample_metadata.csv');
+    expect(card.textContent).not.toMatch(/s3:\/\/|0238d454/);
+    expect(card.querySelector('textarea, input[type="text"]')).toBeNull();
+    vi.restoreAllMocks();
+  });
+});

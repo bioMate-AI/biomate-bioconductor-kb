@@ -25,6 +25,8 @@ import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
+import { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
+export { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
 import { ApprovalGate, type ApprovalGateData } from "./approval-gate";
@@ -134,30 +136,6 @@ type ViewerParameter = {
 /** Matches a "Phase X" / "Phase X — Name" prefix a backend label may carry. */
 const PHASE_PREFIX_RE = /^phase\s+[a-z0-9]+\s*(?:[—–:-]\s*|$)/i;
 
-/** Raw dataset/dataset-ref UUIDs the user never needs to read (founder 2026-11-11:
- *  "unnecessary id"). Strip "(id: <uuid>)" / "id=<uuid>" / a bare 32-hex or dashed
- *  UUID from a displayed parameter value — keep the human part (e.g. the filename). */
-export function cleanParamValueForDisplay(v: unknown): string {
-  let s = v == null ? '' : String(v);
-  // A storage location is shown as the file it names, never as a path: s3://, gs://,
-  // file://, http(s):// or an absolute/relative path whose last segment is a file.
-  // Same policy as the server's redactStoragePaths (no storage paths in user text).
-  s = s.replace(/(?:(?:s3|gs|file|https?):\/\/|\/)?[^\s,;'"()]*\/([^\s,;'"()/]+\.[A-Za-z0-9]{1,8}(?:\.gz)?)/g, '$1');
-  s = s.replace(/(?:s3|gs):\/\/[^\s,;'"()]+\/?/gi, '');
-  s = s.replace(/\s*[\(（]\s*id[:=]\s*[0-9a-f]{8}-[0-9a-f-]{8,}\s*[\)）]/gi, '');
-  s = s.replace(/\s*\bid[:=]\s*[0-9a-f]{8}-[0-9a-f-]{8,}\b/gi, '');
-  s = s.replace(/\s*\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '');
-  return s.replace(/\s{2,}/g, ' ').replace(/\s*·\s*·/g, ' ·').trim();
-}
-
-/** A backend step label names the work, not the infrastructure: drop "from S3",
- *  "on AWS Batch", "to the bucket" (no storage/infra words in user-facing text). */
-export function userFacingStepName(name: unknown): string {
-  return String(name ?? '')
-    .replace(/\s+(?:from|to|on|in|via|into)\s+(?:the\s+)?(?:AWS\s+)?(?:S3|Batch|bucket)(?:\s+bucket)?\b/gi, '')
-    .replace(/\s*\((?:S3|AWS(?:\s+Batch)?)\)/gi, '')
-    .trim();
-}
 
 /** Backend labels may already include their own phase prefix (possibly with a
  *  different letter — e.g. a `// [Phase B]` source annotation on a
@@ -1026,6 +1004,28 @@ function PhaseGroupSection({
                     // Long single value → full-width stacked field (not a 220px
                     // box crammed into the right column).
                     const strVal = String(p.value ?? p.defaultValue ?? '');
+                    // A param bound to a STORED file (s3://, gs://, file://) is shown as
+                    // its filename, read-only: the storage path is never user-facing and
+                    // is not something to hand-edit. Change it by attaching another file
+                    // or clearing it (founder no-S3 rule; phase-view review 2026-11-11).
+                    if (/^(?:s3|gs|file):\/\//i.test(strVal.trim())) {
+                      const fname = cleanParamValueForDisplay(strVal) || strVal.replace(/\/+$/, '').split('/').pop() || '';
+                      return (
+                        <div key={p.id} className="param-row" data-param={p.id} data-param-kind="stored-file" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: 8, alignItems: 'center' }}>
+                          {label}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <span className="mono" title={fname} data-testid={`param-file-${p.id}`}
+                              style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '1px 6px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-micro)' }}>
+                              {fname || tOr('panel.staged_file', 'staged file')}
+                            </span>
+                            <button type="button" className="linkish" style={{ fontSize: 'var(--fs-xs)' }}
+                              onClick={() => onParamChange(p.id, '')} data-testid={`param-file-clear-${p.id}`}>
+                              {tOr('panel.clear', 'clear')}
+                            </button>
+                          </span>
+                        </div>
+                      );
+                    }
                     const isLong = p.type !== 'number' && p.type !== 'file' && p.type !== 'boolean' && !p.options &&
                       (strVal.length > 40 || strVal.trimStart().startsWith('{'));
                     if (isLong) {
@@ -1167,12 +1167,15 @@ function PhaseGroupSection({
                     // params render (with real values) in the phase's params section;
                     // the inline step-meta is for scalar runtime values only, so an
                     // object here would stringify to "[object Object]".
-                    .filter(([,v]) => v !== null && v !== undefined && v !== '' && typeof v !== 'object');
+                    .filter(([,v]) => v !== null && v !== undefined && v !== '' && typeof v !== 'object')
+                    // Already shown in the phase's parameter block above — repeating
+                    // it on the step row was duplicate noise.
+                    .filter(([k]) => !phaseRenderedParams.some((p: any) => (p.id || p.name) === k));
                   if (visible.length === 0) return null;
                   return (
                     <div className="step-meta">
                       {visible.slice(0,3).map(([k,v]) => (
-                        <span key={k}><span style={{opacity:0.6}}>{k}:</span> {String(v)}</span>
+                        <span key={k}><span style={{opacity:0.6}}>{k}:</span> {cleanParamValueForDisplay(v) || '—'}</span>
                       ))}
                     </div>
                   );
