@@ -43,6 +43,7 @@ describe("headerRow from the rows reader", () => {
     expect(routes.includes('const headerRows: 0 | 1 = headerRowsRaw === 0 ? 0 : 1;')).toBe(true)
     expect(routes.includes("applyCellEdits(text, delim, parsed, { headerRows })")).toBe(true)
     // The rows route forwards the reader's headerRow to the client.
-    expect(/headerRow: typeof body\.headerRow === "boolean" \? body\.headerRow : null/.test(routes)).toBe(true)
+    // Forwarded only when the reader reports it (tables); JSONL pages keep their original shape.
+    expect(/typeof body\.headerRow === "boolean" \? \{ headerRow: body\.headerRow \} : \{\}/.test(routes)).toBe(true)
   })
 })

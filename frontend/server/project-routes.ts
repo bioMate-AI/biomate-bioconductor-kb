@@ -1315,8 +1315,9 @@ export function registerProjectRoutes(app: Express): void {
         totalRows: typeof body.totalRows === "number" ? body.totalRows : null,
         // Whether line 1 is a header record (inferred from the content) — the client sends it back
         // as `headerRows` when saving edits so data rows are numbered the same way.
-        headerRow: typeof body.headerRow === "boolean" ? body.headerRow : null,
-        namesSource: typeof body.namesSource === "string" ? body.namesSource : null,
+        // Only when the reader reports them (tables); JSONL pages keep their original shape.
+        ...(typeof body.headerRow === "boolean" ? { headerRow: body.headerRow } : {}),
+        ...(typeof body.namesSource === "string" ? { namesSource: body.namesSource } : {}),
       });
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);
