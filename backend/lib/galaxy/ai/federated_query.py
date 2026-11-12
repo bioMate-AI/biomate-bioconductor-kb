@@ -382,11 +382,15 @@ def _fetch_ensembl(query: str) -> Dict:
     return {"source": "ensembl", "results": []}
 
 def _fetch_string(query: str) -> Dict:
+    # Return the actual interaction NETWORK (partners + combined confidence). The old fetcher
+    # only called get_string_ids, which resolves the id but has no 'score' key (so score was
+    # always None) and returns NO partners — the network evidence never arrived (dev finding,
+    # 2026-11-11). interaction_partners accepts the symbol directly; required_score=700 = high.
     q = urllib.parse.quote(query)
-    data = _get(f"https://string-db.org/api/json/get_string_ids"
-                f"?identifiers={q}&species=9606&limit=5&caller_identity=biomate")
-    results = [{"protein_id": p.get("stringId"), "gene": p.get("preferredName"),
-                "score": p.get("score")} for p in (data or [])[:5]]
+    data = _get(f"https://string-db.org/api/json/interaction_partners"
+                f"?identifiers={q}&species=9606&required_score=700&limit=10&caller_identity=biomate")
+    results = [{"partner": p.get("preferredName_B"), "string_id": p.get("stringId_B"),
+                "score": p.get("score")} for p in (data or [])[:10]]
     return {"source": "string", "results": results}
 
 def _fetch_kegg(query: str) -> Dict:
@@ -431,27 +435,39 @@ def _fetch_go(query: str) -> Dict:
                 {"go_id": query.upper(), "name": data.get("label"),
                  "definition": (data.get("definition") or {}).get("val")}
             ]}
+    # QuickGO returns clean GO terms; the old api.geneontology.org autocomplete returned
+    # GENE PRODUCTS (often non-human) with hex-blob ids, not GO: terms.
     q = urllib.parse.quote(query)
-    data = _get(f"https://api.geneontology.org/api/search/entity/autocomplete/{q}"
-                f"?rows=5&ontology=go")
-    results = [{"go_id": d.get("id"), "name": d.get("label")}
-               for d in (data or {}).get("docs", [])[:5]]
+    data = _get(f"https://www.ebi.ac.uk/QuickGO/services/ontology/go/search?query={q}&limit=5",
+                headers={"Accept": "application/json"})
+    results = [{"go_id": d.get("id"), "name": d.get("name"),
+                "definition": (d.get("definition") or {}).get("text")}
+               for d in (data or {}).get("results", [])[:5]]
     return {"source": "go", "results": results}
 
 def _fetch_hpo(query: str) -> Dict:
+    # ontology.jax.org is the live HPO API; the old hpo.jax.org/api/hpo/search now serves a
+    # single-page-app HTML shell (not JSON) → every call failed. Same terms[].{id,name,definition}.
     q = urllib.parse.quote(query)
-    data = _get(f"https://hpo.jax.org/api/hpo/search?q={q}&max=5&offset=0&category=terms")
+    data = _get(f"https://ontology.jax.org/api/hp/search?q={q}&limit=5")
     results = [{"hpo_id": t.get("id"), "name": t.get("name"),
                 "definition": t.get("definition")}
                for t in (data or {}).get("terms", [])[:5]]
     return {"source": "hpo", "results": results}
 
 def _fetch_chebi(query: str) -> Dict:
+    # Live ChEBI search is the backend ES endpoint; searchId.do + webservices/chebi/2.0/lite
+    # are retired (return HTML / 301) → the old fetcher returned [] for every query.
     q = urllib.parse.quote(query)
-    data = _get(f"https://www.ebi.ac.uk/chebi/searchId.do?chebiId={q}&format=json")
-    if not data:
-        data = _get(f"https://www.ebi.ac.uk/webservices/chebi/2.0/lite?search={q}&max_results=5")
-    return {"source": "chebi", "results": data or []}
+    data = _get(f"https://www.ebi.ac.uk/chebi/backend/api/public/es_search/?term={q}&size=5")
+    results = []
+    for hit in (data or {}).get("results", [])[:5]:
+        src = hit.get("_source") or {}
+        results.append({"chebi_id": src.get("chebi_accession"),
+                        "name": src.get("name"),
+                        "definition": src.get("definition"),
+                        "stars": src.get("stars")})
+    return {"source": "chebi", "results": results}
 
 def _fetch_chembl(query: str) -> Dict:
     q = urllib.parse.quote(query)
@@ -501,8 +517,10 @@ def _fetch_pubchem(query: str) -> Dict:
     return {"source": "pubchem", "results": results}
 
 def _fetch_interpro(query: str) -> Dict:
+    # /entry/interpro?search= returns real domain entries with results[].metadata; the old
+    # /entry/?search= returned only a DB-counts summary (no results[]) → always empty.
     q = urllib.parse.quote(query)
-    data = _get(f"https://www.ebi.ac.uk/interpro/api/entry/?search={q}&format=json&page_size=5")
+    data = _get(f"https://www.ebi.ac.uk/interpro/api/entry/interpro?search={q}&format=json&page_size=5")
     results = [{"accession": e.get("metadata", {}).get("accession"),
                 "name": e.get("metadata", {}).get("name"),
                 "type": e.get("metadata", {}).get("type")}
@@ -709,8 +727,9 @@ def _fetch_openalex(query: str) -> Dict:
     """OpenAlex — 250M works, concept tagging, institution filtering."""
     q = urllib.parse.quote(query)
     fields = "title,authorships,publication_year,cited_by_count,open_access,concepts"
+    # mailto MUST be a query param (not just the UA) to reach OpenAlex's polite pool.
     data = _get(f"https://api.openalex.org/works"
-                f"?search={q}&per-page=5&select={fields}",
+                f"?search={q}&per-page=5&select={fields}&mailto=admin@biomate.ai",
                 headers={"User-Agent": "BioMate/1.0 (biomate.ai; mailto:admin@biomate.ai)"})
     results = []
     for w in (data or {}).get("results", [])[:5]:
@@ -731,9 +750,11 @@ def _fetch_crossref(query: str) -> Dict:
     """Crossref — cross-publisher scholarly metadata (~150M works across all
     journals/publishers). Broadens peer-reviewed coverage well beyond the
     bibliographic trio (EuropePMC/Semantic Scholar/OpenAlex); JSON REST."""
+    # mailto → polite pool (1→3 req/s, verified); query.bibliographic is more precise than
+    # the generic query= (which matches any field loosely).
     q = urllib.parse.quote(query)
     data = _get(
-        f"https://api.crossref.org/works?query={q}&rows=5"
+        f"https://api.crossref.org/works?query.bibliographic={q}&rows=5&mailto=admin@biomate.ai"
         f"&select=title,author,issued,abstract,DOI,URL,container-title"
     )
     results = []
