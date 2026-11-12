@@ -1231,7 +1231,11 @@ function PhaseGroupSection({
                         data-testid={`button-run-step-${step.id}`}
                       >{tOr('panel.step.rerun', 'Rerun')}</button>
                     )}
-                    {!isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
+                    {/* "Params" (adjust-and-rerun) step button DISABLED 2026-11-12
+                        (founder): the StepAdjustModal popup it opens is wrong — it
+                        surfaces in the wrong context with the wrong params. Hidden
+                        via `false &&` until that popup is redesigned. */}
+                    {false && !isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
                       <button
                         className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onAdjustAndRerun(step); }}
@@ -4655,7 +4659,12 @@ export function NextflowWorkflowViewer({
                     : undefined}
                 />
               )}
-              {adjustStep && activeRunId && (
+              {/* StepAdjustModal ("调整并重新运行" adjust-params-and-rerun popup) DISABLED
+                  2026-11-12 (founder): the popup itself is wrong — it surfaces in the
+                  wrong context with the wrong/confusing params; fixing its content is
+                  beside the point. Gated with `false &&` (every affordance that opened
+                  it is also hidden). Re-enable when the popup is redesigned.
+              {false && adjustStep && activeRunId && (
                 <StepAdjustModal
                   open={!!adjustStep}
                   onOpenChange={(open) => { if (!open) setAdjustStep(null); }}
@@ -4668,7 +4677,7 @@ export function NextflowWorkflowViewer({
                     onAdjustViaChat?.(`Rerunning workflow from step ${adjustStep.name}. New run ID: ${newRunId}`);
                   }}
                 />
-              )}
+              )} */}
 
               {/* ── Full step view (spec-08 step-as-object surface) ─────────────
                   Opened from a step's "Details" button or the inline preview's
@@ -4716,16 +4725,11 @@ export function NextflowWorkflowViewer({
                       onClose={() => setFullViewStep(null)}
                       onPrev={idx > 0 ? () => openAt(idx - 1) : undefined}
                       onNext={idx >= 0 && idx < flat.length - 1 ? () => openAt(idx + 1) : undefined}
-                      // Footer "Re-run from here" → open the adjust-params modal for this
-                      // step (audit A1: prop was never wired → dead button). Only offer it
-                      // when there IS a run to re-run from: the modal is gated on activeRunId,
-                      // so without one the button would be a NEW dead affordance (code-review
-                      // #4). undefined → StepDetail hides the footer re-run button entirely.
-                      onAdjustAndRerun={activeRunId ? () => {
-                        const s = fullViewStep;
-                        setFullViewStep(null);
-                        setAdjustStep({ id: s.id, name: s.name, processName: s.processName, parameters: s.parameters });
-                      } : undefined}
+                      // Footer "Re-run from here" is intentionally NOT wired: it would
+                      // open the StepAdjustModal popup, which is disabled (wrong popup,
+                      // founder 2026-11-12). undefined → StepDetail hides the footer
+                      // re-run button entirely. Re-wire when that popup is redesigned.
+                      onAdjustAndRerun={undefined}
                       onApplyAndRerun={(edited) => {
                         // Apply the in-place-edited params to the form and re-run
                         // with the merged set (pass merged directly — setParams is
