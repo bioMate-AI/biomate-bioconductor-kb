@@ -105,6 +105,9 @@ test("zh: hover hints, tool cards, no backend name in output", async ({ page }) 
   const send = page.locator('[data-testid="chat-send-button"]:not([disabled])');
   await send.waitFor({ state: "visible", timeout: 60_000 });
   await send.click();
+  // The first message of a new chat remounts the chat (App keys it by session id); the turn must
+  // stay visibly busy: Stop shown while it runs (live dev 2026-11-12: idle composer for 2 minutes).
+  await page.getByTestId("chat-stop-button").waitFor({ state: "visible", timeout: 20_000 });
 
   // Turn finished: tool cards keep streaming after the first narration (the message action row
   // shows mid-turn), so "done" = no spinner in the chat AND the chat text unchanged for 20 s.

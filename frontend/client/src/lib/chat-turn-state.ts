@@ -46,8 +46,12 @@ export function computeTurnIndicators(input: TurnIndicatorInput): TurnIndicators
   const hasText = !!lastMessage?.content?.trim()
   const streamingHasContent = streamOpen && lastIsAssistant && hasText
   const progressLineVisible = streamOpen && lastIsAssistant && !hasText && !!lastMessage?.metadata?.progressStatus
+  // An agent turn that already ran tools goes silent while the model writes its next step
+  // (tens of seconds, no text streaming) — keep the indicator so it never looks finished
+  // (live dev 2026-11-12: 13–27 s gaps with only the opening sentence on screen).
+  const agentTurnInProgress = streamOpen && lastIsAssistant && (lastMessage?.metadata?.toolBlocks?.length ?? 0) > 0
   const displayTyping =
-    showWorkflowCue || (streamOpen && (!streamingHasContent || phase === "workflow") && !progressLineVisible)
+    showWorkflowCue || (streamOpen && (!streamingHasContent || phase === "workflow" || agentTurnInProgress) && !progressLineVisible)
   return { displayTyping, turnBusy: streamOpen || showWorkflowCue }
 }
 
