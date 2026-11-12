@@ -309,6 +309,7 @@ export function effectiveQuality(profile: Pick<DataProfile, "quality" | "finding
 /** Finding codes that name a column as a problem, and the param(s) holding the column name(s). */
 const COLUMN_PROBLEM_PARAMS: Record<string, string> = {
   near_constant: "columns",
+  constant_columns: "columns",
   high_missing: "columns",
   label_free_text: "column",
   leaked_id: "column",

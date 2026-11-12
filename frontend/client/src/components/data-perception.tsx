@@ -539,10 +539,11 @@ export function DataPerception({
 type Line = { text: string; code?: string };
 const findingLine = (f: PerceptionFinding): Line => ({ text: findingText(f) + expectedQualifier(f), code: f.code });
 
-/** An info-level near-constant column is EXPECTED (few rows / per-record metadata): said so, as a
+/** An info-level (near-)constant column is EXPECTED (few rows / per-record metadata): said so, as a
  *  neutral note — never a warning. */
 function expectedQualifier(f: PerceptionFinding): string {
-  const why = f.code === "near_constant" && f.level === "info" ? f.params?.expected : undefined;
+  const constantCode = f.code === "near_constant" || f.code === "constant_columns";
+  const why = constantCode && f.level === "info" ? f.params?.expected : undefined;
   return typeof why === "string" ? ` ${tOr(`perception.near_constant_expected_${why}`, "")}`.trimEnd() : "";
 }
 
