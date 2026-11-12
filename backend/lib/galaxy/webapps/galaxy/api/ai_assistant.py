@@ -2335,6 +2335,17 @@ class RankedSearchRequest(BaseModel):
     preferred_domains: Optional[List[str]] = None
 
 
+
+_BANNER_RE = re.compile(r"^\s*[\w.-]+/[\w.-]+(?:\s*\([^)]*\))?\s*[:\-–—]?\s*")
+_HOUSEKEEPING_RE = re.compile(r"\s*\((?:fixed|updated|patched|added)\s+\d{4}-\d{2}-\d{2}\)\s*", re.I)
+
+
+def _clean_catalog_description(text: str) -> str:
+    """User-facing catalog description: the indexer stores the .nf header verbatim, whose first
+    line is a "<category>/<module> (fixed YYYY-MM-DD)" banner (founder 2026-11-12). Drop it."""
+    t = _HOUSEKEEPING_RE.sub(" ", _BANNER_RE.sub("", str(text or ""), count=1))
+    return re.sub(r"\s{2,}", " ", t).strip()
+
 @router.post(
     "/api/ai_assistant/search_ranked",
     summary="Return a ranked list of workflows for IR evaluation (MRR/P@K/NDCG)."
@@ -2367,17 +2378,39 @@ def search_ranked(
 
     # Individual workflow results (primary ranking signal)
     try:
+        # Over-fetch: archived / missing workflows and duplicate index rows are dropped below.
         wf_results = _workflow_search.search(
             request.query,
-            limit=request.limit,
+            limit=max(request.limit * 3, request.limit + 10),
             preferred_domains=request.preferred_domains or None,
         )
+        seen_files: set = set()
         for r in wf_results:
+            if len([x for x in ranked if x.get("type") == "workflow"]) >= request.limit:
+                break
+            # A workflow the library offers must exist: archiving moves its folder to
+            # biomni_workflows/_archived/ while the catalog row keeps the old path (founder
+            # 2026-11-12: an archived "Admet Pred" still listed). The same module indexed twice
+            # (a symlinked domain folder) resolves to ONE file — show it once.
+            fname = getattr(r, "filename", None) or ""
+            if fname and (getattr(r, "format", "") or "").lower() in ("nextflow", "nf", ""):
+                try:
+                    from galaxy.ai.ai_assistant import AIAssistant as _AIA
+                    nf = _AIA._find_nf_file(None, fname)  # no instance state used
+                except Exception:
+                    nf = True  # resolver unavailable: do not hide results
+                if nf is None:
+                    continue
+                if nf is not True:
+                    real = _os.path.realpath(str(nf))
+                    if real in seen_files:
+                        continue
+                    seen_files.add(real)
             ranked.append({
                 "rank": 0,
                 "name": r.name,
                 "display_name": getattr(r, "display_name", None) or r.name,
-                "description": (getattr(r, "description", None) or "")[:200],
+                "description": _clean_catalog_description(getattr(r, "description", None) or "")[:200],
                 "domain": getattr(r, "domain", None) or "",
                 "source": getattr(r, "source", ""),
                 "format": getattr(r, "format", ""),
