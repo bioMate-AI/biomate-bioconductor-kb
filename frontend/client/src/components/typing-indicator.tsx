@@ -1,11 +1,12 @@
+import { tOr } from "@/lib/i18n"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 
 export function TypingIndicator({ phase = 'thinking' }: { phase?: 'thinking' | 'workflow' }) {
   const label = phase === 'workflow'
-    ? 'BioMate is generating the workflow for you…'
-    : 'BioMate is thinking…'
+    ? tOr('chat.typing_workflow', 'BioMate is generating the workflow for you…')
+    : tOr('chat.typing_thinking', 'BioMate is thinking…')
   return (
     <div className="flex gap-4 p-4" data-testid="chat-response-pending">
       <Avatar className="h-8 w-8 flex-shrink-0">

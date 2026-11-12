@@ -13,8 +13,11 @@ describe('truncatedTurnFollowUp (turn stopped on max_tokens)', () => {
     expect(user).toEqual({ role: 'user', content: TRUNCATED_REPLY_INSTRUCTION });
   });
   it('an empty truncated turn still yields a valid assistant entry', () => {
-    expect(truncatedTurnFollowUp([{ type: 'tool_use', id: 'x', name: 'run_code', input: {} }])[0].content).toEqual([{ type: 'text', text: ' ' }]);
-    expect(truncatedTurnFollowUp(undefined)[0].content).toEqual([{ type: 'text', text: ' ' }]);
+    // Never a blank text block — the API rejects it (live dev 2026-11-12: it failed the final-answer turn).
+    for (const c of [truncatedTurnFollowUp([{ type: 'tool_use', id: 'x', name: 'run_code', input: {} }])[0].content, truncatedTurnFollowUp(undefined)[0].content]) {
+      expect((c as any)[0].type).toBe('text');
+      expect(String((c as any)[0].text).trim().length).toBeGreaterThan(0);
+    }
   });
   it('the final-answer turn after a truncation merges into the follow-up (no two user turns in a row)', () => {
     const transcript = [{ role: 'user', content: 'QC this image' }, ...truncatedTurnFollowUp(cut)];

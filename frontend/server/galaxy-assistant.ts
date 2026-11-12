@@ -3056,10 +3056,17 @@ export function truncatedTurnNeedsFollowUp(content: any[] | undefined, toolsRanT
   return !blocks.some((b: any) => b?.type === 'text' && String(b.text || '').trim());
 }
 
+/** An assistant text block the API accepts: a blank text block is rejected outright
+ *  ("text content blocks must contain non-whitespace text", dev 2026-11-12 — it failed the
+ *  final-answer turn and the user got raw tool stdout as the answer). */
+export function assistantTextBlock(text: string | undefined | null, placeholder = '[reply cut off by the output limit]') {
+  return { type: 'text', text: String(text || '').trim() ? String(text) : placeholder };
+}
+
 export function truncatedTurnFollowUp(content: any[] | undefined): Array<{ role: 'assistant' | 'user'; content: any }> {
   const text = (content || []).filter((b: any) => b?.type === 'text' && b.text).map((b: any) => b.text).join('');
   return [
-    { role: 'assistant', content: [{ type: 'text', text: text || ' ' }] },
+    { role: 'assistant', content: [assistantTextBlock(text)] },
     { role: 'user', content: TRUNCATED_REPLY_INSTRUCTION },
   ];
 }
@@ -10559,6 +10566,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // once per turn; populates context.mcpToolServerMap for dispatch. Skipped
       // entirely when tools are off this turn or there is no user-scoped proxy.
       const userMcpTools = toolsEnabledThisTurn ? await this._fetchUserMcpTools(context) : [];
+      // Tool turns write whole analysis scripts in one call; 4096 cut them off repeatedly (live dev
+      // 2026-11-12: two max_tokens turns in one image-QC chat). Plain replies keep 4096.
+      if (toolsEnabledThisTurn) apiOptions.max_tokens = Math.max(apiOptions.max_tokens || 0, 8192);
       const agentTools = toolsEnabledThisTurn
         ? [
             ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'query_database', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)),
@@ -10887,7 +10897,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
             _codeNudged = true;
             _shownBeforeNudge = stripNarratedToolCalls(rawResponse);
-            agentMessages.push({ role: 'assistant', content: [{ type: 'text', text: rawResponse || ' ' }] as any });
+            agentMessages.push({ role: 'assistant', content: [assistantTextBlock(rawResponse, '[code shown without running it]')] as any });
             agentMessages.push({ role: 'user', content: _unexecutedCodeNudge });
             rawResponse = '';
             continue;
