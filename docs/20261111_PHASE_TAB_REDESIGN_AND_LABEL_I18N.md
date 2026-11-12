@@ -143,3 +143,30 @@ Three founder screenshots of an image-QC chat:
 Verification: tsc clean; full vitest 3239 passed / 1 failed (`pdf-canvas-viewer`, unchanged
 file, passes in isolation — load flake; the previous run's single flake was a different
 file). Live verification on dev pending the deploy lane.
+
+## Round 4 — "no galaxy in output", committee review, leak sweep (2026-11-12, overnight loop)
+
+Founder: "there should not have galaxy in output!!!!"; then "keep audit, fix, sync, test loops".
+
+| Commit | What |
+|---|---|
+| `69488bd245` | Response model sees one neutral `dataset_id` per file (`modelFacingUploads`, incl. legacy `[Galaxy dataset: …]` history lines); tool schemas `dataset_id`; system prompt without the backend name; final-reply guard; tool card result/error sanitized; UI copy |
+| `553cb8d449` | Committee correctness review (6 verified defects): prose answers keep their text on `max_tokens` (only mid-work turns are continued, text carried); OpenRouter length stops become `max_tokens` turns (`lengthStopMessage`) instead of throwing; backend-name guard narrowed (prose only — fenced/inline/indented code untouched; Galaxy-platform answers unchanged); upload entries with spaces / ':'; Gemini fallback history; run_code earlier-turn mapping |
+| `ae19b4cbed` | Leak sweep of every user-reachable surface: shared `userFacingErrorText` for panel + after-run report; 12-h stuck-run message; methods-report prompts/params/filename; step view job id + work dir hidden; failure classifier file names; response prompts ("BioMate cloud compute" + never-name-infrastructure rule); chain reply; IT launch error; ai_assistant.py composer note; tour / Models / public pages / billing copy |
+| `303d4fdfeb` | Merge of dev build `6474f200` (08's sync; its `redactInternalRefs` combined with the tool-card sanitizer) |
+
+Reasoning-budget fix (OpenRouter reasoning tokens counted against `max_tokens`) was already
+committed (`9a5f98c58e`) and live on dev; the "uncommitted" copy in `/Users/kky/biomate-review`
+is a stale duplicate.
+
+**Incident — branches reset by another account.** GitHub user `zheganjue519` force-pushed the
+`integration/next-phase` tip over `fix/coldstart-search-examples-dev` (06:43 UTC, 13b0206c6f →
+5a1abf0990) and over `fix/hints-toolcards-no-backend-20261112` (07:04 UTC, 553cb8d449 →
+d1f7477c75), which auto-closed PRs #388 and #389. Integration does NOT contain these changes.
+Not a GitHub workflow (auto-merge-on-approval only enables auto-merge). The work is preserved
+under tag `keep/f9-hints-toolcards-20261112` and re-pushed before each sync; no force-push war.
+**Needs the founder:** ask who/what runs as `zheganjue519` and whether PR head branches of the
+dev line should be left alone.
+
+Verification: tsc clean; server+shared 1953/1953; client 1348 + 1 known load flake
+(`pdf-canvas-viewer`, passes alone).
