@@ -28,7 +28,8 @@ export const PDF_EXTS     = new Set(['pdf']);
 export const TABLE_EXTS   = new Set(['csv', 'tsv', 'json', 'tabular', 'star']);
 export const SEQ_EXTS     = new Set(['fasta', 'fa', 'fastq', 'fq']);
 export const VCF_EXTS     = new Set(['vcf', 'bcf']);
-export const ANNOT_EXTS   = new Set(['bed', 'gff', 'gtf', 'gff3']);
+// BED family (incl. ENCODE narrowPeak/broadPeak, bedGraph, BEDPE) + GFF/GTF intervals.
+export const ANNOT_EXTS   = new Set(['bed', 'gff', 'gtf', 'gff3', 'narrowpeak', 'broadpeak', 'bedgraph', 'bedpe']);
 export const STRUCT_EXTS  = new Set(['pdb', 'mmcif', 'cif']);
 export const DENSITY_EXTS = new Set(['mrc', 'map', 'mrcs', 'rec']);
 // CryoSPARC binary dataset format — not browser-renderable, offer download only
@@ -75,19 +76,30 @@ export const SELF_FETCHING: ViewerKind[] = ['density', 'r-object', 'singlecell']
 // ---------------------------------------------------------------------------
 
 export function InlineSequenceViewer({ text }: { text: string }) {
-  const lines = text.split('\n');
+  const lines = text.split('\n').map(l => l.replace(/\r$/, ''));
   const records: { id: string; seq: string }[] = [];
-  let current: { id: string; seq: string } | null = null;
-  for (const line of lines) {
-    if (line.startsWith('>') || line.startsWith('@')) {
-      if (current) records.push(current);
-      current = { id: line.slice(1).split(/\s+/)[0], seq: '' };
-    } else if (current && line && !line.startsWith('+') && !line.startsWith('#')) {
-      current.seq += line;
+  const first = lines.find(l => l.trim());
+  if (first?.startsWith('@')) {
+    // FASTQ: 4-line records (@id / sequence / + / quality). Quality strings may start
+    // with '@' or '+' and must never be read as sequence or as a new record.
+    const body = lines.filter(l => l.trim());
+    for (let i = 0; i + 1 < body.length && records.length < 20; i += 4) {
+      if (!body[i].startsWith('@')) break;
+      records.push({ id: body[i].slice(1).split(/\s+/)[0], seq: body[i + 1] });
     }
-    if (records.length >= 20) break;
+  } else {
+    let current: { id: string; seq: string } | null = null;
+    for (const line of lines) {
+      if (line.startsWith('>')) {
+        if (current) records.push(current);
+        current = { id: line.slice(1).split(/\s+/)[0], seq: '' };
+      } else if (current && line && !line.startsWith(';') && !line.startsWith('#')) {
+        current.seq += line.trim();
+      }
+      if (records.length >= 20) break;
+    }
+    if (current) records.push(current);
   }
-  if (current) records.push(current);
   return (
     <div className="max-h-64 overflow-auto space-y-1.5 text-xs font-mono">
       {records.slice(0, 20).map((r, i) => (
@@ -121,14 +133,32 @@ export function InlineVcfViewer({ text }: { text: string }) {
 // Annotation viewer (BED / GFF)
 // ---------------------------------------------------------------------------
 
+/** Column names per interval spec (UCSC BED / ENCODE peak / bedGraph / BEDPE / GFF). */
+const ANNOT_COLUMNS: Record<string, string[]> = {
+  bed: ['chrom', 'start', 'end', 'name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 'blockSizes', 'blockStarts'],
+  narrowpeak: ['chrom', 'start', 'end', 'name', 'score', 'strand', 'signalValue', 'pValue', 'qValue', 'peak'],
+  broadpeak: ['chrom', 'start', 'end', 'name', 'score', 'strand', 'signalValue', 'pValue', 'qValue'],
+  bedgraph: ['chrom', 'start', 'end', 'value'],
+  bedpe: ['chrom1', 'start1', 'end1', 'chrom2', 'start2', 'end2', 'name', 'score', 'strand1', 'strand2'],
+  gff: ['seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'],
+};
+
+/** Header for the observed column count: BED-family files carry a variable number
+ *  of the spec's leading columns (BED3…BED12, BEDPE6…10); extra columns are numbered. */
+export function annotationHeaders(ext: string, width: number): string[] {
+  const e = ext.toLowerCase();
+  const spec = ANNOT_COLUMNS[e] ?? ANNOT_COLUMNS[e === 'gtf' || e === 'gff3' ? 'gff' : 'bed'];
+  const variable = e === 'bed' || e === 'bedpe';
+  const base = variable ? spec.slice(0, Math.max(3, Math.min(width, spec.length))) : spec;
+  const extra = Array.from({ length: Math.max(0, width - base.length) }, (_, i) => `col${base.length + i + 1}`);
+  return [...base, ...extra];
+}
+
 export function InlineAnnotationViewer({ text, ext }: { text: string; ext: string }) {
   const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#') && !l.startsWith('track') && !l.startsWith('browser'));
-  const isBed = ext === 'bed';
-  const headers = isBed
-    ? ['chrom', 'start', 'end', 'name', 'score', 'strand']
-    : ['seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'];
-  const rows = lines.slice(0, 100).map(l => l.split('\t'));
-  return <TableGrid headers={headers} rows={rows} totalRows={lines.length} />;
+  const rows = lines.slice(0, 100).map(l => l.replace(/\r$/, '').split('\t'));
+  const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  return <TableGrid headers={annotationHeaders(ext, width)} rows={rows} totalRows={lines.length} />;
 }
 
 // ---------------------------------------------------------------------------

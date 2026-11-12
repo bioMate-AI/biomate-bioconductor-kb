@@ -398,6 +398,22 @@ export function DatasetObject({
           <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
             {currentVersionLabel}
           </Badge>
+          {/* Format chip — the profiler's detected format (Galaxy datatype or BioMate
+              sniffing). Absent on profiles from older backends → no chip. */}
+          {profile?.format?.label && (
+            <Badge
+              variant="outline"
+              className="text-xs font-mono"
+              data-testid="dataset-header-format"
+              data-format-source={profile.format.source}
+              title={t('dataset_obj.format_chip_title', {
+                label: profile.format.label,
+                source: t(profile.format.source === "galaxy" ? 'dataset_obj.format_source_galaxy' : 'dataset_obj.format_source_biomate'),
+              })}
+            >
+              {profile.format.label}
+            </Badge>
+          )}
           {profile?.quality && HEADER_QUALITY[profile.quality] && (
             <span
               className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"

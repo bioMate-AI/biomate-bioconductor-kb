@@ -238,8 +238,12 @@ export async function downloadDatasetRoCrate(
 // GET /api/projects/:id/files/:fileId/rows?offset=&limit= — one page of the file's
 // FULL rows, parsed by the same backend readers as the profiler (csv/tsv/jsonl).
 
-/** Extensions the rows endpoint can parse (and their gzip variants). */
-const ROWS_EXTS = /\.(csv|tsv|tab|txt|jsonl|ndjson)(\.gz)?$/i
+/** Extensions the rows endpoint is asked to parse (and their gzip variants). Delimited
+ *  tables + JSONL, and the header-less spec formats (BED family, GFF/GTF, SMILES) the
+ *  backend reads with their spec column names. When the backend answers
+ *  `tabular: false` the route returns 415 → `unsupported`, and the Preview falls back
+ *  to the in-browser text/annotation preview (dataset-object.tsx). */
+const ROWS_EXTS = /\.(csv|tsv|tab|txt|jsonl|ndjson|bed|narrowpeak|broadpeak|bedgraph|bedpe|gtf|gff|gff3|smi|smiles)(\.gz)?$/i
 export function rowsSupported(name: string): boolean {
   return ROWS_EXTS.test(name)
 }
