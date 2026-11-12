@@ -211,6 +211,18 @@ def test_4_well_names_are_not_sample_groups(tmp):
     assert "sample_groups_from_names" not in _codes(prof), prof["findings"]
 
 
+def test_7_genotype_and_treatment_columns_are_the_group(tmp):
+    """A WT/KO ``genotype`` (or a ``treatment``) column is the experimental group, as
+    ``condition`` is: the table is checked for group balance, not told "no group column"."""
+    rnd = random.Random(7)
+    for col in ("genotype", "treatment"):
+        rows = [[f"s{i}", "WT" if i % 2 else "KO", round(rnd.gauss(10, 2), 3), round(rnd.gauss(5, 1), 3)]
+                for i in range(40)]
+        prof = dp.profile_dataset(_tsv(tmp, f"{col}.tsv", ["sample", col, "expr_a", "expr_b"], rows))
+        assert prof.get("labelColumn") == col, (col, prof.get("labelColumn"), _codes(prof))
+        assert "table_clean_unlabelled" not in _codes(prof), (col, _codes(prof))
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

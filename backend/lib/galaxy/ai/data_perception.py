@@ -104,7 +104,7 @@ MAX_PREVIEW_CELL_CHARS = 300
 # (matched as WHOLE tokens of the column name: "gene_symbol" is not "y", "assay" is not "y").
 _LABEL_NAME_TOKENS = (
     "label", "target", "class", "y", "outcome", "diagnosis", "response", "responder",
-    "phenotype", "condition", "group", "status",
+    "phenotype", "condition", "genotype", "treatment", "group", "status",
 )
 
 # Column-name tokens that mark a plausible BATCH / grouping / id column, most batch-like first.
