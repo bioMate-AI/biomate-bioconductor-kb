@@ -171,7 +171,9 @@ def test_fastq_profile(tmp):
     prof = profile_dataset(path)
     assert prof["shape"]["rows"] == 10, prof
     assert prof["shape"]["cols"] == 10, prof  # mean read length
-    assert any("single-end" in n.lower() for n in prof["notes"]), prof
+    # The note states the observation (no mate checked), the plan the decision (single-end) —
+    # the decision is not restated in the note (round 6).
+    assert not any("single-end" in n.lower() for n in prof["notes"]) and prof["notes"], prof
     assert any("single-end" in pi["effect"].lower() for pi in prof["planImpact"]), prof
     assert prof["quality"] == "good", prof
     print("PASS test_fastq_profile")
