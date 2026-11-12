@@ -80,6 +80,16 @@ export interface DataProfile {
   columns?: string[];
   /** First rows of a table-like dataset (capped), for the Preview tab. */
   sampleRows?: string[][];
+  /** Detected file format (absent on profiles from older backends). */
+  format?: DatasetFormat;
+}
+
+/** A dataset's detected format: `source` says who identified it — Galaxy's datatype
+ *  registry ("galaxy") or BioMate's own sniffing ("biomate"). */
+export interface DatasetFormat {
+  ext: string;
+  label: string;
+  source: "galaxy" | "biomate";
 }
 
 export interface DataPerceptionProps {

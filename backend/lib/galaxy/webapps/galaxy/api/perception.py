@@ -72,7 +72,10 @@ def _download_s3_to_temp(bucket: str, key: str) -> Optional[str]:
         return None
     try:
         s3 = boto3.client("s3")
-        suffix = os.path.splitext(key)[1] or ""
+        # Keep the key's whole basename (all of "x.fastq.gz", "x.ome.tiff"): the profiler sniffs
+        # the format from the name, and splitext kept only the last suffix (".gz").
+        base = os.path.basename(key)
+        suffix = "_" + "".join(c if (c.isalnum() or c in "._-") else "_" for c in base)[-80:]
         fd, tmp = tempfile.mkstemp(prefix="perception_", suffix=suffix)
         os.close(fd)
         s3.download_file(bucket, key, tmp)
@@ -241,10 +244,20 @@ def _cached_s3_path(bucket: str, key: str) -> Optional[str]:
         return None
 
 
+def _reader_version() -> str:
+    from galaxy.ai.data_perception import READ_ROWS_VERSION
+
+    return READ_ROWS_VERSION
+
+
 def _read_meta(path: str) -> Optional[Dict[str, Any]]:
     try:
         with open(path + ".meta.json", "r", encoding="utf-8") as f:
             meta = json.load(f)
+        # Columns / totals cached by an older reader (e.g. before header inference, when line 1
+        # was always the header) describe different rows: re-read instead of serving them.
+        if meta.get("reader") != _reader_version():
+            return None
         if isinstance(meta.get("columns"), list) and isinstance(meta.get("totalRows"), int):
             return meta
     except (OSError, ValueError):
@@ -256,7 +269,7 @@ def _write_meta(path: str, columns: Any, total: int) -> None:
     tmp = f"{path}.meta.json.{os.getpid()}.part"
     try:
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"columns": columns, "totalRows": total}, f)
+            json.dump({"columns": columns, "totalRows": total, "reader": _reader_version()}, f)
         os.replace(tmp, path + ".meta.json")
     except OSError:
         pass

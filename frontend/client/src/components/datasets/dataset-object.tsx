@@ -55,6 +55,9 @@ import { DatasetRowsTable } from "./dataset-rows-table"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
+
+/** Viewer kinds that show a file better than a generic sample table. */
+const HAS_RICH_VIEWER = ["structure", "sequence", "vcf", "annotation"]
 import { datasetContentType, datasetShape, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
@@ -317,7 +320,9 @@ export function DatasetObject({
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/edit`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edits }),
+        // Row indices are data rows as the rows reader numbered them: after the header record when
+        // the file has one, from line 1 when it does not (a header-less table).
+        body: JSON.stringify(rowsQ.headerRow === null ? { edits } : { edits, headerRows: rowsQ.headerRow ? 1 : 0 }),
       })
       const j = await r.json().catch(() => ({}))
       if (r.status === 409) throw new Error(t('dataset_obj.edit_conflict'))
@@ -398,6 +403,22 @@ export function DatasetObject({
           <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
             {currentVersionLabel}
           </Badge>
+          {/* Format chip — the profiler's detected format (Galaxy datatype or BioMate
+              sniffing). Absent on profiles from older backends → no chip. */}
+          {profile?.format?.label && (
+            <Badge
+              variant="outline"
+              className="text-xs font-mono"
+              data-testid="dataset-header-format"
+              data-format-source={profile.format.source}
+              title={t('dataset_obj.format_chip_title', {
+                label: profile.format.label,
+                source: t(profile.format.source === "galaxy" ? 'dataset_obj.format_source_galaxy' : 'dataset_obj.format_source_biomate'),
+              })}
+            >
+              {profile.format.label}
+            </Badge>
+          )}
           {profile?.quality && HEADER_QUALITY[profile.quality] && (
             <span
               className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
@@ -556,6 +577,10 @@ export function DatasetObject({
                 <div className="space-y-2" data-testid="dataset-preview-loading">
                   <Skeleton className="h-16 w-full" />
                 </div>
+              ) : preview && HAS_RICH_VIEWER.includes(resolveViewer(fileExt)) ? (
+                // The file's own viewer (3D structure, sequence, VCF, annotation) beats the
+                // profiler's sample table — a PDB was shown as whitespace-split rows.
+                preview
               ) : profile?.columns?.length && profile.sampleRows?.length ? (
                 // Not a project file (no rows endpoint) — the profiler's sample, labelled as such.
                 <DatasetRowsTable
