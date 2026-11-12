@@ -466,19 +466,35 @@ export interface FolderProfile {
   path: string
   kind: "fastq_set" | "tenx_matrix" | "mixed" | "empty"
   fileCount: number
-  rollup: { format: string; label: string; count: number; pairs?: number }[]
+  /** Grouped by (format, label): each file labelled by the SAME content decision as its own profile
+   *  (featureCounts counts vs TSV), with that decision's view kind. */
+  rollup: { format: string; label: string; count: number; pairs?: number; viewKind?: string }[]
   findings: FolderFinding[]
   fastq?: {
     verdict: "paired" | "single_end" | "mixed"
     pattern: string | null
+    /** Every read-token style in use ("Rs" = _R1/_R2, "illumina" = _1/_2, "dot12s" = .1/.2). */
+    patterns?: string[]
     engine: "galaxy" | "fallback"
     pairs: number
     samples: FolderSample[]
     orphans: string[]
     singles: string[]
   }
-  samplesheet?: { columns: string[]; rows: string[][]; csv: string; filename: string }
+  /** The nf-core samplesheet. A run takes ONE layout: with any pair it holds the pairs only
+   *  (`layout` "paired") and the unpaired files go to `single` (a single-end sheet), named in
+   *  `excluded`; without a pair it IS the single-end sheet. Paths are relative to `pathBase`. */
+  samplesheet?: FolderSamplesheet & { single?: FolderSamplesheet; excluded?: string[] }
   tenx?: { sets: TenxSet[] }
+}
+
+export interface FolderSamplesheet {
+  columns: string[]
+  rows: string[][]
+  csv: string
+  filename: string
+  layout?: "paired" | "single_end"
+  pathBase?: string
 }
 
 export function folderProfileUrl(projectId: string, path: string, download = false): string {

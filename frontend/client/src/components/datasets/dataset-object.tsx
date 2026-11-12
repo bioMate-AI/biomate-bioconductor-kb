@@ -621,6 +621,7 @@ export function DatasetObject({
               className="text-xs font-mono"
               data-testid="dataset-header-format"
               data-format-source={profile.format.source}
+              data-format-layout={profile.format.layout || undefined}
               title={t('dataset_obj.format_chip_title', {
                 label: localizedFormatLabel(profile.format),
                 source: t(profile.format.source === "galaxy" ? 'dataset_obj.format_source_galaxy' : 'dataset_obj.format_source_biomate'),
@@ -643,10 +644,10 @@ export function DatasetObject({
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
-                project file into the user's Galaxy history and launches the IT.
-                DISABLED 2026-11-11 (founder): not functioning — commented out via
-                `false &&` until the interactive-tool launch path works. */}
-            {false && canOpenIn && (
+                project file into the user's Galaxy history and launches the IT. Offered only
+                when OPEN_IN_AVAILABLE (dataset-view-model.ts; off since 2026-11-11 until the
+                interactive-tool launch path works) — the notes that mention it follow the same switch. */}
+            {canOpenIn && (
               <Button
                 variant="outline"
                 size="sm"
@@ -801,7 +802,7 @@ export function DatasetObject({
               kindPreview ?? <DownloadState kind={kind} onDownload={onDownload} />
             )}
             {previewView === "content" && vm.content === "anndata" && (
-              isLoading ? <Skeleton className="h-16 w-full" /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} />
+              isLoading ? <Skeleton className="h-16 w-full" /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} canOpenIn={canOpenIn} />
             )}
             {previewView === "content" && vm.content === "summary" && (
               isLoading ? <Skeleton className="h-16 w-full" /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
@@ -827,9 +828,15 @@ export function DatasetObject({
                     sampleRows={statRows}
                     findings={profile?.findings ?? []}
                     totalRows={shapeRows ?? undefined}
+                    profileStats={profile?.columnStats ?? null}
+                    profiledRows={profile?.profiledRows ?? null}
+                    decimal={decimal}
                     t={t}
                   />
-                  {hasFullRows && rowsQ.total != null && rowsQ.rows.length < rowsQ.total && rowsQ.total <= LOAD_ALL_CAP && (
+                  {/* Whole-file statistics need every row loaded — unless the profiler's columnStats
+                      already describe every column. */}
+                  {hasFullRows && rowsQ.total != null && rowsQ.rows.length < rowsQ.total && rowsQ.total <= LOAD_ALL_CAP
+                    && !statCols!.every((c) => profile?.columnStats?.some((cs) => cs.name === c)) && (
                     <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={rowsQ.loading}
                       onClick={rowsQ.loadAll} data-testid="dataset-columns-load-all">
                       {t('dataset_obj.load_all')}
@@ -850,7 +857,7 @@ export function DatasetObject({
                 <DatasetSamplePlot columns={statCols!} sampleRows={statRows} decimal={decimal} t={t} />
               ) : (
                 <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
-                  <p>{t(hasColumns && !statRows.length ? 'dataset_obj.plot_no_rows' : 'dataset_obj.plot_future')}</p>
+                  <p>{t(hasColumns && !statRows.length ? 'dataset_obj.plot_no_rows' : canOpenIn ? 'dataset_obj.plot_future' : 'dataset_obj.plot_future_chat')}</p>
                   {onAnalyze && (
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
                       <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}

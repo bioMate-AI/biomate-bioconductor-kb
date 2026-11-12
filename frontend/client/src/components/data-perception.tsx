@@ -96,6 +96,14 @@ export interface DataProfile {
   /** The column the profiler took as the group / class label, when it found one. Effective N,
    *  group balance and "a column gives the group away" only mean something for such a table. */
   labelColumn?: string | null;
+  /** The label-like column the profiler found (round 3): `confident` only for a MODELLING table
+   *  (enough rows + a feature column) — exactly then `labelColumn` is set and class balance /
+   *  effective N / leakage are computed. A non-confident label explains itself in a finding. */
+  label?: { column: string; confident: boolean } | null;
+  /** Per-column type + statistics over the profiled rows, parsed with the table's decimal mark. */
+  columnStats?: ProfileColumnStat[];
+  /** The spreadsheet sheet `columns` / `sampleRows` come from (xlsx: its first sheet's first rows). */
+  previewSheet?: string;
   /** A table's decimal mark when it is not "." (e.g. "," for "1,5"). */
   decimal?: string | null;
   /** AnnData: the names of the real expression layers (`adata.layers`), apart from X. */
@@ -122,6 +130,24 @@ export interface DatasetFormat {
   ext: string;
   label: string;
   source: "galaxy" | "biomate";
+  /** A recognised tool-output table layout (featurecounts, mageck_count, salmon_quant, rsem_results);
+   *  `label` is then that layout's name ("featureCounts counts"). */
+  layout?: string;
+}
+
+/** One column of `columnStats` (data_perception.py _column_stats). */
+export interface ProfileColumnStat {
+  name: string;
+  type: "numeric" | "categorical" | "text" | "empty";
+  present: number;
+  missing: number;
+  distinct: number;
+  min?: number;
+  max?: number;
+  mean?: number;
+  /** Not an ordinary value column: a declared annotation column of a recognised layout, an
+   *  identifier (id / running number), the confident label, or a single-valued column. */
+  role?: "annotation" | "identifier" | "label" | "constant";
 }
 
 export interface DataPerceptionProps {
@@ -211,6 +237,21 @@ function findingVars(f: PerceptionFinding): Record<string, string | number> {
     else if (k === "field" && typeof v === "string" && MTX_FIELD_KEYS.has(v.toLowerCase())) vars[k] = t(`perception.mtx_field.${v.toLowerCase()}`);
     else if (v != null) vars[k] = String(v);
   }
+  // A folder finding's `dir`: null (or the older "." / "") is the profiled folder itself.
+  if (f.params && "dir" in f.params) {
+    const dir = f.params.dir
+    vars.dir = dir == null || dir === "" || dir === "." ? t("perception.this_folder") : t("perception.folder_path", { path: String(dir) });
+  }
+  // Every pairing style in use, joined in the UI language ("_1/_2 和 _R1/_R2"), not the backend's
+  // English " and " join in `pattern`.
+  if (Array.isArray(f.params?.patterns) && f.params!.patterns.length) {
+    vars.pattern = (f.params!.patterns as unknown[]).map(String).join(t("perception.list_and"));
+  }
+  // The samplesheet's layout and where its paths are relative to: closed vocabularies, translated.
+  if (f.code === "folder_samplesheet") {
+    if (typeof f.params?.layout === "string") vars.layout = tOr(`folder_profile.layout_${f.params.layout}`, f.params.layout);
+    if (typeof f.params?.path_base === "string") vars.path_base = pathBaseText(f.params.path_base);
+  }
   // A BAM/SAM sort order is a closed vocabulary (`order_key`): shown in the UI language, never the
   // header's raw SO: value or the backend's English `order_words`. Any other value is quoted raw.
   if (f.code === "alignment_not_coordinate_sorted") {
@@ -230,6 +271,11 @@ function findingVars(f: PerceptionFinding): Record<string, string | number> {
     vars[qualified] = t("perception.at_least_value", { n: vars[qualified] });
   }
   return vars;
+}
+
+/** Where a samplesheet's paths are relative to (folder_profile.SAMPLESHEET_PATH_BASE), in the UI language. */
+export function pathBaseText(base: string): string {
+  return tOr(`folder_profile.path_base_${base.trim().replace(/\W+/g, "_")}`, base);
 }
 
 /** Localized text of a finding; an unknown code (newer backend) shows its code, never English prose. */
@@ -270,8 +316,11 @@ export function DataPerception({
   // class label column. A sample sheet, gene list, count matrix or barcode list without one gets
   // none of them. The profiler names the label column (`labelColumn`); an older profile that only
   // sends a balance breakdown found one too.
+  // `labelColumn` is the signal: the profiler sets it only for a confident label of a modelling
+  // table. Only a profile from before round 3 (no `label` at all) falls back to "it sent a balance".
   const hasClassBalance = !!profile.classBalance && profile.classBalance.length > 0;
-  const labelDetected = (typeof profile.labelColumn === "string" && profile.labelColumn.trim() !== "") || hasClassBalance;
+  const labelColumn = typeof profile.labelColumn === "string" && profile.labelColumn.trim() !== "" ? profile.labelColumn : null;
+  const labelDetected = labelColumn != null || (profile.label === undefined && hasClassBalance);
 
   // The kind's own measures (reads, cells × genes, variants…) — rows × columns only for tables.
   const stats = profile.structured || hideStats ? [] : profileStats(profile, kind);
@@ -405,10 +454,10 @@ export function DataPerception({
 
       {/* Groups in the label column, in words a scientist uses: "Groups (condition): control 50% ·
           treated 50%" — not "class balance". */}
-      {hasClassBalance && (
+      {labelDetected && hasClassBalance && (
         <div className="flex flex-col gap-1" data-testid="perception-class-balance">
           <div className="text-xs font-semibold text-muted-foreground">
-            {profile.labelColumn ? t("perception.section_groups_in", { column: profile.labelColumn }) : t("perception.section_class_balance")}
+            {labelColumn ? t("perception.section_groups_in", { column: labelColumn }) : t("perception.section_class_balance")}
           </div>
           <p className="text-xs text-foreground [overflow-wrap:break-word]" data-testid="perception-groups">
             {profile.classBalance!.map((c, i) => (

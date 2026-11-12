@@ -9,7 +9,8 @@
     "toggles": "Table/Columns/Plot/Edit controls are [data-testid=dataset-preview-toggle-<key>] and render only for toggleKinds",
     "loading": "every loading indicator inside dataset-object is [data-testid$=-loading] or [aria-busy=true]",
     "tree": "folder rows [data-testid=folder-<path>] carry aria-expanded",
-    "findings": "every rendered QC finding is [data-testid=perception-why-item] (a verdict reason) or [data-testid=perception-finding], both with data-code"
+    "findings": "every rendered QC finding is [data-testid=perception-why-item] (a verdict reason) or [data-testid=perception-finding], both with data-code",
+    "previewTestids": "an item's requirePreviewTestids must each appear as a [data-testid] inside the Preview (outside the QC card) — e.g. the server-rendered TIFF plane, the spreadsheet's read-only first-sheet table"
   },
   "viewKinds": [
     "table",
@@ -325,7 +326,11 @@
       "requireStats": [
         "sheets"
       ],
-      "note": "spreadsheet: sheets summary from the profile (export to CSV for table checks)"
+      "requirePreviewTestids": [
+        "dataset-spreadsheet-preview",
+        "dataset-preview-table"
+      ],
+      "note": "spreadsheet (round 3, B5): the profile carries the first sheet's first rows (previewSheet + columns + sampleRows); the Preview shows them read-only as a table captioned 'Sheet <name> · first N rows' (no Edit), plus the sheets stat"
     },
     "mtx": {
       "viewKind": "matrix",
@@ -377,7 +382,10 @@
       "viewKind": "image",
       "previewKind": "image",
       "quality": "unassessed",
-      "note": "target: the image itself is drawn (a download-only message is data-preview-kind=none)"
+      "requirePreviewTestids": [
+        "dataset-preview-tiff-image"
+      ],
+      "note": "the image itself is drawn: the server renders a TIFF plane to PNG (preview.png) shown as dataset-preview-tiff-image; the download fallback (dataset-preview-tiff-download only) is a PARTIAL"
     },
     "json": {
       "viewKind": "json",
