@@ -64,6 +64,10 @@ export interface StepDetailStep {
   name: string;
   processName?: string;
   status?: string;
+  /** One-line description of what this step does (from the workflow definition's
+   *  step annotation). Shown under the step name when present — honest empty
+   *  otherwise (no placeholder). */
+  description?: string;
   workDir?: string;
   jobId?: string;
   errorMessage?: string;
@@ -375,6 +379,16 @@ export function StepDetail({
             </Button>
           </div>
         </div>
+
+        {/* Brief description of what the step does — real annotation from the
+            workflow definition. Gives the pre-run detail panel useful content
+            instead of placeholders (founder: "the step task can have more
+            details here"). Rendered only when the definition supplies it. */}
+        {step.description && (
+          <p data-testid="step-description" className="text-xs text-muted-foreground break-words">
+            {step.description}
+          </p>
+        )}
 
         {/* Provenance: ran with [inputs] → [tool + version] → [N outputs] · duration.
             Before the step runs there is nothing to attribute, so we show a single

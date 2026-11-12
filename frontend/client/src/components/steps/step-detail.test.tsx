@@ -117,6 +117,17 @@ describe("<StepDetail> — provenance + params", () => {
     expect(prov).not.toHaveTextContent(/not run yet/i);
   });
 
+  it("shows the step description under the name when the definition supplies one", () => {
+    const described = { ...baseStep, description: "Quantify transcript abundance with salmon selective alignment." };
+    render(<StepDetail runId={runId} step={described as any} onClose={vi.fn()} />);
+    expect(screen.getByTestId("step-description")).toHaveTextContent("Quantify transcript abundance");
+  });
+
+  it("omits the description line entirely when none is supplied (no placeholder)", () => {
+    render(<StepDetail runId={runId} step={baseStep} onClose={vi.fn()} />);
+    expect(screen.queryByTestId("step-description")).toBeNull();
+  });
+
   it("renders origin badges and the correct 'N not default' count", () => {
     render(<StepDetail runId={runId} step={baseStep} workflowDefinition={workflowDefinition} onClose={vi.fn()} />);
     // libType default, numBootstraps override, threads unknown → 1 not default.

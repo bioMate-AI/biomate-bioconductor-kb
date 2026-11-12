@@ -435,6 +435,18 @@ describe("buildStepDetailStep — real-data mapping, no fabrication", () => {
     expect(mapped.inputs).toBeUndefined();
   });
 
+  it("threads the step description (annotation) through, falling back to summary, else undefined", () => {
+    expect(buildStepDetailStep({ id: "d1", name: "s", description: "Run REINVENT4 generation." }).description)
+      .toBe("Run REINVENT4 generation.");
+    // No description → fall back to summary.
+    expect(buildStepDetailStep({ id: "d2", name: "s", summary: "Validate inputs." }).description)
+      .toBe("Validate inputs.");
+    // Neither → undefined (honest empty, no placeholder).
+    expect(buildStepDetailStep({ id: "d3", name: "s" }).description).toBeUndefined();
+    // Blank/whitespace-only is not real content → undefined.
+    expect(buildStepDetailStep({ id: "d4", name: "s", description: "   " }).description).toBeUndefined();
+  });
+
   it("drops object-typed param metadata placeholders, keeping scalar runtime values", () => {
     const mapped = buildStepDetailStep({
       id: "s3",
