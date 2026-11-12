@@ -93,13 +93,78 @@ _LABELS: Dict[str, str] = {
     "csv": "CSV", "tsv": "TSV", "tabular": "Tabular", "txt": "Text", "json": "JSON", "yaml": "YAML",
     "jsonl": "JSON Lines", "pdf": "PDF", "png": "PNG", "jpg": "JPEG", "zip": "ZIP",
     "bigwig": "bigWig", "bigbed": "bigBed", "data": "Unknown", "binary": "Binary",
+    "tar": "Tar archive", "fast5.tar": "FAST5 archive (tar)", "fast5.tar.gz": "FAST5 archive (tar.gz)",
+    "fast5.tar.bz2": "FAST5 archive (tar.bz2)", "h5": "HDF5", "bcf_bgzip": "BCF", "fast5": "FAST5",
+    "gif": "GIF", "bmp": "BMP", "svg": "SVG", "html": "HTML", "markdown": "Markdown", "docx": "Word document",
+    "sqlite": "SQLite database", "rds": "R data (RDS)", "mol2": "MOL2", "genbank": "GenBank",
+    "mzml": "mzML", "mzxml": "mzXML", "mgf": "MGF", "biom1": "BIOM", "cool": "Cooler (cool)", "mcool": "Cooler (mcool)",
 }
 
 
+_COMPRESSION_WORDS = {"gz": "gzip", "bz2": "bzip2", "bgz": "bgzip", "xz": "xz", "zst": "zstd"}
+
+
 def label_for(ext: Optional[str]) -> str:
+    """Human label for a Galaxy extension: the known label, else words built from its parts
+    ("fast5.tar.gz" → "FAST5 archive (tar.gz)", "mothur.axes" → "Mothur axes") — never a raw
+    dotted code."""
     if not ext:
         return "Unknown"
-    return _LABELS.get(ext, ext.upper() if len(ext) <= 6 else ext)
+    if ext in _LABELS:
+        return _LABELS[ext]
+    return humanize_ext(ext)
+
+
+def humanize_ext(ext: str) -> str:
+    parts = [p for p in ext.lower().split(".") if p]
+    if not parts:
+        return "Unknown"
+    comp = []
+    while parts and parts[-1] in _COMPRESSION_WORDS:
+        comp.insert(0, parts.pop())
+    archive = bool(parts) and parts[-1] in ("tar", "zip")
+    if archive:
+        comp.insert(0, parts.pop())
+    if not parts:
+        return ("Tar archive" if comp[0] == "tar" else "ZIP archive") if archive else (
+            f"{_COMPRESSION_WORDS.get(comp[0], comp[0])}-compressed file")
+    base = _LABELS.get(".".join(parts))
+    if base is None:
+        words = []
+        for i, p in enumerate(parts):
+            p = p.replace("_", " ")
+            if len(p) <= 5 and any(c.isdigit() for c in p) or len(p) <= 3:
+                words.append(p.upper())
+            else:
+                words.append(p.capitalize() if i == 0 else p)
+        base = " ".join(words)
+    if archive:
+        return f"{base} archive ({'.'.join(comp)})"
+    if comp:
+        return f"{base} ({', '.join(_COMPRESSION_WORDS[c] for c in comp)})"
+    return base
+
+
+# Galaxy datatype class → the panel's view kind, for formats without an explicit mapping.
+def view_for_ext(ext: str) -> Optional[str]:
+    """'image' / 'archive' / 'document' / 'binary' from the datatype's class (None if unknown or
+    Galaxy is unavailable)."""
+    reg = _registry()
+    if reg is None:
+        return None
+    dt = (getattr(reg, "datatypes_by_extension", {}) or {}).get(ext)
+    if dt is None:
+        return None
+    mro = [c.__module__ + "." + c.__name__ for c in type(dt).__mro__]
+    if any(m.startswith("galaxy.datatypes.images.") for m in mro):
+        return "image"
+    if any(m.endswith((".CompressedArchive", ".CompressedZipArchive", ".Tar", ".GenericTar")) for m in mro):
+        return "archive"
+    if any(m.startswith("galaxy.datatypes.text.Html") or m.endswith(".Pdf") for m in mro):
+        return "document"
+    if any(m.startswith("galaxy.datatypes.binary.") for m in mro):
+        return "binary"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -398,6 +463,10 @@ def metadata(path: str, ext: Optional[str]) -> Dict[str, Any]:
         return {}
     try:
         if ext in ("bam", "cram", "qname_sorted.bam", "unsorted.bam"):
+            try:
+                import pysam  # noqa: F401 — present in the Galaxy image, not on every host
+            except ImportError:
+                return {"skipped": "pysam_missing"}
             return alignment_header(path)
         if ext == "xlsx":
             sheets = xlsx_sheets(path)

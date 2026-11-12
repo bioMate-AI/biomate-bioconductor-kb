@@ -61,29 +61,83 @@ def _w(d, name, data):
     return path
 
 
+class _FakeS3:
+    """Stands in for the ranged S3 GET: serves local bytes for project keys and records every
+    object the endpoint asked for."""
+
+    def __init__(self, objects):
+        self.objects = objects
+        self.calls = []
+
+    def __call__(self, bucket, key):
+        self.calls.append((bucket, key))
+        data = self.objects.get(key)
+        return data[: P._HEAD_BYTES] if data is not None else None
+
+
+def _with_s3(fake, fn):
+    saved = P._s3_head
+    P._s3_head = fake
+    try:
+        return fn()
+    finally:
+        P._s3_head = saved
+
+
 def test_folder_profile_endpoint(d):
     # A gzipped 10x matrix larger than the 64 KB head: dims still come from the partial read.
     body = "%%MatrixMarket matrix coordinate integer general\n% big\n33538 5 200000\n" + "".join(
         f"{i % 33538 + 1} {i % 5 + 1} {i % 7 + 1}\n" for i in range(200000))
-    mtx = _w(d, "tenx/matrix.mtx.gz", gzip.compress(body.encode()))
-    assert os.path.getsize(mtx) > P._HEAD_BYTES
-    bc = _w(d, "tenx/barcodes.tsv.gz", gzip.compress(b"AAAC-1\nAAAG-1\n"))
-    ft = _w(d, "tenx/features.tsv.gz", gzip.compress(b"ENSG1\tA\tGene Expression\n"))
-    req = P.FolderProfileRequest(path="tenx", files=[
-        {"name": "tenx/matrix.mtx.gz", "datasetRef": mtx},
-        {"name": "tenx/barcodes.tsv.gz", "datasetRef": bc},
-        {"name": "tenx/features.tsv.gz", "datasetRef": ft},
+    blob = gzip.compress(body.encode())
+    assert len(blob) > P._HEAD_BYTES
+    pid = "0b7c6f3e-1d2a-4c5b-9e8f-112233445566"
+    key = f"projects/{pid}/inputs/tenx/matrix.mtx.gz"
+    fake = _FakeS3({key: blob})
+    req = P.FolderProfileRequest(path="tenx", projectId=pid, files=[
+        {"name": "tenx/matrix.mtx.gz", "datasetRef": key},
+        {"name": "tenx/barcodes.tsv.gz", "datasetRef": f"projects/{pid}/inputs/tenx/barcodes.tsv.gz"},
+        {"name": "tenx/features.tsv.gz", "datasetRef": f"projects/{pid}/inputs/tenx/features.tsv.gz"},
     ])
-    out = P.perception_folder_profile(req)
+    out = _with_s3(fake, lambda: P.perception_folder_profile(req))
     assert out["kind"] == "tenx_matrix", out
     s = out["tenx"]["sets"][0]
     assert (s["genes"], s["cells"], s["nnz"]) == (33538, 5, 200000), s
+    assert fake.calls == [(P._default_bucket(), key)], fake.calls  # only the matrix head, by key
 
     names = ["pairs/S1_R1.fastq.gz", "pairs/S1_R2.fastq.gz", "pairs/S2_R1.fastq.gz"]
     out = P.perception_folder_profile(P.FolderProfileRequest(path="pairs", files=[{"name": n, "datasetRef": None} for n in names]))
     assert out["kind"] == "fastq_set" and out["fastq"]["pairs"] == 1 and out["fastq"]["orphans"] == ["pairs/S2_R1.fastq.gz"], out
     assert len(out["samplesheet"]["rows"]) == 2
     print("PASS test_folder_profile_endpoint")
+
+
+def test_folder_profile_reads_only_project_objects(d):
+    # S5 (audit 2026-11-12): the endpoint read any files[].datasetRef — a local path, another bucket,
+    # another project's key. Only keys under projects/<projectId>/ are read now.
+    secret = _w(d, "secret/matrix.mtx", b"%%MatrixMarket matrix coordinate integer general\n7 7 7\n")
+    pid, other = "p-1111", "p-2222"
+    files_for = lambda ref: [{"name": "x/matrix.mtx", "datasetRef": ref}, {"name": "x/barcodes.tsv", "datasetRef": None},
+                             {"name": "x/features.tsv", "datasetRef": None}]
+    fake = _FakeS3({f"projects/{other}/x/matrix.mtx": b"%%MatrixMarket matrix coordinate integer general\n9 9 9\n"})
+    for ref in (secret, "file://" + secret, "../" + secret, "s3://someone-elses-bucket/projects/p-1111/x/matrix.mtx",
+                f"projects/{other}/x/matrix.mtx", f"projects/{pid}/../{other}/x/matrix.mtx", "uploads/x/matrix.mtx"):
+        out = _with_s3(fake, lambda: P.perception_folder_profile(
+            P.FolderProfileRequest(path="x", projectId=pid, files=files_for(ref))))
+        s = out["tenx"]["sets"][0]
+        assert "genes" not in s and "cells" not in s, (ref, s)
+        assert "folder_tenx_recognised_nodims" in [f["code"] for f in out["findings"]], (ref, out["findings"])
+    assert fake.calls == [], fake.calls
+    # Without a projectId nothing is read, even a well-formed project key.
+    out = _with_s3(fake, lambda: P.perception_folder_profile(
+        P.FolderProfileRequest(path="x", files=files_for(f"projects/{other}/x/matrix.mtx"))))
+    assert "genes" not in out["tenx"]["sets"][0] and fake.calls == [], fake.calls
+    # The project's own key IS read.
+    fake.objects[f"projects/{pid}/x/matrix.mtx"] = b"%%MatrixMarket matrix coordinate integer general\n3 4 5\n"
+    out = _with_s3(fake, lambda: P.perception_folder_profile(
+        P.FolderProfileRequest(path="x", projectId=pid, files=files_for(f"projects/{pid}/x/matrix.mtx"))))
+    assert (out["tenx"]["sets"][0]["genes"], out["tenx"]["sets"][0]["cells"]) == (3, 4), out
+    assert P.folder_object_ref(f"s3://{P._default_bucket()}/projects/{pid}/x/m.mtx", pid) == (P._default_bucket(), f"projects/{pid}/x/m.mtx")
+    print("PASS test_folder_profile_reads_only_project_objects")
 
 
 def test_profile_and_rows_take_folder_context(d):
