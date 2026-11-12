@@ -9,10 +9,12 @@
  *   core      — settled; dataset-object[data-view-kind] and dataset-preview[data-preview-kind] are
  *               the expected kinds; no dataset-preview-none where a preview is expected; no visible
  *               error (role=alert / *-error testid) and no page errors;
- *   secondary — table columns (required / min / max / must-not-be-header), QC verdict class
- *               (data-perception[data-quality] ∈ expected set; watch/blocked list a reason),
- *               per-kind stat cards (dataset-stat[data-stat]), and no Table/Columns/Plot/Edit
- *               toggles on non-table kinds.
+ *   secondary — rows-table columns for rowKinds (required / min / max / must-not-be-header), QC
+ *               verdict class (data-perception[data-quality] ∈ expected set; watch/blocked list a
+ *               reason), per-kind stat cards (dataset-stat[data-stat], the profiler's stat codes),
+ *               and no Table/Columns/Plot/Edit toggles outside toggleKinds.
+ * The kinds are the backend profiler's vocabulary (data_perception.py decide(): viewKind), so the
+ * panel, the profile and this table speak one language.
  * Verdict per item: PASS (all checks) / PARTIAL (core ok, some secondary failed) / FAIL (a core
  * check failed). The harness computes the verdicts and the counts and writes them to
  * e2e/format-matrix-results.json (after every item, so a partial run keeps what it measured);
@@ -232,7 +234,10 @@ function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled:
     add("expectation-defined", true, false, `no entry for "${key}" in format-matrix-expectations.json`);
     return { checks, verdict: "FAIL" as const };
   }
-  const tableKind = (EXPECTATIONS.tableKinds as string[]).includes(ex.viewKind);
+  const rowKind = (EXPECTATIONS.rowKinds as string[]).includes(ex.viewKind);
+  const toggleKind = (EXPECTATIONS.toggleKinds as string[]).includes(ex.viewKind);
+  add("expectation-vocabulary", true, (EXPECTATIONS.viewKinds as string[]).includes(ex.viewKind),
+    `viewKind "${ex.viewKind}" is not in the profiler's vocabulary`);
   add("settled", true, settled, `not settled within ${SETTLE_MS} ms`);
   add("view-kind", true, snap.viewKind === ex.viewKind, `data-view-kind=${snap.viewKind ?? "(missing)"} want ${ex.viewKind}`);
   add("preview-kind", true, snap.previewKind === ex.previewKind,
@@ -241,7 +246,7 @@ function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled:
   add("no-errors", true, snap.errors.length === 0, `errors: ${snap.errors.join(", ")}`);
   add("no-page-errors", true, pageErrors.length === 0, `pageErrors: ${pageErrors.slice(0, 3).join(" | ")}`);
 
-  if (tableKind) {
+  if (rowKind) {
     const cols = snap.columns.map((c) => c.toLowerCase());
     const missing = (ex.columns ?? []).filter((c: string) => !cols.includes(c.toLowerCase()));
     add("columns-required", false, missing.length === 0, `missing columns ${missing.join(", ")}; got [${snap.columns.slice(0, 12).join(", ")}]`);
@@ -250,7 +255,8 @@ function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled:
     const asHeader = (ex.notColumns ?? []).filter((c: string) => cols.includes(c.toLowerCase()));
     add("no-data-as-header", false, asHeader.length === 0, `data value(s) taken as header: ${asHeader.join(", ")}`);
     add("rows-shown", false, snap.rowCount > 0, "table has no body rows");
-  } else {
+  }
+  if (!toggleKind) {
     const bad = snap.toggles.filter((t: string) => (EXPECTATIONS.nonTableForbiddenToggles as string[]).includes(t));
     add("no-table-controls", false, bad.length === 0, `non-table kind shows toggles: ${bad.join(", ")}`);
   }
@@ -263,7 +269,8 @@ function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled:
   }
 
   const ks = EXPECTATIONS.kindStats[ex.viewKind] ?? EXPECTATIONS.kindStats["*"];
-  const needStats = (ks.require ?? []).filter((k: string) => !snap.stats.includes(k));
+  const required: string[] = [...(ks.require ?? []), ...(ex.requireStats ?? []), ...(EXPECTATIONS.alwaysStats ?? [])];
+  const needStats = required.filter((k: string) => !snap.stats.includes(k));
   const badStats = (ks.forbid ?? []).filter((k: string) => snap.stats.includes(k));
   add("stats-per-kind", false, needStats.length === 0 && badStats.length === 0 && snap.statGridPresent,
     `stat cards [${snap.stats.join(", ") || "(no dataset-stat testids)"}]: missing ${needStats.join(", ") || "-"}; forbidden ${badStats.join(", ") || "-"}`);

@@ -76,7 +76,7 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(screen.queryByTestId("dataset-header-size")).toBeNull()
     const grid = screen.getByTestId("dataset-stat-grid")
     // The type is a human label for the data kind, never a raw MIME string (U11).
-    expect(within(grid).getByTestId("dataset-stat-type")).toHaveTextContent("Table")
+    expect(grid.querySelector("[data-testid=dataset-stat][data-stat=type]")).toHaveTextContent("Table")
     expect(grid.textContent).not.toContain("text/tab-separated-values")
     expect(grid.textContent).toMatch(/MB|KB/) // a real size, not blank/NaN
   })
@@ -206,7 +206,7 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect((cell as HTMLInputElement).value).toBe("a, quoted")
     fireEvent.change(cell, { target: { value: "control" } })
     fireEvent.click(screen.getByTestId("dataset-edit-save"))
-    await waitFor(() => expect(edited?.edits).toEqual([{ row: 1, col: 1, from: "a, quoted", value: "control" }]))
+    await waitFor(() => expect(edited?.edits).toEqual([{ row: 1, col: 1, from: "a, quoted", value: "control", rowFrom: ["EGFR", "a, quoted"] }]))
     await screen.findByTestId("dataset-edit-saved")
   })
 

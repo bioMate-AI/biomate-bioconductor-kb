@@ -47,15 +47,17 @@ const DENSITY = /\.(mrc|mrcs|map|rec)$/i
 const MARKDOWN = /\.(md|markdown)$/i
 /** Kinds whose content is text the in-browser viewers read, whatever the file is named
  *  (a FASTQ uploaded as `.txt`, a VCF without its extension). */
-const TEXT_KINDS = new Set<string>(["table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation", "molecules"])
+const TEXT_KINDS = new Set<string>(["table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation", "molecules", "document"])
 
 type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "none"
 /** How a file is previewed: by its content kind when the profiler read it, else by its name. */
 function previewMode(name: string, kind?: string): Mode {
   if (GZ_TEXT.test(name)) return "gz"
   if (TIFF.test(name)) return "tiff"
-  if (IMAGE.test(name) || kind === "image") return "image"
+  // A cryo-EM map is an image kind (the profiler's vocabulary) drawn by the density viewer —
+  // never by <img>, which cannot decode MRC.
   if (DENSITY.test(name)) return "density"
+  if (IMAGE.test(name) || kind === "image") return "image"
   if (/\.pdf$/i.test(name)) return "pdf"
   if (TEXT.test(name) || (kind && TEXT_KINDS.has(kind))) return "text"
   return "none"
@@ -134,25 +136,40 @@ function MarkdownDocument({ text }: { text: string }) {
 
 /** An image the browser cannot decode (a file named .png that holds something else) says so,
  *  instead of a broken-image icon. */
-function ImagePreview({ url, name }: { url: string; name: string }) {
-  const [broken, setBroken] = useState(false)
-  useEffect(() => { setBroken(false) }, [url])
+function ImagePreview({ url, name, broken, onBroken }: { url: string; name: string; broken: boolean; onBroken: () => void }) {
   if (broken) return (
     <p role="alert" className="text-muted-foreground" data-testid="dataset-preview-image-invalid">
       {t("dataset_obj.image_invalid", { format: fileExt(name).toUpperCase() || "—" })}
     </p>
   )
-  return <img src={url} alt={name} className="max-h-[60vh] max-w-full object-contain" data-testid="dataset-preview-image" onError={() => setBroken(true)} />
+  return <img src={url} alt={name} className="max-h-[60vh] max-w-full object-contain" data-testid="dataset-preview-image" onError={onBroken} />
 }
 
+/**
+ * What the preview is showing, for the dataset object (its `data-preview-kind` / `aria-busy`):
+ * `loading` while it fetches, `ready` when the content is drawn, `error` for a failure the user
+ * sees, `none` when nothing of the content can be shown here (unsupported, empty, a TIFF the
+ * browser cannot draw, no decompressor).
+ */
+export type FilePreviewStatus = "loading" | "ready" | "error" | "none"
+
 /** Uses the same permission-checked signed URL as Download. HTML stays inert text. */
-export function DatasetFilePreview({ projectId, fileId, name, kind }: {
+export function DatasetFilePreview({ projectId, fileId, name, kind, onStatus }: {
   projectId: string; fileId: string; name: string
   /** The content kind from the dataset view model (DatasetObject passes it). */
   kind?: ViewKind
+  /** Told every status change (DatasetObject passes it). */
+  onStatus?: (status: FilePreviewStatus) => void
 }) {
-  const [state, setState] = useState<{ url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean }>({})
+  const [state, setState] = useState<{ url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean; broken?: boolean }>({})
   const mode = previewMode(name, kind)
+  const status: FilePreviewStatus =
+    mode === "none" || state.noDecompress ? "none"
+    : state.error || state.broken ? "error"
+    : state.text !== undefined ? (state.text ? "ready" : "none")
+    : state.url ? (mode === "tiff" ? "none" : "ready")
+    : "loading"
+  useEffect(() => { onStatus?.(status) }, [status, onStatus])
   useEffect(() => {
     const abort = new AbortController()
     setState({})
@@ -201,12 +218,12 @@ export function DatasetFilePreview({ projectId, fileId, name, kind }: {
     return () => abort.abort()
   }, [projectId, fileId, name, mode])
   if (mode === "none") return (
-    <p className="text-muted-foreground">{t("dataset_obj.preview_unsupported")}</p>
+    <p className="text-muted-foreground" data-testid="dataset-file-preview-unsupported">{t("dataset_obj.preview_unsupported")}</p>
   )
   if (state.noDecompress) return (
     <p className="text-muted-foreground" data-testid="dataset-preview-no-decompress">{t("dataset_obj.preview_gz_unavailable")}</p>
   )
-  if (state.error) return <p role="alert" className="text-destructive">{state.error}</p>
+  if (state.error) return <p role="alert" className="text-destructive" data-testid="dataset-file-preview-error">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
     {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
     {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
@@ -223,12 +240,14 @@ export function DatasetFilePreview({ projectId, fileId, name, kind }: {
       </Button>
     </div>
   )
-  if (state.url && mode === "image") return <ImagePreview url={state.url} name={name} />
+  if (state.url && mode === "image") return (
+    <ImagePreview url={state.url} name={name} broken={Boolean(state.broken)} onBroken={() => setState((s) => ({ ...s, broken: true }))} />
+  )
   if (state.url && mode === "density") return (
-    <Suspense fallback={<p role="status" className="text-muted-foreground">{t("dataset_obj.preview_loading_density")}</p>}>
+    <Suspense fallback={<p role="status" aria-busy="true" className="text-muted-foreground" data-testid="dataset-file-preview-loading">{t("dataset_obj.preview_loading_density")}</p>}>
       <DensityMapViewer src={state.url} name={name} />
     </Suspense>
   )
   if (state.url) return <iframe title={name} src={state.url} className="h-[60vh] w-full rounded-md border" />
-  return <p role="status" className="text-muted-foreground">{t("dataset_obj.preview_loading")}</p>
+  return <p role="status" aria-busy="true" className="text-muted-foreground" data-testid="dataset-file-preview-loading">{t("dataset_obj.preview_loading")}</p>
 }

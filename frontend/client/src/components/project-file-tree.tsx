@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { t, locale } from "@/lib/i18n";
+import { effectiveQuality } from "@/components/datasets/dataset-view-model";
 import { filesFromDataTransfer, relativePathOf } from "@/lib/folder-drop";
 
 export interface ProjectFile {
@@ -168,13 +169,15 @@ export interface RenameErrorBody {
 }
 
 /**
- * Stable reason for a refused rename. The server's `code` wins; otherwise the reason is read
- * from its (English, developer-facing) error text, which names one rule per refusal
- * (project-file-paths.ts normalizeProjectFileName / planFileRename / planFolderRename).
+ * Stable reason for a refused rename, in the server's vocabulary (project-file-paths.ts
+ * NameErrorCode: run_output, same_name, into_itself, control_chars, dot_segments, empty,
+ * segment_too_long, too_deep, limit_after_move, name_conflict). The server's `code` wins;
+ * a server that sends none is read from its (English, developer-facing) error text, which
+ * names one rule per refusal.
  */
 export function renameErrorCode(status: number, body?: RenameErrorBody | null): string {
   if (body?.code) return body.code
-  if (status === 409) return "conflict"
+  if (status === 409) return "name_conflict"
   if (status === 401) return "signed_out"
   if (status === 403 || status === 404) return "gone"
   if (status !== 400) return "server"
@@ -183,11 +186,11 @@ export function renameErrorCode(status: number, body?: RenameErrorBody | null): 
   if (/already has that name/i.test(e)) return "same_name"
   if (/into itself/i.test(e)) return "into_itself"
   if (/control char/i.test(e)) return "control_chars"
-  if (/\.\./.test(e)) return "dot_segment"
+  if (/\.\./.test(e)) return "dot_segments"
   if (/is empty/i.test(e)) return "empty"
-  if (/limited to \d+ characters/i.test(e)) return "too_long"
+  if (/limited to \d+ characters/i.test(e)) return "segment_too_long"
   if (/nested at most/i.test(e)) return "too_deep"
-  if (/depth or name length/i.test(e)) return "limits"
+  if (/depth or name length/i.test(e)) return "limit_after_move"
   return "invalid"
 }
 
@@ -196,17 +199,17 @@ const RENAME_400_KEYS: Record<string, string> = {
   same_name: "file_tree.rename_err_same_name",
   into_itself: "file_tree.rename_err_into_itself",
   control_chars: "file_tree.rename_err_control_chars",
-  dot_segment: "file_tree.rename_err_dot_segment",
+  dot_segments: "file_tree.rename_err_dot_segment",
   empty: "file_tree.rename_err_empty",
-  too_long: "file_tree.rename_err_too_long",
+  segment_too_long: "file_tree.rename_err_too_long",
   too_deep: "file_tree.rename_err_too_deep",
-  limits: "file_tree.rename_err_limits",
+  limit_after_move: "file_tree.rename_err_limits",
 }
 
 /** Localized reason for a failed rename / move response — one message per server reason. */
 export function renameErrorReason(status: number, body?: RenameErrorBody | null): string {
   const code = renameErrorCode(status, body)
-  if (code === "conflict") {
+  if (code === "name_conflict") {
     const existing = body?.conflicts?.[0]?.existing
     return existing ? t("file_tree.rename_conflict_with", { existing }) : t("file_tree.rename_conflict")
   }
@@ -353,6 +356,8 @@ const QUALITY_DOT: Record<string, string> = {
   good: "bg-emerald-500",
   watch: "bg-amber-500",
   blocked: "bg-red-500",
+  // Identified but not analysed: neutral, never a warning colour.
+  unassessed: "bg-muted-foreground/50",
   unknown: "bg-muted-foreground/40",
 };
 
@@ -376,7 +381,9 @@ function QualityDot({ file }: { file: ProjectFile }) {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!cancelled && d && typeof d.quality === "string") setQuality(d.quality);
+        // The same verdict the dataset object shows: an older profile's "watch" whose only
+        // reasons are "not analysed" findings is "unassessed" (grey), not a warning.
+        if (!cancelled && d && typeof d.quality === "string") setQuality(effectiveQuality(d));
       })
       .catch(() => { /* stay unknown */ });
     return () => { cancelled = true; };

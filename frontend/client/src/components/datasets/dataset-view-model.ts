@@ -33,7 +33,12 @@ export type StatCode =
   | "rows" | "columns" | "cells" | "genes" | "sequences" | "bases" | "reads" | "read_length"
   | "variants" | "samples" | "regions" | "features" | "molecules" | "chains" | "sheets"
   | "references" | "entries" | "records" | "tables"
-export interface StatItem { code: StatCode | string; value: number | string }
+export interface StatItem {
+  code: StatCode | string
+  value: number | string
+  /** A sampled / capped count: the true value is at least this ("at least N"). */
+  atLeast?: boolean
+}
 
 export interface DatasetViewModel {
   kind: ViewKind
@@ -52,10 +57,14 @@ export interface DatasetViewModel {
 // ── kind from the file extension (older profiles without viewKind) ───────────
 const EXT_KIND: Record<string, ViewKind> = {}
 const add = (kind: ViewKind, exts: string) => exts.split(" ").forEach((e) => { EXT_KIND[e] = kind })
-add("table", "csv tsv tab tabular txt xlsx xls")
+// The same vocabulary and the same decisions as the profiler's decide() (data_perception.py:
+// _KIND_VIEW / _GALAXY_VIEW / _BINARY_NAME_FORMATS), so an old profile without viewKind and a new
+// one agree: .smi is a table (with a molecules stat), spreadsheets and Office files are
+// documents, MRC maps are images, POD5 / FAST5 / HDF5 are binary.
+add("table", "csv tsv tab tabular txt smi smiles")
 add("records", "jsonl ndjson")
 add("json", "json yaml yml")
-add("sequences", "fasta fa fna faa ffn fas")
+add("sequences", "fasta fa fna faa ffn fas genbank gb gbk")
 add("reads", "fastq fq")
 add("variants", "vcf bcf")
 add("intervals", "bed narrowpeak broadpeak bedgraph bedpe")
@@ -64,12 +73,12 @@ add("alignment", "bam sam cram")
 add("anndata", "h5ad")
 add("loom", "loom")
 add("matrix", "mtx")
-add("molecules", "smi smiles sdf mol mol2")
-add("structure", "pdb cif mmcif ent mrc mrcs map rec")
-add("image", "png jpg jpeg gif webp svg tif tiff bmp")
-add("document", "pdf md markdown log html htm rtf")
+add("molecules", "sdf mol mol2 inchi")
+add("structure", "pdb cif mmcif ent pqr gro")
+add("image", "png jpg jpeg gif webp svg tif tiff bmp mrc mrcs map rec")
+add("document", "pdf md markdown log html htm rtf xlsx xls docx pptx")
 add("archive", "zip tar tgz 7z rar")
-add("binary", "h5 hdf5 rds rdata rda pod5 fast5 cs csg bin")
+add("binary", "h5 hdf5 rds rdata rda pod5 fast5 bigwig bw bigbed bb npy parquet sqlite db cs csg bin")
 
 const COMPRESSION = /\.(gz|bgz|bz2|zst|xz)$/i
 
@@ -96,6 +105,9 @@ export function datasetKind(name: string, profile?: Pick<DataProfile, "viewKind"
 }
 
 const EDITABLE_EXT = new Set(["csv", "tsv", "tab", "txt"])
+/** Documents a browser cannot draw (spreadsheets, Office files): their view is the profile
+ *  summary (sheets, what was read), never an empty "preview unsupported". */
+const SUMMARY_DOCUMENT_EXT = new Set(["xlsx", "xls", "docx", "pptx"])
 const R_OBJECT_EXT = new Set(["rds", "rdata", "rda"])
 
 const QC_KINDS = new Set<ViewKind>(["table", "records", "sequences", "reads", "alignment", "variants", "anndata", "loom", "matrix"])
@@ -103,9 +115,11 @@ const OPEN_IN_KINDS = new Set<ViewKind>([
   "table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation",
   "alignment", "anndata", "loom", "matrix", "molecules", "structure",
 ])
+// `rows` exactly for the kinds the backend's read_rows pages (tabular = table / records /
+// intervals / annotation); molecules (SDF, MOL2) are read by their own viewer.
 const CONTENT: Record<ViewKind, ContentRenderer> = {
-  table: "rows", records: "rows", intervals: "rows", annotation: "rows", molecules: "rows",
-  json: "viewer", sequences: "viewer", reads: "viewer", variants: "viewer", structure: "viewer",
+  table: "rows", records: "rows", intervals: "rows", annotation: "rows",
+  molecules: "viewer", json: "viewer", sequences: "viewer", reads: "viewer", variants: "viewer", structure: "viewer",
   image: "viewer", document: "viewer",
   anndata: "anndata", loom: "anndata",
   alignment: "summary", matrix: "summary",
@@ -132,7 +146,9 @@ export function datasetViewModel(
   const views: PreviewView[] = tableAvailable
     ? ["table", "columns", "plot", ...(canEdit ? (["edit"] as const) : [])]
     : ["content"]
-  const content: ContentRenderer = tabular && !tableAvailable ? "summary" : CONTENT[kind]
+  const content: ContentRenderer = tabular && !tableAvailable ? "summary"
+    : kind === "document" && SUMMARY_DOCUMENT_EXT.has(ext) ? "summary"
+    : CONTENT[kind]
   return {
     kind,
     views,
@@ -171,7 +187,9 @@ const FINDING_STATS: Record<string, Array<[StatCode, string]>> = {
  */
 export function profileStats(profile: DataProfile, kind: ViewKind): StatItem[] {
   if (Array.isArray(profile.stats) && profile.stats.length) {
-    return profile.stats.filter((s) => s && typeof s.code === "string" && s.value !== null && s.value !== undefined)
+    return profile.stats
+      .filter((s) => s && typeof s.code === "string" && s.value !== null && s.value !== undefined)
+      .map((s) => (s.atLeast ? { code: s.code, value: s.value, atLeast: true } : { code: s.code, value: s.value }))
   }
   if (kind === "table" || kind === "records") {
     // A profile that could not read the table (e.g. a spreadsheet) has no honest shape.
@@ -183,6 +201,9 @@ export function profileStats(profile: DataProfile, kind: ViewKind): StatItem[] {
   return statsFromFindings(profile.findings)
 }
 
+/** The count a finding's `at_least` param qualifies (backend _AT_LEAST_PARAMS). */
+export const AT_LEAST_STAT: Record<string, string> = { fastq_reads: "reads", fasta_sequences: "sequences" }
+
 function statsFromFindings(findings: PerceptionFinding[] | undefined): StatItem[] {
   const out: StatItem[] = []
   for (const f of findings ?? []) {
@@ -190,7 +211,10 @@ function statsFromFindings(findings: PerceptionFinding[] | undefined): StatItem[
     if (!spec) continue
     for (const [code, param] of spec) {
       const v = f.params?.[param]
-      if ((typeof v === "number" || typeof v === "string") && !out.some((s) => s.code === code)) out.push({ code, value: v })
+      if ((typeof v === "number" || typeof v === "string") && !out.some((s) => s.code === code)) {
+        // The finding's `at_least` marks its headline count (reads / sequences) as a lower bound.
+        out.push(f.params?.at_least && code === AT_LEAST_STAT[f.code] ? { code, value: v, atLeast: true } : { code, value: v })
+      }
     }
   }
   return out

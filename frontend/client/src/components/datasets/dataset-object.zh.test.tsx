@@ -84,7 +84,7 @@ describe("dataset object per-kind views in Chinese", () => {
       if (leftover.length) console.log("LEFTOVER", name, leftover, text.slice(0, 2000))
       expect(leftover).toEqual([])
       if (name === "umap.png") expect(text).toContain("未检查")
-      if (name === "S1_R1.fastq.gz") expect(text).toContain("已扫描至少 10,000 条读段")
+      if (name === "S1_R1.fastq.gz") expect(text).toContain("已扫描读段数：至少 10,000")
     }, 30_000)
   }
 })

@@ -276,9 +276,15 @@ export interface DatasetRowsState {
    * When pages come from different versions, the OLDEST is kept: the user saw stale rows.
    */
   version: number | null
+  /**
+   * Leading comment / blank PHYSICAL lines the rows reader skipped before the table (the rows
+   * response's `skipLines`; null when not reported). An edit sends it back so the server numbers
+   * data rows exactly as the rows the user saw were numbered.
+   */
+  skipLines: number | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null }
 
 /**
  * Same-origin download link for a project file. The server answers with a redirect to a signed
@@ -342,9 +348,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const pageVersion: number | null = typeof body?.version === "number" ? body.version : null
       const prevVersion = ref.current.version
       const version = prevVersion == null ? pageVersion : pageVersion == null ? prevVersion : Math.min(prevVersion, pageVersion)
+      const skipLines: number | null = Number.isInteger(body?.skipLines) && body.skipLines >= 0 ? body.skipLines : ref.current.skipLines
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })

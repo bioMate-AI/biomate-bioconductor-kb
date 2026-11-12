@@ -154,13 +154,13 @@ describe("ProjectFileTree — inline preview never dumps a file into the tree (U
 const SERVER_400 = {
   control_chars: "name contains control characters",
   empty: "name is empty",
-  dot_segment: "name may not contain '..'",
-  too_long: "each folder or file name is limited to 200 characters",
+  dot_segments: "name may not contain '..'",
+  segment_too_long: "each folder or file name is limited to 200 characters",
   too_deep: "folders may be nested at most 32 deep",
   run_output: "Run outputs keep the name their run gave them and cannot be renamed.",
   same_name: "The folder already has that name.",
   into_itself: "A folder cannot be moved into itself.",
-  limits: "\"a/b\" would exceed the folder depth or name length limit.",
+  limit_after_move: "\"a/b\" would exceed the folder depth or name length limit.",
 }
 
 describe("rename errors — one message per server reason (copy audit 5–6)", () => {
@@ -175,6 +175,24 @@ describe("rename errors — one message per server reason (copy audit 5–6)", (
     expect(messages.has(renameErrorReason(400, { error: "something new" }))).toBe(false)
     // a server-sent code wins over the text
     expect(renameErrorCode(400, { code: "too_deep", error: "whatever" })).toBe("too_deep")
+  })
+
+  it("every code the server sends (project-file-paths.ts NameErrorCode) gets its own message", () => {
+    // The exact values the server's `code` field carries.
+    const SERVER_CODES = ["run_output", "same_name", "into_itself", "control_chars", "dot_segments", "empty",
+      "segment_too_long", "too_deep", "limit_after_move"] as const
+    const generic = t("file_tree.rename_invalid")
+    const messages = new Set<string>()
+    for (const code of SERVER_CODES) {
+      const m = renameErrorReason(400, { code, error: "server text not matched on purpose" })
+      expect(m, code).not.toBe(generic)
+      messages.add(m)
+    }
+    expect(messages.size).toBe(SERVER_CODES.length)
+    // name_conflict (409) names the clashing file, with or without the code.
+    const conflicts = [{ name: "b.csv", existing: "data/b.csv" }]
+    expect(renameErrorReason(409, { code: "name_conflict", error: "x", conflicts })).toBe(t("file_tree.rename_conflict_with", { existing: "data/b.csv" }))
+    expect(renameErrorReason(409, { code: "name_conflict", error: "x" })).toBe(t("file_tree.rename_conflict"))
   })
 
   it("403/404 say it can't be renamed or no longer exists — never 'upload'", () => {

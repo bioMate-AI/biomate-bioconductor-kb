@@ -20,7 +20,7 @@
 import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight, CircleDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t, tOr, locale } from "@/lib/i18n";
-import { datasetKind, effectiveQuality, profileStats, type ViewKind } from "@/components/datasets/dataset-view-model";
+import { AT_LEAST_STAT, datasetKind, effectiveQuality, profileStats, type StatItem, type ViewKind } from "@/components/datasets/dataset-view-model";
 
 // ---------------------------------------------------------------------------
 // Types — the shape the backend profiler emits (DataProfile.to_dict()).
@@ -87,7 +87,7 @@ export interface DataProfile {
   /** Content-first data kind (table, reads, anndata, image…); absent on older profiles. */
   viewKind?: string;
   /** The kind's headline numbers, rendered as `perception.stat.<code>`; absent on older profiles. */
-  stats?: { code: string; value: number | string }[];
+  stats?: { code: string; value: number | string; atLeast?: boolean }[];
 }
 
 /** A dataset's detected format: `source` says who identified it — Galaxy's datatype
@@ -151,9 +151,11 @@ function fmtInt(n: number): string {
   return n.toLocaleString(NUM_LOCALE);
 }
 
-function fmtStat(v: number | string): string {
-  if (typeof v === "number") return Number.isInteger(v) ? fmtInt(v) : v.toLocaleString(NUM_LOCALE, { maximumFractionDigits: 1 });
-  return String(v);
+/** A stat's value as shown: grouped digits, and "at least N" for a sampled / capped count. */
+export function formatStatValue(s: Pick<StatItem, "value" | "atLeast">): string {
+  const v = s.value;
+  const n = typeof v === "number" ? (Number.isInteger(v) ? fmtInt(v) : v.toLocaleString(NUM_LOCALE, { maximumFractionDigits: 1 })) : String(v);
+  return s.atLeast ? t("perception.at_least_value", { n }) : n;
 }
 
 function fmtPct(frac: number): string {
@@ -161,15 +163,20 @@ function fmtPct(frac: number): string {
 }
 
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
- *  locale's separator, `at_least` → a "≥" prefix, structural roots translated. */
+ *  locale's separator, `at_least` → the qualified count reads "at least N" (backend
+ *  _AT_LEAST_PARAMS), structural roots translated. */
 function findingVars(f: PerceptionFinding): Record<string, string | number> {
-  const vars: Record<string, string | number> = { prefix: "" };
+  const vars: Record<string, string | number> = {};
   for (const [k, v] of Object.entries(f.params ?? {})) {
-    if (k === "at_least") vars.prefix = v ? t("perception.at_least_prefix") : "";
+    if (k === "at_least") continue;
     else if (Array.isArray(v)) vars[k] = v.map(String).join(t("perception.list_sep"));
     else if (typeof v === "number") vars[k] = Number.isInteger(v) ? fmtInt(v) : String(v);
     else if (k === "root" && typeof v === "string") vars[k] = tOr(`perception.root_${v}`, v);
     else if (v != null) vars[k] = String(v);
+  }
+  const qualified = AT_LEAST_STAT[f.code];
+  if (f.params?.at_least && qualified && vars[qualified] !== undefined) {
+    vars[qualified] = t("perception.at_least_value", { n: vars[qualified] });
   }
   return vars;
 }
@@ -276,7 +283,7 @@ export function DataPerception({
           <Stat k={t("perception.stat_nulls")} v={fmtInt(profile.structured.nulls)} />
           <Stat k={t("perception.stat_depth")} v={fmtInt(profile.structured.depth)} />
         </> : stats.map((s) => (
-          <Stat key={s.code} k={tOr(`perception.stat.${s.code}`, s.code)} v={fmtStat(s.value)} testId={`perception-stat-${s.code}`} />
+          <Stat key={s.code} k={tOr(`perception.stat.${s.code}`, s.code)} v={formatStatValue(s)} testId={`perception-stat-${s.code}`} stat={s.code} />
         ))}
         {typeof profile.effectiveN === "number" && (
           <Stat
@@ -325,7 +332,11 @@ export function DataPerception({
               {t("perception.section_leakage")}
             </span>{" "}
             <span className="text-foreground">
-              {structuredMode ? leakageItems.map((f) => findingText(f)).join(" ") : profile.leakage!.detail}
+              {structuredMode
+                ? leakageItems.map((f, i) => (
+                  <span key={i} data-testid="perception-finding" data-code={f.code}>{i > 0 ? " " : ""}{findingText(f)}</span>
+                ))
+                : profile.leakage!.detail}
             </span>
           </div>
         </div>
@@ -359,13 +370,13 @@ export function DataPerception({
       {/* Signal summary */}
       {(signalItems.length > 0 || legacySignal.length > 0) && (
         <Section title={t("perception.section_signal")} testId="perception-signal"
-          lines={structuredMode ? signalItems.map((f) => findingText(f)) : legacySignal} />
+          lines={structuredMode ? signalItems.map(findingLine) : legacySignal.map((text) => ({ text }))} />
       )}
 
       {/* Notes */}
       {(noteItems.length > 0 || legacyNotes.length > 0) && (
         <Section title={t("perception.section_notes")} testId="perception-notes"
-          lines={structuredMode ? noteItems.map((f) => findingText(f)) : legacyNotes} />
+          lines={structuredMode ? noteItems.map(findingLine) : legacyNotes.map((text) => ({ text }))} />
       )}
 
       {/* How it shaped the plan */}
@@ -374,10 +385,11 @@ export function DataPerception({
           <div className="text-xs font-semibold text-muted-foreground">{t("perception.section_plan")}</div>
           <div className="flex flex-col gap-1.5">
             {(structuredMode
-              ? planItems.map((f) => ({ observed: findingText(f), effect: findingText(f, "_effect") }))
-              : legacyPlan
+              ? planItems.map((f) => ({ observed: findingText(f), effect: findingText(f, "_effect"), code: f.code as string | undefined }))
+              : legacyPlan.map((p) => ({ ...p, code: undefined as string | undefined }))
             ).map((p, i) => (
-              <div key={i} className="flex flex-wrap items-center gap-1.5 text-xs">
+              <div key={i} className="flex flex-wrap items-center gap-1.5 text-xs"
+                {...(p.code ? { "data-testid": "perception-finding", "data-code": p.code } : {})}>
                 <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">{p.observed}</span>
                 <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="text-muted-foreground">{p.effect}</span>
@@ -390,15 +402,20 @@ export function DataPerception({
   );
 }
 
-function Section({ title, lines, testId }: { title: string; lines: string[]; testId: string }) {
+/** A rendered finding line: its text, and its code (absent on a legacy free-text line). */
+type Line = { text: string; code?: string };
+const findingLine = (f: PerceptionFinding): Line => ({ text: findingText(f), code: f.code });
+
+function Section({ title, lines, testId }: { title: string; lines: Line[]; testId: string }) {
   return (
     <div className="flex flex-col gap-1.5" data-testid={testId}>
       <div className="text-xs font-semibold text-muted-foreground">{title}</div>
       <ul className="flex flex-col gap-1">
         {lines.map((s, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs">
+          <li key={i} className="flex items-start gap-2 text-xs"
+            {...(s.code ? { "data-testid": "perception-finding", "data-code": s.code } : {})}>
             <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-            <span className="text-foreground [overflow-wrap:anywhere]">{s}</span>
+            <span className="text-foreground [overflow-wrap:anywhere]">{s.text}</span>
           </li>
         ))}
       </ul>
@@ -413,6 +430,7 @@ function Stat({
   testId,
   wide,
   gloss,
+  stat,
 }: {
   k: string;
   v: string;
@@ -422,9 +440,11 @@ function Stat({
   testId?: string;
   /** Span two columns so a reason hint wraps on readable lines instead of being cropped. */
   wide?: boolean;
+  /** The stat code (`data-stat`), for the kind's own measures. */
+  stat?: string;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-0.5", wide && "col-span-2")} data-testid={testId}>
+    <div className={cn("flex min-w-0 flex-col gap-0.5", wide && "col-span-2")} data-testid={testId} data-stat={stat}>
       <span
         className={cn("text-fs-xs font-medium uppercase tracking-wide text-muted-foreground", gloss && "cursor-help underline decoration-dotted underline-offset-2")}
         title={gloss}
