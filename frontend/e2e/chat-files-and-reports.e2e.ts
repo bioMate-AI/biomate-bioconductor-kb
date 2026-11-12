@@ -56,8 +56,14 @@ test("zh: image question, documents with figures, generated files beside the cha
   await loginAsFixture(page);
   await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
-  const nc = page.getByTestId("button-new-chat");
-  if ((await nc.count().catch(() => 0)) > 0) { await nc.first().click().catch(() => {}); await page.waitForTimeout(1500); }
+  // Generated files are saved only in PROJECT chats (by design) — start the chat inside a project,
+  // through the sidebar like a user: open the project, then its "+ 新建对话".
+  const projects = (await (await page.request.get(BASE_URL + "/api/projects")).json())?.projects ?? [];
+  const project = projects.find((p: any) => p.name === "test" && p.status !== "archived") ?? projects.find((p: any) => p.status !== "archived");
+  expect(project, "the fixture account needs one project").toBeTruthy();
+  await page.getByTestId(`button-project-${project.id}`).click({ timeout: 30_000 });
+  await page.getByTestId(`project-new-chat-${project.id}`).click({ timeout: 30_000 });
+  await page.waitForTimeout(1500);
 
   // ── 1. Image question ──────────────────────────────────────────────────────
   const png = fs.readFileSync(path.resolve("client/public/biomate-logo.png"));
@@ -78,7 +84,7 @@ test("zh: image question, documents with figures, generated files beside the cha
   await page.screenshot({ path: `${SHOTS}/2-qc-reply.png`, fullPage: true });
 
   const card = page.getByTestId("generated-files").last();
-  await expect(card).toBeVisible();
+  await expect(card, "the reply lists the files it saved").toBeVisible({ timeout: 60_000 });
   const names = await card.getByTestId("generated-file-open").allInnerTexts();
   console.log("[generated files]", names);
   expect(names.some((n) => /\.png$/i.test(n)), "a figure was saved").toBe(true);
