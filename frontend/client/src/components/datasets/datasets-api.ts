@@ -259,9 +259,15 @@ export interface DatasetRowsState {
   error: number | null
   /** The file is not tabular (415) — the caller falls back to the text preview. */
   unsupported: boolean
+  /**
+   * Whether line 1 of the file is a header record (the rows reader infers it from the content:
+   * a header-less numeric table or gene list has none). The edit route numbers data rows after
+   * this many header records. null until the first page arrives (or an older backend).
+   */
+  headerRow: boolean | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null }
 
 /**
  * Page in a project file's full rows. `loadMore()` fetches the next page (no-op
@@ -301,9 +307,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const pageRows: string[][] = Array.isArray(body?.rows) ? body.rows : []
       const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
       const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
+      const headerRow: boolean | null = typeof body?.headerRow === "boolean" ? body.headerRow : ref.current.headerRow
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })
@@ -333,4 +340,76 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
   const retry = loadMore
 
   return { enabled, ...state, loadMore, loadAll, retry }
+}
+
+// ---------------------------------------------------------------------------
+// Folder profiling (FASTQ pair detection, 10x matrix, mixed formats)
+// ---------------------------------------------------------------------------
+
+export interface FolderFinding {
+  code: string
+  level: "info" | "watch" | "blocked"
+  params?: Record<string, unknown>
+}
+
+export interface FolderSample {
+  sample: string
+  forward: string | null
+  reverse: string | null
+  status: "paired" | "orphan" | "single"
+  role?: "forward" | "reverse" | null
+  dir?: string
+}
+
+export interface TenxSet {
+  dir: string
+  prefix?: string
+  matrix: string
+  barcodes?: string | null
+  features?: string | null
+  version?: "v2" | "v3" | null
+  complete: boolean
+  missing: string[]
+  genes?: number
+  cells?: number
+  nnz?: number | null
+}
+
+export interface FolderProfile {
+  path: string
+  kind: "fastq_set" | "tenx_matrix" | "mixed" | "empty"
+  fileCount: number
+  rollup: { format: string; label: string; count: number; pairs?: number }[]
+  findings: FolderFinding[]
+  fastq?: {
+    verdict: "paired" | "single_end" | "mixed"
+    pattern: string | null
+    engine: "galaxy" | "fallback"
+    pairs: number
+    samples: FolderSample[]
+    orphans: string[]
+    singles: string[]
+  }
+  samplesheet?: { columns: string[]; rows: string[][]; csv: string; filename: string }
+  tenx?: { sets: TenxSet[] }
+}
+
+export function folderProfileUrl(projectId: string, path: string, download = false): string {
+  const q = new URLSearchParams({ path })
+  if (download) q.set("download", "samplesheet")
+  return `/api/projects/${encodeURIComponent(projectId)}/folders/profile?${q.toString()}`
+}
+
+export function useFolderProfile(projectId: string | null | undefined, path: string | null): UseQueryResult<FolderProfile> {
+  return useQuery<FolderProfile>({
+    queryKey: ["/api/projects/folders/profile", projectId, path],
+    enabled: !!projectId && path !== null,
+    staleTime: 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch(folderProfileUrl(projectId!, path!), { credentials: "include" })
+      if (!res.ok) throw new Error(`${res.status}: failed to profile folder`)
+      return (await res.json()) as FolderProfile
+    },
+  })
 }
