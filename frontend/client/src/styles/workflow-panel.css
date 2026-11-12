@@ -316,6 +316,9 @@
   /* §7 — animate the status colour change (pending → running → terminal) */
   transition: background .35s ease, border-color .35s ease, box-shadow .35s ease;
 }
+/* A single-step phase has no sequence to draw — keep the status dot, drop the rail
+   (founder phase-view review 2026-11-11). */
+.wf-panel .step.solo::before { display: none; }
 .wf-panel .step.pending::after,
 .wf-panel .step[data-status=""]::after { background: var(--bg-elev); border-color: var(--border-strong); }
 .wf-panel .step.completed::after { background: var(--ok);     border-color: var(--ok); }

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
+import { tOr } from "@/lib/i18n";
+import { cleanParamValueForDisplay } from "@/lib/user-facing-text";
 
 function prettifyLabel(raw: string): string {
   return raw
@@ -92,7 +94,7 @@ export function StepAdjustModal({
       onRerunSubmitted(data.new_run_id);
       onOpenChange(false);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Unknown error');
+      setErrorMsg(err.message || tOr('common.unknown_error', 'Unknown error'));
     } finally {
       setSubmitting(false);
     }
@@ -102,12 +104,12 @@ export function StepAdjustModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="step-adjust-modal" className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Adjust &amp; Rerun: {step.processName || step.name}</DialogTitle>
+          <DialogTitle>{tOr('step_adjust.title', 'Adjust & rerun: {{name}}', { name: step.name || step.processName || '' })}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {allParamKeys.length === 0 && (
-            <p className="text-sm text-muted-foreground">No parameters available for this step.</p>
+            <p className="text-sm text-muted-foreground">{tOr('step_adjust.no_params', 'No parameters available for this step.')}</p>
           )}
           {allParamKeys.map(key => {
             const paramType = getParamType(key);
@@ -131,6 +133,13 @@ export function StepAdjustModal({
                     onChange={e => updateParam(key, e.target.valueAsNumber)}
                     className="w-40 text-sm"
                   />
+                ) : typeof val === 'string' && /^(?:s3|gs|file):\/\//i.test(val.trim()) ? (
+                  // A stored file is shown by its name, read-only — the storage path is
+                  // never user-facing (founder no-S3 rule, 2026-11-11).
+                  <span id={`param-${key}`} data-testid={`step-adjust-file-${key}`} title={cleanParamValueForDisplay(val)}
+                    className="w-40 truncate rounded border bg-muted/40 px-2 py-1 font-mono text-xs">
+                    {cleanParamValueForDisplay(val) || tOr('panel.staged_file', 'staged file')}
+                  </span>
                 ) : (
                   <Input
                     id={`param-${key}`}
@@ -145,7 +154,7 @@ export function StepAdjustModal({
           })}
 
           <p className="text-xs text-muted-foreground pt-1">
-            Only changed parameters will be applied. The workflow resumes from this step.
+            {tOr('step_adjust.hint', 'Only changed parameters will be applied. The workflow resumes from this step.')}
           </p>
 
           {errorMsg && (
@@ -157,16 +166,16 @@ export function StepAdjustModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
+            {tOr('common.cancel', 'Cancel')}
           </Button>
           <Button onClick={handleRerun} disabled={submitting}>
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Submitting…
+                {tOr('step_adjust.submitting', 'Submitting…')}
               </>
             ) : (
-              'Rerun from this step'
+              tOr('step_adjust.rerun', 'Rerun from this step')
             )}
           </Button>
         </DialogFooter>
