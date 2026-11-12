@@ -111,9 +111,11 @@ export interface AgentToolEvent {
 
 /** User-facing summary of a tool call: dataset ids become the dataset's name (from this turn's
  *  session datasets), other ids and storage paths are dropped — the chat card never shows raw input. */
-export function toolCallDisplayFor(input: Record<string, unknown> | undefined, context?: Pick<ChatContext, 'sessionDatasets'>): string {
+export function toolCallDisplayFor(input: Record<string, unknown> | undefined, context?: Pick<ChatContext, 'sessionDatasets' | 'turnMessage'>): string {
   const datasets = context?.sessionDatasets || [];
-  return toolCallDisplay(input, (id) => datasets.find(d => d.id === id || d.projectFileId === id)?.name);
+  const attached = attachedDatasetsFromMessage(context?.turnMessage || '');
+  return toolCallDisplay(input, (id) => datasets.find(d => d.id === id || d.projectFileId === id)?.name
+    || attached.find(a => a.galaxyId === id || a.datasetId === id)?.name);
 }
 
 /** Anthropic tool definitions registered with the agent. */
@@ -132,7 +134,7 @@ File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filen
 preamble predefines INPUT_FILES (a map from original filename -> absolute path) and INPUT_PATHS
 (the list of those paths) for every dataset you list in input_datasets. USE THESE DIRECTLY — e.g.
 Python: path = INPUT_FILES['raw_counts.csv']  (or just iterate INPUT_PATHS); R: INPUT_FILES[["x.zip"]].
-Do NOT run find/ls over '/', '/galaxy', '/tmp', or the working directory to locate inputs, and do
+Do NOT run find/ls over '/', '/tmp', or the working directory to locate inputs, and do
 NOT guess paths: every input is under $DATA_DIR and already in INPUT_FILES. If INPUT_FILES is empty
 you forgot to pass input_datasets — pass the ids from the [Uploaded datasets:] block and retry.
 Example — if raw_counts.csv was uploaded with dataset_id=abc123 (pass input_datasets=['abc123']):
@@ -344,7 +346,7 @@ instead of inventing a workflow name.`,
     name: 'request_new_tool',
     description: `Request that BioMate fetch and register a NEW analysis tool that is NOT yet in its
 catalog, by driving its GitHub tool-ingest pipeline (search a repo -> fetch docs -> generate a
-Galaxy wrapper -> validate -> register as an auto_discovered, quality-gated tool).
+tool wrapper -> validate -> register as an auto_discovered, quality-gated tool).
 
 Use ONLY as a last resort, after search/compose has genuinely found no existing tool for the
 user's capability (i.e. you would otherwise have to say "no tool available"). Do NOT use this to
@@ -489,7 +491,7 @@ from precisely what they see.`,
       properties: {
         run_id: {
           type: 'string',
-          description: "The run whose report to edit (run id, or the Galaxy invocation id). Get it from the recent-runs context or list_history if unsure.",
+          description: "The run whose report to edit (run id or invocation id). Get it from the recent-runs context or list_history if unsure.",
         },
         instruction: {
           type: 'string',
@@ -3031,14 +3033,27 @@ export const FINAL_ANSWER_INSTRUCTION = 'The tool budget for this turn is used u
 
 export const TRUNCATED_REPLY_INSTRUCTION = 'Your previous reply was cut off by the output length limit before it finished, '
   + 'so any tool call in it was NOT run and the user has not seen a result. Continue now: if you were writing code, '
-  + 'call the tool again with a shorter script (split the work into smaller steps if needed); otherwise finish the '
-  + 'answer concisely. Do not announce what you are about to do — do it.';
+  + 'call the tool again with a shorter script (split the work into smaller steps if needed); otherwise continue the '
+  + 'answer from exactly where it stopped, without repeating what was already written. Do not announce what you are '
+  + 'about to do — do it.';
 
 /** A turn that stopped on the output-length limit is incomplete: its text is a fragment and any
  *  tool_use in it was cut mid-input and never run (dev 2026-11-12, GLM via OpenRouter: the 5th turn of
  *  an image-QC chat stopped on max_tokens while writing the plotting script, and "现在让我生成可视化的 QC
  *  报告：" was shown as the whole answer). Returns the transcript entries that replace that turn: its
  *  text only (an unrun tool_use would need a tool_result) plus the instruction to continue. */
+/** Whether a turn that stopped on max_tokens is mid-work (follow up and let the model continue) or a
+ *  long prose answer (keep it; the reply is flagged truncated and the client offers "Continue").
+ *  Mid-work: it was cutting off a tool call, tools already ran in this response (its text is the
+ *  narration of a next step — the dev 2026-11-12 case), or it produced no text at all. Committee
+ *  review 2026-11-12: following up on a prose answer replaced the whole answer with its tail. */
+export function truncatedTurnNeedsFollowUp(content: any[] | undefined, toolsRanThisResponse: boolean): boolean {
+  const blocks = content || [];
+  if (blocks.some((b: any) => b?.type === 'tool_use')) return true;
+  if (toolsRanThisResponse) return true;
+  return !blocks.some((b: any) => b?.type === 'text' && String(b.text || '').trim());
+}
+
 export function truncatedTurnFollowUp(content: any[] | undefined): Array<{ role: 'assistant' | 'user'; content: any }> {
   const text = (content || []).filter((b: any) => b?.type === 'text' && b.text).map((b: any) => b.text).join('');
   return [
@@ -3116,16 +3131,34 @@ export function modelFacingUploads(text: string): string {
     .replace(/\[Galaxy dataset:\s*([^\]]*?)\s*\(id:\s*([^)\s]+)\)\s*\]/gi, '[Dataset: $1 (dataset_id: $2)]')
     .replace(/\[Uploaded datasets?:\s*([^\]]+)\]/gi, (_all, body: string) => {
     const entries = body.split(/;\s*/).map((entry) => {
-      const name = entry.split(':')[0].trim();
-      const datasetId = /\bdataset_id=([^,\s;]+)/.exec(entry.replace(/\bgalaxy_dataset_id=[^,\s;]+/gi, ''))?.[1];
-      const backendId = /\bgalaxy_dataset_id=([^,\s;]+)/i.exec(entry)?.[1];
-      const s3Uri = /\bs3_uri=([^,\s;]+)/.exec(entry)?.[1];
-      const id = backendId || (datasetId && datasetId !== 'n/a' ? datasetId : undefined);
-      if (!name) return '';
-      return `${name}: ${[id ? `dataset_id=${id}` : '', s3Uri ? `s3_uri=${s3Uri}` : ''].filter(Boolean).join(', ')}`.replace(/:\s*$/, '');
+      const fields = parseUploadEntry(entry);
+      if (!fields.name) return '';
+      const id = fields.galaxy_dataset_id || (fields.dataset_id && fields.dataset_id !== 'n/a' ? fields.dataset_id : undefined);
+      const parts = [id ? `dataset_id=${id}` : '', fields.s3_uri ? `s3_uri=${fields.s3_uri}` : ''].filter(Boolean);
+      return parts.length ? `${fields.name}: ${parts.join(', ')}` : fields.name;
     }).filter(Boolean);
     return `[Uploaded datasets: ${entries.join('; ')}]`;
   });
+}
+
+/** One "[Uploaded datasets:]" entry → its fields. The file name is everything before the first
+ *  `key=` (names may contain ':' or spaces); each value runs to the next ", key=" (so an s3 URI
+ *  built from a file name with spaces stays whole). */
+export function parseUploadEntry(entry: string): { name: string; dataset_id?: string; galaxy_dataset_id?: string; s3_uri?: string } {
+  const KEY = /(?:^|[\s,])(galaxy_dataset_id|dataset_id|s3_uri)=/g;
+  const marks: Array<{ key: string; at: number; valueAt: number }> = [];
+  for (const m of entry.matchAll(KEY)) {
+    const lead = m[0].length - m[1].length - 1;
+    marks.push({ key: m[1], at: (m.index ?? 0) + lead, valueAt: (m.index ?? 0) + m[0].length });
+  }
+  const name = (marks.length ? entry.slice(0, marks[0].at) : entry).trim().replace(/:\s*$/, '').trim();
+  const out: any = { name };
+  marks.forEach((mk, k) => {
+    const end = k + 1 < marks.length ? marks[k + 1].at : entry.length;
+    const v = entry.slice(mk.valueAt, end).replace(/,\s*$/, '').trim();
+    if (v) out[mk.key] = v;
+  });
+  return out;
 }
 
 /** The local-upload id (BioMate dataset id) of an attachment the model referenced by its
@@ -10751,6 +10784,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       let _ranRunCode = false;
       let _codeNudged = false;
       let _shownBeforeNudge = '';
+      let _toolsRan = false;            // any tool executed in this response
+      let _streamedFragment = false;    // a truncated first turn already streamed text to the user
+      let _carriedText = '';            // text of truncated turns, kept and joined to the continuation
+      const _carryTruncatedText = (content: any[] | undefined) => {
+        if ((content || []).some((b: any) => b?.type === 'tool_use')) return; // a cut tool call: its narration is superseded
+        const t = (content || []).filter((b: any) => b?.type === 'text').map((b: any) => b.text || '').join('');
+        if (t.trim()) _carriedText += stripNarratedToolCalls(t);
+      };
       const _runCodeOffered = Array.isArray(agentTools) && (agentTools as any[]).some((t: any) => t?.name === 'run_code');
       // Structural first: the classifier decided direct_compute → a reply without a run_code call cannot
       // hold real results. The prose regex is only a secondary signal (execution-integrity.ts).
@@ -10822,14 +10863,17 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
               .map(b => b.type === 'text' ? { type: 'text', text: b.text || '' } : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
             agentMessages.push({ role: 'assistant', content: assistantContent as any });
             if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
+            _toolsRan = true;
             const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
             agentMessages.push({ role: 'user', content: toolResults as any });
             rawResponse = ''; // Reset — final text comes in a later turn
             continue; // next iteration
           }
-          if (lastStopReason === 'max_tokens') {
-            console.warn('[GalaxyAssistant] streamed turn hit the output-length limit — asking the model to continue');
+          if (lastStopReason === 'max_tokens' && truncatedTurnNeedsFollowUp(contentBlocks, _toolsRan)) {
+            console.warn('[GalaxyAssistant] streamed turn hit the output-length limit mid-work — asking the model to continue');
             agentMessages.push(...truncatedTurnFollowUp(contentBlocks) as any);
+            _carryTruncatedText(contentBlocks);
+            _streamedFragment = !!rawResponse.trim();
             rawResponse = '';
             continue;
           }
@@ -10865,14 +10909,16 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         if (completion.stop_reason === 'tool_use' && toolUseBlocks.length > 0) {
           agentMessages.push({ role: 'assistant', content: completion.content as any });
           if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
+          _toolsRan = true;
           const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
           agentMessages.push({ role: 'user', content: toolResults as any });
           continue;
         }
 
-        if (completion.stop_reason === 'max_tokens') {
-          console.warn(`[GalaxyAssistant] tool-turn-${turn} hit the output-length limit — asking the model to continue`);
+        if (completion.stop_reason === 'max_tokens' && truncatedTurnNeedsFollowUp(completion.content as any[], _toolsRan)) {
+          console.warn(`[GalaxyAssistant] tool-turn-${turn} hit the output-length limit mid-work — asking the model to continue`);
           agentMessages.push(...truncatedTurnFollowUp(completion.content as any[]) as any);
+          _carryTruncatedText(completion.content as any[]);
           rawResponse = '';
           continue;
         }
@@ -10889,7 +10935,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           continue;
         }
         if (onResponseDelta && rawResponse) {
-          onResponseDelta((_shownBeforeNudge ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
+          onResponseDelta((_shownBeforeNudge || _streamedFragment ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
         }
         break;
       }
@@ -10918,6 +10964,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // computation; it is NOT kept. The final message (which replaces the streamed preview in the UI,
       // chat-interface.tsx `data.response`) is the post-execution answer only. Committee review 2026-11-05.
       if (_shownBeforeNudge && !rawResponse.trim()) rawResponse = _shownBeforeNudge;
+      // A truncated text turn is kept: the answer is its text + the continuation, not the tail alone.
+      if (_carriedText.trim()) rawResponse = rawResponse.trim() ? `${_carriedText}${rawResponse}` : _carriedText;
 
       // Guard: if loop exhausted or tool-only response with no final text, provide fallback.
       // When a workflow was generated, produce a meaningful workflow-ready message.
@@ -11032,8 +11080,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           const plainMessages = [
             ...allPrev.slice(-6).map(m => ({
               role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-              content: typeof m.content === 'string' ? m.content
-                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+              content: modelFacingUploads(typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')),
             })),
             { role: 'user' as const, content: userPrompt },
           ];
@@ -11065,8 +11113,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           const plainMessages = [
             ...allPrev.slice(-6).map(m => ({
               role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-              content: typeof m.content === 'string' ? m.content
-                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+              content: modelFacingUploads(typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')),
             })),
             { role: 'user' as const, content: userPrompt },
           ];
@@ -11238,7 +11286,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         await new Promise(resolve => setTimeout(resolve, 2000));
         state = await galaxyState();
       }
-      if (state !== 'ok') throw new Error(`Dataset ${id} is not ready in Galaxy (state: ${state || 'unknown'})`);
+      if (state !== 'ok') throw new Error(`Dataset is not ready yet (state: ${state || 'unknown'}) — it may still be processing; try again shortly`);
     }
 
     try {
@@ -11264,7 +11312,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       }
     } catch { /* fall through */ }
 
-    throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
+    throw new Error('Dataset is not accessible — it may have been removed or not finished uploading');
   }
 
   /** First lines of this turn's attached text files, keyed by file name, so the model's first run_code
@@ -11326,7 +11374,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const buf = await s3Service.readBuffer(pf.s3_key, RUN_CODE_PROJECT_FILE_MAX_BYTES);
         return (async function* () { yield buf; })();
       }
-      return this._openDataset(id, galaxyKey, localIdFor.get(id));
+      return this._openDataset(id, galaxyKey, localIdFor.get(id) || attachmentLocalId(id, context));
     };
 
     const rawIds: string[] = input.input_datasets ?? [];

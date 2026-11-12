@@ -164,7 +164,7 @@ describe('_openDataset — never stages a Galaxy dataset whose upload job is sti
 
   it('fails loudly (not an empty file) when the job never finishes or errors', async () => {
     vi.stubGlobal('fetch', galaxy(['error']));
-    await expect(assistant()._openDataset('gx-remote', 'k')).rejects.toThrow(/not ready in Galaxy \(state: error\)/);
+    await expect(assistant()._openDataset('gx-remote', 'k')).rejects.toThrow(/not ready yet \(state: error\)/);
     vi.stubGlobal('fetch', galaxy(['running']));
     await expect(assistant()._openDataset('gx-remote', 'k', undefined, 0)).rejects.toThrow(/state: running/);
   });

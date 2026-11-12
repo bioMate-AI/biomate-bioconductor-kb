@@ -52,20 +52,35 @@ export function toolCallDisplay(
   return Array.from(new Set(parts)).join(' · ');
 }
 
-/** The internal execution backend is never named to the user (founder 2026-11-12: "there should
- *  not have galaxy in output"). Removes backend id fields (`galaxy_dataset_id=<id>`, bare
- *  `galaxy_*_id` names) and rewrites the backend's own nouns ("Galaxy history / backend / dataset /
- *  server / API") to neutral words. A user asking about the Galaxy platform itself ("import a Galaxy
- *  workflow", ".ga file") is untouched. Prose only — callers skip code blocks. */
+/** The internal execution backend's identifiers never reach the user (founder 2026-11-12: "there
+ *  should not have galaxy in output"). Narrow on purpose (committee review 2026-11-12: a broad
+ *  "Galaxy X" → neutral rewrite turned correct answers about the Galaxy platform — "the Galaxy API",
+ *  usegalaxy.org — into false ones):
+ *   - backend id fields: `galaxy_dataset_id=<v>` / `galaxy_history_id: <v>` removed; a bare
+ *     `galaxy_*_id` name → "dataset ID";
+ *   - the user's OWN data called by the backend's name: "your Galaxy history/dataset" → "your data /
+ *     your dataset" (zh: 你的/您的 Galaxy 历史/数据集).
+ *  Prose only: callers pass prose segments (see redactUserFacingReply). */
 export function redactInternalBackend(text: string, zh = false): string {
   return String(text || '')
-    .replace(/`?\bgalaxy_[a-z_]*ids?\b`?\s*[=:]\s*`?[A-Za-z0-9-]+`?\s*,?\s*/gi, '')
-    .replace(/`?\bgalaxy_[a-z_]*ids?\b`?/gi, zh ? '数据集 ID' : 'dataset ID')
-    .replace(/\b(?:(?:the|a|your)\s+)?Galaxy\s+(?:history|histories)\b/gi, (_m: string, offset: number, all: string) => zh ? '你的数据'
-      : (/(?:^|[.!?]\s+)$/.test(all.slice(0, offset)) ? 'Your data' : 'your data'))
-    .replace(/\bGalaxy\s+(dataset|datasets)\b/gi, (_m, n: string) => zh ? '数据集' : n.toLowerCase())
-    .replace(/\b(?:the\s+)?Galaxy\s+(?:backend|server|instance|API)\b/gi, 'BioMate')
-    .replace(/Galaxy\s*(?:历史记录|历史|后端|服务器|数据集)/g, (m) => /数据集/.test(m) ? '数据集' : /历史/.test(m) ? '你的数据' : 'BioMate');
+    .replace(/\bgalaxy_[a-z_]*ids?\s*[=:]\s*["']?[A-Za-z0-9-]{6,}["']?,?\s?/gi, '')
+    .replace(/\bgalaxy_[a-z_]*ids?\b/gi, zh ? '数据集 ID' : 'dataset ID')
+    .replace(/\b(your|the user's)\s+Galaxy\s+(?:history|histories)\b/gi, (_m, p: string) => (p[0] === 'Y' ? 'Your' : 'your') + ' data')
+    .replace(/\b(your|the user's)\s+Galaxy\s+(dataset|datasets)\b/gi, (_m, p: string, n: string) => (p[0] === 'Y' ? 'Your' : 'your') + ' ' + n.toLowerCase())
+    .replace(/(你的|您的)\s*Galaxy\s*(?:历史记录|历史)/g, '$1数据')
+    .replace(/(你的|您的)\s*Galaxy\s*数据集/g, '$1数据集');
+}
+
+/** Split text into prose and code segments: fenced blocks, inline `code`, and 4-space / tab
+ *  indented lines are code and are never rewritten. */
+function mapProse(text: string, f: (prose: string) => string): string {
+  return String(text || '').split(/(```[\s\S]*?```|`[^`\n]+`|(?:^|\n)(?: {4}|\t)[^\n]*)/g)
+    .map((part, i) => (i % 2 === 1 ? part : f(part))).join('');
+}
+
+/** Final reply text shown to the user: backend identifiers removed from prose only. */
+export function redactUserFacingReply(text: string, zh = false): string {
+  return mapProse(text, (p) => redactInternalBackend(p, zh));
 }
 
 /** A tool's result as shown in the expanded chat card: internal id fields and backend-named keys
@@ -73,9 +88,9 @@ export function redactInternalBackend(text: string, zh = false): string {
 export function userFacingToolOutput(value: unknown, depth = 0): unknown {
   if (depth > 6) return undefined;
   if (typeof value === 'string') {
-    if (UUID_RE.test(value) && value.trim().length <= 40) return undefined;
+    if (new RegExp(`^\\s*${UUID_RE.source}\\s*$`, 'i').test(value)) return undefined;
     const s = value.replace(/(?:s3|gs|file):\/\/[^\s"',)\]]+/gi, (m) => baseName(m) || m);
-    return redactInternalBackend(s.replace(new RegExp(UUID_RE.source, 'gi'), '').replace(/\(\s*(?:id:?\s*)?\)/g, ''));
+    return redactInternalBackend(s);
   }
   if (Array.isArray(value)) return value.map(v => userFacingToolOutput(v, depth + 1)).filter(v => v !== undefined);
   if (value && typeof value === 'object') {

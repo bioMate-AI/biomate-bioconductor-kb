@@ -153,3 +153,14 @@ describe('OpenAI-compatible agentic shim (OpenRouter / any base_url)', () => {
     await expect(client.messages.create({ messages: [{ role: 'user', content: 'run' }], tools })).rejects.toThrow('enum');
   });
 });
+
+import { lengthStopMessage } from '../local-llm';
+describe('lengthStopMessage — a length stop is a max_tokens turn, never an executed tool call', () => {
+  it('keeps the text and marks cut tool calls as never-executed', () => {
+    const m: any = lengthStopMessage({ id: 'r', usage: { prompt_tokens: 3, completion_tokens: 4 } },
+      { finish_reason: 'length', message: { content: '现在让我生成', tool_calls: [{ id: 'c1', function: { name: 'run_code', arguments: '{"code":"imp' } }] } },
+      [{ id: 'c1', function: { name: 'run_code', arguments: '{"code":"imp' } }], 'z-ai/glm-5.2');
+    expect(m.stop_reason).toBe('max_tokens');
+    expect(m.content).toEqual([{ type: 'text', text: '现在让我生成' }, { type: 'tool_use', id: 'c1', name: 'run_code', input: {}, truncated: true }]);
+  });
+});

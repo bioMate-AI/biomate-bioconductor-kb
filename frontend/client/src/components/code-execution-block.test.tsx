@@ -62,7 +62,7 @@ describe('CodeExecutionBlock', () => {
     const { container } = render(<CodeExecutionBlock block={{
       tool_use_id: 't5', name: 'read_file',
       call: { type: 'tool_call', tool_use_id: 't5', name: 'read_file', input: { dataset_id: UUID } },
-      result: { type: 'tool_result', tool_use_id: 't5', name: 'read_file', error: `Dataset ${UUID} not found in Galaxy history` },
+      result: { type: 'tool_result', tool_use_id: 't5', name: 'read_file', error: `Lookup failed for galaxy_dataset_id=${UUID}` },
     }} />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
     expect(container.textContent).not.toMatch(/galaxy|b9ce582c/i);

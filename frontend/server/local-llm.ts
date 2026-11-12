@@ -285,6 +285,17 @@ export function assertNotReasoningExhausted(result: any): void {
   }
 }
 
+/** Anthropic-shaped message for a `finish_reason: "length"` reply: its text, plus one marked
+ *  `tool_use` per cut tool call (name only, empty input, `truncated: true`) — never executed. */
+export function lengthStopMessage(result: any, choice: any, calls: any[], model: string) {
+  const text = String(choice?.message?.content || '');
+  return { id: result?.id, type: 'message', role: 'assistant', model,
+    content: [...(text ? [{ type: 'text', text }] : []),
+      ...calls.map((c: any, i: number) => ({ type: 'tool_use', id: c?.id || `truncated_${i}`, name: c?.function?.name || 'unknown', input: {}, truncated: true }))],
+    stop_reason: 'max_tokens',
+    usage: { input_tokens: result?.usage?.prompt_tokens ?? 0, output_tokens: result?.usage?.completion_tokens ?? 0 } };
+}
+
 /** Config-parameterized Anthropic-Messages shim over any OpenAI-compatible endpoint.
  *  Generalizes localMessagesClient so OpenRouter (and any OpenAI-compatible provider)
  *  gets the SAME agentic tool loop as on-prem: BIOMATE_TOOLS → OpenAI functions,
@@ -300,9 +311,18 @@ export function openaiCompatMessagesClient(cfg: { url: string; model: string; ke
       ...reasoningBudgetBody(cfg.url, params.max_tokens ?? 4096), temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
       ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
-    assertNotReasoningExhausted(result);
     const choice = result.choices[0];
     const calls = choice.message.tool_calls || [];
+    // Length stop in the agent loop: return it as a max_tokens turn instead of throwing, so the loop
+    // can ask the model to continue (galaxy-assistant truncatedTurnNeedsFollowUp). A tool call cut
+    // mid-arguments is passed as a marked, never-executed tool_use (stop_reason max_tokens never
+    // reaches tool execution) so the loop knows the turn was mid-work.
+    if (choice?.finish_reason === 'length') {
+      const rt = result?.usage?.completion_tokens_details?.reasoning_tokens;
+      console.warn(`[openaiCompat] ${cfg.model} stopped on the output-length limit` +
+        `${rt != null ? ` (${rt} reasoning tokens)` : ''}${calls.length ? ' inside a tool call' : ''}`);
+      return params.stream ? events(lengthStopMessage(result, choice, calls, cfg.model)) : lengthStopMessage(result, choice, calls, cfg.model);
+    }
     if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete tool call');
     const seen = new Set();
     const blocks = calls.map((call: any) => {

@@ -43,9 +43,8 @@ describe('toolCallDisplayFor — the chat card never shows raw tool input', () =
   });
 });
 
-import { attachmentLocalId, modelFacingUploads } from './galaxy-assistant';
-import { redactInternalBackend, userFacingToolOutput } from '../shared/tool-call-display';
-import { redactStoragePaths } from './execution-integrity';
+import { attachmentLocalId, modelFacingUploads, parseUploadEntry, truncatedTurnNeedsFollowUp } from './galaxy-assistant';
+import { redactInternalBackend, redactUserFacingReply, userFacingToolOutput } from '../shared/tool-call-display';
 
 describe('the response model never sees the backend name (founder 2026-11-12: "there should not have galaxy in output")', () => {
   const block = '分析一下这张图\n\n[Uploaded datasets: 0.jpeg: dataset_id=11111111-2222-3333-4444-555555555555, galaxy_dataset_id=b9ce582c-fded-4db5-838f-bdd96820f72c, s3_uri=s3://bucket/uploads/u/0.jpeg; notes.txt: dataset_id=n/a, galaxy_dataset_id=f00df00df00df00d]';
@@ -67,25 +66,48 @@ describe('the response model never sees the backend name (founder 2026-11-12: "t
   });
 });
 
-describe('reply guard: the backend is never named to the user', () => {
-  it('strips backend id fields and neutralises backend nouns (en + zh)', () => {
+describe('reply guard: backend identifiers never reach the user (narrow, prose only)', () => {
+  it('removes backend id fields; renames the user\'s own data called by the backend name (en + zh)', () => {
     expect(redactInternalBackend('Reading galaxy_dataset_id=b9ce582c-fded-4db5-838f-bdd96820f72c now')).toBe('Reading now');
-    expect(redactInternalBackend('Your file is in the Galaxy history.')).toBe('Your file is in your data.');
-    expect(redactInternalBackend('The Galaxy history holds it; the Galaxy backend stores it.')).toBe('Your data holds it; BioMate stores it.');
-    expect(redactInternalBackend('我已把文件存入 Galaxy 历史', true)).toBe('我已把文件存入 你的数据');
     expect(redactInternalBackend('the galaxy_dataset_id field')).toBe('the dataset ID field');
+    expect(redactInternalBackend('Your Galaxy history holds 3 files; open your Galaxy dataset.')).toBe('Your data holds 3 files; open your dataset.');
+    expect(redactInternalBackend('我已把文件存入你的 Galaxy 历史', true)).toBe('我已把文件存入你的数据');
   });
-  it('leaves the Galaxy platform itself alone (a user may ask about it)', () => {
-    expect(redactInternalBackend('You can import a Galaxy workflow (.ga) from Settings.')).toBe('You can import a Galaxy workflow (.ga) from Settings.');
+  it('answers about the Galaxy platform and astronomy are untouched (committee review 2026-11-12)', () => {
+    for (const t of ['Use the Galaxy API to list histories. The Galaxy server at usegalaxy.org hosts it.',
+      'You can import a Galaxy workflow (.ga) from Settings.', 'The Galaxy History of the universe spans 13 Gyr.']) {
+      expect(redactInternalBackend(t)).toBe(t);
+    }
   });
-  it('runs inside redactStoragePaths, the reply choke point, outside code blocks only', () => {
-    expect(redactStoragePaths('Saved to the Galaxy history: s3://b/u/x/report.png\n```\ngalaxy_dataset_id = 1\n```'))
-      .toBe('Saved to your data: report.png\n```\ngalaxy_dataset_id = 1\n```');
+  it('code is never rewritten: fenced, inline, indented', () => {
+    const t = 'Use `galaxy_dataset_id = "abc"` here.\n\n    galaxy_history_id = hist["id"]\n\n```\ngalaxy_dataset_id = 1\n```\nSee galaxy_dataset_id=abcdef12-3456 in prose.';
+    expect(redactUserFacingReply(t)).toBe('Use `galaxy_dataset_id = "abc"` here.\n\n    galaxy_history_id = hist["id"]\n\n```\ngalaxy_dataset_id = 1\n```\nSee in prose.');
   });
-  it('tool output in the card: id / backend keys dropped, UUIDs and storage URIs cleaned', () => {
-    expect(userFacingToolOutput({ galaxy_dataset_id: 'b9ce582c-fded-4db5-838f-bdd96820f72c', name: 'x.csv', path: 's3://b/k/x.csv', lines: ['a,b'] }))
-      .toEqual({ name: 'x.csv', path: 'x.csv', lines: ['a,b'] });
-    expect(userFacingToolOutput('Dataset not found in Galaxy history')).toBe('Dataset not found in your data');
+  it('tool output in the card: id keys dropped, exact-UUID values removed, data rows kept', () => {
+    expect(userFacingToolOutput({ galaxy_dataset_id: 'b9ce582c-fded-4db5-838f-bdd96820f72c', name: 'x.csv', path: 's3://b/k/x.csv', lines: ['a,b', '1,123e4567-e89b-12d3-a456-426614174000'] }))
+      .toEqual({ name: 'x.csv', path: 'x.csv', lines: ['a,b', '1,123e4567-e89b-12d3-a456-426614174000'] });
+    expect(userFacingToolOutput('Traceback: main()')).toBe('Traceback: main()');
+  });
+});
+
+describe('truncatedTurnNeedsFollowUp — only mid-work turns are continued', () => {
+  const prose = [{ type: 'text', text: 'A long methods write-up that ran out of room…' }];
+  it('a long prose answer with no tools is kept (flagged truncated; client offers Continue)', () => {
+    expect(truncatedTurnNeedsFollowUp(prose, false)).toBe(false);
+  });
+  it('a cut tool call, a turn after tools ran, or an empty turn is continued', () => {
+    expect(truncatedTurnNeedsFollowUp([...prose, { type: 'tool_use', id: 'x', name: 'run_code', input: {} }], false)).toBe(true);
+    expect(truncatedTurnNeedsFollowUp([{ type: 'text', text: '现在让我生成可视化的 QC 报告：' }], true)).toBe(true);
+    expect(truncatedTurnNeedsFollowUp([], false)).toBe(true);
+  });
+});
+
+describe('upload entries with spaces or ":" in the file name', () => {
+  it('keeps the whole name and the whole URI', () => {
+    expect(parseUploadEntry('run 1: a b.csv: dataset_id=X1, galaxy_dataset_id=G1, s3_uri=s3://b/u/X1/run 1: a b.csv'))
+      .toEqual({ name: 'run 1: a b.csv', dataset_id: 'X1', galaxy_dataset_id: 'G1', s3_uri: 's3://b/u/X1/run 1: a b.csv' });
+    expect(modelFacingUploads('[Uploaded datasets: my file.csv: dataset_id=X, galaxy_dataset_id=G, s3_uri=s3://b/u/my file.csv]'))
+      .toBe('[Uploaded datasets: my file.csv: dataset_id=G, s3_uri=s3://b/u/my file.csv]');
   });
 });
 
