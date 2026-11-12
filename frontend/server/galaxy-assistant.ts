@@ -152,7 +152,12 @@ output_files. $OUTPUT_DIR persists for the whole conversation — a file written
 turn is still at os.path.join(os.environ['OUTPUT_DIR'], '<name>'), so read it from there instead of
 recomputing it. Only files actually written there exist; never describe a file you did not write.
 When telling the user about files, name the files and say they are saved (to the project, in a project
-chat) — never mention $OUTPUT_DIR, /work or other internal paths.
+chat) — never mention $OUTPUT_DIR, /work or other internal paths. List every file you wrote.
+Plots: save one figure per file with a descriptive name (e.g. fig1_score_distribution.png) — not one
+multi-panel "dashboard" unless the user asks for one; plt.savefig(...) then plt.close(). Chinese,
+Japanese and Korean labels render correctly — label in the user's language. A Markdown report must sit
+next to its figures: write it in the same call as (or after) them and embed each with a bare relative
+link, ![caption](fig1_score_distribution.png) — no directory, no absolute path.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
 Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2), set timeout_seconds=120.`,
     input_schema: {
@@ -3576,6 +3581,10 @@ export async function _buildImageContentBlocks(
   // Resolver is injectable so this stays decoupled from the (side-effect-heavy)
   // routes module and is unit-testable. Defaults to the routes registry.
   resolveFile?: (id: string) => { filePath?: string } | undefined,
+  // Project files (Data page) live in object storage, not the local upload registry: the caller
+  // passes a reader for ids it authorised this turn (sessionDatasets with an s3_key). Live dev
+  // 2026-11-12: a project image attached from the picker never reached the model.
+  readProjectFile?: (id: string, maxBytes: number) => Promise<Buffer | undefined>,
 ): Promise<{ blocks: any[]; attached: string[]; skipped: Array<{ name: string; reason: string }> }> {
   const blocks: any[] = [];
   const attached: string[] = [];
@@ -3583,7 +3592,8 @@ export async function _buildImageContentBlocks(
 
   // Collect (name, id) pairs from both the new chip format and the legacy one.
   const refs: Array<{ name: string; id: string }> = [];
-  for (const m of message.matchAll(/\[Dataset:\s*([^\(]+?)\s*\(id:\s*([^\)]+?)\s*\)\]/gi)) {
+  // "[Dataset: …]" (legacy) and "[BioMate dataset: …]" (the Data-page picker chip).
+  for (const m of message.matchAll(/\[(?:BioMate\s+)?Dataset:\s*([^\(]+?)\s*\(id:\s*([^\)]+?)\s*\)\]/gi)) {
     refs.push({ name: m[1].trim(), id: m[2].trim() });
   }
   const datasetsBlock = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/i)?.[1] ?? '';
@@ -3625,10 +3635,14 @@ export async function _buildImageContentBlocks(
       const uuidInS3 = id.match(/uploads\/([0-9a-f-]{36})\//i)?.[1];
       if (uuidInS3) localFile = getUploadedFile!(uuidInS3);
     }
-    if (!localFile?.filePath || seen.has(localFile.filePath)) continue;
-    seen.add(localFile.filePath);
+    const seenKey = localFile?.filePath || `project:${id}`;
+    if (seen.has(seenKey)) continue;
+    seen.add(seenKey);
     try {
-      const buf = await fs!.readFile(localFile.filePath);
+      const buf = localFile?.filePath
+        ? await fs!.readFile(localFile.filePath)
+        : await readProjectFile?.(id, _VISION_MAX_RAW_BYTES + 1);
+      if (!buf) continue;
       if (buf.length > _VISION_MAX_RAW_BYTES) {
         skipped.push({ name, reason: `image is ${(buf.length / 1e6).toFixed(1)}MB — over the 3.75MB limit; downscale and re-upload` });
         continue;
@@ -10581,9 +10595,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // (histology, gels/blots, plots, scans) instead of guessing from filenames.
       // Only the Claude backbone consumes agentMessages; other providers use a
       // text-only plainMessages path below, so skip the base64 work for them.
+      // Images reach every path that can carry image blocks: the Claude-shaped agent loop (local,
+      // a claude-* backbone, the OpenRouter shim) — and, with an Anthropic key, a non-Claude backbone
+      // too, because an image turn is routed through that loop below (live dev 2026-11-12: with
+      // BIOMATE_RESPONSE_MODEL=gpt-5.6-luna the gate skipped the image although the turn ran on Haiku).
+      const _imageCapablePath = localOnly() || this.modelConfig.responseModel.startsWith('claude-')
+        || !!_openrouterAgentic.getStore() || !!process.env.ANTHROPIC_API_KEY;
+      const _projectImageReader = async (id: string, maxBytes: number): Promise<Buffer | undefined> => {
+        const d = (context.sessionDatasets || []).find(x => (x.id === id || x.projectFileId === id) && !!x.s3_key);
+        if (!d?.s3_key) return undefined;
+        const { s3Service } = await import('./s3-client');
+        return s3Service.readBuffer(d.s3_key, maxBytes);
+      };
       const { blocks: imageBlocks, attached: attachedImages, skipped: skippedImages } =
-        (localOnly() || this.modelConfig.responseModel.startsWith('claude-'))
-          ? await _buildImageContentBlocks(message)
+        _imageCapablePath
+          ? await _buildImageContentBlocks(message, undefined, _projectImageReader)
           : { blocks: [] as any[], attached: [] as string[], skipped: [] as Array<{ name: string; reason: string }> };
       let userContent: Anthropic.MessageParam['content'];
       if (imageBlocks.length > 0) {
@@ -10630,7 +10656,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // Non-tool turns keep the configured model via the text-only chain below;
       // if no Anthropic key, this degrades to the current text-only behavior
       // (and the integrity guard still flags any fabricated lookup).
-      const useAgenticLoop = isClaudeBackbone || (toolsEnabledThisTurn && !!process.env.ANTHROPIC_API_KEY);
+      // An image turn needs the loop that carries image blocks; the text-only chain drops them.
+      const useAgenticLoop = isClaudeBackbone
+        || ((toolsEnabledThisTurn || imageBlocks.length > 0) && !!process.env.ANTHROPIC_API_KEY);
       if (useAgenticLoop && !isClaudeBackbone) {
         apiOptions.model = 'claude-haiku-4-5-20251001';
       }
@@ -11503,6 +11531,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (projectFile?.s3_key) {
       try {
         const { s3Service } = await import('./s3-client');
+        // A project IMAGE is handed to the model as pixels, like a chat upload — reading it as
+        // text produced garbage "lines" (live dev 2026-11-12: the model could only report its size).
+        const _pfExt = String(projectFile.name || projectFile.s3_key).toLowerCase().match(/\.[a-z0-9]+$/)?.[0] ?? '';
+        if (_pfExt in _VISION_MEDIA_TYPES) {
+          const buf = await s3Service.readBuffer(projectFile.s3_key, _VISION_MAX_RAW_BYTES + 1);
+          if (buf.length > _VISION_MAX_RAW_BYTES) {
+            return { error: `Image is over the ${(_VISION_MAX_RAW_BYTES / 1e6).toFixed(2)}MB vision limit; ask the user for a smaller copy.` };
+          }
+          return {
+            __imageBlocks: [{ type: 'image', source: { type: 'base64', media_type: _VISION_MEDIA_TYPES[_pfExt], data: buf.toString('base64') } }],
+            format_hint: 'image',
+            message: `Image "${projectFile.name || fileId}" loaded.`,
+            __note: 'The image is attached below — analyze it directly.',
+          };
+        }
         const text = await s3Service.readTextPrefix(projectFile.s3_key);
         const allLines = text.split(/\r?\n/);
         const lines = allLines.slice(0, Math.max(1, Math.min(Number(n_lines) || 20, 500)));
