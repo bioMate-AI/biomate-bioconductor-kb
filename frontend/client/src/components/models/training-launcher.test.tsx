@@ -13,7 +13,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { TrainingLauncher } from "./training-launcher"
 import {
-  availableModelTypes, backendModelType, defaultModelName, detectSmilesColumns,
+  availableModelTypes, backendModelType, defaultModelName, detectSmilesColumns, detectTextColumns,
   fileKind, metricsFor, openRunManager, suggestTaskType,
 } from "./training-logic"
 import { specPayload } from "./training-specs"
@@ -283,6 +283,24 @@ describe("training-logic", () => {
     expect(availableModelTypes("general", "structure", [], [])).toEqual(["protein_diffusion"])
   })
 
+  it("surfaces the full ML/DL set: tabular diffusion on any table, LLM on free-text", () => {
+    // Generative tabular diffusion is offered for ANY feature matrix (no target needed).
+    expect(availableModelTypes("general", "table", ["gene1", "gene2", "label"], [])).toContain("tabular_diffusion")
+    // LLM SFT appears only when the table actually carries free text (content, not header names).
+    const textRows = [["Summarize the result.", "The assay passed."], ["Explain the mechanism in detail here.", "It binds the pocket."]]
+    expect(availableModelTypes("general", "table", ["q", "a"], [], textRows)).toContain("ludwig_llm")
+    expect(availableModelTypes("general", "table", ["x", "y"], [], [["1", "2"], ["3", "4"]])).not.toContain("ludwig_llm")
+    // DPO/GRPO stay honest to the backend's literal prompt/chosen/rejected columns.
+    expect(availableModelTypes("general", "table", ["prompt", "chosen", "rejected"], [], textRows)).toEqual(
+      expect.arrayContaining(["trl_grpo", "trl_dpo"]))
+    expect(availableModelTypes("general", "table", ["q", "a"], [], textRows)).not.toContain("trl_dpo")
+  })
+
+  it("detectTextColumns flags free-text columns, not numeric or short categorical", () => {
+    const rows = [["Long free-text description here", "ok", "42"], ["Another sentence with spaces", "no", "7"]]
+    expect(detectTextColumns(["notes", "flag", "score"], rows)).toEqual(["notes"])
+  })
+
   it("builds a language-neutral default model name", () => {
     expect(defaultModelName("expression.jsonl", "subtype")).toBe("expression-subtype")
     expect(defaultModelName("cells.h5ad", "")).toBe("cells")
@@ -307,5 +325,9 @@ describe("training-specs", () => {
       guidance_scale: "1", diffusion_steps: "100", noise_schedule: "cosine" }))
       .toEqual({ sc: { finetune: false, n_cells_to_generate: 10, guidance_scale: 1, diffusion_steps: 100, noise_schedule: "cosine" } })
     expect(specPayload("sklearn_tabular", {})).toEqual({})
+    // tabular_diffusion maps under the 'tabular' plan key; a chosen column passes as a string.
+    expect(specPayload("tabular_diffusion", { framework: "tabddpm", finetune: false, base_checkpoint: "",
+      target_column: "subtype", n_rows_to_generate: "500", guidance_scale: "1", diffusion_steps: "100", noise_schedule: "cosine" }))
+      .toEqual({ tabular: { framework: "tabddpm", finetune: false, target_column: "subtype", n_rows_to_generate: 500, guidance_scale: 1, diffusion_steps: 100, noise_schedule: "cosine" } })
   })
 })

@@ -7,7 +7,7 @@ import { t, tOr } from "@/lib/i18n"
  * "unconfigured" when no backend is reachable, "custom" for a registered model.
  * An unknown code renders verbatim (never a bare i18n key).
  */
-const KNOWN = new Set(["self_host", "hosted_nvidia", "unconfigured", "custom"])
+const KNOWN = new Set(["self_host", "hosted_nvidia", "unconfigured", "custom", "aws_batch"])
 export function originLabel(origin: string | null | undefined): string {
   const code = (origin || "").trim()
   if (!code) return tOr("models.origin_unconfigured", "Not configured")

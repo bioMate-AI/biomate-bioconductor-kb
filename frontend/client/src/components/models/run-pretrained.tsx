@@ -16,7 +16,7 @@
  * backend answers with a labelled stub when unreachable.
  */
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,7 @@ import { useModels, useInfer, useInferenceResult, useRunStatus, launchFold, Trai
 import { TERMINAL_STATUSES, openRunManager, runStatusLabel } from "./training-logic"
 import { InferenceResultView } from "./inference-result"
 import type { EvidenceClass, ModelSummary } from "./types"
+import { originLabel } from "./model-origin"
 
 // ── Domain definitions ───────────────────────────────────────────────────────
 interface Domain {
@@ -69,9 +70,12 @@ function pickModelId(domain: Domain, catalog: ModelSummary[] | undefined): strin
 interface RunPretrainedProps {
   onOpenModel?: (modelId: string) => void
   className?: string
+  /** A model id to preselect (from the detail view's "Use in a run"). Its domain
+   *  is selected so the user lands on the right run surface. */
+  initialModelId?: string
 }
 
-export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
+export function RunPretrained({ onOpenModel, className, initialModelId }: RunPretrainedProps) {
   const [domainId, setDomainId] = useState<EvidenceClass>("structure")
   const [inputText, setInputText] = useState("")
   const [runId, setRunId] = useState<string | null>(null)
@@ -91,6 +95,18 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
 
   const domain = useMemo(() => DOMAINS.find((d) => d.id === domainId)!, [domainId])
   const modelId = useMemo(() => pickModelId(domain, catalog), [domain, catalog])
+  // The catalog row for the resolved model, for an honest name + execution origin
+  // (Boltz-2 reports "BioMate compute", not NVIDIA, since it folds on our Batch).
+  const catalogModel = useMemo(() => (catalog ?? []).find((m) => m.id === modelId), [catalog, modelId])
+
+  // "Use in a run" from the model detail view: switch to the domain whose family
+  // matches the chosen model, so the user lands on the right run surface.
+  useEffect(() => {
+    if (!initialModelId || !catalog) return
+    const chosen = catalog.find((m) => m.id === initialModelId)
+    const dom = chosen ? DOMAINS.find((d) => d.families.includes(chosen.family)) : undefined
+    if (dom) setDomainId(dom.id as EvidenceClass)
+  }, [initialModelId, catalog])
 
   const canRun = inputText.trim().length > 0 && (isStructure
     ? !foldBusy && !(foldRunId && !foldDone)
@@ -161,20 +177,25 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
           <div className="space-y-1">
             <p className="text-xs font-semibold">{t(`models.domain_goal_${domain.id}`)}</p>
             <div className="flex items-center gap-2 flex-wrap text-fs-xs">
-              <Badge variant="outline">{domain.id}</Badge>
+              <Badge variant="outline">{t(`models.domain_${domain.id}`)}</Badge>
               {modelId ? (
                 <button
                   type="button"
-                  className="font-mono text-primary hover:underline"
+                  className="text-primary hover:underline"
                   data-testid="run-pretrained-model"
                   onClick={() => onOpenModel?.(modelId)}
                 >
-                  {modelId}
+                  {catalogModel?.name ?? modelId}
                 </button>
               ) : (
                 <span className="text-muted-foreground" data-testid="run-pretrained-no-model">
                   {t("models.no_model_for_domain")}
                 </span>
+              )}
+              {catalogModel?.origin && (
+                <Badge variant="outline" className="text-fs-xs" data-testid="run-pretrained-origin">
+                  {originLabel(catalogModel.origin)}
+                </Badge>
               )}
               <span className="text-muted-foreground">{t(`models.domain_produces_${domain.id}`)}</span>
             </div>
