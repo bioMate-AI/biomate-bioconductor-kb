@@ -56,7 +56,12 @@ export function StepAdjustModal({
       if (v.value !== undefined) return coerceParamValue(v.value, depth + 1);
       if (v.default !== undefined) return coerceParamValue(v.default, depth + 1);
       if (v.val !== undefined) return coerceParamValue(v.val, depth + 1);
-      return JSON.stringify(v); // last resort — readable, never "[object Object]"
+      // Pure wrapper with no scalar: keep the ORIGINAL object. We must NOT JSON-
+      // stringify here — handleRerun submits paramOverrides directly, so a JSON
+      // string would corrupt the re-run payload (multi-LLM review). Such a param
+      // may display as "[object Object]" (rare, and it carries no scalar to show),
+      // but the submit stays correct — same value the field had before this change.
+      return v;
     }
     return v;
   };
