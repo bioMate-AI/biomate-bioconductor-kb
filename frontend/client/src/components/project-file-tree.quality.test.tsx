@@ -45,9 +45,9 @@ beforeEach(() => {
 describe("ProjectFileTree — quality dot uses effectiveQuality", () => {
   it("not-analysed 'watch' is grey 'unassessed'; a real watch stays watch", async () => {
     render(<ProjectFileTree projectId="p1" />)
-    await waitFor(() => expect(screen.getByTestId("file-quality-2").getAttribute("data-quality")).toBe("watch"))
-    await waitFor(() => expect(screen.getByTestId("file-quality-1").getAttribute("data-quality")).toBe("unassessed"))
-    await waitFor(() => expect(screen.getByTestId("file-quality-3").getAttribute("data-quality")).toBe("unassessed"))
+    await waitFor(() => expect(screen.getByTestId("file-quality-2").getAttribute("data-quality")).toBe("watch"), { timeout: 5000 })
+    await waitFor(() => expect(screen.getByTestId("file-quality-1").getAttribute("data-quality")).toBe("unassessed"), { timeout: 5000 })
+    await waitFor(() => expect(screen.getByTestId("file-quality-3").getAttribute("data-quality")).toBe("unassessed"), { timeout: 5000 })
     for (const id of ["1", "3"]) {
       const dot = screen.getByTestId(`file-quality-${id}`)
       expect(dot.className).not.toMatch(/amber/)

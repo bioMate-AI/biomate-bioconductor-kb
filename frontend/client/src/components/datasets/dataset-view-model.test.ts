@@ -88,3 +88,28 @@ describe("columnProblems (U8)", () => {
     expect([...m.keys()].sort()).toEqual(["a", "b", "id"])
   })
 })
+
+describe("extension fallback speaks the profiler's decide() vocabulary (2026-11-12 seams)", () => {
+  it("old profiles without viewKind get the kind the profiler would decide", () => {
+    expect(kindFromName("book.xlsx")).toBe("document")
+    expect(kindFromName("report.docx")).toBe("document")
+    expect(kindFromName("drugs.smi")).toBe("table")
+    expect(kindFromName("drugs.sdf")).toBe("molecules")
+    expect(kindFromName("map.mrc")).toBe("image")
+    expect(kindFromName("reads.pod5")).toBe("binary")
+    expect(kindFromName("x.bw")).toBe("binary")
+  })
+  it("a spreadsheet document shows the profile summary; molecules are not paged as rows", () => {
+    expect(datasetViewModel("document", { name: "book.xlsx" }).content).toBe("summary")
+    expect(datasetViewModel("document", { name: "notes.md" }).content).toBe("viewer")
+    expect(datasetViewModel("molecules", { name: "drugs.sdf" }).useRows).toBe(false)
+    expect(datasetViewModel("table", { name: "drugs.smi" }).useRows).toBe(true)
+  })
+  it("backend stats keep atLeast; an old fastq_reads finding's at_least marks reads only", () => {
+    expect(profileStats({ shape: { rows: 0, cols: 0 }, quality: "good", notes: [], stats: [{ code: "reads", value: 9, atLeast: true }] }, "reads"))
+      .toEqual([{ code: "reads", value: 9, atLeast: true }])
+    expect(profileStats({ shape: { rows: 0, cols: 0 }, quality: "good", notes: [],
+      findings: [{ section: "signal", code: "fastq_reads", level: "info", params: { reads: 9, mean_len: 100, at_least: true } }] }, "reads"))
+      .toEqual([{ code: "reads", value: 9, atLeast: true }, { code: "read_length", value: 100 }])
+  })
+})
