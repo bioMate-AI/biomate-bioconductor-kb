@@ -1787,14 +1787,16 @@ export function NextflowWorkflowViewer({
     if (planned.length === 0) return recorded;    // no planned structure → runtime only
     if (recorded.length === 0) return planned;    // not started → planned only
     // SCOPE: only MERGE (overlay planned + runtime to keep the full phase list) for a
-    // STOPPED run — failed/cancelled — which is the case that silently dropped the
-    // un-run phases. For a running or successfully-completed run keep the prior
-    // behavior (recorded wins): merging those risks mis-overlaying duplicate-tool
-    // phases + reordering (multi-LLM review), with no bug to fix there. This targets
-    // the reported bug (a cancelled run collapsing to one phase) precisely.
+    // HALTED run — failed / cancelled / stopped / PAUSED — the cases that silently
+    // dropped the un-run phases. A stop or a pause is resumable (Nextflow -resume
+    // reuses the completed phases), so the panel must keep the full list — phases
+    // done, the halted phase, and the pending ones — which is the view a resume needs.
+    // For a running or successfully-completed run keep the prior behavior (recorded
+    // wins): merging those risks mis-overlaying duplicate-tool phases + reordering
+    // (multi-LLM review), with no bug to fix there.
     const runState = String(nextflowStatus?.status ?? status ?? "").toLowerCase();
-    const isStopped = /fail|cancel|error|abort|stopped/.test(runState);
-    if (!isStopped) return recorded; // running / completed → prior behavior
+    const isHalted = /fail|cancel|error|abort|stop|paus/.test(runState);
+    if (!isHalted) return recorded; // running / completed → prior behavior
     const norm = (s: unknown) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
     // Keys a phase can be matched by: id / name / processName, PLUS the trailing
     // segment of each. nf-core emits fully-qualified process names
