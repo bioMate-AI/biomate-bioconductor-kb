@@ -9,13 +9,40 @@
  *   - pg_advisory_xact_lock(key) is a real per-key mutex held until COMMIT/ROLLBACK, so
  *     concurrent requests interleave as they would on Postgres;
  *   - ROLLBACK undoes the transaction's writes;
- *   - an UPDATE's `version_no = $n` precondition is honoured (rowCount 0 when it fails).
+ *   - an UPDATE's `version_no = $n` precondition is honoured (rowCount 0 when it fails);
+ *   - a uuid column compared WITHOUT a ::text cast (`project_id = $1`, `id = ANY($2::uuid[])`)
+ *     raises pg's 22P02 "invalid input syntax for type uuid" for a non-uuid parameter, as
+ *     Postgres does — so a route that lets a non-uuid id reach such a query fails here too.
  * An unrecognised statement touching these tables THROWS, so a query change in the routes
  * cannot silently turn into "0 rows" here.
  */
 import { createHash, randomUUID } from "crypto";
 
 export type Row = Record<string, any>;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** pg's error for a non-uuid text bound to a uuid comparison. */
+export function uuidCastError(v: unknown): Error {
+  return Object.assign(new Error(`invalid input syntax for type uuid: "${String(v)}"`), { code: "22P02" });
+}
+
+/** Throw like Postgres when a uuid-typed column (id / project_id / file_id of the project
+ *  tables; project_object_key_reservations.project_id is TEXT) is compared, uncast, with a
+ *  non-uuid parameter. */
+function checkUuidParams(t: string, p: any[]): void {
+  if (/project_object_key_reservations/.test(t)) return;
+  for (const m of t.matchAll(/(?:^|[\s(,])(?:\w+\.)?(?:id|project_id|file_id)\s*=\s*\$(\d+)(?!\s*::)/g)) {
+    const v = p[Number(m[1]) - 1];
+    if (v != null && !UUID_RE.test(String(v))) throw uuidCastError(v);
+  }
+  for (const m of t.matchAll(/\$(\d+)::uuid(\[\])?/g)) {
+    const v = p[Number(m[1]) - 1];
+    for (const x of m[2] ? (Array.isArray(v) ? v : [v]) : [v]) {
+      if (x != null && !UUID_RE.test(String(x))) throw uuidCastError(x);
+    }
+  }
+}
 type Undo = () => void;
 
 export class FakeStore {
@@ -116,6 +143,7 @@ export class FakeStore {
 
   private async exec(text: string, p: any[], tx: { undo: Undo[]; held: Array<() => void>; open: boolean } | null): Promise<any> {
     const t = text.replace(/\s+/g, " ").trim();
+    checkUuidParams(t, p);
     const undo = (u: Undo) => { if (tx?.open) tx.undo.push(u); };
     const ok = (rows: Row[] = [], rowCount = rows.length) => ({ rows, rowCount });
 

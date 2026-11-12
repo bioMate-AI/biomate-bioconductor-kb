@@ -139,16 +139,16 @@ describe("project-routes — contract", () => {
 
   it("version Compare/diff (§4.4) — authed endpoint reads both versions, column + cell diff", () => {
     expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/diff",\s*authenticateToken/.test(SRC)).toBe(true);
-    expect((SRC.match(/readTextPrefix\(/g) ?? []).length).toBeGreaterThanOrEqual(2);  // both versions read
-    expect(SRC.includes("_parseTabular(")).toBe(true);
-    expect(SRC.includes("changedCells")).toBe(true);
+    // Row numbering by the reader's layout, read errors → 502 and the cell diff are BEHAVIOUR-tested
+    // in project-rows-edit-roundtrip.test.ts and project-files-integrity.test.ts.
     expect(/columns:\s*\{\s*added,\s*removed\s*\}/.test(SRC)).toBe(true);
   });
 
   it("edit-in-place → new version (§4.3/§4.4) — authed, tabular-only, size-capped, applies to FULL file, versions", () => {
     expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/edit",\s*authenticateToken/.test(SRC)).toBe(true);
     expect(/edit[\s\S]{0,700}_isOwnerOrEditor/.test(SRC)).toBe(true);                 // editor gate
-    expect(SRC.includes("Only tabular files (csv/tsv) can be edited")).toBe(true);     // tabular-only
+    // tabular-only: behaviour-tested (.bed / .json / .jsonl → 400, nothing written) in
+    // project-files-integrity.test.ts "edit — tabular files only".
     expect(SRC.includes("10 * 1024 * 1024")).toBe(true);                              // 10 MiB cap
     // The edit's safety checks are BEHAVIOUR-tested (project-files-integrity.test.ts): whole-file read
     // (2.7 MB CSV), baseVersion → 409 version_conflict, cell/rowFrom → 409 cell_conflict, strict

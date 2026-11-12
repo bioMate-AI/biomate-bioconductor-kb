@@ -1,0 +1,33 @@
+{
+ "name": "semi.csv",
+ "rows": {
+  "columns": [
+   "gene",
+   "chr",
+   "val"
+  ],
+  "delimiter": ";",
+  "headerRow": true,
+  "kind": "table",
+  "limit": 200,
+  "namesSource": "header",
+  "offset": 0,
+  "rows": [
+   [
+    "A",
+    "chr1",
+    "1,5"
+   ],
+   [
+    "B",
+    "chr1",
+    "2,5"
+   ]
+  ],
+  "skipLines": 0,
+  "tabular": true,
+  "totalRows": 2,
+  "viewKind": "table"
+ },
+ "text": "gene;chr;val\nA;chr1;1,5\nB;chr1;2,5\n"
+}

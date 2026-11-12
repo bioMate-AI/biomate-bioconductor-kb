@@ -139,24 +139,66 @@ function offsetAfterLines(text: string, lines: number): number {
   return i
 }
 
-export function applyCellEdits(
-  text: string, delim: string, edits: CellEdit[],
-  opts: { headerRows?: number; skipLines?: number } = {},
-): EditResult {
+/** The delimiters the Python rows reader can report for a table (its layout delimiter): tab,
+ *  comma, semicolon, pipe, space. The rows route forwards only these; the edit route accepts
+ *  only these (anything else → 400). */
+export const READER_DELIMITERS: readonly string[] = ["\t", ",", ";", "|", " "]
+export function isReaderDelimiter(v: unknown): v is string {
+  return typeof v === "string" && READER_DELIMITERS.includes(v)
+}
+
+export interface TableLayoutOpts {
+  /** Header records before the data rows (the reader's headerRow: 1, or 0 header-less). */
+  headerRows?: number
+  /** Leading physical lines the reader skipped (its skipLines: comment / blank lines). */
+  skipLines?: number
+}
+
+/** Header record indices and data row → record index, numbered exactly as the rows reader
+ *  numbers rows: skip `skipLines` physical lines, then `headerRows` header records, then every
+ *  non-blank record is a data row. */
+function layoutRecords(
+  text: string, delim: string, records: Array<Span & { term: string }>, opts: TableLayoutOpts,
+): { headerRecord: number[]; dataRecord: number[] } {
   const headerRows = opts.headerRows ?? 1
   // Leading physical lines the rows reader skips before the header (its `skipLines`: '#' comment
   // and blank lines, e.g. featureCounts' "# Program:…"); records starting there are not rows.
   const skipFrom = offsetAfterLines(text, Math.max(0, opts.skipLines ?? 0))
-  const records = splitRecords(text, delim)
-  // data row index → record index (header records first, then non-blank records)
+  const headerRecord: number[] = []
   const dataRecord: number[] = []
-  let seenHeader = 0
   for (let k = 0; k < records.length; k++) {
     if (records[k].start < skipFrom) continue
-    if (seenHeader < headerRows) { seenHeader++; continue }
+    if (headerRecord.length < headerRows) { headerRecord.push(k); continue }
     const raw = text.slice(records[k].start, records[k].end)
     if (!isBlank(raw, delim)) dataRecord.push(k)
   }
+  return { headerRecord, dataRecord }
+}
+
+/** The header record's values (null when header-less) and the data rows (capped), with the
+ *  reader's numbering — the version diff uses this so its row numbers are the rows the user
+ *  sees in the Preview and edits. */
+export function tableRows(
+  text: string, delim: string, opts: TableLayoutOpts = {}, maxRows = Infinity,
+): { header: string[] | null; rows: string[][] } {
+  const records = splitRecords(text, delim)
+  const { headerRecord, dataRecord } = layoutRecords(text, delim, records, opts)
+  const values = (k: number) => parseRecord(text.slice(records[k].start, records[k].end), delim).map((f) => f.value)
+  const header = (opts.headerRows ?? 1) > 0 && headerRecord.length ? values(headerRecord[headerRecord.length - 1]) : null
+  const rows: string[][] = []
+  for (const k of dataRecord) {
+    if (rows.length >= maxRows) break
+    rows.push(values(k))
+  }
+  return { header, rows }
+}
+
+export function applyCellEdits(
+  text: string, delim: string, edits: CellEdit[],
+  opts: TableLayoutOpts = {},
+): EditResult {
+  const records = splitRecords(text, delim)
+  const { dataRecord } = layoutRecords(text, delim, records, opts)
 
   const byRecord = new Map<number, CellEdit[]>()
   const conflicts: EditResult["conflicts"] = []

@@ -33,7 +33,7 @@ import {
 import { downloadName } from "./content-disposition";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
-import { applyCellEdits, parseDelimited, pickDelimiter, type CellEdit } from "./delimited-text";
+import { applyCellEdits, isReaderDelimiter, pickDelimiter, tableRows, READER_DELIMITERS, type CellEdit } from "./delimited-text";
 import path from "path";
 import fs from "fs";
 import { likePrefix, loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
@@ -214,6 +214,12 @@ async function ensureProjectFilesTable(): Promise<void> {
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
 
+/** A cleanup step failed: say so (an orphaned object / reservation / index must be findable in
+ *  the logs) and carry on — the caller is already on its error or cleanup path. */
+function _logCleanupFailure(what: string): (e: unknown) => void {
+  return (e: unknown) => console.warn(`[project_files] cleanup failed (${what}):`, (e as any)?.message ?? e);
+}
+
 /** Anything with pg's query() — the pool, or a transaction client holding the project lock. */
 type Querier = { query: (text: string, params?: any[]) => Promise<any> };
 
@@ -224,7 +230,7 @@ export function _isUuid(v: unknown): boolean {
 
 /** Project file routes: project and file ids are UUIDs. Anything else names nothing → 404 (it
  *  used to reach a uuid-typed comparison and come back as a 500/502 cast error). */
-function _projectFileIds(req: Request, res: Response, next: () => void): void {
+export function _projectFileIds(req: Request, res: Response, next: () => void): void {
   const { id, fileId } = req.params as Record<string, string | undefined>;
   if (!_isUuid(id)) { res.status(404).json({ error: "Project not found" }); return; }
   if (fileId !== undefined && !_isUuid(fileId)) { res.status(404).json({ error: "File not found" }); return; }
@@ -246,7 +252,7 @@ async function _withProjectLock<T>(projectId: string, fn: (c: Querier) => Promis
     await client.query("COMMIT");
     return out;
   } catch (e) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(_logCleanupFailure(`ROLLBACK for project ${projectId}`));
     throw e;
   } finally {
     client.release();
@@ -308,12 +314,61 @@ async function _releaseObjectKey(key: string): Promise<void> {
   await pool.query(`DELETE FROM project_object_key_reservations WHERE s3_key = $1`, [key]);
 }
 
-/** Parse tabular text into headers + rows (capped). Delimiter from the extension,
- *  else sniffed. Used by the version Compare/diff (design §4.4). */
-function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
-  // Quote-aware, same rules as the rows reader and the edit route (delimited-text.ts).
-  const rows = parseDelimited(text, pickDelimiter(text, ext), 501);
-  return { headers: rows[0] || [], rows: rows.slice(1) };
+/** galaxy-user-fetch, loaded lazily ONCE (one shared import promise — the diff asks for two
+ *  layouts concurrently). */
+let _galaxyUserFetchMod: Promise<typeof import("./galaxy-user-fetch")> | null = null;
+function _galaxyUserFetch(): Promise<typeof import("./galaxy-user-fetch")> {
+  return (_galaxyUserFetchMod ??= import("./galaxy-user-fetch"));
+}
+
+/** POST the Python rows reader (/api/perception/rows) for one stored object, as the caller —
+ *  the same call the rows route makes. Returns the parsed body, or null when the backend did
+ *  not answer with one (the caller turns that into an explicit error, never into "no rows"). */
+async function _postReaderRows(
+  req: Request, datasetRef: string, name: string, offset: number, limit: number,
+  folderContext: { name: string; siblings: string[] } | null,
+): Promise<{ status: number; body: any | null }> {
+  const { fetchGalaxyAsUser, galaxyBaseUrl } = await _galaxyUserFetch();
+  const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/rows`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ datasetRef, name, offset, limit, ...(folderContext ? { folderContext } : {}) }),
+    signal: AbortSignal.timeout(120_000),
+  });
+  const body: any = await resp.json().catch(() => null);
+  return { status: resp.status, body: resp.ok ? body : null };
+}
+
+/** How the rows reader lays out one stored version: whether it is a table, its column names,
+ *  header records, leading skipped lines and delimiter — the numbering the Preview shows and
+ *  the edit route uses. `delimiter` is null when the reader does not report one (older
+ *  backend); callers then fall back to pickDelimiter, as the edit route does. */
+type ReaderLayout =
+  | { tabular: true; columns: string[]; headerRows: 0 | 1; skipLines: number; delimiter: string | null }
+  | { tabular: false; reason: string };
+
+async function _readerLayout(
+  req: Request, datasetRef: string, name: string, folderContext: { name: string; siblings: string[] } | null,
+): Promise<ReaderLayout> {
+  const { status, body } = await _postReaderRows(req, datasetRef, name, 0, 1, folderContext);
+  if (!body) throw new Error(`rows reader answered ${status}`);
+  if (body.error === "unresolvable_ref") throw new Error("rows reader could not resolve the object");
+  if (body.error) return { tabular: false, reason: "parse_failed" };
+  if (body.tabular === false || body.kind !== "table") return { tabular: false, reason: String(body.reason || body.kind || "not_tabular") };
+  return {
+    tabular: true,
+    columns: Array.isArray(body.columns) ? body.columns.map(String) : [],
+    headerRows: body.headerRow === false ? 0 : 1,
+    skipLines: Number.isInteger(body.skipLines) && body.skipLines >= 0 ? body.skipLines : 0,
+    delimiter: isReaderDelimiter(body.delimiter) ? body.delimiter : null,
+  };
+}
+
+/** One version's data rows (capped), numbered with that version's reader layout. */
+function _layoutRows(text: string, ext: string, lay: Extract<ReaderLayout, { tabular: true }>, maxRows: number) {
+  const delim = lay.delimiter ?? pickDelimiter(text, ext);
+  const t = tableRows(text, delim, { headerRows: lay.headerRows, skipLines: lay.skipLines }, maxRows);
+  return { headers: lay.columns.length ? lay.columns : (t.header ?? []), rows: t.rows };
 }
 
 /**
@@ -409,12 +464,12 @@ async function _storeProjectInput(o: {
   // writer while bytes this request wrote may still land on it.
   const discard = async () => {
     await s3Service.deleteFile(key);
-    await _releaseObjectKey(key).catch(() => {});
+    await _releaseObjectKey(key).catch(_logCleanupFailure(`release key reservation ${key}`));
   };
   try {
     await s3Service.putObject(key, o.buf, o.contentType, o.uid);
   } catch (e) {
-    await discard().catch(() => {});
+    await discard().catch(_logCleanupFailure(`discard object ${key} after a failed put`));
     throw e;
   }
 
@@ -452,7 +507,7 @@ async function _storeProjectInput(o: {
         activity: () => recordProjectActivity(o.id, o.uid, "file_added", { fileId: file.id, name: o.name, source: o.source }) };
     });
   } catch (e) {
-    await discard().catch(() => {});
+    await discard().catch(_logCleanupFailure(`discard object ${key} after a failed register`));
     throw e;
   }
   if (out.orphan) await discard();
@@ -1220,6 +1275,14 @@ export function registerProjectRoutes(app: Express): void {
   // column set diff + position-aligned changed cells (capped). Non-tabular files
   // report a metadata-only diff (size/hash differ) honestly. changedCells[].row is the 0-based
   // data-row index, rowNumber the 1-based number shown to users (first row after the header = 1).
+  //
+  // Rows are numbered with the ROWS READER's layout of each version (header records, leading
+  // comment/blank lines, delimiter — one 1-row /api/perception/rows call per version), so a
+  // rowNumber is the row the user sees in the Preview and edits (a featureCounts file's
+  // "# Program:" line, a blank first line, a header-less table, a semicolon CSV). The layout is
+  // asked for, not stored: it is a function of the bytes and the reader, so a stored copy could
+  // only go stale (reader fixes, rows written before the column existed). A failed read or
+  // layout call is an explicit 502 — never an empty text that would diff as "no changes".
   app.get("/api/projects/:id/files/:fileId/versions/:versionNo/diff", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
@@ -1227,7 +1290,7 @@ export function registerProjectRoutes(app: Express): void {
     try {
       if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
       const cur = await pool.query(
-        `SELECT name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
+        `SELECT name, s3_key, size, content_type, content_hash, version_no, source FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
       if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
@@ -1249,12 +1312,25 @@ export function registerProjectRoutes(app: Express): void {
       };
       if (identical || !tabular) return res.json(base);
       const CAP = 256 * 1024;
-      const [curText, tgtText] = await Promise.all([
-        s3Service.readTextPrefix(c.s3_key, CAP).catch(() => ""),
-        s3Service.readTextPrefix(t.s3_key, CAP).catch(() => ""),
-      ]);
-      const A = _parseTabular(curText, ext);  // current
-      const B = _parseTabular(tgtText, ext);  // target (older)
+      const folderContext = await loadFolderContext((q, p) => pool.query(q, p), id, c);
+      let curText: string, tgtText: string, curLay: ReaderLayout, tgtLay: ReaderLayout;
+      try {
+        [curText, tgtText, curLay, tgtLay] = await Promise.all([
+          s3Service.readTextPrefix(c.s3_key, CAP),
+          s3Service.readTextPrefix(t.s3_key, CAP),
+          _readerLayout(req, c.s3_key, String(c.name), folderContext),
+          _readerLayout(req, t.s3_key, String(c.name), folderContext),
+        ]);
+      } catch (e: any) {
+        console.error(`[project_files] diff read failed for file ${fileId} v${versionNo}:`, e?.message ?? e);
+        return res.status(502).json({ error: "diff_unavailable", message: "Could not read both versions to compare them." });
+      }
+      if (!curLay.tabular || !tgtLay.tabular) {
+        // Not a table to the reader (e.g. one version is not delimited text): no cell diff.
+        return res.json({ ...base, tabular: false, reason: !curLay.tabular ? curLay.reason : (tgtLay as any).reason });
+      }
+      const A = _layoutRows(curText, ext, curLay, 500);  // current — the rows the user sees
+      const B = _layoutRows(tgtText, ext, tgtLay, 500);  // target (older), with ITS layout
       const added = A.headers.filter((h) => !B.headers.includes(h));
       const removed = B.headers.filter((h) => !A.headers.includes(h));
       const changedCells: Array<{ row: number; rowNumber: number; col: string; from: string; to: string }> = [];
@@ -1286,8 +1362,10 @@ export function registerProjectRoutes(app: Express): void {
   // reader numbers them); we apply them to the FULL file server-side and version it. Tabular
   // only, size-capped (10 MiB) — larger files edit in Jupyter/RStudio.
   //
-  // Body: {edits, baseVersion, headerRows?}. baseVersion (REQUIRED) is the version_no the client
-  // read (rows route `version`). Outcomes:
+  // Body: {edits, baseVersion, headerRows?, skipLines?, delimiter?}. baseVersion (REQUIRED) is the
+  // version_no the client read (rows route `version`); headerRows / skipLines / delimiter are the
+  // rows route's `headerRow` / `skipLines` / `delimiter` sent back, so edits are applied with the
+  // SAME layout the reader used. Outcomes:
   //   200 {file, versioned, editedCells}  — a new version was written;
   //   400 — malformed body / missing baseVersion;
   //   409 {error:"version_conflict", currentVersion} — the file has moved on (nothing written);
@@ -1319,6 +1397,14 @@ export function registerProjectRoutes(app: Express): void {
       return res.status(400).json({ error: "skipLines must be an integer between 0 and 10000." });
     }
     const skipLines: number = skipLinesRaw ?? 0;
+    // The delimiter the rows reader split this file on (rows route `delimiter`): a featureCounts
+    // .txt whose first line is a comment is tab-separated, a .csv may be semicolon-separated —
+    // guessing from the extension / first line edits the wrong fields. Only the reader's set is
+    // accepted; absent (older backend / client) → pickDelimiter.
+    const delimiterRaw = req.body?.delimiter;
+    if (delimiterRaw !== undefined && !isReaderDelimiter(delimiterRaw)) {
+      return res.status(400).json({ error: `delimiter must be one of ${READER_DELIMITERS.map((d) => JSON.stringify(d)).join(", ")}.` });
+    }
     // Each edit names the cell by data-row index + column index (as the Preview's rows reader
     // numbers them) and carries the value the user saw (`from`) and optionally the whole row
     // (`rowFrom`), so a mis-numbered edit cannot land on a different row that happens to hold
@@ -1363,7 +1449,7 @@ export function registerProjectRoutes(app: Express): void {
       } catch {
         return res.status(422).json({ error: "This file is not plain UTF-8 text, so it cannot be edited in place without changing other bytes. Open it in Jupyter/RStudio to edit it." });
       }
-      const delim = pickDelimiter(text, ext);
+      const delim = delimiterRaw ?? pickDelimiter(text, ext);
       // Only the edited fields are rewritten (quoting, line endings and every other byte kept);
       // if any cell no longer holds the value the user saw, nothing is written (409).
       const result = applyCellEdits(text, delim, parsed, { headerRows, skipLines });
@@ -1405,7 +1491,7 @@ export function registerProjectRoutes(app: Express): void {
           if (!upd.rows[0]) throw new Error("edit: version precondition failed under the project lock");
           return { status: 200, body: { file: upd.rows[0], versioned: true, editedCells: applied } };
         } catch (e) {
-          await s3Service.deleteFile(vkey).catch(() => {});
+          await s3Service.deleteFile(vkey).catch(_logCleanupFailure(`delete edit object ${vkey} after a failed version write`));
           throw e;
         }
       });
@@ -1618,22 +1704,11 @@ export function registerProjectRoutes(app: Express): void {
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
       // Folder facts the rows reader needs (a 10x features.tsv beside its matrix is header-less).
       const folderContext = await loadFolderContext((q, p) => pool.query(q, p), id, fileRow.rows[0]);
-      const { fetchGalaxyAsUser, galaxyBaseUrl } = await import("./galaxy-user-fetch");
-      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/rows`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          datasetRef: fileRow.rows[0].s3_key,
-          name: fileRow.rows[0].name,
-          offset,
-          limit: Math.min(limit, 1000),
-          ...(folderContext ? { folderContext } : {}),
-        }),
-        signal: AbortSignal.timeout(120_000),
-      });
-      const body: any = await resp.json().catch(() => null);
-      if (!resp.ok || !body) {
-        console.error(`[project_files] rows backend ${resp.status} for file ${fileId}`);
+      const { status, body } = await _postReaderRows(
+        req, fileRow.rows[0].s3_key, fileRow.rows[0].name, offset, Math.min(limit, 1000), folderContext,
+      );
+      if (!body) {
+        console.error(`[project_files] rows backend ${status} for file ${fileId}`);
         return res.status(502).json({ error: "rows_unavailable" });
       }
       if (body.error === "unresolvable_ref") return res.status(404).json({ error: "file_unreadable" });
@@ -1658,6 +1733,9 @@ export function registerProjectRoutes(app: Express): void {
         // The reader's leading comment/blank physical lines: the client sends it back with edits
         // so row numbers match (featureCounts "# Program:" line); and the content-first kind.
         ...(Number.isInteger(body.skipLines) ? { skipLines: body.skipLines } : {}),
+        // The delimiter the reader split the table on — sent back with edits so the edit route
+        // splits the file the same way (only the reader's delimiter set is forwarded).
+        ...(isReaderDelimiter(body.delimiter) ? { delimiter: body.delimiter } : {}),
         ...(typeof body.viewKind === "string" ? { viewKind: body.viewKind } : {}),
       });
     } catch (e: any) {
@@ -1686,7 +1764,7 @@ export function registerProjectRoutes(app: Express): void {
       const files = await loadFolderFiles((q, p) => pool.query(q, p), id, folder);
       if (folder && !files.length) return res.status(404).json({ error: "folder_not_found" });
       if (files.length > MAX_FOLDER_FILES) return res.status(413).json({ error: "folder_too_large", max: MAX_FOLDER_FILES });
-      const { fetchGalaxyAsUser, galaxyBaseUrl } = await import("./galaxy-user-fetch");
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await _galaxyUserFetch();
       const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/folder_profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1797,7 +1875,10 @@ export function registerProjectRoutes(app: Express): void {
         const inviter = await pool.query(`SELECT full_name AS "fullName", email FROM users WHERE id::text = $1`, [String(uid)]);
         const inviterName = inviter.rows[0]?.fullName || inviter.rows[0]?.email || "A BioMate user";
         const projectName = (existing as any)?.name || "a project";
-        const emailed = await emailService.sendProjectInviteEmail(normEmail, token, projectName, inviterName, role).catch(() => false);
+        const emailed = await emailService.sendProjectInviteEmail(normEmail, token, projectName, inviterName, role).catch((e: any) => {
+          console.warn("[project_members] invite email failed:", e?.message ?? e);
+          return false;
+        });
         await recordProjectActivity(id, uid, "member_invited", { email: normEmail, role, emailed });
         return res.status(200).json({ invited: true, pending: true, email: normEmail, emailed });
       }
@@ -2282,7 +2363,11 @@ export async function registerRunOutputsInProject(opts: {
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS project_files_project_s3key_idx
       ON project_files(project_id, s3_key)
-  `).catch(() => { /* already exists */ });
+  `).catch((e: any) => {
+    // IF NOT EXISTS never fails for an existing index: a failure is real (e.g. duplicate
+    // (project_id, s3_key) rows block the unique index) and the ON CONFLICT below depends on it.
+    console.warn("[project_files] run-output unique index could not be ensured:", e?.message ?? e);
+  });
 
   const inputCtxJson = inputContext ? JSON.stringify(inputContext) : null;
 

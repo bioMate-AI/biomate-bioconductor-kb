@@ -30,7 +30,13 @@ vi.mock("./s3-client", async () => ({ s3Service: (await import("./project-files-
 vi.mock("./auth-middleware", () => ({ authenticateToken: (_q: any, _s: any, next: any) => next() }));
 vi.mock("./memory-repository", () => ({
   memoryService: {
-    projects: { getProject: async (id: string) => (id === "11111111-1111-4111-8111-111111111111" ? { id, userId: "owner-1" } : null) },
+    // projects.id is a uuid column: like drizzle on Postgres, a non-uuid id raises 22P02 (not null).
+    projects: { getProject: async (id: string) => {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        throw (await import("./project-files-fake-store")).uuidCastError(id);
+      }
+      return id === "11111111-1111-4111-8111-111111111111" ? { id, userId: "owner-1" } : null;
+    } },
     ensureLtmUser: async () => {},
   },
 }));
@@ -263,12 +269,69 @@ describe("upload — key reservation under the project lock (S2) + the shared na
 });
 
 describe("ids (R15)", () => {
+  // The fake store / project lookup now raise pg's 22P02 for a non-uuid id bound to a uuid
+  // column (as Postgres does), so these 404s come from the _projectFileIds guard: without it
+  // each request reaches a uuid comparison and comes back 500.
   it("non-uuid project or file ids → 404, never a 500 cast error", async () => {
     expect((await httpFetch(`${base}/api/projects/p1/files`)).status).toBe(404);
     expect((await httpFetch(`${base}/api/projects/${P}/files/not-a-uuid/url`)).status).toBe(404);
     expect((await post(editPath("1"), { baseVersion: 1, edits: [{ row: 0, col: 0, from: "", value: "" }] })).status).toBe(404);
     expect((await httpFetch(`${base}/api/projects/${P}/files/x'y/versions`)).status).toBe(404);
+    expect((await httpFetch(`${base}/api/projects/p1/files/x/rows`)).status).toBe(404);
+    expect((await post(`/api/projects/p1/files/compatibility`, { fileIds: [] })).status).toBe(404);
   });
+
+  it("the harness is honest: a non-uuid id that reaches a uuid comparison is a cast error", async () => {
+    await expect(store.pool.query("SELECT 1 FROM project_members WHERE project_id = $1 AND user_id::text = $2", ["p1", "u"]))
+      .rejects.toMatchObject({ code: "22P02" });
+    await expect(store.pool.query("SELECT id FROM project_files WHERE project_id = $1 AND id = ANY($2::uuid[])", [P, ["nope"]]))
+      .rejects.toMatchObject({ code: "22P02" });
+    // ::text comparisons never cast (that is why the routes compare ids as text)
+    await expect(store.pool.query("SELECT 1 FROM project_members WHERE project_id::text = $1 AND user_id::text = $2", ["p1", "u"]))
+      .resolves.toBeTruthy();
+  });
+
+  it("_projectFileIds answers 404 before the handler runs (route stub that would cast)", async () => {
+    const { _projectFileIds } = await import("./project-routes");
+    const app = express();
+    const reached: string[] = [];
+    const castingHandler = (req: any, res: any) => {
+      reached.push(req.path);
+      for (const v of [req.params.id, req.params.fileId]) {
+        if (v !== undefined && !/^[0-9a-f-]{36}$/i.test(v)) return res.status(500).json({ error: "invalid input syntax for type uuid" });
+      }
+      res.json({ ok: true });
+    };
+    app.get("/p/:id/f/:fileId", _projectFileIds as any, castingHandler);
+    app.get("/p/:id", _projectFileIds as any, castingHandler);
+    const srv = await new Promise<Server>((r) => { const s = app.listen(0, "127.0.0.1", () => r(s)); });
+    const b = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
+    try {
+      const st = async (u: string) => { const r = await httpFetch(b + u); return { status: r.status, body: await r.json() }; };
+      expect(await st("/p/p1")).toEqual({ status: 404, body: { error: "Project not found" } });
+      expect(await st(`/p/${P}/f/1`)).toEqual({ status: 404, body: { error: "File not found" } });
+      expect(await st(`/p/${P}/f/${P.toUpperCase()}`)).toEqual({ status: 200, body: { ok: true } });
+      expect(await st(`/p/${P}`)).toEqual({ status: 200, body: { ok: true } });
+      expect(reached).toEqual([`/p/${P}/f/${P.toUpperCase()}`, `/p/${P}`]);
+    } finally { srv.close(); }
+  });
+});
+
+describe("edit — tabular files only", () => {
+  // The gate is by extension (csv/tsv/tab/txt): spec formats (.bed, .gtf, …) and JSON/JSONL are
+  // tabular to the reader but are not edited in place (their quoting / record rules differ).
+  for (const [name, bytes] of [["peaks.bed", "chr1\t10\t20\n"], ["meta.json", '{"a":"x"}\n'], ["r.jsonl", '{"a":"x"}\n']] as const) {
+    it(`${name} → 400 and nothing is read, written or versioned`, async () => {
+      const f = store.addFile({ project_id: P, name, s3_key: key(name) }, bytes);
+      const r = await json(await post(editPath(f.id), { baseVersion: 1, edits: [{ row: 0, col: 0, from: "chr1", value: "chr2" }] }));
+      expect(r.status).toBe(400);
+      expect(r.body.error).toMatch(/Only tabular files/);
+      expect(store.puts).toEqual([]);
+      expect(store.versions).toEqual([]);
+      expect(fileById(f.id).version_no).toBe(1);
+      expect(store.objects.get(key(name))!.toString()).toBe(bytes);
+    });
+  }
 });
 
 describe("delete (R15)", () => {
@@ -353,6 +416,11 @@ describe("versions API (R13) + diff numbering", () => {
     const f = store.addFile({ project_id: P, name: "d.csv", s3_key: key("d.csv.v2"), version_no: 2 }, "id,v\n1,a\n2,B\n");
     store.objects.set(key("d.csv"), Buffer.from("id,v\n1,a\n2,b\n"));
     store.versions.push({ file_id: f.id, project_id: P, version_no: 1, s3_key: key("d.csv"), size: 14, content_hash: "old", created_at: store.now() });
+    // The rows reader's layout of both versions (headed comma CSV).
+    galaxyFetch.mockImplementation(async () => ({ ok: true, status: 200, json: async () => ({
+      kind: "table", viewKind: "table", tabular: true, columns: ["id", "v"], rows: [["1", "a"]], offset: 0, limit: 1,
+      totalRows: 2, headerRow: true, namesSource: "header", skipLines: 0, delimiter: ",",
+    }) }));
     const r = await json(await httpFetch(`${base}/api/projects/${P}/files/${f.id}/versions/1/diff`));
     expect(r.body.changedCells).toEqual([{ row: 1, rowNumber: 2, col: "v", from: "b", to: "B" }]);
   });
