@@ -3576,7 +3576,9 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             "- EXCLUDE analysis concepts and method acronyms that are NOT entities: "
             "SAR, structure-activity relationship, PK, PD, ADMET, QC, IC50, potency, "
             "selectivity, binding.\n"
-            "- Only concrete, nameable entities. If there are none, return [].\n\n"
+            "- Only concrete, nameable entities. If there are none, return [].\n"
+            "- ORDER the array by how central each entity is to the question — most "
+            "important FIRST — because only the top few are searched against the databases.\n\n"
             f"Question: {question}\n\nJSON:"
         )
         try:

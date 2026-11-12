@@ -57,3 +57,45 @@ cache-key-includes-source-set.
 Deploy `c680707650` (gnomAD facet) once session 08 releases the deploy lane, then
 run the final PCSK9 E2E (expect Open Targets 0.856 + gnomAD LOEUF both cited). The
 fixes in `775d787b64` ride the same sync.
+
+---
+
+## Round 2 (2026-11-12 overnight) — further audit/fix loops
+
+A second committee pass (entity-extraction/routing + citation-retention surfaces) plus a
+capability-gap closure. Commits `11952046a9` (BindingDB/Pharos) and `1b856103d1` (round-2
+fixes). All on `feat/skills-architecture-20261111`, pushed, awaiting the shared deploy lane.
+
+### Capability gap closed — BindingDB + Pharos fetchers (`11952046a9`)
+Both were advertised in the facet maps but had surfaces `[single, mcp]` (no federation)
+and no fetcher, so the honest-coverage gate correctly filtered them. Now wired:
+- `_fetch_bindingdb`: resolve→UniProt → `getLigandsByUniprot`, surface the most POTENT
+  measured affinities (Ki/Kd/IC50/EC50, nM). Handles the vendor typo key
+  `getLindsByUniprotResponse`. Live: ABL1 → Kd 0.016 nM.
+- `_fetch_pharos`: resolve→symbol → GraphQL target → development level (Tclin/Tchem/Tbio/
+  Tdark) + family + novelty. Live: ABL1 → Tclin / Kinase.
+- Added `SURFACE_FEDERATION` to both registry rows; registered in `_FETCHERS`; added to
+  `ENTITY_SOURCES` (pharos→gene/protein, bindingdb→protein). 30 fetchers total.
+
+### Round-2 fixes (`1b856103d1`)
+| Sev | Defect | Fix |
+|-----|--------|-----|
+| HIGH | one slow entity's fan-out cancelled the WHOLE `gather` (single `wait_for(gather,20)`) → synthesis saw zero DB evidence | per-entity 15 s budget; slow entity times out alone, fast ones survive |
+| MED-HIGH | `retrieval_stats.kept` computed BEFORE the existence check → the transparency panel reported citations later dropped from the answer | recompute from the lit pool that survived verification |
+| MED | `_parse_json_array` anchored on the first `[` → a stray `[1]` citation shadowed the entity JSON, defeating the LLM-extraction path | scan every balanced `[...]`, prefer the array-of-objects |
+| MED | dangling out-of-pool `[N]` (`[99]`/`[0]`) survived stage-1 grounding verbatim | strip unknown markers, matching stage-2 |
+| MED | `refuse_without_evidence` deleted body prose ("Sources of bias" heading, "the DOI framework" sentence) | `_REF_HEAD`/`_ID_LINE` tightened to real bibliography headings + real id tokens |
+| MED | `select_sources` safety inversion — empty serveable set (registry present-but-empty) skipped filtering like registry-unavailable | `_federation_serveable_ids` returns None (unavailable→pass through) vs set() (present→filter) |
+| LOW | `"fold"` matched inside `"scaffold"` (genomics N50) | word-bounded `\bfold\b` |
+| LOW | extraction prompt didn't order entities → with >3 entities an arbitrary subset grounded | prompt now asks to order by centrality (most important first) |
+
+4 new regression tests (refuse-prose, fold/scaffold, prioriti scoping, registry pass-through).
+55 agent + registry tests pass.
+
+### Deferred (documented, NOT fixed — would be the keyword treadmill)
+Ambiguous WHOLE-WORD facet cues (`domain`, `network`, `interaction`, `regulat`,
+`constraint`) over-fire on biomedical-adjacent prose. Word-bounding does not help (they're
+whole words); the right fix is an **LLM intent gate** in front of `detect_facets`, not more
+keyword tweaks — aligns with the standing "infer solution-type, not keywords" direction.
+Also deferred: `run_in_executor` cannot cancel the blocking thread on timeout (inherent;
+per-entity budget bounds it); non-English questions get no facet routing (rule-based design).
