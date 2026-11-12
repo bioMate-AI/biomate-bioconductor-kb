@@ -375,6 +375,12 @@ export function DatasetRowsTable({
               </tr>
             ))}
             {end < view.length && <tr aria-hidden style={{ height: (view.length - end) * ROW_H }} />}
+            {total === 0 && rows.length === 0 && !loading && (
+              // A header-only file: its columns are real, it just has no data rows yet.
+              <tr data-testid="dataset-preview-no-rows">
+                <td colSpan={Math.max(1, columns.length)} className="px-2 py-2 text-muted-foreground">{t("dataset_obj.no_data_rows")}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

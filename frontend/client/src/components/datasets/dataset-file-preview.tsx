@@ -1,6 +1,10 @@
 import { useEffect, useState, lazy, Suspense } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { FileContentView } from "../file-content-view"
 import { t } from "@/lib/i18n"
+import { fileDownloadUrl } from "./datasets-api"
+import { fileExt, type ViewKind } from "./dataset-view-model"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import { gunzipPrefix, decompressionAvailable, DecompressionUnavailableError } from "./gzip-text"
@@ -40,8 +44,22 @@ const TIFF = /\.tiff?$/i
 const IMAGE = /\.(png|jpe?g|gif|webp|svg)$/i
 const DENSITY = /\.(mrc|mrcs|map|rec)$/i
 
-const previewable = (name: string) =>
-  TEXT.test(name) || GZ_TEXT.test(name) || IMAGE.test(name) || DENSITY.test(name) || TIFF.test(name) || /\.pdf$/i.test(name)
+const MARKDOWN = /\.(md|markdown)$/i
+/** Kinds whose content is text the in-browser viewers read, whatever the file is named
+ *  (a FASTQ uploaded as `.txt`, a VCF without its extension). */
+const TEXT_KINDS = new Set<string>(["table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation", "molecules"])
+
+type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "none"
+/** How a file is previewed: by its content kind when the profiler read it, else by its name. */
+function previewMode(name: string, kind?: string): Mode {
+  if (GZ_TEXT.test(name)) return "gz"
+  if (TIFF.test(name)) return "tiff"
+  if (IMAGE.test(name) || kind === "image") return "image"
+  if (DENSITY.test(name)) return "density"
+  if (/\.pdf$/i.test(name)) return "pdf"
+  if (TEXT.test(name) || (kind && TEXT_KINDS.has(kind))) return "text"
+  return "none"
+}
 /** The name the viewer is chosen by — `x.vcf.gz` previews as `x.vcf`. */
 const viewerName = (name: string) => (GZ_TEXT.test(name) ? name.replace(/\.(gz|bgz)$/i, "") : name)
 
@@ -89,29 +107,58 @@ async function readGzipPrefix(url: string, signal: AbortSignal): Promise<{ text:
 /** Dispatch already-fetched text to the matching rich viewer by file type, with
  *  FileContentView (structured table / inert text) as the fallback. HTML stays
  *  inert (never an iframe) — same security choice this component has always made. */
-function renderTextContent(fileName: string, text: string, maxHClass: string) {
+function renderTextContent(fileName: string, text: string, maxHClass: string, dataKind?: string) {
   const name = viewerName(fileName)
   const ext = (name.split(".").pop() || "").toLowerCase()
-  const kind = resolveViewer(ext)
-  if (kind === "structure") return <InlineStructureViewer text={text} ext={ext} />
-  if (kind === "vcf") return <InlineVcfViewer text={text} />
-  if (kind === "sequence") return <InlineSequenceViewer text={text} />
-  if (kind === "annotation") return <InlineAnnotationViewer text={text} ext={ext} />
+  const byName = resolveViewer(ext)
+  // The content kind (what the bytes are) wins over the name (what the file is called).
+  if (dataKind === "structure" || (!dataKind && byName === "structure")) return <InlineStructureViewer text={text} ext={byName === "structure" ? ext : "pdb"} />
+  if (dataKind === "variants" || (!dataKind && byName === "vcf")) return <InlineVcfViewer text={text} />
+  if (dataKind === "reads" || dataKind === "sequences" || (!dataKind && byName === "sequence")) return <InlineSequenceViewer text={text} />
+  if (dataKind === "intervals" || dataKind === "annotation" || (!dataKind && byName === "annotation"))
+    return <InlineAnnotationViewer text={text} ext={byName === "annotation" ? ext : dataKind === "annotation" ? "gff" : "bed"} />
+  if (MARKDOWN.test(name)) return <MarkdownDocument text={text} />
   // table (csv/tsv/json/star) → structured grid; html/text/other → inert text.
   return <FileContentView name={name} text={text} maxHClass={maxHClass} />
 }
 
+/** A Markdown document, rendered. Raw HTML in the file is NOT interpreted (no rehype-raw): it
+ *  shows as text, so a document can never run script or restyle the app. */
+function MarkdownDocument({ text }: { text: string }) {
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none max-h-[60vh] overflow-auto rounded-md border p-3" data-testid="dataset-markdown">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+    </div>
+  )
+}
+
+/** An image the browser cannot decode (a file named .png that holds something else) says so,
+ *  instead of a broken-image icon. */
+function ImagePreview({ url, name }: { url: string; name: string }) {
+  const [broken, setBroken] = useState(false)
+  useEffect(() => { setBroken(false) }, [url])
+  if (broken) return (
+    <p role="alert" className="text-muted-foreground" data-testid="dataset-preview-image-invalid">
+      {t("dataset_obj.image_invalid", { format: fileExt(name).toUpperCase() || "—" })}
+    </p>
+  )
+  return <img src={url} alt={name} className="max-h-[60vh] max-w-full object-contain" data-testid="dataset-preview-image" onError={() => setBroken(true)} />
+}
+
 /** Uses the same permission-checked signed URL as Download. HTML stays inert text. */
-export function DatasetFilePreview({ projectId, fileId, name }: {
+export function DatasetFilePreview({ projectId, fileId, name, kind }: {
   projectId: string; fileId: string; name: string
+  /** The content kind from the dataset view model (DatasetObject passes it). */
+  kind?: ViewKind
 }) {
   const [state, setState] = useState<{ url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean }>({})
+  const mode = previewMode(name, kind)
   useEffect(() => {
     const abort = new AbortController()
     setState({})
     ;(async () => {
-      if (!previewable(name)) return
-      const gz = GZ_TEXT.test(name)
+      if (mode === "none") return
+      const gz = mode === "gz"
       if (gz && !decompressionAvailable()) { setState({ noDecompress: true }); return }
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url`, {
         credentials: "include", signal: abort.signal,
@@ -124,7 +171,7 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
         if (!abort.signal.aborted) setState({ text, truncated, compressed: true })
         return
       }
-      if (!TEXT.test(name)) { setState({ url }); return }
+      if (mode !== "text") { setState({ url }); return }
       const content = await fetch(url, { signal: abort.signal })
       if (!content.ok) throw new PreviewError(t("dataset_obj.preview_read_error", { status: content.status }))
       if (!content.body) throw new PreviewError(t("dataset_obj.preview_unavailable"))
@@ -152,8 +199,8 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
       setState({ error: error instanceof PreviewError ? error.message : t("dataset_obj.preview_unavailable") })
     })
     return () => abort.abort()
-  }, [projectId, fileId, name])
-  if (!previewable(name)) return (
+  }, [projectId, fileId, name, mode])
+  if (mode === "none") return (
     <p className="text-muted-foreground">{t("dataset_obj.preview_unsupported")}</p>
   )
   if (state.noDecompress) return (
@@ -162,21 +209,22 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
   if (state.error) return <p role="alert" className="text-destructive">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
     {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
-    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]") : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
+    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
     {state.truncated && <p className="text-muted-foreground">{t(state.compressed ? "dataset_obj.preview_truncated_gz" : "dataset_obj.preview_truncated")}</p>}
   </div>
-  if (state.url && TIFF.test(name)) return (
+  if (state.url && mode === "tiff") return (
     <div className="space-y-2" data-testid="dataset-preview-tiff">
       <p className="text-muted-foreground">{t("dataset_obj.preview_tiff")}</p>
       <Button asChild variant="outline" size="sm" className="gap-1.5">
-        <a href={state.url} download={name} data-testid="dataset-preview-tiff-download">
+        {/* Same-origin redirect: saved under the display name, the tab never opens the storage URL. */}
+        <a href={fileDownloadUrl(projectId, fileId)} download={name.split("/").pop() || name} data-testid="dataset-preview-tiff-download">
           <Download className="h-3.5 w-3.5" />{t("dataset_obj.preview_download")}
         </a>
       </Button>
     </div>
   )
-  if (state.url && IMAGE.test(name)) return <img src={state.url} alt={name} className="max-h-[60vh] max-w-full object-contain" />
-  if (state.url && DENSITY.test(name)) return (
+  if (state.url && mode === "image") return <ImagePreview url={state.url} name={name} />
+  if (state.url && mode === "density") return (
     <Suspense fallback={<p role="status" className="text-muted-foreground">{t("dataset_obj.preview_loading_density")}</p>}>
       <DensityMapViewer src={state.url} name={name} />
     </Suspense>

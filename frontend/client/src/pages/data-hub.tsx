@@ -41,6 +41,7 @@ import {
 } from "@/components/project-file-tree"
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
 import { FolderProfileView } from "@/components/datasets/folder-profile-view"
+import { downloadProjectFile } from "@/components/datasets/datasets-api"
 import { t, tOr, locale } from "@/lib/i18n"
 
 function toDatasetRef(f: ProjectFile): DatasetRef {
@@ -191,22 +192,12 @@ export default function DataHubPage() {
     setSelectedFolder(null)
   }, [activeProjectId])
 
-  const handleDownload = async (file: ProjectFile) => {
+  // Header Download: a same-origin link the server redirects to a signed URL carrying the display
+  // name as the attachment filename — the browser saves "counts.csv" (never the storage key
+  // "counts.csv.v2"), and the tab is never navigated to the raw storage URL.
+  const handleDownload = (file: ProjectFile) => {
     if (!activeProjectId) return
-    try {
-      const res = await fetch(
-        `/api/projects/${activeProjectId}/files/${file.id}/url`,
-        { credentials: "include" },
-      )
-      if (!res.ok) return
-      const data = await res.json()
-      const a = document.createElement("a")
-      a.href = data.url
-      a.download = data.name
-      a.click()
-    } catch {
-      /* ignore */
-    }
+    downloadProjectFile(activeProjectId, file.id, file.name)
   }
 
   return (

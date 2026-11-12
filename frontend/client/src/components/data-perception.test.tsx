@@ -95,3 +95,53 @@ describe("<DataPerception>", () => {
     expect(screen.getByTestId("perception-notes")).toHaveTextContent("future_code");
   });
 });
+
+describe("<DataPerception> — stats per data kind (U2) and copy", () => {
+  it("FASTQ shows Reads + Read length from its findings, never Rows/Columns", () => {
+    render(<DataPerception datasetName="S1_R1.fastq.gz" profile={{
+      shape: { rows: 10000, cols: 151 }, quality: "good", notes: [],
+      findings: [{ section: "signal", code: "fastq_reads", level: "info", params: { reads: 10000, at_least: true, mean_len: 151 } }],
+    }} />);
+    expect(screen.getByTestId("perception-stat-reads")).toHaveTextContent("10,000");
+    expect(screen.getByTestId("perception-stat-read_length")).toHaveTextContent("151");
+    expect(screen.queryByTestId("perception-stat-rows")).toBeNull();
+    // "at least", never a bare "≥" glued to the label.
+    const panel = screen.getByTestId("data-perception");
+    expect(panel).toHaveTextContent("Reads scanned: at least 10,000");
+    expect(panel.textContent).not.toContain("≥");
+  });
+
+  it("an image shows no shape stats at all (not '0 rows, 0 columns')", () => {
+    render(<DataPerception datasetName="plot.png" kind="image" profile={{
+      shape: { rows: 0, cols: 0 }, quality: "unassessed", notes: [],
+      findings: [{ section: "note", code: "format_identified", level: "info", params: { format: "PNG", size: "1 KB" } }],
+    }} />);
+    const panel = screen.getByTestId("data-perception");
+    expect(panel.querySelectorAll("[data-testid^='perception-stat-']")).toHaveLength(0);
+    expect(panel).not.toHaveTextContent(/Rows|Columns/);
+    expect(screen.getByTestId("perception-quality-badge")).toHaveTextContent("Not checked");
+  });
+
+  it("renders backend stats with their localized labels", () => {
+    render(<DataPerception datasetName="calls.vcf" profile={{
+      shape: { rows: 0, cols: 0 }, quality: "good", notes: [], viewKind: "variants",
+      stats: [{ code: "variants", value: 1234 }, { code: "samples", value: 3 }],
+    }} />);
+    expect(screen.getByTestId("perception-stat-variants")).toHaveTextContent("Variants");
+    expect(screen.getByTestId("perception-stat-variants")).toHaveTextContent("1,234");
+    expect(screen.getByTestId("perception-stat-samples")).toHaveTextContent("3");
+  });
+
+  it("Effective N and leakage carry a plain-language gloss", () => {
+    render(<DataPerception profile={WATCH_LEAKY_PROFILE} datasetName="leaky.csv" />);
+    expect(screen.getByTestId("perception-stat-gloss").getAttribute("title")).toMatch(/independent samples/);
+  });
+
+  it("a name/content mismatch finding is explained, not shown as a code", () => {
+    render(<DataPerception datasetName="broken.png" profile={{
+      shape: { rows: 0, cols: 0 }, quality: "watch", notes: [],
+      findings: [{ section: "note", code: "name_content_mismatch", level: "watch", params: { named: "PNG", detected: "plain text" } }],
+    }} />);
+    expect(screen.getByTestId("perception-why")).toHaveTextContent("Named as PNG, but the content is plain text");
+  });
+});

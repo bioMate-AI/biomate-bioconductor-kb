@@ -17,15 +17,17 @@
  * `findings`) falls back to the free text.
  */
 
-import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight, CircleDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { t, tOr } from "@/lib/i18n";
+import { t, tOr, locale } from "@/lib/i18n";
+import { datasetKind, effectiveQuality, profileStats, type ViewKind } from "@/components/datasets/dataset-view-model";
 
 // ---------------------------------------------------------------------------
 // Types — the shape the backend profiler emits (DataProfile.to_dict()).
 // ---------------------------------------------------------------------------
 
-export type PerceptionQuality = "good" | "watch" | "blocked";
+/** "unassessed" = the file was identified but its content was not analysed — neither good nor a warning. */
+export type PerceptionQuality = "good" | "watch" | "blocked" | "unassessed";
 
 export interface ClassBalanceEntry {
   /** Class / group label as it appears in the data. */
@@ -82,6 +84,10 @@ export interface DataProfile {
   sampleRows?: string[][];
   /** Detected file format (absent on profiles from older backends). */
   format?: DatasetFormat;
+  /** Content-first data kind (table, reads, anndata, image…); absent on older profiles. */
+  viewKind?: string;
+  /** The kind's headline numbers, rendered as `perception.stat.<code>`; absent on older profiles. */
+  stats?: { code: string; value: number | string }[];
 }
 
 /** A dataset's detected format: `source` says who identified it — Galaxy's datatype
@@ -99,6 +105,8 @@ export interface DataPerceptionProps {
   planImpact?: { observed: string; effect: string }[];
   /** Optional dataset name for the header crumb. */
   datasetName?: string;
+  /** The file's data kind (from the dataset view model); derived from the profile/name when absent. */
+  kind?: ViewKind;
   className?: string;
 }
 
@@ -128,10 +136,24 @@ const QUALITY_META: Record<
     dot: "bg-red-500",
     panel: "border-red-500/30 bg-red-500/5",
   },
+  // Identified, content not analysed: neutral grey — not a warning.
+  unassessed: {
+    icon: CircleDashed,
+    badge: "border-border bg-muted text-muted-foreground",
+    dot: "bg-muted-foreground/50",
+    panel: "",
+  },
 };
 
+const NUM_LOCALE = locale === "zh" ? "zh-CN" : "en-US";
+
 function fmtInt(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString(NUM_LOCALE);
+}
+
+function fmtStat(v: number | string): string {
+  if (typeof v === "number") return Number.isInteger(v) ? fmtInt(v) : v.toLocaleString(NUM_LOCALE, { maximumFractionDigits: 1 });
+  return String(v);
 }
 
 function fmtPct(frac: number): string {
@@ -143,7 +165,7 @@ function fmtPct(frac: number): string {
 function findingVars(f: PerceptionFinding): Record<string, string | number> {
   const vars: Record<string, string | number> = { prefix: "" };
   for (const [k, v] of Object.entries(f.params ?? {})) {
-    if (k === "at_least") vars.prefix = v ? "≥" : "";
+    if (k === "at_least") vars.prefix = v ? t("perception.at_least_prefix") : "";
     else if (Array.isArray(v)) vars[k] = v.map(String).join(t("perception.list_sep"));
     else if (typeof v === "number") vars[k] = Number.isInteger(v) ? fmtInt(v) : String(v);
     else if (k === "root" && typeof v === "string") vars[k] = tOr(`perception.root_${v}`, v);
@@ -165,17 +187,20 @@ export function DataPerception({
   profile,
   planImpact,
   datasetName,
+  kind: kindProp,
   className,
 }: DataPerceptionProps) {
-  const q = QUALITY_META[profile.quality];
+  const quality = effectiveQuality(profile);
+  const q = QUALITY_META[quality] ?? QUALITY_META.watch;
+  const kind = kindProp ?? datasetKind(datasetName ?? "", profile);
   const QIcon = q.icon;
   const structuredMode = Array.isArray(profile.findings);
   const findings = profile.findings ?? [];
 
   // "Why Watch / Blocked": the findings at the verdict's level are its reasons.
-  const reasons = profile.quality === "good"
+  const reasons = quality === "good" || quality === "unassessed"
     ? []
-    : findings.filter((f) => f.level === profile.quality && f.section !== "plan");
+    : findings.filter((f) => f.level === quality && f.section !== "plan");
   const isReason = (f: PerceptionFinding) => reasons.includes(f);
   const signalItems = findings.filter((f) => f.section === "signal" && !isReason(f));
   const noteItems = findings.filter((f) => f.section === "note" && !isReason(f));
@@ -184,16 +209,11 @@ export function DataPerception({
 
   const hasClassBalance = !!profile.classBalance && profile.classBalance.length > 0;
 
-  // For sequence files the profiler's shape.rows/cols are reads × read-length,
-  // not table rows/columns — label them accordingly.
-  const nm = (datasetName || "").toLowerCase();
-  const isFastq = /\.(fastq|fq)(\.gz)?$/.test(nm);
-  const isFasta = /\.(fasta|fa|fna|faa)(\.gz)?$/.test(nm);
-  const rowLabel = t(isFastq ? "perception.stat_reads" : isFasta ? "perception.stat_sequences" : "perception.stat_rows");
-  const colLabel = t(isFastq ? "perception.stat_read_length" : isFasta ? "perception.stat_length" : "perception.stat_columns");
+  // The kind's own measures (reads, cells × genes, variants…) — rows × columns only for tables.
+  const stats = profile.structured ? [] : profileStats(profile, kind);
 
   // Effective-N hint states the REAL reason the backend reported — never a generic guess.
-  const effBase = profile.profiledRows ?? profile.shape.rows;
+  const effBase = profile.profiledRows ?? profile.shape?.rows ?? 0;
   const effHints: string[] = [];
   if (typeof profile.effectiveN === "number" && profile.effectiveN < effBase) {
     if (profile.effectiveNReason === "dedup") {
@@ -213,12 +233,12 @@ export function DataPerception({
   const legacyNotes = !structuredMode ? profile.notes : [];
   const legacySignal = !structuredMode ? profile.signalSummary ?? [] : [];
   const legacyPlan = !structuredMode ? planImpact ?? [] : [];
-  const whyTitle = t(profile.quality === "blocked" ? "perception.why_blocked" : "perception.why_watch");
+  const whyTitle = t(quality === "blocked" ? "perception.why_blocked" : "perception.why_watch");
 
   return (
     <div
       data-testid="data-perception"
-      data-quality={profile.quality}
+      data-quality={quality}
       className={cn(
         "shadcn-card rounded-xl border bg-card border-card-border text-card-foreground shadow-sm",
         "flex flex-col gap-4 p-5",
@@ -242,7 +262,7 @@ export function DataPerception({
           )}
         >
           <QIcon className="h-3.5 w-3.5" aria-hidden />
-          {t(`perception.quality_${profile.quality}`)}
+          {t(`perception.quality_${quality}`)}
         </span>
       </div>
 
@@ -255,13 +275,13 @@ export function DataPerception({
           <Stat k={t("perception.stat_keys")} v={fmtInt(profile.structured.keys)} />
           <Stat k={t("perception.stat_nulls")} v={fmtInt(profile.structured.nulls)} />
           <Stat k={t("perception.stat_depth")} v={fmtInt(profile.structured.depth)} />
-        </> : <>
-          <Stat k={rowLabel} v={fmtInt(profile.shape.rows)} />
-          <Stat k={colLabel} v={fmtInt(profile.shape.cols)} />
-        </>}
+        </> : stats.map((s) => (
+          <Stat key={s.code} k={tOr(`perception.stat.${s.code}`, s.code)} v={fmtStat(s.value)} testId={`perception-stat-${s.code}`} />
+        ))}
         {typeof profile.effectiveN === "number" && (
           <Stat
             k={t("perception.stat_effective_n")}
+            gloss={t("perception.gloss_effective_n")}
             v={fmtInt(profile.effectiveN)}
             hints={effHints}
             testId="perception-effective-n"
@@ -271,7 +291,7 @@ export function DataPerception({
       </div>
 
       {/* Why Watch / Blocked — the signals that set the verdict. */}
-      {structuredMode && profile.quality !== "good" && (
+      {structuredMode && quality !== "good" && quality !== "unassessed" && (
         <div data-testid="perception-why" className={cn("flex flex-col gap-1.5 rounded-lg border p-3", q.panel)}>
           <div className="text-xs font-semibold text-foreground">{whyTitle}</div>
           {reasons.length > 0 ? (
@@ -297,9 +317,13 @@ export function DataPerception({
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden />
           <div>
-            <span className="font-semibold text-amber-600 dark:text-amber-400">
-              {t("perception.section_leakage")}{" "}
-            </span>
+            <span
+              className="font-semibold text-amber-600 underline decoration-dotted underline-offset-2 dark:text-amber-400"
+              title={t("perception.gloss_leakage")}
+              data-testid="perception-leakage-gloss"
+            >
+              {t("perception.section_leakage")}
+            </span>{" "}
             <span className="text-foreground">
               {structuredMode ? leakageItems.map((f) => findingText(f)).join(" ") : profile.leakage!.detail}
             </span>
@@ -388,17 +412,24 @@ function Stat({
   hints,
   testId,
   wide,
+  gloss,
 }: {
   k: string;
   v: string;
   hints?: string[];
+  /** A plain-language definition of the term, on hover / for screen readers. */
+  gloss?: string;
   testId?: string;
   /** Span two columns so a reason hint wraps on readable lines instead of being cropped. */
   wide?: boolean;
 }) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-0.5", wide && "col-span-2")} data-testid={testId}>
-      <span className="text-fs-xs font-medium uppercase tracking-wide text-muted-foreground">{k}</span>
+      <span
+        className={cn("text-fs-xs font-medium uppercase tracking-wide text-muted-foreground", gloss && "cursor-help underline decoration-dotted underline-offset-2")}
+        title={gloss}
+        data-testid={gloss ? "perception-stat-gloss" : undefined}
+      >{k}</span>
       <span className="text-sm font-semibold tabular-nums">{v}</span>
       {hints?.map((h, i) => (
         <span

@@ -269,9 +269,36 @@ export interface DatasetRowsState {
    * this many header records. null until the first page arrives (or an older backend).
    */
   headerRow: boolean | null
+  /**
+   * The file version the loaded rows were read from (the rows response's `version`; null on an
+   * older server). An edit sends it as `baseVersion`, so a save made against rows someone has
+   * since replaced is refused (409 version_conflict) instead of landing on the wrong row.
+   * When pages come from different versions, the OLDEST is kept: the user saw stale rows.
+   */
+  version: number | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null }
+
+/**
+ * Same-origin download link for a project file. The server answers with a redirect to a signed
+ * URL that carries `Content-Disposition: attachment; filename=<display name>`, so the browser
+ * saves the file under its display name and the tab never navigates to the storage URL.
+ */
+export function fileDownloadUrl(projectId: string, fileId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url?redirect=1`
+}
+
+/** Start a download of a project file through the same-origin redirect (see fileDownloadUrl). */
+export function downloadProjectFile(projectId: string, fileId: string, name: string): void {
+  const a = document.createElement("a")
+  a.href = fileDownloadUrl(projectId, fileId)
+  a.download = name.split("/").pop() || name
+  a.rel = "noopener"
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
 
 /**
  * Page in a project file's full rows. `loadMore()` fetches the next page (no-op
@@ -279,8 +306,8 @@ const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loadi
  * until the file (or LOAD_ALL_CAP) is exhausted. Disabled when projectId/fileId is
  * missing or the extension is not tabular.
  */
-export function useDatasetRows(projectId: string | undefined, fileId: string, name: string) {
-  const enabled = Boolean(projectId) && rowsSupported(name)
+export function useDatasetRows(projectId: string | undefined, fileId: string, name: string, wanted = true) {
+  const enabled = wanted && Boolean(projectId) && rowsSupported(name)
   const [state, setState] = useState<DatasetRowsState>(EMPTY_ROWS)
   const ref = useRef<DatasetRowsState>(EMPTY_ROWS)
   const inflight = useRef(false)
@@ -312,9 +339,12 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
       const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
       const headerRow: boolean | null = typeof body?.headerRow === "boolean" ? body.headerRow : ref.current.headerRow
+      const pageVersion: number | null = typeof body?.version === "number" ? body.version : null
+      const prevVersion = ref.current.version
+      const version = prevVersion == null ? pageVersion : pageVersion == null ? prevVersion : Math.min(prevVersion, pageVersion)
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })
@@ -324,12 +354,15 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
     }
   }, [enabled, projectId, fileId, commit])
 
+  const [reloads, setReloads] = useState(0)
   useEffect(() => {
     gen.current += 1
     inflight.current = false
     commit(EMPTY_ROWS)
     if (enabled) void fetchPage(ROWS_PAGE)
-  }, [enabled, projectId, fileId, commit, fetchPage])
+  }, [enabled, projectId, fileId, commit, fetchPage, reloads])
+  /** Drop the loaded rows and read the file again from the first page (after a save). */
+  const reload = useCallback(() => setReloads((n) => n + 1), [])
 
   const loadMore = useCallback(() => { void fetchPage(ROWS_PAGE) }, [fetchPage])
   const loadAll = useCallback(async () => {
@@ -343,7 +376,7 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
   }, [fetchPage])
   const retry = loadMore
 
-  return { enabled, ...state, loadMore, loadAll, retry }
+  return { enabled, ...state, loadMore, loadAll, retry, reload }
 }
 
 // ── Folder profile ───────────────────────────────────────────────────────────
