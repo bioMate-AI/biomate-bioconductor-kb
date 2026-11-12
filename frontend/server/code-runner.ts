@@ -19,6 +19,30 @@ import { constants as fsConstants } from 'fs';
 import * as path from 'path';
 import { randomUUID, createHash } from 'crypto';
 
+/** run_code sandbox image. RUN_CODE_IMAGE wins; otherwise the CJK-font layer
+ *  `biomate-runcode:2` (frontend/Dockerfile.runcode — plot labels in Chinese rendered as tofu
+ *  boxes on biotools:1, founder 2026-11-12) when the host has it, else `biomate-biotools:1`.
+ *  Checked once per process. */
+export const RUN_CODE_PREFERRED_IMAGE = 'biomate-runcode:2';
+export const RUN_CODE_BASE_IMAGE = 'biomate-biotools:1';
+let _sandboxImage: Promise<string> | null = null;
+export function resolveSandboxImage(
+  inspect: (image: string) => Promise<boolean> = (image) => new Promise((resolve) => {
+    execFile('docker', ['image', 'inspect', image], { timeout: 15000 }, (err) => resolve(!err));
+  }),
+): Promise<string> {
+  if (process.env.RUN_CODE_IMAGE) return Promise.resolve(process.env.RUN_CODE_IMAGE);
+  if (!_sandboxImage) {
+    _sandboxImage = inspect(RUN_CODE_PREFERRED_IMAGE).then((ok) => {
+      if (!ok) console.warn(`[code-runner] ${RUN_CODE_PREFERRED_IMAGE} not found — using ${RUN_CODE_BASE_IMAGE} (no CJK fonts in plots)`);
+      return ok ? RUN_CODE_PREFERRED_IMAGE : RUN_CODE_BASE_IMAGE;
+    });
+  }
+  return _sandboxImage;
+}
+/** Test helper. */
+export function _resetSandboxImage(): void { _sandboxImage = null; }
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface DatasetRef {
@@ -556,7 +580,7 @@ async function runCodeIn(req: CodeRunRequest, baseDir: string, persistent: boole
     // `aws ecr get-login-password ... | docker login ...`. The bare
     // `biomate-biotools:1` tag works once the image is pulled and re-tagged,
     // or built locally from frontend/Dockerfile.biotools (slower path).
-    const sandboxImage = process.env.RUN_CODE_IMAGE || 'biomate-biotools:1';
+    const sandboxImage = await resolveSandboxImage();
 
     // Container hardening — parity with the Nextflow sandbox
     // (backend/lib/galaxy/ai/compute/sandbox/command.py). Low-risk flags
