@@ -50,8 +50,9 @@ FACET_SOURCES: Dict[str, List[str]] = {
     "variant":     ["clinvar", "dbsnp", "gnomad"],
     # disease / phenotype / clinical indication
     "disease":     ["opentargets", "hpo", "omim", "clinvar", "clinicaltrials"],
-    # gene-centric baseline (identity, orthology, function)
-    "gene":        ["ncbi_gene", "ensembl", "uniprot", "go", "string"],
+    # gene-centric baseline (identity, orthology, function + gnomAD LoF constraint, which
+    # is a core gene-level property — pLI/LOEUF — not just variant data)
+    "gene":        ["ncbi_gene", "ensembl", "uniprot", "go", "string", "gnomad"],
 }
 
 # Always-on literature corroboration (kept small; the agent's literature client
@@ -74,7 +75,10 @@ _FACET_CUES: Dict[str, Sequence[str]] = {
     "pathway":     ["pathway", "signalling", "signaling", "network", "interaction", "interactome",
                     "enrichment", "cascade", "upstream", "downstream", "regulat"],
     "variant":     ["variant", "mutation", "\\bsnp\\b", "allele", "polymorphism", "genotype",
-                    "missense", "resistance mutation", "\\brs\\d"],
+                    "missense", "resistance mutation", "\\brs\\d",
+                    # gene-constraint / LoF-intolerance cues → gnomAD (pLI/LOEUF) is in this facet
+                    "constraint", "loss-of-function", "loss of function", "\\blof\\b", "loeuf",
+                    "\\bpli\\b", "intoleran", "haploinsufficien", "essential gene"],
     "disease":     ["disease", "phenotype", "syndrome", "indication", "clinical", "patient",
                     "prognosis", "biomarker"],
 }
