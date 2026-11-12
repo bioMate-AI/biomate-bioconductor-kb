@@ -14,6 +14,8 @@ Contract (all functions NEVER raise):
   extension wins when it maps to a datatype the content supports (its sniffer accepts the
   file, or the content is sniffed as a parent type of it, e.g. ``.smi`` → SMILES when the
   content sniffs as plain ``tabular``); otherwise ``guess_ext`` over the sniff order.
+* :func:`is_text_ext` ``(ext) -> Optional[bool]`` — whether that datatype is text (the
+  profiler's binary judgement honours Galaxy's text identification).
 * :func:`metadata` ``(path, ext) -> Dict`` — metadata for an allow-list of datatypes whose
   ``set_meta`` is cheap and safe here: no file-valued metadata (BAM/CRAM/BCF/TIFF/VcfGz
   need ``metadata.spec`` and a real model), no index building (BAM ``set_meta`` sorts and
@@ -165,6 +167,26 @@ def view_for_ext(ext: str) -> Optional[str]:
     if any(m.startswith("galaxy.datatypes.binary.") for m in mro):
         return "binary"
     return None
+
+
+def is_text_ext(ext: Optional[str]) -> Optional[bool]:
+    """Whether Galaxy's datatype for ``ext`` is a TEXT datatype (csv, tabular, txt, json, fasta, …:
+    a subclass of ``galaxy.datatypes.data.Text`` and not of ``binary.Binary``). None when Galaxy is
+    unavailable or the extension is not registered."""
+    reg = _registry()
+    if reg is None or not ext:
+        return None
+    dt = (getattr(reg, "datatypes_by_extension", {}) or {}).get(ext)
+    if dt is None:
+        return None
+    try:
+        from galaxy.datatypes.binary import Binary
+        from galaxy.datatypes.data import Text
+    except Exception:  # noqa: BLE001
+        return None
+    if isinstance(dt, Binary):
+        return False
+    return isinstance(dt, Text)
 
 
 # ---------------------------------------------------------------------------
