@@ -1787,31 +1787,39 @@ export function NextflowWorkflowViewer({
     if (planned.length === 0) return recorded;    // no planned structure → runtime only
     if (recorded.length === 0) return planned;    // not started → planned only
     const norm = (s: unknown) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Keys a phase can be matched by: id / name / processName, PLUS the trailing
+    // segment of each. nf-core emits fully-qualified process names
+    // (NFCORE_RNASEQ:RNASEQ:FASTQC) while planned phases are keyed by the short name
+    // (fastqc) — so we mirror nfProcessByName's `:`-tail indexing, otherwise the
+    // merge never matches for the whole nf-core family and silently collapses the
+    // phase list on a stopped run (audit finding #1).
+    const keysOf = (o: any): string[] => {
+      const out: string[] = [];
+      for (const v of [o?.id, o?.name, o?.processName]) {
+        if (v == null || v === "") continue;
+        const full = norm(v);
+        if (full) out.push(full);
+        const tail = String(v).split(":").pop();
+        if (tail && tail !== String(v)) { const t = norm(tail); if (t) out.push(t); }
+      }
+      return out;
+    };
     // Do the recorded processes actually CORRESPOND to the planned steps? If none of
     // them map onto a planned step, the planned list is just placeholders (old
     // sessions with generic "Step 1") and the saved records win, as before. Only when
     // they correspond do we merge — so a run stopped mid-way keeps its FULL planned
     // phase list (un-run phases stay 'pending') instead of collapsing to what ran.
-    const plannedKeys = new Set<string>();
-    for (const p of planned) {
-      plannedKeys.add(norm(p.id)); plannedKeys.add(norm(p.name));
-      if ((p as any).processName) plannedKeys.add(norm((p as any).processName));
-    }
-    const corresponds = recorded.some(
-      (r) => plannedKeys.has(norm(r.id)) || plannedKeys.has(norm(r.name)) || plannedKeys.has(norm((r as any).processName)),
-    );
+    const plannedKeys = new Set<string>(planned.flatMap(keysOf));
+    const corresponds = recorded.some((r) => keysOf(r).some((k) => plannedKeys.has(k)));
     if (!corresponds) return recorded; // placeholder planned list → saved records take precedence
     // Overlay runtime status onto the planned structure so a stopped / cancelled /
     // partial run keeps its FULL phase list — un-run phases stay 'pending', NEVER dropped.
     const recByKey = new Map<string, ViewerPhase>();
-    for (const r of recorded) {
-      if (r.id) recByKey.set(norm(r.id), r);
-      if (r.name) recByKey.set(norm(r.name), r);
-      if ((r as any).processName) recByKey.set(norm((r as any).processName), r);
-    }
+    for (const r of recorded) for (const k of keysOf(r)) if (!recByKey.has(k)) recByKey.set(k, r);
     const used = new Set<ViewerPhase>();
     const merged: ViewerPhase[] = planned.map((p) => {
-      const m = recByKey.get(norm(p.id)) || recByKey.get(norm(p.name)) || recByKey.get(norm((p as any).processName));
+      let m: ViewerPhase | undefined;
+      for (const k of keysOf(p)) { m = recByKey.get(k); if (m) break; }
       if (!m) return p; // un-run planned phase stays pending
       used.add(m);
       return {
@@ -1823,7 +1831,15 @@ export function NextflowWorkflowViewer({
         outputFiles: (m as any).outputFiles ?? (p as any).outputFiles,
       };
     });
-    for (const r of recorded) if (!used.has(r)) merged.push(r); // dynamic/extra runtime processes
+    // Append any recorded process that neither matched a planned step NOR shares a key
+    // with an already-merged phase (dedup guard — a phase must not render twice when
+    // planned/recorded naming is heterogeneous; audit finding #2).
+    const mergedKeys = new Set<string>(merged.flatMap(keysOf));
+    for (const r of recorded) {
+      if (used.has(r)) continue;
+      if (keysOf(r).some((k) => mergedKeys.has(k))) continue;
+      merged.push(r);
+    }
     return merged;
   }, [workflowDefinition, lazySteps, nextflowStatus?.processes]);
 
@@ -3998,8 +4014,11 @@ export function NextflowWorkflowViewer({
                     ) : (
                       // Show the clean name only. Never reveal the storage URI or
                       // dataset id — not inline and not on hover (founder: no
-                      // internal path/key/id in the UI, including tooltips).
-                      <span title={r.dataset?.name || basename(r.value)}>
+                      // internal path/key/id in the UI, including tooltips). The hover
+                      // title uses cleanParamValueForDisplay, which strips s3://gs://
+                      // URIs + bare UUIDs + id= patterns (basename alone would leak
+                      // those in the no-dataset-name edge case — audit finding).
+                      <span title={r.dataset?.name || cleanParamValueForDisplay(r.value)}>
                         {r.dataset?.name || basename(r.value)}
                       </span>
                     )}
@@ -4727,7 +4746,14 @@ export function NextflowWorkflowViewer({
                         (e) => String(e.raw?.id ?? e.raw?.name ?? '') === String(fullViewStep.id),
                       );
                       const pos = idx >= 0
-                        ? { phaseLetter: flat[idx].letter, stepNumber: idx + 1, totalSteps: flat.length }
+                        ? {
+                            // Only a REAL phase letter (A/B/…); for unphased workflows
+                            // groupStepsIntoPhases returns a numeric step-count "letter",
+                            // which must NOT render as a phase badge (audit finding A2).
+                            phaseLetter: /^[A-Za-z]/.test(flat[idx].letter || "") ? flat[idx].letter : undefined,
+                            stepNumber: idx + 1,
+                            totalSteps: flat.length,
+                          }
                         : {};
                       const openAt = (i: number) => { if (flat[i]) setFullViewStep(buildStepDetailStep(flat[i].raw)); };
                       return (
@@ -4739,6 +4765,14 @@ export function NextflowWorkflowViewer({
                       onClose={() => setFullViewStep(null)}
                       onPrev={idx > 0 ? () => openAt(idx - 1) : undefined}
                       onNext={idx >= 0 && idx < flat.length - 1 ? () => openAt(idx + 1) : undefined}
+                      // Footer "Re-run from here" → open the adjust-params modal for this
+                      // step (audit finding A1: this prop was never wired, so the footer
+                      // button was dead). Close the full view first so the modal is on top.
+                      onAdjustAndRerun={() => {
+                        const s = fullViewStep;
+                        setFullViewStep(null);
+                        setAdjustStep({ id: s.id, name: s.name, processName: s.processName, parameters: s.parameters });
+                      }}
                       onApplyAndRerun={(edited) => {
                         // Apply the in-place-edited params to the form and re-run
                         // with the merged set (pass merged directly — setParams is

@@ -1036,7 +1036,8 @@
     },
     "view_sample_data": "View sample data",
     "rows_count": "{{n}} rows",
-    "rows_truncated": "Showing first 50 of {{n}} rows"
+    "rows_truncated": "Showing first 50 of {{n}} rows",
+    "staged_file": "staged file"
   },
   "preview": {
     "loading": "Loading preview…",
