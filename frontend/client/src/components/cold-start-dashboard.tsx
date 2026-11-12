@@ -754,7 +754,14 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
           <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{t('cold_start.mod_' + m.id + '_name')}</span>
-          <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
+          {/* Reserve exactly 2 lines so 1- and 2-line descriptions give every
+              collapsed card the same height — fixes the broken grid row where the
+              design card overflowed its border (founder 2026-11-11). */}
+          <span style={{
+            fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            lineHeight: 1.5, minHeight: open ? undefined : '3em',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
         </span>
         <span
           aria-hidden
@@ -779,8 +786,12 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
             padding: "0 16px 16px",
           }}
         >
-          {/* .trackbar — the module's tracks as tabs. */}
-          <div role="tablist" aria-label={t('cold_start.mod_' + m.id + '_name')} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {/* .trackbar — the module's tracks as UNDERLINE TABS (one idiom per
+              hierarchy level — tabs switch the task track; the modality below is a
+              segmented filter). Reworked 2026-11-11 (founder "two-layers weird" +
+              Gemini review): two stacked pill rows read as a confusing 2D matrix. */}
+          <div role="tablist" aria-label={t('cold_start.mod_' + m.id + '_name')}
+            style={{ display: "flex", flexWrap: "wrap", gap: 2, borderBottom: "1px solid var(--bm-border, oklch(0.90 0.005 260))" }}>
             {m.tracks.map((tr, i) => {
               const on = i === ti;
               return (
@@ -795,13 +806,14 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                     setDomId(null);
                   }}
                   style={{
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
-                    background: on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "transparent",
-                    color: on ? "white" : "var(--bm-text, oklch(0.22 0.01 260))",
+                    padding: "6px 10px",
+                    marginBottom: -1,
+                    border: "none",
+                    borderBottom: `2px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "transparent"}`,
+                    background: "transparent",
+                    color: on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-text-dim, oklch(0.50 0.01 260))",
                     fontSize: 'var(--fs-sm)',
-                    fontWeight: 500,
+                    fontWeight: on ? 600 : 500,
                     cursor: "pointer",
                   }}
                 >
@@ -811,48 +823,50 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
             })}
           </div>
 
-          {(
-            <p className="text-xs text-muted-foreground">
-              {track.k === "Internal"
-                ? t('cold_start.caption_internal')
-                : track.k === "Try sample data"
-                  ? t('cold_start.caption_sample_data')
-                  : t('cold_start.caption_default')}
-            </p>
-          )}
-
-          {/* Modality chip row — only on a modality-flagged module (Design &
-              generate). Selecting a modality swaps the track's examples and is
-              threaded into the seeded goal. (reference MODALITIES / tr.exBy) */}
+          {/* Modality row as a SEGMENTED CONTROL — only on a modality-flagged
+              module (Design & generate). A single mutually-exclusive filter, visually
+              distinct from the task tabs above (founder "two-layers weird" + Gemini). */}
           {m.modalities && (
-            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.modality')}</span>
-              {COLD_MODALITIES.map(([k]) => {
-                const on = mod === k;
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    data-testid={`cold-modality-${k}`}
-                    aria-pressed={on}
-                    onClick={() => setMod(k)}
-                    style={{
-                      padding: "3px 10px",
-                      borderRadius: 999,
-                      border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
-                      background: on ? "var(--bm-chip, oklch(0.95 0.01 260))" : "transparent",
-                      color: "var(--bm-text, oklch(0.22 0.01 260))",
-                      fontSize: 'var(--fs-sm)',
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t('cold_start.modality_' + k)}
-                  </button>
-                );
-              })}
+              <div role="group" style={{ display: "inline-flex", background: "var(--bm-chip, oklch(0.96 0.005 260))", borderRadius: 8, padding: 2, gap: 2 }}>
+                {COLD_MODALITIES.map(([k]) => {
+                  const on = mod === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      data-testid={`cold-modality-${k}`}
+                      aria-pressed={on}
+                      onClick={() => setMod(k)}
+                      style={{
+                        padding: "3px 12px",
+                        borderRadius: 6,
+                        border: "none",
+                        background: on ? "var(--bm-surface, oklch(1 0 0))" : "transparent",
+                        boxShadow: on ? "0 1px 2px oklch(0 0 0 / 0.08)" : "none",
+                        color: on ? "var(--bm-text, oklch(0.22 0.01 260))" : "var(--bm-text-dim, oklch(0.50 0.01 260))",
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: on ? 600 : 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {t('cold_start.modality_' + k)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
+
+          {/* Helper caption sits directly above the examples it describes. */}
+          <p className="text-xs text-muted-foreground" style={{ margin: 0 }}>
+            {track.k === "Internal"
+              ? t('cold_start.caption_internal')
+              : track.k === "Try sample data"
+                ? t('cold_start.caption_sample_data')
+                : t('cold_start.caption_default')}
+          </p>
 
           {/* .schip — domain chips, only inside a domains-track. Selecting one
               swaps the example list for that domain's shapes. */}
@@ -957,7 +971,7 @@ export function ColdStartDashboard({ onSeed, modules = landingModules() }: ColdS
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: 12,
-          alignItems: "start",
+          alignItems: "stretch",
         }}
       >
         {modules.map((m) => (
