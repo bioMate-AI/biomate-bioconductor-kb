@@ -735,9 +735,11 @@ describe('phase lettering is positional among displayed phases', () => {
       progress: 0, onExecute: vi.fn(),
     } as any)} status="idle" />);
     const card = await screen.findByTestId('phase-group-B');
+    // Positional badge "A" carries the phase letter; the semantic name is the title
+    // (2026-11-11 phase-view redesign: "Phase A" beside an "A" badge was redundant).
     expect(card.querySelector('.letter')?.textContent).toBe('A');
-    expect(card.querySelector('.title')?.textContent).toBe('Phase A');
-    expect(card.querySelector('.sub')?.textContent).toBe('Bispecific Antibody Design');
+    expect(card.querySelector('.title')?.textContent).toBe('Bispecific Antibody Design');
+    expect(card.querySelector('.sub')).toBeNull();
     expect(card.textContent).not.toContain('Phase B');
     vi.restoreAllMocks();
   });

@@ -134,6 +134,31 @@ type ViewerParameter = {
 /** Matches a "Phase X" / "Phase X — Name" prefix a backend label may carry. */
 const PHASE_PREFIX_RE = /^phase\s+[a-z0-9]+\s*(?:[—–:-]\s*|$)/i;
 
+/** Raw dataset/dataset-ref UUIDs the user never needs to read (founder 2026-11-11:
+ *  "unnecessary id"). Strip "(id: <uuid>)" / "id=<uuid>" / a bare 32-hex or dashed
+ *  UUID from a displayed parameter value — keep the human part (e.g. the filename). */
+export function cleanParamValueForDisplay(v: unknown): string {
+  let s = v == null ? '' : String(v);
+  // A storage location is shown as the file it names, never as a path: s3://, gs://,
+  // file://, http(s):// or an absolute/relative path whose last segment is a file.
+  // Same policy as the server's redactStoragePaths (no storage paths in user text).
+  s = s.replace(/(?:(?:s3|gs|file|https?):\/\/|\/)?[^\s,;'"()]*\/([^\s,;'"()/]+\.[A-Za-z0-9]{1,8}(?:\.gz)?)/g, '$1');
+  s = s.replace(/(?:s3|gs):\/\/[^\s,;'"()]+\/?/gi, '');
+  s = s.replace(/\s*[\(（]\s*id[:=]\s*[0-9a-f]{8}-[0-9a-f-]{8,}\s*[\)）]/gi, '');
+  s = s.replace(/\s*\bid[:=]\s*[0-9a-f]{8}-[0-9a-f-]{8,}\b/gi, '');
+  s = s.replace(/\s*\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '');
+  return s.replace(/\s{2,}/g, ' ').replace(/\s*·\s*·/g, ' ·').trim();
+}
+
+/** A backend step label names the work, not the infrastructure: drop "from S3",
+ *  "on AWS Batch", "to the bucket" (no storage/infra words in user-facing text). */
+export function userFacingStepName(name: unknown): string {
+  return String(name ?? '')
+    .replace(/\s+(?:from|to|on|in|via|into)\s+(?:the\s+)?(?:AWS\s+)?(?:S3|Batch|bucket)(?:\s+bucket)?\b/gi, '')
+    .replace(/\s*\((?:S3|AWS(?:\s+Batch)?)\)/gi, '')
+    .trim();
+}
+
 /** Backend labels may already include their own phase prefix (possibly with a
  *  different letter — e.g. a `// [Phase B]` source annotation on a
  *  single-phase workflow). Strip it and render the display letter once. */
@@ -859,9 +884,11 @@ function PhaseGroupSection({
       <div className="phase-head" onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
         <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
         <div className="letter">{letter}</div>
+        {/* The badge already carries the letter; the semantic name ("Input Download")
+            is what a scientist scans for, so it is the title — "Phase A" beside an "A"
+            badge was redundant scaffolding (founder phase-view review 2026-11-11). */}
         <div className="titles">
-          <div className="title">{phaseTitle}</div>
-          {phaseSub && <div className="sub">{phaseSub}</div>}
+          <div className="title" title={label}>{userFacingStepName(phaseSub || phaseTitle)}</div>
         </div>
         {phaseStatus === 'running' && (
           <span className="chip run">
@@ -871,14 +898,20 @@ function PhaseGroupSection({
         )}
         {phaseStatus === 'completed' && <span className="chip ok">{tOr('panel.chip.done', 'DONE')}</span>}
         {phaseStatus === 'failed'    && <span className="chip err">{tOr('panel.chip.failed', 'FAILED')}</span>}
+        {/* Before the workflow launches every phase is "not started" and cannot run on
+            its own — saying so on each row (plus a disabled 运行) was pure noise. Show
+            only the step count; status + per-phase run appear once a run exists. */}
         {phaseStatus === 'pending' && (
-          <span className="progress-chip"><span>{tOr('panel.phase.not_started', 'Not started')} · </span>{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
+          <span className="progress-chip">
+            {activeRunId ? <span>{tOr('panel.phase.not_started', 'Not started')} · </span> : null}
+            {tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}
+          </span>
         )}
         {(phaseStatus === 'running' || phaseStatus === 'completed') && (
           <span className="progress-chip">{completedCount}/{steps.length}</span>
         )}
-        {/* Run Phase button — always visible in header so test can find it pre-run */}
-        {!allDone && !anyRunning && (
+        {/* Run Phase button — only once a run exists (it can never be used pre-launch). */}
+        {!!activeRunId && !allDone && !anyRunning && (
           <button
             className="btn sm"
             disabled={!canRunPhase}
@@ -924,12 +957,20 @@ function PhaseGroupSection({
                     </span>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {phaseRenderedParams.slice(0, 4).map(p => (
-                        <div key={p.id} style={{ display: 'flex', gap: 6, minWidth: 0 }}>
-                          <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{p.label}:</span>
-                          <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{p.value ?? p.defaultValue ?? '—'}</span>
-                        </div>
-                      ))}
+                      {phaseRenderedParams.slice(0, 4).map(p => {
+                        const shown = cleanParamValueForDisplay(p.value ?? p.defaultValue) || '—';
+                        const isFile = /^[^\s/]+\.[A-Za-z0-9]{1,8}(?:\.gz)?$/.test(shown);
+                        return (
+                          <div key={p.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(72px, max-content) 1fr', columnGap: 10, alignItems: 'center', minWidth: 0 }}>
+                            <span style={{ color: 'var(--text-dim)' }}>{p.label}</span>
+                            {isFile ? (
+                              <span className="mono" title={shown} style={{ justifySelf: 'start', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '1px 6px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{shown}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{shown}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1058,13 +1099,15 @@ function PhaseGroupSection({
             return (
               <div
                 key={step.id}
-                className={`step ${stepStatus}`}
+                className={`step ${stepStatus}${steps.length === 1 ? ' solo' : ''}`}
                 data-testid={`phase-card-${step.id}`}
                 data-status={s}
               >
                 <div className="step-head">
+                  {/* One indicator per step: the status dot on the rail. The circled
+                      ordinal (①) duplicated it (founder phase-view review 2026-11-11). */}
                   <div className={`name${isFailed ? ' dim' : ''}`}>
-                    {STEP_NUMBERS[idx] ?? `${idx + 1}.`}&nbsp;{step.name}
+                    {userFacingStepName(step.name)}
                   </div>
                   {(() => {
                     const adv = qcAdvisoryByStep?.[String(step.processName || step.name || '')];
@@ -3587,15 +3630,9 @@ export function NextflowWorkflowViewer({
               </div>
             </div>
           )}
-          {/* Step-wise controls hint — only when real phase groups exist */}
-          {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
-            <div
-              data-testid="workflow-step-controls-hint"
-              style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
-            >
-              {tOr('panel.phase_hint', 'Click a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.')}
-            </div>
-          )}
+          {/* The pre-launch "click a phase to expand…" paragraph was removed (founder
+              phase-view review 2026-11-11): the chevrons already afford expansion and
+              per-phase run controls now only appear once a run exists. */}
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
           {showQcInline && qcGateData && (status === "running" || status === "paused") && (
             <div className="alert warn" data-testid="qc-gate-inline" style={{ marginBottom: 10 }}>
@@ -4045,9 +4082,11 @@ export function NextflowWorkflowViewer({
             {/* ── Phase section label ──────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (() => {
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-              const label = hasRealPhases
-                ? tOr('panel.phases_label', 'PHASES · {{n}}', { n: groupedPhases.length })
-                : tOr('panel.steps_label', 'STEPS · {{n}}', { n: updatedPhases.length });
+              // The phases tab badge already shows the phase count; repeating it here
+              // ("阶段 · 4") was the third copy on screen. Only the flat-steps case,
+              // which has no badge of its own, keeps a label.
+              if (hasRealPhases) return null;
+              const label = tOr('panel.steps_label', 'STEPS · {{n}}', { n: updatedPhases.length });
               return (
                 <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}

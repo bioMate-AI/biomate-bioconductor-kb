@@ -1106,7 +1106,7 @@
       "run": "运行",
       "run_all_tip": "运行{{phase}}的所有步骤",
       "run_disabled_tip": "请先启动工作流，以启用按阶段执行",
-      "steps_count": "{{n}} 步",
+      "steps_count": "{{n}} 个步骤",
       "all_steps": "全部步骤",
       "not_started": "尚未开始"
     },
