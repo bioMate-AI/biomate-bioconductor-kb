@@ -136,6 +136,7 @@ def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
 _POOL_SIZE = 12
 _CACHE_TTL_STABLE = 86400   # 24h — UniProt, PDB, AlphaFold, etc.
 _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
+_CACHE_TTL_DURABLE = 30 * 86400  # 30d — "last-known-good" for outage fallback (stale-while-error)
 
 # ── Entity-type → sources fan-out map ─────────────────────────────────────────
 # Order within each list doesn't matter (all run in parallel).
@@ -1010,8 +1011,21 @@ def federated_query(
     }
 
     ttl = _CACHE_TTL_LITERATURE if detected == "literature" else _CACHE_TTL_STABLE
+    _durable_key = cache_key + ":durable"
     if not failed:   # never cache a partial answer: a rate limit would persist for the whole TTL
         _cache_set(cache_key, out, ttl)
+        # Keep a long-lived last-known-good for outage fallback (stale-while-error).
+        _cache_set(_durable_key, out, _CACHE_TTL_DURABLE)
+        return out
+    # Degraded: one or more sources failed (outage / rate limit / maintenance — the exact
+    # pain this session: EBI 500s, NCBI maintenance, S2 429s). Rather than hand back a
+    # thin/empty live result, serve the last-known-good if we have a richer one, flagged
+    # stale so the caller/UI can say so. No mirror data required.
+    _stale = _cache_get(_durable_key)
+    if isinstance(_stale, dict) and len(_stale.get("merged") or []) > len(merged):
+        return {**_stale, "_stale": True,
+                "_stale_reason": "live sources unavailable (%s); served last-known-good"
+                                 % ",".join(failed[:6])}
     return out
 
 # ── Result merging ─────────────────────────────────────────────────────────────
