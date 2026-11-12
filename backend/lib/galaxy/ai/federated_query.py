@@ -410,6 +410,12 @@ def _fetch_uniprot(query: str) -> Dict:
                  for c in e.get("comments", []) if c.get("commentType") == "FUNCTION"),
                 None),
         })
+    # A bare symbol search returns many reviewed ORTHOLOGS and UniProt's relevance order can
+    # surface a non-human one first (e.g. PCSK9 → Plecturocebus/Colobus ahead of human),
+    # polluting the grounded evidence for a human-centric research question. Stable-sort the
+    # human entry to the top; keep the rest so a genuinely non-human query still surfaces its
+    # organisms (end-to-end smoke finding, 2026-11-12).
+    results.sort(key=lambda r: (r.get("organism") != "Homo sapiens"))
     return {"source": "uniprot", "results": results}
 
 def _fetch_pdb(query: str) -> Dict:
