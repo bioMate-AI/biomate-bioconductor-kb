@@ -68,7 +68,9 @@ _REST: List[DataSource] = [
     DataSource("pdb", "RCSB PDB", "structure", ["protein", "structure"],
                [SURFACE_FEDERATION, SURFACE_SINGLE, SURFACE_MCP]),
     DataSource("pdbe", "PDBe", "structure", ["protein", "structure"],
-               [SURFACE_SINGLE, SURFACE_MCP]),
+               [SURFACE_FEDERATION, SURFACE_SINGLE, SURFACE_MCP],
+               note="best_structures (ranked experimental PDBs by resolution/coverage); "
+                    "wired to the fan-out via the shared resolver 2026-11-11."),
     DataSource("alphafold", "AlphaFold DB", "structure", ["protein", "structure"],
                [SURFACE_FEDERATION, SURFACE_SINGLE, SURFACE_MCP]),
     DataSource("interpro", "InterPro", "protein", ["protein", "structure"],
