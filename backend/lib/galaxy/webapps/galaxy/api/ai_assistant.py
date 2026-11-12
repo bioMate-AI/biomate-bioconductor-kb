@@ -2385,6 +2385,7 @@ def search_ranked(
             preferred_domains=request.preferred_domains or None,
         )
         seen_files: set = set()
+        seen_names: set = set()  # same workflow under several catalog rows, any source
         for r in wf_results:
             if len([x for x in ranked if x.get("type") == "workflow"]) >= request.limit:
                 break
@@ -2406,6 +2407,12 @@ def search_ranked(
                     if real in seen_files:
                         continue
                     seen_files.add(real)
+            # Across ALL sources: one card per (normalized name, domain) — results arrive best-ranked
+            # first, so the kept row is the stronger match.
+            name_key = (re.sub(r"[^a-z0-9]+", "", (getattr(r, "name", "") or "").lower()), (getattr(r, "domain", "") or "").lower())
+            if name_key[0] and name_key in seen_names:
+                continue
+            seen_names.add(name_key)
             ranked.append({
                 "rank": 0,
                 "name": r.name,
@@ -2429,12 +2436,17 @@ def search_ranked(
     # embedding similarity alone and always appear rank-1, corrupting IR metrics.
     try:
         chain_results = _workflow_search.search_chains(request.query, min_score=0.35, limit=3)
+        seen_chains: set = set()
         for c in chain_results:
+            ckey = re.sub(r"[^a-z0-9]+", "", (c.display_name or c.name or "").lower())
+            if ckey and ckey in seen_chains:
+                continue
+            seen_chains.add(ckey)
             ranked.append({
                 "rank": 0,  # will be set below
                 "name": c.name,
                 "display_name": c.display_name or c.name,
-                "description": (c.description or "")[:200],
+                "description": _clean_catalog_description(c.description or "")[:200],
                 "domain": getattr(c, "domain", None) or "",
                 "source": "chain",
                 "format": "chain",

@@ -27,6 +27,7 @@ import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity";
 import { chatOutputFolderName } from "./chat-output-folder";
+import { searchQueryForCatalog } from "./search-query-translation";
 import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -8279,12 +8280,14 @@ ${paramLines || '(none recorded)'}`;
       if (!query || !String(query).trim()) {
         return res.status(400).json({ error: "query is required" });
       }
+      // The catalog is indexed in English: a Chinese query is searched by its English terms.
+      const { query: catalogQuery, translated } = await searchQueryForCatalog(String(query));
       const response = await galaxyAPIProxy.client.post('/api/ai_assistant/search_ranked', {
-        query: String(query),
+        query: catalogQuery,
         limit: typeof limit === 'number' ? limit : 10,
         preferred_domains: Array.isArray(preferred_domains) ? preferred_domains : null,
       });
-      res.json(response.data);
+      res.json({ ...response.data, query: String(query), ...(translated ? { searched_as: catalogQuery } : {}) });
     } catch (error: any) {
       console.error("[search_ranked API] Error:", error?.message || error);
       res.status(500).json({ error: 'RankedSearchError', message: error?.message || 'Ranked search failed' });
