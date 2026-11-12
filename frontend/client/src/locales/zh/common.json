@@ -439,7 +439,9 @@
       "predict_the_fold_of_this_stapled_peptide_and_where_to_trust_it": "预测这个订书肽的折叠结构，并指出可信区域。",
       "predict_the_structure_of_this_antibody_antigen_complex_and_repor": "预测这个抗体–抗原复合物的结构，并报告界面置信度。",
       "model_this_complex_for_a_nanobody_and_its_antigen": "为纳米抗体与其抗原建模复合物。",
-      "predict_the_fold_of_this_designed_binder_against_its_target": "预测这个设计结合物针对靶点的折叠结构。"
+      "predict_the_fold_of_this_designed_binder_against_its_target": "预测这个设计结合物针对靶点的折叠结构。",
+      "map_b_cell_epitopes_on_an_ebv_antigen_and_draft_a_vaccine_immuno": "在 EBV 抗原上定位 B 细胞表位并设计候选疫苗免疫原",
+      "predict_hla_class_i_binding_for_neoantigen_peptides": "预测新抗原肽的 HLA I 类结合"
     },
     "sample_title_inline": "使用目标中附带的示例运行。编辑目标即可改用您自己的数据。"
   },
@@ -542,7 +544,7 @@
     "open_dataset": "打开数据集",
     "preview": "预览",
     "hide_preview": "隐藏预览",
-    "copy_s3": "复制 S3 路径",
+    "copy_s3": "复制路径",
     "confirm_delete": "删除此文件？",
     "err_load": "加载文件失败",
     "err_upload": "上传失败",
@@ -1232,7 +1234,10 @@
       "pull_failed": "镜像下载失败",
       "auto_resume": "检测到后台重启，{{n}} 秒后自动恢复运行…",
       "cancel": "取消"
-    }
+    },
+    "view_sample_data": "查看示例数据",
+    "rows_count": "{{n}} 行",
+    "rows_truncated": "显示前 50 行，共 {{n}} 行"
   },
   "preview": {
     "loading": "正在加载预览…",
@@ -1298,6 +1303,9 @@
     "job_id": "任务 ID",
     "work_directory": "工作目录",
     "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。",
+    "step_position": "第 {{n}} 步 / 共 {{total}} 步",
+    "prev_step": "上一步",
+    "next_step": "下一步",
     "status_pending": "待运行",
     "status_queued": "排队中",
     "status_submitted": "已提交",

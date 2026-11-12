@@ -65,7 +65,7 @@ class CrossOmicsDriverTest(unittest.TestCase):
     def setUp(self):
         # 60 samples (30/group): enough power that the label-permutation null-max is
         # well below a true driver's score (a 20-sample fixture is underpowered — the
-        # max-statistic null is reached by chance, as the live 139-sample SYSUCC run is not).
+        # max-statistic null is reached by chance, as the live 139-sample hospital run is not).
         self.samples = [f"P{i}" for i in range(60)]
         self.label = {s: ("A" if i % 2 == 0 else "B") for i, s in enumerate(self.samples)}
         # DRV is the strong separating feature in BOTH rna and protein (corroborated);

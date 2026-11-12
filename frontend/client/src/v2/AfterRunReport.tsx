@@ -1282,40 +1282,59 @@ function OutputsTab({
   useEffect(() => {
     if (outputs.length > 0 || !runId) return;
     let cancelled = false;
-    (async () => {
+    let attempts = 0;
+    // A just-completed run often registers its S3 outputs a few seconds AFTER
+    // status flips to `completed` (the Batch job writes + the backend scans).
+    // A single fetch on mount therefore got an empty list and left the Outputs
+    // tab permanently blank ("completed but no content"). Poll while the run is
+    // terminal and the list is still empty — ~60s covers the registration lag.
+    const MAX_ATTEMPTS = 15;
+    const terminal = () =>
+      ["completed", "succeeded", "ok"].includes(String(executionStatus || "").toLowerCase());
+    const poll = async () => {
       try {
         const r = await fetch(
           `/api/workflows/runs/${encodeURIComponent(runId)}/output_files`,
           { credentials: "include" },
         );
-        if (!r.ok || cancelled) return;
-        const j = await r.json();
-        const arr = (j?.output_files || j?.outputs || []) as any[];
-        if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
-        setFetched(
-          arr.map((f) => {
-            const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
-            const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
-            const ext = String(
-              f?.extension ||
-                (name.includes(".") ? name.split(".").pop() : "") ||
-                "",
-            ).toLowerCase();
-            const parts = filePath.split("/").filter(Boolean);
-            const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
-            // Don't surface an opaque run/history id (76d11493) as the step label.
-            const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
-            const step = isOpaqueId ? "" : rawStep;
-            // Real byte size is in the fetched output_files payload — thread it
-            // so the card shows the actual size (humanSize) instead of nothing.
-            const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
-            return { step, name, path: filePath, ext, size, download_url: f?.download_url };
-          }),
-        );
-      } catch { /* silent — empty state still useful */ }
-    })();
+        if (cancelled) return;
+        if (r.ok) {
+          const j = await r.json();
+          const arr = (j?.output_files || j?.outputs || []) as any[];
+          if (!cancelled && Array.isArray(arr) && arr.length > 0) {
+            setFetched(
+              arr.map((f) => {
+                const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
+                const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
+                const ext = String(
+                  f?.extension ||
+                    (name.includes(".") ? name.split(".").pop() : "") ||
+                    "",
+                ).toLowerCase();
+                const parts = filePath.split("/").filter(Boolean);
+                const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
+                // Don't surface an opaque run/history id (76d11493) as the step label.
+                const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
+                const step = isOpaqueId ? "" : rawStep;
+                // Real byte size is in the fetched output_files payload — thread it
+                // so the card shows the actual size (humanSize) instead of nothing.
+                const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
+                return { step, name, path: filePath, ext, size, download_url: f?.download_url };
+              }),
+            );
+            return; // populated — stop polling
+          }
+        }
+      } catch { /* fall through to retry */ }
+      // Still empty: retry while the run is terminal (outputs still registering).
+      attempts += 1;
+      if (!cancelled && terminal() && attempts < MAX_ATTEMPTS) {
+        setTimeout(poll, 4000);
+      }
+    };
+    poll();
     return () => { cancelled = true; };
-  }, [runId, outputs.length]);
+  }, [runId, outputs.length, executionStatus]);
   const effectiveOutputs = outputs.length > 0 ? outputs : fetched;
   // FIX #9.1 — separate Nextflow run-metadata (pipeline_info/, dag.html,
   // report.html, timeline.html, trace.txt, execution_*, .nextflow.log) from
@@ -1673,7 +1692,9 @@ function OutputsTab({
         )}
       </div>
 
-      <InteractiveToolsRow outputs={scientificOutputs} />
+      {/* Interactive tools panel DISABLED 2026-11-11 (founder): not functioning.
+          Re-enable when the interactive-tool launch path works.
+          <InteractiveToolsRow outputs={scientificOutputs} /> */}
 
       {/* Outputs gallery — each output as an inline preview card. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '2px 0 10px' }}>

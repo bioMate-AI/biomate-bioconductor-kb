@@ -1028,6 +1028,27 @@ def _enrich_steps_with_phase_info(
                 if re.match(r'^process\s+', line.strip()):
                     break
 
+    # ── Pre-compute keyword-based phase assignments for all steps ───────────────
+    # Used as fallback when the file has no inline [Phase X] annotations.
+    # Two-pass approach: first find keyword matches, then fill gaps by inheriting
+    # the nearest preceding matched phase — avoids the "Other Steps" bucket.
+    _kw_assigned: dict = {}   # idx_str -> (group, label)
+    if not inline_phase_map and not is_cryosparc:
+        for idx_str2, step2 in steps.items():
+            tid2 = step2.get('tool_id', '').upper()
+            for keywords, grp, lbl in _GENERIC_PHASE_RULES:
+                if any(kw in tid2 for kw in keywords):
+                    _kw_assigned[idx_str2] = (grp, lbl)
+                    break
+        if _kw_assigned:
+            # Fill gaps: steps not matched by any keyword inherit the preceding phase
+            _last_kw = ('A', 'Phase A — Input & Download')
+            for idx_str2 in sorted(steps.keys(), key=lambda x: int(x)):
+                if idx_str2 in _kw_assigned:
+                    _last_kw = _kw_assigned[idx_str2]
+                else:
+                    _kw_assigned[idx_str2] = _last_kw
+
     # ── Assign phase groups and per-step params ──
     for idx_str, step in steps.items():
         idx = int(idx_str)
@@ -1051,10 +1072,15 @@ def _enrich_steps_with_phase_info(
             step['phase_group'] = 'other'
             step['phase_label'] = ''
             param_names = process_param_refs.get(tool_id, [])
+        elif idx_str in _kw_assigned:
+            # No file annotations but keyword rules matched — use keyword-derived phase.
+            # Gaps already filled above so every step gets a group (no "Other Steps").
+            pg, pl = _kw_assigned[idx_str]
+            step['phase_group'] = pg
+            step['phase_label'] = pl
+            param_names = process_param_refs.get(tool_id, [])
         else:
-            # File has NO annotations at all → don't synthesize fake phases from
-            # keyword guesses (which produced ugly "Phase other" mixed-state per #23).
-            # Leave phase_group empty so the frontend renders all as one "Steps" group.
+            # No annotations, no keyword matches — render all steps as one group.
             step['phase_group'] = ''
             step['phase_label'] = ''
             param_names = process_param_refs.get(tool_id, [])

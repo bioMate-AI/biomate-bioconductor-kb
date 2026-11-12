@@ -32,3 +32,67 @@ describe("chat system blocks → user-facing text", () => {
     expect(titleHasSystemBlock("EPAR approvals")).toBe(false)
   })
 })
+
+import { redactInternalRefs } from './chat-system-blocks';
+describe('redactInternalRefs — never show galaxy dataset id/keyword to the user', () => {
+  it('removes the JSON form the model echoes', () => {
+    expect(redactInternalRefs('{"galaxy_dataset_id":"ac170aeb-1659-4c81-a7cf-b14cc2ab598e"}')).toBe('');
+  });
+  it('removes the key=value form, keeping the rest', () => {
+    expect(redactInternalRefs('counts.csv: dataset_id=abc, galaxy_dataset_id=ac170aeb, s3_uri=x'))
+      .toBe('counts.csv: dataset_id=abc'); // galaxy_dataset_id AND s3_uri both redacted
+  });
+  it('removes the prose colon form', () => {
+    expect(redactInternalRefs('Use galaxy_dataset_id: ac170aeb for run_code'))
+      .toBe('Use for run_code');
+  });
+  it('neutralizes a bare keyword (never the word "galaxy")', () => {
+    const out = redactInternalRefs('pass the galaxy_dataset_id');
+    expect(out).toBe('pass the data_id');
+    expect(out.toLowerCase()).not.toContain('galaxy');
+  });
+  it('leaves ordinary text untouched', () => {
+    expect(redactInternalRefs('Here are the DESeq2 results.')).toBe('Here are the DESeq2 results.');
+    expect(redactInternalRefs('')).toBe('');
+  });
+});
+
+describe('redactInternalRefs — never show internal run_code paths to the user', () => {
+  it('rewrites the explicit DATA_DIR join to the clean INPUT_FILES form', () => {
+    expect(redactInternalRefs("df = pd.read_csv(os.path.join(os.environ['DATA_DIR'], 'ac170aeb-1659-4c81', 'counts.csv'))"))
+      .toBe("df = pd.read_csv(INPUT_FILES['counts.csv'])");
+  });
+  it('collapses an absolute container path to the filename', () => {
+    expect(redactInternalRefs('read /work/input/ac170aeb-1659-4c81-a7cf-b14cc2ab598e/counts.csv'))
+      .toBe('read counts.csv');
+  });
+  it('collapses a host staging path to the filename', () => {
+    expect(redactInternalRefs("open('/tmp/biomate_code/sess_123/input/ac170aeb/raw.tsv')"))
+      .toBe("open('raw.tsv')");
+  });
+  it('collapses the $DATA_DIR string form to the filename', () => {
+    expect(redactInternalRefs('path=$DATA_DIR/ac170aeb/matrix.csv')).toBe('path=matrix.csv');
+  });
+  it('collapses a /work/output path to the filename', () => {
+    expect(redactInternalRefs('wrote /work/output/results/deg_table.csv')).toBe('wrote deg_table.csv');
+  });
+  it('leaves ordinary user file paths untouched', () => {
+    expect(redactInternalRefs('see ./data/counts.csv and /home/user/x.txt'))
+      .toBe('see ./data/counts.csv and /home/user/x.txt');
+  });
+});
+
+describe('redactInternalRefs — never show s3 references to the user', () => {
+  it('drops the s3_uri key=value and JSON forms', () => {
+    expect(redactInternalRefs('name: dataset_id=abc, s3_uri=s3://bkt/k/counts.csv'))
+      .toBe('name: dataset_id=abc');
+    expect(redactInternalRefs('{"s3_uri":"s3://bkt/k/x.csv"}')).toBe('');
+  });
+  it('collapses a bare s3:// URI to its filename', () => {
+    expect(redactInternalRefs('output at s3://biomate-nextflow-work/out/run1/deg.csv'))
+      .toBe('output at deg.csv');
+  });
+  it('neutralizes an s3 bucket with no key', () => {
+    expect(redactInternalRefs('bucket is s3://biomate-nextflow-work')).toBe('bucket is a data file');
+  });
+});

@@ -383,7 +383,9 @@
       "predict_the_fold_of_this_stapled_peptide_and_where_to_trust_it": "Predict the fold of this stapled peptide and where to trust it.",
       "predict_the_structure_of_this_antibody_antigen_complex_and_repor": "Predict the structure of this antibody–antigen complex and report interface confidence.",
       "model_this_complex_for_a_nanobody_and_its_antigen": "Model this complex for a nanobody and its antigen.",
-      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target."
+      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target.",
+      "map_b_cell_epitopes_on_an_ebv_antigen_and_draft_a_vaccine_immuno": "Map B-cell epitopes on an EBV antigen and draft a vaccine immunogen",
+      "predict_hla_class_i_binding_for_neoantigen_peptides": "Predict HLA class-I binding for neoantigen peptides"
     },
     "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },
@@ -536,7 +538,7 @@
     "open_dataset": "Open dataset",
     "preview": "Preview",
     "hide_preview": "Hide preview",
-    "copy_s3": "Copy S3 path",
+    "copy_s3": "Copy path",
     "confirm_delete": "Delete this file?",
     "err_load": "Failed to load files",
     "err_upload": "Upload failed",
@@ -1031,7 +1033,11 @@
       "pull_failed": "Image download failed",
       "auto_resume": "Backend restart detected — resuming automatically in {{n}}s…",
       "cancel": "Cancel"
-    }
+    },
+    "view_sample_data": "View sample data",
+    "rows_count": "{{n}} rows",
+    "rows_truncated": "Showing first 50 of {{n}} rows",
+    "staged_file": "staged file"
   },
   "preview": {
     "loading": "Loading preview…",
@@ -1097,6 +1103,9 @@
     "job_id": "Job ID",
     "work_directory": "Work directory",
     "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files.",
+    "step_position": "Step {{n}} of {{total}}",
+    "prev_step": "Previous step",
+    "next_step": "Next step",
     "status_pending": "pending",
     "status_queued": "queued",
     "status_submitted": "submitted",
