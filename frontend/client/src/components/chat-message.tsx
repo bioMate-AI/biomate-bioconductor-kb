@@ -1224,7 +1224,8 @@ export function ChatMessage({
             hover/focus so the thread reads as prose, not toolbars. Research
             answers get no second button row (no "Save to project" / "Plan
             analysis" — removed 2026-11-10 per founder review). */}
-        {!hideActions && !isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
+        {/* Copy / download / retry / rate act on a finished reply — hidden while the turn is still running. */}
+        {!hideActions && !isUser && !isStreaming && message.metadata?.type !== "error" && !!message.content?.trim() && (
           <div
             data-testid="message-action-row"
             className={cn(

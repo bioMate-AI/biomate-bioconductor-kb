@@ -2112,7 +2112,7 @@ export function ChatInterface({
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}
                   currentExecutionRun={scopedRun}
-                  isStreaming={(isTyping || isTypingLocal) && message.id === lastMsg?.id && message.role === "assistant"}
+                  isStreaming={(isTyping || isTypingLocal || sessionTurnActive) && message.id === lastMsg?.id && message.role === "assistant"}
                   isLatestAssistantMessage={message.id === latestAssistantMessageId}
                   isRunAnchorFocused={focusedAnchorMessageId === message.id}
                   isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}

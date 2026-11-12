@@ -161,6 +161,14 @@ describe("one action row under every assistant answer", () => {
     expect(screen.getByTestId("inline-feedback-thumbs-down")).toBeInTheDocument()
   })
 
+  it("no action row while the turn is still running (live dev 2026-11-12: copy/retry/rate under a half-finished reply)", () => {
+    const msg = { id: "m-run", role: "assistant", content: "我来对您的 ADMET 数据文件进行质量控制分析。", timestamp: new Date() } as Message
+    const { rerender } = render(<ChatMessage message={msg} isStreaming />)
+    expect(screen.queryByTestId("message-action-row")).toBeNull()
+    rerender(<ChatMessage message={msg} isStreaming={false} />)
+    expect(screen.getByTestId("message-action-row")).toBeInTheDocument()
+  })
+
   it("plain text answers get the same row with thumbs (feedback is not workflow-only)", () => {
     render(<ChatMessage message={{ id: "m-plain", role: "assistant", content: "Plain answer.", timestamp: new Date() } as Message} />)
     expect(screen.getByTestId("message-action-row")).toBeInTheDocument()
