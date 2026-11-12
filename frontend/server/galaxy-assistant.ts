@@ -80,6 +80,7 @@ import type {
 } from '../shared/galaxy-types';
 import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
 import { attachedNamesFromBlocks, stripSystemBlocks } from '../shared/chat-system-blocks';
+import { toolCallDisplay } from '../shared/tool-call-display';
 import { decideWorkflowReplyState } from '../shared/workflow-response-state';
 import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk, shouldRunOnExampleData, exampleDataNote } from '../shared/workflow-data-inputs';
 import {
@@ -98,6 +99,7 @@ export interface AgentToolEvent {
   tool_use_id: string;
   name: string;
   input?: Record<string, unknown>;  // populated on tool_call
+  display?: string;                 // tool_call: user-facing summary of `input` (no ids / storage paths)
   output?: unknown;                 // populated on tool_result
   error?: string;                   // populated on tool_result when execution failed
   duration_ms?: number;             // populated on tool_result
@@ -105,6 +107,15 @@ export interface AgentToolEvent {
   // (e.g. { stage: 'extracting', confidence: 0.92 }).
   message?: string;
   payload?: Record<string, unknown>;
+}
+
+/** User-facing summary of a tool call: dataset ids become the dataset's name (from this turn's
+ *  session datasets), other ids and storage paths are dropped — the chat card never shows raw input. */
+export function toolCallDisplayFor(input: Record<string, unknown> | undefined, context?: Pick<ChatContext, 'sessionDatasets' | 'turnMessage'>): string {
+  const datasets = context?.sessionDatasets || [];
+  const attached = attachedDatasetsFromMessage(context?.turnMessage || '');
+  return toolCallDisplay(input, (id) => datasets.find(d => d.id === id || d.projectFileId === id)?.name
+    || attached.find(a => a.galaxyId === id || a.datasetId === id)?.name);
 }
 
 /** Anthropic tool definitions registered with the agent. */
@@ -123,7 +134,7 @@ File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filen
 preamble predefines INPUT_FILES (a map from original filename -> absolute path) and INPUT_PATHS
 (the list of those paths) for every dataset you list in input_datasets. USE THESE DIRECTLY — e.g.
 Python: path = INPUT_FILES['raw_counts.csv']  (or just iterate INPUT_PATHS); R: INPUT_FILES[["x.zip"]].
-Do NOT run find/ls over '/', '/galaxy', '/tmp', or the working directory to locate inputs, and do
+Do NOT run find/ls over '/', '/tmp', or the working directory to locate inputs, and do
 NOT guess paths: every input is under $DATA_DIR and already in INPUT_FILES. If INPUT_FILES is empty
 you forgot to pass input_datasets — pass the ids from the [Uploaded datasets:] block and retry.
 Example — if raw_counts.csv was uploaded with dataset_id=abc123 (pass input_datasets=['abc123']):
@@ -152,7 +163,7 @@ Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2),
         input_datasets: {
           type: 'array',
           items: { type: 'string' },
-          description: 'galaxy_dataset_ids of datasets to make available (from [Uploaded datasets:] block)',
+          description: 'dataset_id values of the datasets to make available (from the [Uploaded datasets:] block or <session_datasets>)',
         },
       },
       required: ['language', 'code'],
@@ -170,13 +181,13 @@ Returns a structured summary regardless of format (CSV, TSV, FASTA, VCF, BAM, PD
     input_schema: {
       type: 'object' as const,
       properties: {
-        galaxy_dataset_id: {
+        dataset_id: {
           type: 'string',
-          description: 'The dataset ID from the [Uploaded datasets:] block — use galaxy_dataset_id if present, otherwise use dataset_id',
+          description: 'The dataset_id from the [Uploaded datasets:] block or <session_datasets>',
         },
         n_lines: { type: 'number', description: 'Number of rows/records to preview (default 20)' },
       },
-      required: ['galaxy_dataset_id'],
+      required: ['dataset_id'],
     },
   },
   {
@@ -335,7 +346,7 @@ instead of inventing a workflow name.`,
     name: 'request_new_tool',
     description: `Request that BioMate fetch and register a NEW analysis tool that is NOT yet in its
 catalog, by driving its GitHub tool-ingest pipeline (search a repo -> fetch docs -> generate a
-Galaxy wrapper -> validate -> register as an auto_discovered, quality-gated tool).
+tool wrapper -> validate -> register as an auto_discovered, quality-gated tool).
 
 Use ONLY as a last resort, after search/compose has genuinely found no existing tool for the
 user's capability (i.e. you would otherwise have to say "no tool available"). Do NOT use this to
@@ -480,7 +491,7 @@ from precisely what they see.`,
       properties: {
         run_id: {
           type: 'string',
-          description: "The run whose report to edit (run id, or the Galaxy invocation id). Get it from the recent-runs context or list_history if unsure.",
+          description: "The run whose report to edit (run id or invocation id). Get it from the recent-runs context or list_history if unsure.",
         },
         instruction: {
           type: 'string',
@@ -3020,6 +3031,37 @@ export const FINAL_ANSWER_INSTRUCTION = 'The tool budget for this turn is used u
   + 'Write the final answer for the user now, using only the tool results above: what was computed, the '
   + 'actual numbers and files produced, and any limitation. Do not describe steps you have not run.';
 
+export const TRUNCATED_REPLY_INSTRUCTION = 'Your previous reply was cut off by the output length limit before it finished, '
+  + 'so any tool call in it was NOT run and the user has not seen a result. Continue now: if you were writing code, '
+  + 'call the tool again with a shorter script (split the work into smaller steps if needed); otherwise continue the '
+  + 'answer from exactly where it stopped, without repeating what was already written. Do not announce what you are '
+  + 'about to do — do it.';
+
+/** A turn that stopped on the output-length limit is incomplete: its text is a fragment and any
+ *  tool_use in it was cut mid-input and never run (dev 2026-11-12, GLM via OpenRouter: the 5th turn of
+ *  an image-QC chat stopped on max_tokens while writing the plotting script, and "现在让我生成可视化的 QC
+ *  报告：" was shown as the whole answer). Returns the transcript entries that replace that turn: its
+ *  text only (an unrun tool_use would need a tool_result) plus the instruction to continue. */
+/** Whether a turn that stopped on max_tokens is mid-work (follow up and let the model continue) or a
+ *  long prose answer (keep it; the reply is flagged truncated and the client offers "Continue").
+ *  Mid-work: it was cutting off a tool call, tools already ran in this response (its text is the
+ *  narration of a next step — the dev 2026-11-12 case), or it produced no text at all. Committee
+ *  review 2026-11-12: following up on a prose answer replaced the whole answer with its tail. */
+export function truncatedTurnNeedsFollowUp(content: any[] | undefined, toolsRanThisResponse: boolean): boolean {
+  const blocks = content || [];
+  if (blocks.some((b: any) => b?.type === 'tool_use')) return true;
+  if (toolsRanThisResponse) return true;
+  return !blocks.some((b: any) => b?.type === 'text' && String(b.text || '').trim());
+}
+
+export function truncatedTurnFollowUp(content: any[] | undefined): Array<{ role: 'assistant' | 'user'; content: any }> {
+  const text = (content || []).filter((b: any) => b?.type === 'text' && b.text).map((b: any) => b.text).join('');
+  return [
+    { role: 'assistant', content: [{ type: 'text', text: text || ' ' }] },
+    { role: 'user', content: TRUNCATED_REPLY_INSTRUCTION },
+  ];
+}
+
 /** The request for the final, tool-free turn of the agentic loop once its tool budget is spent:
  *  same model/system, the full transcript plus an instruction, tools declared but disabled
  *  (tool_choice none — the transcript contains tool_use blocks, so the tools stay defined). */
@@ -3032,6 +3074,9 @@ export function finalAnswerRequest(
   const last = messages[messages.length - 1];
   if (last?.role === 'user' && Array.isArray(last.content)) {
     messages[messages.length - 1] = { ...last, content: [...last.content, { type: 'text', text: FINAL_ANSWER_INSTRUCTION }] };
+  } else if (last?.role === 'user' && typeof last.content === 'string') {
+    // e.g. the loop ended on a truncated-reply follow-up: one user turn, not two in a row.
+    messages[messages.length - 1] = { ...last, content: [{ type: 'text', text: last.content }, { type: 'text', text: FINAL_ANSWER_INSTRUCTION }] };
   } else {
     messages.push({ role: 'user', content: FINAL_ANSWER_INSTRUCTION });
   }
@@ -3073,6 +3118,57 @@ export function attachedDatasetsFromMessage(message: string): Array<{ name: stri
     const galaxyId = /\bgalaxy_dataset_id=([^,\s]+)/.exec(entry)?.[1];
     return { name, datasetId: datasetId && datasetId !== 'n/a' ? datasetId : undefined, galaxyId };
   }).filter(d => d.name && (d.datasetId || d.galaxyId));
+}
+
+/** The "[Uploaded datasets: …]" block as the response model sees it: one neutral `dataset_id` per
+ *  file (the backend id when present — the same id <session_datasets> and run_code staging use —
+ *  else BioMate's), the backend-specific key dropped so the model never learns or repeats it
+ *  (founder 2026-11-12: "there should not have galaxy in output"). s3_uri is kept: it is a
+ *  workflow-parameter value, and replies are guarded by redactStoragePaths. */
+export function modelFacingUploads(text: string): string {
+  return String(text || '')
+    // Legacy attachment lines still in older chat histories.
+    .replace(/\[Galaxy dataset:\s*([^\]]*?)\s*\(id:\s*([^)\s]+)\)\s*\]/gi, '[Dataset: $1 (dataset_id: $2)]')
+    .replace(/\[Uploaded datasets?:\s*([^\]]+)\]/gi, (_all, body: string) => {
+    const entries = body.split(/;\s*/).map((entry) => {
+      const fields = parseUploadEntry(entry);
+      if (!fields.name) return '';
+      const id = fields.galaxy_dataset_id || (fields.dataset_id && fields.dataset_id !== 'n/a' ? fields.dataset_id : undefined);
+      const parts = [id ? `dataset_id=${id}` : '', fields.s3_uri ? `s3_uri=${fields.s3_uri}` : ''].filter(Boolean);
+      return parts.length ? `${fields.name}: ${parts.join(', ')}` : fields.name;
+    }).filter(Boolean);
+    return `[Uploaded datasets: ${entries.join('; ')}]`;
+  });
+}
+
+/** One "[Uploaded datasets:]" entry → its fields. The file name is everything before the first
+ *  `key=` (names may contain ':' or spaces); each value runs to the next ", key=" (so an s3 URI
+ *  built from a file name with spaces stays whole). */
+export function parseUploadEntry(entry: string): { name: string; dataset_id?: string; galaxy_dataset_id?: string; s3_uri?: string } {
+  const KEY = /(?:^|[\s,])(galaxy_dataset_id|dataset_id|s3_uri)=/g;
+  const marks: Array<{ key: string; at: number; valueAt: number }> = [];
+  for (const m of entry.matchAll(KEY)) {
+    const lead = m[0].length - m[1].length - 1;
+    marks.push({ key: m[1], at: (m.index ?? 0) + lead, valueAt: (m.index ?? 0) + m[0].length });
+  }
+  const name = (marks.length ? entry.slice(0, marks[0].at) : entry).trim().replace(/:\s*$/, '').trim();
+  const out: any = { name };
+  marks.forEach((mk, k) => {
+    const end = k + 1 < marks.length ? marks[k + 1].at : entry.length;
+    const v = entry.slice(mk.valueAt, end).replace(/,\s*$/, '').trim();
+    if (v) out[mk.key] = v;
+  });
+  return out;
+}
+
+/** The local-upload id (BioMate dataset id) of an attachment the model referenced by its
+ *  model-facing id, from this turn's or an earlier turn's upload block. */
+export function attachmentLocalId(id: string, context?: Pick<ChatContext, 'turnMessage' | 'previousMessages'>): string | undefined {
+  const texts = [context?.turnMessage || '', ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : '')];
+  for (const t of texts) {
+    for (const a of attachedDatasetsFromMessage(t)) if (a.galaxyId === id && a.datasetId) return a.datasetId;
+  }
+  return undefined;
 }
 
 /** This turn's uploaded files with their runnable S3 location, for binding to a plan's declared
@@ -3916,7 +4012,7 @@ export class GalaxyAssistant {
 
     const systemPrompt = `${ltmBlock}${projectBlock}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge across genomics, transcriptomics, proteomics, drug discovery, cryo-EM, and clinical research.
 
-Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which supports live workflow execution ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : 'via local Docker'}.${responseLanguageDirective(context.uiLanguage)}`;
+Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which can run workflows directly.${responseLanguageDirective(context.uiLanguage)}`;
 
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       ...(context.previousMessages ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
@@ -4117,7 +4213,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         if (!fnCall) continue;
         const { name, args } = fnCall as { name: string; args: any };
         console.log(`[GeminiLoop] tool_call name=${name} args_keys=${Object.keys(args || {}).join(',')}`);
-        toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args });
+        toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args, display: toolCallDisplayFor(args, toolContext.context) });
         let output: unknown = null;
         let error: string | undefined;
         try {
@@ -4961,7 +5057,11 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false },
       };
     } catch (err: any) {
-      const errMsg = `Failed to launch **${label}**: ${err.message || 'Galaxy API error'}. Make sure Galaxy interactive tools are configured and the tool is installed.`;
+      // User-facing: no backend name or raw backend error text.
+      console.warn(`[GalaxyAssistant] interactive tool launch failed (${label}):`, err?.message);
+      const errMsg = /^zh/i.test(String((context as any)?.uiLanguage || ''))
+        ? `暂时无法启动 **${label}**，请稍后重试；若持续失败请联系支持。`
+        : `Couldn't start **${label}** right now. Please try again in a minute; if it keeps failing, contact support.`;
       onResponseDelta?.(errMsg);
       return {
         message: errMsg,
@@ -6428,10 +6528,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
             message: [
               `I've mapped your request to the **${chain.display_name}** pipeline (${chainPipelineSteps.length} steps):`,
               '',
-              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (path TBD)'}`)
+              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**`)
                 .join('\n'),
               '',
-              'Review the steps below, then click **Confirm & Run** to execute them in order.',
+              `Review the steps below, then click **${runButtonLabel((context as any)?.uiLanguage)}** to execute them in order.`,
             ].join('\n'),
             intentType: 'workflow_generation',
             intentConfidence: 0.9,
@@ -9955,10 +10055,10 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         body += `The following selected IDs are not in the current session cache and must be resolved by their exact IDs before use: ${unresolved.join(', ')}. If resolution fails, report that failure; do not substitute another dataset.\n\n`;
       }
       if (directRows) {
-        body += `Datasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${directRows}\n\n`;
+        body += `Datasets attached to this conversation (these IDs are stable across turns and runs):\n${directRows}\n\n`;
       }
       if (projectFileRows) {
-        body += `Project files selected for this operation (authorized exact objects, not Galaxy history):\n${projectFileRows}\n\n`;
+        body += `Project files selected for this operation (authorized exact objects, not conversation uploads):\n${projectFileRows}\n\n`;
       }
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
@@ -10084,7 +10184,7 @@ BioMate's real capability surface (verified, do not extrapolate):
 - **Data ingestion:** users get data in by (a) the upload button, (b) an S3/local path, (c) an SRA/ENA/GEO/ArrayExpress/PXD accession, or (d) **Import from URL** (Data → Import from URL), which fetches any direct HTTP/FTP/S3 link AND a **Google Drive or Dropbox share link** — BioMate converts the share link to a direct download server-side. So BioMate CAN use a user's Google Drive / Dropbox data; NEVER tell a user it "cannot access Google Drive / Dropbox / their cloud files" — instead point them to **Import from URL** and ask for the share link.
 - **4,200+ indexed Nextflow workflows** across 36 biological domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19), and more.
 - **12,312 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
-- **Verified live DB integrations** called directly from the Galaxy backend Python (research_agent + knowledge modules):
+- **Verified live DB integrations** called directly from the BioMate backend (research_agent + knowledge modules):
   - PubChem (compounds; resolve SMILES/CIDs on demand via the backend DB integrations)
   - PubMed / NCBI E-utilities (literature, gene lookups)
   - UniProt REST (proteins)
@@ -10094,7 +10194,7 @@ BioMate's real capability surface (verified, do not extrapolate):
   Other DBs (KEGG, Reactome, OMIM, HPO, GTEx, ENCODE, DepMap, …) are reachable indirectly: route to an indexed DB-API tool-function as a workflow step rather than disclaiming. Say "I can pull this via the <tool-name> workflow step" — don't tell the user we lack the source.
 - **Auto-injected pre-results** appear in <pre_satisfied_parameters> and similar tags. Read those before answering.
 - **run_code tool** — Python/R/bash in an ephemeral biomate-biotools sandbox. R + Bioconductor (DESeq2, clusterProfiler, edgeR, limma, GSVA, fgsea, ReactomePA), numpy/scipy/pandas/statsmodels, biopython, pysam, cyvcf2, samtools/bcftools/bwa/mafft/iqtree pre-installed. **Sandboxed with --network=none — run_code cannot reach external APIs.** Use it for offline compute on data already in the prompt or attached as a file. If you need data from a DB, route to a workflow step that pulls it.
-- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path. All real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
+- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on BioMate cloud compute via Nextflow — heavy-compute production path. All real workflows run on BioMate cloud compute; there is no local-vs-cloud switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
 - **Reusing prior-run outputs as next-workflow inputs.** Any workflow file parameter accepts the URI \`run:<fullRunId>:outputs/<filename>\`, which the backend automatically resolves to the underlying S3 path. To use this: call \`list_history\` to find the prior run's full id, then \`list_run_outputs\` to get its output file names. The \`param_uri\` field in that tool's response is the exact string to pass as the file param value — do not transform it. Example: a previous variant-calling run \`abcdef1234567890\` produced \`variants.vcf\`; for a variant-annotation workflow, set \`vcf_input = "run:abcdef1234567890:outputs/variants.vcf"\`.
 
 How to behave:
@@ -10115,7 +10215,7 @@ COMPUTATION RULE:
 Two execution surfaces. Pick by scale + whether the task matches an indexed pipeline — NOT by tool name. Bioconductor packages exist on BOTH (the indexed workflow set includes DESeq2 / clusterProfiler / edgeR / limma / Seurat / ReactomePA, AND run_code has the same packages pre-installed). No default direction.
 
 - **run_code** (light path): ad-hoc compute, single statistical test, inline dataset, format conversion, small analyses that finish in seconds-to-minutes. Full scientific stack: R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa, biopython. **--network=none — cannot reach external APIs.** Only works on data already in the prompt or attached.
-- **Nextflow workflow ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : '(local Docker)'}** (heavy path): production pipelines, multi-step orchestration, large datasets, GPU work, anything that needs network access (e.g. a DB-API tool-function step) or per-step containerization.
+- **Nextflow workflow ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on BioMate cloud compute' : '(local Docker)'}** (heavy path): production pipelines, multi-step orchestration, large datasets, GPU work, anything that needs network access (e.g. a DB-API tool-function step) or per-step containerization.
 
 If the user explicitly says "use run_code" or "do not launch a Nextflow workflow", honor that. Otherwise pick based on what fits.
 
@@ -10161,9 +10261,9 @@ PROACTIVE-WORK RULE (highest priority):
 BioMate's real capability surface:
 - **4,200+ indexed Nextflow workflows** across 36 domains (transcriptomics 1,695, genomics 756, epigenomics 265, drug_discovery 200, proteomics 186, variant_calling 181, single_cell 100, cryo_em 19, …)
 - **12,312 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
-- **Verified live DB integrations** in the Galaxy backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
+- **Verified live DB integrations** in the BioMate backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
 - **run_code tool** — Python/R/bash in the biomate-biotools sandbox (R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa/iqtree, biopython/pysam pre-installed). **--network=none — cannot reach external APIs.** Light-compute path for ad-hoc / format conversion / small statistical work on data already in the prompt.
-- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
+- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on BioMate cloud compute via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on BioMate cloud compute; there is no local-vs-cloud switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
 - If the user needs to supply project-specific data, ask straightforwardly: "Please upload [format] / provide [value]." Do not phrase it as an environment limitation.
 
 (Inline data — if any — is listed in <pre_satisfied_parameters> above. Never ask for those parameters again.)
@@ -10219,9 +10319,9 @@ ONE-QUESTION RULE:
 - Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
 - If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), generate the workflow immediately. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel. This applies in particular when the user's reply is a confirmation-style answer such as "yes", "yes run with defaults", "go ahead", "run it", "proceed", "ok", "sure", "use the demo data", "fine, use defaults". Treat all of these as instructions to generate the workflow now. Never ask for data twice in the same conversation — if you asked once and the user did not provide data on reply, generate with defaults/synthetic-data fallback.
 - META-RULE on phrasing: never echo the name of an internal instruction in your reply. Forbidden surface phrases include (but are not limited to): "SECOND-TURN OVERRIDE", "OVERRIDE applies", "ONE-QUESTION RULE", "rule applies", "applying rule X", "META-RULE", "system prompt says", "according to my instructions". Internal scaffolding must stay internal. Just produce the answer the rule prescribes — do not narrate the rule.
-- NEVER show storage locations to the user: no "s3://" URIs, bucket names, the word "S3", upload paths or dataset UUIDs — in any language. Refer to inputs by file name (e.g. pilot_compounds.csv) or by public accession (e.g. SRR1039508). Storage URIs are for tool and workflow parameters only, never for your reply text.
+- NEVER show storage locations to the user: no "s3://" URIs, bucket names, the word "S3", upload paths or dataset UUIDs — in any language. Likewise never name the execution infrastructure (AWS, Batch, the internal workflow backend) — say "BioMate's cloud compute". Refer to inputs by file name (e.g. pilot_compounds.csv) or by public accession (e.g. SRR1039508). Storage URIs are for tool and workflow parameters only, never for your reply text.
 - When the message contains a "[Prepared inputs: ...]" block, it is background notes about the attached example files (what the data is, column meanings, where it is already staged). Use it to run the request correctly; never quote it, mention it, or call it a "block", "demo context" or "notes".
-- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>, s3_uri=<S3URI>". For run_code: use galaxy_dataset_id (or dataset_id) and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (Nextflow workers access files directly via the s3_uri); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the file at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
+- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, s3_uri=<S3URI>". For read_file and run_code: use the dataset_id and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (Nextflow workers access files directly via the s3_uri); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the file at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
 - Differential-expression file mapping rule: When multiple CSV files are uploaded for a DE workflow (differentialabundance, DESeq2, edgeR, limma), map them as follows based on filename keywords: files containing "sample", "metadata", "samplesheet", "coldata", "design" → use as the 'samplesheet' param (or 'input' if the workflow only declares 'input'). Files containing "count", "matrix", "expression", "counts" → use as the 'matrix' param. Files containing "contrast", "comparison" → use as the 'contrasts' param. NEVER create a generic 'dataset' param. Every uploaded file must map to a named workflow param.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 - GEO accession routing rules:
@@ -10296,7 +10396,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
     const inputsNote = !runnableWorkflow && attachedDatasetsFromMessage(message).length
       ? runCodeInputsNote(message, await this._attachedFileHeads(message, context))
       : '';
-    const userPrompt = `User: ${message}
+    const userPrompt = `User: ${modelFacingUploads(message)}
 ${replyLanguageNote(message)}
 ${inputsNote ? `\n${inputsNote}\n` : ''}
 ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
@@ -10377,7 +10477,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         .slice(-CONTEXT_WINDOW)
         .map((msg) => ({
         role: msg.role as 'user' | 'assistant',
-        content: msg.content,
+        content: typeof msg.content === 'string' ? modelFacingUploads(msg.content) : msg.content,
       }));
 
       // C3 — When context is compressed, generate and store a session summary (fire-and-forget)
@@ -10688,6 +10788,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       let _ranRunCode = false;
       let _codeNudged = false;
       let _shownBeforeNudge = '';
+      let _toolsRan = false;            // any tool executed in this response
+      let _streamedFragment = false;    // a truncated first turn already streamed text to the user
+      let _carriedText = '';            // text of truncated turns, kept and joined to the continuation
+      const _carryTruncatedText = (content: any[] | undefined) => {
+        if ((content || []).some((b: any) => b?.type === 'tool_use')) return; // a cut tool call: its narration is superseded
+        const t = (content || []).filter((b: any) => b?.type === 'text').map((b: any) => b.text || '').join('');
+        if (t.trim()) _carriedText += stripNarratedToolCalls(t);
+      };
       const _runCodeOffered = Array.isArray(agentTools) && (agentTools as any[]).some((t: any) => t?.name === 'run_code');
       // Structural first: the classifier decided direct_compute → a reply without a run_code call cannot
       // hold real results. The prose regex is only a secondary signal (execution-integrity.ts).
@@ -10759,10 +10867,19 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
               .map(b => b.type === 'text' ? { type: 'text', text: b.text || '' } : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
             agentMessages.push({ role: 'assistant', content: assistantContent as any });
             if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
+            _toolsRan = true;
             const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
             agentMessages.push({ role: 'user', content: toolResults as any });
             rawResponse = ''; // Reset — final text comes in a later turn
             continue; // next iteration
+          }
+          if (lastStopReason === 'max_tokens' && truncatedTurnNeedsFollowUp(contentBlocks, _toolsRan)) {
+            console.warn('[GalaxyAssistant] streamed turn hit the output-length limit mid-work — asking the model to continue');
+            agentMessages.push(...truncatedTurnFollowUp(contentBlocks) as any);
+            _carryTruncatedText(contentBlocks);
+            _streamedFragment = !!rawResponse.trim();
+            rawResponse = '';
+            continue;
           }
           if (_shouldNudgeUnexecutedCode(rawResponse)) {
             console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
@@ -10796,8 +10913,17 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         if (completion.stop_reason === 'tool_use' && toolUseBlocks.length > 0) {
           agentMessages.push({ role: 'assistant', content: completion.content as any });
           if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
+          _toolsRan = true;
           const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
           agentMessages.push({ role: 'user', content: toolResults as any });
+          continue;
+        }
+
+        if (completion.stop_reason === 'max_tokens' && truncatedTurnNeedsFollowUp(completion.content as any[], _toolsRan)) {
+          console.warn(`[GalaxyAssistant] tool-turn-${turn} hit the output-length limit mid-work — asking the model to continue`);
+          agentMessages.push(...truncatedTurnFollowUp(completion.content as any[]) as any);
+          _carryTruncatedText(completion.content as any[]);
+          rawResponse = '';
           continue;
         }
 
@@ -10813,7 +10939,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           continue;
         }
         if (onResponseDelta && rawResponse) {
-          onResponseDelta((_shownBeforeNudge ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
+          onResponseDelta((_shownBeforeNudge || _streamedFragment ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
         }
         break;
       }
@@ -10823,7 +10949,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // (dev 2026-11-11: CRISPR QC — 5/5 turns spent on run_code, every time). The Gemini loop
       // already forces a final answer at its budget; this is the same contract for the Claude /
       // OpenRouter-shim loop: one more turn with tools disabled, asked to answer from the results.
-      if (lastStopReason === 'tool_use' && !rawResponse.trim()) {
+      if ((lastStopReason === 'tool_use' || lastStopReason === 'max_tokens') && !rawResponse.trim()) {
         console.warn(`[GalaxyAssistant] tool budget (${MAX_TOOL_TURNS} turns) exhausted with no final answer — requesting one with tools disabled`);
         try {
           const finalTurn: any = await this._withAnthropicRetry(
@@ -10842,6 +10968,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // computation; it is NOT kept. The final message (which replaces the streamed preview in the UI,
       // chat-interface.tsx `data.response`) is the post-execution answer only. Committee review 2026-11-05.
       if (_shownBeforeNudge && !rawResponse.trim()) rawResponse = _shownBeforeNudge;
+      // A truncated text turn is kept: the answer is its text + the continuation, not the tail alone.
+      if (_carriedText.trim()) rawResponse = rawResponse.trim() ? `${_carriedText}${rawResponse}` : _carriedText;
 
       // Guard: if loop exhausted or tool-only response with no final text, provide fallback.
       // When a workflow was generated, produce a meaningful workflow-ready message.
@@ -10956,8 +11084,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           const plainMessages = [
             ...allPrev.slice(-6).map(m => ({
               role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-              content: typeof m.content === 'string' ? m.content
-                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+              content: modelFacingUploads(typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')),
             })),
             { role: 'user' as const, content: userPrompt },
           ];
@@ -10989,8 +11117,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           const plainMessages = [
             ...allPrev.slice(-6).map(m => ({
               role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-              content: typeof m.content === 'string' ? m.content
-                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+              content: modelFacingUploads(typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')),
             })),
             { role: 'user' as const, content: userPrompt },
           ];
@@ -11037,7 +11165,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   ): Promise<Anthropic.ToolResultBlockParam[]> {
     return Promise.all(toolUseBlocks.map(async (block) => {
       const start = Date.now();
-      onToolEvent?.({ type: 'tool_call', tool_use_id: block.id, name: block.name, input: block.input });
+      onToolEvent?.({ type: 'tool_call', tool_use_id: block.id, name: block.name, input: block.input, display: toolCallDisplayFor(block.input, context) });
       let output: unknown = null;
       let error: string | undefined;
       try {
@@ -11162,7 +11290,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         await new Promise(resolve => setTimeout(resolve, 2000));
         state = await galaxyState();
       }
-      if (state !== 'ok') throw new Error(`Dataset ${id} is not ready in Galaxy (state: ${state || 'unknown'})`);
+      if (state !== 'ok') throw new Error(`Dataset is not ready yet (state: ${state || 'unknown'}) — it may still be processing; try again shortly`);
     }
 
     try {
@@ -11188,7 +11316,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       }
     } catch { /* fall through */ }
 
-    throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
+    throw new Error('Dataset is not accessible — it may have been removed or not finished uploading');
   }
 
   /** First lines of this turn's attached text files, keyed by file name, so the model's first run_code
@@ -11250,7 +11378,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const buf = await s3Service.readBuffer(pf.s3_key, RUN_CODE_PROJECT_FILE_MAX_BYTES);
         return (async function* () { yield buf; })();
       }
-      return this._openDataset(id, galaxyKey, localIdFor.get(id));
+      return this._openDataset(id, galaxyKey, localIdFor.get(id) || attachmentLocalId(id, context));
     };
 
     const rawIds: string[] = input.input_datasets ?? [];
@@ -11345,10 +11473,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */
   private async _toolReadFile(input: any, _context: ChatContext): Promise<unknown> {
-    // Accept either galaxy_dataset_id or dataset_id (when Galaxy is unavailable)
+    // The model sees one neutral `dataset_id` (modelFacingUploads); older transcripts may still
+    // pass the legacy key. The local upload copy is keyed by BioMate's dataset id, the backend
+    // store by its own id — attachmentLocalId maps the one the model gave to the local one.
     const { galaxy_dataset_id, dataset_id, n_lines = 20 } = input;
-    const fileId = galaxy_dataset_id || dataset_id;
-    if (!fileId) return { error: 'galaxy_dataset_id or dataset_id is required' };
+    const fileId: string = dataset_id || galaxy_dataset_id;
+    if (!fileId) return { error: 'dataset_id is required' };
 
     // Project-file ids are not Galaxy ids. Preview only the exact
     // server-authorized key that routes.ts placed in this turn's context;
@@ -11381,7 +11511,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     // Check local upload registry first (works when Galaxy is unavailable)
     try {
       const { getUploadedFile } = await import('./routes');
-      const localFile = getUploadedFile(fileId);
+      const localFile = getUploadedFile(fileId) || getUploadedFile(attachmentLocalId(fileId, _context) || '');
       if (localFile?.filePath) {
         // PDF: extract text via pdfplumber (binary readFile returns garbage for PDFs).
         // A PDF has no meaningful "lines" to page through, and slicing to the first

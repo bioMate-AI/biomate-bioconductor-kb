@@ -1,3 +1,4 @@
+import { userFacingErrorText } from './user-facing-error';
 /**
  * Deterministic, rule-based classifier for a failed workflow run.
  *
@@ -113,7 +114,8 @@ function fileNear(raw: string): string | undefined {
     /(?:file|path|input)\s+['"`]?([^\s'"`,;:)]+\.[A-Za-z0-9]{1,6})/i.exec(raw) ||
     /['"`]([^\s'"`,;:)]+\.[A-Za-z0-9]{1,6})['"`]/.exec(raw) ||
     /\b([^\s'"`,;:)]+\.(?:fa|fasta|fastq|fq|gz|bam|sam|vcf|csv|tsv|txt|bed|gtf|gff|h5|h5ad|mzml)(?:\.gz)?)\b/i.exec(raw);
-  return m?.[1];
+  // A storage URI or path is named by its file name only (no bucket / upload id in user text).
+  return m?.[1]?.replace(/\/+$/, '').split('/').pop() || undefined;
 }
 
 /**
@@ -368,6 +370,6 @@ export function formatRunFailureReply(exp: RunFailureExplanation): string {
     parts.push(`The run failed${where}. I can't pin a specific cause from the recorded error, so here it is:`);
     parts.push(`Next: ${exp.nextAction}`);
   }
-  if (exp.raw) parts.push(`Error: ${exp.raw}`);
+  if (exp.raw) parts.push(`Error: ${userFacingErrorText(exp.raw)}`);
   return parts.join('\n');
 }

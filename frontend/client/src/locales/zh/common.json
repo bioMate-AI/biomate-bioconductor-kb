@@ -22,7 +22,11 @@
     "recent_tools": "最近使用的工具",
     "design_generate": "分子设计与生成",
     "run_manager": "运行管理器",
-    "beta_tooltip": "抢先体验版 — 功能可能变动"
+    "beta_tooltip": "抢先体验版 — 功能可能变动",
+    "shared": "共享",
+    "expand_sidebar": "展开侧边栏",
+    "new_chat": "新对话",
+    "chat_history": "对话记录"
   },
   "actions": {
     "run": "运行",
@@ -655,7 +659,7 @@
     "content_hash": "内容哈希",
     "dedup_note": "相同内容的文件会合并为同一条目",
     "open_in": "在 {{tool}} 中打开",
-    "open_in_title": "将该文件加载到 Galaxy 历史并在 {{tool}} 中打开",
+    "open_in_title": "在 {{tool}} 中打开该文件",
     "open_in_launching": "正在启动…",
     "open_in_failed": "无法打开交互工具",
     "restore": "恢复",
@@ -706,7 +710,7 @@
     "preview_tiff": "浏览器无法直接显示 TIFF 图像。请下载后用图像软件（如 Fiji/ImageJ）打开。",
     "preview_download": "下载",
     "format_chip_title": "文件格式：{{label}}（{{source}}）",
-    "format_source_galaxy": "由 Galaxy 数据类型识别",
+    "format_source_galaxy": "根据文件格式识别",
     "format_source_biomate": "由 BioMate 识别",
     "nested_table": "表格 {{rows}}×{{cols}}",
     "nested_list": "列表 · {{n}}",
@@ -936,7 +940,7 @@
     "tab_tips": {
       "settings": "适用于所有阶段的数据集和全局配置。运行前必须填写必填项。",
       "phases": "工作流的阶段和步骤：运行时显示实时进度，可设置仅影响单个步骤的参数、带自动纠正开关的质控阈值，并查看每个步骤生成的输出文件。",
-      "after_run": "运行完成后可查看：输出文件、分析发现、质控报告、方法说明和参考文献。"
+      "after_run": "运行完成后可查看：发现摘要、输出文件和运行报告。"
     },
     "run_kind": {
       "workflow": "工作流",
@@ -1306,9 +1310,6 @@
     "job_id": "任务 ID",
     "work_directory": "工作目录",
     "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。",
-    "step_position": "第 {{n}} 步 / 共 {{total}} 步",
-    "prev_step": "上一步",
-    "next_step": "下一步",
     "status_pending": "待运行",
     "status_queued": "排队中",
     "status_submitted": "已提交",
@@ -1318,7 +1319,10 @@
     "status_failed": "失败",
     "status_error": "出错",
     "status_cancelled": "已取消",
-    "status_skipped": "已跳过"
+    "status_skipped": "已跳过",
+    "step_position": "第 {{n}} 步 / 共 {{total}} 步",
+    "prev_step": "上一步",
+    "next_step": "下一步"
   },
   "domains": {
     "drug_discovery": "药物发现",
@@ -1478,7 +1482,8 @@
       "outputs": "输出文件",
       "record": "可复现记录",
       "results": "结果",
-      "summary": "摘要"
+      "summary": "摘要",
+      "report": "报告"
     },
     "totp_verified": "TOTP 已验证",
     "unknown": "未知",
@@ -1833,7 +1838,8 @@
     "fold_running_note": "正在我们自己的 GPU 上用 Boltz-2 折叠。这需要几分钟；结构与置信度会出现在运行输出中。",
     "fold_done_note": "折叠完成——打开该运行可查看预测结构和每残基置信度（pLDDT / PAE）。",
     "fold_failed_note": "折叠未完成。打开该运行查看原因。",
-    "fold_open_run": "在运行管理器中查看"
+    "fold_open_run": "在运行管理器中查看",
+    "fold_compute_badge": "BioMate GPU · Boltz-2"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",
@@ -2015,7 +2021,7 @@
     "seed_prompt": "运行 {{name}} 工作流。",
     "title_short": "工作流",
     "tab_import": "导入工作流",
-    "import_tip": "支持上传 Nextflow (.nf) 或 Galaxy (.ga / .yml) 工作流。导入后将显示在「我的工作流」中，可在任意对话中直接调用，并通过您配置的 AWS Batch 环境运行。",
+    "import_tip": "支持上传你自己的工作流：Nextflow（.nf）或 .ga / .yml 工作流文件。导入后将显示在「我的工作流」中，可在任意对话中直接调用。",
     "import_file_label": "工作流文件",
     "import_choose_file": "选择文件",
     "import_no_file": "未选择文件",
@@ -2026,7 +2032,9 @@
     "import_uploading": "上传中…",
     "import_success": "{{name}} 导入成功",
     "import_another": "再导入一个",
-    "import_view_mine": "在「我的工作流」中查看"
+    "import_view_mine": "在「我的工作流」中查看",
+    "tab_runs": "运行记录",
+    "tab_my_imports": "我的导入"
   },
   "citations": {
     "boundary_default": "仅综合检索到的文献，未用您的项目数据验证。依据它做决定前，请先用您自己的数据核对。",
@@ -2306,5 +2314,111 @@
     "hint": "仅应用已修改的参数，工作流将从此步骤继续运行。",
     "submitting": "提交中…",
     "rerun": "从此步骤重新运行"
+  },
+  "hint": {
+    "nav": {
+      "data": "当前项目中的数据集：你上传或获取的文件以及运行生成的文件，附质量评级、版本和来源记录。",
+      "workflows": "搜索工作流目录、打开你自己的工作流，或导入新的工作流。",
+      "models": "用你的数据训练模型，浏览并运行可用模型，跟踪分子设计循环。",
+      "projects": "每个项目把各自的对话、数据、运行和项目指令放在一起。点击展开或收起列表。",
+      "new_project": "新建项目，把相关的对话、数据和运行归在一起。",
+      "project_instructions": "项目指令：助手在该项目的每次对话中都会遵循。",
+      "project_files": "打开该项目的数据集。",
+      "project_new_chat": "在该项目中开始新对话。",
+      "settings": "界面语言、API 密钥、大模型提供方、连接器和工作流导入。",
+      "admin": "系统管理：服务健康状态、运行与用户统计，以及系统大模型配置。",
+      "sign_out": "在此设备上退出当前账号。",
+      "collapse": "将侧边栏收起为窄栏，为对话和面板留出更多空间。",
+      "project_row": "展开或收起该项目的对话、文件和指令。"
+    },
+    "rail": {
+      "expand": "展开侧边栏。",
+      "new_chat": "开始新对话。",
+      "history": "查看你的对话和项目（展开侧边栏）。"
+    },
+    "chat_status": {
+      "running": "该对话中的工作流正在运行。",
+      "failed": "该对话中有工作流运行失败。",
+      "completed": "该对话中的工作流运行均已完成。",
+      "idle": "该对话中尚未运行工作流。",
+      "cancelled": "该对话中有工作流运行被取消或暂停。"
+    },
+    "afterrun": {
+      "summary": "本次运行的主要发现、被标记的质量检查，以及每条发现所依据输出文件的链接。",
+      "outputs": "本次运行生成的全部文件，可逐个预览或下载。",
+      "report": "已保存运行的只读报告：运行内容、输出文件、方法和质量检查。"
+    },
+    "models": {
+      "train": "用你自己的数据集训练模型，并跟踪训练进度。",
+      "library": "预训练模型和你登记的模型：可直接运行，或打开查看其证据、来源和版本。",
+      "molecular": "训练分子（SMILES）模型，并跟踪“设计—合成—测试—分析”循环：各轮结果、代理模型和候选提案。"
+    },
+    "model_obj": {
+      "evidence": "模型在留出测试集上的结果与验收阈值的对比及结论；尚未测试时显示为未评估。",
+      "lineage": "该模型的来源：训练数据集、训练运行及历史版本（如有记录）。",
+      "used": "该模型在你账户中的使用位置，例如登记了它的项目活动。",
+      "iface": "模型的调用方式：接受的输入和返回的输出。",
+      "versions": "该模型的各个版本及其各自的验收结论。"
+    },
+    "settings": {
+      "api_keys": "用于把聊天应用和 MCP 客户端连接到 BioMate 的个人密钥，以及对话所用的语言模型。",
+      "connectors": "公共数据源、你的私有数据库、MCP 服务器和仪器连接。",
+      "import": "添加你自己的工作流文件（Nextflow .nf，或 .ga / .yml），之后可在任意对话中运行。"
+    },
+    "workflows_library": {
+      "browse": "按任务、方法或数据类型搜索精选工作流目录。",
+      "my": "你导入的工作流，可在任意对话中启动。",
+      "import": "上传你自己的工作流文件：Nextflow（.nf）或 .ga / .yml。"
+    },
+    "dataset": {
+      "preview": "查看文件内容：以表格、图片或文本形式显示。",
+      "versions": "该数据集保存过的各个版本。",
+      "wherefrom": "该数据集的来源：上传、公共数据源或生成它的运行。"
+    },
+    "project": {
+      "chat": "属于该项目的对话。",
+      "files": "该项目中的文件：你上传的文件和运行生成的输出。"
+    },
+    "connectors": {
+      "databases": "BioMate 可在对话中查询的公共数据源：蛋白、基因组、组学、化学、通路、疾病、文献和影像。",
+      "ai": "BioMate 支持的大模型提供方以及消息 / IDE 应用，仅供参考，不在此配置。",
+      "skills": "可用的专家包；在对话输入框中为某次请求选择专家包。",
+      "mcp": "管理你的 MCP 服务器连接。"
+    }
+  },
+  "model_obj": {
+    "tab": {
+      "evidence": "证据",
+      "lineage": "来源",
+      "used": "使用方",
+      "iface": "接口",
+      "versions": "版本"
+    }
+  },
+  "tool_card": {
+    "tool": {
+      "run_code": "运行代码",
+      "read_file": "读取文件",
+      "query_domain_knowledge": "领域知识",
+      "search_literature": "检索文献",
+      "query_database": "查询数据库",
+      "search_my_data": "搜索我的数据",
+      "search_chat_history": "搜索对话记录",
+      "list_history": "列出我的数据集",
+      "list_run_outputs": "列出运行输出",
+      "edit_report": "编辑报告",
+      "list_data_sources": "列出数据源",
+      "search_workflows": "搜索工作流"
+    },
+    "download": "下载",
+    "copy": "复制",
+    "copied": "已复制",
+    "copy_code": "复制代码",
+    "input": "输入",
+    "result": "结果",
+    "console_output": "控制台输出",
+    "output_files": "输出文件",
+    "exit_code": "退出码：{{code}}",
+    "more_lines": "还有 {{n}} 行"
   }
 }

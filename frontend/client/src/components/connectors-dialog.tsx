@@ -12,6 +12,7 @@ import { normalizeSkillPack, type SkillPack } from './skills-selector';
 import { InstrumentsSection } from './instruments-section';
 import { McpServerForm } from './mcp-server-form';
 import { tOr } from '@/lib/i18n';
+import { HintTip } from '@/components/ui/hint-tip';
 import { ImportSkillForm } from './import-skill-form';
 import { AddSkillForm } from './add-skill-form';
 
@@ -502,10 +503,9 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
 
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '10px 20px 0', gap: 2, overflowX: 'auto', flexShrink: 0 }}>
           {TABS.filter(t => t.id !== 'yours' && t.id !== 'instruments').map(t => (
+            <HintTip key={t.id} hint={tOr(`hint.connectors.${t.id}`, t.tip)} side="bottom">
             <button
-              key={t.id}
               data-testid={`connector-tab-${t.id}`}
-              title={t.tip}
               onClick={() => setActiveTab(t.id)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -533,6 +533,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
                 </span>
               )}
             </button>
+            </HintTip>
           ))}
         </div>
 

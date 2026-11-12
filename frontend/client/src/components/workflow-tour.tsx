@@ -129,8 +129,8 @@ const TOUR_STEPS: TourStep[] = [
     title: "You're ready",
     body: (
       <>
-        That's the full panel. Click <b>Confirm &amp; Run Workflow</b> when parameters look
-        right. BioMate takes care of the rest — from AWS Batch submission to AI-generated
+        That's the full panel. Click <b>Confirm &amp; Run</b> when parameters look
+        right. BioMate takes care of the rest — from cloud execution to AI-generated
         findings in your results.
         <div className="tour-hint">Replay this tour anytime from the <b>Tutorial</b> button.</div>
       </>

@@ -183,11 +183,13 @@ describe("<StepDetail> — rendered ⇄ raw toggle", () => {
   });
 });
 
-it('renders actual recorded failure, job and work directory in the full step view', () => {
- render(<StepDetail runId="run" step={{ id: 'failed', name: 'Align', status: 'failed', errorMessage: 'Actual container exit 127', jobId: 'job-7', workDir: '/work/real-task' }} onClose={() => {}} />);
- expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('Actual container exit 127');
- expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('job-7');
- expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('/work/real-task');
+// Founder rule (2026-11-12 leak sweep): the step's job id and work directory are infrastructure — a
+// storage path on cloud runs — so the full step view shows the recorded failure, never those.
+it('renders the actual recorded failure, without job id or work directory', () => {
+ render(<StepDetail runId="run" step={{ id: 'failed', name: 'Align', status: 'failed', errorMessage: 'Actual container exit 127 on AWS Batch', jobId: 'job-7', workDir: 's3://biomate-nextflow-work/nextflow/work/u/r/ab12' }} onClose={() => {}} />);
+ const details = screen.getByTestId('step-recorded-details');
+ expect(details).toHaveTextContent('Actual container exit 127');
+ expect(details.textContent).not.toMatch(/job-7|s3:|biomate-nextflow-work|AWS|Batch/);
 });
 
 // Live dev 2026-11-11: the full step view titled the step with the raw backend

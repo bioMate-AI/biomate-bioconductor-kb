@@ -32,6 +32,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { t, tOr } from "@/lib/i18n"
+import { HintTip } from "@/components/ui/hint-tip"
 import { chatHistoryService } from "@/lib/chat-history"
 import { analytics } from "@/lib/analytics"
 import { useActiveProject } from "@/contexts/active-project-context"
@@ -259,8 +260,8 @@ export function AppSidebar({
           />
           {/* BETA tag restored 2026-11-01 (per user request — re-add it back).
               Reverts the 2026-10-20 "refinement 1c" removal. */}
+          <HintTip hint={t('nav.beta_tooltip')} side="bottom">
           <span
-            title="Early-access beta — features may change"
             style={{
               flexShrink: 0,
               fontSize: 'var(--fs-xs)',
@@ -277,19 +278,22 @@ export function AppSidebar({
           >
             BETA
           </span>
+          </HintTip>
         </div>
+        <HintTip hint={t('hint.nav.collapse')} side="bottom">
         <button
           onClick={onToggleSidebar}
+          aria-label={t('nav.collapse_sidebar')}
           data-testid="button-sidebar-toggle"
           style={{
             background: 'transparent', border: 'none', padding: 4,
             borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)',
             flexShrink: 0,
           }}
-          title={t('nav.collapse_sidebar')}
         >
           <PanelLeft className="h-4 w-4" />
         </button>
+        </HintTip>
       </div>
 
       {/* Workspace nav */}
@@ -299,22 +303,26 @@ export function AppSidebar({
             per-project New Chat and the collapsed-rail New Chat icon (App.tsx). A
             standalone new chat is still reachable from the collapsed sidebar rail. */}
         {/* Data — the dataset object is a first-class surface (spec 04). */}
+        <HintTip hint={t('hint.nav.data')}>
         <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.data')}</span>
           </span>
         </button>
+        </HintTip>
 
         {/* Workflows — unified library: ranked catalog search + the user's
             uploaded/personal workflows + upload. Opens WorkflowsLibraryDialog
             (replaces the dead StarredWorkflowsDialog). */}
+        <HintTip hint={t('hint.nav.workflows')}>
         <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsLibrary(true)}>
           <Workflow className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{tOr('nav.workflows', 'Workflows')}</span>
           </span>
         </button>
+        </HintTip>
 
 
 
@@ -326,12 +334,14 @@ export function AppSidebar({
           </span>
         </button>)}
 
+        <HintTip hint={t('hint.nav.models')}>
         <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
           <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.models')}</span>
           </span>
         </button>
+        </HintTip>
 
 
         {/* Billing hidden — /billing page crashes (BillingPage toFixed on undefined).
@@ -346,6 +356,7 @@ export function AppSidebar({
 
       {/* Projects section — always visible */}
       <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8, maxHeight: '50vh', overflowY: 'auto', flexShrink: 1 }}>
+          <HintTip hint={t('hint.nav.projects')}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setProjectsExpanded(p => !p)}
@@ -355,10 +366,12 @@ export function AppSidebar({
             <FolderOpen className="w-3 h-3" style={{ opacity: 0.7 }} />
             {t('nav.projects')}
           </button>
+          </HintTip>
           {projectsExpanded && apiProjects.map((proj) => {
             const isExpanded = expandedProjectIds.has(proj.id);
             return (
               <div key={proj.id}>
+                <HintTip hint={`${proj.name} — ${t('hint.nav.project_row')}`}>
                 <button
                   style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: selectedProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: selectedProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
                   onClick={() => { setContextProjectId(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
@@ -368,27 +381,35 @@ export function AppSidebar({
                   <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: selectedProjectId === proj.id ? 'var(--bm-accent, oklch(0.55 0.14 245))' : 'var(--bm-text-dim)', opacity: 0.8 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
                   {proj.userId && user && proj.userId !== user.id && (
-                    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>shared</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>{tOr('nav.shared', 'shared')}</span>
                   )}
                 </button>
+                </HintTip>
                 {isExpanded && (
                   <div style={{ paddingLeft: 28 }}>
                     {/* Project-child rows render in the design's accent blue (UI
                         refinement 1b) rather than muted gray. Active chat keeps its
                         background highlight. */}
+                    <HintTip hint={t('hint.nav.project_instructions')}>
                     <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 'var(--fs-micro)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />{t("project_instructions.instructions")}</button>
+                    </HintTip>
+                    <HintTip hint={t('hint.nav.project_files')}>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 'var(--fs-micro)', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.7 }} />
                       {t("project_instructions.files")}
                     </button>
+                    </HintTip>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
-                    {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
+                    {(projectSessions[proj.id] || []).map(chat => <HintTip key={chat.session_id} hint={chat.title}><button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button></HintTip>)}
+                    <HintTip hint={t('hint.nav.project_new_chat')}>
                     <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 'var(--fs-meta)', width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
+                    </HintTip>
                   </div>
                 )}
               </div>
             );
           })}
+          <HintTip hint={t('hint.nav.new_project')}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 10px', borderRadius: 5, color: 'var(--bm-text-dim)', fontSize: 'var(--fs-micro)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', marginTop: 2 }}
             onClick={onNewProject}
@@ -397,6 +418,7 @@ export function AppSidebar({
             <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
             {t('nav.new_project')}
           </button>
+          </HintTip>
         </div>
 
       {/* Chat history — scrollable, takes remaining space */}
@@ -419,6 +441,7 @@ export function AppSidebar({
                     background: isActive ? 'var(--bm-surface-3, oklch(0.945 0.005 240))' : 'transparent',
                   }}
                 >
+                  <HintTip hint={`${chat.title} — ${t(`hint.chat_status.${dotStatus || 'idle'}`)}`}>
                   <button
                     onClick={() => onChatSelect(chat.id)}
                     data-testid={`button-chat-${chat.id}`}
@@ -440,41 +463,45 @@ export function AppSidebar({
                                   dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
                                   'var(--bm-border-strong, oklch(0.80 0.008 240))',
                       animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
-                    }} title={dotStatus || 'idle'} data-testid={`history-dot-${chat.id}`} />
+                    }} data-status={dotStatus || 'idle'} data-testid={`history-dot-${chat.id}`} />
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
                   </button>
+                  </HintTip>
                   {isConfirming ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, paddingRight: 6 }}>
+                      <HintTip hint={tOr('chat.delete_confirm', 'Delete chat')} side="top">
                       <button
                         onClick={() => handleDeleteChat(chat.id)}
                         data-testid={`confirm-delete-chat-${chat.id}`}
-                        title={tOr('chat.delete_confirm', 'Delete chat')}
                         aria-label={tOr('chat.delete_confirm', 'Delete chat')}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-err, oklch(0.58 0.18 25))' }}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
+                      </HintTip>
+                      <HintTip hint={tOr('common.cancel', 'Cancel')} side="top">
                       <button
                         onClick={() => setConfirmingDeleteChatId(null)}
                         data-testid={`cancel-delete-chat-${chat.id}`}
-                        title={tOr('common.cancel', 'Cancel')}
                         aria-label={tOr('common.cancel', 'Cancel')}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-dim)' }}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
+                      </HintTip>
                     </span>
                   ) : (
+                    <HintTip hint={tOr('chat.delete_chat', 'Delete chat')} side="top">
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirmingDeleteChatId(chat.id); }}
                       data-testid={`button-delete-chat-${chat.id}`}
-                      title={tOr('chat.delete_chat', 'Delete chat')}
                       aria-label={tOr('chat.delete_chat', 'Delete chat')}
                       className="sidebar-chat-delete"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, marginRight: 6, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-dim)', opacity: 0.55, flexShrink: 0 }}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
+                    </HintTip>
                   )}
                 </div>
               )
@@ -490,6 +517,7 @@ export function AppSidebar({
 
         {/* One Settings entry; imports and connectors live inside its panel. */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+          <HintTip hint={t('hint.nav.settings')}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
             onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
@@ -498,15 +526,18 @@ export function AppSidebar({
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
             <span>{t('settings.title')}</span>
           </button>
+          </HintTip>
           {user?.subscriptionTier === 'admin' && (
+            <HintTip hint={t('hint.nav.admin')}>
             <button
               style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
               onClick={() => setLocation('/admin')}
               data-testid="button-admin-dashboard"
             >
               <Server className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-              <span>系统管理</span>
+              <span>{t('nav.admin')}</span>
             </button>
+            </HintTip>
           )}
         </div>
       </div>
@@ -525,10 +556,10 @@ export function AppSidebar({
           <div style={{ color: 'var(--bm-text-dim)', fontSize: 'var(--fs-micro)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
         </div>
 
+        <HintTip hint={t('hint.nav.sign_out')} side="top">
         <button
           onClick={async () => { await logout(); setLocation('/login'); }}
           data-testid="button-logout"
-          title={t('nav.sign_out')}
           style={{
             flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
             padding: '4px 8px', borderRadius: 6, fontSize: 'var(--fs-micro)', color: 'var(--bm-text-muted)',
@@ -536,6 +567,7 @@ export function AppSidebar({
         >
           {t('nav.sign_out')}
         </button>
+        </HintTip>
       </div>
 
       {/* Dialogs */}

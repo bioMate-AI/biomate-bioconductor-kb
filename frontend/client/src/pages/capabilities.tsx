@@ -152,7 +152,7 @@ export default function CapabilitiesPage() {
           <p className="text-muted-foreground">
             Describe your experiment in plain language and BioMate handles the
             rest — workflow selection, parameter extraction, and execution on
-            AWS Batch.
+            BioMate's cloud compute.
           </p>
           <Button size="lg" onClick={() => setLocation("/")}>
             Start a new chat <ArrowRight className="ml-2 h-4 w-4" />

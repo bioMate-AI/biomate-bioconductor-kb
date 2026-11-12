@@ -22,6 +22,7 @@ import { originLabel } from "./model-origin"
 
 import { useState } from "react"
 import { t, tOr } from "@/lib/i18n"
+import { HintTabsTrigger } from "@/components/ui/hint-tip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -472,10 +473,10 @@ export function ModelsPanel({
               {MODELS_TRACKS.map((track, i) => {
                 const Icon = TRACK_ICONS[i]
                 return (
-                  <TabsTrigger key={track} value={String(i)} className="text-xs" data-testid={`models-track-${i}`}>
+                  <HintTabsTrigger key={track} hint={tOr(`hint.models.${track}`, '')} value={String(i)} className="text-xs" data-testid={`models-track-${i}`}>
                     <Icon className="mr-1 h-3 w-3" />
                     {t(`models.tab_${track}`)}
-                  </TabsTrigger>
+                  </HintTabsTrigger>
                 )
               })}
             </TabsList>
