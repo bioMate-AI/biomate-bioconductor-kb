@@ -96,6 +96,9 @@ describe("extension fallback speaks the profiler's decide() vocabulary (2026-11-
     expect(kindFromName("drugs.smi")).toBe("table")
     expect(kindFromName("drugs.sdf")).toBe("molecules")
     expect(kindFromName("map.mrc")).toBe("image")
+    // `.map` / `.rec` are not MRC by name (a PLINK .map is a text table): only the profiler says so.
+    expect(kindFromName("chr1.map")).toBe("unknown")
+    expect(kindFromName("tomo.rec")).toBe("unknown")
     expect(kindFromName("reads.pod5")).toBe("binary")
     expect(kindFromName("x.bw")).toBe("binary")
   })

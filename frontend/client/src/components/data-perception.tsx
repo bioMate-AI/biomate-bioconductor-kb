@@ -86,8 +86,25 @@ export interface DataProfile {
   format?: DatasetFormat;
   /** Content-first data kind (table, reads, anndata, image…); absent on older profiles. */
   viewKind?: string;
+  /** For a structure file: how it was determined (`method`, e.g. "X-RAY DIFFRACTION") and whether
+   *  it is a predicted model. Decides whether B-factors are pLDDT; absent on older profiles. */
+  structure?: StructureEvidence;
   /** The kind's headline numbers, rendered as `perception.stat.<code>`; absent on older profiles. */
   stats?: { code: string; value: number | string; atLeast?: boolean }[];
+}
+
+/** The profiler's evidence about a structure file's origin (data_perception.py
+ *  _structure_provenance; it reads the whole file, the preview only a prefix). */
+export interface StructureEvidence {
+  /** The method as the file states it (EXPDTA / _exptl.method), raw. */
+  method?: string | null;
+  /** Experimental method family; null for a model / not stated. */
+  method_key?: "xray" | "em" | "nmr" | "neutron" | "fiber" | "electron_crystallography" | "other" | null;
+  /** true = a predicted model, false = an experimental structure, null = not determined. */
+  predicted?: boolean | null;
+  predictor?: string | null;
+  /** What the B-factor column holds. */
+  bfactor?: "confidence" | "displacement" | null;
 }
 
 /** A dataset's detected format: `source` says who identified it — Galaxy's datatype
@@ -162,6 +179,9 @@ function fmtPct(frac: number): string {
   return `${(frac * 100).toFixed(frac < 0.1 ? 1 : 0)}%`;
 }
 
+const SORT_ORDER_KEYS = new Set(["unknown", "unsorted", "queryname", "coordinate"]);
+const STRUCTURE_METHOD_KEYS = new Set(["xray", "em", "nmr", "neutron", "fiber", "electron_crystallography"]);
+
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
  *  locale's separator, `at_least` → the qualified count reads "at least N" (backend
  *  _AT_LEAST_PARAMS), structural roots translated. */
@@ -174,6 +194,20 @@ function findingVars(f: PerceptionFinding): Record<string, string | number> {
     else if (k === "root" && typeof v === "string") vars[k] = tOr(`perception.root_${v}`, v);
     else if (v != null) vars[k] = String(v);
   }
+  // A BAM/SAM sort order is a closed vocabulary (`order_key`): shown in the UI language, never the
+  // header's raw SO: value or the backend's English `order_words`. Any other value is quoted raw.
+  if (f.code === "alignment_not_coordinate_sorted") {
+    const orderKey = f.params?.order_key;
+    const order = f.params?.order;
+    vars.order_words = typeof orderKey === "string" && SORT_ORDER_KEYS.has(orderKey)
+      ? t(`perception.sort_order.${orderKey}`)
+      : order != null && order !== "" ? `“${String(order)}”`
+      : typeof f.params?.order_words === "string" ? f.params.order_words : t("perception.sort_order.unknown");
+  }
+  // An experimental structure's method family (`method_key`) in the UI language; "other" / none
+  // keeps the method as the file states it.
+  const methodKey = f.params?.method_key;
+  if (typeof methodKey === "string" && STRUCTURE_METHOD_KEYS.has(methodKey)) vars.method = t(`perception.structure_method.${methodKey}`);
   const qualified = AT_LEAST_STAT[f.code];
   if (f.params?.at_least && qualified && vars[qualified] !== undefined) {
     vars[qualified] = t("perception.at_least_value", { n: vars[qualified] });

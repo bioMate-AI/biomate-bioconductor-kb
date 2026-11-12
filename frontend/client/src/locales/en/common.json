@@ -574,7 +574,8 @@
     "rename_err_gone": "You can’t rename this, or it no longer exists. Refresh the file list.",
     "rename_err_signed_out": "Your session has expired. Sign in again, then retry.",
     "rename_err_server": "The server couldn’t rename it ({{status}}). Nothing was changed — try again.",
-    "rename_err_network": "Couldn’t reach the server, so nothing was renamed. Check your connection and try again."
+    "rename_err_network": "Couldn’t reach the server, so nothing was renamed. Check your connection and try again.",
+    "inputs_root": "inputs"
   },
   "dataset_obj": {
     "quality_good": "Good",
@@ -792,7 +793,11 @@
     "plddt_click_here": "click to centre the 3D view here",
     "plddt_hover_hint": "Hover a residue for its score; click to centre the 3D view on it.",
     "plddt_note": "A structure picture with no confidence chart invites a claim its low-confidence loops cannot support. The two are one output, shown together.",
-    "restore_conflict_version": "Not restored: this file has a newer version than the one listed. The list has been refreshed; try again."
+    "restore_conflict_version": "Not restored: this file has a newer version than the one listed. The list has been refreshed; try again.",
+    "edit_err_too_large": "Not saved: the file is larger than the 10 MiB limit for editing here. Open it in Jupyter or RStudio to edit it.",
+    "edit_err_not_utf8": "Not saved: this file is not plain UTF-8 text, so editing it here would change other bytes. Open it in Jupyter or RStudio to edit it.",
+    "edit_err_not_editable": "Not saved: only tables (CSV / TSV) can be edited here. Open this file in Jupyter or RStudio to edit it.",
+    "edit_err_bad_request": "Not saved: the server could not apply these edits to the file. Reload it and edit again."
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -826,7 +831,9 @@
     "tree_preview_failed": "Preview failed",
     "tree_produced_by": "Produced by step: {{step}}",
     "tree_input_files": "Input files: ",
-    "tree_folder_count": "{{n}} items"
+    "tree_folder_count": "{{n}} items",
+    "tree_err_name_conflict": "a file or folder with that name already exists in this project",
+    "tree_err_name_conflict_with": "“{{existing}}” already uses that name in this project — rename one of them and try again"
   },
   "dialogs": {
     "adjust_filters": "Try adjusting your search or filters",
@@ -1791,7 +1798,7 @@
       "loom_layers": "Layers: {{layers}}.",
       "alignment_references": "{{references}} reference sequences in the header ({{length}} bp).",
       "alignment_sorted": "Coordinate-sorted (header SO:coordinate).",
-      "alignment_not_coordinate_sorted": "Sort order is “{{order}}”, not coordinate: sort the file before indexing or variant calling.",
+      "alignment_not_coordinate_sorted": "Sort order is {{order_words}}, not by coordinate: sort the file before indexing or variant calling.",
       "alignment_read_groups": "{{count}} read groups; samples: {{samples}}.",
       "alignment_no_read_groups": "No read groups (@RG) in the header: GATK and most variant callers require them.",
       "structure_chains": "Chains ({{count}}): {{chains}}.",
@@ -1838,7 +1845,12 @@
       "fastq_malformed_records": "Records that do not follow the four-line FASTQ layout (or whose quality line differs in length from the sequence): {{count}} of {{checked}} checked.",
       "fastq_index_read": "Index read ({{read}}) of sample {{sample}}: it holds the sample barcodes, not biological reads, and is used only for demultiplexing.",
       "vcf_malformed_lines": "Data lines with fewer than 8 tab-separated columns: {{count}}.",
-      "folder_fastq_index_reads": "Index-read files set aside ({{n}}): {{names}}. They hold sample barcodes for demultiplexing, so they are not samples of their own."
+      "folder_fastq_index_reads": "Index-read files set aside ({{n}}): {{names}}. They hold sample barcodes for demultiplexing, so they are not samples of their own.",
+      "text_encoding_legacy": "The file is not UTF-8 text; it was read as {{encoding}}. Check that accented or non-Latin characters display correctly — tools that expect UTF-8 may misread them.",
+      "text_encoding_replaced": "Byte sequences that are not valid UTF-8 were replaced with “�”: {{count}}.",
+      "duplicate_column_names": "Column names used more than once: {{columns}}. Tools that look columns up by name keep only one of them or rename them.",
+      "structure_experimental": "Experimental structure ({{method}}): the B-factor column holds atomic displacement, not prediction confidence.",
+      "structure_predicted": "Predicted model ({{predictor}}), not an experimental structure: the B-factor column holds the predictor's per-residue confidence (pLDDT for AlphaFold-type models)."
     },
     "quality_unassessed": "Not checked",
     "gloss_effective_n": "Effective N: how many independent samples the data is really worth once duplicate rows and class imbalance are accounted for — usually fewer than the row count.",
@@ -1864,18 +1876,21 @@
       "records": "Records",
       "tables": "Tables"
     },
-    "format_label": {
-      "txt": "Text (one value per line)",
-      "jsonl": "JSON Lines",
-      "xlsx": "Excel (xlsx)",
-      "excel_xls": "Excel (xls)",
-      "unknown": "Unknown",
-      "tabular": "Tabular",
-      "mtx": "Matrix Market",
-      "h5": "HDF5",
-      "loom": "Loom"
+    "at_least_value": "at least {{n}}",
+    "sort_order": {
+      "unknown": "not stated in the header",
+      "unsorted": "unsorted",
+      "queryname": "by read name",
+      "coordinate": "by coordinate"
     },
-    "at_least_value": "at least {{n}}"
+    "structure_method": {
+      "xray": "X-ray diffraction",
+      "em": "electron microscopy",
+      "nmr": "NMR",
+      "neutron": "neutron diffraction",
+      "fiber": "fiber diffraction",
+      "electron_crystallography": "electron crystallography"
+    }
   },
   "failure": {
     "no_error": {

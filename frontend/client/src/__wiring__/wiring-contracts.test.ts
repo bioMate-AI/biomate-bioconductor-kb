@@ -18,8 +18,12 @@
  * step-output-preview *behavior* (a change is in flight there); we only
  * READ it to confirm the interactive-tools availability gate is referenced.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import * as fs from "fs";
+import React from "react";
+import { render } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { DatasetObject } from "../components/datasets/dataset-object";
 import * as path from "path";
 
 // ── source loader ──────────────────────────────────────────────────────────
@@ -153,9 +157,33 @@ describe("3. Interactive-tool affordances are availability-gated at every render
 describe("4. Dataset-object header surfaces the quality pill + version chip", () => {
   const active = stripComments(DATASET_OBJ);
 
-  it("the header renders the quality pill from the perception profile", () => {
+  // Behavioural (was a source regex on `profile?.quality`, which broke when the verdict began to
+  // go through effectiveQuality): the pill shows the PROFILE's verdict, whatever it is.
+  it("the header renders the quality pill from the perception profile", async () => {
+    for (const [quality, label] of [["blocked", "Blocked"], ["good", "Good"], ["watch", "Watch"]] as const) {
+      const profile = { shape: { rows: 2, cols: 2 }, quality, notes: [], findings: [
+        { section: "note", code: "ragged_rows", level: quality === "good" ? "info" : quality, params: { count: 1, expected: 2 } },
+      ] };
+      globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        const body = url.includes("/api/perception/profile") ? profile : {};
+        return { ok: !url.includes("/rows"), status: url.includes("/rows") ? 415 : 200, json: async () => body, text: async () => "" } as unknown as Response;
+      }) as unknown as typeof fetch;
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+      const view = render(React.createElement(QueryClientProvider, { client: qc },
+        React.createElement(DatasetObject, {
+          projectId: "p1", onDownload: () => {}, onRunQC: () => {},
+          dataset: { id: `f-${quality}`, name: "t.csv", ref: "projects/p1/inputs/t.csv", size: 10, source: "upload" },
+        })));
+      const pill = await view.findByTestId("dataset-header-quality");
+      expect(pill).toHaveAttribute("data-quality", quality);
+      expect(pill).toHaveTextContent(label);
+      view.unmount();
+    }
+  });
+
+  it("the quality pill is in the dataset-object source (not only in a tab)", () => {
     expect(active).toMatch(/data-testid="dataset-header-quality"/);
-    expect(active).toMatch(/profile\?\.quality/);
   });
 
   it("the header renders the v{N} version chip derived from dataset.versions", () => {

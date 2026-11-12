@@ -580,7 +580,8 @@
     "rename_err_gone": "你无权重命名此项，或它已不存在。请刷新文件列表。",
     "rename_err_signed_out": "登录已过期，请重新登录后再试。",
     "rename_err_server": "服务器未能完成重命名（{{status}}），未做任何更改，请重试。",
-    "rename_err_network": "无法连接服务器，未做任何重命名。请检查网络后重试。"
+    "rename_err_network": "无法连接服务器，未做任何重命名。请检查网络后重试。",
+    "inputs_root": "输入"
   },
   "dataset_obj": {
     "quality_good": "良好",
@@ -798,7 +799,11 @@
     "plddt_click_here": "点击将三维视图居中到此处",
     "plddt_hover_hint": "悬停查看残基得分；点击将三维视图居中到该残基。",
     "plddt_note": "只看结构图而不看置信度图，容易对低置信度的环区做出无法支持的判断。两者是同一结果，应一起展示。",
-    "restore_conflict_version": "未恢复：该文件已有比列表中更新的版本。列表已刷新，请重试。"
+    "restore_conflict_version": "未恢复：该文件已有比列表中更新的版本。列表已刷新，请重试。",
+    "edit_err_too_large": "未保存：文件超过 10 MiB 的在线编辑上限。请在 Jupyter 或 RStudio 中打开并编辑。",
+    "edit_err_not_utf8": "未保存：此文件不是纯 UTF-8 文本，在此编辑会改动其他字节。请在 Jupyter 或 RStudio 中打开并编辑。",
+    "edit_err_not_editable": "未保存：此处只能编辑表格（CSV / TSV）。请在 Jupyter 或 RStudio 中打开此文件进行编辑。",
+    "edit_err_bad_request": "未保存：服务器无法将这些修改应用到文件。请重新加载后再编辑。"
   },
   "data_hub": {
     "choose_project": "选择一个项目",
@@ -832,7 +837,9 @@
     "tree_preview_failed": "预览失败",
     "tree_produced_by": "由步骤生成：{{step}}",
     "tree_input_files": "输入文件：",
-    "tree_folder_count": "{{n}} 项"
+    "tree_folder_count": "{{n}} 项",
+    "tree_err_name_conflict": "项目中已有同名的文件或文件夹",
+    "tree_err_name_conflict_with": "项目中的“{{existing}}”已使用该名称 — 请重命名其中之一后重试"
   },
   "dialogs": {
     "adjust_filters": "请尝试调整搜索或筛选条件",
@@ -2276,7 +2283,7 @@
       "loom_layers": "数据层：{{layers}}。",
       "alignment_references": "文件头中有 {{references}} 条参考序列（共 {{length}} bp）。",
       "alignment_sorted": "已按坐标排序（文件头 SO:coordinate）。",
-      "alignment_not_coordinate_sorted": "排序方式为“{{order}}”而非按坐标排序：建立索引或变异检测前请先排序。",
+      "alignment_not_coordinate_sorted": "文件未按坐标排序（当前排序方式：{{order_words}}）：建立索引或变异检测前请先按坐标排序。",
       "alignment_read_groups": "{{count}} 个 read group；样本：{{samples}}。",
       "alignment_no_read_groups": "文件头中没有 read group（@RG）：GATK 及大多数变异检测工具都要求提供。",
       "structure_chains": "共 {{count}} 条链：{{chains}}。",
@@ -2323,7 +2330,12 @@
       "fastq_malformed_records": "不符合 FASTQ 四行格式（或质量行与序列长度不一致）的记录：已检查 {{checked}} 条，其中 {{count}} 条。",
       "fastq_index_read": "样本 {{sample}} 的索引读段（{{read}}）：其中是样本条形码而不是生物学读段，只用于拆分样本（demultiplexing）。",
       "vcf_malformed_lines": "以制表符分隔的列数少于 8 列的数据行：{{count}} 行。",
-      "folder_fastq_index_reads": "已单独列出的索引读段文件（{{n}} 个）：{{names}}。其中是用于拆分样本的条形码，不作为独立样本处理。"
+      "folder_fastq_index_reads": "已单独列出的索引读段文件（{{n}} 个）：{{names}}。其中是用于拆分样本的条形码，不作为独立样本处理。",
+      "text_encoding_legacy": "文件不是 UTF-8 文本，已按 {{encoding}} 编码读取。请检查带重音或非拉丁字符是否显示正确——要求 UTF-8 的工具可能会读错这些字符。",
+      "text_encoding_replaced": "不是有效 UTF-8 的字节序列已被替换为“�”：共 {{count}} 处。",
+      "duplicate_column_names": "以下列名重复出现：{{columns}}。按列名查找的工具只会保留其中一列，或将其重命名。",
+      "structure_experimental": "实验测定的结构（{{method}}）：B 因子列记录的是原子位移，而非预测置信度。",
+      "structure_predicted": "预测模型（{{predictor}}），并非实验测定的结构：B 因子列记录的是预测工具给出的逐残基置信度（AlphaFold 类模型即 pLDDT）。"
     },
     "quality_unassessed": "未检查",
     "gloss_effective_n": "有效样本量：去除重复行并考虑类别不平衡后，数据实际相当于多少个独立样本——通常少于行数。",
@@ -2349,30 +2361,21 @@
       "records": "记录数",
       "tables": "表格数"
     },
-    "format_label": {
-      "txt": "文本（每行一个值）",
-      "jsonl": "JSON Lines（逐行 JSON）",
-      "xlsx": "Excel 表格（xlsx）",
-      "excel_xls": "Excel 表格（xls）",
-      "unknown": "未知格式",
-      "tabular": "制表符分隔表格",
-      "mtx": "Matrix Market 稀疏矩阵",
-      "h5": "HDF5 文件",
-      "loom": "Loom 单细胞文件"
-    },
-    "format_word": {
-      "gzip": "gzip 压缩",
-      "bgzip": "bgzip 压缩",
-      "bzip2": "bzip2 压缩",
-      "uncompressed": "未压缩",
-      "name_sorted": "按读段名排序",
+    "at_least_value": "至少 {{n}}",
+    "sort_order": {
+      "unknown": "文件头未注明",
       "unsorted": "未排序",
-      "color_space": "色空间",
-      "solexa": "Solexa 编码",
-      "one_value_per_line": "每行一个值",
-      "narrowpeak": "narrowPeak"
+      "queryname": "按读段名",
+      "coordinate": "按坐标"
     },
-    "at_least_value": "至少 {{n}}"
+    "structure_method": {
+      "xray": "X 射线衍射",
+      "em": "电子显微镜",
+      "nmr": "核磁共振",
+      "neutron": "中子衍射",
+      "fiber": "纤维衍射",
+      "electron_crystallography": "电子晶体学"
+    }
   },
   "failure": {
     "no_error": {

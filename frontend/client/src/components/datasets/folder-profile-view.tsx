@@ -17,6 +17,7 @@ import { findingText, type PerceptionFinding } from "@/components/data-perceptio
 import { t, tOr } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { folderProfileUrl, useFolderProfile, type FolderProfile, type FolderSample } from "./datasets-api"
+import { localizedFormatLabel } from "./dataset-presentation"
 
 const base = (p: string | null | undefined) => (p ? p.split("/").pop() || p : "")
 
@@ -31,7 +32,7 @@ const LEVEL_DOT: Record<string, string> = { info: "bg-sky-500", watch: "bg-amber
 /** "12 files: 8 FASTQ (4 pairs), 2 CSV, 2 unrecognised" — localized parts. */
 export function rollupText(p: Pick<FolderProfile, "fileCount" | "rollup">): string {
   const parts = p.rollup.map((r) => {
-    const label = r.format === "unrecognised" ? t("folder_profile.unrecognised") : r.label
+    const label = r.format === "unrecognised" ? t("folder_profile.unrecognised") : localizedFormatLabel({ ext: r.format, label: r.label })
     const pairs = typeof r.pairs === "number" && r.pairs > 0 ? t("folder_profile.rollup_pairs", { n: r.pairs }) : ""
     return t("folder_profile.rollup_part", { n: r.count, label, pairs })
   })
