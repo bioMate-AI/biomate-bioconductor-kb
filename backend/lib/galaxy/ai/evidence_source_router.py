@@ -109,9 +109,15 @@ def _federation_serveable_ids() -> set:
 # fires the (costly, live) orchestrator, so match only clear ranking intent.
 _TARGET_RANKING_CUES: Sequence[str] = (
     "which targets", "which genes", "identify targets", "identify drug targets",
-    "drug targets for", "therapeutic targets for", "prioriti", "rank targets",
+    "drug targets for", "therapeutic targets for", "rank targets",
     "rank the targets", "best targets", "candidate targets", "target identification",
     "actionable targets", "top targets", "nominate targets",
+    # "prioriti" alone matched "prioritize the samples" / "what's the priority here" and
+    # fired the costly live orchestrator on generic text — scope it to target/gene ranking
+    # intent (committee review, 2026-11-11).
+    "prioritize target", "prioritise target", "prioritize gene", "prioritise gene",
+    "prioritize the target", "prioritise the target", "prioritized target", "prioritised target",
+    "prioritize drug target", "prioritise drug target", "priority targets",
 )
 
 

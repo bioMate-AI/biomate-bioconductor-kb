@@ -659,7 +659,21 @@ def lookup_mygene(identifiers: List[str], fields: str = "symbol,name,summary,OMI
                        {"q": symbols, "scopes": "symbol,alias,retired",
                         "fields": fields, "species": "human"}, timeout=10)
         if isinstance(r, list):
-            results.extend(h for h in r if isinstance(h, dict) and not h.get("notfound"))
+            # A batch alias query can return MULTIPLE hits for one input (an ambiguous alias
+            # maps to several genes — "ABL" → ABL1 (_score 101) / DSP-AS1 / MTTP). Keep only
+            # the TOP-scoring hit per input `query`, else low-score false matches pollute the
+            # gene annotations downstream (committee review, 2026-11-11).
+            _best: Dict[str, dict] = {}
+            for h in r:
+                if not isinstance(h, dict) or h.get("notfound"):
+                    continue
+                _q = h.get("query")
+                if _q is None:            # no query tag (defensive) — keep as-is, don't collapse
+                    results.append(h)
+                    continue
+                if _q not in _best or (h.get("_score") or 0) > (_best[_q].get("_score") or 0):
+                    _best[_q] = h
+            results.extend(_best.values())
     return results
 
 
@@ -1873,7 +1887,12 @@ class ResearchAgent:
                 # by mygene resolution, so a flaky LLM call never drops DB evidence to zero.
                 _fed_typed: List[tuple] = []   # (name, entity_type)
                 _llm_ents = await self._extract_entities_llm(question)
-                if _llm_ents is not None:
+                # Truthy, not `is not None`: an EMPTY extraction ([] — LLM returned nothing,
+                # or every entity failed the type filter) must fall through to the legacy
+                # regex+mygene fallback, never be treated as a successful "no entities" result.
+                # Otherwise a flaky/over-filtering LLM call silently drops DB evidence to zero
+                # for a question that plainly names a gene (committee review, 2026-11-11).
+                if _llm_ents:
                     _fed_typed = [(e["name"], e["type"]) for e in _llm_ents[:3]]
                 else:
                     _cands = [e for e in (ids.get("gene_symbols") or []) if e][:5]
@@ -2514,9 +2533,20 @@ class ResearchAgent:
             # "unreferenced background" — otherwise the resolver + federated evidence we
             # fetch is thrown away by the literature-only refusal (dev finding 2026-11-12:
             # ABL1 structures fetched but the answer said "no structures").
+            # IDENTITY-ONLY db_facts resolve what a gene *is* (symbol → ids/summary) and
+            # are set for ANY valid gene symbol in the question — they are NOT evidence
+            # about what the question asks. Grounding (and the DB_GROUNDED_NOTICE that
+            # replaces the "insufficient evidence" caveat) must rest on SUBSTANTIVE facts
+            # — merged federated evidence, ClinVar, Open Targets, GWAS, expression, etc. —
+            # never on a bare identity lookup, or a parametric answer about a resolvable
+            # gene gets falsely stamped "drawn from authoritative databases" (committee
+            # review, 2026-11-11).
+            _IDENTITY_ONLY_DBF = {'mygene_annotation', 'ensembl_genes', 'ensembl_gene_search'}
             _dbf_pre = evidence.get('db_facts') or {}
             _has_db_grounding = False
             for _k, _v in _dbf_pre.items():
+                if _k in _IDENTITY_ONLY_DBF:
+                    continue
                 if _k == 'federated_evidence' and isinstance(_v, dict):
                     if any(isinstance(b, dict) and b.get('merged') for b in _v.values()):
                         _has_db_grounding = True
@@ -2547,6 +2577,10 @@ class ResearchAgent:
             _n_db_channels = 0
             _dbf = evidence.get('db_facts') or {}
             for _k, _v in _dbf.items():
+                # Identity-only lookups (mygene/ensembl identity) are not on-topic evidence
+                # and must not inflate confidence — same rationale as the grounding gate above.
+                if _k in _IDENTITY_ONLY_DBF:
+                    continue
                 if _k == 'federated_evidence' and isinstance(_v, dict):
                     # Count ONE channel per entity that actually returned merged evidence —
                     # NOT the attempted source list (sources_queried). The attempted count
@@ -2942,18 +2976,20 @@ class ResearchAgent:
             db_section.append(
                 "These are REAL, confirmed-to-exist records — NOT literature and NOT memory. "
                 "They are authoritative evidence in their own right. QUOTE THE EXACT VALUES "
-                "from the records below — do not paraphrase them from general knowledge and do "
-                "not round or soften them. This covers EVERY value type: PDB IDs with their "
-                "resolution (e.g. 1OPL at 3.42 A); UniProt/Ensembl accessions; ChEMBL IDs with "
-                "their IC50/Ki in nM and pChEMBL value; Open Targets disease names WITH their "
-                "association score (e.g. familial hypercholesterolemia, score 0.86); gnomAD "
-                "constraint (pLI, LOEUF); ClinVar clinical significances; STRING partners with "
-                "their confidence score. When a record below gives the answer, state its exact "
-                "value and name its source database — NEVER hedge it as 'widely known', 'as "
-                "unreferenced background', or 'cannot be provided here'. The 'never invent an "
-                "identifier' rule is for literature only; these records are verified, so cite "
-                "them directly. Prefer a specific value from these records over any general "
-                "statement, for every entity including famous ones.\n")
+                "EXACTLY AS THEY APPEAR in the records below — do not paraphrase them from "
+                "general knowledge, do not round or soften them, and DO NOT supply a value that "
+                "is not shown below. PDB ids and resolutions, UniProt/Ensembl accessions, ChEMBL "
+                "potencies (IC50/Ki/pChEMBL), Open Targets disease associations with their score, "
+                "gnomAD constraint (pLI/LOEUF), ClinVar significances and STRING confidence scores "
+                "all appear verbatim in the records when present — read the value off the record, "
+                "never recall it. When a record below gives the answer, state its exact value and "
+                "name its source database — do NOT hedge it as 'widely known', 'as unreferenced "
+                "background', or 'cannot be provided here'. BUT if the records below do NOT contain "
+                "the value asked for, say so plainly ('the retrieved records do not include X') "
+                "rather than filling it in from memory — a fabricated value is worse than an "
+                "acknowledged gap. The 'never invent an identifier' rule is for literature only; "
+                "these records are verified, so cite them directly. Prefer a specific value from "
+                "these records over any general statement, for every entity including famous ones.\n")
             df = evidence['db_facts']
 
             # ── Intent-selected federated multi-source evidence ──────────────────
@@ -2981,10 +3017,26 @@ class ResearchAgent:
                         # the prompt only knew name/summary (dev finding 2026-11-12: ABL1
                         # structures fetched but rendered blank → LLM said "no structures").
                         _skip = {'source', 'db', 'database'}
-                        _fields = [f"{_k2}={_v2}" for _k2, _v2 in _m.items()
-                                   if _k2 not in _skip and _v2 not in (None, '', [])
-                                   and not isinstance(_v2, (dict, list))
-                                   and str(_v2) != str(_label)]
+                        # Flatten ONE level: a source whose value nests (e.g. PDBe
+                        # {'resolution': {'value': 3.42}}) was dropped by a flat `not
+                        # isinstance(dict/list)` guard → rendered blank, the very "fetched
+                        # but blank" bug again (committee review, 2026-11-11). Nested scalars
+                        # now render as `key.subkey=val`; scalar lists join.
+                        _fields: List[str] = []
+                        for _k2, _v2 in _m.items():
+                            if _k2 in _skip or _v2 in (None, '', []):
+                                continue
+                            if isinstance(_v2, dict):
+                                for _k3, _v3 in _v2.items():
+                                    if _v3 not in (None, '', []) and not isinstance(_v3, (dict, list)):
+                                        _fields.append(f"{_k2}.{_k3}={_v3}")
+                            elif isinstance(_v2, list):
+                                _flat = [str(_x) for _x in _v2
+                                         if _x not in (None, '') and not isinstance(_x, (dict, list))]
+                                if _flat:
+                                    _fields.append(f"{_k2}={', '.join(_flat[:5])}")
+                            elif str(_v2) != str(_label):
+                                _fields.append(f"{_k2}={_v2}")
                         _detail = (_m.get('summary') or _m.get('description')
                                    or _m.get('activity') or ", ".join(_fields[:6]))
                         db_section.append(
@@ -3241,7 +3293,7 @@ class ResearchAgent:
             lit = ["## Retrieved Literature (your ONLY citation list)",
                    "Cite these with [N] using the numbers below. Use ONLY papers from "
                    "this list for [N] citations — never cite a paper that is not listed "
-                   "here, and never invent a DOI or PMID (the exact identifiers in the Live "
+                   "here, and never invent a DOI, PMID, or PDB ID (the exact identifiers in the Live "
                    "Database Facts above ARE verified — name those directly). Cite only papers whose "
                    "content actually supports the sentence; do not pad with irrelevant [N]. "
                    "End your answer with a one-line '**Evidence boundary:**' stating what "
