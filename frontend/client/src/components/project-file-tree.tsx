@@ -193,6 +193,9 @@ function InlineRename({
 }) {
   const [value, setValue] = useState(initial);
   const [err, setErr] = useState<string | null>(null);
+  // A concrete example of moving: "data/<this name>" puts it into a folder named data.
+  const base = initial.split("/").filter(Boolean).pop() || initial;
+  const hint = t("file_tree.rename_hint", { example: `data/${base}`, folder: "data" });
   const [saving, setSaving] = useState(false);
   const save = async () => {
     const v = value.trim();
@@ -216,14 +219,14 @@ function InlineRename({
         }}
         disabled={saving}
         aria-label={t("file_tree.rename_label")}
-        title={t("file_tree.rename_hint")}
+        title={hint}
         className={cn("w-full h-6 px-1.5 text-xs rounded border bg-background font-mono", err && "border-destructive")}
         data-testid={`${testid}-input`}
       />
       {err ? (
         <p className="text-fs-xs text-destructive [overflow-wrap:anywhere]" role="alert" data-testid={`${testid}-error`}>{err}</p>
       ) : (
-        <p className="text-fs-xs text-muted-foreground">{t("file_tree.rename_hint")}</p>
+        <p className="text-fs-xs text-muted-foreground [overflow-wrap:anywhere]" data-testid={`${testid}-hint`}>{hint}</p>
       )}
     </div>
   );
