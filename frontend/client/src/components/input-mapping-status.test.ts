@@ -168,3 +168,25 @@ describe('derivePrerunInputs (rnaseq-like schema)', () => {
     expect(m.overrides).toEqual([]);
   });
 });
+
+// Live dev 2026-11-11: nf-core/differentialabundance's schema declares no required
+// params, so a BOUND samplesheet + matrix were dropped and the settings tab said
+// "no required data inputs · no data upload needed". Bound user data is a mapped input.
+describe('derivePrerunInputs — bound user data counts even when the schema marks nothing required', () => {
+  const S3 = 's3://biomate-nextflow-work/uploads/0238d454-8be2-42db-9bc7-9e76e274f317/sample_metadata.csv';
+  it('canonical-named / stored-file params with a value are primary + counted', () => {
+    const m = derivePrerunInputs([
+      { id: 'samplesheet', name: 'samplesheet', label: 'Samplesheet', type: 'string', value: S3, required: false },
+      { id: 'matrix', name: 'matrix', label: 'Matrix', type: 'string', value: 's3://b/uploads/x/counts_matrix.csv', required: false },
+      { id: 'study_type', name: 'study_type', label: 'Study type', type: 'string', value: 'rnaseq', required: false },
+    ] as any, [], []);
+    expect(m.primary.map(r => r.param.id)).toEqual(['samplesheet', 'matrix']);
+    expect(m.boundCount).toBe(2);
+    expect(m.requiredUnset).toBe(0);
+  });
+  it('an UNBOUND optional canonical param is not invented as a mapped/required input', () => {
+    const m = derivePrerunInputs([{ id: 'contrasts', name: 'contrasts', type: 'string', value: '', required: false }] as any, [], []);
+    expect(m.primary).toEqual([]);
+    expect(m.requiredUnset).toBe(0);
+  });
+});

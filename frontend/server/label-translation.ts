@@ -11,6 +11,35 @@
  */
 import { callGeminiFlash } from './gemini-flash';
 
+/** Durable cache behind the in-memory one (migration 0023_label_translations), so a
+ *  deploy/restart does not re-translate every label. Any store error degrades to
+ *  memory-only — translation never fails because of the cache. */
+export interface LabelStore {
+  get(version: number, lang: string, srcs: string[]): Promise<Map<string, string>>;
+  put(version: number, lang: string, entries: Array<[string, string]>): Promise<void>;
+}
+
+export const pgLabelStore: LabelStore = {
+  async get(version, lang, srcs) {
+    const { pool } = await import('./db');
+    const { rows } = await pool.query(
+      'SELECT src, translation FROM label_translations WHERE prompt_version = $1 AND lang = $2 AND src = ANY($3::text[])',
+      [version, lang, srcs],
+    );
+    return new Map(rows.map((r: any) => [String(r.src), String(r.translation)]));
+  },
+  async put(version, lang, entries) {
+    if (!entries.length) return;
+    const { pool } = await import('./db');
+    const vals: unknown[] = []; const ph: string[] = [];
+    entries.forEach(([src, tr], i) => { ph.push(`($1, $2, $${i * 2 + 3}, $${i * 2 + 4})`); vals.push(src, tr); });
+    await pool.query(
+      `INSERT INTO label_translations (prompt_version, lang, src, translation) VALUES ${ph.join(', ')} ON CONFLICT DO NOTHING`,
+      [version, lang, ...vals],
+    );
+  },
+};
+
 export type LabelLang = 'zh';
 
 const CJK = /[\u3400-\u9fff]/;
@@ -63,17 +92,26 @@ export async function translateLabels(
   strings: string[],
   lang: LabelLang,
   llm: typeof callGeminiFlash = callGeminiFlash,
+  store: LabelStore | null = pgLabelStore,
 ): Promise<Record<string, string>> {
   const uniq = [...new Set(strings.map(s => String(s ?? '')).filter(Boolean))].slice(0, MAX_LABELS);
   const out: Record<string, string> = {};
-  const todo: string[] = [];
+  let todo: string[] = [];
   for (const s of uniq) {
     const hit = cache.get(key(lang, s));
     if (hit !== undefined) out[s] = hit;
     else if (!needsTranslation(s)) out[s] = s;
     else todo.push(s);
   }
+  if (todo.length && store) {
+    try {
+      const stored = await store.get(PROMPT_VERSION, lang, todo);
+      for (const [src, tr] of stored) { out[src] = tr; cache.set(key(lang, src), tr); }
+      todo = todo.filter(s => !stored.has(s));
+    } catch { /* store unavailable — memory-only */ }
+  }
   if (todo.length) {
+    const fresh: Array<[string, string]> = [];
     let parsed: Record<string, unknown> = {};
     try {
       const raw = await llm({ system: SYSTEM, messages: [{ role: 'user', content: JSON.stringify(todo) }], maxTokens: 4096, temperature: 0, jsonMode: true });
@@ -89,7 +127,10 @@ export async function translateLabels(
       // falls back to the source and is NOT cached, so it is retried next time.
       const ok = !!v && v.length <= MAX_LABEL_LEN * 2 && (CJK.test(v) || v === s.trim());
       out[s] = ok ? v : s;
-      if (ok) cache.set(key(lang, s), v);
+      if (ok) { cache.set(key(lang, s), v); fresh.push([s, v]); }
+    }
+    if (store && fresh.length) {
+      try { await store.put(PROMPT_VERSION, lang, fresh); } catch { /* memory-only */ }
     }
   }
   return out;

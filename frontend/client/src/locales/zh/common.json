@@ -983,7 +983,7 @@
     "optional_empty": "可选——留空",
     "no_configurable_params": "此工作流没有可配置的参数。",
     "params_in_phases": "参数按阶段配置——请在“阶段”标签页中调整。",
-    "confirm_to_start": "点击下方的“确认并运行工作流”即可开始。",
+    "confirm_to_start": "点击下方的“{{button}}”即可开始。",
     "no_phases": "尚未定义任何阶段。",
     "phases_appear": "工作流开始后，执行阶段会显示在这里。",
     "required": "必需",
@@ -1280,7 +1280,17 @@
     "origin_not_reported": "运行未报告来源 — 如实标注，而不是凭空猜测",
     "job_id": "任务 ID",
     "work_directory": "工作目录",
-    "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。"
+    "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。",
+    "status_pending": "待运行",
+    "status_queued": "排队中",
+    "status_submitted": "已提交",
+    "status_running": "运行中",
+    "status_completed": "已完成",
+    "status_ok": "已完成",
+    "status_failed": "失败",
+    "status_error": "出错",
+    "status_cancelled": "已取消",
+    "status_skipped": "已跳过"
   },
   "domains": {
     "drug_discovery": "药物发现",
