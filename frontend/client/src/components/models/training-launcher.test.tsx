@@ -186,7 +186,7 @@ describe("TrainingLauncher — general data", () => {
   it("uploads a local dataset in-panel and selects it (no leaving the panel)", async () => {
     const UPLOADED = { id: "44444444-4444-4444-8444-444444444444", name: "fresh.csv", s3_key: `projects/${PROJECT}/inputs/fresh.csv` }
     let fileList: any[] = [TABLE_FILE]
-    vi.spyOn(global, "fetch").mockImplementation(async (url: any, init?: any) => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (url: any) => {
       const u = String(url)
       const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => "" } as Response)
       if (u.includes("/files/upload")) { fileList = [...fileList, UPLOADED]; return ok({ ok: true }) }
@@ -201,7 +201,7 @@ describe("TrainingLauncher — general data", () => {
     })
     // The uploaded file appears and is auto-selected.
     await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).value).toBe(UPLOADED.id))
-    expect(fetch.mock.calls.some(([u]) => String(u).includes("/files/upload"))).toBe(true)
+    expect(fetchSpy.mock.calls.some((c) => String(c[0]).includes("/files/upload"))).toBe(true)
   })
 
   it("reports an unusable file instead of offering a model that cannot train it", async () => {
