@@ -219,13 +219,23 @@ INSUFFICIENT_NOTICE = ("**Insufficient retrievable evidence:** no literature ref
                        "bibliography is given. Treat any statement below as unreferenced "
                        "background, not literature-supported.")
 
+# When no literature citations ground but the answer DOES draw on authoritative database
+# records (resolved structures, variants, interactions, activities, with stable
+# identifiers), the content is NOT "unreferenced background" — it is database-grounded.
+DB_GROUNDED_NOTICE = ("**No literature citations could be grounded for this question, so no "
+                      "bibliography is given.** The statements below are drawn from authoritative "
+                      "biological databases (e.g. UniProt, PDBe, AlphaFold, ChEMBL, ClinVar, STRING, "
+                      "Ensembl) — verifiable records with stable identifiers, not unreferenced claims.")
+
 _REF_HEAD = re.compile(r"^\s*(#{1,6}\s*|\*\*)?(references?|bibliography|citations?|sources)\b.*$", re.I)
 _ID_LINE = re.compile(r"(10\.\d{4,9}/\S+|\bpmid\b|\bdoi\b)", re.I)
 
 
-def refuse_without_evidence(answer: str) -> str:
+def refuse_without_evidence(answer: str, db_grounded: bool = False) -> str:
     """Strip any invented bibliography (reference section, DOI/PMID lines, dangling [N]
-    markers) and state plainly that there was insufficient retrievable evidence."""
+    markers) and state plainly that no literature was grounded. When db_grounded, the
+    answer rests on authoritative database records, so it is NOT 'unreferenced background'
+    — use the database-grounded notice instead."""
     kept: List[str] = []
     for line in (answer or "").splitlines():
         if _REF_HEAD.match(line):
@@ -234,7 +244,8 @@ def refuse_without_evidence(answer: str) -> str:
             continue
         kept.append(re.sub(r"\s*\[\d+(?:\s*,\s*\d+)*\]", "", line))
     body = "\n".join(kept).strip()
-    return INSUFFICIENT_NOTICE + ("\n\n" + body if body else "")
+    notice = DB_GROUNDED_NOTICE if db_grounded else INSUFFICIENT_NOTICE
+    return notice + ("\n\n" + body if body else "")
 
 
 def _renumber(answer: str, keep_old: List[int]) -> str:
@@ -251,7 +262,7 @@ def _renumber(answer: str, keep_old: List[int]) -> str:
 
 def check_answer_citations(answer: str, citations: List[Any], http_get: Optional[HttpGet] = None,
                            threshold: float = TITLE_MATCH_THRESHOLD, offline: Optional[bool] = None,
-                           n_numbered: Optional[int] = None):
+                           n_numbered: Optional[int] = None, db_grounded: bool = False):
     """Verify citations, drop rejected ones, and derive evidence_status.
 
     The first n_numbered citations (default all) are the ones the answer cites
@@ -266,7 +277,7 @@ def check_answer_citations(answer: str, citations: List[Any], http_get: Optional
     status = evidence_status(rows)
     n = len(cites) if n_numbered is None else n_numbered
     if status == "insufficient":
-        answer = refuse_without_evidence(answer)
+        answer = refuse_without_evidence(answer, db_grounded=db_grounded)
     elif len(kept) < len(cites) and answer:
         keep_old = [i + 1 for i in range(n) if rows[i]["status"] not in REJECTED]
         dropped = sum(1 for r in rows if r["status"] in REJECTED)

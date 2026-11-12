@@ -144,12 +144,12 @@ _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
 ENTITY_SOURCES: Dict[str, List[str]] = {
     "gene":       ["ncbi_gene", "ensembl", "uniprot", "string", "kegg",
                    "go", "gnomad", "pubmed", "semantic_scholar"],
-    "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
+    "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
                    "go", "chembl", "pubmed", "semantic_scholar"],
     "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
-    "structure":  ["pdb", "alphafold", "interpro"],
+    "structure":  ["pdb", "pdbe", "alphafold", "interpro"],
     "disease":    ["hpo", "clinvar", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
     "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "biorxiv", "semantic_scholar", "openalex", "crossref"],
 }
@@ -248,6 +248,51 @@ def _post_json(url: str, payload: Dict) -> Optional[Any]:
         log.debug("[federated_query] POST %s → %s", url, e)
         _note_failure(url, e)
         return None
+
+# ── Shared identifier resolver ──────────────────────────────────────────────────
+
+def resolve_gene(symbol: str) -> Dict[str, Any]:
+    """Resolve a gene symbol/alias → canonical ids: {symbol, entrez, ensembl, uniprot}.
+
+    The KEYSTONE: most sources don't accept a bare symbol — AlphaFold/PDBe need a UniProt
+    accession, gnomAD/Open Targets need an ENSG, KEGG needs an Entrez id. One cached,
+    alias-safe mygene call (p53→TP53, BCR-ABL→ABL1) that every id-needing fetcher shares,
+    so a plain "ABL1" reaches all of them (ABL1 → 25 / ENSG00000097007 / P00519). 24h
+    cache. Returns {} (not an error) when unresolvable."""
+    sym = (symbol or "").strip()
+    if not sym:
+        return {}
+    ck = f"bm:resolve:{sym.lower()}"
+    cached = _cache_get(ck)
+    if cached is not None:
+        return cached
+    out: Dict[str, Any] = {}
+    r = _post_json("https://mygene.info/v3/query",
+                   {"q": [sym], "scopes": "symbol,alias,retired",
+                    "fields": "symbol,entrezgene,ensembl.gene,uniprot.Swiss-Prot",
+                    "species": "human"})
+    hit = r[0] if isinstance(r, list) and r and not r[0].get("notfound") else {}
+    if hit:
+        ens = hit.get("ensembl")
+        if isinstance(ens, list):
+            ens = ens[0] if ens else {}
+        up = (hit.get("uniprot") or {}).get("Swiss-Prot")
+        if isinstance(up, list):
+            up = up[0] if up else None
+        out = {
+            "symbol": hit.get("symbol") or sym,
+            "entrez": str(hit["entrezgene"]) if hit.get("entrezgene") else None,
+            "ensembl": (ens or {}).get("gene"),
+            "uniprot": up,
+        }
+    # cache even an empty result briefly so a non-gene term isn't re-queried every call;
+    # a real resolution gets the full stable TTL.
+    _cache_set(ck, out, _CACHE_TTL_STABLE if out else 3600)
+    return out
+
+
+_UNIPROT_ACC_RE = re.compile(r'^[A-NR-Z0-9][0-9][A-Z0-9]{3}[0-9]$', re.I)
+
 
 # ── Entity type detection ──────────────────────────────────────────────────────
 
@@ -357,19 +402,37 @@ def _fetch_pdb(query: str) -> Dict:
     return {"source": "pdb", "results": [{"pdb_id": i} for i in ids]}
 
 def _fetch_alphafold(query: str) -> Dict:
-    # Requires UniProt accession
-    if re.match(r'^[A-Z][0-9][A-Z0-9]{3}[0-9]$', query.strip().upper()):
-        acc = query.strip().upper()
-        data = _get(f"https://alphafold.ebi.ac.uk/api/prediction/{acc}")
-        if data and isinstance(data, list):
-            d = data[0]
-            return {"source": "alphafold", "results": [
-                {"uniprot": acc, "model_url": d.get("pdbUrl"),
-                 "pae_image_url": d.get("paeImageUrl"),
-                 "confidence": "pLDDT"}
-            ]}
-    return {"source": "alphafold", "results": [],
-            "note": "Provide UniProt accession for direct AlphaFold lookup"}
+    # AlphaFold is keyed by UniProt accession. A bare gene symbol used to return nothing;
+    # resolve it first (ABL1 → P00519) via the shared resolver (dev finding, 2026-11-11).
+    q = query.strip()
+    acc = q.upper() if _UNIPROT_ACC_RE.match(q) else (resolve_gene(q).get("uniprot") or "")
+    if not acc:
+        return {"source": "alphafold", "results": []}
+    data = _get(f"https://alphafold.ebi.ac.uk/api/prediction/{acc}")
+    if data and isinstance(data, list):
+        d = data[0]
+        return {"source": "alphafold", "results": [
+            {"uniprot": acc, "model_url": d.get("pdbUrl"),
+             "pae_image_url": d.get("paeImageUrl"), "confidence": "pLDDT"}
+        ]}
+    return {"source": "alphafold", "results": []}
+
+
+def _fetch_pdbe(query: str) -> Dict:
+    # PDBe best_structures: ranked EXPERIMENTAL structures for a target (ABL1 → P00519 →
+    # 1opl@3.42Å). Needs a UniProt acc, so resolve a bare symbol. pdbe was in the registry
+    # with NO fetcher — its best endpoint was entirely unused (dev finding, 2026-11-11).
+    q = query.strip()
+    acc = q.upper() if _UNIPROT_ACC_RE.match(q) else (resolve_gene(q).get("uniprot") or "")
+    if not acc:
+        return {"source": "pdbe", "results": []}
+    data = _get(f"https://www.ebi.ac.uk/pdbe/api/mappings/best_structures/{acc}")
+    entries = (data or {}).get(acc) or []
+    results = [{"pdb_id": e.get("pdb_id"), "chain": e.get("chain_id"),
+                "resolution": e.get("resolution"), "coverage": e.get("coverage"),
+                "method": e.get("experimental_method")}
+               for e in entries[:5]]
+    return {"source": "pdbe", "results": results}
 
 def _fetch_ensembl(query: str) -> Dict:
     if re.match(r'^[A-Z][A-Z0-9]+$', query.strip()):
@@ -798,6 +861,7 @@ _FETCHERS = {
     "ncbi_gene":        _fetch_ncbi_gene,
     "uniprot":          _fetch_uniprot,
     "pdb":              _fetch_pdb,
+    "pdbe":             _fetch_pdbe,
     "alphafold":        _fetch_alphafold,
     "ensembl":          _fetch_ensembl,
     "string":           _fetch_string,
@@ -951,22 +1015,35 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
     priority = {
         "gene":       ["uniprot", "ncbi_gene", "ensembl", "string", "kegg",
                        "go", "gnomad", "pubmed", "semantic_scholar"],
-        "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
+        "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
                        "go", "chembl", "pubmed", "semantic_scholar"],
         "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
         "variant":    ["clinvar", "dbsnp", "gnomad", "pubmed", "semantic_scholar"],
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
-        "structure":  ["pdb", "alphafold", "interpro"],
+        "structure":  ["pdb", "pdbe", "alphafold", "interpro"],
         "disease":    ["hpo", "clinvar", "europepmc", "pubmed", "semantic_scholar"],
         "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
     }
     ordered = priority.get(entity_type, list(results.keys()))
     remaining = [s for s in results if s not in ordered]
+    src_order = [s for s in (ordered + remaining) if s in results]
 
-    for src in ordered + remaining:
-        if src not in results:
-            continue
-        for item in (results[src].get("results") or []):
+    # ROUND-ROBIN across sources: take each source's top result first, then each source's
+    # 2nd, etc. A strict per-source drain let a high-volume identity source (uniprot/
+    # ncbi_gene) fill all the prompt's top-8 slots and bury structure/activity records
+    # from pdb/pdbe/alphafold/chembl — so a gene-typed target in a STRUCTURE question
+    # fetched the structures but never rendered them (dev finding, 2026-11-12). Priority
+    # order still breaks ties within a rank.
+    _lists = {s: (results[s].get("results") or []) for s in src_order}
+    _maxlen = max((len(v) for v in _lists.values()), default=0)
+    for _rank in range(_maxlen):
+        for src in src_order:
+            _items = _lists[src]
+            if _rank >= len(_items):
+                continue
+            item = _items[_rank]
+            if not isinstance(item, dict):
+                continue
             # Dedup key: prefer explicit id fields, fall back to name/title
             dedup_key = (
                 item.get("accession") or item.get("gene_id") or item.get("pdb_id") or
