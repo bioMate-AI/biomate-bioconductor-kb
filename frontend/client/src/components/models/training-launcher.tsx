@@ -19,7 +19,7 @@ import { useActiveProjectSafe } from '@/contexts/active-project-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play } from 'lucide-react';
-import { t } from '@/lib/i18n';
+import { t, tOr } from '@/lib/i18n';
 import {
   availableModelTypes, backendModelType, columnValues, defaultModelName, detectSmilesColumns,
   fileKind, isDelimitedTable, isSupervised, LLM_TYPES, MIN_TRAIN_ROWS, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
@@ -106,8 +106,8 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
 
   const smilesColumns = useMemo(() => detectSmilesColumns(columns, sampleRows), [columns, sampleRows]);
   const modelTypes = useMemo(
-    () => availableModelTypes(family, kind, columns, smilesColumns),
-    [family, kind, columns, smilesColumns],
+    () => availableModelTypes(family, kind, columns, smilesColumns, sampleRows),
+    [family, kind, columns, smilesColumns, sampleRows],
   );
 
   // Default the model type to the first one this dataset supports.
@@ -285,6 +285,14 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
                     <select className={FIELD} value={String(spec[field.key] ?? '')} data-testid={`launcher-spec-${field.key}`}
                       onChange={e => setSpec(s => ({ ...s, [field.key]: e.target.value }))}>
                       {(field.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : field.kind === 'column' ? (
+                    // A role column (instruction/output/target) chosen from the
+                    // dataset's REAL columns — never a free-text box.
+                    <select className={FIELD} value={String(spec[field.key] ?? '')} data-testid={`launcher-spec-${field.key}`}
+                      onChange={e => setSpec(s => ({ ...s, [field.key]: e.target.value }))}>
+                      <option value="">{tOr('models.spec_column_none', '— none —')}</option>
+                      {columns.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   ) : (
                     <input className={FIELD} type={field.kind === 'number' ? 'number' : 'text'}
