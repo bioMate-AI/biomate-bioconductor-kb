@@ -84,7 +84,7 @@ MKL_DEBUG_CPU_TYPE=5
 
 然后在 `docker-compose.onprem.yml` 的 `galaxy-backend` 服务 `environment:` 块中追加这些变量（或在 `install.sh` 运行后通过 `docker restart biomate-galaxy` 应用）。
 
-**实际情况：** BioMate 官方镜像（`ghcr.io/biomate-ai/biomate-backend`、`biomate/biomni-tools`）在构建时使用通用 `linux/amd64` 目标，不开 `-march=native`，**正常情况下不会触发 SIGILL**。上述配置仅在遇到问题时才需要。
+**实际情况：** BioMate 官方镜像（`ghcr.io/biomate-ai/biomate-backend`、`biomate/workflow-tools`）在构建时使用通用 `linux/amd64` 目标，不开 `-march=native`，**正常情况下不会触发 SIGILL**。上述配置仅在遇到问题时才需要。
 
 ---
 
@@ -107,7 +107,7 @@ ARM64 主机（`uname -m` = `aarch64`）需要以下额外步骤：
 DOCKER_DEFAULT_PLATFORM=linux/arm64
 ```
 
-BioMate 工作流的核心任务容器（`biomni-tools`、`biomni-admet`）均已发布 ARM64 原生版本，Nextflow 执行器会自动拉取对应架构的镜像。
+BioMate 工作流的核心任务容器（`workflow-tools`、`admet`）均已发布 ARM64 原生版本，Nextflow 执行器会自动拉取对应架构的镜像。
 
 **0.3.3 Bioconductor R 容器（RNA-seq / scRNA-seq）：**
 

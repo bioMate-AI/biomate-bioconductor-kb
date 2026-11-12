@@ -92,5 +92,6 @@ class PayloadTests(unittest.TestCase):
                             for x in result["findings"]))
 
 
+
 if __name__ == "__main__":
     unittest.main()

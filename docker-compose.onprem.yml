@@ -462,6 +462,7 @@ services:
     environment:
       NODE_ENV:    production
       PORT:        "3000"
+      DISABLE_GOOGLE_FONTS: ${DISABLE_GOOGLE_FONTS:-true}
       GALAXY_URL:  http://biomate-engine:8080
       GALAXY_API_KEY: ${GALAXY_API_KEY:-}
 
