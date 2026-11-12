@@ -28,6 +28,7 @@ import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-
 import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity";
 import { chatOutputFolderName } from "./chat-output-folder";
 import { searchQueryForCatalog } from "./search-query-translation";
+import { memoryProjectAccess, memoryProjectUpdate } from "./memory-project-access";
 import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -9164,7 +9165,10 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get project with full context
-  app.get("/api/memory/projects/:projectId", authenticateToken, async (req, res) => {
+  // Project-scoped memory routes: membership for reads, owner/editor for writes (memory-project-access.ts).
+  const memoryAccess = (level: 'member' | 'editor') => memoryProjectAccess(level, { member: _isOwnerOrMember, editor: _isOwnerOrEditor });
+
+  app.get("/api/memory/projects/:projectId", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const projectContext = await memoryService.projects.loadProjectContext(projectId);
@@ -9179,10 +9183,10 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Update project
-  app.put("/api/memory/projects/:projectId", authenticateToken, async (req, res) => {
+  app.put("/api/memory/projects/:projectId", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
-      const project = await memoryService.projects.updateProject(projectId, req.body);
+      const project = await memoryService.projects.updateProject(projectId, memoryProjectUpdate(req.body) as any);
       res.json(project);
     } catch (error: any) {
       console.error('[API] Update project failed:', error);
@@ -9191,7 +9195,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Add project knowledge
-  app.post("/api/memory/projects/:projectId/knowledge", authenticateToken, async (req, res) => {
+  app.post("/api/memory/projects/:projectId/knowledge", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { knowledgeType, title, content, source, relatedWorkflows, relatedSessions } = req.body;
@@ -9563,7 +9567,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get similar episodes for a project
-  app.get("/api/memory/projects/:projectId/episodes", authenticateToken, async (req, res) => {
+  app.get("/api/memory/projects/:projectId/episodes", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { intent, tools, limit } = req.query;
@@ -9600,7 +9604,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Consolidate episodes into patterns
-  app.post("/api/memory/projects/:projectId/consolidate", authenticateToken, async (req, res) => {
+  app.post("/api/memory/projects/:projectId/consolidate", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const result = await memoryService.episodes.consolidateEpisodes(projectId);
@@ -9616,7 +9620,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Get procedures for a project
-  app.get("/api/memory/projects/:projectId/procedures", authenticateToken, async (req, res) => {
+  app.get("/api/memory/projects/:projectId/procedures", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { minSuccessRate } = req.query;
@@ -9632,7 +9636,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Find matching procedures for a trigger
-  app.get("/api/memory/projects/:projectId/procedures/match", authenticateToken, async (req, res) => {
+  app.get("/api/memory/projects/:projectId/procedures/match", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { trigger } = req.query;
@@ -9651,7 +9655,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Create a procedure
-  app.post("/api/memory/projects/:projectId/procedures", authenticateToken, async (req, res) => {
+  app.post("/api/memory/projects/:projectId/procedures", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { name, triggerPattern, description, steps, preconditions, postconditions, applicableDomains, learnedFrom } = req.body;
