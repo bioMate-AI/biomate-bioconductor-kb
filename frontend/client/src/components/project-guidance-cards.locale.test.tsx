@@ -21,7 +21,7 @@ it('renders Instructions controls in Chinese and preserves stored rules and form
  vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('instruction-settings') ? { settings: { skillPackIds: [], outputRequirements: JSON.stringify([{ kind: 'report', name: 'Hospital memo', detail: 'Preserve this user requirement', on: true }]) } } : url === '/api/skills' ? { skills: [] } : { notes: [] } })));
  render(<ProjectInstructionsPage projectId="p" projectName="Hospital" canEdit instructions="Use GRCh38" onInstructionsSaved={() => {}} />);
  expect(await screen.findByText('输出格式')).toBeTruthy();
- for (const title of ['规则', '输出格式', '技能与专家', '记忆']) expect(screen.getByText(title)).toBeTruthy();
+ for (const title of ['规则', '输出格式', '技能与专家', '笔记']) expect(screen.getByText(title)).toBeTruthy();
  expect(screen.getByText('1 条规则 · 1 个格式已启用')).toBeTruthy();
  for (const text of ['Hospital memo', 'Preserve this user requirement', 'Use GRCh38']) expect(screen.getByText(text)).toBeTruthy();
  expect(screen.getByPlaceholderText('添加规则，例如“除非对话另有说明，否则使用 GRCh38”')).toBeTruthy();

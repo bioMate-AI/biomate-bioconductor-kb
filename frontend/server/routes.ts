@@ -29,6 +29,7 @@ import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity
 import { chatOutputFolderName } from "./chat-output-folder";
 import { searchQueryForCatalog } from "./search-query-translation";
 import { memoryProjectAccess, memoryProjectUpdate } from "./memory-project-access";
+import { projectRulesFrom, renderProjectContext } from "./project-rules";
 import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -7213,7 +7214,17 @@ ${paramLines || '(none recorded)'}`;
           // for project context, LTM association, or persistence.  Without
           // this gate an authenticated caller could attach a guessed project
           // UUID and receive its research goal/instructions in the prompt.
-          const requestedProjectId = await memoryService.resolveProjectForChat(context?.projectId);
+          // A chat that already belongs to a project answers under THAT project — not whichever
+          // project the browser visited last (context.projectId is localStorage state; instruction
+          // committee 2026-11-12: a reopened Project A chat ran under Project B's rules).
+          let _sessionProjectId: string | null = null;
+          if (_resolvedSessionId) {
+            try {
+              const _sp = await pool.query('SELECT project_id FROM chat_sessions WHERE session_id = $1 AND user_id = $2 LIMIT 1', [_resolvedSessionId, String(_u.id)]);
+              _sessionProjectId = _sp.rows?.[0]?.project_id ? String(_sp.rows[0].project_id) : null;
+            } catch { /* new chat / no row yet */ }
+          }
+          const requestedProjectId = _sessionProjectId ?? await memoryService.resolveProjectForChat(context?.projectId);
           if (requestedProjectId && await _isOwnerOrMember(requestedProjectId, String(_u.id))) {
             _resolvedProjectId = requestedProjectId;
           } else if (requestedProjectId) {
@@ -7250,6 +7261,7 @@ ${paramLines || '(none recorded)'}`;
 
       // Load project researchGoal for LLM context injection when a project is active.
       let _projectContext: string | undefined;
+      let _projectRules: string[] = [];
       if (_resolvedProjectId) {
         try {
           const _proj = await pool.query(
@@ -7258,41 +7270,20 @@ ${paramLines || '(none recorded)'}`;
           );
           const _p = _proj.rows?.[0];
           if (_p) {
-            const parts: string[] = [];
-            if (_p.name) parts.push(`Project: ${_p.name}`);
-            if (_p.description) parts.push(`Description: ${_p.description}`);
-            if (_p.research_goal) parts.push(`Research goal: ${_p.research_goal}`);
-            if (_p.instructions) parts.push(`Background instructions: ${_p.instructions}`);
-            if (parts.length > 0) _projectContext = parts.join('\n');
+            // Exactly what the Instructions page shows, as numbered directives (project-rules.ts).
+            _projectRules = projectRulesFrom(_p);
+            const _rendered = renderProjectContext(_p, _projectRules);
+            if (_rendered) _projectContext = _rendered;
           }
-        } catch {
-          // Non-fatal — never break chat on a project lookup failure.
+        } catch (err: any) {
+          // Non-fatal — never break chat on a project lookup failure (but say so).
+          console.warn('[chat-stream] project context lookup failed:', err?.message);
         }
       }
 
-      // Standing instructions the user explicitly promoted from a Search &
-      // evidence answer ("Make instruction"). Injected SELECTIVELY: discrete
-      // rows (not one ever-growing blob), project-scoped, and capped so a long
-      // list can never flood the prompt. Each line is length-bounded too.
-      if (_resolvedProjectId) {
-        try {
-          const _instr = await memoryService.projects.getProjectKnowledge(
-            _resolvedProjectId,
-            'project_instruction',
-          );
-          const _lines = (_instr || [])
-            .map((k: any) => String(k.content ?? '').trim())
-            .filter(Boolean)
-            .slice(0, 8)
-            .map((l: string) => `- ${l.slice(0, 300)}`);
-          if (_lines.length) {
-            const _block = `Standing instructions set by the user (apply when relevant):\n${_lines.join('\n')}`;
-            _projectContext = _projectContext ? `${_projectContext}\n${_block}` : _block;
-          }
-        } catch {
-          // Non-fatal — never break chat on an instruction lookup failure.
-        }
-      }
+      // Promoted "project_instruction" knowledge rows are no longer injected: no UI shows or deletes
+      // them, so they applied invisibly forever (instruction committee 2026-11-12). The Instructions
+      // page is the single source of what BioMate is told.
 
       // Output-format requirements the user saved on the project (Instructions →
       // Output formats). The browser composer threads these as composerInstructions,
@@ -7549,6 +7540,7 @@ ${paramLines || '(none recorded)'}`;
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
+        projectRules: _projectRules,
         composerInstructions: composerContext.composerInstructions,
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,

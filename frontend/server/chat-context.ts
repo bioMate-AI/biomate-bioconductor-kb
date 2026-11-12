@@ -1,3 +1,4 @@
+import { neutralizeMarkup } from "./project-rules";
 /**
  * Request-scoped context helpers for the chat stream.
  *
@@ -10,7 +11,8 @@ export const MAX_COMPOSER_INSTRUCTIONS_LENGTH = 24_000;
 export function normalizeComposerInstructions(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
 
-  const normalized = value.trim().slice(0, MAX_COMPOSER_INSTRUCTIONS_LENGTH);
+  // User text in a system prompt never becomes markup (project-rules.ts neutralizeMarkup).
+  const normalized = neutralizeMarkup(value.trim().slice(0, MAX_COMPOSER_INSTRUCTIONS_LENGTH));
   return normalized || undefined;
 }
 
@@ -54,7 +56,7 @@ export function appendProjectOutputRequirements(
   outputRequirementsPrompt: string | null | undefined,
   composerInstructions: unknown,
 ): string | undefined {
-  const prompt = (outputRequirementsPrompt ?? "").trim();
+  const prompt = neutralizeMarkup((outputRequirementsPrompt ?? "").trim());
   if (!prompt) return projectContext;
 
   const composer = normalizeComposerInstructions(composerInstructions) ?? "";

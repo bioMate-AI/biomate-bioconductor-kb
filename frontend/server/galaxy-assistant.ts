@@ -1,5 +1,6 @@
 import { responseLanguageDirective } from "./response-language";
 import { runButtonLabel } from "./ui-labels";
+import { PROJECT_CONTEXT_NOTE, intentRulesBlock } from './project-rules';
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
@@ -885,6 +886,8 @@ export interface ChatContext {
    * user's research background without the user repeating it every session.
    */
   projectContext?: string;
+  /** The project's instructions as a list (project-rules.ts) — also given to intent analysis. */
+  projectRules?: string[];
   /**
    * Per-composer instructions submitted with this turn. Routes normalizes and
    * bounds this user-authored text before appending it to projectContext, so it
@@ -7420,7 +7423,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const chainHintList = (await this._getChainHintNames()).join(', ');
     const systemPrompt = localOnly()
       ? localIntentPrompt(sessionMemoryBlock, context.accumulatedFacts, chainHintList.split(', '), message)
-      : `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
+      : `${sessionMemoryBlock}${intentRulesBlock(context.projectRules)}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
 When a "[Prior conversation context]" block appears before the message, use it to understand the user's full intent. The current message may be a short confirmation, file path, or follow-up — synthesize the **complete** bioinformatics intent (goal + data + parameters) into the subQuery field rather than copying the literal current message. Example: if prior context says "run RNA-seq on mouse samples" and current message is "s3://bucket/R1.fastq.gz", produce subQuery: "RNA-seq alignment and quantification on mouse GRCm38 samples using paired-end FASTQ from s3://bucket/".
 
@@ -10136,7 +10139,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       : '';
 
     const projectContextBlock = context.projectContext
-      ? `<project_context>\n${context.projectContext}\n</project_context>\nNote: The above describes the user's active research project. Use it to tailor responses and workflow suggestions — treat it as standing background context for every message in this session.\n\n`
+      ? `<project_context>\n${context.projectContext}\n</project_context>\n${PROJECT_CONTEXT_NOTE}\n\n`
       : '';
 
     // Compute isWorkflowTurn here so it is available for both the system prompt
