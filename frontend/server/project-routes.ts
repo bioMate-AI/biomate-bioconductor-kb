@@ -142,6 +142,10 @@ const projectUpload = multer({
   limits: { fileSize: 500 * 1024 * 1024 },
 });
 
+/** A failed schema step must be visible: later queries on a missing column fail with a confusing
+ *  error far from the cause (audit: these were silently swallowed). */
+const _ddlFailed = (e: any) => console.error("[project_files] schema step failed:", e?.message ?? e);
+
 async function ensureProjectFilesTable(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_files (
@@ -159,19 +163,19 @@ async function ensureProjectFilesTable(): Promise<void> {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS project_files_project_idx ON project_files(project_id)`);
   // Idempotent column additions for run_output support.
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS workflow_name TEXT`).catch(() => {});
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS step_name TEXT`).catch(() => {});
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS input_context JSONB`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS workflow_name TEXT`).catch(_ddlFailed);
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS step_name TEXT`).catch(_ddlFailed);
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS input_context JSONB`).catch(_ddlFailed);
   // Content hash for dedup (design §4.5.1 — the same file added twice links to one
   // entry rather than creating two). sha256 hex, computed at ingest.
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS content_hash TEXT`).catch(() => {});
-  await pool.query(`CREATE INDEX IF NOT EXISTS project_files_hash_idx ON project_files(project_id, content_hash)`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS content_hash TEXT`).catch(_ddlFailed);
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_files_hash_idx ON project_files(project_id, content_hash)`).catch(_ddlFailed);
   // App-level content versioning (design §4.4 — "saving an edit writes a new
   // version; it never overwrites"). The project_files row is the CURRENT version
   // (version_no); every SUPERSEDED version is archived as its own S3 object +
   // a project_file_versions row. No S3 bucket-versioning required — each version
   // is a distinct object, so a completed run always keeps the exact bytes it read.
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_no INTEGER NOT NULL DEFAULT 1`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_no INTEGER NOT NULL DEFAULT 1`).catch(_ddlFailed);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_file_versions (
       id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -186,16 +190,16 @@ async function ensureProjectFilesTable(): Promise<void> {
       author       TEXT,
       created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
     )
-  `).catch(() => {});
-  await pool.query(`CREATE INDEX IF NOT EXISTS project_file_versions_file_idx ON project_file_versions(file_id, version_no)`).catch(() => {});
+  `).catch(_ddlFailed);
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_file_versions_file_idx ON project_file_versions(file_id, version_no)`).catch(_ddlFailed);
   // When/by whom each version was WRITTEN (2026-11-12). project_files carries it for the current
   // version; an archived row copies it, so the Versions tab shows each version's own time and
   // author (archived rows' created_at/author are the archive event — when the NEXT version was
   // written — which is what the tab used to show, one version off).
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_created_at TIMESTAMPTZ`).catch(() => {});
-  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_author TEXT`).catch(() => {});
-  await pool.query(`ALTER TABLE project_file_versions ADD COLUMN IF NOT EXISTS version_created_at TIMESTAMPTZ`).catch(() => {});
-  await pool.query(`ALTER TABLE project_file_versions ADD COLUMN IF NOT EXISTS version_author TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_created_at TIMESTAMPTZ`).catch(_ddlFailed);
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_author TEXT`).catch(_ddlFailed);
+  await pool.query(`ALTER TABLE project_file_versions ADD COLUMN IF NOT EXISTS version_created_at TIMESTAMPTZ`).catch(_ddlFailed);
+  await pool.query(`ALTER TABLE project_file_versions ADD COLUMN IF NOT EXISTS version_author TEXT`).catch(_ddlFailed);
   // S3 keys handed to an in-flight write (upload/import/generated file) before its bytes are put
   // and its row inserted — so key allocation under the project lock sees keys whose rows do not
   // exist yet (see _storeProjectInput). Rows are deleted when the key becomes a file's s3_key.
@@ -205,7 +209,7 @@ async function ensureProjectFilesTable(): Promise<void> {
       project_id  TEXT NOT NULL,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
     )
-  `).catch(() => {});
+  `).catch(_ddlFailed);
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
@@ -1308,6 +1312,13 @@ export function registerProjectRoutes(app: Express): void {
       return res.status(400).json({ error: "headerRows must be 0 or 1." });
     }
     const headerRows: 0 | 1 = headerRowsRaw === 0 ? 0 : 1;
+    // Leading comment/blank lines the rows reader skipped (its `skipLines`), so edit row numbers
+    // match the rows the user saw on files like featureCounts output.
+    const skipLinesRaw = req.body?.skipLines;
+    if (skipLinesRaw !== undefined && !(Number.isInteger(skipLinesRaw) && skipLinesRaw >= 0 && skipLinesRaw <= 10_000)) {
+      return res.status(400).json({ error: "skipLines must be an integer between 0 and 10000." });
+    }
+    const skipLines: number = skipLinesRaw ?? 0;
     // Each edit names the cell by data-row index + column index (as the Preview's rows reader
     // numbers them) and carries the value the user saw (`from`) and optionally the whole row
     // (`rowFrom`), so a mis-numbered edit cannot land on a different row that happens to hold
@@ -1355,7 +1366,7 @@ export function registerProjectRoutes(app: Express): void {
       const delim = pickDelimiter(text, ext);
       // Only the edited fields are rewritten (quoting, line endings and every other byte kept);
       // if any cell no longer holds the value the user saw, nothing is written (409).
-      const result = applyCellEdits(text, delim, parsed, { headerRows });
+      const result = applyCellEdits(text, delim, parsed, { headerRows, skipLines });
       if (result.conflicts.length) {
         return res.status(409).json({
           error: "cell_conflict",
@@ -1675,7 +1686,8 @@ export function registerProjectRoutes(app: Express): void {
       const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/folder_profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: folder, files: files.map((f) => ({ name: f.name, datasetRef: f.s3_key })) }),
+        // projectId: the backend reads only keys inside this project's prefix (audit S5).
+        body: JSON.stringify({ projectId: id, path: folder, files: files.map((f) => ({ name: f.name, datasetRef: f.s3_key })) }),
         signal: AbortSignal.timeout(60_000),
       });
       const body: any = await resp.json().catch(() => null);

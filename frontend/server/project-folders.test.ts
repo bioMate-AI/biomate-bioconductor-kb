@@ -133,6 +133,7 @@ describe("GET /api/projects/:id/folders/profile", () => {
     const [, url, init] = galaxyFetch.mock.calls[0];
     expect(url).toBe("http://galaxy.test/api/perception/folder_profile");
     expect(JSON.parse(init.body)).toEqual({
+      projectId: "11111111-1111-4111-8111-111111111111",
       path: "pairs",
       files: [
         { name: "pairs/S1_R1.fastq.gz", datasetRef: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S1_R1.fastq.gz" },

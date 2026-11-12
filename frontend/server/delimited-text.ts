@@ -128,13 +128,31 @@ function isBlank(raw: string, delim: string): boolean {
   return raw === "" || parseRecord(raw, delim).every((f) => f.value === "")
 }
 
-export function applyCellEdits(text: string, delim: string, edits: CellEdit[], opts: { headerRows?: number } = {}): EditResult {
+/** Character offset just after the first `lines` physical lines (\r\n, \r and \n each end one). */
+function offsetAfterLines(text: string, lines: number): number {
+  let i = 0
+  for (let n = 0; n < lines && i < text.length; n++) {
+    const m = text.slice(i).search(/\r\n|\r|\n/)
+    if (m < 0) return text.length
+    i += m + (text.startsWith("\r\n", i + m) ? 2 : 1)
+  }
+  return i
+}
+
+export function applyCellEdits(
+  text: string, delim: string, edits: CellEdit[],
+  opts: { headerRows?: number; skipLines?: number } = {},
+): EditResult {
   const headerRows = opts.headerRows ?? 1
+  // Leading physical lines the rows reader skips before the header (its `skipLines`: '#' comment
+  // and blank lines, e.g. featureCounts' "# Program:…"); records starting there are not rows.
+  const skipFrom = offsetAfterLines(text, Math.max(0, opts.skipLines ?? 0))
   const records = splitRecords(text, delim)
   // data row index → record index (header records first, then non-blank records)
   const dataRecord: number[] = []
   let seenHeader = 0
   for (let k = 0; k < records.length; k++) {
+    if (records[k].start < skipFrom) continue
     if (seenHeader < headerRows) { seenHeader++; continue }
     const raw = text.slice(records[k].start, records[k].end)
     if (!isBlank(raw, delim)) dataRecord.push(k)
@@ -215,7 +233,7 @@ export function parseDelimited(text: string, delim: string, maxRecords = Infinit
 }
 
 /** The value of one cell, located exactly as applyCellEdits locates it (null if absent). */
-export function readCell(text: string, delim: string, row: number, col: number, opts: { headerRows?: number } = {}): string | null {
+export function readCell(text: string, delim: string, row: number, col: number, opts: { headerRows?: number; skipLines?: number } = {}): string | null {
   const probe = applyCellEdits(text, delim, [{ row, col, from: "\u0000__probe__", value: "" }], opts)
   const c = probe.conflicts[0]
   return c ? c.actual : null

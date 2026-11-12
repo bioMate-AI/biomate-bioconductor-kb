@@ -128,3 +128,19 @@ describe("audit 2026-11-12 — EOF quote, mid-field quote, rowFrom", () => {
     expect(applyCellEdits("a,b,c\n1,2\n", ",", [{ row: 0, col: 0, from: "1", value: "7", rowFrom: ["1", "2", ""] }]).applied).toBe(1)
   })
 })
+
+describe("skipLines (rows reader's leading comment/blank lines)", () => {
+  it("featureCounts-style file: row 0 is the first data line after the comment and header", () => {
+    const fc = "# Program:featureCounts v2.0.1; Command:...\nGeneid\tChr\tS1\nG1\tchr1\t5\nG2\tchr1\t7\n"
+    expect(readCell(fc, "\t", 0, 0, { headerRows: 1, skipLines: 1 })).toBe("G1")
+    const r = applyCellEdits(fc, "\t", [{ row: 1, col: 2, from: "7", value: "8" }], { headerRows: 1, skipLines: 1 })
+    expect(r.conflicts).toEqual([])
+    expect(r.text).toBe("# Program:featureCounts v2.0.1; Command:...\nGeneid\tChr\tS1\nG1\tchr1\t5\nG2\tchr1\t8\n")
+    // without skipLines the comment would be taken as the header and rows shift
+    expect(readCell(fc, "\t", 0, 0, { headerRows: 1 })).toBe("Geneid")
+  })
+  it("counts CRLF and blank lines as physical lines", () => {
+    const t = "#c\r\n\r\nh\r\nv\r\n"
+    expect(readCell(t, ",", 0, 0, { headerRows: 1, skipLines: 2 })).toBe("v")
+  })
+})

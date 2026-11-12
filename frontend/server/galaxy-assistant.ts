@@ -782,6 +782,8 @@ export interface ChatContext {
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
+  /** Authenticated user id (set by routes.ts from req.user only). */
+  authUserId?: string;
   /**
    * The active project id (uuid) this chat is scoped to, or undefined when the
    * chat is project-less. Set by routes.ts from the server-resolved project
@@ -11311,9 +11313,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       prior_code: prior.length ? [...prior] : undefined,
       // One workspace per chat session (reference harnesses: Biomni cwd, ScienceBuddy per-episode
       // container): files in $OUTPUT_DIR survive into later calls and turns. Bound to the
-      // AUTHENTICATED user (billingUserId is set by routes.ts from req.user only; context.userId falls
+      // AUTHENTICATED user (authUserId is set by routes.ts from req.user only; context.userId falls
       // back to a client value on anonymous requests), since the session id is client-supplied.
-      workspaceKey: sessionWorkspaceKey((context as { billingUserId?: string } | undefined)?.billingUserId, context?.sessionId),
+      workspaceKey: sessionWorkspaceKey(context?.authUserId, context?.sessionId),
       persistOutputFile: context?.persistGeneratedFile
         ? (f) => context.persistGeneratedFile!(f.hostPath, f.name) : undefined,
     }), { label: 'run_code tool' });

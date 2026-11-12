@@ -7625,6 +7625,9 @@ ${paramLines || '(none recorded)'}`;
         memorySessionId: _ltmSessionUuid ?? undefined,
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
+        // The authenticated user only (never a client-supplied id): scopes per-user server state
+        // such as the run_code session workspace.
+        authUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
         // The user's id as stored (UUID). It was Number(id) — NaN for UUID ids, and NaN is falsy, so
         // every per-user chat feature keyed on context.userId was silently skipped: recent runs and
