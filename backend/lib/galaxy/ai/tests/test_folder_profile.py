@@ -94,7 +94,7 @@ def _pairs_of(pairs):
 
 def test_fallback_passes_galaxy_spec():
     for doc, inputs, expected in SPEC_CASES:
-        pairs, unpaired, _ft, engine = fp.auto_pair([_El(n) for n in inputs], engine="fallback")
+        pairs, unpaired, _ft, engine, _why = fp.auto_pair([_El(n) for n in inputs], engine="fallback")
         assert engine == "fallback"
         assert _pairs_of(pairs) == expected, (doc, _pairs_of(pairs))
         assert unpaired == [], (doc, [u.name for u in unpaired])
@@ -118,8 +118,10 @@ def test_fallback_matches_galaxy_source():
     for inputs in [c[1] for c in SPEC_CASES] + extra:
         els = [_El(n) for n in inputs]
         g = gal.auto_pair(els)
-        pairs, unpaired, ft, _e = fp.auto_pair(els, engine="fallback")
-        assert {p.name: (p.forward.name, p.reverse.name) for p in g.paired} == _pairs_of(pairs), inputs
+        pairs, unpaired, ft, _e, _why = fp.auto_pair(els, engine="fallback")
+        # Same FILE pairs as Galaxy wherever Galaxy's marker substitution is unambiguous (sample
+        # names may differ: lanes are runs of one sample here).
+        assert {(p.forward.name, p.reverse.name) for p in g.paired} == {(f.name, r.name) for _n, f, r in pairs}, inputs
         assert sorted(u.name for u in g.unpaired) == sorted(u.name for u in unpaired), inputs
         assert gal.guess_initial_filter_type(els) == ft, inputs
     print("PASS test_fallback_matches_galaxy_source")

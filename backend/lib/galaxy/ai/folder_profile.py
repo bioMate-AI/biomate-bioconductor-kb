@@ -8,14 +8,14 @@ two TSVs are header-less by specification. A per-file profiler cannot see either
 this module profiles the folder from its file names (plus the Matrix Market size line of a
 10x matrix, read through a caller-supplied callback):
 
-* **FASTQ pairing reuses Galaxy's own list:paired builder** —
-  ``galaxy.model.dataset_collections.auto_pairing.auto_pair`` (the code behind Galaxy's
-  "Build list of dataset pairs"). Importing it pulls the whole ``galaxy.model`` package
-  (SQLAlchemy, boltons, …), which the Galaxy backend has and a bare laptop does not, so it
-  is imported lazily; :func:`_auto_pair_fallback` is a line-for-line port of the same
-  algorithm, checked against Galaxy's ``auto_pairing_spec.yml`` cases AND against the
-  Galaxy source itself in ``tests/test_folder_profile.py``. ``engine`` in the output says
-  which one ran.
+* **FASTQ pairing** reads the read number from the token right before the extension (or
+  before Illumina's ``_001`` chunk): ``WT_1_1``/``WT_1_2`` are read 1/2 of replicate ``WT_1``,
+  ``S_R10_R1`` is read 1 of ``S_R10``, lanes (``_L001``/``_L002``) are runs of ONE sample, and
+  ``I1``/``I2`` index reads are set aside (they are barcodes, not sample reads). Galaxy's own
+  list:paired builder (``galaxy.model.dataset_collections.auto_pairing.auto_pair``) is run as a
+  cross-check when importable (it pulls the whole ``galaxy.model`` package, so it is imported
+  lazily); its pairs are used when they agree, and ``engine`` / ``engineReason`` in the output
+  say which pairing was used and why (Galaxy raised, was unavailable, or paired across replicates).
 * **10x Genomics matrices** follow the Cell Ranger output spec: ``matrix.mtx(.gz)`` +
   ``barcodes.tsv(.gz)`` + ``features.tsv(.gz)`` (v3) or ``genes.tsv(.gz)`` (v2), optionally
   with a common sample prefix (GEO: ``GSM123_matrix.mtx.gz``), one set per directory
@@ -41,15 +41,25 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Pairing — Galaxy's auto_pair (lazy) with a faithful pure fallback
+# Pairing — read-number token at the END of the name, cross-checked with Galaxy's auto_pair
 # ---------------------------------------------------------------------------
-# Same table as galaxy.model.dataset_collections.auto_pairing.COMMON_FILTERS (and the client's
-# pairing.ts): filter type → (forward marker, reverse marker).
+# Galaxy's filter table (galaxy.model.dataset_collections.auto_pairing.COMMON_FILTERS, the
+# client's pairing.ts): filter type → (forward marker, reverse marker). Used for the pattern label.
 COMMON_FILTERS: Dict[str, Tuple[str, str]] = {
     "illumina": ("_1", "_2"),
     "Rs": ("_R1", "_R2"),
     "dot12s": (".1.fastq", ".2.fastq"),
 }
+
+# The read number is the token immediately before the FASTQ extension, or before Illumina's
+# trailing chunk number (``_001``): ``S1_L001_R1_001.fastq.gz``, ``WT_1_2.fq.gz`` (Novogene:
+# sample WT, replicate 1, read 2), ``S_R10_R1.fastq`` (sample S_R10), ``x.1.fastq``. A marker
+# anywhere else in the name is part of the sample name — Galaxy's auto_pair substitutes the
+# marker everywhere (``re.sub("_1", "", "WT_1_1")`` → ``WT``), which paired replicates with each
+# other or raised; reads are never paired that way here. ``I1``/``I2`` are index (barcode) reads.
+_FASTQ_EXT_RE = re.compile(r"\.(?:fastq|fq|fastqsanger)(?:\.(?:gz|bgz|bz2|zst))?$", re.I)
+_READ_TOKEN_RE = re.compile(r"^(?P<base>.+?)(?P<sep>[._])(?P<tok>[RrIi]?[12])(?P<chunk>_\d{3})?$")
+_LANE_RE = re.compile(r"^(?P<sample>.+?)_L\d{3}$")
 
 
 @dataclass
@@ -58,6 +68,21 @@ class _Element:
 
     name: str
     path: str
+
+
+@dataclass
+class ReadName:
+    """How one FASTQ file name reads: ``base`` (the name without the read token: sample + lane),
+    ``sample`` (``base`` without an Illumina lane token), ``style`` (Galaxy filter type: Rs |
+    illumina | dot12s, None when the name carries no read token), ``mate`` (1 | 2 | None),
+    ``index`` (an I1/I2 index read), ``lane`` (L001 … or None)."""
+
+    base: str
+    sample: str
+    style: Optional[str]
+    mate: Optional[int]
+    index: bool
+    lane: Optional[str]
 
 
 def _filename_to_element_identifier(filename: str) -> str:
@@ -71,59 +96,79 @@ def _filename_to_element_identifier(filename: str) -> str:
     return basename
 
 
-def _guess_initial_filter_type_fallback(elements: Sequence[Any]) -> Optional[str]:
-    """Port of auto_pairing.guess_initial_filter_type."""
-    illumina = dot12s = rs = 0
-    for element in elements:
-        if ".1.fastq" in element.name or ".2.fastq" in element.name:
-            dot12s += 1
-        elif "_R1" in element.name or "_R2" in element.name:
-            rs += 1
-        elif "_1" in element.name or "_2" in element.name:
-            illumina += 1
-    if illumina == 0 and dot12s == 0 and rs == 0:
+def read_name(name: str) -> ReadName:
+    """Parse a FASTQ file name (see _READ_TOKEN_RE)."""
+    base_name = posixpath.basename(name)
+    stem = _FASTQ_EXT_RE.sub("", base_name)
+    if stem == base_name:  # not a FASTQ extension: strip one compression + one extension
+        stem = _filename_to_element_identifier(base_name)
+    m = _READ_TOKEN_RE.match(stem)
+    style: Optional[str] = None
+    mate: Optional[int] = None
+    index = False
+    base = stem
+    if m:
+        tok = m.group("tok").upper()
+        base = m.group("base")
+        mate = int(tok[-1])
+        if tok[0] == "I":
+            index, style = True, "Rs"
+        elif tok[0] == "R":
+            style = "Rs"
+        else:
+            style = "dot12s" if m.group("sep") == "." else "illumina"
+    lane_m = _LANE_RE.match(base)
+    lane = base[len(lane_m.group("sample")) + 1:] if lane_m else None
+    sample = lane_m.group("sample") if lane_m else base
+    return ReadName(base=base, sample=sample, style=style, mate=mate, index=index, lane=lane)
+
+
+def _dominant_style(parsed: Sequence[ReadName]) -> Optional[str]:
+    """The read-token style of a directory (Galaxy's guess_initial_filter_type rule, on the
+    end-anchored tokens): the most common; a tie goes to ``illumina`` like Galaxy's."""
+    counts: Dict[str, int] = {}
+    for r in parsed:
+        if r.style and not r.index:
+            counts[r.style] = counts.get(r.style, 0) + 1
+    if not counts:
         return None
-    if illumina > dot12s and illumina > rs:
-        return "illumina"
-    if dot12s > illumina and dot12s > rs:
-        return "dot12s"
-    if rs > illumina and rs > dot12s:
-        return "Rs"
-    return "illumina"
+    best = max(counts.values())
+    winners = [s for s, c in counts.items() if c == best]
+    return winners[0] if len(winners) == 1 else "illumina"
 
 
-def _auto_pair_fallback(elements: Sequence[Any]) -> Tuple[List[Tuple[str, Any, Any]], List[Any], Optional[str]]:
-    """Port of auto_pairing.auto_pair → (pairs [(name, forward, reverse)], unpaired, filter type)."""
-    filter_type = _guess_initial_filter_type_fallback(elements)
-    if not filter_type:
-        return [], list(elements), None
-    fwd_marker, rev_marker = COMMON_FILTERS[filter_type]
-    fwd_re, rev_re = re.compile(fwd_marker), re.compile(rev_marker)
-    forward = [e for e in elements if e.name and fwd_re.search(e.name)]
-    reverse = [e for e in elements if e.name and rev_re.search(e.name)]
-    partial: Dict[str, List[Any]] = {}
-    for e in forward:
-        base = _filename_to_element_identifier(re.sub(fwd_marker, "", e.name))
-        partial.setdefault(base, [e, None])
-    for e in reverse:
-        base = _filename_to_element_identifier(re.sub(rev_marker, "", e.name))
-        if base not in partial:
-            partial[base] = [None, e]
+def pair_reads(elements: Sequence[Any]) -> Tuple[List[Tuple[str, Any, Any]], List[Any], Optional[str]]:
+    """Pair ``elements`` (objects with ``.name``) by the end-anchored read token.
+
+    Returns (pairs [(base, forward, reverse)], unpaired, filter type). Index reads must be removed
+    by the caller. A second file claiming the same (base, mate) stays unpaired.
+    """
+    parsed = [(e, read_name(e.name)) for e in elements]
+    style = _dominant_style([r for _e, r in parsed])
+    slots: Dict[str, List[Any]] = {}
+    order: List[str] = []
+    unpaired: List[Any] = []
+    for e, r in parsed:
+        if style is None or r.style != style or r.mate is None:
+            unpaired.append(e)
+            continue
+        slot = slots.get(r.base)
+        if slot is None:
+            slot = slots[r.base] = [None, None]
+            order.append(r.base)
+        i = r.mate - 1
+        if slot[i] is None:
+            slot[i] = e
         else:
-            partial[base][1] = e
-    unpaired = list(elements)
-    for e in forward + reverse:
-        if e in unpaired:
-            unpaired.remove(e)
+            unpaired.append(e)
     pairs: List[Tuple[str, Any, Any]] = []
-    for base, (f, r) in partial.items():
-        if f is None:
-            unpaired.append(r)
-        elif r is None:
-            unpaired.append(f)
+    for base in order:
+        f, rv = slots[base]
+        if f is not None and rv is not None:
+            pairs.append((base, f, rv))
         else:
-            pairs.append((base, f, r))
-    return pairs, unpaired, filter_type
+            unpaired.append(f if f is not None else rv)
+    return pairs, unpaired, style
 
 
 _GALAXY_PAIRING: List[Any] = []
@@ -136,28 +181,46 @@ def _galaxy_pairing() -> Any:
             from galaxy.model.dataset_collections import auto_pairing  # heavy: galaxy.model
 
             _GALAXY_PAIRING.append(auto_pairing)
-        except Exception as exc:  # noqa: BLE001 — the fallback is the same algorithm
-            log.info("[folder_profile] Galaxy auto_pairing unavailable (%s); using the pure port", exc)
+        except Exception as exc:  # noqa: BLE001 — the end-anchored pairing does not need it
+            log.info("[folder_profile] Galaxy auto_pairing unavailable (%s)", exc)
             _GALAXY_PAIRING.append(None)
     return _GALAXY_PAIRING[0]
 
 
-def auto_pair(elements: Sequence[Any], engine: str = "auto") -> Tuple[List[Tuple[str, Any, Any]], List[Any], Optional[str], str]:
-    """Pair ``elements`` (objects with ``.name``) the way Galaxy's list:paired builder does.
+def _pair_set(pairs: Sequence[Tuple[str, Any, Any]]) -> set:
+    return {(id(f), id(r)) for _n, f, r in pairs}
 
-    Returns (pairs, unpaired, filter_type, engine) where engine is "galaxy" or "fallback".
-    ``engine="fallback"`` forces the pure port (tests).
+
+def auto_pair(
+    elements: Sequence[Any], engine: str = "auto", galaxy: Any = None
+) -> Tuple[List[Tuple[str, Any, Any]], List[Any], Optional[str], str, Optional[str]]:
+    """Pair ``elements`` (objects with ``.name``; index reads already removed).
+
+    Galaxy's list:paired builder (``auto_pairing.auto_pair``) runs when importable and its pairs
+    are kept when every one of them pairs the same two files as the end-anchored rule
+    (:func:`pair_reads`). When Galaxy raises (a name holding both markers, e.g. ``WT_1_2``), is
+    unavailable, or pairs files across replicates, the end-anchored pairing is used and the reason
+    recorded. Returns (pairs, unpaired, filter_type, engine, engine_reason): engine is "galaxy" or
+    "fallback"; ``engine="fallback"`` skips Galaxy (tests). ``galaxy`` injects the module (tests).
     """
-    mod = _galaxy_pairing() if engine != "fallback" else None
-    if mod is not None:
-        try:
-            filter_type = mod.guess_initial_filter_type(list(elements))
-            res = mod.auto_pair(list(elements))
-            return ([(p.name, p.forward, p.reverse) for p in res.paired], list(res.unpaired), filter_type, "galaxy")
-        except Exception as exc:  # noqa: BLE001 — e.g. a name matching BOTH markers (list.remove twice)
-            log.info("[folder_profile] Galaxy auto_pair failed (%s); using the pure port", exc)
-    pairs, unpaired, filter_type = _auto_pair_fallback(elements)
-    return pairs, unpaired, filter_type, "fallback"
+    pairs, unpaired, style = pair_reads(elements)
+    if engine == "fallback":
+        return pairs, unpaired, style, "fallback", "forced"
+    mod = galaxy if galaxy is not None else _galaxy_pairing()
+    if mod is None:
+        return pairs, unpaired, style, "fallback", "galaxy_unavailable"
+    try:
+        res = mod.auto_pair(list(elements))
+        gpairs = [(p.name, p.forward, p.reverse) for p in res.paired]
+    except Exception as exc:  # noqa: BLE001 — e.g. a name matching BOTH markers (list.remove twice)
+        reason = f"galaxy_error:{type(exc).__name__}"
+        log.info("[folder_profile] Galaxy auto_pair failed (%s: %s); using the end-anchored pairing",
+                 type(exc).__name__, exc)
+        return pairs, unpaired, style, "fallback", reason
+    if _pair_set(gpairs) != _pair_set(pairs):
+        log.info("[folder_profile] Galaxy auto_pair disagrees with the end-anchored read tokens; using the latter")
+        return pairs, unpaired, style, "fallback", "galaxy_disagrees"
+    return pairs, unpaired, style, "galaxy", None
 
 
 # ---------------------------------------------------------------------------
@@ -293,32 +356,42 @@ def _fastq_section(fastq_paths: Sequence[str], engine: str = "auto") -> Dict[str
     for p in fastq_paths:
         by_dir.setdefault(posixpath.dirname(p), []).append(_Element(name=posixpath.basename(p), path=p))
     samples: List[Dict[str, Any]] = []
+    index_reads: List[Dict[str, Any]] = []
     patterns: List[str] = []
-    used_engine = None
+    engines: List[str] = []
+    reasons: List[str] = []
     for d in sorted(by_dir):
-        elements = by_dir[d]
-        pairs, unpaired, filter_type, used_engine = auto_pair(elements, engine)
+        elements: List[_Element] = []
+        for e in by_dir[d]:
+            r = read_name(e.name)
+            if r.index:
+                index_reads.append({"path": e.path, "sample": r.sample, "read": f"I{r.mate}", "dir": d})
+            else:
+                elements.append(e)
+        if not elements:
+            continue
+        pairs, unpaired, filter_type, used, reason = auto_pair(elements, engine)
+        engines.append(used)
+        if reason and reason not in reasons:
+            reasons.append(reason)
         if filter_type and filter_type not in patterns:
             patterns.append(filter_type)
-        markers = COMMON_FILTERS.get(filter_type or "", None)
-        for name, f, r in pairs:
-            samples.append({"sample": name, "forward": f.path, "reverse": r.path, "status": "paired", "dir": d})
+        for _base, f, rv in pairs:
+            r = read_name(f.name)
+            samples.append({"sample": r.sample, "forward": f.path, "reverse": rv.path, "status": "paired",
+                            "dir": d, "lane": r.lane})
         for e in unpaired:
+            r = read_name(e.name)
             role = None
-            sample = _filename_to_element_identifier(e.name)
-            if markers:
-                if re.search(markers[0], e.name):
-                    role = "forward"
-                    sample = _filename_to_element_identifier(re.sub(markers[0], "", e.name))
-                elif re.search(markers[1], e.name):
-                    role = "reverse"
-                    sample = _filename_to_element_identifier(re.sub(markers[1], "", e.name))
+            if filter_type and r.style == filter_type and r.mate is not None:
+                role = "forward" if r.mate == 1 else "reverse"
+            sample = r.sample if role else _filename_to_element_identifier(e.name)
             samples.append({
                 "sample": sample, "forward": e.path if role != "reverse" else None,
                 "reverse": e.path if role == "reverse" else None,
-                "status": "orphan" if role else "single", "role": role, "dir": d,
+                "status": "orphan" if role else "single", "role": role, "dir": d, "lane": r.lane if role else None,
             })
-    samples.sort(key=lambda s: (s["sample"], s["dir"], s["forward"] or s["reverse"] or ""))
+    samples.sort(key=lambda s: (s["sample"], s["dir"], s.get("lane") or "", s["forward"] or s["reverse"] or ""))
     n_pairs = sum(1 for s in samples if s["status"] == "paired")
     orphans = [s for s in samples if s["status"] == "orphan"]
     singles = [s for s in samples if s["status"] == "single"]
@@ -328,14 +401,20 @@ def _fastq_section(fastq_paths: Sequence[str], engine: str = "auto") -> Dict[str
         verdict = "mixed"
     else:
         verdict = "single_end"
+    if engine == "fallback":
+        used_engine = "fallback"
+    else:
+        used_engine = "galaxy" if engines and all(e == "galaxy" for e in engines) else "fallback"
     return {
         "verdict": verdict,
-        "pattern": patterns[0] if len(patterns) == 1 else (patterns or [None])[0],
-        "engine": used_engine or ("fallback" if engine == "fallback" else "galaxy"),
+        "pattern": (patterns or [None])[0],
+        "engine": used_engine,
+        "engineReason": "; ".join(reasons) if used_engine == "fallback" and reasons else None,
         "pairs": n_pairs,
         "samples": samples,
         "orphans": [s["forward"] or s["reverse"] for s in orphans],
         "singles": [s["forward"] for s in singles],
+        "indexReads": [x["path"] for x in sorted(index_reads, key=lambda x: x["path"])],
     }
 
 
@@ -402,12 +481,16 @@ def profile_folder(
         for s in fq["samples"]:
             if s["status"] == "orphan":
                 name = posixpath.basename(s["forward"] or s["reverse"])
+                style = read_name(name).style
                 missing = "R2" if s["role"] == "forward" else "R1"
-                if fq["pattern"] == "illumina":
+                if style == "illumina":
                     missing = "_2" if s["role"] == "forward" else "_1"
-                elif fq["pattern"] == "dot12s":
+                elif style == "dot12s":
                     missing = ".2.fastq" if s["role"] == "forward" else ".1.fastq"
                 _finding(out, "folder_fastq_orphan", "watch", name=name, sample=s["sample"], missing=missing)
+        if fq["indexReads"]:
+            _finding(out, "folder_fastq_index_reads", n=len(fq["indexReads"]),
+                     names=[posixpath.basename(p) for p in fq["indexReads"][:8]])
         if fq["singles"] and not fq["pairs"] and not fq["orphans"]:
             _finding(out, "folder_fastq_single_end", n=len(fq["singles"]))
         if fq["verdict"] == "mixed":
@@ -465,9 +548,14 @@ def profile_folder(
 # ---------------------------------------------------------------------------
 def fastq_layout(name: str, siblings: Sequence[str]) -> Optional[Dict[str, Any]]:
     """For a FASTQ ``name`` and the other files of its directory: {status, sample, role, mate,
-    pattern} — status "paired" | "orphan" | "single". None when ``name`` is not a FASTQ."""
+    pattern} — status "paired" | "orphan" | "single" | "index" (an I1/I2 index read, role
+    "index"). None when ``name`` is not a FASTQ."""
     if not is_fastq_name(name):
         return None
+    r = read_name(name)
+    if r.index:
+        return {"status": "index", "sample": r.sample, "role": "index", "mate": None,
+                "pattern": "", "read": f"I{r.mate}"}
     d = posixpath.dirname(name)
     same_dir = [s for s in siblings if s != name and posixpath.dirname(s) == d and is_fastq_name(s)]
     fq = _fastq_section([name] + same_dir)
