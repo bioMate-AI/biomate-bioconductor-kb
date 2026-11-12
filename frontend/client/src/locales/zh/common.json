@@ -899,6 +899,7 @@
     "status_completed": "已完成",
     "status_paused": "已暂停",
     "change_project": "切换项目",
+    "open_file_deleted": "“{{name}}”已删除。",
     "select_dataset": "选择一个数据集",
     "select_dataset_hint": "从左侧文件树中选择一个文件打开 — 查看它的质量概况、产生和使用它的运行，以及版本历史。",
     "loading_projects": "正在加载项目…",
