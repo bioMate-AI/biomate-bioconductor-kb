@@ -38,7 +38,7 @@ async function fakeQuery(text: string, params: any[] = []): Promise<any> {
   const t = text.replace(/\s+/g, " ").trim();
   queries.push({ t, p: params });
   if (/FROM project_members WHERE project_id/.test(t)) return { rows: [] };
-  if (/SELECT s3_key, name, source FROM project_files WHERE id = \$1 AND project_id = \$2/.test(t)) {
+  if (/SELECT s3_key, name, source, version_no FROM project_files WHERE id::text = \$1 AND project_id::text = \$2/.test(t)) {
     return { rows: fileRows.filter((r) => r.id === params[0] && r.project_id === params[1]) };
   }
   if (/^SELECT name, (s3_key, )?source FROM project_files WHERE project_id::text = \$1/.test(t)) {
@@ -77,12 +77,12 @@ beforeAll(async () => {
 afterAll(() => server?.close());
 
 const PAIRS = [
-  { id: "a", project_id: "p1", name: "pairs/S1_R1.fastq.gz", s3_key: "projects/p1/inputs/pairs/S1_R1.fastq.gz", source: "upload" },
-  { id: "b", project_id: "p1", name: "pairs/S1_R2.fastq.gz", s3_key: "projects/p1/inputs/pairs/S1_R2.fastq.gz", source: "upload" },
-  { id: "c", project_id: "p1", name: "pairs/S2_R1.fastq.gz", s3_key: "projects/p1/inputs/pairs/S2_R1.fastq.gz", source: "upload" },
-  { id: "d", project_id: "p1", name: "pairs_x/other.csv", s3_key: "projects/p1/inputs/pairs_x/other.csv", source: "upload" },
-  { id: "e", project_id: "p1", name: "pairs/qc.html", s3_key: "projects/p1/outputs/qc.html", source: "run_output" },
-  { id: "f", project_id: "p1", name: "top.csv", s3_key: "projects/p1/inputs/top.csv", source: "upload" },
+  { id: "aaaaaaaa-0000-4000-8000-000000000000", project_id: "11111111-1111-4111-8111-111111111111", name: "pairs/S1_R1.fastq.gz", s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S1_R1.fastq.gz", source: "upload" },
+  { id: "bbbbbbbb-0000-4000-8000-000000000000", project_id: "11111111-1111-4111-8111-111111111111", name: "pairs/S1_R2.fastq.gz", s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S1_R2.fastq.gz", source: "upload" },
+  { id: "cccccccc-0000-4000-8000-000000000000", project_id: "11111111-1111-4111-8111-111111111111", name: "pairs/S2_R1.fastq.gz", s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S2_R1.fastq.gz", source: "upload" },
+  { id: "dddddddd-0000-4000-8000-000000000000", project_id: "11111111-1111-4111-8111-111111111111", name: "pairs_x/other.csv", s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs_x/other.csv", source: "upload" },
+  { id: "eeeeeeee-0000-4000-8000-000000000000", project_id: "11111111-1111-4111-8111-111111111111", name: "pairs/qc.html", s3_key: "projects/11111111-1111-4111-8111-111111111111/outputs/qc.html", source: "run_output" },
+  { id: "ffffffff-0000-4000-8000-000000000000", project_id: "11111111-1111-4111-8111-111111111111", name: "top.csv", s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/top.csv", source: "upload" },
 ];
 const PROFILE = {
   path: "pairs", kind: "fastq_set", fileCount: 3, rollup: [{ format: "fastq", label: "FASTQ", count: 3, pairs: 1 }],
@@ -98,7 +98,7 @@ beforeEach(() => {
   queries.length = 0;
   fileRows = PAIRS.map((r) => ({ ...r }));
   currentUser = { id: "owner-1" };
-  getProject.mockResolvedValue({ id: "p1", userId: "owner-1" });
+  getProject.mockResolvedValue({ id: "11111111-1111-4111-8111-111111111111", userId: "owner-1" });
   galaxyFetch.mockResolvedValue(ok(PROFILE));
 });
 
@@ -126,7 +126,7 @@ describe("project-folders helpers", () => {
 
 describe("GET /api/projects/:id/folders/profile", () => {
   it("sends the folder's input files (DB keys) to the backend and returns the profile without keys", async () => {
-    const r = await httpFetch(`${base}/api/projects/p1/folders/profile?path=pairs`);
+    const r = await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=pairs`);
     expect(r.status).toBe(200);
     const body = await r.json();
     expect(body.kind).toBe("fastq_set");
@@ -135,18 +135,18 @@ describe("GET /api/projects/:id/folders/profile", () => {
     expect(JSON.parse(init.body)).toEqual({
       path: "pairs",
       files: [
-        { name: "pairs/S1_R1.fastq.gz", datasetRef: "projects/p1/inputs/pairs/S1_R1.fastq.gz" },
-        { name: "pairs/S1_R2.fastq.gz", datasetRef: "projects/p1/inputs/pairs/S1_R2.fastq.gz" },
-        { name: "pairs/S2_R1.fastq.gz", datasetRef: "projects/p1/inputs/pairs/S2_R1.fastq.gz" },
+        { name: "pairs/S1_R1.fastq.gz", datasetRef: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S1_R1.fastq.gz" },
+        { name: "pairs/S1_R2.fastq.gz", datasetRef: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S1_R2.fastq.gz" },
+        { name: "pairs/S2_R1.fastq.gz", datasetRef: "projects/11111111-1111-4111-8111-111111111111/inputs/pairs/S2_R1.fastq.gz" },
       ],
     });
-    expect(JSON.stringify(body)).not.toContain("projects/p1/");
+    expect(JSON.stringify(body)).not.toContain("projects/11111111-1111-4111-8111-111111111111/");
     // The folder query is a LIKE on the escaped prefix ("pairs_x" is not under "pairs").
     expect(queries.some((q) => /name LIKE \$2 ESCAPE/.test(q.t) && q.p[1] === "pairs/%")).toBe(true);
   });
 
   it("downloads the samplesheet CSV as an attachment", async () => {
-    const r = await httpFetch(`${base}/api/projects/p1/folders/profile?path=inputs/pairs&download=samplesheet`);
+    const r = await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=inputs/pairs&download=samplesheet`);
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type")).toMatch(/^text\/csv/);
     expect(r.headers.get("content-disposition")).toBe('attachment; filename="pairs_samplesheet.csv"');
@@ -156,25 +156,25 @@ describe("GET /api/projects/:id/folders/profile", () => {
 
   it("404 no_samplesheet for a folder without FASTQs; 404 for an unknown folder; 400 for traversal", async () => {
     galaxyFetch.mockResolvedValueOnce(ok({ ...PROFILE, kind: "mixed", samplesheet: undefined }));
-    expect((await httpFetch(`${base}/api/projects/p1/folders/profile?path=pairs_x&download=samplesheet`)).status).toBe(404);
-    expect((await httpFetch(`${base}/api/projects/p1/folders/profile?path=nope`)).status).toBe(404);
-    expect((await httpFetch(`${base}/api/projects/p1/folders/profile?path=../x`)).status).toBe(400);
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=pairs_x&download=samplesheet`)).status).toBe(404);
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=nope`)).status).toBe(404);
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=../x`)).status).toBe(400);
   });
 
   it("404s for a non-member without touching the backend; 502 when the backend fails", async () => {
     currentUser = { id: "stranger" };
-    expect((await httpFetch(`${base}/api/projects/p1/folders/profile?path=pairs`)).status).toBe(404);
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=pairs`)).status).toBe(404);
     expect(galaxyFetch).not.toHaveBeenCalled();
     currentUser = { id: "owner-1" };
     galaxyFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
-    expect((await httpFetch(`${base}/api/projects/p1/folders/profile?path=pairs`)).status).toBe(502);
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/profile?path=pairs`)).status).toBe(502);
   });
 });
 
 describe("GET /files/:fileId/rows — folder context", () => {
   it("forwards the file's folder siblings (input files of the same directory only)", async () => {
     galaxyFetch.mockResolvedValueOnce(ok({ kind: "table", tabular: true, columns: ["a"], rows: [], offset: 0, limit: 200, totalRows: 0 }));
-    await httpFetch(`${base}/api/projects/p1/files/a/rows`);
+    await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/files/aaaaaaaa-0000-4000-8000-000000000000/rows`);
     const sent = JSON.parse(galaxyFetch.mock.calls[0][2].body);
     expect(sent.folderContext).toEqual({ name: "pairs/S1_R1.fastq.gz", siblings: ["pairs/S1_R2.fastq.gz", "pairs/S2_R1.fastq.gz"] });
   });
@@ -183,8 +183,8 @@ describe("GET /files/:fileId/rows — folder context", () => {
 describe("routes.ts — /api/perception/* folder context (source contract)", () => {
   const src = fs.readFileSync(path.join(HERE, "routes.ts"), "utf8");
   it("attaches the server-side folderContext after the dataset access check, before the proxy", () => {
-    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
-    expect(src).toMatch(/app\.all\("\/api\/perception\/\*", authenticateToken, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
+    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
+    expect(src).toMatch(/app\.all\("\/api\/perception\/\*", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
   });
   it("never forwards a client-supplied folderContext", () => {
     const body = src.slice(src.indexOf("const attachFolderContext"), src.indexOf('app.post("/api/perception/profile"'));
