@@ -193,6 +193,13 @@ export function AppSidebar({
   // Projects — fetched from API (not localStorage) so they survive page reload
   const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string; userId?: string }>>([]);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
+  // Per-project chat lists the user folded (founder: "make chat list foldable"); remembered locally.
+  const [collapsedChatLists, setCollapsedChatLists] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('biomate.sidebar.foldedChatLists') || '[]')); } catch { return new Set(); }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('biomate.sidebar.foldedChatLists', JSON.stringify(Array.from(collapsedChatLists))); } catch { /* private mode */ }
+  }, [collapsedChatLists]);
   useEffect(() => {
     let cancelled = false;
     const ids = Array.from(expandedProjectIds);
@@ -426,10 +433,24 @@ export function AppSidebar({
                     </button>
                     </HintTip>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
-                    {projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).map(chat => <HintTip key={chat.session_id} hint={chat.title}><button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button></HintTip>)}
                     <HintTip hint={t('hint.nav.project_new_chat')}>
                     <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 'var(--fs-meta)', width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
                     </HintTip>
+                    {/* New chat sits ABOVE the chat list (founder 2026-11-12: at the bottom of a long list it was hard to find); the list folds. */}
+                    {projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).length > 0 && (
+                      <button
+                        type="button"
+                        className="side-link"
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 'var(--fs-micro)', width: '100%', textAlign: 'left', color: 'var(--bm-text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                        aria-expanded={!collapsedChatLists.has(proj.id)}
+                        onClick={() => setCollapsedChatLists(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; })}
+                        data-testid={`project-chats-toggle-${proj.id}`}
+                      >
+                        {collapsedChatLists.has(proj.id) ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+                        {t('nav.project_chats', { n: projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).length })}
+                      </button>
+                    )}
+                    {!collapsedChatLists.has(proj.id) && projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).map(chat => <HintTip key={chat.session_id} hint={chat.title}><button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button></HintTip>)}
                   </div>
                 )}
               </div>
@@ -451,8 +472,17 @@ export function AppSidebar({
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {recentChats.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
-            {recentChats.filter(chat => !deletedChatIds.has(chat.id) && !filedInListedProject.has(chat.id) && !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
+            <button
+              type="button"
+              onClick={() => setCollapsedChatLists(prev => { const n = new Set(prev); if (n.has('__other__')) n.delete('__other__'); else n.add('__other__'); return n; })}
+              aria-expanded={!collapsedChatLists.has('__other__')}
+              data-testid="other-chats-toggle"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}
+            >
+              {collapsedChatLists.has('__other__') ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {t('nav.other_chats')}
+            </button>
+            {!collapsedChatLists.has('__other__') && recentChats.filter(chat => !deletedChatIds.has(chat.id) && !filedInListedProject.has(chat.id) && !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id
               const isConfirming = confirmingDeleteChatId === chat.id

@@ -43,7 +43,9 @@ import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-ob
 import { FolderProfileView } from "@/components/datasets/folder-profile-view"
 import { downloadProjectFile } from "@/components/datasets/datasets-api"
 import { followFileList, followFolderRename } from "@/components/datasets/open-object-follow"
+import { PaneResizeHandle, useTreeWidth } from "@/components/datasets/pane-resize-handle"
 import { t, tOr, locale } from "@/lib/i18n"
+import { toDatasetRef } from "@/components/datasets/to-dataset-ref"
 
 /** The detail pane sits under the file list (stacked panes), not beside it. */
 export function isStackedBelow(list: HTMLElement, detail: HTMLElement): boolean {
@@ -61,26 +63,6 @@ export function runQcChatUrl(projectId: string | null, fileId: string, fileName:
   q.set("draft", t("dataset_obj.qc_request", { name: fileName.split("/").pop() || fileName }))
   q.set("send", "1")
   return `/?${q.toString()}`
-}
-
-function toDatasetRef(f: ProjectFile): DatasetRef {
-  return {
-    id: f.id,
-    name: f.name,
-    ref: f.s3_key || null,
-    // project_files.size is BIGINT → node-postgres returns it as a STRING, so
-    // coerce to a real number here (the DatasetRef.size type expects one, and a
-    // string silently failed the header size-badge's typeof guard).
-    size: f.size == null ? null : Number(f.size),
-    contentType: f.content_type || null,
-    source: f.source,
-    accession: (f.input_context?.accession as string | undefined) ?? null,
-    runId: f.run_id,
-    workflowName: f.workflow_name,
-    stepName: f.step_name,
-    createdAt: f.created_at,
-    contentHash: f.content_hash ?? null,
-  }
 }
 
 // Map a project lifecycle status to a dot colour. Purely presentational —
@@ -194,6 +176,8 @@ export default function DataHubPage() {
   // field the tree already fetched — no extra round-trip). Kept in memory,
   // mirroring the reference which holds the selection in component state.
   const [selected, setSelected] = useState<ProjectFile | null>(null)
+  // File-tree width in the two-pane layout: user-resizable, remembered (pane-resize-handle).
+  const [treeWidth, setTreeWidth] = useTreeWidth()
   // The opened file / folder: when the panes are stacked (a narrow workspace), the object opens
   // BELOW the whole file list — bring it into view, or a tap on a file seems to do nothing.
   const listRef = useRef<HTMLDivElement>(null)
@@ -219,6 +203,8 @@ export default function DataHubPage() {
   // to the same object here — the "one object everywhere" handle.
   const search = useSearch()
   const deepLinkFileId = new URLSearchParams(search).get("file") || undefined
+  // "Open folder" from a chat's generated-files list: reveal that folder in the tree.
+  const deepLinkFolder = new URLSearchParams(search).get("folder") || undefined
 
   // Clear the selection when the active project changes — a file id from one
   // project is meaningless in another.
@@ -287,8 +273,9 @@ export default function DataHubPage() {
       ) : (
         // Stack by available workspace width, including sidebar/panel resizing.
         // The reference two-pane layout remains when both panes fit.
-        <div className="data-hub-panes" data-testid="data-hub-panes">
+        <div className="data-hub-panes" data-testid="data-hub-panes" style={{ ["--data-hub-tree-w" as any]: `${treeWidth}px` }}>
           <div className="data-hub-file-list min-w-0" ref={listRef}>
+            <PaneResizeHandle width={treeWidth} onWidth={setTreeWidth} />
             <ProjectFileTree
               projectId={activeProjectId}
               onOpenDataset={(f) => { setSelectedFolder(null); setDeletedName(null); setSelected(f) }}
@@ -297,6 +284,7 @@ export default function DataHubPage() {
               onFolderRenamed={(from, to) => setSelectedFolder((p) => (p === null ? p : followFolderRename(p, from, to)))}
               selectedFolder={selectedFolder}
               selectFileId={deepLinkFileId}
+              revealFolder={deepLinkFolder}
               reloadKey={treeReload}
               canEdit
             />

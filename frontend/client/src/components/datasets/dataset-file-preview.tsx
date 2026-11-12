@@ -1,10 +1,10 @@
 import { useEffect, useState, lazy, Suspense } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import { FileContentView } from "../file-content-view"
 import { t } from "@/lib/i18n"
 import { fileDownloadUrl, filePreviewPngUrl } from "./datasets-api"
 import { isTiff, parseTiffPreviewInfo, tiffCaption, type TiffPreviewInfo } from "./tiff-preview-info"
+import { MarkdownReport } from "./markdown-report"
+import { HtmlReport } from "./html-report"
 import { fileExt, type ViewKind } from "./dataset-view-model"
 import type { StructureEvidence } from "@/components/data-perception"
 import { Button } from "@/components/ui/button"
@@ -140,7 +140,7 @@ async function readGzipPrefix(url: string, signal: AbortSignal): Promise<{ text:
 /** Dispatch already-fetched text to the matching rich viewer by file type, with
  *  FileContentView (structured table / inert text) as the fallback. HTML stays
  *  inert (never an iframe) — same security choice this component has always made. */
-function renderTextContent(fileName: string, text: string, maxHClass: string, dataKind?: string, structure?: StructureEvidence | null) {
+function renderTextContent(fileName: string, text: string, maxHClass: string, dataKind?: string, structure?: StructureEvidence | null, projectId?: string) {
   const name = viewerName(fileName)
   const ext = (name.split(".").pop() || "").toLowerCase()
   const byName = resolveViewer(ext)
@@ -150,19 +150,10 @@ function renderTextContent(fileName: string, text: string, maxHClass: string, da
   if (dataKind === "reads" || dataKind === "sequences" || (!dataKind && byName === "sequence")) return <InlineSequenceViewer text={text} />
   if (dataKind === "intervals" || dataKind === "annotation" || (!dataKind && byName === "annotation"))
     return <InlineAnnotationViewer text={text} ext={byName === "annotation" ? ext : dataKind === "annotation" ? "gff" : "bed"} />
-  if (MARKDOWN.test(name)) return <MarkdownDocument text={text} />
+  if (MARKDOWN.test(name)) return <MarkdownReport text={text} projectId={projectId} reportName={fileName} />
+  if (/\.html?$/i.test(name)) return <HtmlReport text={text} projectId={projectId} reportName={fileName} maxHClass={maxHClass} />
   // table (csv/tsv/json/star) → structured grid; html/text/other → inert text.
   return <FileContentView name={name} text={text} maxHClass={maxHClass} />
-}
-
-/** A Markdown document, rendered. Raw HTML in the file is NOT interpreted (no rehype-raw): it
- *  shows as text, so a document can never run script or restyle the app. */
-function MarkdownDocument({ text }: { text: string }) {
-  return (
-    <div className="prose prose-sm dark:prose-invert max-w-none max-h-[60vh] overflow-auto rounded-md border p-3" data-testid="dataset-markdown">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-    </div>
-  )
 }
 
 /** An image the browser cannot decode (a file named .png that holds something else) says so,
@@ -345,7 +336,7 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
       </p>
     )}
     {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
-    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind, structure) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
+    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind, structure, projectId) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
     {state.truncated && <p className="text-muted-foreground">{t(state.compressed ? "dataset_obj.preview_truncated_gz" : "dataset_obj.preview_truncated")}</p>}
   </div>
   if (state.png && mode === "tiff") return (

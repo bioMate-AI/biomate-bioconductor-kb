@@ -152,3 +152,29 @@ describe('GalaxyAssistant.toolResultContent — on-demand image view by id', () 
     expect(JSON.parse(content as string)).toEqual(out);
   });
 });
+
+describe('project-file images reach the model (live dev 2026-11-12: "这张图在说什么" → "无法查看")', () => {
+  const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+  it('the Data-page picker chip "[BioMate dataset: …]" resolves through the project reader', async () => {
+    const reads: string[] = [];
+    const r = await _buildImageContentBlocks(
+      '这张图在说什么 [BioMate dataset: 0.jpeg (id: b9ce582c-fded-4db5-838f-bdd96820f72c)]',
+      () => undefined,
+      async (id) => { reads.push(id); return PNG; },
+    );
+    expect(reads).toEqual(['b9ce582c-fded-4db5-838f-bdd96820f72c']);
+    expect(r.attached).toEqual(['0.jpeg']);
+    expect(r.blocks[0].source.media_type).toBe('image/jpeg');
+    expect(r.blocks[0].source.data).toBe(PNG.toString('base64'));
+  });
+  it('an oversized project image is reported, not sent', async () => {
+    const big = Buffer.alloc(4 * 1024 * 1024 + 10);
+    const r = await _buildImageContentBlocks('[BioMate dataset: scan.png (id: p1)]', () => undefined, async () => big);
+    expect(r.blocks).toHaveLength(0);
+    expect(r.skipped[0].name).toBe('scan.png');
+  });
+  it('without a reader, an unknown project id is simply not attached', async () => {
+    const r = await _buildImageContentBlocks('[BioMate dataset: a.png (id: nope)]', () => undefined);
+    expect(r.blocks).toHaveLength(0);
+  });
+});

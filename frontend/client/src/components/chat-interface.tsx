@@ -883,6 +883,8 @@ export function ChatInterface({
           context: {
             previousMessages,
             uiLanguage: locale,
+            // The user's IANA time zone — names the chat's output folder by local time.
+            timeZone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return undefined } })(),
             // Include session ID for memory integration AND server-side
             // assistant-message persistence (see docs/20260529_CHAT_STREAM_PERSISTENCE_GAP.md).
             // The server UPSERTs by assistantMessageId so client + server writes
@@ -2121,7 +2123,7 @@ export function ChatInterface({
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}
                   currentExecutionRun={scopedRun}
-                  isStreaming={(isTyping || isTypingLocal) && message.id === lastMsg?.id && message.role === "assistant"}
+                  isStreaming={(isTyping || isTypingLocal || sessionTurnActive) && message.id === lastMsg?.id && message.role === "assistant"}
                   isLatestAssistantMessage={message.id === latestAssistantMessageId}
                   isRunAnchorFocused={focusedAnchorMessageId === message.id}
                   isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
