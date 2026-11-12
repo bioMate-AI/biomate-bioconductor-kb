@@ -554,7 +554,13 @@
     "import_url_title": "Import a file from a URL into this project",
     "import_url_placeholder": "Paste a file URL (https://…)",
     "err_import_url": "Could not import from that URL",
-    "analysis_outputs": "Analysis outputs"
+    "analysis_outputs": "Analysis outputs",
+    "rename": "Rename / move",
+    "rename_folder": "Rename / move folder",
+    "rename_label": "New name",
+    "rename_hint": "Enter to save, Esc to cancel. Use “/” to move into a folder.",
+    "rename_conflict": "A file or folder with that name already exists in this project.",
+    "rename_invalid": "That name isn’t allowed — remove “..”, control characters or overly long folder names."
   },
   "dataset_obj": {
     "quality_good": "Good",

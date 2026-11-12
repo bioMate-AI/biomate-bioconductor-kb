@@ -560,7 +560,13 @@
     "import_url_title": "从网址导入文件到本项目",
     "import_url_placeholder": "粘贴文件网址（https://…）",
     "err_import_url": "无法从该网址导入",
-    "analysis_outputs": "分析结果"
+    "analysis_outputs": "分析结果",
+    "rename": "重命名 / 移动",
+    "rename_folder": "重命名 / 移动文件夹",
+    "rename_label": "新名称",
+    "rename_hint": "按 Enter 保存，按 Esc 取消；用“/”可移入文件夹。",
+    "rename_conflict": "项目中已有同名的文件或文件夹。",
+    "rename_invalid": "名称无效：请去掉“..”、控制字符或过长的文件夹名。"
   },
   "dataset_obj": {
     "quality_good": "良好",
