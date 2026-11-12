@@ -76,3 +76,23 @@ build-info's. Never kill a running sync (orphans the remote lease).
 - Translation cache is per-process; a persistent cache (DB/Redis) would avoid
   re-translating after each deploy.
 - Workflow name (`nf-core/differentialabundance`) intentionally stays an identifier.
+
+## Round 2 — other panel surfaces (deployed `d6213398`, live-verified)
+
+Live zh capture of the chat card, settings tab and full step view found:
+
+| Surface | Before (live) | After (live) |
+|---|---|---|
+| Settings tab inputs | "无必需的数据输入 · 无需上传数据" although samplesheet + matrix were bound — schema declares `required: []`, classifier dropped them | **已映射 3 个**: 样本表 / 矩阵 / 对比组 → filenames (`isBoundUserDataParam`: bound canonical-named or stored-file params count; unbound ones are not invented) |
+| Settings row tooltip | raw storage URI | dataset name / filename |
+| Run-button references | reply "点击Run按钮", hint “确认并运行工作流” — no such button | `server/ui-labels.ts runButtonLabel()` reads the label from the client locale bundles; prompt, Step 6r message and hint use it |
+| Full step view | "Download samplesheet and count matrix from S3" · PENDING | 获取样本表与计数矩阵 · 待运行 (human name, process id as tooltip) |
+| Label cache | in-memory only | migration `0023_label_translations` (keyed by prompt_version); confirmed rows on dev via read-only query |
+
+Automated live check (`frontend/_e2e_surfaces.mjs`, scratch): settings summary, no
+"no inputs" claim, no wrong button name, step-detail status localized, and a leak
+scan over visible text **and tooltips** on every surface — all clean. Full vitest
+3152 passed / 0 failed.
+
+Dev deploy note: dev runs whichever branch synced last (ancestry-gated). This
+round's sync merged `63ecd58f` (deploy/datasets-20261111) as the gate required.
