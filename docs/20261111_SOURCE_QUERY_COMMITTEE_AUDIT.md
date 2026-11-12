@@ -99,3 +99,34 @@ whole words); the right fix is an **LLM intent gate** in front of `detect_facets
 keyword tweaks — aligns with the standing "infer solution-type, not keywords" direction.
 Also deferred: `run_in_executor` cannot cancel the blocking thread on timeout (inherent;
 per-entity budget bounds it); non-English questions get no facet routing (rule-based design).
+
+---
+
+## Dev-deployed + live-verified (2026-11-12, HEAD b88dda44e3)
+
+Synced to dev via `scripts/sync_to_dev.sh` (result=healthy; workflow-gen + intent-driven
+DB-search-routing smokes passed; ledger recorded b88dda44). Live `POST /api/ai_assistant/
+research_query` on https://dev-public.biomate.ai:
+
+- **PCSK9** (gene-constraint + disease-association) → the grounded answer QUOTES the exact
+  values: *"gnomAD… PCSK9… pLI 2.765e-18 and a LOEUF of 1.1441346736692857"* and *"Open
+  Targets identifies familial hypercholesterolemia… association score of 0.856."* The
+  DB_GROUNDED_NOTICE fires; evidence boundary stated. This confirms the whole chain live:
+  gnomAD facet selected (c680707650), OT+gnomAD rows survived the two-tier dedup, the
+  grounding gate fired on substantive facts, and the directive made the model QUOTE the
+  values instead of reverting to parametric hedging — the "famous entity → general
+  knowledge" caveat is RESOLVED.
+- **ABL1** (SAR/tractability/structure) → Pharos **Tclin** (new fetcher), UniProt **P00519**
+  + PDB **1AB2** + AlphaFold (the F1 O/P/Q accession fix — P00519 structures now reachable),
+  Open Targets CML association. A focused affinity query cites **BindingDB Kd 0.016 nM** for
+  ABL1/P00519 with SMILES (new fetcher, live). The **anti-fabrication guard (#2) works**:
+  when ChEMBL values were absent (EBI transiently flaky), the answer said so plainly instead
+  of inventing IC50/Ki numbers.
+
+### Minor follow-ups (not blockers)
+- In a BROAD multi-source ABL1 query, BindingDB's affinity rows can be crowded out of the
+  top-8 merged records fed to synthesis (round-robin + `merged[:8]` cap); a focused query
+  surfaces them. Consider weighting bindingdb/chembl higher within the bioactivity facet
+  merge, or raising the synthesis cap for bioactivity questions.
+- ChEMBL/EBI intermittent 5xx (seen locally + on dev) — external reliability, not our code;
+  the fetcher is correct and the failure is surfaced (not "ok, 0 results").
