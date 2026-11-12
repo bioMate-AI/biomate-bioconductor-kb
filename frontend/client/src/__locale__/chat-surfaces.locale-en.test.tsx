@@ -16,7 +16,7 @@ describe("chat surfaces — en locale", () => {
     const cjk = text.match(/[^\n]*[㐀-鿿　-〿＀-￯][^\n]*/g) || []
     expect(cjk).toEqual([])
     // Spot-check the surfaces actually rendered.
-    for (const s of ["1 sources", "Searched · 4 of 24 kept", "Read", "Running", "Open", "New Chat", "What went wrong?", "What are you trying to do?"]) {
+    for (const s of ["1 sources", "Searched · 4 of 24 kept", "Read", "Running", "Open", "New Chat", "What went wrong?", "What would you like to work on today?"]) {
       expect(text).toContain(s)
     }
   }, 60_000)

@@ -39,7 +39,7 @@ describe("<ColdStartDashboard>", () => {
     expect(ids).toEqual(landingModules().map((m) => m.id));
     expect(ids).toContain("design");
     expect(screen.getByText("Molecule design & generate")).toBeInTheDocument();
-    expect(screen.getByText("What are you trying to do?")).toBeInTheDocument();
+    expect(screen.getByText("What would you like to work on today?")).toBeInTheDocument();
   });
 
   it("every card label, track, example and shape has display copy in BOTH locale bundles", () => {
@@ -80,7 +80,7 @@ describe("<ColdStartDashboard>", () => {
 
   it("shows the cold-start prompt heading but NOT a duplicate goal intent bar", () => {
     render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
-    expect(screen.getByText("What are you trying to do?")).toBeInTheDocument();
+    expect(screen.getByText("What would you like to work on today?")).toBeInTheDocument();
     // The "describe your goal" intent bar was removed 2026-11-09 — it duplicated the
     // always-present bottom composer (same onSeed→composer path). The cold-start now
     // guides via the module cards/example rows and leaves typing to the one composer.
