@@ -96,3 +96,50 @@ scan over visible text **and tooltips** on every surface — all clean. Full vit
 
 Dev deploy note: dev runs whichever branch synced last (ancestry-gated). This
 round's sync merged `63ecd58f` (deploy/datasets-20261111) as the gate required.
+
+## Round 3 — hover hints + chat tool cards (2026-11-12)
+
+### Hover hints (`6078147d50`)
+
+Founder: "add hint text hover for each element in the side bar, each tab in each panel".
+`client/src/components/ui/hint-tip.tsx`: `HintTip` (plain elements) and `HintTabsTrigger`
+(Radix tabs), one provider at the app root (`HintScope`, 400 ms delay, instant on the next
+item). Strings under `hint.*` (zh + en). Covered: every sidebar item and the collapsed rail,
+workflow-panel / after-run / Models / model-object / Settings / Workflows-library / dataset /
+project / Connectors tabs.
+
+Committee review (3 reviewers: Radix/a11y, copy accuracy vs code, coverage/tests):
+
+| Finding | Fix |
+|---|---|
+| TabsTrigger inside TooltipTrigger: tooltip's `data-state="closed"` overwrote `active` — selected tab lost its styling (Settings, Models, model tabs) | `HintTabsTrigger` composes tabs-outside / tooltip-inside; test asserts `data-state` |
+| 9 hints promised things the code does not do (model "compare any two" versions — single version, no compare button; "Used by" = registering campaigns; evidence always not-evaluated today; chat dot = roll-up, not last run; after-run summary has links, not previews; …) | rewritten against the code, zh terms aligned (项目指令, 候选提案) |
+| e2e SB-12 read the dot's `title` | dot carries `data-status`; hint moved to the row (full title + status) |
+| hard-coded 系统管理 / "shared" / "Run History" / "My Imports"; rail English titles | localized; rail gets short aria-labels |
+
+Not hinted (judged self-explanatory or low reach): empty-chat track tabs (examples visible),
+trajectory filter, step-detail raw/rendered toggle, chat-composer buttons (still native
+localized titles).
+
+### Chat tool cards + truncated tool turn (`86fedca8f9`)
+
+Three founder screenshots of an image-QC chat:
+
+1. `Read File {"galaxy_dataset_id":"<uuid>"}` — raw tool input shown. Server now attaches a
+   user-facing `display` to each `tool_call` (`shared/tool-call-display.ts`: dataset id → its
+   name, other ids dropped, storage path → file name); the card renders it, never the JSON.
+   Card labels localized.
+2. Collapsed code preview cut its second line in half — `max-h-12` clip + leading blank line.
+   Now two whole lines + "+N more lines".
+3. Answer was only "现在让我生成可视化的 QC 报告：". **Dev logs** (05:10–05:25 UTC,
+   z-ai/glm-5.2 via OpenRouter): tool turn 5 ended `stop_reason: 'max_tokens'`; the loop took
+   the fragment as the final answer and the plotting script never ran. Fix: a `max_tokens` turn
+   keeps its text, drops the unrun tool_use, instructs the model to continue with a shorter
+   script; at the tool budget the final-answer turn fires after `max_tokens` too.
+   **Root cause of the truncation itself** — reasoning tokens counted against `max_tokens:
+   4096` on OpenRouter reasoning models — is §2 above (fix deferred by the founder; the
+   OpenRouter-vision lane owns `local-llm.ts`).
+
+Verification: tsc clean; full vitest 3239 passed / 1 failed (`pdf-canvas-viewer`, unchanged
+file, passes in isolation — load flake; the previous run's single flake was a different
+file). Live verification on dev pending the deploy lane.
