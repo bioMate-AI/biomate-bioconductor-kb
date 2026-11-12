@@ -20,6 +20,7 @@ import { registerVoiceRoutes } from "./voice-routes";
 import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { redactStoragePaths } from "./execution-integrity";
+import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
 import { readConnectorSession } from "./connector-session";
@@ -14170,6 +14171,21 @@ Rules:
       return res.json({ title });
     } catch {
       return res.json({ title: fallbackTitle(text) });
+    }
+  });
+
+  // ── Catalog label translation (zh UI) ────────────────────────────────────
+  // Backend-sourced English labels (phase / step / parameter names from .nf
+  // annotations) shown in the zh UI. One batched LLM call, cached per unique
+  // string; any failure returns the source. See server/label-translation.ts.
+  app.post("/api/i18n/labels", optionalAuth, express.json(), async (req, res) => {
+    const lang = req.body?.lang;
+    const strings = Array.isArray(req.body?.strings) ? req.body.strings.filter((s: unknown) => typeof s === 'string') : [];
+    if (lang !== 'zh' || strings.length === 0) return res.json({ translations: {} });
+    try {
+      return res.json({ translations: await translateLabels(strings.slice(0, MAX_LABELS), 'zh') });
+    } catch {
+      return res.json({ translations: {} });
     }
   });
 
