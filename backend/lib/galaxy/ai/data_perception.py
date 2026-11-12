@@ -267,6 +267,7 @@ _EN_TEXT: Dict[str, str] = {
     'vcf_no_variants': "No variant records were found (header only).",
     'no_columns': "No columns could be parsed from the table.",
     'header_only': "A header is present but there are no data rows.",
+    'constant_columns': "Constant columns (the same value in every row): {{columns}}.",
     'near_constant': "Near-constant columns (over {{pct}}% a single value): {{columns}}.",
     'high_missing': "Columns with at least {{pct}}% missing values: {{columns}}.",
     'label_spellings': "Two spellings of the same label: “{{a}}” and “{{b}}”.",
@@ -322,7 +323,7 @@ _EN_TEXT: Dict[str, str] = {
     'alignment_not_coordinate_sorted': "Sort order is {{order_words}}, not by coordinate: sort the file before indexing or variant calling.",
     'alignment_read_groups': "Read groups: {{count}}; samples: {{samples}}.",
     'alignment_no_read_groups': "No read groups (@RG) in the header: GATK and most variant callers require them.",
-    'structure_chains': "Chains ({{count}}): {{chains}}.",
+    'structure_chains': "Chain IDs: {{chains}}.",
     'spreadsheet_sheets': "Sheets ({{count}}): {{sheets}}.",
     'spreadsheet_convert': "Spreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.",
     'fasta_gc': "GC content {{pct}}%.",
@@ -362,7 +363,7 @@ _EN_TEXT: Dict[str, str] = {
     'anndata_layers': "Layers stored beside X ({{count}}): {{layers}}.",
     'anndata_no_layers': "No layers: the expression values are in X only.",
     'anndata_components': "Stored components ({{count}}): {{components}}.",
-    'label_few_rows': "Column “{{column}}” looks like a group column (e.g. condition), but with {{rows}} rows (at least {{min_rows}} needed) group sizes and columns that reveal the group were not checked.",
+    'label_few_rows': "Column “{{column}}” looks like a group column (e.g. condition), but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
     'label_no_features': "Column “{{column}}” looks like a group column, but the other columns are identifiers or annotation, so there is nothing to compare between the groups.",
     'table_clean_label_unchecked': "Rows: {{rows}} · columns: {{cols}}; no constant columns or missing-value problems.",
     'duplicate_rows': "Exact duplicate rows: {{count}}.",
@@ -3803,6 +3804,10 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     # --- constant / high-missingness columns (numeric-first signal) ---
     # Annotation columns of a recognised layout (featureCounts' Chr / Strand / Length …) are
     # constant or sparse BY DESIGN on many inputs (one chromosome, one strand): not a finding.
+    # A column with ONE value in every row is constant, stated as such; "over 99% a single value"
+    # is the near-constant rule. Each kind is flagged (watch) or, when expected, noted (info).
+    constant: List[str] = []
+    expected_full: List[str] = []
     near_constant: List[str] = []
     expected_constant: List[str] = []
     high_missing: List[str] = []
@@ -3817,18 +3822,27 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         if non_missing:
             top = Counter(non_missing).most_common(1)[0][1]
             if top / len(non_missing) >= NEAR_CONSTANT_FRAC:
+                full = top == len(non_missing)
                 if _near_constant_expected(col, n_rows, records=reader is not None):
-                    expected_constant.append(header[j])
+                    (expected_full if full else expected_constant).append(header[j])
                 else:
-                    near_constant.append(header[j])
+                    (constant if full else near_constant).append(header[j])
+    why_expected = "few_rows" if n_rows < NEAR_CONSTANT_MIN_ROWS else "record_metadata"
+    flagged = bool(constant or near_constant)
+    if constant:
+        emit(p, "signal", "constant_columns", "", "watch", count=len(constant), columns=_named(constant))
+    elif expected_full and not flagged:
+        # Stated once, as information (below the row floor, or per-record provenance) — and not
+        # beside a flagged column, where it would read as one more problem.
+        emit(p, "signal", "constant_columns", "", count=len(expected_full), columns=_named(expected_full),
+             expected=why_expected)
     if near_constant:
         emit(p, "signal", "near_constant", "", "watch", count=len(near_constant), columns=_named(near_constant),
              pct=int(NEAR_CONSTANT_FRAC * 100))
-    elif expected_constant:
+    elif expected_constant and not flagged:
         # Stated once, as information: below the row floor, or per-record provenance.
         emit(p, "signal", "near_constant", "", count=len(expected_constant), columns=_named(expected_constant),
-             pct=int(NEAR_CONSTANT_FRAC * 100),
-             expected="few_rows" if n_rows < NEAR_CONSTANT_MIN_ROWS else "record_metadata")
+             pct=int(NEAR_CONSTANT_FRAC * 100), expected=why_expected)
     if high_missing:
         emit(p, "signal", "high_missing", "", "watch", count=len(high_missing), columns=_named(high_missing),
              pct=int(HIGH_MISSING_FRAC * 100))
@@ -3921,7 +3935,8 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         groups = _sample_name_groups(sample_cols)
         if groups:
             emit(p, "note", "sample_groups_from_names", "", groups=groups)
-    if any(f["level"] in ("watch", "blocked") or f["code"] == "near_constant" for f in p.findings):
+    if any(f["level"] in ("watch", "blocked") or f["code"] in ("near_constant", "constant_columns")
+           for f in p.findings):
         emit(p, "note", "table_summary", "", rows=total, cols=n_cols)
     elif confident:
         emit(p, "note", "table_clean", "", rows=total, cols=n_cols)

@@ -267,7 +267,7 @@ def test_w3_column_findings_carry_structured_columns(tmp):
     rows = ["id,constant,mostly_empty"] + [f"{i},x," for i in range(30)]
     prof = dp.profile_dataset(_w(tmp, "w.csv", "\n".join(rows) + "\n"))
     by = _codes(prof)
-    assert by["near_constant"]["columns"] == ["constant"], by["near_constant"]
+    assert by["constant_columns"]["columns"] == ["constant"], by["constant_columns"]
     assert by["high_missing"]["columns"] == ["mostly_empty"], by["high_missing"]
 
 

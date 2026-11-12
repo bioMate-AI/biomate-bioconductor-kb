@@ -215,7 +215,7 @@ def test_r4_header_only_one_line_one_byte(tmp):
     for name, text in (("h.tsv", "gene_id\tC1\tC2\n"), ("one.csv", "5,6,7\n"), ("x.csv", "x"), ("onerow.csv", "a,b\n1,2\n")):
         prof = _prof(_w(tmp, name, text))
         assert prof["quality"] == "watch", (name, prof)
-        assert not any(f["code"] in ("table_clean", "table_clean_unlabelled", "near_constant") for f in prof["findings"]), (name, prof)
+        assert not any(f["code"] in ("table_clean", "table_clean_unlabelled", "near_constant", "constant_columns") for f in prof["findings"]), (name, prof)
     assert _codes(_prof(_w(tmp, "h2.tsv", "gene_id\tC1\n")))["header_only"]["level"] == "watch"
     assert _prof(_w(tmp, "nl.txt", "\n\n"))["quality"] == "blocked"
 
@@ -460,7 +460,7 @@ def test_copy_no_paths_or_raw_errors_and_count_safe_text(tmp):
     assert "at least 4,000" in " ".join(fq["signalSummary"]) and "≥" not in " ".join(fq["signalSummary"]), fq
     tbl = _prof(_table(tmp, "c.csv", ["k", "const", "label"], [[i, "X", "a" if i % 2 else "b"] for i in range(200)]))
     text = " ".join(tbl["notes"] + (tbl.get("signalSummary") or []))
-    assert "(s)" not in text and "Near-constant columns" in text, text
+    assert "(s)" not in text and "Constant columns" in text, text
 
 
 def main():
