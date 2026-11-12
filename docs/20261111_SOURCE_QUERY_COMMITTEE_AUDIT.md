@@ -181,3 +181,28 @@ association" + target framing routes the chat agent to the target-ranking tool
 evidence not verified; Open Targets-primary ordering was not established." That is the
 target_id/fuse_channels engine not contributing its Open Targets channel — unrelated to the
 federated_query/research_agent source-query work; noted for whoever owns target ranking.
+
+---
+
+## Regression found post-deploy + fixed (2026-11-12, commit a90b240743)
+
+After deploying the merge-priority fix (74f790b8), a BROAD ABL1 SAR query on dev returned
+literature-only answers twice in a row — NO BindingDB/Pharos/PDB DB evidence at all (the
+focused query still surfaced BindingDB Kd 0.016 nM). Root cause = a self-inflicted regression
+from round-2:
+
+- Round-2 replaced `wait_for(gather(all-entities), 20s)` with a per-entity
+  `wait_for(federated_query, 15s)`. But `federated_query`'s OWN internal fan-out timeout is
+  also **15s** (and on expiry it returns PARTIAL results — the sources that finished). The two
+  15s timeouts TIE; when the asyncio wrapper won the race it cancelled `federated_query`
+  before it could hand back its partials → `None` → the entity's entire DB evidence was lost.
+  Intermittent (race-dependent), and worse for broad protein queries (~10 sources, a slow EBI/
+  ChEMBL/BindingDB pushes the fan-out to the 15s edge).
+- Fix: raise the per-entity wrapper to **25s** so `federated_query`'s internal 15s always
+  fires first and returns its partials; the wrapper is now only a last-resort guard against a
+  genuinely hung call. Entities run in parallel, so the larger budget adds no cross-entity
+  wall-clock. (Also note: for the common SINGLE-entity query, round-2 had silently cut the
+  budget 20s→15s; this restores comfortable headroom.)
+
+Queued for the sync window after 74's. Verify post-sync: a broad ABL1 SAR query should
+surface BindingDB/Pharos/PDB in the DB-grounded answer (not fall back to literature-only).
