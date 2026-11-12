@@ -73,7 +73,7 @@ if __name__ == "__main__":
     raise SystemExit(0 if passed == len(tests) else 1)
 
 
-# --- spatial modality + Chinese routing (SYSUCC: NPC spatial atlas, 中文 users) ---
+# --- spatial modality + Chinese routing (NPC spatial atlas, 中文 users) ---
 
 def test_spatial_modality_is_detected():
     mods = _extract_modalities("integrate spatial transcriptomics with proteomics")
@@ -103,3 +103,40 @@ def test_proteomics_metabolomics_are_first_class_layers():
     assert detect_multiomics_intent(txt) is True
     assert sorted(m.data_type for m in _extract_modalities(txt)) == ["metabolomics", "proteomics"]
     assert _infer_goal(txt) == "feature_selection"
+
+
+# ── A method the user NAMED is an instruction (dev 2026-11-11) ──────────────────────────────────
+# "Integrate a multi-omics cohort (RNA, protein, methylation) with SNF" came back as a MOFA2 card:
+# the selector reads the DATA SHAPE and nothing read the request's own method, so with no goal
+# detected the cascade fell through to its MOFA2 default.
+SNF_PROMPT = ("Integrate the attached multi-omics cohort with SNF: rna.csv, protein.csv and "
+              "methyl.csv have features in rows and samples in columns. Intersect sample IDs, "
+              "use n_clusters=3, and report integration QC and cross-layer driver evidence.")
+
+
+def test_named_method_is_extracted_only_when_unambiguous_and_runnable():
+    from galaxy.ai.multiomics.routing import named_method
+    assert named_method(SNF_PROMPT) == "SNF"
+    assert named_method("用 MOFA2 整合 RNA 和蛋白质组") == "MOFA2"
+    assert named_method("integrate RNA and protein with similarity network fusion") == "SNF"
+    assert named_method("Should I integrate RNA and protein with MOFA2 or SNF?") is None  # a question
+    assert named_method("integrate RNA and protein with StabMap") is None                 # not packaged
+    assert named_method("integrate RNA and protein") is None
+    assert named_method("MFAP5 expression across RNA and protein") is None                # not a method
+
+
+def test_named_method_decides_the_card_and_keeps_the_shape_recommendation_as_an_alternative():
+    ga = route_multiomics_result(SNF_PROMPT, enabled=True)["workflow_ga"]
+    assert ga["method"] == "SNF"
+    assert ga["runnable"] is True
+    assert ga["nextflow_path"].endswith("snf_multiomics/main.nf")
+    assert ga["name"] == "Multi-omics integration — SNF"
+    assert "MOFA2" in (ga["alternatives"] or []), "the shape-based pick is still reported"
+    assert "You asked for SNF" in ga["scientific_rationale"]
+
+
+def test_unnamed_request_still_uses_the_data_shape_selector():
+    ga = route_multiomics_result("整合 RNA、蛋白质组和代谢组数据做患者分型", enabled=True)["workflow_ga"]
+    assert ga["method"] == "SNF"          # clustering goal → SNF, unchanged
+    ga2 = route_multiomics_result("integrate my RNA and protein tables", enabled=True)["workflow_ga"]
+    assert ga2["method"] == "MOFA2"       # no goal, no named method → unchanged default

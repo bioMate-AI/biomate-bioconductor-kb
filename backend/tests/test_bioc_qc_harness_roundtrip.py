@@ -23,6 +23,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend" / "lib"))
 from galaxy.ai.retrievers.qc_gate_reader import read_bioc_harness_gates  # noqa: E402
 
+from _ci_markers import requires_rscript  # noqa: E402
+
+pytestmark = requires_rscript
+
 
 def _run_block(nf_rel: str, fixture_r: str) -> dict:
     src = (ROOT / "backend/biomni_workflows" / nf_rel).read_text()

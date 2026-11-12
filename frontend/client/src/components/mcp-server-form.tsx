@@ -240,12 +240,12 @@ export function McpServerForm() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium truncate">{server.name}</span>
-                      <Badge variant="secondary" className="text-[10px] font-normal uppercase">{server.transport}</Badge>
+                      <Badge variant="secondary" className="text-fs-xs font-normal uppercase">{server.transport}</Badge>
                       {server.hasAuth && (
-                        <Badge variant="secondary" className="text-[10px] font-normal">auth set</Badge>
+                        <Badge variant="secondary" className="text-fs-xs font-normal">auth set</Badge>
                       )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground font-mono truncate mt-0.5">{server.url}</div>
+                    <div className="text-fs-xs text-muted-foreground font-mono truncate mt-0.5">{server.url}</div>
                   </div>
                   <Button
                     variant="ghost"
@@ -261,9 +261,9 @@ export function McpServerForm() {
                 <div className="flex flex-wrap gap-1 mt-2" data-testid={`mcp-tools-${server.id}`}>
                   {server.tools && server.tools.length > 0
                     ? server.tools.map(t => (
-                        <Badge key={t} variant="outline" className="text-[10px] font-mono font-normal">{t}</Badge>
+                        <Badge key={t} variant="outline" className="text-fs-xs font-mono font-normal">{t}</Badge>
                       ))
-                    : <span className="text-[11px] text-muted-foreground italic">no tools discovered</span>}
+                    : <span className="text-fs-xs text-muted-foreground italic">no tools discovered</span>}
                 </div>
               </div>
             ))}

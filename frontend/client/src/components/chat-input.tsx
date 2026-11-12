@@ -669,7 +669,7 @@ export function ChatInput({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           pointerEvents: 'none',
         }}>
-          <span style={{ fontSize: 13, color: 'var(--bm-primary, oklch(0.55 0.20 265))', fontWeight: 500 }}>
+          <span style={{ fontSize: 'var(--fs-base)', color: 'var(--bm-primary, oklch(0.55 0.20 265))', fontWeight: 500 }}>
             Drop files to attach
           </span>
         </div>
@@ -692,7 +692,7 @@ export function ChatInput({
             border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
             borderRadius: "var(--bm-r-md, 8px)",
             background: "var(--bm-surface, oklch(0.97 0.002 240))",
-            fontSize: 12.5,
+            fontSize: 'var(--fs-base)',
           }}
         >
           <FolderInput className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
@@ -708,7 +708,7 @@ export function ChatInput({
               data-testid="composer-project-file-it"
               onClick={() => { onFileToProject?.(suggested.id); setSuggestionDismissed(true) }}
               style={{
-                border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                border: "none", cursor: "pointer", fontSize: 'var(--fs-sm)', fontWeight: 600,
                 padding: "3px 10px", borderRadius: 6, whiteSpace: "nowrap",
                 background: "var(--bm-primary, oklch(0.55 0.20 265))", color: "white",
               }}
@@ -720,7 +720,7 @@ export function ChatInput({
               data-testid="composer-project-keep-unfiled"
               onClick={() => setSuggestionDismissed(true)}
               style={{
-                border: "none", cursor: "pointer", fontSize: 12,
+                border: "none", cursor: "pointer", fontSize: 'var(--fs-sm)',
                 padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap",
                 background: "transparent", color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
                 textDecoration: "underline", textUnderlineOffset: 2,
@@ -741,7 +741,7 @@ export function ChatInput({
           <div
             data-testid="lane-preview"
             data-lane={laneOverride}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 8px", fontSize: 12, flexWrap: "wrap", rowGap: 4 }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 8px", fontSize: 'var(--fs-sm)', flexWrap: "wrap", rowGap: 4 }}
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
               <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: laneOverride === "cloud" ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-ok, oklch(0.62 0.14 155))" }} />
@@ -752,7 +752,7 @@ export function ChatInput({
               type="button"
               data-testid="lane-preview-clear-override"
               onClick={() => setLaneOverride(null)}
-              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--bm-primary, oklch(0.55 0.20 265))", fontSize: 12, textDecoration: "underline", textUnderlineOffset: 2 }}
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--bm-primary, oklch(0.55 0.20 265))", fontSize: 'var(--fs-sm)', textDecoration: "underline", textUnderlineOffset: 2 }}
             >
               let BioMate decide
             </button>
@@ -797,7 +797,7 @@ export function ChatInput({
               border: 'none', background: 'transparent',
               color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, fontSize: 12,
+              flexShrink: 0, fontSize: 'var(--fs-sm)',
             }}
           >
             <Paperclip className="w-4 h-4" />
@@ -827,7 +827,7 @@ export function ChatInput({
                 data-testid="chat-input-attached-count"
                 title={tooltip}
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--fs-xs)',
                   lineHeight: 1,
                   color: tone,
                   fontWeight,
@@ -857,7 +857,7 @@ export function ChatInput({
               order: -1,
               flexBasis: '100%',
               fontFamily: 'var(--bm-font-ui)',
-              fontSize: 13.5,
+              fontSize: 'var(--fs-base)',
               lineHeight: 1.55,
               color: 'var(--bm-text)',
             }}
@@ -906,7 +906,7 @@ export function ChatInput({
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               border: "none", background: "transparent", cursor: "pointer",
-              fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+              fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
               padding: "2px 2px",
             }}
           >
@@ -917,7 +917,7 @@ export function ChatInput({
               style={{
                 minWidth: 16, height: 16, padding: "0 5px", borderRadius: 999,
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10.5, fontWeight: 600, lineHeight: 1,
+                fontSize: 'var(--fs-xs)', fontWeight: 600, lineHeight: 1,
                 background: "var(--bm-accent-soft, oklch(0.93 0.03 245))",
                 color: "var(--bm-accent, oklch(0.45 0.14 245))",
               }}
@@ -935,7 +935,7 @@ export function ChatInput({
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 border: "none", background: "transparent", cursor: "pointer",
-                fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+                fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
                 padding: "2px 2px",
               }}
             >
@@ -964,14 +964,14 @@ export function ChatInput({
                   border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
                   borderRadius: "var(--bm-r-md, 8px)",
                   background: "var(--bm-bg-elev, hsl(var(--background)))",
-                  padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
+                  padding: "6px 8px", fontSize: 'var(--fs-base)', lineHeight: 1.45,
                   fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
                   outline: "none",
                 }}
               />
             )}
             {instructionsOpen && instructions.length > COMPOSER_INSTRUCTIONS_MAX * 0.9 && (
-              <div data-testid="composer-instructions-limit" style={{ marginTop: 2, fontSize: 11, textAlign: "right", color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
+              <div data-testid="composer-instructions-limit" style={{ marginTop: 2, fontSize: 'var(--fs-xs)', textAlign: "right", color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
                 {instructions.length.toLocaleString()} / {COMPOSER_INSTRUCTIONS_MAX.toLocaleString()} — longer input is trimmed before it reaches the model
               </div>
             )}
@@ -1004,7 +1004,7 @@ export function ChatInput({
               aria-hidden
               style={{
                 marginLeft: 'auto',
-                fontSize: 10, lineHeight: 1, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+                fontSize: 'var(--fs-xs)', lineHeight: 1, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
                 border: '1px solid var(--bm-border, oklch(0.88 0.004 240))',
                 borderRadius: 4, padding: '2px 5px',
                 fontFamily: 'var(--bm-font-ui)', background: 'var(--bm-surface, transparent)',

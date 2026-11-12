@@ -50,12 +50,10 @@
      stop hard-coding ad-hoc px. Apply file-by-file (do NOT scale the root — that
      regressed in round 2). Weights restricted to 400/600. px (not rem) to match the
      existing inline sizes being replaced and avoid uneven rem scaling. */
-  --fs-title:   24px;  --lh-title:   1.2;   /* page / modal title */
-  --fs-section: 18px;  --lh-section: 1.3;   /* section heading */
-  --fs-body:    15px;  --lh-body:    1.5;   /* primary body / data */
-  --fs-meta:    13px;  --lh-meta:    1.5;   /* secondary / metadata */
-  --fs-micro:   11px;  --lh-micro:   1.4;   /* micro-label / uppercase caption */
-  --fs-mono:    13px;                       /* monospace / run ids / telemetry */
+  /* Type tokens (--fs-title/section/body/meta/micro, --fs-xs…3xl, --fs-mono) are defined
+     GLOBALLY in styles/reference-design.css :root — they were scoped to [data-v2-ui] here,
+     so every swept component outside that subtree (sidebar, dialogs, workflow viewer)
+     resolved them as undefined and silently inherited its parent's size. */
   --fw-regular: 400;
   --fw-semibold: 600;
 

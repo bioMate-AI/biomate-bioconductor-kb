@@ -129,3 +129,50 @@ describe('processSubIntent routing query', () => {
     expect(domains).toEqual(['transcriptomics', 'proteomics']);
   });
 });
+
+// P2 (2026-11-11): plan inputs + a title from the user's goal.
+import { requestGoal, uploadedRefsFromMessage, dagInputStatus } from './galaxy-assistant';
+
+describe('plan title from the request goal', () => {
+  it('uses the goal of the user request, not the fan-in step', () => {
+    const tasks = [{ description: 'dock the series', depends_on: [] }, { description: 'predict ADMET', depends_on: [] },
+      { description: 'Integrate docking scores and ADMET/safety profiles', depends_on: [1, 2] }];
+    const msg = 'Adapt the generative model to our chemical series.\n\nPrepared demo context:\nUse the 500 compounds…';
+    expect(dagPlanName(tasks, msg)).toBe('Adapt the generative model to our chemical series');
+  });
+  it('skips bracketed context blocks and falls back when the goal is too short', () => {
+    expect(requestGoal('[Prior conversation context]\nRun DE then GO enrichment. Human.')).toBe('Run DE then GO enrichment');
+    expect(dagPlanName([{ description: 'integrate rna and protein', depends_on: [] }, { description: 'b', depends_on: [1] }], 'ok'))
+      .toBe('B'); // too short a goal → previous behaviour (sink step)
+  });
+});
+
+describe('plan inputs', () => {
+  it('extracts only runnable uploads (with an s3_uri)', () => {
+    const m = 'x\n[Uploaded datasets: counts.csv: dataset_id=a1, s3_uri=s3://b/counts.csv; notes.md: dataset_id=a2]';
+    expect(uploadedRefsFromMessage(m)).toEqual([{ name: 'counts.csv', s3_uri: 's3://b/counts.csv' }]);
+  });
+  it('reports filled and still-needed inputs per step', () => {
+    const lines = dagInputStatus([{ bound_from_uploads: ['matrix'], missing_inputs: ['contrast_variable'] },
+      { bound_from_uploads: [], missing_inputs: [] }], false);
+    expect(lines.join('\n')).toMatch(/Filled from your files: step 1 — matrix/);
+    expect(lines.join('\n')).toMatch(/Still needed before running: step 1 — contrast_variable/);
+    expect(lines.join("\n")).toMatch(/built-in sample data, not yours/);
+  });
+  it('never claims inputs are complete when the backend does not report them', () => {
+    expect(dagInputStatus([{}, {}], false)[0]).toMatch(/Fill in each branch's input files/);
+  });
+  it('sends this turn\'s uploads to /plan_dag', async () => {
+    const post = vi.fn(async () => ({ data: { success: false } }));
+    await assistantWith(post)._tryDagPlan(FORK_JOIN, 'Integrate my data\n[Uploaded datasets: c.csv: s3_uri=s3://b/c.csv]', () => {});
+    expect((post.mock.calls[0] as any)[1].uploaded_datasets).toEqual([{ name: 'c.csv', s3_uri: 's3://b/c.csv' }]);
+  });
+});
+
+it('says when a step was switched to a workflow that takes the user\'s data', async () => {
+  const steps = CARD.pipeline_steps.map((s: any, k: number) => k === 0
+    ? { ...s, workflow_label: 'deseq2_counts', rerouted_from: 'salmon_quant_de', reroute_reason: 'accepts your counts_matrix.csv' } : s);
+  const post = vi.fn(async () => ({ data: { success: true, workflow: { ...CARD, pipeline_steps: steps } } }));
+  const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'x', () => {});
+  expect(res.message).toMatch(/switched from salmon_quant_de because it accepts your counts_matrix\.csv/);
+});

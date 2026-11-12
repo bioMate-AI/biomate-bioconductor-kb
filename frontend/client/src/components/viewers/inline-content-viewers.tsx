@@ -93,8 +93,8 @@ export function InlineSequenceViewer({ text }: { text: string }) {
       {records.slice(0, 20).map((r, i) => (
         <div key={i} className="rounded border p-1.5 bg-muted/30">
           <p className="font-semibold text-blue-600 dark:text-blue-400 truncate">&gt;{r.id}</p>
-          <p className="break-all text-[10px] leading-relaxed">{r.seq.slice(0, 200)}{r.seq.length > 200 ? '…' : ''}</p>
-          <p className="text-muted-foreground text-[10px]">{r.seq.length} bp</p>
+          <p className="break-all text-fs-xs leading-relaxed">{r.seq.slice(0, 200)}{r.seq.length > 200 ? '…' : ''}</p>
+          <p className="text-muted-foreground text-fs-xs">{r.seq.length} bp</p>
         </div>
       ))}
       {records.length === 0 && <p className="text-muted-foreground">No sequences found</p>}
@@ -264,7 +264,7 @@ export function InlineStructureViewer({ text, ext }: { text: string; ext: string
             key={s}
             variant={style === s ? 'default' : 'outline'}
             size="sm"
-            className="h-6 text-[10px] px-2"
+            className="h-6 text-fs-xs px-2"
             onClick={() => setStyle(s)}
           >
             {s.charAt(0).toUpperCase() + s.slice(1)}

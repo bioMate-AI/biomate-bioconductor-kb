@@ -847,9 +847,11 @@ export class GalaxyAPIProxy {
         ...(Array.isArray(request.user_input_kinds) ? { user_input_kinds: request.user_input_kinds } : {}),
         ...(request.session_datasets?.length ? { session_datasets: request.session_datasets } : {}),
         ...(request.credential_map ? { credential_map: request.credential_map } : {}),
+        ...(request.selected_workflow ? { selected_workflow: request.selected_workflow } : {}),
       };
 
-      console.log('[GalaxyAPIProxy] Calling generate_workflow — intent:', request.user_intent);
+      console.log('[GalaxyAPIProxy] Calling generate_workflow — intent:', request.user_intent,
+        request.selected_workflow ? `| selected: ${request.selected_workflow.name}` : '');
 
       // Retry on TRANSIENT connection errors — Galaxy (biomate-galaxy-dev:8080) restarts on
       // deploys/recycles, and a request landing in that few-second window would otherwise

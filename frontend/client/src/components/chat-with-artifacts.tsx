@@ -28,15 +28,17 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
+import { applyClarificationAnswer } from "@/lib/clarify-param-bridge"
 import { type Message } from "./chat-message"
 import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
-import { t } from "@/lib/i18n"
+import { locale, t, tStatus } from "@/lib/i18n"
+import { ChatHeaderTitle } from "./chat-header-title"
+import { useApplyInitialDraft } from "@/lib/one-shot-url-param"
 import {
-  getOutputReadinessHint,
   getRunPrimaryCta,
   isRunNeedsAttention,
   mapRunBucket,
@@ -46,6 +48,8 @@ import {
   workflowPanelProjectId,
   workflowPanelProjectName,
   runManagerListParams,
+  outputReadinessLabel,
+  runPrimaryCtaLabel,
 } from "./run-manager-utils"
 
 function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cancelled' | null {
@@ -69,28 +73,32 @@ interface ChatWithArtifactsProps {
   /** Pre-filled draft for the chat input — populated once ready but NOT auto-submitted
    *  (used by the project "Analyze with BioMate" flow so the user can edit before sending). */
   initialDraft?: string
+  /** Called once the initial ?q= message has been sent — the owner must clear it. */
+  onInitialMessageConsumed?: () => void
+  /** Called once the initial ?draft= has been placed in the composer — the owner must clear it. */
+  onInitialDraftConsumed?: () => void
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
 
 function formatRunTime(raw?: string): string {
-  if (!raw) return "n/a"
+  if (!raw) return t('runs_ui.time_unknown')
   const date = new Date(raw)
-  if (Number.isNaN(date.getTime())) return "n/a"
-  return date.toLocaleTimeString()
+  if (Number.isNaN(date.getTime())) return t('runs_ui.time_unknown')
+  return date.toLocaleTimeString(locale === 'zh' ? 'zh-CN' : locale)
 }
 
 function formatFreshness(raw?: string): string {
-  if (!raw) return "freshness unknown"
+  if (!raw) return t('runs_ui.fresh_unknown')
   const date = new Date(raw)
-  if (Number.isNaN(date.getTime())) return "freshness unknown"
+  if (Number.isNaN(date.getTime())) return t('runs_ui.fresh_unknown')
   const deltaMs = Date.now() - date.getTime()
-  if (deltaMs < 0 || deltaMs < 60_000) return "just now"
+  if (deltaMs < 0 || deltaMs < 60_000) return t('runs_ui.fresh_just_now')
   const deltaMinutes = Math.floor(deltaMs / 60_000)
-  if (deltaMinutes < 60) return `${deltaMinutes}m ago`
+  if (deltaMinutes < 60) return t('runs_ui.fresh_minutes', { n: deltaMinutes })
   const deltaHours = Math.floor(deltaMinutes / 60)
-  if (deltaHours < 24) return `${deltaHours}h ago`
-  return `${Math.floor(deltaHours / 24)}d ago`
+  if (deltaHours < 24) return t('runs_ui.fresh_hours', { n: deltaHours })
+  return t('runs_ui.fresh_days', { n: Math.floor(deltaHours / 24) })
 }
 
 function shortenId(raw?: string, prefix = "", maxLen = 8): string {
@@ -114,7 +122,7 @@ function persistedActiveProjectId(): string | undefined {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft, onInitialMessageConsumed, onInitialDraftConsumed }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -205,6 +213,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       onWorkflowPanelOpenChange?.(true)
     } catch {}
   }, [currentChatSession?.id, currentChatSession?.messages, panelOpen, onWorkflowPanelOpenChange])
+
+  // Live view of this session's messages for window-event handlers registered
+  // once for the component lifetime (the clarification bridge below reads the
+  // attachments off the user's turns).
+  const sessionMessagesRef = useRef<Array<{ role?: string; content?: unknown }>>([])
+  useEffect(() => {
+    sessionMessagesRef.current = (currentChatSession?.messages ?? []) as Array<{ role?: string; content?: unknown }>
+  }, [currentChatSession?.messages])
+
   // True while the AI is streaming a response — used to show a skeleton in the panel.
   const [panelGenerating, setPanelGenerating] = useState(false)
   // Set to true just before a message with file attachments is submitted so
@@ -492,13 +509,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (!paramName) return
       setPanelWorkflow((prev: any) => {
         if (!prev) return prev
-        return {
-          ...prev,
-          inline_parameters: {
-            ...((prev as any).inline_parameters || {}),
-            [paramName]: value,
-          },
+        // An answer that refers to an attachment ("use the attached file",
+        // "用附件", or the file's name) binds THAT FILE's dataset reference, not
+        // the sentence the user typed — otherwise the panel keeps showing the
+        // required input as unset (founder report: "Confirm and configure" did
+        // nothing). Any other answer is a real value and passes through.
+        const applied = applyClarificationAnswer(prev, { paramName, value }, sessionMessagesRef.current)
+        if (applied.file) {
+          console.log(`[clarify-bridge] ${paramName} ← attached file "${applied.file.name}"`)
         }
+        return applied.workflow
       })
     }
     const onSkipped = (_e: Event) => {
@@ -574,6 +594,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   useEffect(() => {
     if (!initialMessage || sentInitialRef.current || !sendChatMessageRef.current) return
     sentInitialRef.current = true
+    onInitialMessageConsumed?.()
     const sender = sendChatMessageRef.current
     if (initialDemoFiles === 'mg_demo') {
       const base = '/demo/mg_demo'
@@ -590,12 +611,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Pre-fill (but do NOT send) a draft message into the chat input. onRegisterSetDraft
   // is registered alongside the sender, so senderReady also signals draft-setter readiness.
-  const draftAppliedRef = useRef(false)
-  useEffect(() => {
-    if (!initialDraft || draftAppliedRef.current || !setChatDraftRef.current) return
-    draftAppliedRef.current = true
-    setChatDraftRef.current(initialDraft)
-  }, [senderReady, initialDraft]) // eslint-disable-line react-hooks/exhaustive-deps
+  useApplyInitialDraft(initialDraft, () => setChatDraftRef.current, senderReady, onInitialDraftConsumed)
 
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
@@ -752,6 +768,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     return () => clearInterval(id)
   }, [])
 
+  // The run the open workflow panel is showing. Its failure is already on screen
+  // there, so a toast for it is redundant — and the old sticky (duration 0) toast
+  // sat on top of the panel's own diagnosis.
+  const panelRunIdRef = useRef<string | null>(null)
+  panelRunIdRef.current = panelOpen && panelWorkflow ? (currentRun?.id ?? null) : null
+
   // Watch runList for status transitions → fire in-app toast.
   useEffect(() => {
     const prev = prevRunStatusesRef.current
@@ -783,7 +805,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             ),
             duration: 8000,
           })
-        } else if (bucket === "failed") {
+        } else if (bucket === "failed" && run.id !== panelRunIdRef.current) {
           toast({
             variant: "destructive",
             title: t('runs_ui.workflow_failed_title'),
@@ -802,7 +824,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 {t('runs_ui.view_and_fix')}
               </ToastAction>
             ),
-            duration: 0,
+            duration: 12000,
           })
         }
       }
@@ -2006,42 +2028,33 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         padding: '0 18px',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
-          <span style={{ fontSize: 10.5, color: 'var(--bm-text-dim)' }}>{activeProject?.name || 'Unfiled'} / {currentChatSession ? 'chat' : 'new chat'}</span>
-          <span style={{
-            fontWeight: 600, fontSize: 14,
-            color: 'var(--bm-text, hsl(var(--foreground)))',
-            fontFamily: 'var(--bm-font-ui)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {currentChatSession?.title || t('New chat')}
-          </span>
-          {isConnected && (
-            <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
-              live
-            </span>
-          )}
-        </div>
+        {/* One line: chat title + small project chip (no "Unfiled / new chat"
+            breadcrumb, no separate project banner on chat routes). */}
+        <ChatHeaderTitle
+          title={currentChatSession?.title}
+          projectId={activeProject?.id}
+          projectName={activeProject?.name}
+          live={isConnected}
+        />
         <div className="flex items-center gap-2 shrink-0">
-          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 12, height: 28 }}>{chatHidden ? 'Show chat' : 'Hide chat'}</Button>}
+          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 'var(--fs-sm)', height: 28 }}>{chatHidden ? t('chat.show_chat') : t('chat.hide_chat')}</Button>}
           <Button
             variant="ghost"
             size="sm"
             data-testid="button-toggle-run-manager"
             onClick={() => setShowRunManager((prev) => !prev)}
-            style={{ fontSize: 12, height: 28, gap: 5 }}
+            style={{ fontSize: 'var(--fs-sm)', height: 28, gap: 5 }}
           >
             <Layers className="h-3 w-3" style={{ flexShrink: 0 }} />
             {t('runs_ui.run_manager')}
             {runningCount > 0 ? (
               <span style={{
                 background: 'var(--bm-blue, oklch(0.55 0.18 240))',
-                color: 'white', borderRadius: 9, fontSize: 10,
+                color: 'white', borderRadius: 9, fontSize: 'var(--fs-xs)',
                 padding: '0 5px', fontWeight: 600, lineHeight: '16px',
               }}>{runningCount}</span>
             ) : (
-              <span style={{ color: 'var(--bm-text-dim)', fontSize: 11 }}>
+              <span style={{ color: 'var(--bm-text-dim)', fontSize: 'var(--fs-xs)' }}>
                 {runList.length > 0 ? runList.length : '0'}
               </span>
             )}
@@ -2140,7 +2153,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               >
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {bucket === "needs_attention" ? "Needs Attention" : bucket}
+                    {bucket === "needs_attention" ? t('runs_ui.status_needs_attention') : t(`workflow.status.${bucket}`)}
                   </p>
                   <span
                     className="text-xs text-muted-foreground"
@@ -2152,7 +2165,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 <div className="space-y-1.5">
                   {runBuckets[bucket].slice(0, 6).map((run) => (
                     (() => {
-                      const readinessHint = getOutputReadinessHint(run)
+                      const readinessHint = outputReadinessLabel(run)
                       return (
                         <button
                           key={run.id}
@@ -2165,30 +2178,30 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                           data-testid={`run-manager-item-${run.id}`}
                           onClick={() => handleSwitchRun(run.id)}
                         >
-                          <p className="font-medium truncate">{run.workflowName || "Untitled run"}</p>
+                          <p className="font-medium truncate">{run.workflowName || t('runs_ui.untitled_run')}</p>
                           <p className="text-muted-foreground">
-                            {run.execution?.status || "unknown"} · {formatRunTime(run.updatedAt || run.createdAt)}
+                            {tStatus(run.execution?.status || "unknown")} · {formatRunTime(run.updatedAt || run.createdAt)}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {shortenId(run.id, "run ")}
-                            {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, "inv ")}` : ""}
+                          <p className="text-fs-xs text-muted-foreground">
+                            {shortenId(run.id, t('runs_ui.id_run') + " ")}
+                            {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, t('runs_ui.id_invocation') + " ")}` : ""}
                             {` · ${formatFreshness(run.updatedAt || run.createdAt)}`}
                           </p>
                           <p
-                            className="mt-1 inline-flex rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-foreground/90"
+                            className="mt-1 inline-flex rounded border border-border px-1.5 py-0.5 text-fs-xs font-medium text-foreground/90"
                             data-testid={`run-manager-item-cta-${run.id}`}
                           >
-                            {getRunPrimaryCta(run)}
+                            {runPrimaryCtaLabel(getRunPrimaryCta(run))}
                           </p>
                           {readinessHint && (
-                            <p className="text-[11px] text-muted-foreground">{readinessHint}</p>
+                            <p className="text-fs-xs text-muted-foreground">{readinessHint}</p>
                           )}
                         </button>
                       )
                     })()
                   ))}
                   {runBuckets[bucket].length === 0 && (
-                    <p className="text-xs text-muted-foreground">No runs</p>
+                    <p className="text-xs text-muted-foreground">{t('runs_ui.no_runs')}</p>
                   )}
                 </div>
               </div>
@@ -2298,7 +2311,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   key={p.id}
                   data-testid={`workflow-edits-pending-${p.id}`}
                   style={{
-                    fontSize: 11, padding: '2px 6px 2px 8px', borderRadius: 999,
+                    fontSize: 'var(--fs-xs)', padding: '2px 6px 2px 8px', borderRadius: 999,
                     background: 'oklch(0.94 0.06 70)', color: 'oklch(0.40 0.12 60)',
                     fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -2311,7 +2324,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     aria-label={t('runs_ui.apply')}
                     data-testid={`button-apply-${p.id}`}
                     onClick={() => confirmStructuralEdit(p.id)}
-                    style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}
+                    style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 'var(--fs-xs)' }}
                   >{t('runs_ui.apply')}</button>
                   <button
                     type="button"
@@ -2339,7 +2352,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   data-testid={`workflow-edits-chip-${chip.id}`}
                   className="workflow-edits-chip"
                   style={{
-                    fontSize: 11, padding: '2px 8px', borderRadius: 999,
+                    fontSize: 'var(--fs-xs)', padding: '2px 8px', borderRadius: 999,
                     background: 'oklch(0.95 0.03 145)', color: 'oklch(0.40 0.10 145)',
                     fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -2353,7 +2366,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       aria-label={t('runs_ui.undo')}
                       data-testid={`button-undo-${chip.id}`}
                       onClick={() => undoAppliedEdit(chip.id)}
-                      style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}
+                      style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 'var(--fs-xs)', opacity: 0.75 }}
                     >{t('runs_ui.undo')}</button>
                   )}
                   <button
@@ -2398,16 +2411,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onSubmitWithFiles={() => { pendingPanelFromFiles.current = true }}
             onStreamingChange={(streaming) => {
               setPanelGenerating(streaming)
-              if (streaming && !panelOpen && pendingPanelFromFiles.current) {
-                // Pre-open only when the submission had file attachments — file
-                // uploads almost always produce a workflow so showing the skeleton
-                // immediately gives the user immediate feedback without false opens.
-                setPanelOpen(true)
-                onWorkflowPanelOpenChange?.(true)
-              }
+              // Do NOT pre-open the workflow panel on file attachment: a research /
+              // evidence query attaches files but produces NO workflow, so pre-opening
+              // showed a blank skeleton for half the screen (founder feedback 2026-11-10:
+              // "no need to show at all"). The panel now opens ONLY when a real workflow
+              // is detected (the setPanelWorkflow + setPanelOpen paths), never blank.
               if (streaming) pendingPanelFromFiles.current = false
               if (!streaming && panelOpen && !panelWorkflow) {
-                // Streaming ended with no workflow — close the skeleton panel.
+                // Safety: if some other path left the panel open with no workflow, close it.
                 setPanelOpen(false)
                 onWorkflowPanelOpenChange?.(false)
               }
@@ -2425,7 +2436,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 999,
                   background: 'oklch(0.45 0.18 240)', color: 'white',
-                  fontSize: 13, fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                  fontSize: 'var(--fs-base)', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
                   border: 'none', cursor: 'pointer',
                 }}
               >

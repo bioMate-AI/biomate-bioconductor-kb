@@ -55,17 +55,17 @@ export function OnPremLicenseGate({ children }: Props) {
             width: 60, height: 60, borderRadius: "50%",
             background: isExpired ? "#fff3cd" : "#fee2e2",
             display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
-            fontSize: 32,
+            fontSize: 'var(--fs-3xl)',
           }}>
             {isExpired ? "⏰" : "🔑"}
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#1a1a2e", margin: "0 0 4px" }}>
+          <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: "#1a1a2e", margin: "0 0 4px" }}>
             BioMate AI · 本地部署版
           </h1>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: isExpired ? "#92400e" : "#991b1b", margin: "0 0 10px" }}>
+          <h2 style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, color: isExpired ? "#92400e" : "#991b1b", margin: "0 0 10px" }}>
             {isExpired ? "许可证已过期" : "许可证无效"}
           </h2>
-          <p style={{ fontSize: 13, color: "#6b7280", margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 'var(--fs-base)', color: "#6b7280", margin: 0, lineHeight: 1.6 }}>
             {license?.message}
           </p>
         </div>
@@ -74,10 +74,10 @@ export function OnPremLicenseGate({ children }: Props) {
           background: "#f9fafb", borderRadius: 8, padding: "16px 20px",
           textAlign: "left", margin: "24px 0",
         }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", margin: "0 0 10px" }}>
+          <p style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: "#374151", margin: "0 0 10px" }}>
             激活步骤
           </p>
-          <ol style={{ fontSize: 13, color: "#4b5563", margin: 0, paddingLeft: 18, lineHeight: 2.2 }}>
+          <ol style={{ fontSize: 'var(--fs-base)', color: "#4b5563", margin: 0, paddingLeft: 18, lineHeight: 2.2 }}>
             <li>
               联系 BioMate 团队获取许可证密钥：
               <a href="mailto:support@biomate.ai" style={{ color: "#4f46e5", marginLeft: 4 }}>
@@ -88,7 +88,7 @@ export function OnPremLicenseGate({ children }: Props) {
               在服务器 <code style={{ background: "#e5e7eb", padding: "1px 6px", borderRadius: 4 }}>.env</code> 中设置：
               <code style={{
                 display: "block", background: "#1f2937", color: "#d1fae5",
-                padding: "6px 12px", borderRadius: 6, marginTop: 4, fontSize: 12, fontFamily: "monospace",
+                padding: "6px 12px", borderRadius: 6, marginTop: 4, fontSize: 'var(--fs-sm)', fontFamily: "monospace",
               }}>
                 BIOMATE_LICENSE_KEY=BMOP-XXXX-XXXX-XXXX-XXXX
               </code>
@@ -106,7 +106,7 @@ export function OnPremLicenseGate({ children }: Props) {
           onClick={() => window.location.reload()}
           style={{
             background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8,
-            padding: "10px 0", fontSize: 14, fontWeight: 500, cursor: "pointer", width: "100%",
+            padding: "10px 0", fontSize: 'var(--fs-base)', fontWeight: 500, cursor: "pointer", width: "100%",
           }}
         >
           重新检查许可证

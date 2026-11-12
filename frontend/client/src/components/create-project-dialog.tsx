@@ -183,8 +183,8 @@ export function CreateProjectDialog({
                   outlineOffset: 2,
                 }}
               >
-                <span style={{ fontSize: 20 }}>📄</span>
-                <span style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>Blank</span>
+                <span style={{ fontSize: 'var(--fs-xl)' }}>📄</span>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>Blank</span>
               </button>
 
               {PROJECT_TEMPLATES.map((tpl) => (
@@ -204,8 +204,8 @@ export function CreateProjectDialog({
                     outlineOffset: 2,
                   }}
                 >
-                  <span style={{ fontSize: 20 }}>{tpl.icon}</span>
-                  <span style={{ fontSize: 10, fontWeight: 500, textAlign: 'center', lineHeight: 1.2, color: 'var(--foreground)' }}>
+                  <span style={{ fontSize: 'var(--fs-xl)' }}>{tpl.icon}</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2, color: 'var(--foreground)' }}>
                     {tpl.name.length > 22 ? tpl.name.slice(0, 20) + '…' : tpl.name}
                   </span>
                 </button>

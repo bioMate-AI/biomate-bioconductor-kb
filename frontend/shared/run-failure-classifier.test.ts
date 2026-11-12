@@ -57,6 +57,46 @@ describe('classifyRunFailure — plain-language cause + remediation per class', 
     expect(exp.nextAction).toMatch(/report|environment|container/i);
   });
 
+  // Real log_tail of dev run c0d27792 (2026-11-10): a 1-row DESeq2 contrasts.csv
+  // given as a training table. Nextflow's "Container:" banner + "ERROR ~" made the
+  // old rule call this "missing command or image".
+  const TRAIN_1ROW = [
+    '    File "[path]", line 168, in kfold_split',
+    '      raise ValueError(f"cannot make {k} folds from {n} rows")',
+    '  ValueError: cannot make 5 folds from 1 rows',
+    'Work dir:', '  [storage]', 'Container:',
+    'Tip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`',
+    "ERROR ~ Error executing process > 'TRAIN'", 'Caused by:',
+  ].join('\n');
+
+  it('too few rows: a 1-row file for 5-fold CV is a data problem, not a missing container', () => {
+    const exp = classifyRunFailure(TRAIN_1ROW);
+    expect(exp.klass).toBe('too_few_rows');
+    expect(exp.process).toBe('TRAIN');
+    expect(exp.cause).toMatch(/only 1 usable row/);
+    expect(exp.cause).not.toMatch(/container|image/i);
+    expect(exp.raw).toBe('ValueError: cannot make 5 folds from 1 rows');
+  });
+
+  it('the Nextflow "Container:" banner alone never implies a container problem', () => {
+    const exp = classifyRunFailure(TRAIN_1ROW.replace('ValueError: cannot make 5 folds from 1 rows', 'ValueError: target column has a single class'));
+    expect(exp.klass).toBe('tool_error');
+    expect(exp.cause).toMatch(/error from the tool itself: target column has a single class/);
+  });
+
+  it('tool exception after the executor prefix is the cause (dev run f4fa8bd6, FOLD_COMPLEX)', () => {
+    const exp = classifyRunFailure(
+      "Process FOLD_COMPLEX (fmc63) failed: Essential container in task exited — RuntimeError: DataLoader worker (pid(s) 2349) exited unexpectedly | Predicting: |",
+    );
+    expect(exp.klass).toBe('tool_error');
+    expect(exp.cause).toMatch(/DataLoader worker \(pid\(s\) 2349\) exited unexpectedly/);
+  });
+
+  it('a Nextflow wrapper exception is not the tool\'s own error', () => {
+    const exp = classifyRunFailure("nextflow.exception.ProcessFailedException: Process `X` terminated for an unknown reason");
+    expect(exp.klass).not.toBe('tool_error');
+  });
+
   it('workflow not found: mis-routed nf-core path (the real U-MOFA 404)', () => {
     const exp = classifyRunFailure(
       "Nextflow execution failed (404): Could not resolve Nextflow script 'nfcore/diaproteomics/main.nf'.",

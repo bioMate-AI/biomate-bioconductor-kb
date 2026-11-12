@@ -13,6 +13,7 @@ import {
   GitMerge,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { tOr } from '@/lib/i18n'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,14 @@ export interface PipelineStep {
   runParallelWith?: string[]
   durationMs?: number
   errorMessage?: string
+  /** What the step will actually run (decomposed DAG plans): resolution kind + catalog name. */
+  resolution?: 'catalog_workflow' | string
+  workflowLabel?: string
+  /** Required declared inputs still empty at plan time, and those filled from the user's uploads. */
+  missingInputs?: string[]
+  boundFromUploads?: string[]
+  /** A fan-in step whose data from earlier steps is not connected automatically. */
+  needsInputMapping?: boolean
 }
 
 export interface PipelineListViewProps {
@@ -145,7 +154,7 @@ function StepStatusBadge({ status }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={cn('flex items-center gap-1 text-[10px] font-semibold tracking-wide px-1.5 py-0.5', cfg.className)}
+      className={cn('flex items-center gap-1 text-fs-xs font-semibold tracking-wide px-1.5 py-0.5', cfg.className)}
     >
       {cfg.icon}
       {cfg.label}
@@ -211,7 +220,7 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
           <span className="font-semibold text-sm leading-snug truncate">{step.workflowName}</span>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {step.durationMs != null && step.status === 'completed' && (
-              <span className="text-[10px] text-muted-foreground font-mono">
+              <span className="text-fs-xs text-muted-foreground font-mono">
                 {formatDuration(step.durationMs)}
               </span>
             )}
@@ -229,6 +238,34 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
             )}
           </div>
         </div>
+
+        {/* What runs (decomposed plans): the step title is the sub-task; name the workflow too */}
+        {step.workflowLabel && (
+          <p data-testid={`plan-step-runs-${step.id}`} className="text-xs text-muted-foreground">
+            <span className="font-medium">{tOr('plan_step.runs', 'Runs')}:</span>{' '}
+            <span className="font-mono">{step.workflowLabel}</span>
+            {step.resolution === 'catalog_workflow' && (
+              <span className="ml-1.5 text-fs-xs">· {tOr('plan_step.catalog_workflow', 'catalog workflow')}</span>
+            )}
+          </p>
+        )}
+
+        {/* Waits on (fan-in / chain) when no single "uses" step is declared */}
+        {!usesStep && step.dependsOn && step.dependsOn.length > 0 && (
+          <p data-testid={`plan-step-after-${step.id}`} className="text-xs text-muted-foreground flex items-center gap-1">
+            <ArrowLeft className="h-3 w-3 text-sky-500 flex-shrink-0" />
+            <span>{tOr('plan_step.after', 'after')} {step.dependsOn.map(n => circledNumber(n)).join(' ')}</span>
+          </p>
+        )}
+
+        {/* Inputs still needed — instead of an empty step */}
+        {step.status === 'pending' && ((step.missingInputs?.length ?? 0) > 0 || step.needsInputMapping) && (
+          <p data-testid={`plan-step-needs-${step.id}`} className="text-xs text-amber-700 dark:text-amber-400">
+            {(step.missingInputs?.length ?? 0) > 0
+              ? tOr('plan_step.inputs_needed', 'Needed before running: {{names}}', { names: step.missingInputs!.join(', ') })
+              : tOr('plan_step.map_inputs', 'Map inputs from earlier steps')}
+          </p>
+        )}
 
         {/* Params */}
         {hasParams && (
@@ -287,7 +324,7 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
               <Play className="h-3 w-3" />
               Approve &amp; Run Step {nextStep.stepNumber ?? '?'}
             </Button>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-fs-xs text-muted-foreground">
               Review outputs above before continuing
             </span>
           </div>
@@ -296,7 +333,7 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
         {/* Modify shortcut */}
         {!isReadOnly && onModifyStep && (
           <button
-            className="text-[10px] text-muted-foreground underline underline-offset-2 hover:no-underline"
+            className="text-fs-xs text-muted-foreground underline underline-offset-2 hover:no-underline"
             onClick={() => onModifyStep?.(step.id, `modify step ${step.stepNumber ?? ''} `)}
           >
             edit via chat
@@ -421,7 +458,7 @@ export function PipelineListView({
             </Badge>
           </div>
           {chainRunId && (
-            <span className="text-[10px] font-mono text-muted-foreground">
+            <span className="text-fs-xs font-mono text-muted-foreground">
               run: {chainRunId.slice(0, 8)}…
             </span>
           )}
@@ -478,7 +515,7 @@ export function PipelineListView({
               <div key={`parallel-${idx}`} className="space-y-1.5">
                 <div className="flex items-center gap-2 px-1">
                   <div className="h-px flex-1 bg-border" />
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide flex-shrink-0 flex items-center gap-1">
+                  <span className="text-fs-xs text-muted-foreground uppercase tracking-wide flex-shrink-0 flex items-center gap-1">
                     <GitMerge className="h-3 w-3" />
                     {stepNums} run in parallel
                   </span>

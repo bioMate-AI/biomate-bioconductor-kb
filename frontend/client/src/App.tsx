@@ -15,8 +15,10 @@ import WorkspacesPage from "@/pages/workspaces";
 import ProjectDetailPage from "@/pages/project-detail";
 import ProjectNotesPage from "@/pages/project-notes";
 import NotFound from "@/pages/not-found";
+import { useOneShotUrlParam } from "@/lib/one-shot-url-param";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
+// Theme toggle hidden — light only for now (dark mode not reviewed).
+// import { ThemeToggle } from "@/components/theme-toggle";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
 import { ToolIntroductionDialog } from "@/components/tool-introduction-dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -144,7 +146,7 @@ function RootRoute({
   // Consume pending use-case query passed via ?q= from the marketing hero input.
   // Cross-domain localStorage doesn't work (biomate.ai vs dev-public.biomate.ai),
   // so register.tsx passes the query through as a URL param → /?q=<encoded>.
-  const [initialMessage] = useState<string | undefined>(() => {
+  const [initialMessage, setInitialMessage] = useState<string | undefined>(() => {
     const urlQ = new URLSearchParams(window.location.search).get('q')
     if (urlQ) {
       window.history.replaceState(null, '', window.location.pathname)
@@ -171,23 +173,10 @@ function RootRoute({
   })
 
   // Pre-filled draft (?draft=) from the project "Analyze with BioMate" flow. Unlike ?q=,
-  // this populates the chat input for review/edit and is NOT auto-submitted.
-  const [initialDraft] = useState<string | undefined>(() => {
-    const params = new URLSearchParams(window.location.search)
-    const urlDraft = params.get('draft')
-    if (urlDraft) {
-      // Strip ONLY the draft param. The same navigation (e.g. the Data panel's
-      // "Run full QC") also carries ?project= and ?attachFile=, which the chat
-      // composer reads to attach the dataset — wiping the whole query here
-      // deleted attachFile before the composer could see it, so QC pre-filled
-      // the prompt but never attached the file. Preserve the rest.
-      params.delete('draft')
-      const rest = params.toString()
-      window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
-      return urlDraft // URLSearchParams already decoded it; preserve literal % in requests.
-    }
-    return undefined
-  })
+  // this populates the chat input for review/edit and is NOT auto-submitted. Only the
+  // draft param is stripped (?project= / ?attachFile= stay for the composer), and the
+  // value is consumed once applied — see lib/one-shot-url-param.ts.
+  const [initialDraft, consumeInitialDraft] = useOneShotUrlParam('draft')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -235,6 +224,13 @@ function RootRoute({
         initialMessage={initialMessage}
         initialDemoFiles={initialDemoFiles}
         initialDraft={initialDraft}
+        // One-shot URL payloads (?q= auto-send, ?draft= prefill) are consumed
+        // HERE, at their source. ChatWithArtifacts is keyed by session id, so the
+        // first send (new chat → real session) remounts it; if these props were
+        // still set, the fresh instance re-applied the draft into the composer
+        // the user had just sent from (and would re-send ?q=).
+        onInitialMessageConsumed={() => setInitialMessage(undefined)}
+        onInitialDraftConsumed={consumeInitialDraft}
       />
     </PlatformLayout>
   )
@@ -289,7 +285,7 @@ function MobileBanner() {
         padding: '7px 14px',
         background: 'hsl(214 100% 97%)',
         borderBottom: '1px solid hsl(214 60% 88%)',
-        fontSize: 13, flexShrink: 0,
+        fontSize: 'var(--fs-base)', flexShrink: 0,
         color: 'hsl(214 60% 30%)',
       }}
       data-testid="mobile-banner"
@@ -314,10 +310,16 @@ function MobileBanner() {
 }
 
 /** Thin bar shown at the top of the main content area when a project is active. */
+/** Routes that render the chat surface. Its own header already carries the
+ *  project chip, so the project banner would be a second, redundant line. */
+export function isChatRoute(path: string): boolean {
+  return path === '/' || path === ''
+}
+
 function ActiveProjectBanner() {
   const { activeProject, setActiveProjectId } = useActiveProject()
-  const [, navigate] = useLocation()
-  if (!activeProject) return null
+  const [location, navigate] = useLocation()
+  if (!activeProject || isChatRoute(location)) return null
   return (
     <div
       style={{
@@ -325,7 +327,7 @@ function ActiveProjectBanner() {
         padding: '4px 14px',
         background: 'var(--bm-surface-2, hsl(var(--accent)))',
         borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
-        fontSize: 12.5, flexShrink: 0,
+        fontSize: 'var(--fs-base)', flexShrink: 0,
       }}
       data-testid="active-project-banner"
     >
@@ -340,7 +342,7 @@ function ActiveProjectBanner() {
       </button>
       <span style={{ flex: 1 }} />
       <button
-        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-sm)', color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
         onClick={() => navigate(`/projects?project=${activeProject.id}`)}
         data-testid="active-project-banner-goto"
       >
@@ -478,7 +480,7 @@ function PlatformLayout({
                 style={{
                   background: 'var(--bm-text, hsl(var(--foreground)))',
                   color: 'var(--bm-bg-elev, white)',
-                  fontSize: 13,
+                  fontSize: 'var(--fs-base)',
                   letterSpacing: '-0.03em',
                 }}
                 data-testid="button-sidebar-expand"
@@ -495,7 +497,7 @@ function PlatformLayout({
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
               <div className="flex-1" />
-              <ThemeToggle />
+              {/* <ThemeToggle /> — light only for now */}
             </div>
           ) : (
             /* Full sidebar */

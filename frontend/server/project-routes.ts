@@ -25,6 +25,7 @@ import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { emailService } from "./email-service";
+import { projectInputPath, projectInputKey, decodeMultipartFilename } from "./project-file-paths";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
 import path from "path";
@@ -199,13 +200,13 @@ async function _findProjectFileByHash(projectId: string, hash: string): Promise<
 
 /** The current user-ingested file with this name in the project (upload/url only —
  *  run outputs are immutable results, never versioned by a re-upload). */
-async function _findProjectFileByName(projectId: string, name: string): Promise<any | null> {
+async function _findProjectFileByName(projectId: string, name: string, sources: string[] = ['upload', 'url']): Promise<any | null> {
   try {
     const r = await pool.query(
       `SELECT id, name, s3_key, size, content_type, content_hash, version_no
        FROM project_files
-       WHERE project_id = $1 AND name = $2 AND source IN ('upload','url') LIMIT 1`,
-      [projectId, name]
+       WHERE project_id = $1 AND name = $2 AND source = ANY($3::text[]) LIMIT 1`,
+      [projectId, name, sources]
     );
     return r.rows[0] || null;
   } catch { return null; }
@@ -233,6 +234,42 @@ async function _archiveCurrentAsVersion(cur: any, projectId: string, note: strin
     [cur.id, projectId, cur.version_no, cur.s3_key, cur.size,
      cur.content_type, cur.content_hash ?? null, note, author]
   );
+}
+
+/**
+ * Store a project input file (browser upload or URL import): the same name with
+ * different bytes becomes a new version (append-only, §4.4) — never an overwrite of
+ * bytes a completed run used; otherwise a new file row. Caller has already done
+ * content-hash dedup and resolved `key` through projectInputPath.
+ */
+async function _storeProjectInput(o: {
+  id: string; uid: string; name: string; key: string; buf: Buffer;
+  contentType: string; contentHash: string; source: "upload" | "url" | "run_code";
+}): Promise<{ file: any; versioned: boolean }> {
+  // A regenerated analysis file versions the earlier generated one; an upload versions an upload.
+  const prior = await _findProjectFileByName(o.id, o.name, o.source === "run_code" ? ["run_code"] : ["upload", "url"]);
+  if (prior && prior.content_hash && prior.content_hash !== o.contentHash) {
+    const vkey = `${o.key}.v${prior.version_no + 1}`;
+    await s3Service.putObject(vkey, o.buf, o.contentType, o.uid);
+    await _archiveCurrentAsVersion(prior, o.id, `v${prior.version_no}`, o.uid);
+    const upd = await pool.query(
+      `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
+         version_no = version_no + 1 WHERE id = $5
+       RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
+      [vkey, o.buf.length, o.contentType, o.contentHash, prior.id]
+    );
+    await recordProjectActivity(o.id, o.uid, "file_versioned", { fileId: prior.id, name: o.name, version: prior.version_no + 1 });
+    return { file: upd.rows[0], versioned: true };
+  }
+  await s3Service.putObject(o.key, o.buf, o.contentType, o.uid);
+  const ins = await pool.query(
+    `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
+    [o.id, o.uid, o.name, o.key, o.buf.length, o.contentType, o.source, o.contentHash]
+  );
+  await recordProjectActivity(o.id, o.uid, "file_added", { fileId: ins.rows[0].id, name: o.name, source: o.source });
+  return { file: ins.rows[0], versioned: false };
 }
 
 function userId(req: Request): string | null {
@@ -712,8 +749,10 @@ export function registerProjectRoutes(app: Express): void {
   });
 
   // ─── POST /api/projects/:id/files/upload ──────────────────────────────
-  // Multipart upload: saves to S3 under projects/<projectId>/inputs/<filename>,
-  // then records metadata in project_files.
+  // Multipart upload: saves to S3 under projects/<projectId>/inputs/<relative path>,
+  // then records metadata in project_files. A folder upload sends one request per
+  // file with a `relativePath` field (before the file part); the stored name keeps
+  // the folders ("run1/fastq/S1.fastq.gz") — see project-file-paths.ts.
   app.post(
     "/api/projects/:id/files/upload",
     authenticateToken,
@@ -730,12 +769,14 @@ export function registerProjectRoutes(app: Express): void {
           fs.unlink(req.file.path, () => {});
           return res.status(404).json({ error: "Project not found" });
         }
-        const originalName = req.file.originalname || req.file.filename;
-        const safeExt = path.extname(originalName).toLowerCase().replace(/[^a-z0-9.]/g, "");
-        const safeName = path.basename(originalName, path.extname(originalName))
-          .replace(/[^a-zA-Z0-9._-]/g, "_")
-          .slice(0, 200);
-        const key = `projects/${id}/inputs/${safeName}${safeExt}`;
+        // Folder uploads send the browser's folder-relative path (webkitRelativePath) as a
+        // UTF-8 text field; it is the stored name, so the tree can rebuild the folders.
+        const relativePath = typeof req.body?.relativePath === "string" ? req.body.relativePath : null;
+        const { name: originalName, keyPath } = projectInputPath(
+          decodeMultipartFilename(req.file.originalname || req.file.filename),
+          relativePath,
+        );
+        const key = `projects/${id}/inputs/${keyPath}`;
         const buf = fs.readFileSync(req.file.path);
         fs.unlink(req.file.path, () => {});
         // Content-hash dedup (§4.5.1): the same bytes already in this project link
@@ -744,37 +785,8 @@ export function registerProjectRoutes(app: Express): void {
         const dup = await _findProjectFileByHash(id, contentHash);
         if (dup) return res.status(200).json({ file: dup, deduplicated: true });
         const ctype = uploadContentType(originalName, req.file.mimetype);
-        // Versioning (§4.4): re-uploading the SAME NAME with DIFFERENT content writes
-        // a NEW version (append-only) rather than a second file. The old bytes stay
-        // at their key (archived as a version); the new content takes a versioned key
-        // and becomes current. Never overwrites — a completed run keeps the exact bytes.
-        const prior = await _findProjectFileByName(id, originalName);
-        if (prior && prior.content_hash && prior.content_hash !== contentHash) {
-          const vkey = `projects/${id}/inputs/${safeName}${safeExt}.v${prior.version_no + 1}`;
-          await s3Service.putObject(vkey, buf, ctype, uid);
-          await _archiveCurrentAsVersion(prior, id, `v${prior.version_no}`, uid);
-          const upd = await pool.query(
-            `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
-               version_no = version_no + 1 WHERE id = $5
-             RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
-            [vkey, req.file.size, ctype, contentHash, prior.id]
-          );
-          await recordProjectActivity(id, uid, "file_versioned", { fileId: prior.id, name: originalName, version: prior.version_no + 1 });
-          return res.status(200).json({ file: upd.rows[0], versioned: true });
-        }
-        await s3Service.putObject(key, buf, ctype, uid);
-        const ins = await pool.query(
-          `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
-           VALUES ($1, $2, $3, $4, $5, $6, 'upload', $7)
-           RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-          [id, uid, originalName, key, req.file.size, ctype, contentHash]
-        );
-        await recordProjectActivity(id, uid, "file_added", {
-          fileId: ins.rows[0].id,
-          name: originalName,
-          source: "upload",
-        });
-        res.status(201).json({ file: ins.rows[0] });
+        const stored = await _storeProjectInput({ id, uid, name: originalName, key, buf, contentType: ctype, contentHash, source: "upload" });
+        res.status(stored.versioned ? 200 : 201).json(stored.versioned ? { file: stored.file, versioned: true } : { file: stored.file });
       } catch (e: any) {
         if (req.file?.path) fs.unlink(req.file.path, () => {});
         console.error("[project_files] upload failed:", e?.message ?? e);
@@ -831,21 +843,16 @@ export function registerProjectRoutes(app: Express): void {
       const contentHash = createHash("sha256").update(buf).digest("hex");
       const dup = await _findProjectFileByHash(id, contentHash);
       if (dup) return res.status(200).json({ file: dup, deduplicated: true });
+      // Same name/key rules as a browser upload: the original name is kept for display
+      // and the S3 key is collision-safe (a lossy basename let "数据.csv" and "样本.csv"
+      // share one object), and the same name with new bytes becomes a new version
+      // instead of overwriting bytes a completed run used.
       const rawName = String(req.body?.filename || validated.filename || "download");
-      const safeExt = path.extname(rawName).toLowerCase().replace(/[^a-z0-9.]/g, "");
-      const safeBase = path.basename(rawName, path.extname(rawName)).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200) || "download";
-      const filename = `${safeBase}${safeExt}`;
-      const key = `projects/${id}/inputs/${filename}`;
+      const { name: filename, keyPath } = projectInputPath(rawName);
+      const key = `projects/${id}/inputs/${keyPath}`;
       const contentType = (resp.headers.get("content-type") || "").split(";")[0].trim() || "application/octet-stream";
-      await s3Service.putObject(key, buf, contentType, uid);
-      const ins = await pool.query(
-        `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
-         VALUES ($1, $2, $3, $4, $5, $6, 'url', $7)
-         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-        [id, uid, filename, key, buf.length, contentType, contentHash]
-      );
-      await recordProjectActivity(id, uid, "file_added", { fileId: ins.rows[0].id, name: filename, source: "url" });
-      res.status(201).json({ file: ins.rows[0] });
+      const stored = await _storeProjectInput({ id, uid, name: filename, key, buf, contentType, contentHash, source: "url" });
+      res.status(stored.versioned ? 200 : 201).json(stored.versioned ? { file: stored.file, versioned: true } : { file: stored.file });
     } catch (e: any) {
       const msg = e?.name === "TimeoutError" ? "The URL took too long to fetch (120s limit)." : (e?.message ?? "Import failed");
       console.error("[project_files] url import failed:", msg);
@@ -1042,8 +1049,7 @@ export function registerProjectRoutes(app: Express): void {
       const newText = lines.join("\n") + (keepTrailingNL ? "\n" : "");
       const buf = Buffer.from(newText, "utf-8");
       const contentHash = createHash("sha256").update(buf).digest("hex");
-      const safeName = String(cur.name).replace(/[^a-zA-Z0-9._-]/g, "_");
-      const vkey = `projects/${id}/inputs/${safeName}.v${cur.version_no + 1}`;
+      const vkey = `${projectInputKey(id, String(cur.name), String(cur.name))}.v${cur.version_no + 1}`;
       await s3Service.putObject(vkey, buf, cur.content_type, uid);
       await _archiveCurrentAsVersion({ ...cur, id: fileId, size }, id, `v${cur.version_no}`, uid);
       const upd = await pool.query(
@@ -1104,16 +1110,79 @@ export function registerProjectRoutes(app: Express): void {
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
       // On-prem (MinIO): presigned URLs embed internal minio:9000 hostname
       // unreachable from the browser — return a Node.js proxy URL instead.
+      // ?redirect=1: a plain <a href> download (chat file chips) — same authorization as the JSON form.
+      // The presigned URL then carries Content-Disposition: attachment, so S3 makes the browser save
+      // the file (cross-origin, the <a download> attribute is ignored).
+      const asDownload = req.query.redirect === "1";
       let url: string;
       if (process.env.S3_ENDPOINT_URL) {
         url = `/api/s3/proxy-download?key=${encodeURIComponent(fileRow.rows[0].s3_key)}`;
       } else {
-        url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900);
+        url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900,
+          asDownload ? String(fileRow.rows[0].name) : undefined);
       }
+      if (asDownload) return res.redirect(302, url);
       res.json({ url, name: fileRow.rows[0].name });
     } catch (e: any) {
       console.error("[project_files] url failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to generate download URL" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/rows?offset=&limit= ─────────
+  // One page of a table-like project file's FULL rows (csv/tsv/jsonl), for the
+  // dataset Preview table. Parsed in the Python backend by the SAME readers the
+  // perception profiler uses (data_perception.read_rows), so the table, the stat
+  // grid and the QC card describe the same rows (JSONL → one row per record,
+  // top-level keys as columns, nested values as compact JSON). Owner/member scoped
+  // exactly like /url; the S3 key never leaves the server.
+  app.get("/api/projects/:id/files/:fileId/rows", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    const offset = parseInt(String(req.query.offset ?? "0"), 10);
+    const limit = parseInt(String(req.query.limit ?? "200"), 10);
+    if (!Number.isFinite(offset) || offset < 0 || !Number.isFinite(limit) || limit < 1) {
+      return res.status(400).json({ error: "invalid_range" });
+    }
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const fileRow = await pool.query(
+        `SELECT s3_key, name FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await import("./galaxy-user-fetch");
+      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/rows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          datasetRef: fileRow.rows[0].s3_key,
+          name: fileRow.rows[0].name,
+          offset,
+          limit: Math.min(limit, 1000),
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      const body: any = await resp.json().catch(() => null);
+      if (!resp.ok || !body) {
+        console.error(`[project_files] rows backend ${resp.status} for file ${fileId}`);
+        return res.status(502).json({ error: "rows_unavailable" });
+      }
+      if (body.error === "unresolvable_ref") return res.status(404).json({ error: "file_unreadable" });
+      if (body.error) return res.status(422).json({ error: "parse_failed" });
+      if (body.tabular === false) return res.status(415).json({ error: "not_tabular", kind: body.kind ?? null });
+      res.json({
+        kind: body.kind,
+        columns: Array.isArray(body.columns) ? body.columns : [],
+        rows: Array.isArray(body.rows) ? body.rows : [],
+        offset: body.offset ?? offset,
+        limit: body.limit ?? limit,
+        totalRows: typeof body.totalRows === "number" ? body.totalRows : null,
+      });
+    } catch (e: any) {
+      console.error("[project_files] rows failed:", e?.message ?? e);
+      res.status(502).json({ error: "rows_unavailable" });
     }
   });
 
@@ -1650,6 +1719,25 @@ export function registerProjectRoutes(app: Express): void {
 // output_files auto-register path). Inserts each file as source='run_output'
 // using an ON CONFLICT DO NOTHING upsert on (project_id, s3_key) so repeated
 // calls are idempotent.
+/**
+ * Save a file BioMate generated in a project chat (a run_code report, table or plot) as a project
+ * file: S3 under projects/<id>/generated/, the same content-hash dedup and by-name versioning as
+ * uploads (a regenerated QC_Report.txt becomes v2), activity log. Owner/editor only; null otherwise.
+ */
+export async function storeGeneratedFileInProject(o: {
+  projectId: string; uid: string; hostPath: string; name: string;
+}): Promise<{ file: any; versioned: boolean; deduplicated?: boolean } | null> {
+  if (!(await _isOwnerOrEditor(o.projectId, o.uid))) return null;
+  const { name, keyPath } = projectInputPath(o.name);
+  const key = `projects/${o.projectId}/generated/${keyPath}`;
+  const buf = fs.readFileSync(o.hostPath);
+  const contentHash = createHash("sha256").update(buf).digest("hex");
+  const dup = await _findProjectFileByHash(o.projectId, contentHash);
+  if (dup) return { file: dup, versioned: false, deduplicated: true };
+  return _storeProjectInput({ id: o.projectId, uid: o.uid, name, key, buf,
+    contentType: uploadContentType(name), contentHash, source: "run_code" });
+}
+
 export async function registerRunOutputsInProject(opts: {
   projectId: string;
   userId: string;

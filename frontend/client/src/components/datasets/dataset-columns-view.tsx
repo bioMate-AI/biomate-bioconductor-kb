@@ -3,10 +3,11 @@
  * with a bar, distinct count or a note, and a watch chip where something is wrong …
  * the view that makes a quality verdict arguable rather than mysterious."
  *
- * The profiler returns column headers + a capped sample of rows + free-text quality
- * notes (no per-column stats), so these numbers are derived CLIENT-SIDE from the
- * SAMPLE and are labelled as such — we never present a sample %-missing as the
- * whole-file truth. A column is flagged "watch" when a quality note names it, or
+ * Stats are derived CLIENT-SIDE from the rows the caller passes — the FULL rows
+ * paged in from GET /api/projects/:id/files/:fileId/rows (or the profiler sample
+ * when no project rows are available). The note under the table states exactly
+ * which rows they were computed on ("all N rows" vs "the n loaded rows of N"), so a
+ * partial %-missing is never presented as the whole-file truth. A column is flagged "watch" when a quality note names it, or
  * when a large fraction of its sampled cells are missing.
  */
 type TFn = (key: string, vars?: any) => string;
@@ -90,7 +91,7 @@ export function DatasetColumnsView({ columns, sampleRows, notes = [], totalRows,
                   {s.name}
                   {s.watch && (
                     <span
-                      className="ml-1.5 inline-flex items-center rounded px-1 py-0 text-[10px] font-medium border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      className="ml-1.5 inline-flex items-center rounded px-1 py-0 text-fs-xs font-medium border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                       data-testid="dataset-column-watch"
                       title={s.watchReason === "high-missing" ? t("dataset_obj.col_watch_missing") : s.watchReason}
                     >{t("dataset_obj.col_watch")}</span>
@@ -117,7 +118,12 @@ export function DatasetColumnsView({ columns, sampleRows, notes = [], totalRows,
         </table>
       </div>
       <p className="text-xs text-muted-foreground" data-testid="dataset-columns-sample-note">
-        {t("dataset_obj.columns_sample_note", { n: sampleRows.length, total: totalRows ? totalRows.toLocaleString() : "" })}
+        {totalRows != null && sampleRows.length >= totalRows
+          ? t("dataset_obj.columns_full_note", { total: totalRows.toLocaleString() })
+          : t("dataset_obj.columns_loaded_note", {
+              n: sampleRows.length.toLocaleString(),
+              total: totalRows != null ? totalRows.toLocaleString() : "?",
+            })}
       </p>
     </div>
   );

@@ -7,14 +7,19 @@ import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalMod
 import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
+import { planModelTraining } from "./model-training-plan";
+import { planModelFold } from "./model-fold";
 import { authorizeDatasetReference } from "./dataset-reference-access";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
-import { normalizeUiLanguage } from "./response-language";
+import { normalizeUiLanguage, isChineseBrowser, zhDefaultModel } from "./response-language";
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
 import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
 import { registerVoiceRoutes } from "./voice-routes";
+import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
+import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
+import { redactStoragePaths } from "./execution-integrity";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
 import { readConnectorSession } from "./connector-session";
@@ -43,20 +48,22 @@ import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
-import { _isOwnerOrMember, _isOwnerOrEditor } from "./project-routes";
+import { _isOwnerOrMember, _isOwnerOrEditor, storeGeneratedFileInProject } from "./project-routes";
 import { appendComposerInstructions, appendProjectOutputRequirements } from "./chat-context";
 import { loadProjectOutputRequirementsPrompt, loadProjectOutputRequirements, applyOutputRequirements } from "./project-instruction-settings";
 import { parseOutputRequirements, checkOutputConformance, type OutputRequirements } from "../client/src/lib/output-requirements";
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
-import { GalaxyAPIProxy, fetchGalaxyWithKeyRecovery } from "./galaxy-api-proxy";
+import { GalaxyAPIProxy } from "./galaxy-api-proxy";
+import { fetchGalaxyAsUser } from "./galaxy-user-fetch";
 import { ALLOWED_UPLOAD_EXTENSIONS, isAllowedUploadName, UnsupportedUploadTypeError } from "./upload-file-types";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
 import { assessOutputCompletion } from "./output-completion-contract";
 import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
+import { createAssistantPersister } from "./chat-stream-persistence";
 import { humanizeWorkflowName } from "./workflow-display-name";
 import { isRunnableWorkflow } from "./workflow-runnable";
 import { parameterRepository } from "./parameter-repository";
@@ -185,19 +192,8 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
   return galaxyAPIBackend.forUser(userApiKey, recover);
 }
 
-/**
- * fetch() to Galaxy as the signed-in user, for routes that call Galaxy directly instead of
- * through userProxy(): same key choice as before (user key, else shared admin key) plus the
- * same mid-session recovery (see fetchGalaxyWithKeyRecovery / userProxy).
- */
-function fetchGalaxyAsUser(req: express.Request, url: string, init: RequestInit = {}): Promise<Response> {
-  const user = req.user as any;
-  const raw = user?.galaxyApiKey as string | undefined;
-  const recover = user?.id && user?.email
-    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
-    : undefined;
-  return fetchGalaxyWithKeyRecovery(url, init, raw ? decryptField(raw) : null, process.env.GALAXY_API_KEY || '', recover);
-}
+// fetchGalaxyAsUser (user key, else shared admin key, with mid-session recovery) lives in
+// ./galaxy-user-fetch so project-routes.ts shares the exact same key choice.
 
 /**
  * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
@@ -1122,6 +1118,8 @@ const uploadDir = path.join(process.cwd(), 'data', 'uploads');
  * s3Uri is set when the file was also uploaded to S3 for Nextflow access.
  */
 const uploadedFileRegistry = new Map<string, { name: string; filePath: string; uploadedAt: number; s3Uri?: string }>();
+/** Set by registerRoutes: store a file as a session dataset (uploads + generated files). */
+let _registerDatasetFileRef: ((req: any, srcPath: string, name: string, opts?: any) => Promise<{ datasetId: string; galaxyDatasetId?: string; size: number }>) | undefined;
 
 export function getUploadedFile(datasetId: string): { name: string; filePath: string; s3Uri?: string } | undefined {
   const cached = uploadedFileRegistry.get(datasetId);
@@ -1707,6 +1705,8 @@ ${outputRequirementsSection}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   registerVoiceRoutes(app, authenticateToken);
+  // Citation reader: abstract + open-access full text from Europe PMC (chat "Read").
+  registerLiteratureFulltextRoutes(app, authenticateToken);
   /** Resolve either BioMate's run ID or the Galaxy invocation alias and apply
    * the single owner/project-member policy used by every output surface. */
   const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
@@ -4171,6 +4171,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File Upload API
+  /** Store a file as a dataset the requesting user owns — the one path for uploads AND files BioMate
+   *  generates (run_code outputs): a copy under data/uploads named by its dataset id, the session's
+   *  Galaxy history, an S3 mirror (Batch workflows), the run_code registry and the session dataset
+   *  list (so later turns see it). `move` renames (multer temp file); otherwise the source is copied
+   *  and left alone (the run_code workspace keeps its own copy). */
+  async function registerDatasetFile(
+    req: any, srcPath: string, originalName: string,
+    opts: { move?: boolean; mimetype?: string; description?: string; size?: number; source?: string } = {},
+  ) {
+    const datasetId = uuidv4();
+    const namedFilePath = path.join(uploadDir, `${datasetId}${path.extname(originalName)}`);
+    await fs.mkdir(uploadDir, { recursive: true });
+    if (opts.move) await fs.rename(srcPath, namedFilePath);
+    else await fs.copyFile(srcPath, namedFilePath);
+    const size = opts.size ?? (await fs.stat(namedFilePath)).size;
+
+    // Get or create Galaxy history for this session
+    let historyId = req.session?.galaxyHistoryId as string | undefined;
+    if (!historyId) {
+      try {
+        const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
+        historyId = await userProxy(req).createHistory(sessionName);
+        if (req.session) req.session.galaxyHistoryId = historyId;
+        console.log(`[FileUpload] Created new Galaxy history: ${historyId}`);
+      } catch (error: any) {
+        console.warn(`[FileUpload] Failed to create Galaxy history:`, error.message);
+        // Continue without Galaxy integration if it fails
+      }
+    }
+    let galaxyDatasetId: string | undefined;
+    if (historyId) {
+      try {
+        galaxyDatasetId = await userProxy(req).uploadDataset(namedFilePath, historyId, originalName);
+        console.log(`[FileUpload] Uploaded to Galaxy: ${galaxyDatasetId}`);
+      } catch (error: any) {
+        console.warn(`[FileUpload] Failed to upload to Galaxy:`, error.message);
+        // Continue with local file only if Galaxy upload fails
+      }
+    }
+
+    // Mirror to S3 so Nextflow workflows on AWS Batch can access the file
+    const s3Uri = await _uploadFileToS3(namedFilePath, datasetId, originalName).catch(() => undefined);
+
+    // Register in in-memory registry so run_code can find files without Galaxy/Redis
+    const reg = { name: originalName, filePath: namedFilePath, uploadedAt: Date.now(), s3Uri };
+    uploadedFileRegistry.set(datasetId, reg);
+    if (galaxyDatasetId) uploadedFileRegistry.set(galaxyDatasetId, reg);
+
+    // Store dataset in session (validation + the "this session" list later turns are given)
+    if (req.session) {
+      if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
+      req.session.uploadedDatasets.push({
+        dataset_id: datasetId,
+        galaxy_dataset_id: galaxyDatasetId,
+        name: originalName,
+        description: opts.description || '',
+        file_type: opts.mimetype,
+        file_size: size,
+        file_path: namedFilePath,
+        // Persist the durable S3 reference in the Redis-backed session too. Without it
+        // the in-memory uploadedFileRegistry is the ONLY holder of s3_uri, so a server
+        // restart between upload and run leaves a re-selected upload with only a local
+        // file_path — unreachable from AWS Batch. With it, the "this session" list stays
+        // runnable across restarts.
+        s3_uri: s3Uri,
+        ...(opts.source ? { source: opts.source } : {}),
+      });
+      req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
+    }
+    return { datasetId, galaxyDatasetId, historyId, filePath: namedFilePath, size, s3Uri };
+  }
+  _registerDatasetFileRef = registerDatasetFile;
+
   app.post("/api/datasets/upload", authenticateToken, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
@@ -4178,113 +4251,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const file = req.file;
-      const datasetId = uuidv4();
       const description = req.body.description || ''; // Get optional description from request body
-
-      // Rename the multer-generated file to use datasetId as the filename prefix,
-      // so that getUploadedFile() fallback scan (f.startsWith(datasetId)) works after server restart.
-      const fileExt = path.extname(file.originalname);
-      const namedFilename = `${datasetId}${fileExt}`;
-      const namedFilePath = path.join(path.dirname(file.path), namedFilename);
-      await fs.rename(file.path, namedFilePath);
-      file.path = namedFilePath;
-      file.filename = namedFilename;
-
-      console.log(`[FileUpload] File uploaded: ${file.originalname} -> ${file.filename}`);
-      console.log(`[FileUpload] Dataset ID: ${datasetId}`);
+      console.log(`[FileUpload] File uploaded: ${file.originalname}`);
       if (description) {
         console.log(`[FileUpload] Description: ${description}`);
       }
-
-      // Get or create Galaxy history for this session
-      let historyId = req.session?.galaxyHistoryId as string | undefined;
-
-      if (!historyId) {
-        try {
-          // Create a new history for this session
-          const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-          historyId = await userProxy(req).createHistory(sessionName);
-          if (req.session) {
-            req.session.galaxyHistoryId = historyId;
-          }
-          console.log(`[FileUpload] Created new Galaxy history: ${historyId}`);
-        } catch (error: any) {
-          console.warn(`[FileUpload] Failed to create Galaxy history:`, error.message);
-          // Continue without Galaxy integration if it fails
-        }
-      }
-
-      // Upload file to Galaxy if we have a history
-      let galaxyDatasetId: string | undefined;
-      if (historyId) {
-        try {
-          galaxyDatasetId = await userProxy(req).uploadDataset(
-            file.path,
-            historyId,
-            file.originalname
-          );
-          console.log(`[FileUpload] Uploaded to Galaxy: ${galaxyDatasetId}`);
-        } catch (error: any) {
-          console.warn(`[FileUpload] Failed to upload to Galaxy:`, error.message);
-          // Continue with local file only if Galaxy upload fails
-        }
-      }
-
-      // Mirror to S3 so Nextflow workflows on AWS Batch can access the file
-      // This runs concurrently — response is not blocked by S3 upload
-      const s3Uri = await _uploadFileToS3(file.path, datasetId, file.originalname).catch(() => undefined);
-
-      // Register in in-memory registry so run_code can find files without Galaxy/Redis
-      uploadedFileRegistry.set(datasetId, {
-        name: file.originalname,
-        filePath: file.path,
-        uploadedAt: Date.now(),
-        s3Uri,
+      // Rename the multer temp file to <datasetId><ext> so the getUploadedFile() fallback scan
+      // (f.startsWith(datasetId)) works after a server restart.
+      const d = await registerDatasetFile(req, file.path, file.originalname, {
+        move: true, mimetype: file.mimetype, description, size: file.size,
       });
-      // Also register by galaxy_dataset_id for cross-lookup
-      if (galaxyDatasetId) {
-        uploadedFileRegistry.set(galaxyDatasetId, {
-          name: file.originalname,
-          filePath: file.path,
-          uploadedAt: Date.now(),
-          s3Uri,
-        });
-      }
-
-      // Store dataset in session for validation
-      if (req.session) {
-        if (!req.session.uploadedDatasets) {
-          req.session.uploadedDatasets = [];
-        }
-        req.session.uploadedDatasets.push({
-          dataset_id: datasetId,
-          galaxy_dataset_id: galaxyDatasetId,
-          name: file.originalname,
-          description: description,
-          file_type: file.mimetype,
-          file_size: file.size,
-          file_path: file.path,
-          // Persist the durable S3 reference in the Redis-backed session too. Without it
-          // the in-memory uploadedFileRegistry is the ONLY holder of s3_uri, so a server
-          // restart between upload and run leaves a re-selected upload with only a local
-          // file_path — unreachable from AWS Batch. With it, the "this session" list stays
-          // runnable across restarts.
-          s3_uri: s3Uri,
-        });
-        req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
-      }
+      console.log(`[FileUpload] Dataset ID: ${d.datasetId}`);
 
       // Return dataset information with local, Galaxy, and S3 IDs
       res.json({
-        dataset_id: datasetId,
-        galaxy_dataset_id: galaxyDatasetId,
-        galaxy_history_id: historyId,
+        dataset_id: d.datasetId,
+        galaxy_dataset_id: d.galaxyDatasetId,
+        galaxy_history_id: d.historyId,
         name: file.originalname,
         description: description,
         file_size: file.size,
         file_type: file.mimetype,
-        file_path: file.path,
-        s3_uri: s3Uri,
+        file_path: d.filePath,
+        s3_uri: d.s3Uri,
         uploaded_at: new Date().toISOString(),
       });
     } catch (error: any) {
@@ -4293,6 +4282,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'UploadError',
         message: error.message || 'File upload failed',
       });
+    }
+  });
+
+  // Download a dataset of THIS session (an upload or a file BioMate generated, e.g. a run_code
+  // report or plot). Authorized by the session's own dataset list — never by a client-supplied path.
+  app.get("/api/datasets/:id/download", optionalAuth, async (req: any, res) => {
+    const id = String(req.params.id || '');
+    const entry = (req.session?.uploadedDatasets || []).find((d: any) => d.dataset_id === id || d.galaxy_dataset_id === id);
+    if (!entry) return res.status(404).json({ error: 'Dataset not found in this session' });
+    const name = String(entry.name || 'download').replace(/[\r\n"]/g, '_');
+    const local = entry.file_path ? path.resolve(String(entry.file_path)) : '';
+    if (local && local.startsWith(path.resolve(uploadDir) + path.sep)) {
+      try { await fs.access(local); return res.download(local, name); } catch { /* fall through to S3 */ }
+    }
+    const m = /^s3:\/\/([^/]+)\/(.+)$/.exec(String(entry.s3_uri || ''));
+    if (!m) return res.status(404).json({ error: 'File no longer available' });
+    try {
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = await _s3ClientForBucket(m[1]);
+      const out: any = await s3.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+      res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+      if (out.ContentType) res.setHeader('Content-Type', out.ContentType);
+      (out.Body as any).pipe(res);
+    } catch (e: any) {
+      console.warn(`[datasets/download] S3 read failed for ${id}: ${e?.message}`);
+      res.status(404).json({ error: 'File no longer available' });
     }
   });
 
@@ -5741,7 +5756,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           workflowDefinition: {
             name: 'Adaptation retrain',
-            workflow_type: 'training',
+            // Not model training (no model, no metrics): kept out of the Models
+            // panel's training-runs list, still a first-class run in Run Manager.
+            workflow_type: 'adaptation',
             description:
               typeof galaxyJson?.message === 'string' && galaxyJson.message
                 ? galaxyJson.message
@@ -5775,6 +5792,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bare-path matchers (Express "/*" wildcards require a following segment, so
   // the collection roots are registered explicitly) plus their sub-paths.
+
+  // Structure "Run a model" → fold on OUR AWS Batch (Boltz-2), not NVIDIA.
+  // Stages the sequence as a FASTA and returns the boltz_structure_prediction
+  // launch request; the client submits it through POST /api/workflows/execute,
+  // so the fold is a tracked run (see server/model-fold.ts).
+  app.post("/api/models/fold/plan", authenticateToken, async (req: any, res) => {
+    const result = await planModelFold({ userId: req.user?.id, body: req.body }, {
+      stageFasta: async (content: string, basename: string) => {
+        const onPrem = !!process.env.S3_ENDPOINT_URL;
+        const bucket = onPrem
+          ? (process.env.S3_BUCKET_NAME || 'biomate-data')
+          : (process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work');
+        const { randomUUID } = await import('crypto');
+        const key = `uploads/fold-${randomUUID()}/${basename}`;
+        try {
+          const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const s3 = await _s3ClientForBucket(bucket);
+          await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: content, ContentType: 'text/plain' }));
+          return `s3://${bucket}/${key}`;
+        } catch (error) {
+          console.error('[fold] stageFasta failed:', error instanceof Error ? error.message : error);
+          return undefined;
+        }
+      },
+    });
+    res.status(result.status).json(result.body);
+  });
   app.all("/api/models", authenticateToken, _modelsOwnerProxy);
   app.all("/api/models/*", authenticateToken, _modelsOwnerProxy);
   // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
@@ -5831,6 +5875,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
       getUserProjects: uid => memoryService.projects.getUserProjects(uid),
       getExecutionRuns: (uid, project) => storage.getExecutionRuns(uid, project, undefined, 500),
+      // The trainer writes results/metrics.json (metrics + gate) to the run's own outputs;
+      // the URI comes from the run record (or Galaxy's status for it), never from the client.
+      loadTrainingMetrics: async (run) => {
+        const bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+        const uriOf = (f: any) => (typeof f === 'string' ? f : f?.s3_uri || f?.path || f?.url || '') as string;
+        let files: unknown[] = run.execution?.nextflowStatus?.s3_output_files || run.execution?.nextflowStatus?.output_files || [];
+        if (!files.some((f) => /\/metrics\.json$/.test(uriOf(f))) && run.execution?.nextflowRunId) {
+          const g = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(run.execution.nextflowRunId)}`,
+            { signal: AbortSignal.timeout(8000) }).catch(() => null);
+          const gd: any = g && g.ok ? await g.json().catch(() => null) : null;
+          if (Array.isArray(gd?.s3_output_files)) files = gd.s3_output_files;
+        }
+        const uris = files.map(uriOf).filter((u) => u.startsWith(`s3://${bucket}/`) && /\/metrics\.json$/.test(u));
+        const uri = uris.find((u) => /\/results\/metrics\.json$/.test(u)) || uris[0];
+        if (!uri) return null;
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        // The work bucket is in us-east-1, not the app region: a us-west-2 client
+        // got PermanentRedirect on every read, so no run ever showed its score.
+        const client = await _s3ClientForBucket(bucket);
+        const obj = await client.send(new GetObjectCommand({ Bucket: bucket, Key: uri.slice(`s3://${bucket}/`.length) }));
+        const text = await (obj.Body as any)?.transformToString?.('utf-8');
+        return text && text.length < 512 * 1024 ? JSON.parse(text) : null;
+      },
+      saveTrainingSummary: async (runId, summary) => {
+        const current = await storage.getExecutionRun(runId);
+        if (!current) return;
+        await storage.updateExecutionRun(runId, { execution: { ...(current as any).execution, trainingSummary: summary } } as any);
+      },
+    });
+    res.status(result.status).json(result.body);
+  });
+  // Models panel → structured training plan (no chat draft). The returned
+  // workflow_ga is submitted by the client through POST /api/workflows/execute.
+  app.post("/api/model-training/plan", authenticateToken, async (req: any, res) => {
+    const result = await planModelTraining({ userId: req.user?.id, body: req.body }, {
+      getProjectFile: async (projectId, fileId, uid) => {
+        const rows = await pool.query(`SELECT f.id, f.name, f.s3_key FROM project_files f JOIN projects p ON p.id = f.project_id
+          WHERE f.id::text = $1 AND f.project_id::text = $2 AND (p.user_id::text = $3 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $3
+          )) LIMIT 1`, [fileId, projectId, uid]);
+        const row = rows.rows[0];
+        return row ? { id: String(row.id), name: String(row.name), s3_key: String(row.s3_key) } : null;
+      },
+      stageForBatch: async (file, projectId) => {
+        const bucket = process.env.S3_BUCKET_NAME || '';
+        if (!bucket) return undefined;
+        return _stageProjectFileToNextflow(bucket, file.s3_key, projectId, file.name);
+      },
+      requestGalaxyPlan: async (uid, body) => {
+        const response = await fetchOwnedModelSurface(uid, '/api/model-training/plan', {
+          method: 'POST', body: JSON.stringify(body),
+        });
+        return { status: response.status, body: await response.json().catch(() => ({ error: 'Invalid training service response' })) };
+      },
     });
     res.status(result.status).json(result.body);
   });
@@ -6747,7 +6845,9 @@ ${paramLines || '(none recorded)'}`;
     // not race with the client-side chat-history sync.
     let accumulatedContent = "";
     let workflowMetadata: any = null;
-    let persisted = false;
+    // The `final` SSE payload, persisted so a reload can rebuild the card.
+    let finalPayloadForPersist: any = null;
+    const _fallbackAssistantMessageId = `srv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     // Strip tool-call XML the model sometimes narrates as prose (e.g. when reading
     // a PDF) out of the SSE stream. safeSend is the single funnel every model path
     // (Claude / Gemini / OpenAI / Ollama) emits through, so filtering here covers
@@ -6759,55 +6859,63 @@ ${paramLines || '(none recorded)'}`;
     // path falls back to ctx.projectId or null.
     let _resolvedProjectId: string | undefined;
 
-    const persistAssistantMessage = async (opts: { partial: boolean }): Promise<void> => {
-      if (persisted) return;
-      if (accumulatedContent.length === 0) return; // never persist an empty message
-      const userObj: any = (req as any).user;
-      if (!userObj?.id) return; // anonymous → nothing to persist (no session row)
-      const ctx = (req.body && req.body.context) || {};
-      const sessionId: string | undefined = ctx.sessionId || ctx.memorySessionId;
-      if (!sessionId) return;
-      const assistantMessageId: string =
-        ctx.assistantMessageId || `srv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const messageObj: any = {
-        message_id: assistantMessageId,
-        role: "assistant",
-        content: accumulatedContent,
-        timestamp: new Date().toISOString(),
-        partial: opts.partial,
-      };
-      if (workflowMetadata) messageObj.workflowMetadata = workflowMetadata;
-      try {
-        // UPSERT: ensure session row exists, then merge the assistant message by
-        // message_id (replace existing entry with same id, else append).
-        // project_id is set on insert AND backfilled on update if the row
-        // pre-dates Q4 (had a NULL project_id). The COALESCE preserves any
-        // existing non-null value so reassignment via a future UI selector
-        // doesn't get clobbered by the auto-resolved default project.
-        // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
-        // Prefer the server-resolved projectId (Q4 ensureDefaultProject)
-        // over a client-sent value, so a buggy client can't dissociate a
-        // session from the project we just resolved for it.
-        const projectIdForUpsert = _resolvedProjectId || ctx.projectId || null;
-        await pool.query(
-          `INSERT INTO chat_sessions (session_id, user_id, title, messages, project_id)
-             VALUES ($1, $2, 'New Chat', $3::jsonb, $5)
-             ON CONFLICT (session_id) DO UPDATE SET
-               messages = (
-                 SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
-                 FROM jsonb_array_elements(chat_sessions.messages) elem
-                 WHERE elem->>'message_id' IS DISTINCT FROM $4
-               ),
-               project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
-               last_activity = NOW()`,
-          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId, projectIdForUpsert]
-        );
-        persisted = true;
-        console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${opts.partial}, len=${accumulatedContent.length})`);
-      } catch (e: any) {
-        console.error('[ChatStream] Failed to persist assistant message:', e?.message || e);
-      }
-    };
+    // Write ordering (partial on disconnect vs final on completion) lives in
+    // createAssistantPersister — see server/chat-stream-persistence.ts.
+    const _assistantPersister = createAssistantPersister({
+      snapshot: () => ({ content: accumulatedContent, workflowMetadata, finalPayload: finalPayloadForPersist }),
+      write: async (w) => {
+        const userObj: any = (req as any).user;
+        if (!userObj?.id) return false; // anonymous → nothing to persist (no session row)
+        const ctx = (req.body && req.body.context) || {};
+        const sessionId: string | undefined = ctx.sessionId || ctx.memorySessionId;
+        if (!sessionId) return false;
+        const assistantMessageId: string =
+          ctx.assistantMessageId || _fallbackAssistantMessageId;
+        const messageObj: any = {
+          message_id: assistantMessageId,
+          role: "assistant",
+          content: w.content,
+          timestamp: new Date().toISOString(),
+          partial: w.partial,
+        };
+        if (w.workflowMetadata) messageObj.workflowMetadata = w.workflowMetadata;
+        // The client rebuilds the workflow card from this on reload when its own
+        // session sync never ran (tab closed/reloaded during the turn).
+        if (w.finalPayload) messageObj.finalPayload = w.finalPayload;
+        try {
+          // UPSERT: ensure session row exists, then merge the assistant message by
+          // message_id (replace existing entry with same id, else append).
+          // project_id is set on insert AND backfilled on update if the row
+          // pre-dates Q4 (had a NULL project_id). The COALESCE preserves any
+          // existing non-null value so reassignment via a future UI selector
+          // doesn't get clobbered by the auto-resolved default project.
+          // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
+          // Prefer the server-resolved projectId (Q4 ensureDefaultProject)
+          // over a client-sent value, so a buggy client can't dissociate a
+          // session from the project we just resolved for it.
+          const projectIdForUpsert = _resolvedProjectId || ctx.projectId || null;
+          await pool.query(
+            `INSERT INTO chat_sessions (session_id, user_id, title, messages, project_id)
+               VALUES ($1, $2, 'New Chat', $3::jsonb, $5)
+               ON CONFLICT (session_id) DO UPDATE SET
+                 messages = (
+                   SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
+                   FROM jsonb_array_elements(chat_sessions.messages) elem
+                   WHERE elem->>'message_id' IS DISTINCT FROM $4
+                 ),
+                 project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
+                 last_activity = NOW()`,
+            [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId, projectIdForUpsert]
+          );
+          console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${w.partial}, len=${w.content.length}, card=${!!w.finalPayload?.workflow})`);
+          return true;
+        } catch (e: any) {
+          console.error('[ChatStream] Failed to persist assistant message:', e?.message || e);
+          return false;
+        }
+      },
+    });
+    const persistAssistantMessage = (opts: { partial: boolean }): Promise<void> => _assistantPersister.persist(opts);
 
     // Use socket 'close' (TCP disconnect) not req 'close' (body consumed).
     // req 'close' fires as soon as express body-parser finishes reading the POST body,
@@ -6815,13 +6923,27 @@ ${paramLines || '(none recorded)'}`;
     // TCP connection is actually destroyed (client disconnect).
     req.socket?.on('close', () => {
       abortController.abort();
-      // Fire-and-forget partial persistence on client disconnect.
-      if (!persisted && accumulatedContent.length > 0) {
-        persistAssistantMessage({ partial: true }).catch(() => {/* logged inside */});
-      }
+      // Fire-and-forget partial persistence on client disconnect. Generation
+      // continues server-side; the final write still lands afterwards.
+      persistAssistantMessage({ partial: true }).catch(() => {/* logged inside */});
     });
 
     let heartbeatTimer: NodeJS.Timeout | null = null;
+
+    // Backstop for the no-S3-in-user-facing-text directive on the LIVE stream:
+    // redactStoragePaths only cleaned the FINAL message, so a storage URI the model
+    // echoed could flash in the bubble token-by-token before `final` replaced it
+    // (honesty review 2026-11-11, Finding 1). Redact complete `s3://…` inside each
+    // delta, and hold back a trailing unterminated `s3://…` run until a later chunk
+    // supplies its terminator — so the path never renders mid-stream. Flushed at 'final'.
+    let _storagePathPending = '';
+    const _scrubDeltaStoragePaths = (chunk: string): string => {
+      let buf = _storagePathPending + chunk;
+      _storagePathPending = '';
+      const tail = buf.match(/s3:\/\/[^\s`)\]>"']*$/i); // an s3 URI still running to the end of the buffer
+      if (tail) { _storagePathPending = tail[0]; buf = buf.slice(0, buf.length - tail[0].length); }
+      return redactStoragePaths(buf);
+    };
 
     const safeSend = (event: string, data: unknown): void => {
       // Server-side accumulation (runs even if write fails / connection dead).
@@ -6831,7 +6953,7 @@ ${paramLines || '(none recorded)'}`;
           // Filter narrated tool-call XML out of the live token stream. rawResponse
           // held on the LLM side is unaffected; what the user sees + what we persist
           // is clean. The filter may hold back a partial tag; flushed at 'final'.
-          const safe = _leakFilter.push(t);
+          const safe = _scrubDeltaStoragePaths(_leakFilter.push(t));
           accumulatedContent += safe;
           if (res.writableEnded || abortController.signal.aborted) return;
           if (safe) res.write(`event: delta\ndata: ${JSON.stringify({ ...(data as any), text: safe })}\n\n`);
@@ -6840,8 +6962,11 @@ ${paramLines || '(none recorded)'}`;
       } else if (event === 'workflow_ready') {
         workflowMetadata = data;
       } else if (event === 'final') {
-        // Release any partial-tag remainder the delta filter was holding.
-        const rem = _leakFilter.flush();
+        // Release any partial-tag remainder the delta filter was holding, then any
+        // held-back storage-path tail (redacted — an unterminated s3:// run that
+        // never got its terminator still must not reach the user raw).
+        const rem = redactStoragePaths(_leakFilter.flush() + _storagePathPending);
+        _storagePathPending = '';
         if (rem) {
           accumulatedContent += rem;
           if (!res.writableEnded && !abortController.signal.aborted) {
@@ -6861,6 +6986,7 @@ ${paramLines || '(none recorded)'}`;
         // emit workflow data only in 'final', not 'workflow_ready').
         const wf = (data as any)?.workflow;
         if (wf && !workflowMetadata) workflowMetadata = { workflow: wf };
+        finalPayloadForPersist = data;
       }
       if (res.writableEnded || abortController.signal.aborted) return;
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -7226,21 +7352,23 @@ ${paramLines || '(none recorded)'}`;
 
       // Fall back to system-level OpenRouter key if user has none.
       // OPENROUTER_API_KEY in server env enables cheap Chinese models for all users.
+      // Chinese-language browsers get a Chinese model that also reads images (plots, figures):
+      // ui language → primary Accept-Language → geo header (isChineseBrowser). A user's own
+      // selected model/provider always wins. Overridable via OPENROUTER_ZH_DEFAULT_MODEL.
+      const _zhBrowser = isChineseBrowser((context as any)?.uiLanguage, req.headers['accept-language'],
+        req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'] || req.headers['x-appengine-country']);
       if (!_openrouterKey && process.env.OPENROUTER_API_KEY) {
         _openrouterKey = process.env.OPENROUTER_API_KEY;
         if (!_selectedModel) {
-          // China-origin requests default to the best Chinese LLM per our routing benchmark:
-          // z-ai/glm-5.3-prime (top routing recall at lowest cost; function-calling capable, so
-          // it gets the full agentic pipeline). Origin is read from an upstream geo header when
-          // present, else inferred from a zh-CN Accept-Language. Only affects the managed default
-          // (a user's own selected model/provider always wins). Overridable via env.
-          const _cc = String(req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'] || req.headers['x-appengine-country'] || '').toUpperCase();
-          const _lang = String(req.headers['accept-language'] || '').toLowerCase();
-          const _fromChina = _cc ? _cc === 'CN' : /(^|,)\s*zh-cn\b/.test(_lang);
-          _selectedModel = _fromChina
-            ? (process.env.OPENROUTER_CN_DEFAULT_MODEL || 'z-ai/glm-5.3-prime')
-            : (process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat');
+          _selectedModel = _zhBrowser ? zhDefaultModel() : (process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat');
         }
+      }
+      // Chinese browsers only: a key scoped to them (OPENROUTER_ZH_API_KEY), so a deployment can serve
+      // Chinese users with a Chinese model without routing every keyless user through OpenRouter.
+      // Never on on-prem / local-only deployments (LLM_API_URL / localOnly): their data stays local.
+      if (!_openrouterKey && _zhBrowser && process.env.OPENROUTER_ZH_API_KEY && !process.env.LLM_API_URL && !localOnly()) {
+        _openrouterKey = process.env.OPENROUTER_ZH_API_KEY;
+        if (!_selectedModel) _selectedModel = zhDefaultModel();
       }
 
       // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
@@ -7434,6 +7562,28 @@ ${paramLines || '(none recorded)'}`;
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
         uiLanguage: normalizeUiLanguage((context as any)?.uiLanguage),
+        // run_code outputs → session datasets (download link + later turns), the same store as uploads.
+        persistGeneratedFile: async (hostPath: string, name: string) => {
+          // A project chat saves into the project automatically (versioned project file, shown under
+          // "Analysis outputs").
+          const _uid = req.user?.id != null ? String(req.user.id) : '';
+          if (_resolvedProjectId && _uid) {
+            const stored = await storeGeneratedFileInProject({ projectId: _resolvedProjectId, uid: _uid, hostPath, name });
+            if (stored?.file?.id) {
+              return { dataset_id: String(stored.file.id), project_file_id: String(stored.file.id), project_id: _resolvedProjectId,
+                download_url: `/api/projects/${encodeURIComponent(_resolvedProjectId)}/files/${encodeURIComponent(stored.file.id)}/url?redirect=1` };
+            }
+          }
+          // Non-project chats: not saved (founder 2026-11-11: "only project" — new chats can only be
+          // started inside a project; project-less chats are legacy). Their files stay in the chat's
+          // session workspace for later turns; figures still download from their inline bytes.
+          // To re-enable, register the file as a session dataset:
+          //   if (!_registerDatasetFileRef) return undefined;
+          //   const d = await _registerDatasetFileRef(req, hostPath, name, { source: 'run_code' });
+          //   return { dataset_id: d.datasetId, galaxy_dataset_id: d.galaxyDatasetId,
+          //     download_url: `/api/datasets/${encodeURIComponent(d.datasetId)}/download` };
+          return undefined;
+        },
         openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
@@ -7869,9 +8019,7 @@ ${paramLines || '(none recorded)'}`;
       console.error("Chat Stream API error:", error);
       // Persist whatever we managed to stream before the error so the user can
       // see partial output on session reload.
-      if (!persisted && accumulatedContent.length > 0) {
-        await persistAssistantMessage({ partial: true }).catch(() => {/* logged */});
-      }
+      await persistAssistantMessage({ partial: true }).catch(() => {/* logged */});
       safeSend("error", {
         message: error?.message || "Streaming chat failed",
       });
@@ -14001,27 +14149,27 @@ Rules:
 
   // ── Session title generation via LLM ─────────────────────────────────────
   app.post("/api/sessions/generate-title", optionalAuth, express.json(), async (req, res) => {
-    const text: string = String(req.body?.text || '').slice(0, 600);
+    // Title from the user's words only: strip the composer's system blocks
+    // ([BioMate dataset: …], [Uploaded datasets: …], [Paper content: …]) BEFORE
+    // slicing, so a block can neither become the title nor be cut mid-way.
+    const text: string = titleSourceText(String(req.body?.text || '')).slice(0, 600);
     if (!text) return res.json({ title: 'New Chat' });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey && !localOnly()) {
-      // Fallback: take first 6 words
-      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
-      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+      return res.json({ title: fallbackTitle(text) });
     }
     try {
       const raw = await callGeminiFlash({
         messages: [{ role: 'user', content: `Query: ${text}` }],
-        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
+        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. Write the title in the same language as the query. No quotes, no punctuation at end, no filler words like "user wants to".',
         maxTokens: 1024,
         temperature: 0,
       });
-      const title = raw.trim().replace(/^["']|["']$/g, '').slice(0, 60) || text.split(/\s+/).slice(0, 6).join(' ');
+      const title = stripSystemBlocks(raw.trim().replace(/^["'“”]|["'“”]$/g, '')).slice(0, 60) || fallbackTitle(text);
       return res.json({ title });
     } catch {
-      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
-      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+      return res.json({ title: fallbackTitle(text) });
     }
   });
 

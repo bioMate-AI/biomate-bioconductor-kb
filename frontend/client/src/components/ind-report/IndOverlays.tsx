@@ -241,7 +241,7 @@ export function IndSignOverlay({
                   marginTop: 8, padding: "8px 10px",
                   background: "oklch(0.96 0.06 90)",
                   border: "1px solid oklch(0.78 0.12 90)",
-                  borderRadius: 6, fontSize: 12.5,
+                  borderRadius: 6, fontSize: 'var(--fs-base)',
                   color: "oklch(0.32 0.10 90)",
                   display: "flex", gap: 8, alignItems: "center",
                 }}
@@ -269,7 +269,7 @@ export function IndSignOverlay({
                   marginTop: 8, padding: "6px 10px",
                   background: "var(--ind-ok-soft, #ecfdf5)",
                   border: "1px solid var(--ind-ok, #10b981)",
-                  borderRadius: 6, fontSize: 12,
+                  borderRadius: 6, fontSize: 'var(--fs-sm)',
                   color: "var(--ind-ok, #047857)",
                   display: "flex", gap: 8, alignItems: "center",
                 }}
@@ -309,7 +309,7 @@ export function IndSignOverlay({
                 style={{
                   marginTop: 8, padding: "8px 10px", borderRadius: 6,
                   background: "#fef2f2", color: "#b91c1c",
-                  fontSize: 12, lineHeight: 1.5,
+                  fontSize: 'var(--fs-sm)', lineHeight: 1.5,
                   border: "1px solid #fecaca",
                 }}
               >
@@ -427,7 +427,7 @@ export function IndAuditOverlay({
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
           style={{
-            padding: "3px 6px", fontSize: 11.5, borderRadius: 4,
+            padding: "3px 6px", fontSize: 'var(--fs-sm)', borderRadius: 4,
             border: "1px solid var(--ind-border)", fontFamily: "inherit", background: "white",
           }}
         >
@@ -452,14 +452,14 @@ export function IndAuditOverlay({
               <span className="sec">{f.section}</span>
               <span className={`audit-chip ${f.severity.toLowerCase()}`}>{f.severity}</span>
               {f.addressed && (
-                <span style={{ fontSize: 11, color: "var(--ind-ok)", fontWeight: 600 }}>
+                <span style={{ fontSize: 'var(--fs-xs)', color: "var(--ind-ok)", fontWeight: 600 }}>
                   ✓ Addressed
                 </span>
               )}
               {isDismissedLocal && !f.addressed && (
                 <span
                   data-testid={`audit-dismissed-badge-${i}`}
-                  style={{ fontSize: 11, color: "var(--ind-text-muted)", fontWeight: 600 }}
+                  style={{ fontSize: 'var(--fs-xs)', color: "var(--ind-text-muted)", fontWeight: 600 }}
                 >
                   ✓ Dismissed
                 </span>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -32,29 +32,24 @@ import {
   Loader2,
   Flag,
   MapPin,
-  StickyNote,
-  Pin
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 import {
   exportCitationsBibTeX,
   generateMethodsSection,
   downloadAsFile,
-  copyToClipboard
 } from "@/lib/ai-assistant-api"
-import { api } from "@/lib/api"
-import { useActiveProjectIdSafe } from "@/contexts/active-project-context"
-import { useToast } from "@/hooks/use-toast"
 import type { Citation, MethodsSection } from "@shared/schema"
-import { SourceReaderPane, sourceUrl, type EvidenceCitation } from "@/components/source-reader-pane"
+import { SourceReaderPane, sourceUrl, readerCanFetch, type EvidenceCitation } from "@/components/source-reader-pane"
 
-// Spec 01 §1.3.2: a materially-disagreeing pair of findings, surfaced honestly.
 /**
  * Retrieval transparency (v2 Spec 09, "How this was searched").
  * One row per source the retrieval path queried, carrying how many records
  * were found vs. kept. ONLY rendered when the retrieval path supplies real
  * counts — never fabricated, never inferred from the citation list. Absent →
- * the section does not render (honest-empty).
+ * nothing renders (honest-empty). Shown as a one-line footnote with the
+ * per-source breakdown in a tooltip — not a section of its own.
  */
 export interface RetrievalSource {
   /** Source name, e.g. "PubMed", "Europe PMC", "bioRxiv". */
@@ -65,6 +60,7 @@ export interface RetrievalSource {
   kept: number
 }
 
+// Spec 01 §1.3.2: a materially-disagreeing pair of findings, surfaced honestly.
 // Only rendered when the retrieval path marks a conflict — never fabricated.
 export interface CitationConflict {
   /** Short label for the disagreement, e.g. "Effect at physiological dose". */
@@ -74,29 +70,20 @@ export interface CitationConflict {
 }
 
 interface CitationPanelProps {
+  /**
+   * "literature" — a research answer's sources: a quiet "N sources" line that
+   * expands into a numbered reference list (title · journal · year → link,
+   * plus Read). "workflow" — tool citations + the Methods-section generator.
+   */
   kind?: "workflow" | "literature"
   citations: Citation[]
   methodsSection?: MethodsSection
   workflow?: Record<string, any>  // Galaxy workflow for API calls
-  /**
-   * Spec 01 §1.3.2 conflict affordance. When the retrieval path detects that
-   * sources materially disagree, it passes the conflicting positions here and
-   * a "Sources disagree" row is shown. Omit / empty → row never renders.
-   */
+  /** Spec 01 §1.3.2 conflict affordance. Omit / empty → row never renders. */
   conflicts?: CitationConflict[]
-  /**
-   * Spec 09 — retrieval transparency. When the retrieval path reports how many
-   * records each source returned and how many survived filtering, a "How this
-   * was searched" section is shown (per-source found · kept + a "N of M kept"
-   * summary). Omit / empty → the section never renders (no fabrication).
-   */
+  /** Spec 09 retrieval transparency. Omit / empty → footnote never renders. */
   retrieval?: RetrievalSource[]
-  /**
-   * Spec 01 §1.3.2 / §1.5 — the synthesised answer body this citation set
-   * backs. When present it is included verbatim in the "Save to project
-   * notes" payload so provenance (claim + its sources) travels together. If
-   * absent, only the source list is saved.
-   */
+  /** The answer this source set backs (kept for callers; not rendered). */
   answerText?: string
   isCollapsed?: boolean
   onCopy?: (text: string, format: 'apa' | 'bibtex' | 'short') => void
@@ -105,19 +92,144 @@ interface CitationPanelProps {
   className?: string
 }
 
-export function CitationPanel({
-  kind = "workflow",
+/** Keep only well-formed per-source rows (never derive counts client-side). */
+function validRetrieval(retrieval?: RetrievalSource[]): RetrievalSource[] {
+  return (retrieval || []).filter(
+    s => s && s.name && Number.isFinite(s.found) && Number.isFinite(s.kept) && s.found >= 0 && s.kept >= 0 && s.kept <= s.found,
+  )
+}
+
+export function CitationPanel(props: CitationPanelProps) {
+  return props.kind === "literature" ? <LiteratureSources {...props} /> : <WorkflowCitationPanel {...props} />
+}
+
+// ─── Literature: one quiet line → numbered references ─────────────────────
+
+function LiteratureSources({ citations, conflicts, retrieval, isCollapsed = true, className }: CitationPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(!isCollapsed)
+  const [conflictsExpanded, setConflictsExpanded] = useState(false)
+  const [readerIndex, setReaderIndex] = useState<number | null>(null)
+
+  const sources = citations.filter(c => c.doi || c.pmid || c.title) as EvidenceCitation[]
+  const activeConflicts = (conflicts || []).filter(c => c.positions && c.positions.length > 0)
+  const retrievalSources = validRetrieval(retrieval)
+  const kept = retrievalSources.reduce((n, s) => n + s.kept, 0)
+  const found = retrievalSources.reduce((n, s) => n + s.found, 0)
+  const searchDetail = retrievalSources
+    .map(s => t('citations.search_source_row', { name: s.name, found: s.found, kept: s.kept }))
+    .join(' · ')
+
+  if (sources.length === 0) return null
+
+  return (
+    <div className={cn("text-sm", className)} data-testid="literature-sources">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(v => !v)}
+          aria-expanded={isExpanded}
+          data-testid="citations-toggle"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          <BookOpen className="h-3.5 w-3.5" />
+          <span>{t('citations.sources_count', { count: sources.length })}</span>
+        </button>
+        {/* Spec 09 — "How this was searched", reduced to a footnote. The
+            per-source breakdown lives in the tooltip (and aria-label). */}
+        {retrievalSources.length > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  tabIndex={0}
+                  className="text-xs text-muted-foreground/80 underline decoration-dotted underline-offset-2 cursor-help"
+                  data-testid="retrieval-transparency"
+                  aria-label={`${t('citations.search_summary', { kept, found })} — ${searchDetail}`}
+                >
+                  <span data-testid="retrieval-summary">{t('citations.search_summary', { kept, found })}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs">
+                {retrievalSources.map(s => (
+                  <p key={s.name} data-testid={`retrieval-source-${s.name}`}>
+                    {t('citations.search_source_row', { name: s.name, found: s.found, kept: s.kept })}
+                  </p>
+                ))}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="mt-2 space-y-2">
+          {activeConflicts.length > 0 && (
+            <ConflictRow
+              conflicts={activeConflicts}
+              isExpanded={conflictsExpanded}
+              onToggle={() => setConflictsExpanded(prev => !prev)}
+            />
+          )}
+          <ol className="space-y-1.5" data-testid="reference-list">
+            {sources.map((c, idx) => (
+              <LiteratureReference key={c.tool_id || idx} citation={c} index={idx} onRead={() => setReaderIndex(idx)} />
+            ))}
+          </ol>
+        </div>
+      )}
+
+      <SourceReaderPane sources={sources} index={readerIndex} onIndexChange={setReaderIndex} />
+    </div>
+  )
+}
+
+function LiteratureReference({ citation, index, onRead }: { citation: EvidenceCitation; index: number; onRead: () => void }) {
+  const url = sourceUrl(citation)
+  const label = citation.title || citation.tool_name
+  const meta = [citation.journal, citation.year ? String(citation.year) : null].filter(Boolean).join(' · ')
+  const canRead = readerCanFetch(citation) || Boolean(citation.abstract?.trim() || citation.excerpt?.trim())
+  return (
+    <li className="flex items-baseline gap-2 text-xs leading-relaxed" data-testid={`reference-${index}`}>
+      <span className="shrink-0 tabular-nums text-muted-foreground">[{index + 1}]</span>
+      <span className="min-w-0 flex-1 break-words">
+        {url ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline underline-offset-2">
+            {label}
+          </a>
+        ) : (
+          <span className="text-foreground">{label}</span>
+        )}
+        {meta && <span className="text-muted-foreground"> · {meta}</span>}
+        {canRead && (
+          <button
+            type="button"
+            onClick={onRead}
+            data-testid={`source-read-${index}`}
+            className="ml-2 text-primary/90 hover:text-primary hover:underline underline-offset-2"
+            aria-label={t('citations.read_aria', { n: index + 1 })}
+          >
+            {t('citations.read')}
+          </button>
+        )}
+      </span>
+    </li>
+  )
+}
+
+// ─── Workflow: tool citations + methods section ───────────────────────────
+
+function WorkflowCitationPanel({
   citations,
   methodsSection,
   workflow,
   conflicts,
   retrieval,
-  answerText,
   isCollapsed = true,
   onCopy,
   onExportBibTeX,
   onMethodsSectionUpdated,
-  className
+  className,
 }: CitationPanelProps) {
   const [isExpanded, setIsExpanded] = useState(!isCollapsed)
   const [expandedCitations, setExpandedCitations] = useState<Set<string>>(new Set())
@@ -129,37 +241,21 @@ export function CitationPanel({
   const [readerIndex, setReaderIndex] = useState<number | null>(null)
   const [citationStyle, setCitationStyle] = useState<'short' | 'apa' | 'numbered'>('short')
   const [localMethodsSection, setLocalMethodsSection] = useState<MethodsSection | undefined>(methodsSection)
-  const [isSavingNote, setIsSavingNote] = useState(false)
-  const [isSavingInstruction, setIsSavingInstruction] = useState(false)
-
-  const activeProjectId = useActiveProjectIdSafe()
-  const { toast } = useToast()
 
   const toolsWithCitations = citations.filter(c => c.doi || c.pmid || c.title) as EvidenceCitation[]
   const totalTools = citations.length
   // The top-level "Export BibTeX" can only produce a file when either a workflow
   // is present (server-side export) or at least one citation carries a
-  // formatted_bibtex (local export). Literature answers have neither, so hide the
-  // button rather than show one that silently emits nothing (a dead button).
+  // formatted_bibtex (local export) — otherwise it would be a dead button.
   const canExportBibTeX = Boolean(workflow) || citations.some(c => c.formatted_bibtex?.trim())
   const activeConflicts = (conflicts || []).filter(c => c.positions && c.positions.length > 0)
-  // Spec 09 — only surfaces when the retrieval path supplied real per-source
-  // counts. We never derive these from the citation list (that would be a
-  // fabricated "kept"); absent → section omitted.
-  const retrievalSources = (retrieval || []).filter(
-    s => s && s.name && Number.isFinite(s.found) && Number.isFinite(s.kept) && s.found >= 0 && s.kept >= 0 && s.kept <= s.found,
-  )
-  const retrievalKept = retrievalSources.reduce((n, s) => n + s.kept, 0)
-  const retrievalFound = retrievalSources.reduce((n, s) => n + s.found, 0)
+  const retrievalSources = validRetrieval(retrieval)
 
   const toggleCitationExpanded = (toolId: string) => {
     setExpandedCitations(prev => {
       const next = new Set(prev)
-      if (next.has(toolId)) {
-        next.delete(toolId)
-      } else {
-        next.add(toolId)
-      }
+      if (next.has(toolId)) next.delete(toolId)
+      else next.add(toolId)
       return next
     })
   }
@@ -175,162 +271,36 @@ export function CitationPanel({
     }
   }
 
-  const handleExportAll = async () => {
-    // If workflow is provided, use API for comprehensive export
-    if (workflow) {
-      setIsExporting(true)
-      try {
-        const response = await exportCitationsBibTeX(workflow, true)
-        if (response.success && response.bibtex) {
-          downloadAsFile(response.bibtex, 'workflow_citations.bib', 'application/x-bibtex')
-          onExportBibTeX?.()
-        }
-      } catch (err) {
-        console.error('Failed to export citations via API:', err)
-        // Fallback to local export
-        fallbackExport()
-      } finally {
-        setIsExporting(false)
-      }
-    } else {
-      // Fallback: use local citation data
-      fallbackExport()
-    }
-  }
-
   const fallbackExport = () => {
     const bibtexContent = citations
       .filter(c => c.formatted_bibtex?.trim())
       .map(c => c.formatted_bibtex)
       .join('\n\n')
-
     if (bibtexContent) {
       downloadAsFile(bibtexContent, 'workflow_citations.bib', 'application/x-bibtex')
       onExportBibTeX?.()
     }
   }
 
-  /**
-   * Spec 01 §1.5 — "Save to project notes". Writes the answer, with its
-   * sources, into the active project so provenance travels. Backed by the
-   * real project-knowledge endpoint (POST /api/memory/projects/:id/knowledge)
-   * with knowledgeType='notes_synthesis', which the Project Notes page reads.
-   * Requires an active project — the button is disabled (with a tooltip)
-   * when none is selected, never a fake success.
-   */
-  const buildNoteMarkdown = (): string => {
-    const lines: string[] = []
-    if (answerText && answerText.trim()) {
-      lines.push(answerText.trim(), "")
-    }
-    if (toolsWithCitations.length > 0) {
-      lines.push("## Sources", "")
-      toolsWithCitations.forEach((c, i) => {
-        const parts: string[] = []
-        const label = c.title || c.tool_name || "Untitled source"
-        const venueYear = [c.journal, c.year ? String(c.year) : null]
-          .filter(Boolean)
-          .join(" · ")
-        parts.push(`${i + 1}. ${label}${venueYear ? ` — ${venueYear}` : ""}`)
-        if (c.locus) parts.push(`   cited for: ${c.locus}`)
-        const url = sourceUrl(c)
-        if (url) parts.push(`   ${url}`)
-        lines.push(parts.join("\n"))
-      })
-    }
-    return lines.join("\n").trim()
-  }
-
-  const handleSaveToNotes = async () => {
-    if (!activeProjectId || isSavingNote) return
-    const content = buildNoteMarkdown()
-    if (!content) {
-      toast({
-        title: "Nothing to save",
-        description: "This answer has no cited sources yet.",
-        variant: "destructive",
-      })
-      return
-    }
-    setIsSavingNote(true)
+  const handleExportAll = async () => {
+    if (!workflow) { fallbackExport(); return }
+    setIsExporting(true)
     try {
-      await api.request(`/memory/projects/${activeProjectId}/knowledge`, {
-        method: "POST",
-        body: JSON.stringify({
-          knowledgeType: "notes_synthesis",
-          title: `Saved answer — ${new Date().toISOString().slice(0, 10)}`,
-          content,
-          source: "user_saved",
-        }),
-      })
-      toast({
-        title: "Saved to project notes",
-        description: "The answer and its sources were added to this project.",
-      })
-    } catch (e: any) {
-      console.error("[citations] save to notes failed:", e?.message ?? e)
-      toast({
-        title: "Could not save",
-        description: e?.message || "Saving to project notes failed.",
-        variant: "destructive",
-      })
+      const response = await exportCitationsBibTeX(workflow, true)
+      if (response.success && response.bibtex) {
+        downloadAsFile(response.bibtex, 'workflow_citations.bib', 'application/x-bibtex')
+        onExportBibTeX?.()
+      }
+    } catch (err) {
+      console.error('Failed to export citations via API:', err)
+      fallbackExport()
     } finally {
-      setIsSavingNote(false)
-    }
-  }
-
-  /**
-   * Spec 01 §1.5 — "Make a project instruction". Promotes this answer to a
-   * standing project instruction the assistant applies in future chats
-   * (consumed server-side into <project_context>). Saves a CONCISE, bounded
-   * directive (not the whole answer) as a discrete project_instruction row, so
-   * the injected instruction list stays selective and can't flood the prompt.
-   */
-  const handleMakeInstruction = async () => {
-    if (!activeProjectId || isSavingInstruction) return
-    const src = (answerText || "").replace(/\s+/g, " ").trim()
-    if (!src) {
-      toast({
-        title: "Nothing to promote",
-        description: "This answer is empty.",
-        variant: "destructive",
-      })
-      return
-    }
-    // A standing instruction is a short directive — bound to ~300 chars and
-    // avoid a mid-word cut.
-    let directive = src.slice(0, 300)
-    if (directive.length < src.length) directive = directive.replace(/\s+\S*$/, "") + "…"
-    setIsSavingInstruction(true)
-    try {
-      await api.request(`/memory/projects/${activeProjectId}/knowledge`, {
-        method: "POST",
-        body: JSON.stringify({
-          knowledgeType: "project_instruction",
-          title: `Instruction — ${new Date().toISOString().slice(0, 10)}`,
-          content: directive,
-          source: "user_saved",
-        }),
-      })
-      toast({
-        title: "Saved as a project instruction",
-        description: "The assistant will apply this in this project's chats when relevant.",
-      })
-    } catch (e: any) {
-      console.error("[citations] make instruction failed:", e?.message ?? e)
-      toast({
-        title: "Could not save",
-        description: e?.message || "Saving the instruction failed.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSavingInstruction(false)
+      setIsExporting(false)
     }
   }
 
   const handleRegenerateMethodsSection = async (style: 'short' | 'apa' | 'numbered') => {
     if (!workflow) return
-
     setIsRegenerating(true)
     try {
       const response = await generateMethodsSection(workflow, style)
@@ -351,10 +321,8 @@ export function CitationPanel({
     }
   }
 
-  // Use local state for methods section (allows regeneration updates)
   const displayMethodsSection = localMethodsSection || methodsSection
 
-  // Don't render if no citations and no methods section (unless we have workflow to generate one)
   if (citations.length === 0 && !displayMethodsSection && !workflow) {
     return null
   }
@@ -367,101 +335,21 @@ export function CitationPanel({
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                 <div className="flex items-center gap-2">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   <BookOpen className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-sm">Citations</span>
+                  <span className="font-medium text-sm">{t('citations.title')}</span>
                 </div>
               </Button>
             </CollapsibleTrigger>
 
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
-                {kind === "literature" ? `${toolsWithCitations.length} sources` : `${toolsWithCitations.length}/${totalTools} tools`}
+                {t('citations.tools_count', { cited: toolsWithCitations.length, total: totalTools })}
               </Badge>
-
-              {/* Spec 01 §1.5 — answer→project exits. Two sanctioned exits
-                  from the search module into the rest of the product. */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {/* span wrapper: a disabled button does not fire pointer
-                        events, so the tooltip needs a live element to hover. */}
-                    <span tabIndex={activeProjectId ? -1 : 0}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={handleSaveToNotes}
-                        disabled={!activeProjectId || isSavingNote}
-                        data-testid="answer-save-notes"
-                      >
-                        {isSavingNote ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
-                          <StickyNote className="h-3 w-3 mr-1" />
-                        )}
-                        Save to notes
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {activeProjectId
-                      ? "Save this answer and its sources to the project's notes"
-                      : "Select a project to save this answer to its notes"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              {/* Spec 01 §1.5 — "Make a project instruction" promotes a finding
-                  to a standing instruction the assistant applies in this
-                  project's future chats (consumed into <project_context>). */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={activeProjectId ? -1 : 0}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={handleMakeInstruction}
-                        disabled={!activeProjectId || isSavingInstruction}
-                        data-testid="answer-make-instruction"
-                      >
-                        {isSavingInstruction ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
-                          <Pin className="h-3 w-3 mr-1" />
-                        )}
-                        Make instruction
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {activeProjectId
-                      ? "Promote this answer to a standing instruction for this project"
-                      : "Select a project to save a standing instruction"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
               {toolsWithCitations.length > 0 && canExportBibTeX && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={handleExportAll}
-                  disabled={isExporting}
-                >
-                  {isExporting ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <Download className="h-3 w-3 mr-1" />
-                  )}
-                  Export BibTeX
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleExportAll} disabled={isExporting}>
+                  {isExporting ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Download className="h-3 w-3 mr-1" />}
+                  {t('citations.export_bibtex')}
                 </Button>
               )}
             </div>
@@ -471,47 +359,25 @@ export function CitationPanel({
         <CollapsibleContent>
           <CardContent className="p-3 pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {kind === "workflow" && (!!displayMethodsSection || !!workflow) && <TabsList className="grid w-full grid-cols-2 h-auto min-h-8">
-                <TabsTrigger value="citations" className="text-xs">
-                  Tool Citations
-                </TabsTrigger>
+              {(!!displayMethodsSection || !!workflow) && <TabsList className="grid w-full grid-cols-2 h-auto min-h-8">
+                <TabsTrigger value="citations" className="text-xs">{t('citations.tab_tools')}</TabsTrigger>
                 <TabsTrigger value="methods" className="text-xs" disabled={!displayMethodsSection && !workflow}>
-                  Methods Section
+                  {t('citations.tab_methods')}
                 </TabsTrigger>
               </TabsList>}
 
               <TabsContent value="citations" className="mt-3 space-y-2">
-                {/* Spec 09 — "How this was searched". Retrieval transparency:
-                    per-source found · kept. Only rendered when the retrieval
-                    path supplied real counts (honest-empty otherwise). */}
                 {retrievalSources.length > 0 && (
-                  <details
-                    className="rounded-md bg-muted/30 p-2.5 space-y-1.5"
-                    data-testid="retrieval-transparency"
-                  >
-                    <summary className="cursor-pointer text-xs font-medium flex flex-wrap items-center gap-2">
-                      <span>How this was searched</span>
-                      <span className="flex-1" />
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] font-normal"
-                        data-testid="retrieval-summary"
-                      >
-                        {retrievalKept} of {retrievalFound} kept
-                      </Badge>
-                    </summary>
-                    <div className="space-y-1">
-                      {retrievalSources.map((s) => (
-                        <p key={s.name} className="text-[11px] leading-relaxed break-words" data-testid={`retrieval-source-${s.name}`}>
-                          {s.name}: {s.found} found · <span className="font-medium">{s.kept} kept</span>
-                        </p>
-                      ))}
-                    </div>
-                  </details>
+                  <p className="text-xs text-muted-foreground" data-testid="retrieval-transparency">
+                    <span data-testid="retrieval-summary">
+                      {t('citations.search_summary', {
+                        kept: retrievalSources.reduce((n, s) => n + s.kept, 0),
+                        found: retrievalSources.reduce((n, s) => n + s.found, 0),
+                      })}
+                    </span>
+                  </p>
                 )}
 
-                {/* Spec 01 §1.3.2 — conflict affordance. Never smooth
-                    disagreement into a single confident sentence. */}
                 {activeConflicts.length > 0 && (
                   <ConflictRow
                     conflicts={activeConflicts}
@@ -521,15 +387,12 @@ export function CitationPanel({
                 )}
 
                 {toolsWithCitations.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">
-                    No citations available for tools in this workflow
-                  </p>
+                  <p className="text-xs text-muted-foreground text-center py-4">{t('citations.no_tool_citations')}</p>
                 ) : (
                   toolsWithCitations.map((citation, idx) => (
                     <CitationItem
                       key={citation.tool_id}
                       citation={citation}
-                      index={idx}
                       isExpanded={expandedCitations.has(citation.tool_id)}
                       onToggle={() => toggleCitationExpanded(citation.tool_id)}
                       onCopy={handleCopy}
@@ -542,7 +405,7 @@ export function CitationPanel({
                 {displayMethodsSection?.tools_missing_citations && displayMethodsSection.tools_missing_citations.length > 0 && (
                   <div className="mt-3 p-2 bg-yellow-500/10 rounded-md">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                      <strong>Missing citations:</strong> {displayMethodsSection.tools_missing_citations.join(', ')}
+                      <strong>{t('citations.missing_citations')}</strong> {displayMethodsSection.tools_missing_citations.join(', ')}
                     </p>
                   </div>
                 )}
@@ -553,14 +416,12 @@ export function CitationPanel({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Style:</span>
+                        <span className="text-xs text-muted-foreground">{t('citations.style')}</span>
                         <Select
                           value={citationStyle}
                           onValueChange={(value: 'short' | 'apa' | 'numbered') => {
                             setCitationStyle(value)
-                            if (workflow) {
-                              handleRegenerateMethodsSection(value)
-                            }
+                            if (workflow) handleRegenerateMethodsSection(value)
                           }}
                           disabled={isRegenerating || !workflow}
                         >
@@ -568,80 +429,46 @@ export function CitationPanel({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="short">Short</SelectItem>
+                            <SelectItem value="short">{t('citations.style_short')}</SelectItem>
                             <SelectItem value="apa">APA</SelectItem>
-                            <SelectItem value="numbered">Numbered</SelectItem>
+                            <SelectItem value="numbered">{t('citations.style_numbered')}</SelectItem>
                           </SelectContent>
                         </Select>
-                        {isRegenerating && (
-                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                        )}
+                        {isRegenerating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                       </div>
                       <div className="flex items-center gap-1">
                         {workflow && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs"
-                            onClick={() => handleRegenerateMethodsSection(citationStyle)}
-                            disabled={isRegenerating}
-                          >
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => handleRegenerateMethodsSection(citationStyle)} disabled={isRegenerating}>
                             <RefreshCw className={cn("h-3 w-3 mr-1", isRegenerating && "animate-spin")} />
-                            Regenerate
+                            {t('citations.regenerate')}
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs"
-                          onClick={() => handleCopy(displayMethodsSection.text, 'methods', 'apa')}
-                        >
-                          {copiedId === 'methods' ? (
-                            <Check className="h-3 w-3 mr-1 text-green-500" />
-                          ) : (
-                            <Copy className="h-3 w-3 mr-1" />
-                          )}
-                          Copy
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => handleCopy(displayMethodsSection.text, 'methods', 'apa')}>
+                          {copiedId === 'methods' ? <Check className="h-3 w-3 mr-1 text-green-500" /> : <Copy className="h-3 w-3 mr-1" />}
+                          {t('citations.copy')}
                         </Button>
                       </div>
                     </div>
-                    <Textarea
-                      value={displayMethodsSection.text}
-                      readOnly
-                      className="min-h-[200px] text-xs font-mono resize-y"
-                    />
+                    <Textarea value={displayMethodsSection.text} readOnly className="min-h-[200px] text-xs font-mono resize-y" />
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{displayMethodsSection.tools_cited.length} tool(s) cited</span>
+                      <span>{t('citations.tools_cited', { count: displayMethodsSection.tools_cited.length })}</span>
                       {displayMethodsSection.tools_missing_citations && displayMethodsSection.tools_missing_citations.length > 0 && (
                         <span className="text-yellow-600 dark:text-yellow-400">
-                          {displayMethodsSection.tools_missing_citations.length} tool(s) missing citations
+                          {t('citations.tools_missing', { count: displayMethodsSection.tools_missing_citations.length })}
                         </span>
                       )}
                     </div>
                   </div>
                 ) : workflow ? (
                   <div className="text-center py-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Generate a methods section for your publication
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRegenerateMethodsSection('short')}
-                      disabled={isRegenerating}
-                    >
-                      {isRegenerating ? (
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      ) : (
-                        <FileText className="h-3 w-3 mr-1" />
-                      )}
-                      Generate Methods Section
+                    <p className="text-xs text-muted-foreground">{t('citations.methods_prompt')}</p>
+                    <Button size="sm" variant="outline" onClick={() => handleRegenerateMethodsSection('short')} disabled={isRegenerating}>
+                      {isRegenerating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
+                      {t('citations.methods_generate')}
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground text-center py-4">
-                    Methods section not available
-                  </p>
+                  <p className="text-xs text-muted-foreground text-center py-4">{t('citations.methods_unavailable')}</p>
                 )}
               </TabsContent>
             </Tabs>
@@ -649,12 +476,7 @@ export function CitationPanel({
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Spec 01 §1.3.3 — right-hand source reader with next/prev navigation. */}
-      <SourceReaderPane
-        sources={toolsWithCitations}
-        index={readerIndex}
-        onIndexChange={setReaderIndex}
-      />
+      <SourceReaderPane sources={toolsWithCitations} index={readerIndex} onIndexChange={setReaderIndex} />
     </Card>
   )
 }
@@ -673,10 +495,7 @@ interface ConflictRowProps {
 function ConflictRow({ conflicts, isExpanded, onToggle }: ConflictRowProps) {
   const count = conflicts.length
   return (
-    <div
-      className="border border-amber-500/40 rounded-md bg-amber-500/5"
-      data-testid="conflict-row"
-    >
+    <div className="border border-amber-500/40 rounded-md bg-amber-500/5" data-testid="conflict-row">
       <button
         onClick={onToggle}
         className="w-full p-2 flex items-center justify-between text-left hover:bg-amber-500/10 transition-colors rounded-md"
@@ -684,33 +503,24 @@ function ConflictRow({ conflicts, isExpanded, onToggle }: ConflictRowProps) {
         <div className="flex items-center gap-2 min-w-0">
           <Flag className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <span className="text-xs font-medium text-amber-700 dark:text-amber-300 truncate">
-            Sources disagree — {count} conflicting finding{count === 1 ? '' : 's'}
+            {t(count === 1 ? 'citations.conflicts_one' : 'citations.conflicts_many', { count })}
           </span>
         </div>
-        {isExpanded ? (
-          <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-        )}
+        {isExpanded
+          ? <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          : <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />}
       </button>
 
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 space-y-3">
           {conflicts.map((conflict, ci) => (
             <div key={ci} className="space-y-1.5">
-              {conflict.topic && (
-                <p className="text-xs font-medium text-muted-foreground">{conflict.topic}</p>
-              )}
+              {conflict.topic && <p className="text-xs font-medium text-muted-foreground">{conflict.topic}</p>}
               <div className="grid gap-2">
                 {conflict.positions.map((pos, pi) => (
-                  <div
-                    key={pi}
-                    className="text-xs p-2 rounded border bg-background/60"
-                  >
+                  <div key={pi} className="text-xs p-2 rounded border bg-background/60">
                     <p>{pos.claim}</p>
-                    {pos.source && (
-                      <p className="mt-1 text-[11px] text-muted-foreground">— {pos.source}</p>
-                    )}
+                    {pos.source && <p className="mt-1 text-fs-xs text-muted-foreground">— {pos.source}</p>}
                   </div>
                 ))}
               </div>
@@ -724,8 +534,6 @@ function ConflictRow({ conflicts, isExpanded, onToggle }: ConflictRowProps) {
 
 interface CitationItemProps {
   citation: EvidenceCitation
-  /** Position in the answer's source list — backs the reader's next/prev. */
-  index: number
   isExpanded: boolean
   onToggle: () => void
   onCopy: (text: string, id: string, format: 'apa' | 'bibtex' | 'short') => void
@@ -733,51 +541,16 @@ interface CitationItemProps {
   onRead?: () => void
 }
 
-function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId, onRead }: CitationItemProps) {
+/** Workflow tool citation — expandable for its APA / BibTeX copy actions. */
+function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId, onRead }: CitationItemProps) {
   const hasRecency = Boolean(citation.retrieval_date || citation.corpus_version)
+  const url = sourceUrl(citation)
   return (
     <div className="border rounded-md">
-      <div className="w-full p-2 flex items-center justify-between hover:bg-muted/50 transition-colors">
-        <button
-          onClick={onToggle}
-          className="flex items-center gap-2 flex-1 min-w-0 text-left"
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-3 w-3 flex-shrink-0" />
-          ) : (
-            <ChevronRight className="h-3 w-3 flex-shrink-0" />
-          )}
-          <span className="text-sm font-medium break-words">{citation.tool_name}</span>
-        </button>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {citation.locus && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0 hidden sm:inline-flex">
-              {citation.locus}
-            </Badge>
-          )}
-          {citation.doi && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0">DOI</Badge>
-          )}
-          {citation.pmid && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0">PMID</Badge>
-          )}
-          {/* Spec 01 §1.3.2 answer anatomy — an inline "open ▸" per source
-              that opens the right-hand reader pane at this source. */}
-          {onRead && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 px-1.5 text-[11px]"
-              onClick={onRead}
-              data-testid={`source-open-${index}`}
-              aria-label={`Open source ${index + 1} in reader`}
-            >
-              open
-              <ChevronRight className="h-3 w-3 ml-0.5" />
-            </Button>
-          )}
-        </div>
-      </div>
+      <button onClick={onToggle} className="w-full p-2 flex items-center gap-2 text-left hover:bg-muted/50 transition-colors">
+        {isExpanded ? <ChevronDown className="h-3 w-3 flex-shrink-0" /> : <ChevronRight className="h-3 w-3 flex-shrink-0" />}
+        <span className="text-sm font-medium break-words">{citation.tool_name}</span>
+      </button>
 
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
@@ -786,96 +559,49 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
           </p> : null}
 
           {citation.title && citation.title !== citation.tool_name && <p className="text-xs mb-2">{citation.title}</p>}
-          {citation.abstract?.trim() && <p className="text-xs mb-2 line-clamp-3" data-testid="citation-abstract">{citation.abstract}</p>}
 
-          {/* Spec 01 §1.3.2 — the locus relied on, not a bare DOI list. */}
           {citation.locus && (
-            <p
-              className="text-xs mb-2 flex items-center gap-1 text-primary"
-              data-testid="citation-locus"
-            >
+            <p className="text-xs mb-2 flex items-center gap-1 text-primary" data-testid="citation-locus">
               <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="text-muted-foreground">cited for:</span> {citation.locus}
+              <span className="text-muted-foreground">{t('citations.cited_for')}</span> {citation.locus}
             </p>
           )}
 
-          {/* Spec 01 §1.4.2 — recency is stated, not implied. */}
           {hasRecency && (
-            <p
-              className="text-[11px] mb-2 text-muted-foreground"
-              data-testid="citation-recency"
-            >
-              {citation.retrieval_date && <span>Retrieved {citation.retrieval_date}</span>}
-              {citation.retrieval_date && citation.corpus_version && <span> · </span>}
-              {citation.corpus_version && <span>{citation.corpus_version}</span>}
+            <p className="text-fs-xs mb-2 text-muted-foreground" data-testid="citation-recency">
+              {[citation.retrieval_date && t('citations.retrieved_on', { date: citation.retrieval_date }), citation.corpus_version]
+                .filter(Boolean).join(' · ')}
             </p>
           )}
 
-          <div className="flex flex-wrap gap-2 mb-2">
-            {citation.doi && (
-              <a
-                href={`https://doi.org/${citation.doi}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                DOI: {citation.doi}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-            {citation.pmid && (
-              <a
-                href={`https://pubmed.ncbi.nlm.nih.gov/${citation.pmid}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                PMID: {citation.pmid}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </div>
+          {url && (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mb-2 break-all">
+              {citation.doi ? `doi:${citation.doi}` : citation.pmid ? `PMID ${citation.pmid}` : url}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
 
           <Separator className="my-2" />
 
           <div className="flex gap-2">
             {onRead && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 text-xs flex-1"
-                onClick={onRead}
-                data-testid={`read-${citation.tool_id}`}
-              >
+              <Button size="sm" variant="ghost" className="h-6 text-xs flex-1" onClick={onRead} data-testid={`read-${citation.tool_id}`}>
                 <BookOpen className="h-3 w-3 mr-1" />
-                Read
+                {t('citations.read')}
               </Button>
             )}
             {citation.formatted_apa?.trim() && <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 text-xs flex-1"
+              size="sm" variant="ghost" className="h-6 text-xs flex-1"
               onClick={() => onCopy(citation.formatted_apa || citation.formatted_short || '', `apa-${citation.tool_id}`, 'apa')}
             >
-              {copiedId === `apa-${citation.tool_id}` ? (
-                <Check className="h-3 w-3 mr-1 text-green-500" />
-              ) : (
-                <Copy className="h-3 w-3 mr-1" />
-              )}
+              {copiedId === `apa-${citation.tool_id}` ? <Check className="h-3 w-3 mr-1 text-green-500" /> : <Copy className="h-3 w-3 mr-1" />}
               APA
             </Button>}
             {citation.formatted_bibtex?.trim() && <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 text-xs flex-1"
+              size="sm" variant="ghost" className="h-6 text-xs flex-1"
               onClick={() => onCopy(citation.formatted_bibtex || '', `bib-${citation.tool_id}`, 'bibtex')}
-              disabled={!citation.formatted_bibtex}
             >
-              {copiedId === `bib-${citation.tool_id}` ? (
-                <Check className="h-3 w-3 mr-1 text-green-500" />
-              ) : (
-                <FileText className="h-3 w-3 mr-1" />
-              )}
+              {copiedId === `bib-${citation.tool_id}` ? <Check className="h-3 w-3 mr-1 text-green-500" /> : <FileText className="h-3 w-3 mr-1" />}
               BibTeX
             </Button>}
           </div>

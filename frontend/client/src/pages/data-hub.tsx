@@ -40,7 +40,7 @@ import {
   type ProjectFile,
 } from "@/components/project-file-tree"
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
-import { t } from "@/lib/i18n"
+import { t, tOr, locale } from "@/lib/i18n"
 
 function toDatasetRef(f: ProjectFile): DatasetRef {
   return {
@@ -82,7 +82,7 @@ function formatDate(iso?: string | null): string | null {
   if (!iso) return null
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+  return d.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "short", day: "numeric" })
 }
 
 /**
@@ -103,7 +103,7 @@ function ProjectPicker({
     return (
       <Card data-testid="data-hub-picker">
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Loading projects…
+          {t("data_hub.loading_projects")}
         </CardContent>
       </Card>
     )
@@ -113,11 +113,8 @@ function ProjectPicker({
       <Card data-testid="data-hub-picker">
         <CardContent className="flex flex-col items-center justify-center gap-2 py-12 text-center">
           <FolderOpen className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium">No projects yet</p>
-          <p className="text-xs text-muted-foreground max-w-sm">
-            A project holds your datasets, runs and models. Create one — then upload data or run a
-            workflow — and its datasets appear here as first-class objects.
-          </p>
+          <p className="text-sm font-medium">{t("data_hub.no_projects")}</p>
+          <p className="text-xs text-muted-foreground max-w-sm">{t("data_hub.no_projects_hint")}</p>
         </CardContent>
       </Card>
     )
@@ -144,7 +141,7 @@ function ProjectPicker({
                 data-testid={`data-hub-project-${p.id}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} title={p.status} />
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} title={statusLabel(p.status)} />
                   <span className="text-sm font-medium truncate flex-1">{p.name}</span>
                   <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
                 </div>
@@ -152,12 +149,12 @@ function ProjectPicker({
                   <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
                 )}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="outline" className="text-[10px] capitalize">{statusLabel(p.status)}</Badge>
+                  <Badge variant="outline" className="text-fs-xs capitalize">{statusLabel(p.status)}</Badge>
                   {p.primaryDomain && (
-                    <Badge variant="outline" className="text-[10px]">{p.primaryDomain}</Badge>
+                    <Badge variant="outline" className="text-fs-xs">{tOr(`domains.${p.primaryDomain}`, p.primaryDomain)}</Badge>
                   )}
                   {created && (
-                    <span className="text-[10px] text-muted-foreground ml-auto">{created}</span>
+                    <span className="text-fs-xs text-muted-foreground ml-auto">{created}</span>
                   )}
                 </div>
               </button>
@@ -209,49 +206,38 @@ export default function DataHubPage() {
 
   return (
     <div className="data-hub-container flex-1 min-h-0 overflow-y-auto w-full min-w-0 px-5 py-4 space-y-4" data-testid="data-hub">
-      {/* Breadcrumb + title — Models-module header language. */}
-      <div className="space-y-1">
+      {/* One clean header: a small "Data" crumb over the project name (no duplicate
+          "Data" heading, no lifecycle badge, no intro paragraph). */}
+      <div className="space-y-0.5" data-testid="data-hub-header">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Database className="h-3.5 w-3.5" />
           <span>{t('nav.data')}</span>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="min-w-0 truncate text-lg font-semibold" data-testid="data-hub-title" title={activeProject?.name}>
+            {activeProject ? activeProject.name : t('nav.data')}
+          </h1>
+          {activeProject?.primaryDomain && (
+            <Badge variant="outline" className="text-fs-xs shrink-0">
+              {tOr(`domains.${activeProject.primaryDomain}`, activeProject.primaryDomain)}
+            </Badge>
+          )}
           {activeProject && (
-            <>
-              <span>/</span>
-              <span className="truncate">{activeProject.name}</span>
-            </>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1 ml-auto shrink-0"
+              onClick={() => {
+                setSelected(null)
+                setActiveProjectId(null)
+              }}
+              data-testid="data-hub-change-project"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              {t('data_hub.change_project')}
+            </Button>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-lg font-semibold">{t('nav.data')}</h1>
-          {activeProject && (
-            <>
-              <Badge variant="outline" className="text-[10px] capitalize">
-                {statusLabel(activeProject.status)}
-              </Badge>
-              {activeProject.primaryDomain && (
-                <Badge variant="outline" className="text-[10px]">
-                  {activeProject.primaryDomain}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs gap-1 ml-auto"
-                onClick={() => {
-                  setSelected(null)
-                  setActiveProjectId(null)
-                }}
-                data-testid="data-hub-change-project"
-              >
-                <ArrowLeftRight className="h-3 w-3" />
-                {t('data_hub.change_project')}
-              </Button>
-            </>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t('data_hub.intro')}
-        </p>
       </div>
 
       {!activeProjectId ? (
@@ -302,11 +288,10 @@ export default function DataHubPage() {
                 }}
               />
             ) : (
-              // No file picked yet — a compact honest prompt, not a full-height
-              // blank pane (the right pane no longer stretches to match the file
-              // list's 72vh; it sits at a tidy, self-sized height).
-              <Card data-testid="data-hub-detail-empty">
-                <CardContent className="flex flex-col items-center justify-center gap-1.5 py-8 text-center">
+              // No file picked yet — the empty pane is as tall as the file list beside it
+              // (data-hub.css .data-hub-detail-empty), not a short box floating at the top.
+              <Card data-testid="data-hub-detail-empty" className="data-hub-detail-empty flex flex-col">
+                <CardContent className="flex flex-1 flex-col items-center justify-center gap-1.5 py-8 text-center">
                   <Database className="h-7 w-7 text-muted-foreground/40" />
                   <p className="text-sm font-medium">{t('data_hub.select_dataset')}</p>
                   <p className="text-xs text-muted-foreground max-w-xs">

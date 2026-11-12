@@ -1,0 +1,13 @@
+label	condition	replicate
+H2	CD34High	1
+H3	CD34High	2
+H4	CD34High	3
+H5	CD34High	4
+L2	CD34Low	1
+L3	CD34Low	2
+L4	CD34Low	3
+L5	CD34Low	4
+N2	CD34Neg	1
+N3	CD34Neg	2
+N4	CD34Neg	3
+N5	CD34Neg	4

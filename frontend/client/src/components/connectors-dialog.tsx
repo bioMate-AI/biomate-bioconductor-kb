@@ -202,7 +202,7 @@ function DeclaredFact({ label, value }: { label: string; value?: string }) {
     <span
       data-testid={`fact-${label}`}
       data-declared={declared ? 'yes' : 'no'}
-      style={{ fontSize: 11, color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}
+      style={{ fontSize: 'var(--fs-micro)', color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}
     >
       <span style={{ opacity: 0.7 }}>{label}:</span>{' '}
       <span style={{ fontStyle: declared ? 'normal' : 'italic', opacity: declared ? 1 : 0.7 }}>
@@ -227,20 +227,20 @@ function ConnectorTable({
   // rows get a subtle edge-to-edge band (--bm-surface-2, dark-mode safe) so a
   // wide row stays followable across; horizontal padding lives on the rows so
   // the band spans the full card width.
-  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background overflow-hidden" data-testid="connector-table">{rows.map((row, i) => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-4 py-3 border-b border-border last:border-0" style={{ background: i % 2 === 1 ? 'var(--bm-surface-2)' : 'transparent' }}><div className="min-w-0"><h3 className="text-[13px] font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-[11px] text-muted-foreground">{row.category}</span></article>)}</div></div>;
+  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background overflow-hidden" data-testid="connector-table">{rows.map((row, i) => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-4 py-3 border-b border-border last:border-0" style={{ background: i % 2 === 1 ? 'var(--bm-surface-2)' : 'transparent' }}><div className="min-w-0"><h3 className="text-fs-base font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-fs-xs text-muted-foreground">{row.category}</span></article>)}</div></div>;
   const checkable = !!onToggle;
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }} data-testid="connector-table">
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-meta)' }} data-testid="connector-table">
       <thead>
         <tr style={{ borderBottom: '1px solid var(--border)' }}>
           {checkable && <th style={{ width: 36, padding: '6px 4px 6px 12px' }} />}
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 200 }}>Name</th>
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 120 }}>Category</th>
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 96 }}>Residency</th>
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600 }}>Declared facts</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 'var(--fs-micro)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 200 }}>Name</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 'var(--fs-micro)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 120 }}>Category</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 'var(--fs-micro)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 96 }}>Residency</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 'var(--fs-micro)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600 }}>Declared facts</th>
           <th
             title="A preference for how widely you would scope this source (account / project / request). Informational only — scope is not enforced yet; BioMate queries public sources as each chat request needs them."
-            style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 180 }}
+            style={{ textAlign: 'left', padding: '6px 12px', fontSize: 'var(--fs-micro)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 180 }}
           >Scope (preview)</th>
         </tr>
       </thead>
@@ -264,10 +264,10 @@ function ConnectorTable({
               )}
               <td style={{ padding: '8px 12px', fontWeight: active ? 600 : 500, verticalAlign: 'top', color: 'var(--foreground)' }}>
                 <div>{row.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 400, marginTop: 2, lineHeight: 1.4 }}>{row.description}</div>
+                <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--muted-foreground)', fontWeight: 400, marginTop: 2, lineHeight: 1.4 }}>{row.description}</div>
               </td>
               <td style={{ padding: '8px 12px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>{row.category}</span>
+                <span style={{ fontSize: 'var(--fs-micro)', padding: '2px 7px', borderRadius: 4, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>{row.category}</span>
               </td>
               {/* Residency (§0.9.3) — on every row, honest "unspecified" when undeclared */}
               <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
@@ -335,7 +335,7 @@ function DatabasesTab({
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '6px 10px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                fontSize: 12, fontWeight: active ? 600 : 400,
+                fontSize: 'var(--fs-meta)', fontWeight: active ? 600 : 400,
                 color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
                 background: 'transparent',
                 borderBottom: active ? '2px solid var(--foreground)' : '2px solid transparent',
@@ -343,11 +343,11 @@ function DatabasesTab({
               }}
             >
               {g.label}
-              <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 3, background: active ? 'var(--foreground)' : 'var(--border)', color: active ? 'var(--background)' : 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', padding: '0 4px', borderRadius: 3, background: active ? 'var(--foreground)' : 'var(--border)', color: active ? 'var(--background)' : 'var(--muted-foreground)' }}>
                 {groupCount(g)}
               </span>
               {sel > 0 && (
-                <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 3, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>
+                <span style={{ fontSize: 'var(--fs-xs)', padding: '0 4px', borderRadius: 3, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>
                   {sel}✓
                 </span>
               )}
@@ -383,7 +383,7 @@ function YourConnectionsTab() {
               onClick={() => setSection(id)}
               style={{
                 padding: '6px 10px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                fontSize: 12, fontWeight: active ? 600 : 400,
+                fontSize: 'var(--fs-meta)', fontWeight: active ? 600 : 400,
                 color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
                 background: 'transparent',
                 borderBottom: active ? '2px solid var(--foreground)' : '2px solid transparent',
@@ -472,10 +472,10 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
   // needs — starring here does NOT enable, disable, or scope a source. The copy
   // says so plainly so no one thinks a click connected or activated anything.
   const dbFooter = selectedDbs.length === DB.length
-    ? <>All {DB.length} sources listed — BioMate queries whichever your request needs. <button onClick={() => { saveActiveDbs([]); setSelectedDbs([]); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Clear your stars</button></>
+    ? <>All {DB.length} sources listed — BioMate queries whichever your request needs. <button onClick={() => { saveActiveDbs([]); setSelectedDbs([]); }} style={{ fontSize: 'var(--fs-micro)', color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Clear your stars</button></>
     : selectedDbs.length > 0
-      ? <><strong>{selectedDbs.length}</strong> of {DB.length} sources starred for your reference (local view filter — does not change what BioMate queries). <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Star all</button></>
-      : <>{DB.length} public sources BioMate can query from chat. Click a row to star it for your own reference. <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 11, color: 'oklch(0.45 0.15 260)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Star all</button></>;
+      ? <><strong>{selectedDbs.length}</strong> of {DB.length} sources starred for your reference (local view filter — does not change what BioMate queries). <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 'var(--fs-micro)', color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Star all</button></>
+      : <>{DB.length} public sources BioMate can query from chat. Click a row to star it for your own reference. <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.45 0.15 260)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Star all</button></>;
 
   const Container = embedded ? 'section' : DialogContent;
   const content = (
@@ -485,9 +485,9 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
       >
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
           {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="text-xl font-semibold">Connectors</h1><div className="flex items-center gap-2"><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => adding || setupOrigin ? cancelAdding() : beginAdding()}>{adding || setupOrigin ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button><button className="text-sm border border-border rounded-md px-3 py-1.5" data-testid="connectors-close" onClick={() => onOpenChange(false)}>{tOr('actions.close', 'Close')}</button></div></div></> : <div className="flex items-center justify-between gap-3 pr-8"><DialogTitle>Connectors</DialogTitle><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => adding || setupOrigin ? cancelAdding() : beginAdding()}>{adding || setupOrigin ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button></div>}
-          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
+          <p style={{ fontSize: 'var(--fs-meta)', color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
-          <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
+          <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 'var(--fs-xs)', color: 'var(--muted-foreground)' }}>
             <span title="data leaves the estate"><strong>cloud</strong> data leaves</span>
             <span style={{ opacity: 0.4 }}>·</span>
             <span title="stays inside your network"><strong>on-prem</strong> stays inside</span>
@@ -510,7 +510,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '6px 14px', border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: activeTab === t.id ? 600 : 400,
+                fontSize: 'var(--fs-meta)', fontWeight: activeTab === t.id ? 600 : 400,
                 color: activeTab === t.id ? 'var(--foreground)' : 'var(--muted-foreground)',
                 background: 'transparent',
                 borderBottom: activeTab === t.id ? '2px solid var(--foreground)' : '2px solid transparent',
@@ -520,14 +520,14 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
               {t.icon}
               {t.label}
               {t.count !== undefined && (
-                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 999, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
+                <span style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px', borderRadius: 999, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
                   {t.count}
                 </span>
               )}
               {t.id === 'databases' && selectedDbs.length > 0 && selectedDbs.length < DB.length && (
                 <span
                   title="Rows you have starred for your own reference. This is a local view filter only — it does not change which sources BioMate queries."
-                  style={{ fontSize: 10, padding: '1px 5px', borderRadius: 999, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}
+                  style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px', borderRadius: 999, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}
                 >
                   {selectedDbs.length} starred
                 </span>
@@ -566,7 +566,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           </>}
         </div>
 
-        {!adding && <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
+        {!adding && <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 'var(--fs-micro)', color: 'var(--muted-foreground)' }}>
           {activeTab === 'databases' && sourceView === 'public' && (embedded ? 'Public sources are queried automatically when relevant to your request.' : dbFooter)}
           {activeTab === 'ai'        && `${AI.length} AI models and platform surfaces BioMate exposes — reference only. This panel does not configure them; set up messaging bots / IDE (MCP) / GPT-action access from their own tools or the BioMate MCP install flow.`}
           {activeTab === 'yours'     && 'Your own private database and MCP server — the one writable surface here. Connections you add are used by BioMate chat; DB queries are read-only and credentials are encrypted at rest.'}

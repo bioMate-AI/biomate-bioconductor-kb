@@ -113,7 +113,7 @@ export function DataAnalysisCard({ result }: { result: FileAnalysisResult }) {
           <Badge
             variant={passed ? "default" : "secondary"}
             className={cn(
-              "ml-auto flex-shrink-0 text-[10px] px-1.5 py-0",
+              "ml-auto flex-shrink-0 text-fs-xs px-1.5 py-0",
               passed
                 ? "bg-green-100 text-green-800 border-green-200"
                 : "bg-amber-100 text-amber-800 border-amber-200"
@@ -170,13 +170,13 @@ export function DataAnalysisCard({ result }: { result: FileAnalysisResult }) {
               </div>
               {result.columns && result.columns.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-muted-foreground mb-1">Columns:</p>
+                  <p className="text-fs-xs text-muted-foreground mb-1">Columns:</p>
                   <div className="flex flex-wrap gap-1">
                     {result.columns.slice(0, 12).map(col => (
-                      <span key={col} className="bg-muted rounded px-1.5 py-0.5 text-[10px]">{col}</span>
+                      <span key={col} className="bg-muted rounded px-1.5 py-0.5 text-fs-xs">{col}</span>
                     ))}
                     {result.columns.length > 12 && (
-                      <span className="text-muted-foreground text-[10px]">+{result.columns.length - 12} more</span>
+                      <span className="text-muted-foreground text-fs-xs">+{result.columns.length - 12} more</span>
                     )}
                   </div>
                 </div>
@@ -190,10 +190,10 @@ export function DataAnalysisCard({ result }: { result: FileAnalysisResult }) {
                 const totalRows = typeof result.rowCount === "number" ? result.rowCount : 1;
                 return (
                   <div>
-                    <p className="text-[10px] text-muted-foreground mb-1">Missing values (top columns):</p>
+                    <p className="text-fs-xs text-muted-foreground mb-1">Missing values (top columns):</p>
                     <div className="flex flex-wrap gap-1">
                       {highMissing.map(([col, count]) => (
-                        <span key={col} className="bg-amber-50 text-amber-800 rounded px-1.5 py-0.5 text-[10px]">
+                        <span key={col} className="bg-amber-50 text-amber-800 rounded px-1.5 py-0.5 text-fs-xs">
                           {col}: {((count / totalRows) * 100).toFixed(0)}%
                         </span>
                       ))}
@@ -214,13 +214,13 @@ export function DataAnalysisCard({ result }: { result: FileAnalysisResult }) {
               </div>
               {result.chromosomeDistribution && Object.keys(result.chromosomeDistribution).length > 0 && (
                 <div>
-                  <p className="text-[10px] text-muted-foreground mb-1">Chromosomes:</p>
+                  <p className="text-fs-xs text-muted-foreground mb-1">Chromosomes:</p>
                   <div className="flex flex-wrap gap-1">
                     {Object.entries(result.chromosomeDistribution)
                       .sort(([, a], [, b]) => b - a)
                       .slice(0, 10)
                       .map(([chr, count]) => (
-                        <span key={chr} className="bg-muted rounded px-1.5 py-0.5 text-[10px]">
+                        <span key={chr} className="bg-muted rounded px-1.5 py-0.5 text-fs-xs">
                           {chr}: {count}
                         </span>
                       ))}
@@ -234,7 +234,7 @@ export function DataAnalysisCard({ result }: { result: FileAnalysisResult }) {
           {hasQualityGate && !passed && result.qualityGateThreshold && (
             <div className="flex items-start gap-1.5 text-amber-700 mt-1">
               <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
-              <span className="text-[10px]">
+              <span className="text-fs-xs">
                 {result.fileType === "fastq"
                   ? `Average quality Q${result.avgQuality} is below recommended threshold (Q${result.qualityGateThreshold.minAvgQ}). Consider quality trimming before running workflow.`
                   : `Missing value rate exceeds ${result.qualityGateThreshold.maxMissingPct}%. Review columns before workflow execution.`}
@@ -250,7 +250,7 @@ export function DataAnalysisCard({ result }: { result: FileAnalysisResult }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="text-fs-xs text-muted-foreground">{label}</p>
       <p className="font-medium">{value}</p>
     </div>
   );

@@ -438,13 +438,16 @@ class LLMClient:
 
         async with httpx.AsyncClient() as client:
             # Gemini API endpoint format
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+            # API key in the x-goog-api-key header, never in the URL: httpx logs every request
+            # URL at INFO, which printed the key into the Galaxy dev logs (2026-11-11).
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
             # Use caller-supplied timeout or default 30s — fast-fail lets the fallback chain
             # take over quickly instead of blocking for 2 min on a slow/hung Pro call.
             _timeout = kwargs.get('timeout', 30.0)
             response = await client.post(
                 url,
                 json=data,
+                headers={"x-goog-api-key": self.api_key},
                 timeout=_timeout
             )
 

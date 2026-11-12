@@ -98,7 +98,7 @@ export function MotionHistogramChart({ data }: MotionHistogramChartProps) {
                 <Bar dataKey="count" fill="#3b82f6" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <p className="text-[10px] text-muted-foreground text-center mt-1">
+            <p className="text-fs-xs text-muted-foreground text-center mt-1">
               Micrographs above {REJECT_THRESHOLD} Å are typically excluded from further processing
             </p>
           </>
@@ -123,7 +123,7 @@ export function MotionHistogramChart({ data }: MotionHistogramChartProps) {
             ) : (
               <p className="text-xs text-muted-foreground">Motion statistics not available for this batch.</p>
             )}
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-fs-xs text-muted-foreground">
               Per-micrograph distribution requires pipeline update to export individual values.
             </p>
           </div>

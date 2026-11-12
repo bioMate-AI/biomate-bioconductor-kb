@@ -76,7 +76,7 @@ export function IdeationPlan({
       <div className="flex items-center gap-2">
         <Lightbulb className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <div className="text-sm font-semibold leading-tight">Plan before we run</div>
-        <span className="ml-auto whitespace-nowrap rounded-md border border-card-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <span className="ml-auto whitespace-nowrap rounded-md border border-card-border bg-muted px-2 py-0.5 text-fs-xs font-medium text-muted-foreground">
           pre-run
         </span>
       </div>
@@ -142,7 +142,7 @@ export function IdeationPlan({
               {noveltyClaim.downgraded}
             </span>
           </p>
-          <span className="text-[11px] leading-snug text-muted-foreground/70">
+          <span className="text-fs-xs leading-snug text-muted-foreground/70">
             Over-strong novelty language is auto-downgraded to what the literature search can
             support.
           </span>
@@ -150,7 +150,7 @@ export function IdeationPlan({
       )}
 
       {/* Provenance note: gates are backend, this is a read surface. */}
-      <div className="text-[11px] leading-snug text-muted-foreground/70">
+      <div className="text-fs-xs leading-snug text-muted-foreground/70">
         The ideation gates (≥5 candidate hypotheses, leakage / effective-N / class-balance
         checks, novelty downgrade) run in the backend. This card shows the plan that passed
         them.

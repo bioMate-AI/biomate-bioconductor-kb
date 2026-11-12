@@ -139,8 +139,8 @@ export function AddSkillForm({ onCreated }: { onCreated?: () => void }) {
         <Label className="text-xs">Name</Label>
         <Input className="h-8 text-xs" placeholder="e.g. Oncology report reviewer" value={title} onChange={(e) => setTitle(e.target.value)} data-testid="skill-title" />
         {title.trim() && (slug
-          ? <p className="text-[11px] text-muted-foreground">id: <code>{slug}</code></p>
-          : <p className="text-[11px] text-destructive">Use letters and numbers.</p>)}
+          ? <p className="text-fs-xs text-muted-foreground">id: <code>{slug}</code></p>
+          : <p className="text-fs-xs text-destructive">Use letters and numbers.</p>)}
       </div>
 
       <div className="space-y-1.5">

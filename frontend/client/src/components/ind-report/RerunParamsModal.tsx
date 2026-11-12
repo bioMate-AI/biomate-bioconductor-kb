@@ -110,12 +110,12 @@ export function RerunParamsModal({
         <h3 style={{ marginTop: 0 }}>
           Re-run {step === "admet" ? "ADMET screening" : "PBPK qualification"} with new params
         </h3>
-        <p style={{ fontSize: 13, color: "var(--ind-text-muted)", marginBottom: 14 }}>
+        <p style={{ fontSize: 'var(--fs-base)', color: "var(--ind-text-muted)", marginBottom: 14 }}>
           The pipeline will recompute with the values below. The audit chain
           captures the prior parameters + result so you can diff later.
         </p>
         {loading && <div style={{ padding: 20 }}>Loading current params…</div>}
-        {err && <div style={{ color: "var(--ind-err)", marginBottom: 10, fontSize: 13 }}>{err}</div>}
+        {err && <div style={{ color: "var(--ind-err)", marginBottom: 10, fontSize: 'var(--fs-base)' }}>{err}</div>}
         {!loading && step === "admet" && admetParams && (
           <AdmetForm params={admetParams} setParams={setAdmetParams} />
         )}
@@ -231,7 +231,7 @@ function PbpkForm({
 }
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "6px 8px", fontSize: 13,
+  width: "100%", padding: "6px 8px", fontSize: 'var(--fs-base)',
   border: "1px solid var(--ind-border, #d1d5db)", borderRadius: 4,
 };
 
@@ -244,9 +244,9 @@ function Field({
 }) {
   return (
     <label style={{ display: "block" }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, marginBottom: 3 }}>{label}</div>
       {hint && (
-        <div style={{ fontSize: 11, color: "var(--ind-text-muted)", marginBottom: 4 }}>
+        <div style={{ fontSize: 'var(--fs-xs)', color: "var(--ind-text-muted)", marginBottom: 4 }}>
           {hint}
         </div>
       )}

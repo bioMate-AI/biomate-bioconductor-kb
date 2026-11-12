@@ -180,24 +180,31 @@ ec2_scp() {
 deploy_frontend() {
   log "[frontend] Building archive..."
   local tar_file="/tmp/biomate_frontend_sync.tar.gz"
-  # COPYFILE_DISABLE=1 suppresses macOS ._* resource-fork files from the archive.
-  # Without it, tar on macOS silently includes binary ._0018_*.sql files in
-  # migrations/, which the boot-time migration runner picks up and sends to PG
-  # as SQL — PG rejects with "invalid message format" and the container crashes.
-  COPYFILE_DISABLE=1 tar -czf "$tar_file" \
-    --exclude='frontend/data/uploads' \
-    --exclude='frontend/e2e/screenshots' \
-    --exclude='frontend/e2e/reports' \
-    --exclude='frontend/node_modules' \
-    --exclude='._*' \
-    -C "$REPO_ROOT" \
-    frontend/client/ frontend/server/ frontend/shared/ frontend/attached_assets/ \
-    frontend/migrations/ \
-    frontend/package.json frontend/package-lock.json \
-    frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
-    frontend/tailwind.config.js frontend/postcss.config.js \
-    frontend/Dockerfile frontend/Dockerfile.biotools 2>/dev/null
-  log "[frontend] Archive: $(du -sh $tar_file | cut -f1)"
+  # Ship the COMMITTED tree (HEAD), NOT the working tree — same guarantee as
+  # deploy_workflows / deploy_backend_python. A working-tree tar shipped whatever
+  # was on disk: in a shared worktree, another session's uncommitted edits went
+  # to dev under a commit that did not contain them (2026-11-11), and the
+  # ancestry gate (which verifies the COMMIT) could not see it. git archive also
+  # never carries macOS ._* files (the old COPYFILE_DISABLE concern: ._*.sql in
+  # migrations/ crashed the PG migration runner) and works in sparse worktrees.
+  local fe_paths=() p
+  for p in frontend/client frontend/server frontend/shared frontend/attached_assets \
+           frontend/migrations frontend/package.json frontend/package-lock.json \
+           frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
+           frontend/tailwind.config.js frontend/postcss.config.js \
+           frontend/Dockerfile frontend/Dockerfile.biotools; do
+    # Optional entries (e.g. Dockerfile.biotools) may be absent; git archive fails on a missing pathspec.
+    git -C "$REPO_ROOT" cat-file -e "HEAD:$p" 2>/dev/null && fe_paths+=("$p")
+  done
+  git -C "$REPO_ROOT" archive --format=tar.gz -o "$tar_file" HEAD -- "${fe_paths[@]}" \
+    || { log "[frontend] FATAL: git archive HEAD failed (detached/corrupt HEAD?). ABORTING."; return 1; }
+  local _fe_dirty
+  _fe_dirty=$(git -C "$REPO_ROOT" status --porcelain -- "${fe_paths[@]}" 2>/dev/null | head -10)
+  if [[ -n "$_fe_dirty" ]]; then
+    log "[frontend] NOTE: working-tree changes below are NOT shipped (archive = HEAD ${CURRENT_COMMIT:0:8}):"
+    echo "$_fe_dirty" | sed 's/^/      /' >&2
+  fi
+  log "[frontend] Archive (git HEAD ${CURRENT_COMMIT:0:8}): $(du -sh $tar_file | cut -f1)"
 
   # NOTE: deploy_frontend runs with set -e DISABLED — do_sync is invoked as
   # `if do_sync ...` (bottom of file), which suppresses errexit for the entire
@@ -883,13 +890,20 @@ deploy_workflows() {
     log "[workflows] Resolve them (likely a stray 'git stash apply') then re-run. ABORTING sync."
     return 1
   fi
-  tar -czf "$tar_file" \
-    --exclude='*/.nextflow' \
-    --exclude='*/.nextflow.log*' \
-    backend/biomni_workflows/ \
-    backend/nf-core-workflows/modules/biomate-ai-tools/ \
-    backend/nf-core-modules/ 2>/dev/null
-  log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
+  # Ship the COMMITTED tree (HEAD), NOT the working tree. A sparse or stale
+  # worktree shipped an OLD .nf for a commit the ledger recorded as deployed
+  # (2026-11-11 boltz_structure_prediction: dev's commit contained the fix but
+  # /app still ran the old file). The ancestry gate verifies the COMMIT while
+  # deploy_workflows ships FILES, so a working-tree tar let the two diverge.
+  # git archive is content-addressed to HEAD — same guarantee deploy_backend_python
+  # gets from `git show HEAD:`. All workflow source is committed (0 untracked .nf),
+  # and .nextflow/.nextflow.log are gitignored so HEAD never carries them.
+  git archive --format=tar.gz -o "$tar_file" HEAD -- \
+    backend/biomni_workflows \
+    backend/nf-core-workflows/modules/biomate-ai-tools \
+    backend/nf-core-modules 2>/dev/null \
+    || { log "[workflows] FATAL: git archive HEAD failed (detached/corrupt HEAD?). ABORTING."; return 1; }
+  log "[workflows] Archive (git HEAD ${CURRENT_COMMIT:0:8}): $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
 
@@ -1545,6 +1559,13 @@ restart_galaxy() {
       fi
     }
     kill_orphan_gunicorn
+    # Galaxy (user galaxy) creates /tmp/nextflow_runs/<run_id> for EVERY Nextflow launch.
+    # Anything run as root in the container (docker exec -u root …) can leave it root-owned,
+    # and a snapshot/rollback preserves that — then every workflow launch fails with
+    # "Permission denied: /tmp/nextflow_runs/<id>" (dev, 2026-11-11 03:03 → 04:52).
+    docker exec -u root "$GC" sh -c "mkdir -p /tmp/nextflow_runs && chown -R galaxy:galaxy /tmp/nextflow_runs" 2>/dev/null && \
+      echo "[galaxy] /tmp/nextflow_runs owned by galaxy" || \
+      echo "[galaxy] WARNING: could not fix /tmp/nextflow_runs ownership"
     docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -2 && \
       echo "[galaxy] gunicorn master restarted (fresh module load)" || \
       echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
@@ -1661,7 +1682,7 @@ smoke_test_workflow() {
   # Returns 0 (pass) or 1 (fail). Called after postsync_health_ok passes.
   log "[smoke] Testing workflow generation (Galaxy localhost:8081)..."
   ec2_ssh '
-    result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
+    result=$(curl -s --max-time 90 http://localhost:8081/api/ai_assistant/generate_workflow \
       -X POST -H "Content-Type: application/json" \
       -d "{\"request_text\":\"run RNA-seq differential expression analysis\",\"user_id\":\"1\"}" 2>/dev/null)
     if [[ -z "$result" ]]; then
@@ -1694,7 +1715,7 @@ except Exception as e:
 " 2>&1)
     if grep -q "^CLARIFY" <<<"$ok"; then
       echo "[smoke] clarification_needed — retrying with specific query..."
-      result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
+      result=$(curl -s --max-time 90 http://localhost:8081/api/ai_assistant/generate_workflow \
         -X POST -H "Content-Type: application/json" \
         -d "{\"request_text\":\"run DESeq2 differential expression on human RNA-seq FASTQ files, control vs treatment\",\"user_id\":\"1\"}" 2>/dev/null)
       ok=$(echo "$result" | python3 -c "
@@ -1825,7 +1846,14 @@ _postsync_probe() {
       gx=0; fe=0
       curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null && gx=1
       curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health 2>/dev/null && fe=1
-      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then exit 0; fi
+      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then
+        # Launch-path check: the galaxy user must be able to create a Nextflow run dir,
+        # or every workflow launch fails with Permission denied on /tmp/nextflow_runs.
+        # (No double quotes or angle brackets in these comments: this text is inside the
+        # double-quoted ec2_ssh string, and a quote here broke the probe on 2026-11-11.)
+        if docker exec -u galaxy biomate-galaxy-dev sh -c 'd=/tmp/nextflow_runs/.writecheck-\$\$; mkdir -p \$d && rmdir \$d' 2>/dev/null; then exit 0; fi
+        echo \"[probe \$i/$tries] galaxy cannot create a run dir in /tmp/nextflow_runs — workflow launches would fail\"
+      fi
       echo \"[probe \$i/$tries] galaxy=\$gx frontend=\$fe\"
       sleep 5
     done
@@ -1850,6 +1878,8 @@ rollback_sync() {
       -v $GALAXY_DB_HOST_PATH:/app/database \
       --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
     docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+    # The snapshot preserves file ownership; make sure Galaxy can create run dirs again.
+    docker exec -u root biomate-galaxy-dev sh -c 'mkdir -p /tmp/nextflow_runs && chown -R galaxy:galaxy /tmp/nextflow_runs' 2>/dev/null || true
     echo '[rollback]   galaxy recreated from snapshot'
   "; then
     log "[rollback] galaxy recreate FAILED"
@@ -2122,7 +2152,43 @@ do_sync() {
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
+  [[ "$SYNC_RESULT" == healthy ]] && record_deploy_ledger "$commit"
   [[ "$SYNC_RESULT" == healthy ]] && return 0 || return 1
+}
+
+# ---------------------------------------------------------------------------
+# Deploy ledger — who put what on dev (append-only, on the dev host)
+# ---------------------------------------------------------------------------
+# Every successful scripted sync and every GitHub-Action deploy appends one JSON
+# line to /opt/biomate/.deploy-ledger.jsonl. Before deploying we print the last
+# entries and warn when what is LIVE is not the last recorded deploy — i.e. someone
+# deployed through a path that skips the ancestry gate (an old checkout of this
+# script, a raw docker command). "Who removed my fix" becomes answerable.
+DEPLOY_LEDGER=/opt/biomate/.deploy-ledger.jsonl
+record_deploy_ledger() {
+  local _commit="$1" _branch _who _line
+  _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  _who="$(git -C "$REPO_ROOT" config user.name 2>/dev/null || echo '?')@$(hostname -s 2>/dev/null || echo '?')"
+  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}")"
+  ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") >> $DEPLOY_LEDGER" \
+    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who}" \
+    || log "[ledger] WARNING: could not append to $DEPLOY_LEDGER"
+}
+show_deploy_ledger() {
+  local _live="$1" _tail _last
+  _tail="$(ec2_ssh "tail -n 5 $DEPLOY_LEDGER 2>/dev/null" || true)"
+  if [[ -z "$_tail" ]]; then
+    log "[ledger] no deploy ledger yet on dev (first recorded sync)"
+    return 0
+  fi
+  log "[ledger] last deploys to dev:"
+  printf '%s\n' "$_tail" | sed 's/^/    /'
+  _last="$(printf '%s\n' "$_tail" | tail -n 1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("commit",""))' 2>/dev/null || true)"
+  if [[ -n "$_last" && "$_last" != "$_live" ]]; then
+    log "[ledger] WARNING: dev is running ${_live:0:10} but the last RECORDED deploy was ${_last:0:10}."
+    log "[ledger]          Someone deployed without the ancestry gate. The gate below still refuses"
+    log "[ledger]          to drop what is live; merge it if refused."
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -2175,9 +2241,24 @@ if [[ -n "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}" ]]; then
   log "WARNING: explicit emergency ancestry override requested; retain the incident reason"
   _ANCESTRY_ARGS+=(--emergency-override-reason "$BIOMATE_EMERGENCY_DEPLOY_REASON")
 fi
+# The public build-info.json is baked only into the FRONTEND image, so a
+# backend/db/workflow-only deploy leaves it stale and the gate above (build-info
+# only) could let a later full deploy silently overwrite that backend-only work.
+# The ledger records every deploy's full HEAD; read its last commit (over the
+# lease we already hold) and make the gate require HEAD to contain it too.
+_LEDGER_HEAD="$(ec2_ssh "tail -n 1 $DEPLOY_LEDGER 2>/dev/null" 2>/dev/null | python3 -c 'import json,sys,re
+try:
+  c=(json.loads(sys.stdin.read() or "{}") or {}).get("commit","")
+  print(c if c and re.fullmatch(r"[0-9a-f]{40}", c) else "")
+except Exception:
+  print("")' 2>/dev/null || true)"
+if [[ -n "$_LEDGER_HEAD" ]]; then
+  _ANCESTRY_ARGS+=(--ledger-head "$_LEDGER_HEAD")
+fi
 _ANCESTRY_JSON="$(python3 "$REPO_ROOT/scripts/dev_deploy_ancestry.py" "${_ANCESTRY_ARGS[@]}")" || exit 2
 _DEPLOYED_COMMIT="$(printf '%s' "$_ANCESTRY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["deployedCommit"])')"
 log "Public dev ancestry verified: ${_DEPLOYED_COMMIT:0:8} -> ${CURRENT_COMMIT:0:8}"
+show_deploy_ledger "$_DEPLOYED_COMMIT"
 if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
   enable_interactive_tools
   log "=== IT review/apply path finished (full code and DB sync skipped) ==="

@@ -15,12 +15,12 @@ type MemoryItem = { id: string; text: string; source?: string };
 
 const S: Record<string, CSSProperties> = {
   card: { border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--bg-elev)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, overflowWrap: 'anywhere' },
-  k2: { fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' },
-  hint: { fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-muted)' },
+  k2: { fontSize: 'var(--fs-sm)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' },
+  hint: { fontSize: 'var(--fs-base)', lineHeight: 1.5, color: 'var(--text-muted)' },
   row: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 },
   qline: { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)', minWidth: 0 },
-  rulen: { width: 22, height: 22, flexShrink: 0, borderRadius: 999, background: 'var(--surface-2)', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  input: { flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13, color: 'var(--text)', background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' },
+  rulen: { width: 22, height: 22, flexShrink: 0, borderRadius: 999, background: 'var(--surface-2)', color: 'var(--text-muted)', fontSize: 'var(--fs-xs)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  input: { flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 'var(--fs-base)', color: 'var(--text)', background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' },
 };
 
 function Switch({ on, onClick, disabled, title }: { on: boolean; onClick: () => void; disabled?: boolean; title?: string }) {
@@ -114,15 +114,15 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
     <div data-v2-ui="true" style={{ maxWidth: 960, margin: '0 auto', padding: '24px 24px 48px', display: 'flex', flexDirection: 'column', gap: 16, color: 'var(--text)', fontFamily: 'var(--font-ui)' }}>
       {/* header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{projectName} / {t("project_instructions.instructions")}</div>
+        <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>{projectName} / {t("project_instructions.instructions")}</div>
         <div style={{ ...S.row, gap: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 650, letterSpacing: '-0.02em' }}>{t("project_instructions.instructions")}</h2>
+          <h2 style={{ margin: 0, fontSize: 'var(--fs-2xl)', fontWeight: 650, letterSpacing: '-0.02em' }}>{t("project_instructions.instructions")}</h2>
           <span className="chip" style={accChip}>{t("project_instructions.summary", { rules: rules.length, formats: nFmtOn })}</span>
           <span style={{ flex: 1 }} />
           <span style={S.hint}>{t("project_instructions.applies")}</span>
         </div>
       </div>
-      {error && <p role="alert" style={{ fontSize: 13, color: 'var(--err)' }}>{error}</p>}
+      {error && <p role="alert" style={{ fontSize: 'var(--fs-base)', color: 'var(--err)' }}>{error}</p>}
 
       {/* RULES */}
       <section style={S.card} data-testid="instructions-rules">
@@ -141,7 +141,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
                   onBlur={e => { const v = e.target.value.trim(); saveRules(v ? rules.map((y, j) => j === i ? v : y) : rules.filter((_, j) => j !== i)); setEditing(null); }}
                   onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
               ) : (
-                <span style={{ flex: 1, fontSize: 13.5, lineHeight: 1.5, cursor: canEdit ? 'text' : 'default' }} onClick={() => canEdit && setEditing(i)}>{r}</span>
+                <span style={{ flex: 1, fontSize: 'var(--fs-base)', lineHeight: 1.5, cursor: canEdit ? 'text' : 'default' }} onClick={() => canEdit && setEditing(i)}>{r}</span>
               )}
               {canEdit && <button className="linkish" title={t("project_instructions.remove")} onClick={() => saveRules(rules.filter((_, j) => j !== i))}>{t("project_instructions.remove")}</button>}
             </div>
@@ -166,7 +166,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
               <Switch on={f.on} disabled={!canEdit || savingSettings || formatEditor !== null} title={t("instructions_formats.enable", { name: f.name })} onClick={() => saveSettings(selected, formats.map((x, j) => j === i ? { ...x, on: !x.on } : x))} />
               <span className="chip">{t(`project_instructions.kind_${f.kind}`)}</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{f.name}</span>
+                <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600 }}>{f.name}</span>
                 {f.detail && <span style={S.hint}>{f.detail}</span>}
               </div>
               {canEdit && <button className="btn sm ghost" disabled={savingSettings || formatEditor !== null} onClick={() => setFormatEditor({ index: i, value: { ...f } })}>{t("instructions_formats.edit")}</button>}
@@ -178,14 +178,18 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
         {/* TEMPLATE EXAMPLES — output requirements are hard to define from a blank field, so show
             concrete, editable examples of each kind (design: ProjectSetup.jsx `outputs`). "Use" adds
             one (switched OFF so it never silently takes effect until the user turns it on). */}
-        {canEdit && (
+        {/* Examples are an onboarding aid for the empty/partial state. Once every
+            example kind is already configured in the list above, this block is just a
+            second copy of the same items — hide it so the list isn't duplicated
+            (founder request: keep the list, not a duplicated examples panel). */}
+        {canEdit && appendMissingOutputFormats(formats, examples).length > formats.length && (
           <div style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-md, 8px)', background: 'var(--bg)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="instructions-formats-examples">
             <span style={{ ...S.hint, fontWeight: 600 }}>{t("project_instructions.examples")}</span>
             {examples.map((ex, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <span className="chip">{t(`project_instructions.kind_${ex.kind}`)}</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600 }}>{ex.name}</span>
+                  <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600 }}>{ex.name}</span>
                   <span style={S.hint}>{ex.detail}</span>
                 </div>
                 <button className="btn sm ghost" title={t("project_instructions.use_hint", { name: ex.name })} disabled={savingSettings || formatEditor !== null || appendMissingOutputFormats(formats, [ex]).length === formats.length} onClick={() => saveSettings(selected, appendMissingOutputFormats(formats, [ex]))}>{t("project_instructions.use")}</button>
@@ -243,7 +247,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
         <div>
           {memory.map((m, i) => (
             <div key={m.id} style={S.qline}>
-              <span style={{ flex: 1, fontSize: 13.5, lineHeight: 1.5 }}>{m.text}{m.source && <span style={{ ...S.hint, marginLeft: 8 }}>· {m.source}</span>}</span>
+              <span style={{ flex: 1, fontSize: 'var(--fs-base)', lineHeight: 1.5 }}>{m.text}{m.source && <span style={{ ...S.hint, marginLeft: 8 }}>· {m.source}</span>}</span>
               {canEdit && <button className="linkish" disabled={noteBusy} onClick={async () => { setNoteBusy(true); try { await saveRules(rules.includes(m.text) ? rules : [...rules, m.text]); } finally { setNoteBusy(false); } }}>{t("project_instructions.make_rule")}</button>}
               {canEdit && <button className="linkish" disabled={noteBusy} onClick={() => removeNote(m.id)}>{t("project_instructions.forget")}</button>}
             </div>

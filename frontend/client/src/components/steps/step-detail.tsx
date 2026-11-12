@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, ArrowRight, RotateCcw, FileText, Loader2, Download, ExternalLink,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
@@ -76,6 +77,11 @@ export interface StepDetailStep {
   parameters?: Record<string, unknown>;
   /** Structured output files. */
   outputs?: StepDetailOutput[];
+  /** Position in the run (spec 08 §8.2 .deephd — "a step is a place in a run").
+   *  phaseLetter = the phase badge; stepNumber/totalSteps = "step N of M". */
+  phaseLetter?: string;
+  stepNumber?: number;
+  totalSteps?: number;
 }
 
 export interface StepDetailProps {
@@ -97,6 +103,10 @@ export interface StepDetailProps {
    *  (spec 08: "parameters editable in place" + "Apply & re-run from here").
    *  Receives the edited {name: value} map. */
   onApplyAndRerun?: (params: Record<string, unknown>) => void;
+  /** Spec 08 §8.3 .deepfoot — step traversal ("auditing a run means reading
+   *  several steps in sequence"). Omitted ⇒ that control is hidden. */
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +194,7 @@ function OriginBadge({ origin }: { origin?: ParamOrigin }) {
     <span
       data-testid={`param-origin-${label}`}
       data-origin={label}
-      className={cn("inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none", style)}
+      className={cn("inline-block rounded border px-1.5 py-0.5 text-fs-xs font-medium leading-none", style)}
       title={origin ? undefined : t('step_view.origin_not_reported')}
     >
       {label}
@@ -241,7 +251,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
   const shown = (text || "").slice(0, 8000);
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground mb-1">
+      <p className="text-fs-xs text-muted-foreground mb-1">
         First bytes, exactly as written by the step. The rendered view above is derived from these.
       </p>
       <pre className="text-xs font-mono bg-muted p-2 rounded max-h-80 overflow-auto whitespace-pre-wrap">
@@ -258,6 +268,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
 
 export function StepDetail({
   runId, step, workflowDefinition, projectId, onClose, onOpenOutput, onAdjustAndRerun, onApplyAndRerun,
+  onPrev, onNext,
 }: StepDetailProps) {
   const outputs = useMemo<StepDetailOutput[]>(
     () => (step.outputs || []).map(o => ({ ...o, id: o.id ?? o.path })),
@@ -314,19 +325,29 @@ export function StepDetail({
     >
       {/* Header + provenance row */}
       <div className="border-b px-4 py-3 space-y-2 shrink-0">
+        {/* .deephd — phase letter + "step N of M" + name. A step is a place in a
+            run, not a free-floating record (spec 08 §8.2). */}
         <div className="flex items-center gap-2">
+          {step.phaseLetter && (
+            <div
+              data-testid="step-phase-letter"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold"
+              aria-hidden
+            >
+              {step.phaseLetter}
+            </div>
+          )}
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('step_view.title')}{step.status ? ` · ${step.status}` : ""}</p>
+            <p className="text-fs-xs uppercase tracking-wide text-muted-foreground" data-testid="step-position">
+              {step.stepNumber && step.totalSteps
+                ? tOr('step_view.step_position', 'Step {{n}} of {{total}}', { n: step.stepNumber, total: step.totalSteps })
+                : t('step_view.title')}{step.status ? ` · ${step.status}` : ""}
+            </p>
             <p className="font-semibold break-words" title={step.processName || step.name}>
               {step.processName || step.name}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-1 shrink-0">
-            {onAdjustAndRerun && (
-              <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={onAdjustAndRerun}>
-                <RotateCcw className="h-3.5 w-3.5" /> {t('step_view.rerun_from_here')}
-              </Button>
-            )}
             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose} aria-label={t('step_view.close')}>
               <X className="h-4 w-4" />
             </Button>
@@ -349,7 +370,7 @@ export function StepDetail({
             {step.tool ? step.tool : <span className="text-muted-foreground">{t('step_view.tool_not_reported')}</span>}
             {step.toolVersion
               ? <span className="ml-1 font-mono text-muted-foreground">{step.toolVersion}</span>
-              : <span className="ml-1 text-[10px] text-muted-foreground">{t('step_view.version_na')}</span>}
+              : <span className="ml-1 text-fs-xs text-muted-foreground">{t('step_view.version_na')}</span>}
           </span>
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <span className="rounded border bg-muted/60 px-1.5 py-0.5">
@@ -442,7 +463,7 @@ export function StepDetail({
                   />
                 </div>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1.5">
+              <p className="text-fs-xs text-muted-foreground mt-1.5">
                 {raw
                   ? t('step_view.caption_raw')
                   : t('step_view.caption_rendered')}
@@ -457,7 +478,7 @@ export function StepDetail({
             <p className="text-xs font-semibold">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.params_running') : t('step_view.params_ran_with')}</p>
             <span
               data-testid="not-default-count"
-              className="rounded border bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded border bg-muted/60 px-1.5 py-0.5 text-fs-xs text-muted-foreground"
             >
               {t('step_view.not_default', { n: notDefault })}
             </span>
@@ -493,7 +514,7 @@ export function StepDetail({
                       {changed && (
                         <button
                           data-testid={`param-revert-${p.name}`}
-                          className="text-[11px] text-primary hover:underline shrink-0"
+                          className="text-fs-xs text-primary hover:underline shrink-0"
                           onClick={() => setVals(v => ({ ...v, [p.name]: p.value }))}
                         >
                           {t('step_view.revert')}
@@ -501,7 +522,7 @@ export function StepDetail({
                       )}
                     </div>
                     {p.reason && (
-                      <p className="sm:col-span-2 text-[10px] text-muted-foreground">{p.reason}</p>
+                      <p className="sm:col-span-2 text-fs-xs text-muted-foreground">{p.reason}</p>
                     )}
                   </div>
                 );
@@ -520,15 +541,39 @@ export function StepDetail({
               </Button>
             </div>
           )}
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-fs-xs text-muted-foreground mt-2">
             {t('step_view.params_caption')}
           </p>
         </div>
       </div>
 
-      {/* Footer */}
+      {/* .deepfoot — traversal first ("auditing a run means reading several
+          steps in sequence"), then re-run from here. Spec 08 §8.3. */}
+      <div className="border-t px-4 py-2 flex items-center gap-2 flex-wrap shrink-0">
+        <Button
+          variant="ghost" size="sm" className="h-7 gap-1 text-xs"
+          data-testid="step-prev" disabled={!onPrev} onClick={onPrev}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> {tOr('step_view.prev_step', 'Previous step')}
+        </Button>
+        <Button
+          variant="ghost" size="sm" className="h-7 gap-1 text-xs"
+          data-testid="step-next" disabled={!onNext} onClick={onNext}
+        >
+          {tOr('step_view.next_step', 'Next step')} <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+        {onAdjustAndRerun && (
+          <Button
+            variant="outline" size="sm" className="ml-auto h-7 gap-1.5 text-xs"
+            data-testid="step-rerun-footer" onClick={onAdjustAndRerun}
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> {t('step_view.rerun_from_here')}
+          </Button>
+        )}
+      </div>
+      {/* Selected-output download row — the honest "binary artifact" exception. */}
       {selected && (
-        <div className="border-t px-4 py-2 flex items-center gap-2">
+        <div className="border-t px-4 py-2 flex items-center gap-2 shrink-0">
           <a
             href={`/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(selected.path)}&download=1`}
             download={selected.name}
@@ -536,7 +581,7 @@ export function StepDetail({
           >
             <Download className="h-3.5 w-3.5" /> {t('step_view.download', { name: selected.name })}
           </a>
-          <span className="ml-auto text-[10px] text-muted-foreground inline-flex items-center gap-1">
+          <span className="ml-auto text-fs-xs text-muted-foreground inline-flex items-center gap-1">
             <ExternalLink className="h-3 w-3" /> {t('step_view.artifact_unmodified')}
           </span>
         </div>

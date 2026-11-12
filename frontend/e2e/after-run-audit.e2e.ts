@@ -142,19 +142,29 @@ async function recordPhaseTransitions(
   const start = Date.now();
   const known = new Map<string, PhaseEvidence>();
   while (Date.now() - start < durationMs) {
-    const phases = await page.locator('[data-testid^="phase-group-"]').all();
-    for (const ph of phases) {
-      const testid = (await ph.getAttribute("data-testid")) || "";
-      const key = testid.replace("phase-group-", "");
-      const status = (await ph.getAttribute("data-status")) || "unknown";
+    // Snapshot every phase card's status + step count in ONE atomic DOM read.
+    // (Was: `.all()` handles + per-element getAttribute — those go stale the
+    // instant a phase completes and re-renders mid-loop, timing out at 60s.)
+    const snapshot: Array<{ testid: string; status: string; stepCount: number }> =
+      await page
+        .evaluate(() =>
+          Array.from(document.querySelectorAll('[data-testid^="phase-group-"]')).map((el) => ({
+            testid: el.getAttribute("data-testid") || "",
+            status: el.getAttribute("data-status") || "unknown",
+            stepCount: el.querySelectorAll(".step").length,
+          })),
+        )
+        .catch(() => []);
+    for (const ph of snapshot) {
+      const key = ph.testid.replace("phase-group-", "");
+      const status = ph.status;
       if (!known.has(key)) {
-        const stepCount = await ph.locator(".step").count();
         known.set(key, {
           key,
-          testid,
+          testid: ph.testid,
           observedStatuses: [status],
           finalStatus: status,
-          stepCount,
+          stepCount: ph.stepCount,
         });
       } else {
         const ev = known.get(key)!;
@@ -217,7 +227,7 @@ async function auditAfterRunTabs(
       await page.waitForTimeout(waitMs);
     }
     const screenshotPath = path.join(outDir, `tab-${tabId}.png`);
-    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 20_000, animations: "disabled" }).catch(() => {});
     const text = visible
       ? (await page.locator('[data-testid="panel-after-run"]').innerText().catch(() => "")) || ""
       : "";
@@ -255,7 +265,7 @@ test.describe("After-run comprehensive audit", () => {
       }
       return route.continue();
     });
-    test.setTimeout(1_800_000); // 30 min for cold-start Batch run
+    test.setTimeout(2_700_000); // 45 min — slow 4-phase cold-start run + full after-run tab audit
     const outDir = testInfo.outputDir;
     fs.mkdirSync(outDir, { recursive: true });
 
@@ -264,20 +274,20 @@ test.describe("After-run comprehensive audit", () => {
 
     await page.goto(BASE_URL + "/", {
       waitUntil: "domcontentloaded",
-      timeout: 30_000,
+      timeout: 90_000, // resilient to transient dev load under concurrent test sessions
     });
     await page.waitForLoadState("load").catch(() => {});
-    await page.screenshot({ path: path.join(outDir, "00-home.png"), fullPage: true });
+    await page.screenshot({ path: path.join(outDir, "00-home.png"), fullPage: true, timeout: 20_000, animations: "disabled" }).catch(() => {});
 
     await sendChatViaUI(page, QUERY);
     console.log("[audit] query sent, waiting for panel…");
     await waitForPanel(page);
-    await page.screenshot({ path: path.join(outDir, "01-panel-opened.png"), fullPage: true });
+    await page.screenshot({ path: path.join(outDir, "01-panel-opened.png"), fullPage: true, timeout: 20_000, animations: "disabled" }).catch(() => {});
 
     console.log("[audit] clicking Run…");
     await clickRun(page);
     await page.waitForTimeout(3_000);
-    await page.screenshot({ path: path.join(outDir, "02-after-click-run.png"), fullPage: true });
+    await page.screenshot({ path: path.join(outDir, "02-after-click-run.png"), fullPage: true, timeout: 20_000, animations: "disabled" }).catch(() => {});
 
     // Record phase transitions in parallel with completion wait.
     const phaseEvidence: PhaseEvidence[] = [];
@@ -294,7 +304,7 @@ test.describe("After-run comprehensive audit", () => {
       console.log("[audit] waiting 45s for post-terminal nextflowStatus refresh…");
       await page.waitForTimeout(45_000);
     }
-    await page.screenshot({ path: path.join(outDir, "03-after-completion.png"), fullPage: true });
+    await page.screenshot({ path: path.join(outDir, "03-after-completion.png"), fullPage: true, timeout: 20_000, animations: "disabled" }).catch(() => {});
 
     // Audit each after-run tab
     console.log("[audit] auditing 7 after-run tabs…");
@@ -345,16 +355,16 @@ test.describe("After-run comprehensive audit", () => {
     // Citations/QC fold INTO Report).
     const summary = tabEvidence.find((t) => t.tabId === "summary");
     const outputs = tabEvidence.find((t) => t.tabId === "outputs");
-    const report = tabEvidence.find((t) => t.tabId === "report");
+    const reportTab = tabEvidence.find((t) => t.tabId === "report");
     expect(summary?.visible, "Summary tab present").toBeTruthy();
     expect(outputs?.visible, "Outputs tab present").toBeTruthy();
-    expect(report?.visible, "Report tab present").toBeTruthy();
+    expect(reportTab?.visible, "Report tab present").toBeTruthy();
     // CONTENT (not just structure): Summary must carry the findings block, and the
     // Report must contain the folded record sections (Methods/Parameters/Citations).
     expect((summary?.contentLength ?? 0), "Summary has findings content").toBeGreaterThan(0);
-    const reportText = (report?.textSample ?? "").toLowerCase();
+    const reportText = (reportTab?.textSample ?? "").toLowerCase();
     for (const section of REPORT_FOLDED_SECTIONS) {
-      expect(reportText.includes(section) || (report?.contentLength ?? 0) > 200,
+      expect(reportText.includes(section) || (reportTab?.contentLength ?? 0) > 200,
         `Report contains folded '${section}' section (or non-trivial content)`).toBeTruthy();
     }
   });

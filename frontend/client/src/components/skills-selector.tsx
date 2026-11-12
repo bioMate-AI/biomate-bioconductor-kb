@@ -131,7 +131,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
           borderRadius: 5,
           background: "var(--bm-accent-soft)",
           cursor: "pointer",
-          fontSize: 12,
+          fontSize: 'var(--fs-sm)',
           color: "var(--bm-accent-ink)",
           padding: "4px 7px",
         }}
@@ -179,7 +179,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
         >
           <p
             style={{
-              fontSize: 11,
+              fontSize: 'var(--fs-xs)',
               color: DIM,
               padding: "4px 6px 6px",
               margin: 0,
@@ -190,13 +190,13 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
           </p>
 
           {loading ? (
-            <p data-testid="composer-experts-loading" style={{ fontSize: 12, color: DIM, padding: "10px 6px", margin: 0 }}>
+            <p data-testid="composer-experts-loading" style={{ fontSize: 'var(--fs-sm)', color: DIM, padding: "10px 6px", margin: 0 }}>
               {t('composer.loading_expert_packs')}
             </p>
           ) : resolved.length === 0 ? (
             // Honest-empty: no fabricated packs. This is the real state when
             // the backend catalogue is unpopulated.
-            <p data-testid="composer-experts-empty" style={{ fontSize: 12, color: DIM, padding: "10px 6px", margin: 0 }}>
+            <p data-testid="composer-experts-empty" style={{ fontSize: 'var(--fs-sm)', color: DIM, padding: "10px 6px", margin: 0 }}>
               {t('composer.no_expert_packs')}
             </p>
           ) : (
@@ -243,11 +243,11 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
                       {active && <Check className="w-2.5 h-2.5" />}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 12.5, fontWeight: 500, color: TEXT }}>
+                      <span style={{ display: "block", fontSize: 'var(--fs-base)', fontWeight: 500, color: TEXT }}>
                         {pack.label}
                       </span>
                       {pack.description && (
-                        <span style={{ display: "block", fontSize: 11, color: DIM, lineHeight: 1.35 }}>
+                        <span style={{ display: "block", fontSize: 'var(--fs-xs)', color: DIM, lineHeight: 1.35 }}>
                           {pack.description}
                         </span>
                       )}
@@ -269,7 +269,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
                     background: "transparent",
                     cursor: "pointer",
                     textAlign: "left",
-                    fontSize: 11,
+                    fontSize: 'var(--fs-xs)',
                     color: DIM,
                   }}
                 >

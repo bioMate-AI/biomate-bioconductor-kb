@@ -1,0 +1,82 @@
+```json
+{
+ "tokens": {
+  "--fs-xs": {
+   "size": "12px",
+   "line": "1.4",
+   "use": "Micro labels, badges, chips, breadcrumbs, run meta (safe floor for tiny legacy values)"
+  },
+  "--fs-sm": {
+   "size": "13px",
+   "line": "1.4",
+   "use": "Secondary UI, dense content, general legacy 12px upgrades"
+  },
+  "--fs-base": {
+   "size": "14px",
+   "line": "1.5",
+   "use": "Primary body text, tables, sidebar nav items"
+  },
+  "--fs-lg": {
+   "size": "16px",
+   "line": "1.4",
+   "use": "Card titles, subsection headings, primary buttons"
+  },
+  "--fs-xl": {
+   "size": "20px",
+   "line": "1.3",
+   "use": "Section headers, empty state headers"
+  },
+  "--fs-2xl": {
+   "size": "24px",
+   "line": "1.2",
+   "use": "Page titles, hero text"
+  },
+  "--fs-3xl": {
+   "size": "36px",
+   "line": "1.1",
+   "use": "Display text, large metrics (preserves legacy large values >=26px)"
+  },
+  "--fs-mono": {
+   "size": "13px",
+   "line": "1.4",
+   "use": "Run IDs, git hashes, inline code snippets"
+  }
+ },
+ "px_map": {
+  "7": "--fs-xs",
+  "8": "--fs-xs",
+  "9": "--fs-xs",
+  "9.5": "--fs-xs",
+  "10": "--fs-xs",
+  "10.5": "--fs-xs",
+  "11": "--fs-xs",
+  "11.5": "--fs-sm",
+  "12": "--fs-sm",
+  "12.5": "--fs-base",
+  "13": "--fs-base",
+  "13.5": "--fs-base",
+  "14": "--fs-base",
+  "14.5": "--fs-lg",
+  "15": "--fs-lg",
+  "16": "--fs-lg",
+  "17": "--fs-xl",
+  "18": "--fs-xl",
+  "20": "--fs-xl",
+  "22": "--fs-2xl",
+  "24": "--fs-2xl",
+  "26": "--fs-3xl",
+  "28": "--fs-3xl",
+  "32": "--fs-3xl",
+  "36": "--fs-3xl"
+ },
+ "tailwind": {
+  "xs": "--fs-sm",
+  "sm": "--fs-base",
+  "base": "--fs-lg",
+  "lg": "--fs-xl",
+  "xl": "--fs-xl",
+  "2xl": "--fs-2xl"
+ },
+ "rationale": "Adjusted base body token to 14px to fix table wrapping in the narrow 480px panel while keeping dense UI intact. The 10-11px elements (chips, breadcrumbs, logs) are bumped to a 12px floor (--fs-xs) to fix illegibility without bloating. The 13px sidebar items naturally scale up to 14px (--fs-base), approaching the prototype design without requiring context-aware overrides. Maintained the strict no-shrink rule across exactly 7 ramp steps."
+}
+```

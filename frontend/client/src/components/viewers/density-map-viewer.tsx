@@ -230,7 +230,7 @@ function MontageViewer({ arrayBuffer, header, name, contrast }: {
                 style={{ width: THUMB, height: THUMB, imageRendering: 'pixelated', display: 'block' }}
                 className="border border-muted group-hover:border-blue-400"
               />
-              <span className="absolute bottom-0 left-0 text-[9px] bg-black/50 text-white px-0.5">{i + 1}</span>
+              <span className="absolute bottom-0 left-0 text-fs-xs bg-black/50 text-white px-0.5">{i + 1}</span>
             </div>
           ))}
         </div>

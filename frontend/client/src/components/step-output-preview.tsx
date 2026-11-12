@@ -163,7 +163,7 @@ function InlineImageViewer({ src, name }: { src: string; name: string }) {
           <ZoomIn className="h-6 w-6 text-white drop-shadow" />
         </div>
       </div>
-      <p className="text-[10px] text-muted-foreground text-center mt-1">Click to enlarge</p>
+      <p className="text-fs-xs text-muted-foreground text-center mt-1">Click to enlarge</p>
 
       {lightboxOpen && (
         <div
@@ -267,11 +267,11 @@ function RObjectPreview({ runId, file, onClose, embedded, projectId }: StepOutpu
   const chipRow = (label: string, items?: string[]) =>
     items && items.length > 0 ? (
       <div className="flex flex-wrap items-baseline gap-1.5 mb-1">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+        <span className="text-fs-xs uppercase tracking-wide text-muted-foreground">{label}</span>
         {items.slice(0, 12).map((it, i) => (
           <span key={i} className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted/60">{it}</span>
         ))}
-        {items.length > 12 && <span className="text-[10px] text-muted-foreground">+{items.length - 12}</span>}
+        {items.length > 12 && <span className="text-fs-xs text-muted-foreground">+{items.length - 12}</span>}
       </div>
     ) : null;
 
@@ -375,7 +375,7 @@ function SingleCellPreview({ runId, file, onClose, embedded }: StepOutputPreview
       {/* Deeper exploration (secondary when the summary is shown) / fallback. */}
       {anyAvailable ? (
         <div className="mt-3">
-          <p className="text-[11px] text-muted-foreground mb-1">
+          <p className="text-fs-xs text-muted-foreground mb-1">
             {summaryAbsent ? 'Single-cell object — open interactively to explore.' : 'Explore interactively:'}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -665,7 +665,7 @@ function FetchingPreview({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 gap-1 px-1.5 shrink-0 text-[11px]"
+              className="h-6 gap-1 px-1.5 shrink-0 text-fs-xs"
               onClick={onOpenFullStepView}
               data-testid="open-full-step-view"
               title={t('preview.full_step_view_tip')}

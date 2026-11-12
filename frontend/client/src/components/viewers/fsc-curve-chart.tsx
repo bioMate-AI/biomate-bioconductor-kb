@@ -121,7 +121,7 @@ export function FscCurveChart({ data }: FscCurveChartProps) {
             />
           </LineChart>
         </ResponsiveContainer>
-        <p className="text-[10px] text-muted-foreground text-center mt-1">
+        <p className="text-fs-xs text-muted-foreground text-center mt-1">
           Gold-standard FSC — 0.143 criterion gives resolution estimate
         </p>
       </CardContent>

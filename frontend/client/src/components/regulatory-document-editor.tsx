@@ -532,7 +532,7 @@ export function RegulatoryDocumentEditor({
     <div className="flex flex-col h-full min-h-0">
       {/* ── Lock banner ── */}
       {isLocked && (
-        <div className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[11px] font-medium shrink-0">
+        <div className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-fs-xs font-medium shrink-0">
           <Lock className="h-3 w-3" />
           Signed — read only
         </div>
@@ -546,7 +546,7 @@ export function RegulatoryDocumentEditor({
               key={s}
               onClick={() => scrollToSection(s)}
               className={cn(
-                "shrink-0 px-2 py-0.5 text-[10px] font-mono rounded transition-colors",
+                "shrink-0 px-2 py-0.5 text-fs-xs font-mono rounded transition-colors",
                 activeSection === s
                   ? "bg-[var(--bm-accent)] text-white"
                   : "text-muted-foreground hover:bg-muted"
@@ -558,7 +558,7 @@ export function RegulatoryDocumentEditor({
 
           {/* Diff badge */}
           {(aiSpanCount > 0 || humanEditedCount > 0) && (
-            <div className="ml-auto flex items-center gap-1.5 shrink-0 text-[10px]">
+            <div className="ml-auto flex items-center gap-1.5 shrink-0 text-fs-xs">
               <span
                 className="px-1.5 py-0.5 rounded-full font-medium"
                 style={{ backgroundColor: AI_COLOR, color: "#1e40af" }}
@@ -591,8 +591,8 @@ export function RegulatoryDocumentEditor({
             "[&_.tiptap]:outline-none",
             "[&_.tiptap_h1]:text-sm [&_.tiptap_h1]:font-semibold [&_.tiptap_h1]:mt-6 [&_.tiptap_h1]:mb-2 [&_.tiptap_h1]:border-b [&_.tiptap_h1]:border-border [&_.tiptap_h1]:pb-1",
             "[&_.tiptap_h2]:text-xs [&_.tiptap_h2]:font-semibold [&_.tiptap_h2]:text-zinc-500 [&_.tiptap_h2]:dark:text-zinc-400 [&_.tiptap_h2]:uppercase [&_.tiptap_h2]:tracking-widest [&_.tiptap_h2]:mt-5 [&_.tiptap_h2]:mb-1 [&_.tiptap_h2]:font-mono",
-            "[&_.tiptap_h3]:text-[11px] [&_.tiptap_h3]:font-semibold [&_.tiptap_h3]:text-zinc-500 [&_.tiptap_h3]:uppercase [&_.tiptap_h3]:tracking-wider [&_.tiptap_h3]:mt-4 [&_.tiptap_h3]:mb-1",
-            "[&_.tiptap_p]:text-[13px] [&_.tiptap_p]:leading-[1.7] [&_.tiptap_p]:py-0.5",
+            "[&_.tiptap_h3]:text-fs-xs [&_.tiptap_h3]:font-semibold [&_.tiptap_h3]:text-zinc-500 [&_.tiptap_h3]:uppercase [&_.tiptap_h3]:tracking-wider [&_.tiptap_h3]:mt-4 [&_.tiptap_h3]:mb-1",
+            "[&_.tiptap_p]:text-fs-base [&_.tiptap_p]:leading-[1.7] [&_.tiptap_p]:py-0.5",
             "[&_.tiptap_mark]:rounded-sm [&_.tiptap_mark]:px-0 [&_.tiptap_mark]:py-0",
             // Placeholder
             "[&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child::before]:float-left [&_.tiptap_p.is-editor-empty:first-child::before]:h-0",
@@ -603,7 +603,7 @@ export function RegulatoryDocumentEditor({
 
       {/* ── Footer ── */}
       <div className="shrink-0 border-t border-border px-4 py-1.5 flex items-center justify-between bg-[var(--bm-surface)]">
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono">
+        <div className="flex items-center gap-3 text-fs-xs text-muted-foreground font-mono">
           <span>{wordCount.toLocaleString()} words</span>
           <span>{charCount.toLocaleString()} chars</span>
           {generatedAt && (
@@ -616,7 +616,7 @@ export function RegulatoryDocumentEditor({
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 text-[10px] gap-1 px-2"
+          className="h-6 text-fs-xs gap-1 px-2"
           onClick={handleExport}
           disabled={!content}
           title="Download as plain text"

@@ -77,7 +77,7 @@ export function VerdictChip({ verdict }: { verdict: Verdict }) {
     <span
       data-testid={`verdict-${verdict}`}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-fs-xs font-medium",
         ok
           ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -110,7 +110,7 @@ export function ApprovalGate({ data, onResolve, actor, className }: ApprovalGate
         <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" aria-hidden />
         <span className="text-sm font-semibold">Paused — needs your approval</span>
         <span className="flex-1" />
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-fs-xs font-medium text-amber-600 dark:text-amber-400">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           human gate
         </span>

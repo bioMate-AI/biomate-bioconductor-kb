@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+_SYS_MODULES_BEFORE_STUBS = dict(sys.modules)
+
 _NF_EXEC_PATH = (
     Path(__file__).parents[1]
     / "lib/galaxy/webapps/galaxy/api/nextflow_executor.py"
@@ -74,6 +76,15 @@ _spec = importlib.util.spec_from_file_location("_nf_executor_false_success", _NF
 _nf = importlib.util.module_from_spec(_spec)
 assert _spec.loader is not None
 _spec.loader.exec_module(_nf)
+
+# Restore sys.modules: the stubs above were needed only to load the executor
+# under a private name. Leaving fake pydantic/fastapi/galaxy.* modules
+# installed poisoned every LATER test module in the same pytest session
+# (ImportError: cannot import name 'ConfigDict' from 'pydantic' (unknown
+# location)). The loaded executor keeps its own references to the stubs.
+for _k in [k for k in sys.modules if k not in _SYS_MODULES_BEFORE_STUBS]:
+    del sys.modules[_k]
+sys.modules.update(_SYS_MODULES_BEFORE_STUBS)
 
 # NetMHCpan run 530c1284 — Groovy stack trace in log_tail, no S3 outputs, 18s.
 _NETMHCPAN_LOG_TAIL = [

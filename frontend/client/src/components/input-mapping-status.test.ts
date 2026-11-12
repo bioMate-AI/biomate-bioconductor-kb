@@ -5,6 +5,7 @@ import {
   deriveInputMappingRows,
   blockingInputRows,
   runIsBlockedByInputs,
+  derivePrerunInputs,
   type SessionDataset,
   type ParamDef,
 } from './input-mapping-status';
@@ -105,5 +106,65 @@ describe('deriveInputMappingRows + run-block condition', () => {
     expect(rows.map(r => r.status)).toEqual(['resolved', 'unresolved']);
     expect(blockingInputRows(rows).map(r => r.param.id)).toEqual(['design']);
     expect(runIsBlockedByInputs(rows)).toBe(true);
+  });
+});
+
+
+describe('derivePrerunInputs (rnaseq-like schema)', () => {
+  // As buildViewerParameters renders nf-core/rnaseq: the required samplesheet
+  // `input` is a STRING param; references are optional FILE params whose value
+  // falls back to the default (null, or a pipeline default like the rRNA manifest).
+  const params = [
+    { id: 'input', name: 'input', label: 'Input', type: 'string', required: true, value: '', defaultValue: null },
+    { id: 'genome', name: 'genome', label: 'Genome', type: 'string', required: false, value: 'GRCh38', defaultValue: null },
+    { id: 'fasta', name: 'fasta', label: 'Fasta', type: 'file', required: false, value: '', defaultValue: null },
+    { id: 'gtf', name: 'gtf', label: 'Gtf', type: 'file', required: false, value: '', defaultValue: null },
+    { id: 'ribo_database_manifest', name: 'ribo_database_manifest', label: 'Ribo Database Manifest', type: 'file', required: false, value: 'rrna-db-defaults.txt', defaultValue: 'rrna-db-defaults.txt' },
+  ];
+  const defs: ParamDef[] = [
+    { name: 'input', type: 'string', description: 'Samplesheet CSV' },
+    { name: 'fasta', type: 'file' },
+    { name: 'gtf', type: 'file' },
+    { name: 'ribo_database_manifest', type: 'file' },
+  ];
+
+  it('lists the required samplesheet as the primary input even though it is not typed file', () => {
+    const m = derivePrerunInputs(params, DS, defs);
+    expect(m.primary.map(r => r.param.id)).toEqual(['input']);
+    expect(m.primary[0].status).toBe('unresolved');
+    expect(m.requiredCount).toBe(1);
+    expect(m.requiredUnset).toBe(1);
+    expect(m.boundCount).toBe(0);
+    expect(runIsBlockedByInputs([...m.primary, ...m.overrides])).toBe(true);
+  });
+
+  it('groups default-backed reference files as overrides, not as mapped inputs', () => {
+    const m = derivePrerunInputs(params, DS, defs);
+    expect(m.overrides.map(r => r.param.id)).toEqual(['fasta', 'gtf', 'ribo_database_manifest']);
+    expect(m.overrides.map(r => r.status)).toEqual(['optional-empty', 'optional-empty', 'resolved']);
+    // Plain settings (genome) are neither inputs nor overrides.
+    expect([...m.primary, ...m.overrides].some(r => r.param.id === 'genome')).toBe(false);
+  });
+
+  it('binding the samplesheet resolves it; a user-bound optional file becomes a mapped input', () => {
+    const bound = params.map(p =>
+      p.id === 'input' ? { ...p, value: 's3://b/counts.csv' }
+      : p.id === 'gtf' ? { ...p, value: 'https://x/design.tsv' } : p);
+    const m = derivePrerunInputs(bound, DS, defs);
+    expect(m.primary.map(r => [r.param.id, r.status])).toEqual([['input', 'resolved'], ['gtf', 'resolved']]);
+    expect(m.requiredUnset).toBe(0);
+    expect(m.boundCount).toBe(2);
+    expect(m.overrides.map(r => r.param.id)).toEqual(['fasta', 'ribo_database_manifest']);
+    expect(runIsBlockedByInputs([...m.primary, ...m.overrides])).toBe(false);
+  });
+
+  it('uses schema metadata from the param defs (data_input flag) for optional data files', () => {
+    const m = derivePrerunInputs(
+      [{ id: 'sce2', name: 'sce2', type: 'file', required: false, value: '' }],
+      DS,
+      [{ name: 'sce2', type: 'file', data_input: true }],
+    );
+    expect(m.primary.map(r => [r.param.id, r.status])).toEqual([['sce2', 'optional-empty']]);
+    expect(m.overrides).toEqual([]);
   });
 });

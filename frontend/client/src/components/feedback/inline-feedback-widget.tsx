@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 import {
   submitFeedback,
   FEEDBACK_REASON_TAGS,
-  FEEDBACK_REASON_LABELS,
   type FeedbackReasonTag,
 } from "@/lib/feedback";
 import { UX_FEEDBACK_ENABLED } from "@/lib/feature-flags";
+import { t } from "@/lib/i18n";
 
 interface InlineFeedbackWidgetProps {
   messageId: string;
@@ -25,7 +25,14 @@ interface InlineFeedbackWidgetProps {
   className?: string;
 }
 
-export function InlineFeedbackWidget({
+export function InlineFeedbackWidget(props: InlineFeedbackWidgetProps) {
+  // Flag check in a wrapper so the inner component's hooks always run in the
+  // same order (an early return before useState broke the rules of hooks).
+  if (!UX_FEEDBACK_ENABLED) return null;
+  return <InlineFeedbackWidgetInner {...props} />;
+}
+
+function InlineFeedbackWidgetInner({
   messageId,
   sessionId,
   runId,
@@ -33,8 +40,6 @@ export function InlineFeedbackWidget({
   workflowId,
   className,
 }: InlineFeedbackWidgetProps) {
-  if (!UX_FEEDBACK_ENABLED) return null;
-
   const [submitted, setSubmitted] = useState<'up' | 'down' | null>(null);
   const [showDownReason, setShowDownReason] = useState(false);
   const [selectedReasons, setSelectedReasons] = useState<Set<FeedbackReasonTag>>(new Set());
@@ -95,20 +100,21 @@ export function InlineFeedbackWidget({
   if (submitted) {
     return (
       <span className={cn("text-xs text-muted-foreground", className)}>
-        Thanks for your feedback
+        {t('chat.feedback.thanks')}
       </span>
     );
   }
 
   return (
-    <div className={cn("flex items-center gap-1", className)} data-testid="inline-feedback-widget">
+    <div className={cn("flex items-center gap-0.5", className)} data-testid="inline-feedback-widget">
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 w-7 p-0"
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
         onClick={handleUp}
         disabled={isSubmitting}
-        aria-label="Helpful"
+        aria-label={t('chat.feedback.helpful')}
+        title={t('chat.feedback.helpful')}
         data-testid="inline-feedback-thumbs-up"
       >
         <ThumbsUp className="h-3.5 w-3.5" />
@@ -118,9 +124,10 @@ export function InlineFeedbackWidget({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
             disabled={isSubmitting}
-            aria-label="Not helpful"
+            aria-label={t('chat.feedback.not_helpful')}
+            title={t('chat.feedback.not_helpful')}
             data-testid="inline-feedback-thumbs-down"
           >
             <ThumbsDown className="h-3.5 w-3.5" />
@@ -128,7 +135,7 @@ export function InlineFeedbackWidget({
         </PopoverTrigger>
         <PopoverContent className="w-72" align="start">
           <div className="space-y-3">
-            <p className="text-sm font-medium">What went wrong?</p>
+            <p className="text-sm font-medium">{t('chat.feedback.what_went_wrong')}</p>
             <div className="flex flex-wrap gap-1.5">
               {FEEDBACK_REASON_TAGS.map((tag) => (
                 <Button
@@ -138,12 +145,12 @@ export function InlineFeedbackWidget({
                   className="h-7 text-xs"
                   onClick={() => toggleReason(tag)}
                 >
-                  {FEEDBACK_REASON_LABELS[tag]}
+                  {t(`chat.feedback.reason.${tag}`)}
                 </Button>
               ))}
             </div>
             <Textarea
-              placeholder="Optional comment..."
+              placeholder={t('chat.feedback.comment_placeholder')}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="min-h-[60px] text-sm"
@@ -151,14 +158,14 @@ export function InlineFeedbackWidget({
             />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setShowDownReason(false)}>
-                Cancel
+                {t('chat.feedback.cancel')}
               </Button>
               <Button
                 size="sm"
                 onClick={submitDown}
                 disabled={selectedReasons.size === 0 || isSubmitting}
               >
-                Submit
+                {t('chat.feedback.submit')}
               </Button>
             </div>
           </div>

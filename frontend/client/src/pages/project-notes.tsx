@@ -138,7 +138,7 @@ export default function ProjectNotesPage() {
               background: "transparent",
               border: "none",
               color: PALETTE.inkSoft,
-              fontSize: 13,
+              fontSize: 'var(--fs-base)',
               cursor: "pointer",
               padding: 0,
               marginBottom: 12,
@@ -149,7 +149,7 @@ export default function ProjectNotesPage() {
           </button>
           <h1
             style={{
-              fontSize: 28,
+              fontSize: 'var(--fs-3xl)',
               fontWeight: 700,
               letterSpacing: "-0.02em",
               margin: 0,
@@ -161,7 +161,7 @@ export default function ProjectNotesPage() {
             data-testid="notes-meta"
             style={{
               marginTop: 8,
-              fontSize: 13,
+              fontSize: 'var(--fs-base)',
               color: PALETTE.inkMute,
               display: "flex",
               gap: 16,
@@ -216,7 +216,7 @@ export default function ProjectNotesPage() {
               border: `1px solid #b85a4a`,
               borderRadius: 6,
               color: "#7a3a2e",
-              fontSize: 13,
+              fontSize: 'var(--fs-base)',
             }}
           >
             {error}

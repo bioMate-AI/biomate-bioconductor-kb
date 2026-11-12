@@ -107,7 +107,7 @@ export function CtfQualityChart({ data }: CtfQualityChartProps) {
                   <Bar dataKey="count" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              <p className="text-[10px] text-muted-foreground text-center">Orange lines: typical 0.5–4 µm range</p>
+              <p className="text-fs-xs text-muted-foreground text-center">Orange lines: typical 0.5–4 µm range</p>
             </div>
             {scatterData.length > 0 && (
               <div>
@@ -126,7 +126,7 @@ export function CtfQualityChart({ data }: CtfQualityChartProps) {
                     <Scatter data={scatterData} fill="#8b5cf6" opacity={0.7} />
                   </ScatterChart>
                 </ResponsiveContainer>
-                <p className="text-[10px] text-muted-foreground text-center">Points below 5 Å = well-fitted CTF</p>
+                <p className="text-fs-xs text-muted-foreground text-center">Points below 5 Å = well-fitted CTF</p>
               </div>
             )}
           </>
@@ -163,7 +163,7 @@ export function CtfQualityChart({ data }: CtfQualityChartProps) {
                 </div>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-fs-xs text-muted-foreground">
               Per-micrograph scatter plot requires pipeline update to export individual values.
             </p>
           </div>

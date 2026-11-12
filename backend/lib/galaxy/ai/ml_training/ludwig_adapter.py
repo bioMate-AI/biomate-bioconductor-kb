@@ -62,6 +62,37 @@ def to_ludwig_config(cfg: TrainingConfig, target_col: str = "y") -> dict[str, An
     }
 
 
+def to_ludwig_tabular_config(cfg: TrainingConfig, feature_names: list[str],
+                             target_col: str) -> dict[str, Any]:
+    """Ludwig config for a GENERIC feature matrix (featurizer='none').
+
+    The general counterpart of to_ludwig_config: every numeric column of the
+    user's table is a Ludwig `number` input (no RDKit, no SMILES). A
+    classification label is a `category` output (multi-class, string labels);
+    regression is a `number` output.
+    """
+    hp = cfg.hyperparams
+    output = ({"name": target_col, "type": "category"} if cfg.task_type == "classification"
+              else {"name": target_col, "type": "number"})
+    return {
+        "input_features": [
+            {"name": c, "type": "number",
+             "preprocessing": {"normalization": "zscore"}}
+            for c in feature_names
+        ],
+        "output_features": [output],
+        "combiner": {"type": "concat", "output_size": hp.hidden_size,
+                     "num_fc_layers": max(1, hp.depth), "dropout": hp.dropout},
+        "trainer": {
+            "epochs": hp.epochs,
+            "batch_size": hp.batch_size,
+            "learning_rate": hp.learning_rate,
+            "early_stop": 5,
+        },
+        "preprocessing": {"split": _split_config(cfg)},
+    }
+
+
 # Column holding precomputed partition ids for Ludwig's `fixed` split
 # (0 = train, 1 = validation, 2 = test).
 SPLIT_COLUMN = "split"

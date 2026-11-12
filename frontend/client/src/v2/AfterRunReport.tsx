@@ -90,10 +90,10 @@ function TextFilePreview({ url, name }: { url: string; name: string }) {
       .catch(e => { if (!cancelled) setErr((e as Error).message); });
     return () => { cancelled = true; };
   }, [url]);
-  if (err) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Preview unavailable ({err}). Use Download below.</div>;
-  if (text === null) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Loading {name}…</div>;
+  if (err) return <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', padding: 12 }}>Preview unavailable ({err}). Use Download below.</div>;
+  if (text === null) return <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', padding: 12 }}>Loading {name}…</div>;
   return (
-    <pre style={{ width: '100%', maxHeight: 400, overflow: 'auto', margin: 0, padding: 12, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+    <pre style={{ width: '100%', maxHeight: 400, overflow: 'auto', margin: 0, padding: 12, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace', fontSize: 'var(--fs-sm)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
       {text}
     </pre>
   );
@@ -126,6 +126,9 @@ import { InteractiveLauncher } from "@/components/interactive-launcher";
 interface AfterRunReportProps {
   /** Parent workflow tab already names this region. */
   embedded?: boolean;
+  /** The host (workflow panel) already states the failure cause in its diagnosis
+   *  card; show only failed steps, raw error and log tail here (one cause, once). */
+  hideFailureDiagnosis?: boolean;
   runId: string;
   invocationId?: string;       // backend Galaxy/Nextflow invocation id (for /qc-events)
   workflowName?: string;
@@ -199,6 +202,7 @@ export function AfterRunReport({
   projectId,
   targetTab,
   embedded = false,
+  hideFailureDiagnosis = false,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
@@ -386,13 +390,13 @@ export function AfterRunReport({
             <circle cx="12" cy="12" r="10"/>
             <polyline points="12 6 12 12 16 14"/>
           </svg>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(0.40 0.012 260)' }}>
+          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'oklch(0.40 0.012 260)' }}>
             {tOr('afterrun.empty_title', 'Run not started yet')}
           </div>
-          <div style={{ fontSize: 13, color: 'oklch(0.55 0.01 260)', maxWidth: 280, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 'var(--fs-base)', color: 'oklch(0.55 0.01 260)', maxWidth: 280, lineHeight: 1.5 }}>
             {tOr('afterrun.empty_body', 'Outputs, findings, QC report, methods, and citations will appear here once the workflow completes.')}
           </div>
-          <div style={{ fontSize: 12, color: 'oklch(0.62 0.01 260)', marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--fs-sm)', color: 'oklch(0.62 0.01 260)', marginTop: 4 }}>
             {tOr('afterrun.empty_hint', 'Use the Workflow settings tab to configure and launch.')}
           </div>
         </div>
@@ -496,6 +500,7 @@ export function AfterRunReport({
           invocationId={invocationId}
           runId={runId}
           parameters={parameters}
+          hideDiagnosis={hideFailureDiagnosis}
         />
       )}
       <div role="tablist" style={styles.tabBar} data-visible-tabs={visibleTabs.map(([id]) => id).join(',')}>
@@ -540,8 +545,8 @@ export function AfterRunReport({
                   made a run whose QC could NOT be evaluated render as all-clear, erasing the signal. */}
               {qcEvents.some(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')) && (
                 <section data-testid="completed-qc-findings" style={{ marginTop: 12 }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 600 }}>{tOr('afterrun.qc_findings', 'QC findings')}</h3>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+                  <h3 style={{ fontSize: 'var(--fs-base)', fontWeight: 600 }}>{tOr('afterrun.qc_findings', 'QC findings')}</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-sm)', tableLayout: 'fixed' }}>
                     <colgroup><col /><col style={{ width: 72 }} /><col style={{ width: 104 }} /><col style={{ width: 88 }} /></colgroup>
                     <thead><tr style={{ borderBottom: '1px solid var(--border)' }}>
                       <th align="left" style={{ whiteSpace: 'nowrap', padding: '4px 6px', fontWeight: 600, color: 'var(--text-muted)' }}>Check</th>
@@ -551,7 +556,7 @@ export function AfterRunReport({
                     </tr></thead>
                     <tbody>{qcEvents.filter(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')).map((e, i) => (
                       <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '4px 6px', overflowWrap: 'anywhere' }}>{e.gate ?? '—'}<div style={{ color: 'var(--text-muted)', fontSize: 11, overflowWrap: 'anywhere' }}>{qcSourceName(e)}</div>{e.message && <div style={{ fontSize: 11, overflowWrap: 'anywhere' }}>{e.message}</div>}</td>
+                        <td style={{ padding: '4px 6px', overflowWrap: 'anywhere' }}>{e.gate ?? '—'}<div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-xs)', overflowWrap: 'anywhere' }}>{qcSourceName(e)}</div>{e.message && <div style={{ fontSize: 'var(--fs-xs)', overflowWrap: 'anywhere' }}>{e.message}</div>}</td>
                         <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.measured ?? '—'}</td>
                         <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.operator ? `${e.operator} ` : ''}{e.threshold ?? '—'}</td>
                         <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{qcResultLabel(e.status)}</td>
@@ -638,12 +643,13 @@ function FailedRunSection({
   status,
   errorMessage,
   failedSteps,
-  logTail,
   autofix,
   invocationId,
   runId,
   parameters,
+  hideDiagnosis = false,
 }: {
+  hideDiagnosis?: boolean;
   status: string;
   errorMessage?: string;
   failedSteps?: string[];
@@ -654,8 +660,6 @@ function FailedRunSection({
   parameters?: Record<string, unknown>;
 }) {
   const cancelled = status === 'cancelled';
-  const tail = (logTail || []).slice(-20);
-  const totalLines = logTail?.length || 0;
 
   // Detailed per-attempt history (lazy-fetched only when user expands).
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -737,7 +741,7 @@ function FailedRunSection({
           </div>
           {autofixExhausted ? (
             <p style={styles.autofixMsg}>
-              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the underlying error and log tail below for the final failure.', { n: autofix?.totalAttempts ?? 0 })}
+              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the error and next step below.', { n: autofix?.totalAttempts ?? 0 })}
             </p>
           ) : autofix?.state === 'succeeded' ? (
             <p style={styles.autofixMsg}>
@@ -785,20 +789,23 @@ function FailedRunSection({
           it is hidden and only the raw error below is shown — we never invent a
           cause. The raw error stays available in the block beneath. */}
       {(() => {
-        const diag = errorMessage ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
+        const diag = errorMessage && !hideDiagnosis ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
         if (!diag || !diag.known || !diag.cause) return null;
+        const { i18n } = diag;
+        const cause = i18n.cause ? tOr(i18n.cause, diag.cause, i18n.vars) : diag.cause;
+        const culprit = diag.culprit ? (i18n.culprit ? tOr(i18n.culprit, diag.culprit, i18n.vars) : diag.culprit) : '';
         return (
           <div style={styles.failureDiagnosis} data-testid="afterrun-failure-diagnosis" data-failure-class={diag.klass}>
             <div style={styles.failureDiagnosisCause}>
-              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {diag.cause}
+              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {cause}
             </div>
-            {diag.culprit && !diag.cause.includes(diag.culprit) && (
+            {culprit && !diag.cause.includes(diag.culprit!) && (
               <div style={styles.failureDiagnosisLine}>
-                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {diag.culprit}
+                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {culprit}
               </div>
             )}
             <div style={styles.failureDiagnosisLine}>
-              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {diag.nextAction}
+              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {tOr(i18n.next, diag.nextAction, i18n.vars)}
             </div>
           </div>
         );
@@ -821,14 +828,11 @@ function FailedRunSection({
         </div>
       )}
 
-      {tail.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div style={styles.failedStepLabel}>
-            {tOr('afterrun.log_tail', 'Log tail')} {totalLines > tail.length ? tOr('afterrun.log_tail_showing', '(showing last {{n}} of {{total}})', { n: tail.length, total: totalLines }) : tOr('afterrun.log_tail_lines', '({{n}} lines)', { n: tail.length })}
-          </div>
-          <pre style={styles.logTailBlock}>{tail.join('\n')}</pre>
-        </div>
-      )}
+      {/* Raw Nextflow log tail intentionally NOT shown here (founder 2026-11-11:
+          internal engine logs — CacheDB teardown, plugin stop, pf4j DEBUG — must
+          never surface to the user). The user-readable diagnosis + the real error
+          message (humanizeNfError) above are what the user needs; full engine logs
+          remain available in the dedicated job-log viewer for support/debugging. */}
     </div>
   );
 }
@@ -1162,15 +1166,15 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
               onClick={() => openWith(primaryTool)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '5px 12px', fontSize: 12, fontWeight: 500,
+                padding: '5px 12px', fontSize: 'var(--fs-sm)', fontWeight: 500,
                 background: 'white', border: '1px solid oklch(0.88 0.01 245)',
                 borderRadius: 6, cursor: 'pointer', color: 'oklch(0.22 0.01 260)',
               }}
             >
-              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>⌥</span>
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--fs-xs)' }}>⌥</span>
               {tOr('afterrun.interactive_panel', 'Interactive panel')}
             </button>
-            <span style={{ fontSize: 11, color: 'oklch(0.55 0.012 260)' }}>
+            <span style={{ fontSize: 'var(--fs-xs)', color: 'oklch(0.55 0.012 260)' }}>
               {tOr('afterrun.interactive_hint', 'Pick files, then open in {{tools}}', { tools: hint })}
             </span>
           </>
@@ -1244,7 +1248,7 @@ function LazyMount({ children, minHeight = 56 }: { children: React.ReactNode; mi
   return (
     <div ref={ref}>
       {visible ? children : (
-        <div style={{ minHeight, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 11 }}>
+        <div style={{ minHeight, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 'var(--fs-xs)' }}>
           {tOr("afterrun.preview_lazy", "Scroll to load preview…")}
         </div>
       )}
@@ -1278,40 +1282,59 @@ function OutputsTab({
   useEffect(() => {
     if (outputs.length > 0 || !runId) return;
     let cancelled = false;
-    (async () => {
+    let attempts = 0;
+    // A just-completed run often registers its S3 outputs a few seconds AFTER
+    // status flips to `completed` (the Batch job writes + the backend scans).
+    // A single fetch on mount therefore got an empty list and left the Outputs
+    // tab permanently blank ("completed but no content"). Poll while the run is
+    // terminal and the list is still empty — ~60s covers the registration lag.
+    const MAX_ATTEMPTS = 15;
+    const terminal = () =>
+      ["completed", "succeeded", "ok"].includes(String(executionStatus || "").toLowerCase());
+    const poll = async () => {
       try {
         const r = await fetch(
           `/api/workflows/runs/${encodeURIComponent(runId)}/output_files`,
           { credentials: "include" },
         );
-        if (!r.ok || cancelled) return;
-        const j = await r.json();
-        const arr = (j?.output_files || j?.outputs || []) as any[];
-        if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
-        setFetched(
-          arr.map((f) => {
-            const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
-            const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
-            const ext = String(
-              f?.extension ||
-                (name.includes(".") ? name.split(".").pop() : "") ||
-                "",
-            ).toLowerCase();
-            const parts = filePath.split("/").filter(Boolean);
-            const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
-            // Don't surface an opaque run/history id (76d11493) as the step label.
-            const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
-            const step = isOpaqueId ? "" : rawStep;
-            // Real byte size is in the fetched output_files payload — thread it
-            // so the card shows the actual size (humanSize) instead of nothing.
-            const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
-            return { step, name, path: filePath, ext, size, download_url: f?.download_url };
-          }),
-        );
-      } catch { /* silent — empty state still useful */ }
-    })();
+        if (cancelled) return;
+        if (r.ok) {
+          const j = await r.json();
+          const arr = (j?.output_files || j?.outputs || []) as any[];
+          if (!cancelled && Array.isArray(arr) && arr.length > 0) {
+            setFetched(
+              arr.map((f) => {
+                const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
+                const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
+                const ext = String(
+                  f?.extension ||
+                    (name.includes(".") ? name.split(".").pop() : "") ||
+                    "",
+                ).toLowerCase();
+                const parts = filePath.split("/").filter(Boolean);
+                const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
+                // Don't surface an opaque run/history id (76d11493) as the step label.
+                const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
+                const step = isOpaqueId ? "" : rawStep;
+                // Real byte size is in the fetched output_files payload — thread it
+                // so the card shows the actual size (humanSize) instead of nothing.
+                const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
+                return { step, name, path: filePath, ext, size, download_url: f?.download_url };
+              }),
+            );
+            return; // populated — stop polling
+          }
+        }
+      } catch { /* fall through to retry */ }
+      // Still empty: retry while the run is terminal (outputs still registering).
+      attempts += 1;
+      if (!cancelled && terminal() && attempts < MAX_ATTEMPTS) {
+        setTimeout(poll, 4000);
+      }
+    };
+    poll();
     return () => { cancelled = true; };
-  }, [runId, outputs.length]);
+  }, [runId, outputs.length, executionStatus]);
   const effectiveOutputs = outputs.length > 0 ? outputs : fetched;
   // FIX #9.1 — separate Nextflow run-metadata (pipeline_info/, dag.html,
   // report.html, timeline.html, trace.txt, execution_*, .nextflow.log) from
@@ -1488,10 +1511,10 @@ function OutputsTab({
   // heading so it's available for debugging but never counted as results.
   const metadataSection = metadataCount > 0 ? (
     <details style={{ marginTop: 16 }} data-testid="run-metadata-section">
-      <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+      <summary style={{ cursor: 'pointer', fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-muted)' }}>
         Run metadata (Nextflow) · {metadataCount}
       </summary>
-      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '6px 0 8px' }}>
+      <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', margin: '6px 0 8px' }}>
         Execution bookkeeping written by Nextflow (DAG, timeline, trace, run log).
         These are not scientific results — they're useful for debugging a run.
       </p>
@@ -1499,13 +1522,13 @@ function OutputsTab({
         {tOr('afterrun.download_run_metadata', 'Download run record · JSON')}
       </a>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-sm)', fontFamily: 'ui-monospace, monospace' }}>
           <tbody>
             {metadataOutputs.map((f, i) => (
               <tr key={(f.path || f.name) + i} style={{ borderTop: '1px solid var(--border)' }}>
                 <td style={{ padding: '6px 8px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 13 }}>{iconForExt(f.ext)}</span>
+                    <span style={{ fontSize: 'var(--fs-base)' }}>{iconForExt(f.ext)}</span>
                     <span style={{ color: 'var(--text)' }}>{f.name}</span>
                   </span>
                 </td>
@@ -1514,7 +1537,7 @@ function OutputsTab({
                     {canPreview(f.ext) && (
                       <button
                         onClick={() => setPreviewFile(f)}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 'var(--fs-xs)' }}
                       >view</button>
                     )}
                     <RunFileDownload runId={runId} file={f} />
@@ -1550,7 +1573,7 @@ function OutputsTab({
               <button type="button" className="text-sm shrink-0" onClick={() => setPreviewFile(null)}>{tOr('actions.close', 'Close')}</button>
             </div>
             {stepLabel(previewFile.step) && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{stepLabel(previewFile.step)}</div>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginBottom: 8 }}>{stepLabel(previewFile.step)}</div>
             )}
             {/* Rich evidence viewer — StepOutputPreview resolves the right viewer
                 by file type (image/pdf/html/text plus structure pLDDT·PAE,
@@ -1631,16 +1654,16 @@ function OutputsTab({
                 borderRadius: 8, padding: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
                 minWidth: 240,
               }}>
-                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>
+                <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>
                   {tOr('afterrun.save_outputs_to_project', 'Save outputs to project')}
                 </div>
                 {projects.length === 0 ? (
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{tOr('afterrun.loading', 'Loading…')}</div>
+                  <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', marginBottom: 8 }}>{tOr('afterrun.loading', 'Loading…')}</div>
                 ) : (
                   <select
                     value={selectedProjectId}
                     onChange={e => setSelectedProjectId(e.target.value)}
-                    style={{ width: '100%', fontSize: 12, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', marginBottom: 8 }}
+                    style={{ width: '100%', fontSize: 'var(--fs-sm)', padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', marginBottom: 8 }}
                   >
                     {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -1649,18 +1672,18 @@ function OutputsTab({
                   <button
                     onClick={handleSaveToProject}
                     disabled={!selectedProjectId || saveState === 'saving' || projects.length === 0}
-                    style={{ flex: 1, fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'oklch(0.22 0.01 260)', color: '#fff', border: 'none', opacity: saveState === 'saving' ? 0.6 : 1 }}
+                    style={{ flex: 1, fontSize: 'var(--fs-sm)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'oklch(0.22 0.01 260)', color: '#fff', border: 'none', opacity: saveState === 'saving' ? 0.6 : 1 }}
                   >
                     {saveState === 'saving' ? tOr('afterrun.saving', 'Saving…') : saveState === 'error' ? tOr('afterrun.error_retry', 'Error — retry') : tOr('afterrun.save', 'Save')}
                   </button>
                   <button
                     onClick={() => setShowProjectPicker(false)}
-                    style={{ fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ fontSize: 'var(--fs-sm)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
                   >
                     {tOr('afterrun.cancel', 'Cancel')}
                   </button>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginTop: 8 }}>
                   {tOr('afterrun.files_appear', "Files will appear in the project's Files tab.")}
                 </div>
               </div>
@@ -1673,7 +1696,7 @@ function OutputsTab({
 
       {/* Outputs gallery — each output as an inline preview card. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '2px 0 10px' }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }} data-testid="outputs-heading">
+        <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-muted)' }} data-testid="outputs-heading">
           {tOr('afterrun.output_files_count', '{{n}} files', { n: totalCount })}
         </span>
         <input
@@ -1682,9 +1705,9 @@ function OutputsTab({
           onChange={(e) => { setQuery(e.target.value); setShowAll(false); }}
           placeholder={tOr('afterrun.outputs_search_ph', 'Search outputs…')}
           data-testid="outputs-search"
-          style={{ fontSize: 12, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg, transparent)', color: 'var(--text)', minWidth: 160 }}
+          style={{ fontSize: 'var(--fs-sm)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg, transparent)', color: 'var(--text)', minWidth: 160 }}
         />
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }} data-testid="outputs-count">
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }} data-testid="outputs-count">
           {tOr('afterrun.showing_n_of_m', 'showing {{n}} of {{m}}', { n: shown.length, m: filtered.length })}
           {filtered.length !== totalCount && ` (${tOr('afterrun.filtered_from', 'filtered from {{t}}', { t: totalCount })})`}
         </span>
@@ -1708,7 +1731,7 @@ function OutputsTab({
             <React.Fragment key={key}>
               {showStepHeader && fStepLabel && (
                 <div data-testid="output-step-group" style={{
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: 'var(--fs-sm)', fontWeight: 600,
                   color: 'var(--text-muted)', margin: i === 0 ? '0 0 2px' : '12px 0 2px',
                 }} title={tOr('afterrun.output_group_hint', 'Files grouped by their workflow output folder; this is not necessarily a workflow step.')}>
                   {tOr('afterrun.output_group', 'Output group')}: {fStepLabel}
@@ -1720,16 +1743,16 @@ function OutputsTab({
               style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}
             >
               {/* Card header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-sm)' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>{iconForExt(f.ext)}</span>
                 <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }} title={f.name}>{f.name}</span>
-                <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</span>
+                <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 'var(--fs-xs)' }}>{f.ext || '—'}</span>
                 <span style={{ flex: 1 }} />
-                {sizeLabel && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{sizeLabel}</span>}
+                {sizeLabel && <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-xs)' }}>{sizeLabel}</span>}
                 {canPrev && (
                   <button
                     onClick={() => setPreviewFile(f)}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 'var(--fs-xs)' }}
                     title={tOr('afterrun.view_fullsize', 'Open full size')}
                   >{inline ? tOr('afterrun.view', 'view') : tOr('afterrun.preview', 'preview')}</button>
                 )}
@@ -1739,7 +1762,7 @@ function OutputsTab({
                     href={`/files?file=${encodeURIComponent(datasetId)}`}
                     data-testid="output-open-as-dataset"
                     title={tOr('afterrun.open_as_dataset_title', 'Open the dataset object — preview, versions and lineage — in Files')}
-                    style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', fontSize: 11 }}
+                    style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', fontSize: 'var(--fs-xs)' }}
                   >{tOr('afterrun.open_as_dataset', 'Open as dataset')} <ExternalLink size={11} /></a>
                 )}
               </div>
@@ -1763,7 +1786,7 @@ function OutputsTab({
               {inline && collapsed && (
                 <button
                   onClick={() => setCollapsedCards((s) => { const n = new Set(s); n.delete(key); return n; })}
-                  style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                  style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 'var(--fs-xs)' }}
                 >{tOr('afterrun.show_preview', 'Show preview')}</button>
               )}
             </div>
@@ -1771,7 +1794,7 @@ function OutputsTab({
           );
         })}
         {filtered.length === 0 && (
-          <p style={{ ...styles.empty, fontSize: 12 }} data-testid="outputs-no-match">
+          <p style={{ ...styles.empty, fontSize: 'var(--fs-sm)' }} data-testid="outputs-no-match">
             {tOr('afterrun.no_outputs_match', 'No outputs match your search.')}
           </p>
         )}
@@ -1779,7 +1802,7 @@ function OutputsTab({
           <button
             onClick={() => setShowAll(true)}
             data-testid="outputs-show-more"
-            style={{ alignSelf: 'flex-start', fontSize: 12, padding: '5px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
+            style={{ alignSelf: 'flex-start', fontSize: 'var(--fs-sm)', padding: '5px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
           >{tOr('afterrun.show_n_more', 'Show {{n}} more', { n: filtered.length - shown.length })}</button>
         )}
       </div>
@@ -1941,13 +1964,13 @@ export function MethodsTab({
       </div>
 
       {versions.length > 0 && (
-        <div data-testid="report-versions" style={{ margin: "6px 0 10px", fontSize: 12 }}>
+        <div data-testid="report-versions" style={{ margin: "6px 0 10px", fontSize: 'var(--fs-sm)' }}>
           <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>{tOr('afterrun.report_versions', 'Report versions')}</div>
           {versions.slice().sort((a, b) => a.version - b.version).map((v) => (
             <div key={v.version} data-testid={`report-version-${v.version}`} style={{ display: "flex", gap: 8, alignItems: "center", padding: "1px 0" }}>
               <span className="mono" style={{ fontWeight: 600 }}>v{v.version}</span>
               {v.immutable
-                ? <span style={{ fontSize: 10, padding: "0 5px", borderRadius: 4, background: "oklch(0.93 0.03 260)", color: "oklch(0.35 0.05 260)" }}>{tOr('afterrun.immutable_original', 'immutable run original')}</span>
+                ? <span style={{ fontSize: 'var(--fs-xs)', padding: "0 5px", borderRadius: 4, background: "oklch(0.93 0.03 260)", color: "oklch(0.35 0.05 260)" }}>{tOr('afterrun.immutable_original', 'immutable run original')}</span>
                 : <span style={{ color: "var(--text-muted)" }}>{v.note || tOr('afterrun.edit_note', 'edit')}</span>}
               {v.createdAt && <span style={{ color: "var(--text-muted)" }}>· {String(v.createdAt).slice(0, 10)}</span>}
             </div>
@@ -1969,7 +1992,7 @@ export function MethodsTab({
             spellCheck={false}
             style={{
               width: "100%", minHeight: 420, resize: "vertical",
-              fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 13,
+              fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 'var(--fs-base)',
               lineHeight: 1.55, padding: 12, border: "1px solid var(--border)",
               borderRadius: 8, background: "var(--surface, #fff)", color: "var(--text)",
               whiteSpace: "pre-wrap",
@@ -1997,10 +2020,10 @@ interface ReproRecord {
 }
 
 const reproKey: React.CSSProperties = { padding: "3px 8px 3px 0", color: "#666", whiteSpace: "nowrap", verticalAlign: "top", width: "1%" };
-const reproH: React.CSSProperties = { fontWeight: 600, fontSize: 12, margin: "14px 0 6px" };
-const reproTable: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 12 };
+const reproH: React.CSSProperties = { fontWeight: 600, fontSize: 'var(--fs-sm)', margin: "14px 0 6px" };
+const reproTable: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 'var(--fs-sm)' };
 const reproTh: React.CSSProperties = { textAlign: "left", color: "#666", fontWeight: 600, padding: "2px 8px 4px 0", borderBottom: "1px solid #eee" };
-const reproEmpty: React.CSSProperties = { fontSize: 12, color: "#888", fontStyle: "italic" };
+const reproEmpty: React.CSSProperties = { fontSize: 'var(--fs-sm)', color: "#888", fontStyle: "italic" };
 
 function fmtBytes(n?: number): string {
   if (typeof n !== "number" || !isFinite(n)) return "—";
@@ -2063,7 +2086,7 @@ function ReproducibilityRecordTab({
   return (
     <div style={styles.tabContent} data-testid="after-record-tab">
       <span
-        style={{ fontSize: 11.5, color: "oklch(0.48 0.012 260)", fontStyle: "italic", display: "block", marginBottom: 10 }}
+        style={{ fontSize: 'var(--fs-sm)', color: "oklch(0.48 0.012 260)", fontStyle: "italic", display: "block", marginBottom: 10 }}
         data-testid="record-intro"
       >
         {tOr('afterrun.record_intro', 'The complete audit trail is kept together. Expand the part you need; nothing is hidden or discarded.')}
@@ -2156,7 +2179,7 @@ function ReproducibilityTab({ runId }: { runId: string }) {
   return (
     <div style={styles.tabContent} data-testid="repro-tab">
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 11, opacity: 0.7 }}>{tOr('afterrun.repro_record_v', 'Reproducibility record v{{v}}', { v: rec.recordVersion })}</span>
+        <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.7 }}>{tOr('afterrun.repro_record_v', 'Reproducibility record v{{v}}', { v: rec.recordVersion })}</span>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={downloadJson} style={styles.runAgainBtn} data-testid="repro-download-json">↓ {tOr('afterrun.download_record_json', 'Download record (JSON)')}</button>
       </div>
@@ -2197,12 +2220,12 @@ function ReproducibilityTab({ runId }: { runId: string }) {
               disabled={hashing}
               data-testid="repro-compute-checksums"
               title={tOr('afterrun.compute_checksums_title', 'Compute SHA-256 for each output (bounded: ≤25 files, ≤25 MB each)')}
-              style={{ background: "none", border: "none", padding: 0, cursor: hashing ? "default" : "pointer", fontSize: 11, color: "var(--accent, oklch(0.55 0.18 260))" }}
+              style={{ background: "none", border: "none", padding: 0, cursor: hashing ? "default" : "pointer", fontSize: 'var(--fs-xs)', color: "var(--accent, oklch(0.55 0.18 260))" }}
             >
               {hashing ? tOr('afterrun.computing_checksums', "Computing checksums…") : tOr('afterrun.compute_checksums', "↻ Compute checksums")}
             </button>
           ) : (
-            <span style={{ fontSize: 11, color: "oklch(0.55 0.12 155)" }} data-testid="repro-checksums-done">{tOr('afterrun.checksums_done', 'SHA-256 computed')} ✓</span>
+            <span style={{ fontSize: 'var(--fs-xs)', color: "oklch(0.55 0.12 155)" }} data-testid="repro-checksums-done">{tOr('afterrun.checksums_done', 'SHA-256 computed')} ✓</span>
           )
         ) : null}
       </div>
@@ -2215,7 +2238,7 @@ function ReproducibilityTab({ runId }: { runId: string }) {
                 <td style={{ wordBreak: "break-word" }}>{o.name}</td>
                 <td>{o.fileType || "—"}</td>
                 <td>{fmtBytes(o.sizeBytes)}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 10 }} title={o.sha256 || "not yet hashed"}>{o.sha256 ? o.sha256.slice(0, 16) + "…" : "—"}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 'var(--fs-xs)' }} title={o.sha256 || "not yet hashed"}>{o.sha256 ? o.sha256.slice(0, 16) + "…" : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -2343,8 +2366,8 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
           textAlign: 'center',
           color: 'var(--text-muted)',
         }}>
-          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-unavailable">{tOr('afterrun.qc_no_results', 'QC results unavailable')}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320 }}>
+          <div style={{ fontWeight: 600, fontSize: 'var(--fs-lg)' }} data-testid="qc-unavailable">{tOr('afterrun.qc_no_results', 'QC results unavailable')}</div>
+          <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-muted)', maxWidth: 320 }}>
             {tOr('afterrun.qc_no_results_detail', 'No QC evaluations were recorded. This does not establish that the checks passed.')}
           </div>
         </div>
@@ -2379,10 +2402,10 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
               border: '1px solid oklch(0.92 0.008 260)',
             }}
           >
-            <div style={{ fontSize: 10, color: 'oklch(0.48 0.012 260)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'oklch(0.48 0.012 260)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {s.label}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: s.color ?? 'oklch(0.22 0.012 260)', marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, color: s.color ?? 'oklch(0.22 0.012 260)', marginTop: 2 }}>
               {s.value}
             </div>
           </div>
@@ -2390,12 +2413,12 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
       </div>
 
       {events.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'oklch(0.48 0.012 260)', fontStyle: 'italic', padding: '8px 0' }}>
+        <div style={{ fontSize: 'var(--fs-sm)', color: 'oklch(0.48 0.012 260)', fontStyle: 'italic', padding: '8px 0' }}>
           {tOr('afterrun.qc_none_fired', 'No QC gates fired for this run.')}
         </div>
       ) : (
         <>
-          <div style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'oklch(0.48 0.012 260)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
             {tOr('afterrun.qc_log_title', 'Gate evaluation log')}
           </div>
           <table
@@ -2403,7 +2426,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
             style={{
               width: '100%',
               borderCollapse: 'collapse',
-              fontSize: 11.5,
+              fontSize: 'var(--fs-sm)',
               fontFamily: 'ui-monospace, SFMono-Regular, monospace',
             }}
           >
@@ -2459,7 +2482,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
               background: 'oklch(0.97 0.005 260)',
               borderRadius: 4,
               border: '1px solid oklch(0.92 0.008 260)',
-              fontSize: 11.5,
+              fontSize: 'var(--fs-sm)',
               lineHeight: 1.55,
               color: 'oklch(0.40 0.012 260)',
             }}
@@ -2488,7 +2511,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
                 background: 'oklch(0.97 0.005 260)',
                 borderRadius: 4,
                 border: '1px solid oklch(0.92 0.008 260)',
-                fontSize: 11.5,
+                fontSize: 'var(--fs-sm)',
                 lineHeight: 1.55,
               }}
             >
@@ -2500,7 +2523,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
                   {eSignature.totpVerified && <> · {tOr('afterrun.totp_verified', 'TOTP verified')}</>}
                 </span>
                 {eSignature.sigShort && (
-                  <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+                  <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 'var(--fs-xs)' }}>
                     sig:{eSignature.sigShort}
                   </span>
                 )}
@@ -2530,7 +2553,7 @@ function FigBars({ fig }: { fig: Extract<FindingsFigure, { kind: "bars" }> }) {
   const max = Math.max(...fig.data.map(d => d[1]), 1);
   return (
     <div data-testid="finding-fig-bars" style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
+      <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
         {fig.title}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -2540,19 +2563,19 @@ function FigBars({ fig }: { fig: Extract<FindingsFigure, { kind: "bars" }> }) {
             <div key={i}
               data-testid={isHl ? "finding-fig-bars-row-highlight" : undefined}
               style={{ display: "grid", gridTemplateColumns: "140px 1fr 60px", alignItems: "center",
-                gap: 8, fontSize: 11.5, color: isHl ? "oklch(0.45 0.16 240)" : "oklch(0.40 0.012 260)",
+                gap: 8, fontSize: 'var(--fs-sm)', color: isHl ? "oklch(0.45 0.16 240)" : "oklch(0.40 0.012 260)",
                 fontWeight: isHl ? 600 : 400 }}>
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
               <span style={{ background: "oklch(0.94 0.008 260)", height: 8, borderRadius: 2 }}>
                 <span style={{ display: "block", width: `${(100 * val) / max}%`, height: "100%",
                   background: isHl ? "oklch(0.55 0.18 240)" : "oklch(0.65 0.12 240)", borderRadius: 2 }} />
               </span>
-              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, textAlign: "right" }}>{val}</span>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 'var(--fs-xs)', textAlign: "right" }}>{val}</span>
             </div>
           );
         })}
       </div>
-      {fig.unit && <div style={{ fontSize: 10, color: "oklch(0.48 0.012 260)", marginTop: 4 }}>{fig.unit}</div>}
+      {fig.unit && <div style={{ fontSize: 'var(--fs-xs)', color: "oklch(0.48 0.012 260)", marginTop: 4 }}>{fig.unit}</div>}
     </div>
   );
 }
@@ -2561,7 +2584,7 @@ function FigComposition({ fig }: { fig: Extract<FindingsFigure, { kind: "composi
   const total = fig.data.reduce((s, d) => s + d[1], 0) || 1;
   return (
     <div data-testid="finding-fig-composition" style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
+      <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
         {fig.title}
       </div>
       <div style={{ display: "flex", width: "100%", height: 10, borderRadius: 4, overflow: "hidden",
@@ -2571,7 +2594,7 @@ function FigComposition({ fig }: { fig: Extract<FindingsFigure, { kind: "composi
             style={{ width: `${(100 * val) / total}%`, background: SEG_COLORS[i % SEG_COLORS.length] }} />
         ))}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 8, fontSize: 11,
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 8, fontSize: 'var(--fs-xs)',
         color: "oklch(0.40 0.012 260)" }}>
         {fig.data.map(([label, val], i) => (
           <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -2588,7 +2611,7 @@ function FigQc({ fig }: { fig: Extract<FindingsFigure, { kind: "qc" }> }) {
   const pct = Math.round((100 * fig.kept) / Math.max(fig.total, 1));
   return (
     <div data-testid="finding-fig-qc" style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
+      <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
         {fig.title}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -2598,11 +2621,11 @@ function FigQc({ fig }: { fig: Extract<FindingsFigure, { kind: "qc" }> }) {
             display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span style={{ background: "white", width: 38, height: 38, borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontWeight: 600, color: "oklch(0.22 0.012 260)" }}>{pct}%</span>
+            fontSize: 'var(--fs-sm)', fontWeight: 600, color: "oklch(0.22 0.012 260)" }}>{pct}%</span>
         </div>
-        <div style={{ fontSize: 11.5, color: "oklch(0.40 0.012 260)", lineHeight: 1.45 }}>
+        <div style={{ fontSize: 'var(--fs-sm)', color: "oklch(0.40 0.012 260)", lineHeight: 1.45 }}>
           <div><b style={{ color: "oklch(0.22 0.012 260)" }}>{fig.kept.toLocaleString()}</b>{" "}{fig.unit ?? tOr('afterrun.retained', 'retained')}</div>
-          <div style={{ fontSize: 10.5, color: "oklch(0.48 0.012 260)" }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: "oklch(0.48 0.012 260)" }}>
             {tOr('afterrun.dropped_of', '{{dropped}} dropped of {{total}}', { dropped: (fig.total - fig.kept).toLocaleString(), total: fig.total.toLocaleString() })}
           </div>
         </div>
@@ -2615,7 +2638,7 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
   return (
     <div data-testid="findings-figures-panel" style={{ marginTop: 16,
       paddingTop: 14, borderTop: "1px solid oklch(0.92 0.008 260)" }}>
-      <div style={{ fontSize: 10, color: "oklch(0.48 0.012 260)", textTransform: "uppercase",
+      <div style={{ fontSize: 'var(--fs-xs)', color: "oklch(0.48 0.012 260)", textTransform: "uppercase",
         letterSpacing: 0.5, marginBottom: 8 }}>
         {tOr('afterrun.headline_figures', 'Headline figures')}
       </div>
@@ -2629,7 +2652,7 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
           <div key={i}>
             {body}
             {fig.source_file && (
-              <div style={{ fontSize: 10, fontFamily: "var(--font-mono)",
+              <div style={{ fontSize: 'var(--fs-xs)', fontFamily: "var(--font-mono)",
                 color: "oklch(0.55 0.012 260)", marginTop: -4, marginBottom: 6 }}>
                 {tOr('afterrun.from_source', 'from {{file}}', { file: fig.source_file })}
               </div>
@@ -2648,7 +2671,7 @@ function SoftwareTab({ versions }: { versions: Record<string, string> }) {
   if (entries.length === 0) return <p style={styles.empty}>{tOr('afterrun.no_software', 'No software versions recorded.')}</p>;
   return (
     <div style={styles.tabContent}>
-      <p style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', marginBottom: 8 }}>
+      <p style={{ fontSize: 'var(--fs-xs)', color: 'oklch(0.48 0.012 260)', marginBottom: 8 }}>
         {tOr('afterrun.software_source_pre', 'Sourced from')} <code>versions.yml</code> {tOr('afterrun.software_source_post', 'emitted by each pipeline step.')}
       </p>
       <table style={styles.kvTable}>
@@ -2946,76 +2969,76 @@ function qcStatusColor(status: string | undefined): string {
 const styles: Record<string, React.CSSProperties> = {
   root: { display: "flex", flexDirection: "column", gap: 8, padding: 12 },
   head: { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, minWidth: 0 },
-  kicker: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.07em", color: "oklch(0.48 0.012 260)", fontWeight: 600 },
-  linkish: { fontSize: 11.5, color: "oklch(0.55 0.14 245)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 },
+  kicker: { fontSize: 'var(--fs-xs)', textTransform: "uppercase", letterSpacing: "0.07em", color: "oklch(0.48 0.012 260)", fontWeight: 600 },
+  linkish: { fontSize: 'var(--fs-sm)', color: "oklch(0.55 0.14 245)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 },
   tabBar: { display: "flex", gap: 4, borderBottom: "1px solid oklch(0.92 0.005 240)" },
-  tab: { background: "transparent", border: "none", padding: "8px 12px", fontSize: 12.5, color: "oklch(0.48 0.012 260)", cursor: "pointer", borderBottom: "2px solid transparent", marginBottom: -1 },
+  tab: { background: "transparent", border: "none", padding: "8px 12px", fontSize: 'var(--fs-base)', color: "oklch(0.48 0.012 260)", cursor: "pointer", borderBottom: "2px solid transparent", marginBottom: -1 },
   tabActive: { color: "oklch(0.22 0.01 260)", borderBottomColor: "oklch(0.55 0.14 245)", fontWeight: 500 },
   body: { paddingTop: 8 },
-  empty: { fontSize: 12, color: "oklch(0.48 0.012 260)", fontStyle: "italic", padding: "16px 4px" },
+  empty: { fontSize: 'var(--fs-sm)', color: "oklch(0.48 0.012 260)", fontStyle: "italic", padding: "16px 4px" },
 
   // Summary tab — "run original" badge marking the immutable record.
   runOriginalRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" as React.CSSProperties["flexWrap"] },
-  runOriginalBadge: { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.35 0.01 260)", background: "oklch(0.93 0.01 240)", border: "1px solid oklch(0.85 0.01 245)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" },
-  runOriginalHint: { fontSize: 11, color: "oklch(0.48 0.012 260)", lineHeight: 1.4 },
+  runOriginalBadge: { fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.35 0.01 260)", background: "oklch(0.93 0.01 240)", border: "1px solid oklch(0.85 0.01 245)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" },
+  runOriginalHint: { fontSize: 'var(--fs-xs)', color: "oklch(0.48 0.012 260)", lineHeight: 1.4 },
 
   // Reproducibility record — collapsible <details> sections.
   reproDetails: { border: "1px solid oklch(0.92 0.008 260)", borderRadius: 6, padding: "0 10px", background: "oklch(0.99 0.002 240)" },
-  reproSummary: { fontSize: 12.5, fontWeight: 600, color: "oklch(0.30 0.01 260)", cursor: "pointer", padding: "9px 2px", listStyle: "revert" },
+  reproSummary: { fontSize: 'var(--fs-base)', fontWeight: 600, color: "oklch(0.30 0.01 260)", cursor: "pointer", padding: "9px 2px", listStyle: "revert" },
   reproSectionBody: { paddingBottom: 8 },
-  tabContent: { fontSize: 12.5 },
+  tabContent: { fontSize: 'var(--fs-base)' },
   bulkActions: { display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" as React.CSSProperties["flexWrap"] },
-  bulkBtn: { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, color: "white", background: "oklch(0.55 0.14 245)", borderRadius: 6, textDecoration: "none", cursor: "pointer" },
+  bulkBtn: { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 'var(--fs-sm)', color: "white", background: "oklch(0.55 0.14 245)", borderRadius: 6, textDecoration: "none", cursor: "pointer" },
   bulkBtnSecondary: { background: "oklch(0.93 0.01 240)", color: "oklch(0.22 0.01 260)" },
-  outputStep: { fontSize: 11, fontWeight: 600, color: "oklch(0.35 0.01 260)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" },
+  outputStep: { fontSize: 'var(--fs-xs)', fontWeight: 600, color: "oklch(0.35 0.01 260)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" },
   outputList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 3 },
   outputItem: { display: "flex", justifyContent: "space-between", padding: "4px 8px", background: "oklch(0.98 0.003 240)", borderRadius: 4 },
-  outputName: { fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 11.5, color: "oklch(0.22 0.01 260)" },
-  outputExt: { fontSize: 10, color: "oklch(0.48 0.012 260)", textTransform: "uppercase" },
-  methodsBody: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", background: "oklch(0.97 0.003 240)", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 480, overflowY: "auto" },
+  outputName: { fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 'var(--fs-sm)', color: "oklch(0.22 0.01 260)" },
+  outputExt: { fontSize: 'var(--fs-xs)', color: "oklch(0.48 0.012 260)", textTransform: "uppercase" },
+  methodsBody: { fontSize: 'var(--fs-sm)', fontFamily: "ui-monospace, monospace", background: "oklch(0.97 0.003 240)", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 480, overflowY: "auto" },
   methodsToolbar: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
-  methodsToolbarLabel: { fontSize: 11, fontWeight: 600, color: "oklch(0.45 0.012 260)", textTransform: "uppercase", letterSpacing: "0.04em" },
-  methodsEditBtn: { fontSize: 11, fontWeight: 600, color: "oklch(0.45 0.15 260)", background: "none", border: "1px solid oklch(0.85 0.03 260)", borderRadius: 5, padding: "3px 9px", cursor: "pointer" },
-  methodsDoneBtn: { fontSize: 11, fontWeight: 500, color: "oklch(0.45 0.012 260)", background: "none", border: "1px solid oklch(0.88 0.01 260)", borderRadius: 5, padding: "3px 9px", cursor: "pointer" },
+  methodsToolbarLabel: { fontSize: 'var(--fs-xs)', fontWeight: 600, color: "oklch(0.45 0.012 260)", textTransform: "uppercase", letterSpacing: "0.04em" },
+  methodsEditBtn: { fontSize: 'var(--fs-xs)', fontWeight: 600, color: "oklch(0.45 0.15 260)", background: "none", border: "1px solid oklch(0.85 0.03 260)", borderRadius: 5, padding: "3px 9px", cursor: "pointer" },
+  methodsDoneBtn: { fontSize: 'var(--fs-xs)', fontWeight: 500, color: "oklch(0.45 0.012 260)", background: "none", border: "1px solid oklch(0.88 0.01 260)", borderRadius: 5, padding: "3px 9px", cursor: "pointer" },
   methodsEditor: { border: "1px solid oklch(0.9 0.008 260)", borderRadius: 6, height: 480, overflow: "hidden", display: "flex", flexDirection: "column" },
   kvTable: { width: "100%", borderCollapse: "collapse" as React.CSSProperties["borderCollapse"] },
-  kvKey: { padding: "4px 8px", fontSize: 11.5, fontWeight: 500, color: "oklch(0.35 0.01 260)", verticalAlign: "top", whiteSpace: "nowrap" },
-  kvVal: { padding: "4px 8px", fontSize: 11.5, fontFamily: "ui-monospace, monospace", color: "oklch(0.22 0.01 260)", wordBreak: "break-all" },
-  comingSoon: { fontSize: 12, color: "oklch(0.48 0.012 260)", padding: 16, background: "oklch(0.98 0.003 240)", borderRadius: 6, lineHeight: 1.5 },
+  kvKey: { padding: "4px 8px", fontSize: 'var(--fs-sm)', fontWeight: 500, color: "oklch(0.35 0.01 260)", verticalAlign: "top", whiteSpace: "nowrap" },
+  kvVal: { padding: "4px 8px", fontSize: 'var(--fs-sm)', fontFamily: "ui-monospace, monospace", color: "oklch(0.22 0.01 260)", wordBreak: "break-all" },
+  comingSoon: { fontSize: 'var(--fs-sm)', color: "oklch(0.48 0.012 260)", padding: 16, background: "oklch(0.98 0.003 240)", borderRadius: 6, lineHeight: 1.5 },
   citationsList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 },
-  citationItem: { padding: "6px 8px", fontSize: 11.5, background: "oklch(0.98 0.003 240)", borderRadius: 4 },
+  citationItem: { padding: "6px 8px", fontSize: 'var(--fs-sm)', background: "oklch(0.98 0.003 240)", borderRadius: 4 },
   citationDoi: { color: "oklch(0.48 0.012 260)", fontFamily: "ui-monospace, monospace" },
-  qcTable: { width: "100%", borderCollapse: "collapse" as React.CSSProperties["borderCollapse"], fontSize: 11 },
+  qcTable: { width: "100%", borderCollapse: "collapse" as React.CSSProperties["borderCollapse"], fontSize: 'var(--fs-xs)' },
   qcCell: { padding: "4px 6px", borderBottom: "1px solid oklch(0.93 0.005 240)", textAlign: "left", verticalAlign: "top" },
 
   // Failed-run section styles (PM must-fix #1)
   failedSection: { padding: "10px 12px", margin: "0 0 8px", background: "oklch(0.98 0.018 25)", borderRadius: 6, border: "1px solid oklch(0.88 0.04 25)" },
   failedHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 },
-  failedBadge: { padding: "3px 9px", fontSize: 11, fontWeight: 600, borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.04em" },
-  runAgainBtn: { marginLeft: "auto", padding: "6px 12px", fontSize: 12, fontWeight: 500, background: "oklch(0.55 0.14 245)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" },
-  failureDiagnosis: { background: "white", border: "1px solid oklch(0.88 0.04 25)", borderRadius: 4, padding: "8px 10px", margin: "6px 0", fontSize: 12.5, lineHeight: 1.45, color: "oklch(0.30 0.02 25)" },
+  failedBadge: { padding: "3px 9px", fontSize: 'var(--fs-xs)', fontWeight: 600, borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.04em" },
+  runAgainBtn: { marginLeft: "auto", padding: "6px 12px", fontSize: 'var(--fs-sm)', fontWeight: 500, background: "oklch(0.55 0.14 245)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" },
+  failureDiagnosis: { background: "white", border: "1px solid oklch(0.88 0.04 25)", borderRadius: 4, padding: "8px 10px", margin: "6px 0", fontSize: 'var(--fs-base)', lineHeight: 1.45, color: "oklch(0.30 0.02 25)" },
   failureDiagnosisCause: { marginBottom: 4 },
   failureDiagnosisLine: { marginTop: 2 },
-  errorBlock: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", background: "white", color: "oklch(0.40 0.18 25)", padding: 8, borderRadius: 4, whiteSpace: "pre-wrap", margin: "6px 0", border: "1px solid oklch(0.92 0.04 25)" },
+  errorBlock: { fontSize: 'var(--fs-sm)', fontFamily: "ui-monospace, monospace", background: "white", color: "oklch(0.40 0.18 25)", padding: 8, borderRadius: 4, whiteSpace: "pre-wrap", margin: "6px 0", border: "1px solid oklch(0.92 0.04 25)" },
   failedStepBox: { marginTop: 6 },
-  failedStepLabel: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", marginBottom: 4, fontWeight: 600 },
+  failedStepLabel: { fontSize: 'var(--fs-xs)', textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", marginBottom: 4, fontWeight: 600 },
   failedStepList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 3 },
-  failedStepItem: { fontSize: 12, fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "white", borderRadius: 4, color: "oklch(0.22 0.01 260)" },
-  logTailBlock: { fontSize: 11, fontFamily: "ui-monospace, monospace", background: "oklch(0.18 0.01 260)", color: "oklch(0.92 0.005 240)", padding: 10, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto", margin: 0 },
+  failedStepItem: { fontSize: 'var(--fs-sm)', fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "white", borderRadius: 4, color: "oklch(0.22 0.01 260)" },
+  logTailBlock: { fontSize: 'var(--fs-xs)', fontFamily: "ui-monospace, monospace", background: "oklch(0.18 0.01 260)", color: "oklch(0.92 0.005 240)", padding: 10, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto", margin: 0 },
 
   // Autofix narrative (inside FailedRunSection)
   autofixBox: { padding: "8px 10px", margin: "0 0 8px", background: "white", borderRadius: 6, border: "1px solid oklch(0.92 0.04 245)" },
   autofixHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
-  autofixLabel: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", fontWeight: 700 },
-  autofixState: { fontSize: 11.5, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: "oklch(0.96 0.012 260)" },
-  autofixAttempts: { fontSize: 11, color: "oklch(0.48 0.012 260)", marginLeft: "auto" },
-  autofixMsg: { fontSize: 12.5, margin: "4px 0 6px", lineHeight: 1.45, color: "oklch(0.30 0.01 260)" },
-  autofixToggle: { fontSize: 11, border: "none", background: "transparent", color: "oklch(0.40 0.12 245)", cursor: "pointer", padding: 0 },
+  autofixLabel: { fontSize: 'var(--fs-xs)', textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", fontWeight: 700 },
+  autofixState: { fontSize: 'var(--fs-sm)', fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: "oklch(0.96 0.012 260)" },
+  autofixAttempts: { fontSize: 'var(--fs-xs)', color: "oklch(0.48 0.012 260)", marginLeft: "auto" },
+  autofixMsg: { fontSize: 'var(--fs-base)', margin: "4px 0 6px", lineHeight: 1.45, color: "oklch(0.30 0.01 260)" },
+  autofixToggle: { fontSize: 'var(--fs-xs)', border: "none", background: "transparent", color: "oklch(0.40 0.12 245)", cursor: "pointer", padding: 0 },
   autofixHistList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 3 },
-  autofixHistItem: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "oklch(0.98 0.005 260)", borderRadius: 4 },
+  autofixHistItem: { fontSize: 'var(--fs-sm)', fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "oklch(0.98 0.005 260)", borderRadius: 4 },
 
   // Download-UX toast (PM must-fix #4)
-  toast: { fontSize: 11, padding: "3px 8px", background: "oklch(0.92 0.04 145)", color: "oklch(0.30 0.13 145)", borderRadius: 12, marginRight: 8 },
+  toast: { fontSize: 'var(--fs-xs)', padding: "3px 8px", background: "oklch(0.92 0.04 145)", color: "oklch(0.30 0.13 145)", borderRadius: 12, marginRight: 8 },
   // Ephemeral toast for Run-again CTA (auto-clears after 4s) — replaces alert()
-  ctaToast: { fontSize: 11.5, padding: "4px 10px", margin: "0 0 6px", background: "oklch(0.94 0.04 245)", color: "oklch(0.30 0.13 245)", borderRadius: 6, display: "inline-block" },
+  ctaToast: { fontSize: 'var(--fs-sm)', padding: "4px 10px", margin: "0 0 6px", background: "oklch(0.94 0.04 245)", color: "oklch(0.30 0.13 245)", borderRadius: 6, display: "inline-block" },
 };

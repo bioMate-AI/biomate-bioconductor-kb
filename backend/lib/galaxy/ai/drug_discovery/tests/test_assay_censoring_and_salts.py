@@ -1,6 +1,6 @@
 """Censored assay values and salt/parent compound identity.
 
-Contract: docs/20261030_SYSUCC_HANDOFF.md open item 3.
+Contract: internal project notes open item 3.
 """
 from __future__ import annotations
 

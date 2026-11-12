@@ -105,13 +105,13 @@ export default function JoinProjectPage() {
           {info.description && <p style={styles.sub}>{info.description}</p>}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 20, color: "#4d6175" }}>
             <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
-            <span style={{ fontSize: 14 }}>
+            <span style={{ fontSize: 'var(--fs-base)' }}>
               {joining ? "Joining project…" : joinError ? "" : "Preparing…"}
             </span>
           </div>
           {joinError && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>{joinError}</p>
+              <p style={{ color: "#c0392b", fontSize: 'var(--fs-base)', marginBottom: 12 }}>{joinError}</p>
               <Button onClick={handleJoin} disabled={joining}>
                 Try again
               </Button>
@@ -192,7 +192,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 auto 18px",
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 600,
     letterSpacing: "0.06em",
     textTransform: "uppercase" as const,
@@ -200,19 +200,19 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
   },
   title: {
-    fontSize: 22,
+    fontSize: 'var(--fs-2xl)',
     fontWeight: 700,
     color: "#14283a",
     margin: "0 0 10px",
   },
   sub: {
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     color: "#4d6175",
     lineHeight: 1.5,
     margin: "0 0 6px",
   },
   roleNote: {
-    fontSize: 13,
+    fontSize: 'var(--fs-base)',
     color: "#4d6175",
     margin: "12px 0 0",
   },
@@ -226,17 +226,17 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#2a5582",
     color: "#fff",
     height: 42,
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     fontWeight: 600,
     borderRadius: 8,
   },
   secondaryBtn: {
     height: 42,
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     borderRadius: 8,
   },
   hint: {
-    fontSize: 12,
+    fontSize: 'var(--fs-sm)',
     color: "#8a9aaa",
     marginTop: 18,
     lineHeight: 1.4,

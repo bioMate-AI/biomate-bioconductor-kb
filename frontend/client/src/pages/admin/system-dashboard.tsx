@@ -173,7 +173,7 @@ function LogViewer({ lines, buffered, loading, error }: {
         </div>
         {loading && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
       </div>
-      <div className="h-64 overflow-y-auto p-2 font-mono text-[11px] leading-5 space-y-0.5">
+      <div className="h-64 overflow-y-auto p-2 font-mono text-fs-xs leading-5 space-y-0.5">
         {error && <div className="text-red-400 p-2">{error}</div>}
         {!loading && lines.length === 0 && !error && (
           <div className="text-slate-500 p-2 text-center">暂无日志记录（worker 刚启动或无新日志）</div>
@@ -288,7 +288,7 @@ function RunLogDrawer({ runId, runName, onClose }: {
             <div className="p-4 text-red-400 text-xs">{error}</div>
           )}
           {data && tab === "nf" && (
-            <div className="h-full overflow-y-auto p-3 font-mono text-[11px] leading-5">
+            <div className="h-full overflow-y-auto p-3 font-mono text-fs-xs leading-5">
               {data.nf_log_error && (
                 <div className="text-yellow-400 mb-2">[本地日志读取失败: {data.nf_log_error}]</div>
               )}
@@ -311,7 +311,7 @@ function RunLogDrawer({ runId, runName, onClose }: {
             </div>
           )}
           {data && tab === "cw" && (
-            <div className="h-full overflow-y-auto p-3 font-mono text-[11px] leading-5">
+            <div className="h-full overflow-y-auto p-3 font-mono text-fs-xs leading-5">
               {data.cloudwatch_error && (
                 <div className="text-yellow-400 mb-2">[CloudWatch 错误: {data.cloudwatch_error}]</div>
               )}
@@ -331,7 +331,7 @@ function RunLogDrawer({ runId, runName, onClose }: {
                 <div key={i} className="flex gap-2 hover:bg-slate-800/50 px-1 rounded">
                   <span className="text-slate-600 shrink-0 w-14">{cwFmtTime(ev.ts)}</span>
                   <span className="text-slate-500 shrink-0 w-16 truncate">{ev.job_id}</span>
-                  <span className={`shrink-0 w-10 text-[10px] ${ev.status === "FAILED" ? "text-red-400" : ev.status === "SUCCEEDED" ? "text-green-400" : "text-slate-500"}`}>
+                  <span className={`shrink-0 w-10 text-fs-xs ${ev.status === "FAILED" ? "text-red-400" : ev.status === "SUCCEEDED" ? "text-green-400" : "text-slate-500"}`}>
                     {ev.status?.slice(0, 7)}
                   </span>
                   <span className={`break-all ${/error|Error|ERROR|exception|Exception/.test(ev.msg) ? "text-red-400" : "text-slate-300"}`}>
@@ -656,7 +656,7 @@ function HealthPanel() {
         {loading && !health && <div className="flex items-center gap-2 text-xs text-muted-foreground p-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> 检查中…</div>}
         {health?.services.map((svc) => <ServiceCard key={svc.label} svc={svc} />)}
         {health && (
-          <p className="text-[10px] text-muted-foreground/60 pt-1">
+          <p className="text-fs-xs text-muted-foreground/60 pt-1">
             点击「Galaxy 后端」或「进程监控」卡片可展开查看实时日志
           </p>
         )}
@@ -686,7 +686,7 @@ function ClickableStatCell({ label, value, drill, active, onClick }: {
     >
       <span className={`text-lg font-semibold tabular-nums ${active ? "text-primary" : ""}`}>{value}</span>
       <span className="text-xs text-muted-foreground">{label}</span>
-      {clickable && <span className="text-[10px] text-primary/60">{active ? "▲ 收起" : "点击查看"}</span>}
+      {clickable && <span className="text-fs-xs text-primary/60">{active ? "▲ 收起" : "点击查看"}</span>}
     </div>
   );
 }

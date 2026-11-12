@@ -15,6 +15,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { ChatInterface } from "./chat-interface"
+import { stashWorkflowSelection } from "@/lib/workflow-selection"
 
 const fetchMock = vi.fn()
 
@@ -137,5 +138,33 @@ describe("ChatInterface composer instructions request contract", () => {
     const [, request] = fetchMock.mock.calls.find(([url]) => url === '/api/chat/stream')!;
     expect(JSON.parse(request.body)).toMatchObject({ message, context: { uiLanguage: 'zh' } });
   });
+
+  // §7.2: a workflow picked in the Workflows library rides with the message that runs it as
+  // structured context.selectedWorkflow (the server builds THAT workflow, no re-routing).
+  it("sends the library-picked workflow as context.selectedWorkflow with the seeded sentence", async () => {
+    sessionStorage.clear()
+    stashWorkflowSelection({ name: "nf-core/rnaseq", id: 42, nextflow_path: "biomni_workflows/nfcore/rnaseq/main.nf", source: "nfcore", type: "workflow" })
+    render(<ChatInterface />, { wrapper: wrapper() })
+    fireEvent.input(screen.getByTestId("chat-input"), { target: { value: "Run the nf-core/rnaseq workflow." } })
+    fireEvent.click(screen.getByTestId("chat-send-button"))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/chat/stream", expect.objectContaining({ method: "POST" })))
+    const [, request] = fetchMock.mock.calls.find(([url]) => url === "/api/chat/stream")!
+    const body = JSON.parse(request.body)
+    expect(body.message).toBe("Run the nf-core/rnaseq workflow.")
+    expect(body.context.selectedWorkflow).toEqual({
+      name: "nf-core/rnaseq", id: 42, nextflow_path: "biomni_workflows/nfcore/rnaseq/main.nf", source: "nfcore", type: "workflow",
+    })
+  })
+
+  it("drops the parked selection when the user sends a different request instead", async () => {
+    sessionStorage.clear()
+    stashWorkflowSelection({ name: "nf-core/rnaseq" })
+    render(<ChatInterface />, { wrapper: wrapper() })
+    fireEvent.input(screen.getByTestId("chat-input"), { target: { value: "Dock these ligands against EGFR" } })
+    fireEvent.click(screen.getByTestId("chat-send-button"))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/chat/stream", expect.objectContaining({ method: "POST" })))
+    const [, request] = fetchMock.mock.calls.find(([url]) => url === "/api/chat/stream")!
+    expect(JSON.parse(request.body).context.selectedWorkflow).toBeUndefined()
+  })
 
 })

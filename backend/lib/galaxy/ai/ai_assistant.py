@@ -15,6 +15,7 @@ from pathlib import Path
 from galaxy.ai.nf_param_requirement import null_param_is_required as _null_required
 import sqlite3
 import re
+from .workflow_relevance import relevant_candidates, workflow_relevance_verdict
 
 from .types import (
     UserRequest, AIResponse, Task, Tool, ToolRecommendation,
@@ -233,6 +234,7 @@ def _composed_workflow_name(data: Dict) -> str:
         joined = ' → '.join(labels[:3])
         return joined if len(joined) <= 60 else joined[:57].rsplit(' ', 1)[0] + '…'
     return 'Custom workflow'
+
 
 
 class AIAssistant:
@@ -2559,6 +2561,30 @@ Respond with a single JSON object — no other text:
         'awsbatch job resources',
     ])
 
+    # User-facing names for executor-owned data inputs (the param itself is never editable).
+    _EXECUTOR_DATA_INPUT_LABELS: dict = {
+        'input': 'Samplesheet (sequencing reads)',
+    }
+
+    @staticmethod
+    def _is_schema_data_input(name: str, param_def: dict) -> bool:
+        """A schema param that carries the run's input DATA (not a setting): file-path/path
+        format, a mimetype, or a pattern ending in a data-file extension."""
+        if name.startswith('out') or name in ('publish_dir', 'tracedir'):
+            return False  # output locations are not input data
+        fmt = str(param_def.get('format', '')).lower()
+        if fmt in ('file-path', 'file-path-pattern'):
+            return True
+        if param_def.get('mimetype') or param_def.get('schema'):
+            return True
+        return name in ('input', 'samplesheet', 'reads')
+
+    _RUN_DATA_RE = re.compile(
+        r'\[(?:Uploaded datasets?|Attached files?|Galaxy dataset)\s*:'
+        r'|\b(?:[SED]RR\d{6,9}|[SED]RX\d{6,9}|PRJ[NED][A-Z]?\d{4,9}|GSE\d{3,9}|GSM\d{3,9}|E-[A-Z]{4}-\d{1,9}|PXD\d{4,9})\b',
+        re.IGNORECASE,
+    )
+
     # Parameter names that represent input data files — these get type="file" so the
     # frontend renders a dataset browser instead of a plain text box.
     _INPUT_FILE_PARAM_NAMES: frozenset = frozenset([
@@ -2821,6 +2847,7 @@ Respond with a single JSON object — no other text:
 
         defs = schema.get('$defs') or schema.get('definitions') or {}
         required_params = []
+        data_inputs: list = []  # executor-owned required data inputs (see below)
         optional_params = []
 
         for group_def in defs.values():
@@ -2838,6 +2865,17 @@ Respond with a single JSON object — no other text:
                 if param_def.get('hidden', False):
                     continue
                 if param_name in self._NEXTFLOW_INTERNAL_PARAMS:
+                    # Executor-owned, but a REQUIRED data input is still a requirement the user
+                    # must meet (files or an accession). Describe it — never as an editable
+                    # param: the executor builds it (fetchngs samplesheet / upload wiring).
+                    if param_name in group_required and self._is_schema_data_input(param_name, param_def):
+                        data_inputs.append({
+                            'name': param_name,
+                            'label': self._EXECUTOR_DATA_INPUT_LABELS.get(param_name, param_name.replace('_', ' ').title()),
+                            'description': (param_def.get('description') or param_def.get('help_text') or '')[:200],
+                            'required': True,
+                            'executor_bound': True,
+                        })
                     continue
 
                 ptype = self._schema_type_to_param_type(param_name, param_def)
@@ -2876,7 +2914,7 @@ Respond with a single JSON object — no other text:
 
         if not required_params and not optional_params:
             return None  # schema was empty or all groups skipped — fall back
-        return {'required': required_params, 'optional': optional_params}
+        return {'required': required_params, 'optional': optional_params, 'data_inputs': data_inputs}
 
     def _get_workflow_params(self, filename: str) -> dict:
         """Get parameter metadata for a workflow.
@@ -3721,6 +3759,68 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.warning("[run_via_pipeline] pipeline invocation failed: %s — falling back", exc)
             return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
 
+    # ── Example-data detection ──────────────────────────────────────────────
+    # A workflow "runs on its own example data" when it can execute with NO user
+    # input because its data inputs resolve to bundled/built-in example data. This
+    # is a REAL property of the workflow DEFINITION (never a hard-coded list of
+    # names), derived from the executed .nf:
+    #   (B) a built-in example/demo DATA fallback keyed on the absence of a data
+    #       param — the author's documented "merfish/voyager" pattern: a
+    #       `def demo = ( !params.x )` guard, a demo_mode / input_is_demo /
+    #       demo_used flag, a "built-in demo default" block, or a "param-less"
+    #       quick run. These paths download/use REAL public data (chipseq CTCF,
+    #       atac nf-core BAMs, chemoproteomics LFQ-Analyst, wsi OpenSlide,
+    #       metaboanalystr human_cachexia); and/or
+    #   (A) a data-input param whose default is itself bundled example data — a
+    #       sample_data / test-data FILE PATH (flow cytometry's Accuri FCS) or an
+    #       inline example-values literal (EBV's ELISA OD JSON).
+    # It is NOT a synthetic/random generator (those draw values at runtime and are
+    # blocked elsewhere); every path above is real, fixed, clearly-labelled data.
+    _EXAMPLE_DATA_FALLBACK_RE = re.compile(
+        r'\bdef\s+demo\s*=|\bdemo_mode\b|\binput_is_demo\b|\bdemo_used\b'
+        r'|built-in demo default|param-?less',
+        re.IGNORECASE,
+    )
+    _EXAMPLE_DATA_BUNDLED_PATH_RE = re.compile(
+        r'params\.\w+\s*=\s*["\'][^"\']*'
+        r'(?:sample_data|/test[-_/]|/testdata|example_data|openslide-testdata)'
+        r'[^"\']*\.\w{2,6}["\']',
+        re.IGNORECASE,
+    )
+    _EXAMPLE_DATA_INLINE_RE = re.compile(
+        r'params\.\w*(?:data|od|elisa|readings|counts|matrix|titer)\w*'
+        r'\s*=\s*[\'"]\s*[\[{]',
+        re.IGNORECASE,
+    )
+
+    def _detect_example_data(self, filename: str) -> Optional[Dict[str, Any]]:
+        """Return an example-data descriptor when the workflow runs on its own
+        bundled example data with no user input, else None. Derived from the .nf
+        definition (see the signal notes above) — never from the workflow name."""
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return None
+        try:
+            text = nf_path.read_text(encoding='utf-8', errors='ignore')
+        except Exception:
+            return None
+        has_fallback = bool(self._EXAMPLE_DATA_FALLBACK_RE.search(text))
+        has_bundled = bool(self._EXAMPLE_DATA_BUNDLED_PATH_RE.search(text))
+        has_inline = bool(self._EXAMPLE_DATA_INLINE_RE.search(text))
+        if not (has_fallback or has_bundled or has_inline):
+            return None
+        return {
+            'present': True,
+            # One honest, storage-path-free sentence the reply can surface.
+            'note': ("Runs on the workflow's built-in example dataset when no files "
+                     "are attached — attach your own files to replace it."),
+            'signals': {
+                'fallback': has_fallback,
+                'bundled_default': has_bundled,
+                'inline_default': has_inline,
+            },
+        }
+
     def _return_nextflow_match(
         self,
         match: Any,
@@ -3742,7 +3842,29 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         nf_params = self._get_workflow_params(match.filename)
         req = nf_params['required']
         opt = nf_params['optional']
-        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
+        # Executor-owned required data inputs: satisfied when this request carries data the
+        # executor binds (an accession it fetches, or attached/uploaded files).
+        _data_match = self._RUN_DATA_RE.search(user_intent or '')
+        # bound_value: the public accession when that is what satisfies it (shown in the panel);
+        # None for attached files (the panel says "provided in chat" in the UI language).
+        _bound_value = _data_match.group(0) if _data_match and not _data_match.group(0).startswith('[') else None
+        data_inputs = [{**d, 'bound': bool(_data_match), 'bound_value': _bound_value}
+                       for d in nf_params.get('data_inputs', [])]
+        # Example-data capability: does THIS workflow run on its own bundled example
+        # data with no user input? A real property of the .nf definition (see
+        # _detect_example_data). When present, the chat reply presents the card as
+        # runnable on the example dataset instead of asking for an upload; the
+        # frontend decides to surface it only when the request carries no user data.
+        # When no run data was provided, mark any executor-owned data input as
+        # satisfied-by-example so the panel shows it bound (not "required, not set").
+        _example_data = self._detect_example_data(match.filename)
+        if _example_data and not _data_match and not uploaded_datasets:
+            data_inputs = [
+                d if d.get('bound') else {**d, 'bound': True, 'bound_value': 'example dataset'}
+                for d in data_inputs
+            ]
+        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} "
+                 f"opt_names={[p['name'] for p in opt]} example_data={bool(_example_data)}")
         sra = self._extract_sra_accession(user_intent)
         if sra:
             req, opt = self._inject_sra_into_params(req, opt, sra)
@@ -3877,12 +3999,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'hardware_requirements': hardware_requirements,
                 'required_params': req,
                 'optional_params': opt,
+                **({'data_inputs': data_inputs} if data_inputs else {}),
+                **({'example_data': _example_data} if _example_data else {}),
                 **({'parameters': _exec_params} if _exec_params else {}),
                 **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             },
             'datasets_assigned': any(p.get('type') == 'file' and p.get('value') not in (None, '') for p in req + opt),
             'required_params': req,
             'optional_params': opt,
+            **({'data_inputs': data_inputs} if data_inputs else {}),
+            **({'example_data': _example_data} if _example_data else {}),
             'generated_parameters': req + opt,
             **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             'validation': {'is_valid': True, 'issues': [], 'warnings': warnings, 'suggestions': []},
@@ -3895,6 +4021,63 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             ],
             **({'citations': citations} if citations else {}),
         }
+
+    def _resolve_selected_workflow(self, selected: Dict[str, Any]) -> Optional[Any]:
+        """Resolve a structured workflow selection to ONE catalog row, or None.
+
+        Most specific identifier first: catalog id (only when its name agrees, so a stale id
+        after a re-index cannot point at another workflow), exact nextflow_path, then the name
+        (exact identifier forms via resolve_named_workflow, then case-insensitive exact name).
+        No fuzzy search: a selection that does not resolve is reported, not approximated.
+        """
+        name = str(selected.get('name') or '').strip()
+        path = str(selected.get('nextflow_path') or '').strip()
+        wf_id = selected.get('id')
+        search = self.workflow_search
+        if isinstance(wf_id, int) or (isinstance(wf_id, str) and wf_id.isdigit()):
+            m = search.get_workflow(int(wf_id))
+            if m and (not name or (m.name or '').lower() == name.lower()):
+                return m
+        if path:
+            m = search.get_workflow_by_filename_pattern(path)
+            if m and (m.filename or '').lower() == path.lower():
+                return m
+        if name:
+            return search.resolve_named_workflow(name) or search.get_workflow_by_name(name)
+        return None
+
+    def _generate_selected_workflow(
+        self,
+        selected: Dict[str, Any],
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Card for the workflow the user explicitly selected (see generate_workflow_unified)."""
+        label = selected.get('name') or selected.get('nextflow_path') or selected.get('id')
+        try:
+            top = self._resolve_selected_workflow(selected)
+        except Exception as exc:  # noqa: BLE001 — reported to the caller, not swallowed
+            log.warning("[UnifiedWorkflowGeneration] selected workflow lookup failed (%s): %s", label, exc)
+            top = None
+        if not top:
+            log.warning("[UnifiedWorkflowGeneration] selected workflow not found / not executable: %s", label)
+            return {
+                'success': False,
+                'error': f'selected_workflow_not_found: {label}',
+                'message': f"The selected workflow '{label}' is not available in the catalog.",
+            }
+        log.info("[UnifiedWorkflowGeneration] User-selected workflow → %s (id=%s)", top.name, top.id)
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='user_selected',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
 
     @staticmethod
     def _named_workflow_tokens(user_intent: str) -> List[str]:
@@ -4877,6 +5060,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         penalized_domains: Optional[List[str]] = None,
         credential_map: Optional[Dict[str, bool]] = None,
         user_input_kinds: Optional[List[str]] = None,
+        selected_workflow: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -4904,6 +5088,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
 
+        # The user already chose this exact workflow (Workflows library "Run" or another explicit picker, or a
+        # follow-up that fills inputs for the workflow open in the panel). Identity is given, so
+        # no route or search may replace it: build THAT workflow's card (params prefilled from
+        # user_intent) or fail honestly — never silently substitute another workflow.
+        if selected_workflow:
+            return self._generate_selected_workflow(selected_workflow, user_intent, uploaded_datasets)
+
         # ml_training route (feature-flagged via ML_TRAINING_ROUTING, default OFF).
         # A model-TRAINING request short-circuits to the ml_training pipeline card
         # instead of the normal workflow search. route_ml_training_result() returns
@@ -4913,7 +5104,15 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # Lazy-imported + guarded so any failure degrades to the normal search path.
         try:
             from galaxy.ai.ml_training.routing import route_ml_training_result
-            _ml_result = route_ml_training_result(user_intent)
+            # The user's ATTACHED data is what a "train a model on our data" request trains on, so
+            # it is threaded in. Without it the router could not resolve a dataset, returned None,
+            # and the request fell through to the catalog search — which answered a model-TRAINING
+            # request with a molecule-DESIGN workflow (dev 2026-11-11: "Train a potency predictor on
+            # our in-house assay data." + bace_assays.csv → a scaffold-hopping card whose required
+            # param is the "compound series to hop"). Only readable training tables qualify
+            # (select_training_dataset), so a request with raw reads attached still falls through
+            # to the normal search exactly as before.
+            _ml_result = route_ml_training_result(user_intent, uploaded_datasets=uploaded_datasets)
         except Exception as _ml_err:
             _ml_result = None
             log.warning("[UnifiedWorkflowGeneration] ml_training routing skipped: %s", _ml_err)
@@ -5276,6 +5475,35 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     f"[UnifiedWorkflowGeneration] Selected trial='{selected_trial}' | "
                     f"best={best_match.name if best_match else 'N/A'} (score={score:.2f}, match={match_type})"
                 )
+
+            # Relevance floor (docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md §4): an unrelated
+            # catalog hit must never be attached (mmuphin for a JSONL table; "Estimate Alpha Particle
+            # Radiotherapy Dosimetry"). _classify_match's 12/6 cut-offs predate the current score
+            # scale (junk tops score 18–41 and are labelled high_confidence), so a request whose best
+            # hit is below the calibrated floor — or whose hit cannot take the user's data kind —
+            # gets no workflow and an honest reason instead of a mismatched card.
+            if search_results:
+                _floor_verdict = workflow_relevance_verdict(
+                    search_results, score,
+                    input_compatible=lambda r: self.workflow_search.input_compatible(
+                        user_intent, r.id, user_input_kinds=user_input_kinds) if getattr(r, 'id', None) is not None else None,
+                )
+                if _floor_verdict['reject']:
+                    log.warning("[UnifiedWorkflowGeneration] relevance floor: %s", _floor_verdict['reason'])
+                    return {
+                        'success': False,
+                        'error': 'no_relevant_workflow',
+                        'message': _floor_verdict['message'],
+                        'reason': _floor_verdict['reason'],
+                        'candidate_workflows': [
+                            {'name': m.name, 'domain': m.domain, 'score': round(m.score, 2)} for m in search_results[:3]
+                        ],
+                    }
+                if _floor_verdict.get('promote') is not None:
+                    best_match = _floor_verdict['promote']
+                    score = best_match.score
+                    match_type = best_match.match_type
+                    search_results = [best_match] + [r for r in search_results if r is not best_match]
 
             workflow_ga = None
             source = None
@@ -5935,6 +6163,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
             # Return success response
             needs_user_feedback = match_type != "high_confidence"
+            # Only hits that clear the relevance floor are candidates: the chat layer may move
+            # the card to a candidate the reply names (Step 6c / 6c-2), and a below-floor hit
+            # there re-opened the path the floor closes (mismatched card via the text guardrail).
             candidate_workflows = [
                 {
                     'name': m.name,
@@ -5943,7 +6174,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     'score': m.score,
                     'format': m.format,
                 }
-                for m in (search_results or [])[:3]
+                for m in relevant_candidates(search_results)
             ]
 
             # A match whose template has no steps (no workflow_json, no nextflow_path) is not a

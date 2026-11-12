@@ -1,3 +1,4 @@
+import { originLabel } from "./model-origin"
 /**
  * ModelObject — a model presented like a dataset: identity, evidence, lineage,
  * consumers (blast radius), interface, versions. Never a leaderboard, never a
@@ -32,7 +33,7 @@ function GateVerdict({ verdict }: { verdict: string }) {
   return (
     <Badge
       variant="outline"
-      className="text-[10px] gap-1"
+      className="text-fs-xs gap-1"
       style={{ color: verdictColor(verdict) }}
       data-testid="model-gate-verdict"
     >
@@ -133,19 +134,19 @@ export function ModelObject({
           <CardTitle className="text-base font-mono" data-testid="model-object-name">
             {identity.name} <span className="text-muted-foreground">{identity.version}</span>
           </CardTitle>
-          <Badge variant="outline" className="text-[10px]">{identity.family}</Badge>
+          <Badge variant="outline" className="text-fs-xs">{identity.family}</Badge>
           {identity.confidenceBand && (
-            <Badge variant="outline" className="text-[10px]">{identity.confidenceBand} confidence</Badge>
+            <Badge variant="outline" className="text-fs-xs">{identity.confidenceBand} confidence</Badge>
           )}
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">{identity.origin}</span>
+            <span className="text-fs-xs text-muted-foreground">{originLabel(identity.origin)}</span>
             {/* Only render an action when its handler is wired — otherwise the
                 button is an inert no-op in the live /models route. */}
             {onSupersede && (
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-[11px] px-2"
+              className="h-6 text-fs-xs px-2"
               onClick={() => onSupersede(modelId)}
               data-testid="model-object-supersede"
             >
@@ -155,7 +156,7 @@ export function ModelObject({
             {onUseInRun && (
             <Button
               size="sm"
-              className="h-6 text-[11px] px-2"
+              className="h-6 text-fs-xs px-2"
               onClick={() => onUseInRun(modelId)}
               data-testid="model-object-use-in-run"
             >
@@ -203,16 +204,16 @@ export function ModelObject({
               </div>
             </div>
             {evidence.calibration != null && (
-              <p className="text-[11px]">
+              <p className="text-fs-xs">
                 Calibration error: <span className="font-mono">{fmt(evidence.calibration)}</span>
               </p>
             )}
             {evidence.evalSetId && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-fs-xs text-muted-foreground">
                 Held-out set: <span className="font-mono">{evidence.evalSetId}</span>
               </p>
             )}
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-fs-xs text-muted-foreground">
               A floor, not a ranking. Clearing it by more does not make a model better, and there is
               no leaderboard to climb. Outside its applicability region, a prediction is reported with
               low confidence and does not satisfy a gate.
@@ -277,7 +278,7 @@ export function ModelObject({
                 <span className="font-mono">—</span>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground pt-1">
+            <p className="text-fs-xs text-muted-foreground pt-1">
               Same lineage discipline as a dataset: the training run and the dataset version are
               objects, not strings in a description.
             </p>
@@ -301,10 +302,10 @@ export function ModelObject({
                     className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
                     data-testid={`model-consumer-${c}`}
                   >
-                    <Badge variant="outline" className="text-[10px] shrink-0">{kind}</Badge>
+                    <Badge variant="outline" className="text-fs-xs shrink-0">{kind}</Badge>
                     <span className="flex flex-col min-w-0">
                       <span className="font-mono truncate">{where}</span>
-                      {how && <span className="text-[10px] text-muted-foreground truncate">{how}</span>}
+                      {how && <span className="text-fs-xs text-muted-foreground truncate">{how}</span>}
                     </span>
                     {onOpenConsumer && (
                     <button
@@ -320,11 +321,11 @@ export function ModelObject({
                 )
               })
             ) : (
-              <p className="text-[11px] text-muted-foreground" data-testid="model-no-consumers">
+              <p className="text-fs-xs text-muted-foreground" data-testid="model-no-consumers">
                 No consumers yet — nothing in the account calls this model.
               </p>
             )}
-            <p className="text-[10px] text-muted-foreground pt-1">
+            <p className="text-fs-xs text-muted-foreground pt-1">
               Because consumers are listed, superseding is a decision with a visible cost rather than
               a silent change under a running campaign.
             </p>
@@ -334,14 +335,14 @@ export function ModelObject({
           <TabsContent value="iface" className="space-y-2 text-xs" data-testid="model-iface">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-muted-foreground">Called as</span>
-              <Badge variant="outline" className="text-[10px] capitalize" data-testid="model-iface-kind">
+              <Badge variant="outline" className="text-fs-xs capitalize" data-testid="model-iface-kind">
                 {detail.interface.kind}
               </Badge>
-              <span className="font-mono text-[11px]" data-testid="model-iface-signature">
+              <span className="font-mono text-fs-xs" data-testid="model-iface-signature">
                 {ifaceSignature(detail.interface)}
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-fs-xs text-muted-foreground">
               The pipeline calls the registry, not the implementation — so a lab's own model
               (python function · container · REST endpoint) drops in without rewriting a workflow.
             </p>
@@ -363,7 +364,7 @@ export function ModelObject({
                   <span className="font-mono font-semibold">{v.v}</span>
                   <GateVerdict verdict={v.verdict} />
                   {isCurrent && (
-                    <Badge variant="outline" className="text-[10px]">current</Badge>
+                    <Badge variant="outline" className="text-fs-xs">current</Badge>
                   )}
                   {!isCurrent && onCompareVersion && (
                     <button
@@ -378,7 +379,7 @@ export function ModelObject({
                 </div>
               )
             })}
-            <p className="text-[10px] text-muted-foreground pt-1">
+            <p className="text-fs-xs text-muted-foreground pt-1">
               Superseding never deletes. A completed run keeps the exact version it called, so an old
               report stays reproducible. Compare weighs a version against the current one on the same
               held-out set.

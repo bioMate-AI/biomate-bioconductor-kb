@@ -121,7 +121,22 @@ export function targetEvidenceReply(result: any): string {
         ? 'Target ranking completed with incomplete evidence.'
         : 'Target identification completed successfully.';
   const channel = (value: string) => ({genetics_ot:'Open Targets disease-association evidence',llm_reasoned:'AI-generated reasoning'}[value] || text(value));
-  return `${headline}\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}\n\nRanking: ${primary && available.includes(primary) ? `ordered by ${channel(primary)}` : 'combined available channels; Open Targets-primary ordering was not established'}. Successful channels: ${available.map(channel).join(', ') || 'none reported'}. Failed channels: ${errors.map(channel).join(', ') || 'none reported'}.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.${errors.length || !available.length || reasoningOnly ? '\n\nRetrieve or retry the missing source evidence before using this ranking as evidence-backed prioritization.' : ''}`;
+  // SHOW the evidence, don't just score it: for each target, surface which channels contributed
+  // (per_channel_z) and the per-target note. Without this the reply hid the Open Targets
+  // disease-association evidence behind a bare score — the whole point of an "evidence" question.
+  const evLines = result.targets.map((t: any) => {
+    const pc = (t.per_channel_z && typeof t.per_channel_z === 'object') ? t.per_channel_z as Record<string, unknown> : {};
+    const chans = Object.entries(pc)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([k, v]) => `${channel(k)} ${text(v)}`);
+    const links = (t.evidence_links && typeof t.evidence_links === 'object')
+      ? Object.values(t.evidence_links as Record<string, any>).map((l: any) => text(l?.label)).filter(Boolean)
+      : [];
+    const parts = [chans.length ? chans.join(' · ') : null, t.note ? text(t.note) : null, links.length ? `sources: ${links.join('; ')}` : null].filter(Boolean);
+    return parts.length ? `- **${text(t.target)}**: ${parts.join(' — ')}` : null;
+  }).filter(Boolean);
+  const evidenceSection = evLines.length ? `\n\n**Evidence by target** (what drives each association):\n${evLines.join('\n')}` : '';
+  return `${headline}\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}${evidenceSection}\n\nRanking: ${primary && available.includes(primary) ? `ordered by ${channel(primary)}` : 'combined available channels; Open Targets-primary ordering was not established'}. Successful channels: ${available.map(channel).join(', ') || 'none reported'}. Failed channels: ${errors.map(channel).join(', ') || 'none reported'}.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.${errors.length || !available.length || reasoningOnly ? '\n\nRetrieve or retry the missing source evidence before using this ranking as evidence-backed prioritization.' : ''}`;
 }
 
 const DB_ENTITY_TYPES = ['gene', 'protein', 'compound', 'variant', 'pathway', 'structure', 'disease', 'literature'];

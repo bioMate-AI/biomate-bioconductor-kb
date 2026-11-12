@@ -16,6 +16,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 vi.mock("3dmol", () => ({ default: {}, GLViewer: class {}, createViewer: () => ({}) }))
 
 import { ChatMessage, type Message } from "./chat-message"
+import { api } from "@/lib/api"
 
 function researchMessage(rr: Record<string, any>): Message {
   return {
@@ -40,13 +41,9 @@ const baseResponse = {
 }
 
 function expandCitations() {
-  // The rich panel now defaults to EXPANDED on a research turn (evidence-forward),
-  // so only click to open it when it is actually collapsed — i.e. the source rows
-  // are not yet in the DOM. Idempotent + robust to the default either way.
-  if (!screen.queryByTestId("source-open-0")) {
-    const toggle = screen.queryByText("Citations")
-    if (toggle) fireEvent.click(toggle)
-  }
+  // Sources are COLLAPSED by default (one quiet "N sources" line); open them.
+  const toggle = screen.getByTestId("citations-toggle")
+  if (toggle.getAttribute("aria-expanded") !== "true") fireEvent.click(toggle)
 }
 
 describe("live research answer → rich CitationPanel (retrieval + conflicts)", () => {
@@ -56,8 +53,8 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
     const message = researchMessage(baseResponse)
     render(<ChatMessage message={{ ...message, content: 'Please identify the scaffold first.', metadata: { ...message.metadata, needsUserFeedback: true } }} />)
     expect(screen.getByText('Please identify the scaffold first.')).toBeVisible()
-    expect(screen.queryByTestId('source-open-0')).toBeNull()
-    expect(screen.queryByText('Citations')).toBeNull()
+    expect(screen.queryByTestId('citations-toggle')).toBeNull()
+    expect(screen.queryByTestId('reference-list')).toBeNull()
   })
 
   it("renders retrieval transparency + conflicts when the response supplies them", () => {
@@ -87,7 +84,10 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
     expect(screen.getByTestId("retrieval-transparency")).toBeInTheDocument()
     // 2 + 0 kept of 20 + 8 found.
     expect(screen.getByTestId("retrieval-summary")).toHaveTextContent("2 of 28 kept")
-    expect(screen.getByTestId("retrieval-source-PubMed")).toBeInTheDocument()
+    // Per-source breakdown lives in the footnote's tooltip / accessible label.
+    expect(screen.getByTestId("retrieval-transparency")).toHaveAttribute(
+      "aria-label", expect.stringContaining("PubMed: 20 found · 2 kept"),
+    )
 
     // Conflict row present (collapsed summary line).
     expect(screen.getByTestId("conflict-row")).toBeInTheDocument()
@@ -95,8 +95,8 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
       "Sources disagree — 1 conflicting finding"
     )
 
-    // The always-present boundary is not regressed.
-    expect(screen.getByTestId("research-answer-boundary")).toBeInTheDocument()
+    // The Boundary banner was removed from research answers (2026-11-10).
+    expect(screen.queryByTestId("research-answer-boundary")).toBeNull()
   })
 
   it("renders neither section (no crash) when retrieval/conflicts are absent", () => {
@@ -106,9 +106,9 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
     expect(screen.queryByTestId("retrieval-transparency")).toBeNull()
     expect(screen.queryByTestId("conflict-row")).toBeNull()
 
-    // The source list still renders (both citations), and the boundary persists.
+    // The source list still renders (both citations); no Boundary banner.
     expect(screen.getByText("Aligner benchmark A")).toBeInTheDocument()
-    expect(screen.getByTestId("research-answer-boundary")).toBeInTheDocument()
+    expect(screen.queryByTestId("research-answer-boundary")).toBeNull()
   })
 
   it("does not fabricate retrieval from the citation list (empty array → no section)", () => {
@@ -129,10 +129,10 @@ describe("research source detail", () => {
     expandCitations()
     expect(screen.queryByText("Tool Citations")).toBeNull()
     expect(screen.queryByText("Methods Section")).toBeNull()
-    fireEvent.click(screen.getByText("Study with abstract"))
     expect(screen.queryByRole("button", { name: "APA" })).toBeNull()
     expect(screen.queryByRole("button", { name: "BibTeX" })).toBeNull()
-    fireEvent.click(screen.getByTestId("source-open-0"))
+    vi.spyOn(api, "request").mockResolvedValue({ found: false, fullTextStatus: "not_found", sections: [], links: { publisher: null, europepmc: null } } as any)
+    fireEvent.click(screen.getByTestId("source-read-0"))
     expect(screen.getByTestId("reader-abstract")).toHaveTextContent("Measured inhibition across two experimental conditions.")
   })
 
@@ -146,3 +146,32 @@ describe("research source detail", () => {
     expect(screen.getByText(message.content)).toBeVisible()
   })
 })
+
+describe("one action row under every assistant answer", () => {
+  it("research answers get the single quiet icon row — and no Save-to-project / Plan / Save-to-notes / Make-instruction buttons", () => {
+    const message = { ...researchMessage(baseResponse), content: "Answer text." }
+    render(<ChatMessage message={message} isLatestAssistantMessage />)
+    expectCitationsAbsentButtons()
+    const rows = screen.getAllByTestId("message-action-row")
+    expect(rows).toHaveLength(1)
+    for (const id of ["button-copy-response-icon", "button-save-response", "button-regenerate-message-icon"]) {
+      expect(screen.getByTestId(id)).toBeInTheDocument()
+    }
+    expect(screen.getByTestId("inline-feedback-thumbs-up")).toBeInTheDocument()
+    expect(screen.getByTestId("inline-feedback-thumbs-down")).toBeInTheDocument()
+  })
+
+  it("plain text answers get the same row with thumbs (feedback is not workflow-only)", () => {
+    render(<ChatMessage message={{ id: "m-plain", role: "assistant", content: "Plain answer.", timestamp: new Date() } as Message} />)
+    expect(screen.getByTestId("message-action-row")).toBeInTheDocument()
+    expect(screen.getByTestId("inline-feedback-thumbs-up")).toBeInTheDocument()
+  })
+})
+
+function expectCitationsAbsentButtons() {
+  for (const id of ["research-answer-save", "research-answer-check-data", "answer-save-notes", "answer-make-instruction"]) {
+    expect(screen.queryByTestId(id)).toBeNull()
+  }
+  fireEvent.click(screen.getByTestId("citations-toggle"))
+  for (const id of ["answer-save-notes", "answer-make-instruction"]) expect(screen.queryByTestId(id)).toBeNull()
+}
