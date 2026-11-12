@@ -10,10 +10,17 @@ from typing import Any, Dict, List, Optional
 def test_clarification_does_not_inherit_uncited_search_candidates():
     tree = ast.parse(Path(__file__).with_name('research_agent.py').read_text())
     cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'ResearchAgent')
-    names = {'_synthesize_response', '_ground_citations'}
+    # `_split_claims` is a self-contained @staticmethod `_synthesize_response` now always
+    # calls (to strip the model's CLAIMS line) — extract the real one. The remaining
+    # self-methods it touches are stubbed on the instance below; `_entity_validation_enabled`
+    # (module helper, default False) is supplied in env so the flag-gated entity-claim
+    # validation path stays inert.
+    names = {'_synthesize_response', '_ground_citations', '_split_claims'}
     methods = [n for n in cls.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name in names]
     minimal = ast.Module(body=[ast.ClassDef(name='Agent', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
-    env = dict(Dict=Dict, Any=Any, List=List, Optional=Optional, ResearchResponse=SimpleNamespace, Citation=SimpleNamespace, log=logging.getLogger(__name__))
+    env = dict(Dict=Dict, Any=Any, List=List, Optional=Optional, ResearchResponse=SimpleNamespace,
+               Citation=SimpleNamespace, log=logging.getLogger(__name__),
+               _entity_validation_enabled=lambda: False)
     exec(compile(ast.fix_missing_locations(minimal), '<synthesis-test>', 'exec'), env)
     agent = env['Agent']()
     agent.llm_client = True
@@ -24,6 +31,8 @@ def test_clarification_does_not_inherit_uncited_search_candidates():
     agent._parse_conflicts_block = lambda answer: (answer, [])
     agent._compute_retrieval_stats = lambda pool, kept: []
     agent._ensure_evidence_boundary = lambda answer, *args: answer
+    agent._grounding_confidence = lambda *a, **k: 0.0
+    agent._validate_entity_claims = lambda claims: []
     async def reply(*args, **kwargs):
         return 'Please provide the scaffold name or SMILES so I can find prior assays.'
     agent._call_llm = reply
@@ -44,8 +53,11 @@ def _extract_build_synthesis_prompt():
     minimal = ast.Module(
         body=[ast.ClassDef(name='Agent', bases=[], keywords=[], body=[method], decorator_list=[])],
         type_ignores=[])
+    # `_build_synthesis_prompt` references the module-level helper `_entity_validation_enabled`;
+    # supply it in the isolated exec namespace (the real helper returns False unless the
+    # BIOMATE_ENTITY_VALIDATION env flag is set — these tests exercise that default path).
     env = dict(Dict=Dict, Any=Any, List=List, Optional=Optional, json=json,
-               _CONFLICT_INSTRUCTION='')
+               _CONFLICT_INSTRUCTION='', _entity_validation_enabled=lambda: False)
     exec(compile(ast.fix_missing_locations(minimal), '<synthesis-prompt-test>', 'exec'), env)
     return env['Agent']()
 

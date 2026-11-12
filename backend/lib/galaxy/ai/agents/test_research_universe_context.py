@@ -19,10 +19,31 @@ import ast
 import asyncio
 import json
 import logging
+import os
 import re
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _offline_citation_verification():
+    """These tests exercise the research agent's citation PLUMBING, not live PMID/DOI
+    verification (that is covered by test_citation_check.py with explicit offline mode).
+    Force offline so a fixture citation with a non-real PMID is kept as
+    `not_checked_offline` instead of being stripped by a live PubMed lookup — making the
+    synthesis tests deterministic and network-independent. Restored after each test."""
+    _prev = os.environ.get("BIOMATE_OFFLINE")
+    os.environ["BIOMATE_OFFLINE"] = "1"
+    try:
+        yield
+    finally:
+        if _prev is None:
+            os.environ.pop("BIOMATE_OFFLINE", None)
+        else:
+            os.environ["BIOMATE_OFFLINE"] = _prev
 
 
 def _extract_agent(method_names):
@@ -44,7 +65,10 @@ def _extract_agent(method_names):
     env = dict(Dict=Dict, Any=Any, List=List, Optional=Optional, json=json, re=re,
                asyncio=asyncio, log=logging.getLogger(__name__),
                ResearchResponse=SimpleNamespace, Citation=SimpleNamespace,
-               _CONFLICT_INSTRUCTION="")
+               _CONFLICT_INSTRUCTION="",
+               # module helper referenced by _build_synthesis_prompt / _synthesize_response;
+               # real one returns False unless BIOMATE_ENTITY_VALIDATION is set (default path).
+               _entity_validation_enabled=lambda: False)
     exec(compile(ast.fix_missing_locations(minimal), "<universe-test>", "exec"), env)
     return env["Agent"]()
 
@@ -152,7 +176,7 @@ def test_knowledge_question_with_user_context_is_unaffected():
 def _make_synth_agent():
     agent = _extract_agent({
         "_synthesize_response", "_build_synthesis_prompt", "_is_about_user_runs",
-        "_ground_citations",
+        "_ground_citations", "_split_claims",
     })
     agent.llm_client = True
     agent.max_citations = 5
@@ -162,6 +186,8 @@ def _make_synth_agent():
     agent._parse_conflicts_block = lambda answer: (answer, [])
     agent._compute_retrieval_stats = lambda pool, kept: []
     agent._ensure_evidence_boundary = lambda answer, *a: answer
+    agent._grounding_confidence = lambda *a, **k: 0.0
+    agent._validate_entity_claims = lambda claims: []
     return agent
 
 

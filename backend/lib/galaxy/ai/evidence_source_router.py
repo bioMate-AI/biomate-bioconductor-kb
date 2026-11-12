@@ -50,8 +50,9 @@ FACET_SOURCES: Dict[str, List[str]] = {
     "variant":     ["clinvar", "dbsnp", "gnomad"],
     # disease / phenotype / clinical indication
     "disease":     ["opentargets", "hpo", "omim", "clinvar", "clinicaltrials"],
-    # gene-centric baseline (identity, orthology, function)
-    "gene":        ["ncbi_gene", "ensembl", "uniprot", "go", "string"],
+    # gene-centric baseline (identity, orthology, function + gnomAD LoF constraint, which
+    # is a core gene-level property — pLI/LOEUF — not just variant data)
+    "gene":        ["ncbi_gene", "ensembl", "uniprot", "go", "string", "gnomad"],
 }
 
 # Always-on literature corroboration (kept small; the agent's literature client
@@ -60,7 +61,9 @@ LITERATURE_SOURCES: List[str] = ["pubmed", "europepmc", "semantic_scholar", "cor
 
 # ── Facet keyword cues (lowercased, word-boundary matched) ──────────────────
 _FACET_CUES: Dict[str, Sequence[str]] = {
-    "structure":   ["structure", "crystal", "fold", "domain", "conformation", "binding site",
+    # "fold" is word-bounded: unbounded it matched "scaffold" (genomics assembly term,
+    # "scaffold N50") and mis-fired the structure facet (committee review round 2, 2026-11-11).
+    "structure":   ["structure", "crystal", "\\bfold\\b", "domain", "conformation", "binding site",
                     "pocket", "3d", "apo", "holo", "dfg", "allosteric", "cryo-em", "cryoem"],
     # NB: bare "sar"/"scaffold" are word-bounded — unbounded they matched "SARS-CoV-2"
     # and genome-assembly "scaffold N50" and mis-fired the bioactivity facet
@@ -74,20 +77,27 @@ _FACET_CUES: Dict[str, Sequence[str]] = {
     "pathway":     ["pathway", "signalling", "signaling", "network", "interaction", "interactome",
                     "enrichment", "cascade", "upstream", "downstream", "regulat"],
     "variant":     ["variant", "mutation", "\\bsnp\\b", "allele", "polymorphism", "genotype",
-                    "missense", "resistance mutation", "\\brs\\d"],
+                    "missense", "resistance mutation", "\\brs\\d",
+                    # gene-constraint / LoF-intolerance cues → gnomAD (pLI/LOEUF) is in this facet
+                    "constraint", "loss-of-function", "loss of function", "\\blof\\b", "loeuf",
+                    "\\bpli\\b", "intoleran", "haploinsufficien", "essential gene"],
     "disease":     ["disease", "phenotype", "syndrome", "indication", "clinical", "patient",
                     "prognosis", "biomarker"],
 }
 
 
-def _federation_serveable_ids() -> set:
+def _federation_serveable_ids() -> Optional[set]:
     """Ids the FEDERATED fan-out can actually serve — registry sources that are live AND
     reachable via the federation surface. Gating on live-status alone advertised sources
-    (bindingdb/pharos/opentargets/pdbe) that federated_query silently drops because they
-    have no federation fetcher — overstating coverage (committee review, 2026-11-11).
-    Open Targets / Pharos reach the answer via the target_id path, not this fan-out."""
+    that federated_query silently drops because they have no federation fetcher — overstating
+    coverage (committee review, 2026-11-11).
+
+    Returns None when the registry is UNAVAILABLE (import failed) so the caller passes the
+    candidate list through unfiltered (graceful degrade); returns a set — possibly EMPTY —
+    when the registry is present, so a misconfigured registry filters to nothing rather than
+    silently advertising unserveable ids (committee review round 2, 2026-11-11)."""
     if _registry is None:
-        return set()
+        return None
     _fed = getattr(_registry, "SURFACE_FEDERATION", "federation")
     ids = set()
     for s in getattr(_registry, "SOURCES", []):
@@ -105,9 +115,15 @@ def _federation_serveable_ids() -> set:
 # fires the (costly, live) orchestrator, so match only clear ranking intent.
 _TARGET_RANKING_CUES: Sequence[str] = (
     "which targets", "which genes", "identify targets", "identify drug targets",
-    "drug targets for", "therapeutic targets for", "prioriti", "rank targets",
+    "drug targets for", "therapeutic targets for", "rank targets",
     "rank the targets", "best targets", "candidate targets", "target identification",
     "actionable targets", "top targets", "nominate targets",
+    # "prioriti" alone matched "prioritize the samples" / "what's the priority here" and
+    # fired the costly live orchestrator on generic text — scope it to target/gene ranking
+    # intent (committee review, 2026-11-11).
+    "prioritize target", "prioritise target", "prioritize gene", "prioritise gene",
+    "prioritize the target", "prioritise the target", "prioritized target", "prioritised target",
+    "prioritize drug target", "prioritise drug target", "priority targets",
 )
 
 
@@ -171,6 +187,6 @@ def select_sources(
                 ordered.append(sid)
 
     known = _federation_serveable_ids()
-    if known:
+    if known is not None:   # None = registry unavailable → pass through; set() = filter to nothing
         ordered = [sid for sid in ordered if sid in known]
     return ordered[:max_sources]
