@@ -21,7 +21,9 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
-import zh from "../client/src/locales/zh/common.json";
+
+// Read from disk: Playwright's loader rejects a bare JSON import (needs an import attribute).
+const zh: any = JSON.parse(fs.readFileSync(path.resolve("client/src/locales/zh/common.json"), "utf8"));
 
 test.use({ locale: "zh-CN" });
 const SHOTS = "e2e/screenshots/hints-and-tool-cards";
@@ -83,8 +85,10 @@ test("zh: hover hints, tool cards, no backend name in output", async ({ page }) 
   await page.getByTestId("models-track-1").click();
   await expect(page.getByTestId("models-track-1")).toHaveAttribute("data-state", "active");
   await expect(page.getByTestId("models-track-0")).toHaveAttribute("data-state", "inactive");
-  await page.getByTestId("models-track-1").hover();
-  await page.getByRole("tooltip").first().waitFor({ state: "visible" });
+  // Radix keeps a tooltip closed on the control just clicked while the pointer stays on it —
+  // hover a different tab for the screenshot.
+  await page.getByTestId("models-track-2").hover();
+  await expect(page.getByRole("tooltip").first()).toHaveText(zh.hint.models.molecular, { timeout: 10_000 });
   await page.screenshot({ path: `${SHOTS}/2-models-tab-hint.png` });
 
   // ── 3. Image-QC chat ───────────────────────────────────────────────────────
@@ -101,13 +105,26 @@ test("zh: hover hints, tool cards, no backend name in output", async ({ page }) 
   const send = page.locator('[data-testid="chat-send-button"]:not([disabled])');
   await send.waitFor({ state: "visible", timeout: 60_000 });
   await send.click();
+  // The first message of a new chat remounts the chat (App keys it by session id); the turn must
+  // stay visibly busy: Stop shown while it runs (live dev 2026-11-12: idle composer for 2 minutes).
+  await page.getByTestId("chat-stop-button").waitFor({ state: "visible", timeout: 20_000 });
 
-  // Turn finished: the send button is usable again and at least one tool card exists.
+  // Turn finished: tool cards keep streaming after the first narration (the message action row
+  // shows mid-turn), so "done" = no spinner in the chat AND the chat text unchanged for 20 s.
   await page.locator('[data-testid^="tool-block-"]').first().waitFor({ state: "visible", timeout: 240_000 });
-  await page.waitForFunction(() => {
-    return !document.querySelector('[data-testid="chat-stop-button"]');
-  }, undefined, { timeout: 300_000 }).catch(() => {});
-  await page.waitForTimeout(5000);
+  {
+    const msgsEl = page.getByTestId("chat-messages").first();
+    let last = "", stableSince = Date.now();
+    const deadline = Date.now() + 7 * 60_000;
+    for (;;) {
+      const text = await msgsEl.innerText().catch(() => "");
+      const spinning = await msgsEl.locator(".animate-spin").count().catch(() => 0);
+      if (text !== last || spinning > 0) { last = text; stableSince = Date.now(); }
+      if (Date.now() - stableSince >= 20_000) break;
+      if (Date.now() > deadline) throw new Error("chat turn did not settle within 7 min");
+      await page.waitForTimeout(2500);
+    }
+  }
   await page.screenshot({ path: `${SHOTS}/3-chat-collapsed.png`, fullPage: true });
 
   const cards = page.locator('[data-testid^="tool-block-"]');
@@ -140,4 +157,16 @@ test("zh: hover hints, tool cards, no backend name in output", async ({ page }) 
   const finalText = ((await assistant.count()) ? await assistant.innerText() : outText).trim();
   console.log("[final answer tail]", finalText.slice(-300));
   expect(/[:：]\s*$/.test(finalText), "answer must not end on an announcement colon").toBe(false);
+  // A real answer, not only the opening narration: some prose comes AFTER the last tool card.
+  const afterLastCard = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('[data-testid^="tool-block-"]'));
+    const lastCard = cards[cards.length - 1];
+    const msg = lastCard?.closest('[data-role="assistant"]');
+    if (!lastCard || !msg) return "";
+    const range = document.createRange();
+    range.setStartAfter(lastCard); range.setEndAfter(msg.lastChild as Node);
+    return range.toString().trim();
+  });
+  console.log("[after last tool card]", afterLastCard.slice(0, 400));
+  expect(afterLastCard.length, "answer text after the last tool card").toBeGreaterThan(40);
 });

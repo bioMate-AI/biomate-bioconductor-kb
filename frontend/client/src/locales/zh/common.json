@@ -170,7 +170,9 @@
         "workflow_failed": "工作流失败",
         "other": "其他"
       }
-    }
+    },
+    "typing_thinking": "BioMate 正在思考…",
+    "typing_workflow": "BioMate 正在为您生成工作流…"
   },
   "composer": {
     "data": "数据",

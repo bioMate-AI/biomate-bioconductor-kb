@@ -164,7 +164,9 @@
         "workflow_failed": "Workflow failed",
         "other": "Other"
       }
-    }
+    },
+    "typing_thinking": "BioMate is thinking…",
+    "typing_workflow": "BioMate is generating the workflow for you…"
   },
   "composer": {
     "data": "data",

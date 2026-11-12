@@ -10,6 +10,7 @@ import { t, locale } from "@/lib/i18n"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
+import { abortTurn, endTurn, isTurnActive, setTurnAbort, startTurn, useTurnActive } from "@/lib/active-turns"
 import { ChatMessage, type Message } from "./chat-message"
 import { takeWorkflowSelection } from "@/lib/workflow-selection"
 import { groupWorkflowResponses, ProgressStreamBox } from "./chat-progress-fold"
@@ -491,6 +492,9 @@ export function ChatInterface({
   pendingMessagesRef.current = pendingMessages
 
   const abortControllerRef = useRef<AbortController | null>(null)
+  // Latest session id for callbacks with stable identity (stopStreaming) — never a stale closure.
+  const chatSessionIdRef = useRef<string | undefined>(chatSession?.id)
+  chatSessionIdRef.current = chatSession?.id
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const followChatTailRef = useRef(true)
@@ -580,8 +584,10 @@ export function ChatInterface({
   // Turn state follows the stream lifecycle, not the reply text: a workflow
   // turn streams its summary long before the card (see lib/chat-turn-state.ts).
   const lastMsg = displayMessages[displayMessages.length - 1]
+  // A turn survives the remount that the first message of a new chat causes (lib/active-turns).
+  const sessionTurnActive = useTurnActive(chatSession?.id)
   const { displayTyping, turnBusy } = computeTurnIndicators({
-    streamOpen: isTyping || isTypingLocal,
+    streamOpen: isTyping || isTypingLocal || sessionTurnActive,
     showWorkflowCue,
     phase: workflowGeneratingPhase,
     lastMessage: lastMsg,
@@ -858,6 +864,7 @@ export function ChatInterface({
       const attemptStream = async (): Promise<any> => {
       timedOutRef.current = false
       abortControllerRef.current = new AbortController()
+      setTurnAbort(sessionId, abortControllerRef.current)
       const _timeoutId = setTimeout(() => {
         timedOutRef.current = true
         try { abortControllerRef.current?.abort() } catch { /* noop */ }
@@ -1097,7 +1104,7 @@ export function ChatInterface({
           await new Promise((r) => setTimeout(r, backoffMs))
           // If the user pressed Stop during the backoff window,
           // stopStreaming() nulled the controller — honor it, don't re-fire.
-          if (abortControllerRef.current === null) {
+          if (abortControllerRef.current === null || !isTurnActive(sessionId)) {
             return { message: '', aborted: true }
           }
         }
@@ -1106,6 +1113,7 @@ export function ChatInterface({
     },
     onSuccess: async (data, variables) => {
       console.log('[ChatInterface] API Response:', data)
+      endTurn(variables.sessionId)
 
       const { message: aiMessage, workflowSuccess, workflowData, stepsArray } =
         buildAssistantMessageFromFinal(data, variables.placeholderId)
@@ -1193,6 +1201,7 @@ export function ChatInterface({
     },
     onError: (error, variables) => {
       console.error('[ChatInterface] API Error:', error.message)
+      endTurn(variables?.sessionId)
 
       const errorMessage = error.message || 'Unknown error occurred';
       const guidance = getChatAsyncGuidance(errorMessage, { isOnline });
@@ -1704,6 +1713,7 @@ export function ChatInterface({
 
     if (files && files.length > 0) onSubmitWithFiles?.()
     setIsTypingLocal(true)
+    startTurn(sessionId)
     setWorkflowGeneratingPhase('thinking')
 
     analytics.track('query_sent', { query_length: content.length })
@@ -1748,6 +1758,7 @@ export function ChatInterface({
   const stopStreaming = useCallback(() => {
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
+    abortTurn(chatSessionIdRef.current) // the stream may belong to the pre-remount instance
     setIsTypingLocal(false)
     setWorkflowGeneratingPhase('thinking')
     const queuedCount = pendingMessagesRef.current.length

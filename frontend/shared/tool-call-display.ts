@@ -96,7 +96,8 @@ export function userFacingToolOutput(value: unknown, depth = 0): unknown {
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (ID_KEY_RE.test(k) || /galaxy|s3_?(?:key|uri|bucket)/i.test(k)) continue;
+      // `__`-prefixed keys are internal (model-facing notes, image-block markers) — never shown.
+      if (k.startsWith('__') || ID_KEY_RE.test(k) || /galaxy|s3_?(?:key|uri|bucket)/i.test(k)) continue;
       const cleaned = userFacingToolOutput(v, depth + 1);
       if (cleaned !== undefined) out[k] = cleaned;
     }
