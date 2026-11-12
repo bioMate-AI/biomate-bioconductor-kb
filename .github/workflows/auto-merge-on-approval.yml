@@ -1,0 +1,47 @@
+name: Auto-merge on approval
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - integration/next-phase
+
+jobs:
+  enable-auto-merge:
+    # Enable auto-merge on new/updated PRs targeting integration/next-phase
+    # so they merge automatically once approved and all checks pass.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --auto --merge \
+            --repo "${{ github.repository }}"
+
+  merge-on-approval:
+    # When a PR is approved, trigger merge if all checks have already passed.
+    if: >-
+      github.event_name == 'pull_request_review' &&
+      github.event.review.state == 'approved' &&
+      github.event.pull_request.base.ref == 'integration/next-phase'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Enable auto-merge (in case it wasn't set on open)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --auto --merge \
+            --repo "${{ github.repository }}" \
+          || true  # already enabled or already merged — ignore

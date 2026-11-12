@@ -4,7 +4,8 @@
  * Displays the project's uploaded input files and run output files fetched
  * from /api/projects/:id/files. Supports:
  *   - Expand / collapse folder nodes (inputs/, outputs/<runId>/)
- *   - Single-click → copy S3 path to clipboard
+ *   - Single-click → copy the file's name to clipboard (never the storage
+ *     path/key — no internal path/key/id is exposed in the UI, incl. tooltips)
  *   - Download button → presigned URL
  *   - Upload via drag-drop or the "Add ▾ Files / Folder" picker. A folder (picked or
  *     dropped, walked recursively) uploads file-by-file with its folder-relative path,
@@ -817,13 +818,14 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     submitRename(`/api/projects/${projectId}/files/rename-folder`, "POST", { from, to }, to, true);
 
   const handleCopy = (id: string, key: string) => {
-    navigator.clipboard.writeText(key).catch(() => {});
+    const file = files.find((f) => f.id === id);
+    // Copy the display NAME, never the storage path/key — no internal
+    // path/key/id is exposed to the user (incl. the clipboard). onPickFile
+    // still receives the real key for functional file binding.
+    navigator.clipboard.writeText(file?.name ?? "").catch(() => {});
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
-    if (onPickFile) {
-      const file = files.find((f) => f.id === id);
-      if (file) onPickFile(key, file.name);
-    }
+    if (onPickFile && file) onPickFile(key, file.name);
   };
 
   const q = search.trim().toLowerCase();

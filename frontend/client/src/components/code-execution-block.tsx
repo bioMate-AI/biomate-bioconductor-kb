@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check, Download } from 'lucide-react';
 import { tOr } from '@/lib/i18n';
 import { redactInternalBackend, toolCallDisplay, userFacingToolOutput } from '@shared/tool-call-display';
+import { redactInternalRefs } from '@shared/chat-system-blocks';
 
 /** 23 → "23 B", 2048 → "2.0 KB", 3e6 → "2.9 MB" (a small report read "0.0 KB"). */
 export function formatBytes(n: number): string {
@@ -221,7 +222,7 @@ export function CodeExecutionBlock({ block }: Props) {
       {!expanded && isCodeTool && preview && (
         <div className="px-3 py-2 border-t border-border" data-testid="tool-code-preview">
           <pre className="m-0 text-xs leading-5 text-muted-foreground whitespace-pre overflow-hidden text-ellipsis">
-            {preview.lines.join('\n')}
+            {redactInternalRefs(preview.lines.join('\n'))}
           </pre>
           {preview.more > 0 && (
             <div className="text-xs leading-5 text-muted-foreground/70">
@@ -248,7 +249,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 <span className="text-[10px] uppercase tracking-wide text-gray-400">{language}</span>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); copyCode(code); }}
+                  onClick={(e) => { e.stopPropagation(); copyCode(redactInternalRefs(code)); }}
                   className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-300 hover:text-white hover:bg-gray-700/60 transition-colors"
                   aria-label={tOr('tool_card.copy_code', 'Copy code')}
                   data-testid="copy-code-button"
@@ -257,7 +258,7 @@ export function CodeExecutionBlock({ block }: Props) {
                   {copied ? tOr('tool_card.copied', 'Copied') : tOr('tool_card.copy', 'Copy')}
                 </button>
               </div>
-              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{code}</pre>
+              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{redactInternalRefs(code)}</pre>
             </div>
           )}
 
@@ -282,7 +283,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 <div>
                   <div className="text-xs text-muted-foreground mb-0.5">{tOr('tool_card.console_output', 'Console output')}</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
-                    {truncate(redactInternalBackend(stdout), 2000)}
+                    {truncate(redactInternalBackend(redactInternalRefs(stdout)), 2000)}
                   </pre>
                 </div>
               )}
@@ -300,7 +301,7 @@ export function CodeExecutionBlock({ block }: Props) {
                               their useless "(binary)" text preview here. */}
                           {f.preview && !f.image_data_uri && (
                             <pre className="text-xs text-muted-foreground whitespace-pre-wrap max-h-20 overflow-hidden">
-                              {f.preview}
+                              {redactInternalRefs(f.preview)}
                             </pre>
                           )}
                         </div>
@@ -316,7 +317,7 @@ export function CodeExecutionBlock({ block }: Props) {
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
                     {(() => {
                       const shown = userFacingToolOutput(result.output);
-                      return truncate(typeof shown === 'string' ? shown : JSON.stringify(shown, null, 2), 2000);
+                      return truncate(redactInternalRefs(typeof shown === 'string' ? shown : JSON.stringify(shown, null, 2)), 2000);
                     })()}
                   </pre>
                 </div>

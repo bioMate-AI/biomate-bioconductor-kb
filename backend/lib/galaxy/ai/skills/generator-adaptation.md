@@ -5,7 +5,7 @@ description: >-
   Select this when the user wants to ADAPT or fine-tune an existing GENERATIVE model
   (molecule / peptide / protein generator) on their own data — "adapt the generative
   model to our chemical series", "fine-tune the molecule generator on our compounds",
-  "continue-train the peptide designer on our actives". This is the documented SYSUCC
+  "continue-train the peptide designer on our actives". This is the documented hospital
   "Models → Adapt" capability and the "generator adaptation" kind of learning. It is NOT
   docking, ADMET, virtual screening, or de-novo generation from scratch; it is NOT a
   property-PREDICTOR retrain (that is predictor-retraining); it is NOT merely running an
@@ -80,6 +80,6 @@ model-version framing is the presentation layer on top of that workflow's output
 
 ## Provenance
 
-Documented capability: `docs/20261030_SYSUCC_BD_CAPABILITY_AND_USE_CASES_EN.md` §5.4 (Models →
+Documented capability: `internal project notes` §5.4 (Models →
 Adapt), §7.2 (Model adaptation on hospital data → model-version card), §7.3 (generator
 adaptation). Architecture: `docs/20261111_SKILLS_ARCHITECTURE_TASK_HANDLING.md`.

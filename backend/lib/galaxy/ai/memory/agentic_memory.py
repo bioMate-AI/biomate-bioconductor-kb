@@ -34,8 +34,16 @@ log = logging.getLogger(__name__)
 # Get database URL from environment
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/biomate")
 
-# Create engine
-engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+# Create engine — pool_size/max_overflow tuned for 4+ gunicorn workers under concurrent load.
+# pool_recycle avoids stale connections after the PostgreSQL server-side idle timeout.
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+    pool_recycle=300,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

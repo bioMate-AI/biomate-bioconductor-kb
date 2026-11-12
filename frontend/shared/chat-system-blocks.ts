@@ -36,6 +36,54 @@ export function stripSystemBlocks(text: string | null | undefined): string {
     .trim();
 }
 
+/**
+ * Redact internal storage references the model must never surface to a user —
+ * the Galaxy dataset id and its "galaxy" keyword, in the JSON, key=value and
+ * prose forms the model tends to echo from the "[Uploaded datasets: …]" context
+ * into its run_code and replies. DISPLAY-ONLY: the wire protocol still carries
+ * galaxy_dataset_id; this only hides it from anything shown to the user. Apply
+ * to assistant content at render, and to anything copied/downloaded.
+ */
+export function redactInternalRefs(text: string | null | undefined): string {
+  if (!text) return "";
+  return String(text)
+    // ── galaxy_dataset_id (keyword / JSON / key=value / prose) ──
+    // JSON:  "galaxy_dataset_id": "uuid"  (drop the whole pair + a leading comma)
+    .replace(/,?\s*"galaxy_dataset_id"\s*:\s*"[^"]*"/gi, "")
+    // key=value:  galaxy_dataset_id=uuid
+    .replace(/,?\s*\bgalaxy_dataset_id\s*=\s*[^\s,}\])]+/gi, "")
+    // prose colon:  galaxy_dataset_id: uuid
+    .replace(/,?\s*\bgalaxy_dataset_id\s*:\s*[^\s,}\])]+/gi, "")
+    // any bare keyword left over → neutral, never the word "galaxy"
+    .replace(/\bgalaxy_dataset_id\b/gi, "data_id")
+    // ── internal run_code staging paths → the clean filename the model is told
+    // to prefer. These prefixes (/work/input, /work/output, /tmp/biomate_code,
+    // $DATA_DIR, the os.environ['DATA_DIR'] join) are BioMate-internal and never
+    // appear in legitimate content, so collapsing them to the basename is safe.
+    // os.path.join(os.environ['DATA_DIR'], '<id>', '<file>') → INPUT_FILES['<file>']
+    .replace(/os\.path\.join\(\s*os\.environ\[['"]DATA_DIR['"]\]\s*,\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g, "INPUT_FILES['$1']")
+    // R:  file.path(Sys.getenv("DATA_DIR"), "<id>", "<file>") → INPUT_FILES[["<file>"]]
+    .replace(/file\.path\(\s*Sys\.getenv\(['"]DATA_DIR['"]\)\s*,\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g, 'INPUT_FILES[["$1"]]')
+    // absolute staged paths → basename:  /work/input/<id>/<file>, /work/output/…, /tmp/biomate_code/…/<file>
+    .replace(/(?:\/work\/(?:input|output)|\/tmp\/biomate_code)\/[^\s'"`)\]]*\/([^\/\s'"`)\]]+)/g, "$1")
+    // $DATA_DIR/<id>/<file>  (shell/string form) → <file>
+    .replace(/\$\{?DATA_DIR\}?\/[^\/\s'"`)\]]+\/([^\/\s'"`)\]]+)/g, "$1")
+    // ── s3 references (from the same [Uploaded datasets] block) — never show an
+    // s3:// URI or bucket/key to the user (no-S3-in-user-text rule). ──
+    // s3_uri JSON / key=value → drop the pair
+    .replace(/,?\s*"s3_uri"\s*:\s*"[^"]*"/gi, "")
+    .replace(/,?\s*\bs3_uri\s*=\s*[^\s,}\])]+/gi, "")
+    // bare s3://bucket/key/<file> → the filename only
+    .replace(/\bs3:\/\/[^\s'"`)\],]+\/([^\/\s'"`)\],]+)/gi, "$1")
+    // s3://bucket with no key → neutral
+    .replace(/\bs3:\/\/[^\s'"`)\],]+/gi, "a data file")
+    // tidy JSON wreckage the removals can leave: {} / {, / ,} / ,,
+    .replace(/\{\s*\}/g, "")
+    .replace(/\{\s*,/g, "{")
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*,/g, ",");
+}
+
 /** File / dataset names referenced by the system blocks (for attachment chips). */
 export function attachedNamesFromBlocks(text: string | null | undefined): string[] {
   const raw = String(text || "");

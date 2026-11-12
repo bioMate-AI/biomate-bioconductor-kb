@@ -1,6 +1,6 @@
 """Data-fidelity guards for assay ingestion, ranking coverage and study-report ingestion.
 
-Covers the defects recorded in docs/20261029_SYSUCC_USECASE_TEST_RESULTS.md
+Covers the defects recorded in internal project notes
 (Cases 1 and 4, deliberate data errors).
 """
 from __future__ import annotations

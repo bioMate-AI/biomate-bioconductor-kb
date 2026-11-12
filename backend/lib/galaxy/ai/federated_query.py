@@ -1123,8 +1123,18 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
             # Dedup key: prefer explicit id fields, fall back to name/title
             dedup_key = (
                 item.get("accession") or item.get("gene_id") or item.get("pdb_id") or
-                item.get("pmid") or item.get("chembl_id") or item.get("paper_id") or item.get("nct_id") or
-                (item.get("title") or item.get("name") or "").lower()[:60]
+                item.get("pmid") or item.get("chembl_id") or item.get("chembl_target_id") or
+                item.get("paper_id") or item.get("nct_id") or item.get("variant_id") or
+                item.get("disease") or item.get("partner") or item.get("patent_id") or
+                item.get("hpo_id") or item.get("go_id") or item.get("pathway_id") or
+                (item.get("title") or item.get("name") or "").lower()[:60] or
+                # Generic fallback so NO non-empty result is silently dropped: Open Targets
+                # (disease/score) and STRING (partner/score) have none of the id/name fields
+                # above, so they were being skipped entirely and never reached the prompt —
+                # the LLM then honestly said "records do not contain" them (dev finding
+                # 2026-11-12). Any record with content now gets a stable key.
+                "%s:%s" % (src, json.dumps({k: v for k, v in item.items() if k != "_source"},
+                                           sort_keys=True, default=str)[:90])
             )
             if not dedup_key or dedup_key in seen_names:
                 continue

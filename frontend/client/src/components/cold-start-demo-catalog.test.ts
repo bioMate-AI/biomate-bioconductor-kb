@@ -117,7 +117,7 @@ describe('every cold-start path has prepared inputs', () => {
 });
 
  it('preserves the original synthetic cohort identity and keeps truth separate from predictors', () => {
-   const root = resolve(__dirname, '../../public/demo/sysucc_synthetic');
+   const root = resolve(__dirname, '../../public/demo/hospital_synthetic');
    const manifest = JSON.parse(readFileSync(resolve(root, 'provenance.json'), 'utf8'));
    expect(manifest.kind).toBe('synthetic_validation_inputs');
    expect(manifest.seed).toBe(20261105);
@@ -144,6 +144,8 @@ it('every file-less prepared example is demo-free and names a concrete dataset/t
     [/EBV antibody/i,    /VCA|EA|EBNA1/],
     [/flow cytometry/i,  /FSC|SSC|flow[_ ]?cytometry/i],
     [/CAR-T/i,           /CD19/],
+    [/B-cell epitope/i,  /EBV/],
+    [/HLA class-I/i,     /HLA-A|HLA-B/],
     [/ChIP-seq/i,        /CTCF|MACS|ChIP/],
     [/whole-slide/i,     /CMU-1|whole-slide|nuclei/i],
     [/ATAC/i,            /ATAC|differentially accessible/i],

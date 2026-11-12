@@ -172,3 +172,39 @@ describe("StepDetail title — human step name, no infrastructure words", () => 
     expect(screen.getByTitle("INPUT_DOWNLOAD")).toBeInTheDocument();
   });
 });
+
+// Audit finding A6 (2026-11-11): the spec-08 .deephd position + .deepfoot
+// traversal/re-run shipped untested — a test here would have caught A1 (the
+// dead footer re-run button). Guard all four spec-08 additions.
+describe("StepDetail — spec-08 .deephd position + .deepfoot traversal/re-run", () => {
+  it("shows 'Step N of M' and a real phase-letter badge", () => {
+    const step = { ...baseStep, stepNumber: 3, totalSteps: 7, phaseLetter: "B" };
+    render(<StepDetail runId={runId} step={step as any} onClose={vi.fn()} />);
+    expect(screen.getByTestId("step-position")).toHaveTextContent("Step 3 of 7");
+    expect(screen.getByTestId("step-phase-letter")).toHaveTextContent("B");
+  });
+
+  it("renders no phase-letter badge when none is provided (unphased workflow)", () => {
+    const step = { ...baseStep, stepNumber: 1, totalSteps: 1, phaseLetter: undefined };
+    render(<StepDetail runId={runId} step={step as any} onClose={vi.fn()} />);
+    expect(screen.queryByTestId("step-phase-letter")).toBeNull();
+    expect(screen.getByTestId("step-position")).toHaveTextContent("Step 1 of 1");
+  });
+
+  it("disables Prev at the first step and Next at the last", () => {
+    const { rerender } = render(<StepDetail runId={runId} step={baseStep as any} onClose={vi.fn()} onPrev={undefined} onNext={vi.fn()} />);
+    expect(screen.getByTestId("step-prev")).toBeDisabled();
+    expect(screen.getByTestId("step-next")).not.toBeDisabled();
+    rerender(<StepDetail runId={runId} step={baseStep as any} onClose={vi.fn()} onPrev={vi.fn()} onNext={undefined} />);
+    expect(screen.getByTestId("step-next")).toBeDisabled();
+  });
+
+  it("footer 'Re-run from here' is LIVE and fires onAdjustAndRerun (A1 regression guard)", async () => {
+    const onAdjust = vi.fn();
+    render(<StepDetail runId={runId} step={baseStep as any} onClose={vi.fn()} onAdjustAndRerun={onAdjust} />);
+    const btn = screen.getByTestId("step-rerun-footer");
+    expect(btn).toBeInTheDocument();
+    await userEvent.click(btn);
+    expect(onAdjust).toHaveBeenCalledTimes(1);
+  });
+});
