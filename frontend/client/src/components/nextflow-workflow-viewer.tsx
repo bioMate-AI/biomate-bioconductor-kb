@@ -1703,35 +1703,73 @@ export function NextflowWorkflowViewer({
   }, []);
 
   const phases = React.useMemo<ViewerPhase[]>(() => {
-    // Saved execution records take precedence over static pipeline/parser placeholders.
     const recorded = recordedProcessPhases(nextflowStatus?.processes);
-    if (recorded.length) return recorded;
-    // Prefer stored steps; fall back to lazily-fetched steps for old sessions
+    // The PLANNED phase list from the workflow definition — the FULL structure,
+    // every phase 'pending' until runtime overlays its real status.
     const stepsSource = (
       workflowDefinition?.steps && typeof workflowDefinition.steps === "object" && Object.keys(workflowDefinition.steps).length > 0
         ? workflowDefinition.steps
         : lazySteps ?? {}
     );
-    if (Object.keys(stepsSource).length > 0) {
-      return Object.entries(stepsSource).map(([stepKey, rawStep], index) => {
-        const step = (rawStep || {}) as Record<string, unknown>;
-        return {
-          id: String(step.id || stepKey || `step-${index}`),
-          name: String(step.name || step.label || step.tool_id || `Step ${index + 1}`),
-          status: "pending",
-          description: String(step.annotation || step.description || ""),
-          toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
-          parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
-          inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
-          summary: typeof step.summary === "string" ? step.summary : undefined,
-          autoloop: typeof step.autoloop === "boolean" ? step.autoloop : undefined,
-          phase_group: typeof step.phase_group === "string" && step.phase_group ? step.phase_group : undefined,
-          phase_label: typeof step.phase_label === "string" && step.phase_label ? step.phase_label : undefined,
-        };
-      });
+    const planned: ViewerPhase[] = Object.keys(stepsSource).length > 0
+      ? Object.entries(stepsSource).map(([stepKey, rawStep], index) => {
+          const step = (rawStep || {}) as Record<string, unknown>;
+          return {
+            id: String(step.id || stepKey || `step-${index}`),
+            name: String(step.name || step.label || step.tool_id || `Step ${index + 1}`),
+            status: "pending" as ViewerPhaseStatus,
+            description: String(step.annotation || step.description || ""),
+            toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
+            parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
+            inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
+            summary: typeof step.summary === "string" ? step.summary : undefined,
+            autoloop: typeof step.autoloop === "boolean" ? step.autoloop : undefined,
+            phase_group: typeof step.phase_group === "string" && step.phase_group ? step.phase_group : undefined,
+            phase_label: typeof step.phase_label === "string" && step.phase_label ? step.phase_label : undefined,
+          };
+        })
+      : [];
+    if (planned.length === 0) return recorded;    // no planned structure → runtime only
+    if (recorded.length === 0) return planned;    // not started → planned only
+    const norm = (s: unknown) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Do the recorded processes actually CORRESPOND to the planned steps? If none of
+    // them map onto a planned step, the planned list is just placeholders (old
+    // sessions with generic "Step 1") and the saved records win, as before. Only when
+    // they correspond do we merge — so a run stopped mid-way keeps its FULL planned
+    // phase list (un-run phases stay 'pending') instead of collapsing to what ran.
+    const plannedKeys = new Set<string>();
+    for (const p of planned) {
+      plannedKeys.add(norm(p.id)); plannedKeys.add(norm(p.name));
+      if ((p as any).processName) plannedKeys.add(norm((p as any).processName));
     }
-    // No step data from backend — return empty so the viewer shows a clean idle state
-    return [];
+    const corresponds = recorded.some(
+      (r) => plannedKeys.has(norm(r.id)) || plannedKeys.has(norm(r.name)) || plannedKeys.has(norm((r as any).processName)),
+    );
+    if (!corresponds) return recorded; // placeholder planned list → saved records take precedence
+    // Overlay runtime status onto the planned structure so a stopped / cancelled /
+    // partial run keeps its FULL phase list — un-run phases stay 'pending', NEVER dropped.
+    const recByKey = new Map<string, ViewerPhase>();
+    for (const r of recorded) {
+      if (r.id) recByKey.set(norm(r.id), r);
+      if (r.name) recByKey.set(norm(r.name), r);
+      if ((r as any).processName) recByKey.set(norm((r as any).processName), r);
+    }
+    const used = new Set<ViewerPhase>();
+    const merged: ViewerPhase[] = planned.map((p) => {
+      const m = recByKey.get(norm(p.id)) || recByKey.get(norm(p.name)) || recByKey.get(norm((p as any).processName));
+      if (!m) return p; // un-run planned phase stays pending
+      used.add(m);
+      return {
+        ...p,
+        name: m.name || p.name, // the real runtime process name (used by autofix / error reports)
+        status: m.status,
+        processName: (m as any).processName ?? (p as any).processName,
+        duration: (m as any).duration ?? (p as any).duration,
+        outputFiles: (m as any).outputFiles ?? (p as any).outputFiles,
+      };
+    });
+    for (const r of recorded) if (!used.has(r)) merged.push(r); // dynamic/extra runtime processes
+    return merged;
   }, [workflowDefinition, lazySteps, nextflowStatus?.processes]);
 
   useEffect(() => {

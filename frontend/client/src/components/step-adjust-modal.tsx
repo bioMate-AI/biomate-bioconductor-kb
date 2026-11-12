@@ -41,8 +41,22 @@ export function StepAdjustModal({
   workflowDefinition,
   onRerunSubmitted,
 }: StepAdjustModalProps) {
+  // Param values can arrive as structured objects ({value|default|val, type, origin,…}).
+  // Pull out the scalar they carry so the field shows the real value — not "[object
+  // Object]" (string inputs) or an empty box (number inputs coercing an object to NaN).
+  const coerceParamValue = (v: any): any => {
+    if (v != null && typeof v === "object" && !Array.isArray(v)) {
+      if ("value" in v) return v.value;
+      if ("default" in v) return v.default;
+      if ("val" in v) return v.val;
+      return JSON.stringify(v); // last resort — readable, never "[object Object]"
+    }
+    return v;
+  };
   const [paramOverrides, setParamOverrides] = useState<Record<string, any>>(
-    () => ({ ...(step.parameters || {}) })
+    () => Object.fromEntries(
+      Object.entries(step.parameters || {}).map(([k, v]) => [k, coerceParamValue(v)]),
+    )
   );
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
