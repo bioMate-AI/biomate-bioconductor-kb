@@ -376,6 +376,14 @@ class RegulatoryAuditor:
 
     def _call_llm_judge(self, prompt: str) -> dict:
         """Call Haiku (fast/cheap) for semantic audit judgment. Returns parsed JSON."""
+        from galaxy.ai.llm_region import cn_complete, current_policy
+        _p = current_policy()
+        if _p is not None and _p.is_cn:
+            # A China-region request: a Chinese model only — no Anthropic / Gemini fallback.
+            text = (cn_complete(prompt, system=_JUDGE_SYSTEM, max_tokens=1024, json_mode=True) or "").strip()
+            if "```" in text:
+                text = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL).group(1).strip()
+            return json.loads(text)
         try:
             import anthropic
             client = anthropic.Anthropic()

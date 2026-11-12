@@ -96,31 +96,96 @@ It applies to every user.
 - **Source:** DB-IP "IP to Country Lite", 2026-11 (CC BY 4.0, "IP Geolocation by DB-IP").
 - **Why not APNIC:** I chose a geolocation database rather than APNIC's delegated allocation file. APNIC records registrations, not locations, and misses blocks registered elsewhere but used in the region. The dev visitor `47.242.215.11` (Alibaba Cloud Hong Kong, an ARIN registration) is not in APNIC's HK data but is HK in DB-IP. The coordinator's message suggested APNIC; this is a deliberate deviation for that reason.
 
-## Python (Galaxy) side — NOT yet routed per request
+## Galaxy (Python) side — routed per request
 
-Galaxy's `LLMClient` uses the deployment provider (`GALAXY_AI_LLM_PROVIDER` / `llm_providers.yml`: Gemini → Claude → GPT …) for every caller. There are about 45 modules that call an LLM. A China user's chat can trigger these Galaxy LLM calls:
+Galaxy's own LLM calls for a China user (workflow search / re-rank, parameter extraction, research,
+findings, autofix, target ID, IND narratives, workflow generation …) follow the same policy.
 
-| Endpoint (called by Node during chat / after a run) | LLM call |
-|---|---|
-| `POST /api/ai_assistant/search_nextflow_workflow` | `webapps/galaxy/api/ai_assistant.py:2511` (arbiter), `:2851` (param extraction) |
-| `POST /api/ai_assistant/extract_params` | `ai_assistant.py:3107`, `:3186` (workflow search re-rank) |
-| `POST /api/ai_assistant/research_query` | `ai_assistant.py:5724`; `ai/agents/research_agent.py:1373` |
-| `POST /api/nextflow/analyze-outputs` (findings) | `webapps/galaxy/api/nextflow_executor.py:3307` and the findings path; `ai/ai_assistant.py:3371` |
-| Autofix after a failed run | `webapps/galaxy/api/autofix3.py:211`, `:535`, `:702` |
-| Target ID | `webapps/galaxy/api/target_id_api.py:107` |
-| Workflow generation (`ai/ai_assistant.py`) | `:791`, `:1502`, `:5258`; `ai/llm_router.py:174` |
+**How the policy reaches Galaxy (Node, `server/galaxy-llm-policy-header.ts`).** Every request Node
+sends to Galaxy while serving a user carries
 
-**Proposed fix (not implemented here):**
-- Node adds `X-BioMate-LLM-Region: cn` and `X-BioMate-LLM-Model: <slug>` in `fetchGalaxyAsUser` / `userProxy` from `llmPolicyStorage`.
-- A Galaxy middleware sets a `contextvar`. `LLMClient.generate*` honours it by calling the OpenAI-compatible endpoint (OpenRouter with `OPENROUTER_ZH_API_KEY`) with that model, or raising for a China user with no key.
-- Caveat: `LLMClient.generate()` runs `asyncio.run` in a `ThreadPoolExecutor`, and `contextvars` do not cross that boundary unless they are copied (`contextvars.copy_context().run`).
-- This needs a decision and a Galaxy deploy. Until then, the Galaxy-side calls above still use the deployment's chain for China users.
+```
+X-BioMate-LLM-Policy: region=cn; model=<the resolved Chinese model>   # China user
+X-BioMate-LLM-Policy: region=intl                                     # everyone else
+```
+
+It is set in the two ways Node reaches Galaxy:
+- `installGalaxyFetchPolicy()` (in `index.ts`) wraps the global `fetch` once and adds the header to
+  every request whose origin is Galaxy's (`GALAXY_URL` / `GALAXY_INTERNAL_URL` /
+  `localhost:8081`). That covers `fetchGalaxyAsUser`, `backendPassthrough` and the ~120 direct
+  `fetch(`${GALAXY_URL}/…`)` calls in `routes.ts`, `galaxy-assistant.ts` and the services,
+  including ones added later. A wrapper was chosen over editing each call site so that new
+  Galaxy calls are covered by construction.
+- `GalaxyAPIProxy`'s axios client adds it in a request interceptor (the only axios client that
+  talks to Galaxy).
+
+The user's own OpenRouter key is never sent; Galaxy uses the deployment's credential.
+
+**Trust (deliberate choice).** The header can only RESTRICT a request to Chinese models: with no
+header, or with `region=intl`, Galaxy uses its ordinary chain, so a forged header can never lift
+the restriction. A forged `region=cn` only restricts the forger (and spends the deployment's
+Chinese-model key, which that user could equally do through the chat). `model=` is honoured only
+when it names a Chinese model; anything else becomes the Chinese default. So no shared secret is
+needed. As hygiene, Node also strips any browser-sent copy of the header
+(`stripInboundLlmPolicyHeader`, the first middleware) and its own value always overrides.
+
+**Galaxy (`galaxy/ai/llm_region.py`).**
+- `LlmPolicyMiddleware` (pure ASGI, added in `fast_app.initialize_fast_app`) puts the parsed
+  header in a `ContextVar` for the whole request: FastAPI routes, their background tasks, the
+  threadpool sync endpoints run in, and the WSGI-mounted legacy app (a2wsgi copies the context).
+- `cn_route()` is the single question every chokepoint asks: `None` outside the region, else the
+  Chinese route, else `ChineseModelUnavailable` (fail closed). Credentials: `OPENROUTER_ZH_API_KEY`
+  → `OPENROUTER_API_KEY` → an on-prem `LLM_API_URL` whose `LLM_MODEL` is Chinese.
+- A FastAPI exception handler turns `ChineseModelUnavailable` into **503
+  `{"code": "cn_model_unavailable"}`**.
+- **Threads.** Python 3.9 starts every thread with an empty context, so a request's policy was lost
+  the moment a handler handed work to a thread (research fan-out, the run launch / monitor thread,
+  parallel re-rankers …). `install_thread_context_propagation()` fixes that boundary once:
+  `ThreadPoolExecutor.submit` (also `map` and `loop.run_in_executor`) and `Thread.start` run the
+  work in a copy of the submitter's context. Threads started at boot (pollers) copy the boot
+  context, which has no policy.
+- **Runs.** The run record stores `llm_policy` at launch (pre-record, full record, auto-reroute).
+  The run's own launch / monitor threads inherit the request context. The completion poller /
+  orphan finalizer runs in any worker's poller thread, outside the request: `finalize_orphaned_run`
+  re-enters the recorded policy (`run_policy_scope`), so a China-region run's QC, autoloop and
+  findings LLM calls stay on a Chinese model. Runs launched before this change have no
+  `llm_policy` and keep the ordinary chain.
+
+**Chokepoints covered:**
+
+| Chokepoint | China-region behaviour | Callers |
+|---|---|---|
+| `LLMClient.generate_async` (and `generate`, whose worker thread now carries the context) | Chinese model via `cn_generate` | every `LLMClient` user: ai_assistant search / arbiter / extract_params / re-rank, research_agent, findings (`ai/ai_assistant.py`), workflow generation, llm_router, target ID, autofix3, `/internal/llm/generate` |
+| `generate_with_fallback` | Chinese model (never the Gemini → Claude → GPT chain) | the chain itself, for any direct caller |
+| `gemini_flash.call_gemini_flash` / `call_gemini_flash_vision` | Chinese model (vision as an image part) | classifiers, research figure reading, IND / audit fallbacks |
+| `workflow_ops.UnifiedLLMClient.call` | Chinese model, same return shape as the provider the caller named | auto_healer, log_analyzer, query_agent, autofix agent |
+| `/api/ai_assistant/paperqa_synthesize` | litellm `openrouter/<model>` (or the on-prem endpoint) with local sparse embeddings — no paper text to Anthropic / OpenAI | research synthesis over uploaded PDFs |
+| `/api/chat` (Galaxy's job-error wizard, OpenAI) | Chinese model | tool-error explanations |
+| `/internal/llm/generate` | skips the SFT-gold adapter (not a Chinese-vendor model); `LLMClient` as above | Node `llmGenerate` (China users already go direct on the Node side) |
+| `ind_assembly` frontier path (GPT / Claude / Gemini) | Chinese model stands in for the frontier model; then the Qwen-based Modal / vLLM / local paths | IND narratives |
+| `regulatory_auditor._call_llm_judge` | Chinese model, no Anthropic / Gemini fallback | IND audit |
+| `biological_logic_detector`, `dual_llm_converter_system`, `workflow_ops.parameter_analyzer` | Chinese model | workflow conversion / parameter analysis |
+| `cryo_em_knowledge.rag_index._embed_with_anthropic` | no text sent to Anthropic; the deterministic embedding it always returned | cryo RAG index build |
+
+**Not covered (none reachable from a user request):**
+- `chain_composer/domain_reclassifier.openrouter_llm` — an offline catalog-audit CLI that reads
+  `~/.config/biomate/openrouter.key`.
+- `workflow_ops/autofix/fixers/pure_llm_fixer.PureLLMAutoFixer` — exported, never constructed
+  (an Anthropic tool-use loop).
+- `agents/research_agent._get_anthropic_client` — defined, never called.
+- `target_id/bench_targetid_llm*.py`, the evaluation / training CLIs (`auto_retrain`,
+  `regulatory_training_jobs_cli`) — offline jobs with no user.
+- Celery / cron jobs not tied to a run carry no user region and are unchanged.
+- `dual_llm_converter_system` is patched but does not load on dev today (the `google` package is
+  not installed in the Galaxy container) — a pre-existing condition.
+- Tool-use loops on the China route are text-only: the autofix agent's Anthropic tool calls get a
+  plain text answer from the Chinese model (it treats that as the final answer).
 
 ## Environment needed
 
 | Var | Where | Effect |
 |---|---|---|
-| `OPENROUTER_ZH_API_KEY` | `/opt/biomate/.env` (frontend container) | Chinese model for China users without their own OpenRouter key. **Without it (and without `OPENROUTER_API_KEY` or an on-prem Chinese `LLM_API_URL`) every China user's LLM call fails closed.** On dev today, that would be every user with a Chinese UI, a Chinese browser, or a CN/HK/MO/TW IP. |
+| `OPENROUTER_ZH_API_KEY` | `/opt/biomate/.env` (read by BOTH the frontend and the Galaxy containers) | Chinese model for China users without their own OpenRouter key. **Without it (and without `OPENROUTER_API_KEY` or an on-prem Chinese `LLM_API_URL`) every China user's LLM call fails closed.** On dev today, that would be every user with a Chinese UI, a Chinese browser, or a CN/HK/MO/TW IP. |
 | `OPENROUTER_ZH_DEFAULT_MODEL` (optional) | same | Chinese default model; must be a Chinese vendor, otherwise it is ignored |
 
 ## Tests
@@ -131,5 +196,12 @@ Galaxy's `LLMClient` uses the deployment provider (`GALAXY_AI_LLM_PROVIDER` / `l
 | `server/llm-policy-routes.test.ts` | 9 | Real express: `/api/llm/policy`; the 400s for China users; US saves are unchanged |
 | `server/galaxy-assistant-model-identity.test.ts` | 5 | The identity block in the built reply prompt and the OpenRouter prompt; `responseModelFor`; under a China user Gemini is `null` and `_getClaude` returns the Chinese shim or throws |
 | `client/src/components/settings-dialog.llm-region.test.tsx` | 5 | China picker (no Claude chip, Chinese default, inline rejection, no Anthropic provider); the picker outside the region is unchanged |
+| `server/galaxy-llm-policy-header.test.ts` | 5 | The header value (model named, never the key); fetch to Galaxy carries it (and only to Galaxy, overriding a forged one); the inbound strip; GalaxyAPIProxy's axios requests carry it |
+| `backend/lib/galaxy/ai/tests/test_llm_region.py` | 8 | Header parsing (no non-Chinese model, junk = ordinary chain); the ASGI middleware; fail-closed; gemini_flash (text + vision) never builds a Gemini client; LLMClient.generate_async / generate (worker thread) / the fallback chain; thread / executor / run_in_executor propagation; the orphan finalizer re-entering the run's recorded policy; allow-list parity with the Node module |
+
+The Galaxy chokepoint, thread and finalizer tests (4–7 of `test_llm_region.py`) fail with the
+pre-change chokepoints; the axios-interceptor test fails without the interceptor. Every modified
+Galaxy module was loaded in dev's Galaxy Python 3.9 (read-only) — all load, except
+`dual_llm_converter_system`, which already could not (no `google` package in the container).
 
 The chokepoint, identity and picker tests failed on the pre-change code.

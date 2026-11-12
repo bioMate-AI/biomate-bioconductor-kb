@@ -253,6 +253,20 @@ def finalize_orphaned_run(
       5. Stash S3 outputs + qc_gates back in the store so subsequent
          /api/workflows/runs/<id> reads see the terminal state.
     """
+    # This runs outside the launching request (any worker's poller thread): re-enter the LLM
+    # region policy the run was launched under, so a China-region run's QC / autoloop / findings
+    # LLM calls stay on a Chinese model (galaxy.ai.llm_region).
+    from galaxy.ai.llm_region import run_policy_scope
+
+    with run_policy_scope(run_record):
+        _finalize_orphaned_run_impl(store, run_id, run_record)
+
+
+def _finalize_orphaned_run_impl(
+    store: RunStateStore,
+    run_id: str,
+    run_record: Dict[str, Any],
+) -> None:
     # Prefer the authoritative AWS Batch verdict when the poller supplied it —
     # the disk-artifact inference (_read_returncode_from_disk) mislabels Batch
     # runs as 'interrupted' when the local .nextflow.log/trace never reached

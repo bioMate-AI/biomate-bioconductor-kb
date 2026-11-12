@@ -282,6 +282,16 @@ def _call_frontier_regulatory_llm(
 
     Returns "" on any failure (caller falls through to the next backend).
     """
+    from galaxy.ai.llm_region import cn_complete, current_policy
+    _p = current_policy()
+    if _p is not None and _p.is_cn:
+        # A China-region request: the Chinese model stands in for the frontier model (never GPT /
+        # Claude / Gemini). "" on failure falls through to the Qwen-based Modal / vLLM / local paths.
+        try:
+            return cn_complete(user_prompt, system=system, max_tokens=max_new_tokens, temperature=temperature) or ""
+        except Exception as exc:
+            log.warning("[frontier] Chinese-model call failed: %s", exc)
+            return ""
     model = os.environ.get("REGULATORY_LLM_FRONTIER_MODEL", "").strip()
     if not model:
         return ""
@@ -423,7 +433,9 @@ def _call_local_regulatory_llm(
     is unchanged. When BioMate v6 (Qwen3-8B + LoRA) is proven on Modal,
     drop REGULATORY_LLM_FRONTIER_MODEL to flip the priority.
     """
-    if os.environ.get("REGULATORY_LLM_FRONTIER_MODEL"):
+    from galaxy.ai.llm_region import current_policy as _cur_policy
+    _cn_req = bool(_cur_policy() and _cur_policy().is_cn)
+    if os.environ.get("REGULATORY_LLM_FRONTIER_MODEL") or _cn_req:
         out = _call_frontier_regulatory_llm(
             system, user_prompt, max_new_tokens, temperature,
         )

@@ -157,18 +157,21 @@ Return a JSON object with a "recommendations" array.
             log.warning("No Anthropic API key found, using rule-based fixes")
             return generate_rule_based_fixes(issues, aws_config)
 
-        client = anthropic.Anthropic(api_key=api_key)
+        from galaxy.ai.llm_region import cn_complete
+        response_text = cn_complete(prompt, max_tokens=2048)  # China-region request: a Chinese model
+        if response_text is None:
+            client = anthropic.Anthropic(api_key=api_key)
 
-        message = client.messages.create(
-            model=resolve_model('param'),
-            max_tokens=2048,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+            message = client.messages.create(
+                model=resolve_model('param'),
+                max_tokens=2048,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
 
-        # 解析响应
-        response_text = message.content[0].text
+            # 解析响应
+            response_text = message.content[0].text
 
         # 提取 JSON (可能在 markdown 代码块中)
         json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)

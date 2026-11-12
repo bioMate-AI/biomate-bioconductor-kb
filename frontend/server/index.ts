@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import passport from "passport";
 import { registerRoutes } from "./routes";
 import { llmRegionMiddleware } from "./llm-region-policy";
+import { installGalaxyFetchPolicy, stripInboundLlmPolicyHeader } from "./galaxy-llm-policy-header";
 import { applyPendingMigrations } from "./migrate";
 import { setupVite, serveStatic, log } from "./vite";
 import { oauthService } from "./oauth-service";
@@ -32,6 +33,12 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const app = express();
+
+// Chinese-LLM region policy → Galaxy: every fetch() to Galaxy carries the request's
+// X-BioMate-LLM-Policy header, and no browser-sent copy of that header is ever relayed
+// (galaxy-llm-policy-header.ts).
+installGalaxyFetchPolicy();
+app.use(stripInboundLlmPolicyHeader);
 
 // Initialize security FIRST (before any other middleware)
 const security = initializeSecurity(app);

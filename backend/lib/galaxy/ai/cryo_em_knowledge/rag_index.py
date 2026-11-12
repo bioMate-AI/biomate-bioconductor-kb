@@ -138,6 +138,12 @@ def _embed_with_anthropic(texts: list[str], api_key: str) -> list[list[float]]:
     Embed texts using Anthropic's text-embedding API via the SDK.
     Falls back to TF-IDF mock if API call fails.
     """
+    from galaxy.ai.llm_region import current_policy
+    _p = current_policy()
+    if _p is not None and _p.is_cn:
+        # A China-region request sends no text to Anthropic: the deterministic embedding is what
+        # this path returns anyway (the Anthropic call always falls through to it).
+        return [_tfidf_mock_embed(t) for t in texts]
     import anthropic
     client = anthropic.Anthropic(api_key=api_key)
     results = []
