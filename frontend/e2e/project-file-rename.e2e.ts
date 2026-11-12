@@ -17,8 +17,8 @@
  * key handling in client/src/components/project-file-tree.rename.test.tsx.
  */
 import { test, expect, type APIRequestContext } from "@playwright/test";
-import { request as pwRequest } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
+import { createProject, deleteProjectLoudly, revealFile } from "./_project-ui";
 
 const V1 = "id,value\n1,10\n2,20\n";
 const V2 = "id,value\n1,11\n2,20\n";
@@ -45,11 +45,8 @@ async function download(request: APIRequestContext, projectId: string, fileId: s
   const res = await request.get(`${BASE_URL}/api/projects/${projectId}/files/${fileId}/url`);
   expect(res.ok(), `url failed: ${await res.text()}`).toBeTruthy();
   const { url } = await res.json();
-  // A presigned S3 URL is fetched WITHOUT our auth headers, as a browser does: loginAsFixture puts a
-  // Bearer token on every request of this context, and S3 rejects a second auth mechanism (400).
-  let bytes;
-  if (url.startsWith("/")) bytes = await request.get(`${BASE_URL}${url}`);
-  else { const clean = await pwRequest.newContext(); bytes = await clean.get(url); }
+  // Same context, cookie session: the cookie is host-scoped, so a presigned S3 URL gets no app auth.
+  const bytes = await request.get(url.startsWith("/") ? `${BASE_URL}${url}` : url);
   expect(bytes.ok(), `download failed (${bytes.status()})`).toBeTruthy();
   return bytes.text();
 }
@@ -60,13 +57,7 @@ test.describe("project file rename / move", () => {
   test("rename + move a file and a folder; bytes, versions and collisions hold", async ({ page }) => {
     await loginAsFixture(page);
     const request = page.request;
-    const created = await request.post(`${BASE_URL}/api/projects`, {
-      data: { name: `E2E rename ${Date.now()}`, description: "file rename/move e2e" },
-    });
-    expect(created.ok(), `create project failed: ${await created.text()}`).toBeTruthy();
-    const cj = await created.json();
-    const projectId: string = cj?.project?.id ?? cj?.id;
-    expect(projectId).toBeTruthy();
+    const projectId = await createProject(request, `E2E rename ${Date.now()}`);
 
     try {
       // 1. x/a.csv, v1 then v2 (same name, new bytes → a new version of the same file)
@@ -79,7 +70,7 @@ test.describe("project file rename / move", () => {
       // 2. UI rename / move x/a.csv → y/b.csv
       await page.goto(`${BASE_URL}/projects?project=${projectId}&tab=files`);
       await expect(page.getByTestId("project-file-tree")).toBeVisible({ timeout: 15_000 });
-      await page.getByTestId("folder-inputs/x").click();
+      await revealFile(page, a1.id, "x");   // expand only the folders that are collapsed
       const row = page.getByTestId(`file-row-${a1.id}`);
       await expect(row).toBeVisible({ timeout: 10_000 });
       await row.hover();
@@ -153,7 +144,7 @@ test.describe("project file rename / move", () => {
 
       // 6a. collision via UI: rename the new x/a.csv onto z/b.csv → 409 shown, nothing changes
       const freshRowUi = page.getByTestId(`file-row-${fresh.id}`);
-      if (!(await freshRowUi.isVisible().catch(() => false))) await page.getByTestId("folder-inputs/x").click();
+      await revealFile(page, fresh.id, "x");
       await freshRowUi.hover();
       await page.getByTestId(`file-rename-${fresh.id}`).click();
       const cin = page.getByTestId(`file-rename-${fresh.id}-input`);
@@ -183,7 +174,7 @@ test.describe("project file rename / move", () => {
       expect(fr?.payload).toEqual({ fileId: a1.id, from: "x/a.csv", to: "y/b.csv" });
       expect(events.some((e) => e.event_type === "folder_renamed" && e.payload?.from === "y" && e.payload?.to === "z")).toBe(true);
     } finally {
-      await request.delete(`${BASE_URL}/api/projects/${projectId}`).catch(() => {});
+      await deleteProjectLoudly(request, projectId);
     }
   });
 });

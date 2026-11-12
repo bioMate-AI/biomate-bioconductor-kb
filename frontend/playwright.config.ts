@@ -39,9 +39,12 @@ export default defineConfig({
     },
     actionTimeout: 60000,
     navigationTimeout: 90000,
-    // Bypass global rate limiter for all browser-initiated requests
+    // Bypass the global rate limiter for harness traffic. Auth is NOT a header: the
+    // browser is authenticated by the biomate_token session cookie (e2e/_fixture-login.ts),
+    // which is host-scoped and so never reaches presigned S3 URLs. Default = the dev value
+    // of E2E_TEST_TOKEN (CLAUDE.md "Auth header on dev"), same default as _fixture-login.ts.
     extraHTTPHeaders: {
-      'X-E2E-Test-Token': process.env.E2E_TEST_TOKEN || 'test-e2e-token-12345',
+      'X-E2E-Test-Token': process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only',
     },
   },
 

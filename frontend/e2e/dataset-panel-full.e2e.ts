@@ -8,12 +8,10 @@
  * Discipline (CLAUDE.md §E2E):
  *   - Single canonical fixture; login ONCE (loginAsFixture caches the JWT→cookie
  *     module-wide, reused across all tests here).
- *   - NO backend-response mocking. The ONLY page.route here strips the
- *     Authorization/X-E2E headers from direct S3 (amazonaws.com) presigned-URL
- *     fetches — S3 400s a presigned GET that also carries Authorization. This is
- *     header hygiene (route.continue with edited headers), NOT a response mock;
- *     it's the same pattern the canonical files-viz-verify.e2e.ts uses so the
- *     type-aware preview exercises the real viewer. No /api/* request is touched.
+ *   - NO backend-response mocking and no page.route at all: the browser is
+ *     authenticated by the session cookie (_fixture-login.ts), which never
+ *     reaches presigned S3 URLs, so the type-aware preview fetches S3 as a real
+ *     browser does.
  *
  * Data (probed live 2026-10-28):
  *   - UPLOAD project "MG PBMC — sample data demo" (3cd5292d…): counts_matrix.csv
@@ -82,24 +80,17 @@ async function openDataset(projectId: string, fileId: string) {
     try { localStorage.setItem("biomate-active-project-id", pid as string); } catch { /* */ }
   }, projectId);
   await page.goto(`${BASE_URL}/files?file=${fileId}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.waitForTimeout(3500);
-  if (!(await page.locator('[data-testid="dataset-object"]').first().isVisible().catch(() => false))) {
-    const row = page.locator(`[data-testid="file-open-${fileId}"]`).first();
-    if (await row.isVisible().catch(() => false)) { await row.click().catch(() => {}); await page.waitForTimeout(3000); }
-  }
-  await page.locator('[data-testid="dataset-object"]').first().waitFor({ state: "visible", timeout: 20_000 }).catch(() => {});
+  // Condition wait: the deep link opens the object, or at least the file row renders.
+  const obj = page.locator('[data-testid="dataset-object"]').first();
+  const row = page.locator(`[data-testid="file-open-${fileId}"]`).first();
+  await obj.or(row).first().waitFor({ state: "visible", timeout: 30_000 }).catch(() => {});
+  if (!(await obj.isVisible()) && (await row.isVisible())) await row.click();
+  await obj.waitFor({ state: "visible", timeout: 20_000 }).catch(() => {});
 }
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
   await loginAsFixture(page);
-  // Header hygiene for direct S3 presigned fetches (NOT an API mock — see header).
-  await page.route(/amazonaws\.com/, async (route) => {
-    const h = { ...route.request().headers() };
-    delete h["authorization"]; delete h["Authorization"];
-    delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-    await route.continue({ headers: h });
-  });
 });
 
 test.afterAll(async () => {
@@ -162,7 +153,6 @@ test("Flow 1 — CSV upload: header + preview + versions", async () => {
 
   // ── PREVIEW — Table ──
   await page.locator('[data-testid="dataset-tab-preview"]').click().catch(() => {});
-  await page.waitForTimeout(3000);
   const previewWrap = await vis("dataset-preview", 8000);
   const tableVisible = await vis("dataset-preview-table", 8000);
   s = await shot("02_csv_preview_table");
@@ -178,15 +168,16 @@ test("Flow 1 — CSV upload: header + preview + versions", async () => {
     // descending order MUST be the exact reverse of the ascending order — this
     // proves the sort actually reorders, independent of the data's initial order
     // (the sample may already be ascending, so a single click can be a no-op).
+    const ascending = (xs: string[]) => xs.every((v, i) => i === 0 || xs[i - 1].localeCompare(v) <= 0 ||
+      (Number.isFinite(Number(xs[i - 1])) && Number.isFinite(Number(v)) && Number(xs[i - 1]) <= Number(v)));
     await page.locator('[data-testid="dataset-col-sort-0"]').first().click().catch(() => {});
-    await page.waitForTimeout(600);
+    await expect.poll(async () => ascending(await firstColCells()), { timeout: 5_000 }).toBe(true).catch(() => {});
     const asc = await firstColCells();
     await page.locator('[data-testid="dataset-col-sort-0"]').first().click().catch(() => {});
-    await page.waitForTimeout(600);
+    await expect.poll(firstColCells, { timeout: 5_000 }).not.toEqual(asc).catch(() => {});
     const desc = await firstColCells();
     s = await shot("03_csv_sorted");
-    const isAsc = asc.every((v, i) => i === 0 || asc[i - 1].localeCompare(v) <= 0 ||
-      (Number.isFinite(Number(asc[i - 1])) && Number.isFinite(Number(v)) && Number(asc[i - 1]) <= Number(v)));
+    const isAsc = ascending(asc);
     const reversed = JSON.stringify(desc) === JSON.stringify([...asc].reverse());
     const reorders = reversed && JSON.stringify(asc) !== JSON.stringify(desc);
     rec("P-sort", "sort header (dataset-col-sort-0) reorders (asc↔desc toggle)",
@@ -198,13 +189,16 @@ test("Flow 1 — CSV upload: header + preview + versions", async () => {
     const sampleCell = (asc[0] ?? before[0] ?? "").trim();
     const token = sampleCell.slice(0, Math.min(3, sampleCell.length)) || "a";
     await page.locator('[data-testid="dataset-preview-filter"]').fill(token).catch(() => {});
-    await page.waitForTimeout(700);
+    const rowTexts = () => page.locator('[data-testid="dataset-preview-table"] tbody tr').allInnerTexts();
+    await expect.poll(async () => (await rowTexts()).every((t) => t.toLowerCase().includes(token.toLowerCase())), { timeout: 5_000 })
+      .toBe(true).catch(() => {});
     const rowsAfter = await page.locator('[data-testid="dataset-preview-table"] tbody tr').count();
     s = await shot("04_csv_filtered");
     rec("P-filter", "filter input (dataset-preview-filter) filters rows", rowsAfter > 0 && rowsAfter <= rowsBefore ? "PASS" : "FAIL", s,
       `token='${token}' rowsBefore=${rowsBefore} rowsAfter=${rowsAfter}`);
     await page.locator('[data-testid="dataset-preview-filter"]').fill("").catch(() => {});
-    await page.waitForTimeout(400);
+    await expect.poll(() => page.locator('[data-testid="dataset-preview-table"] tbody tr').count(), { timeout: 5_000 })
+      .toBe(rowsBefore).catch(() => {});
   } else {
     rec("P-sort", "sort header reorders", "NOT-TESTABLE", s, "no preview table (profiler returned no columns/rows)");
     rec("P-filter", "filter filters rows", "NOT-TESTABLE", s, "no preview table");
@@ -212,7 +206,6 @@ test("Flow 1 — CSV upload: header + preview + versions", async () => {
 
   // ── PREVIEW — Columns toggle ──
   await page.locator('[data-testid="dataset-preview-toggle-columns"]').click().catch(() => {});
-  await page.waitForTimeout(600);
   const colsFuture = await vis("dataset-preview-columns-future", 4000);
   s = await shot("05_csv_columns");
   rec("P-columns", "Columns view toggle renders", colsFuture ? "PASS" : "FAIL", s,
@@ -220,7 +213,6 @@ test("Flow 1 — CSV upload: header + preview + versions", async () => {
 
   // ── PREVIEW — Plot toggle ──
   await page.locator('[data-testid="dataset-preview-toggle-plot"]').click().catch(() => {});
-  await page.waitForTimeout(800);
   const plot = await vis("dataset-sample-plot", 5000);
   const plotFuture = await vis("dataset-preview-plot-future", 2000);
   s = await shot("06_csv_plot");
@@ -229,7 +221,6 @@ test("Flow 1 — CSV upload: header + preview + versions", async () => {
 
   // ── VERSIONS ──
   await page.locator('[data-testid="dataset-tab-versions"]').click().catch(() => {});
-  await page.waitForTimeout(2500);
   const versWrap = await vis("dataset-versions", 6000);
   const noVers = await vis("dataset-no-versions", 2000);
   const verRows = await page.locator('[data-testid^="dataset-version-"]').count();
@@ -257,7 +248,6 @@ test("Flow 2 — type-aware preview (JSON upload)", async () => {
   const mounted = await vis("dataset-object", 15_000);
   if (!mounted) { rec("T-json", "JSON type-aware preview", "FAIL", await shot("08_json_mounted"), "dataset-object did not mount"); return; }
   await page.locator('[data-testid="dataset-tab-preview"]').click().catch(() => {});
-  await page.waitForTimeout(3500);
   const textPreview = await vis("dataset-text-preview", 8000);
   const richTable = await vis("dataset-preview-table", 2000);
   const none = await vis("dataset-preview-none", 2000);
@@ -294,7 +284,6 @@ test("Flow 3 — Provenance tab (run-output file)", async () => {
     /where it came from/i.test(wfTabLabel) ? "FAIL" : "FAIL", s, `tab label='${wfTabLabel}'`);
 
   await page.locator('[data-testid="dataset-tab-wherefrom"]').click().catch(() => {});
-  await page.waitForTimeout(4000);
   const wfWrap = await vis("dataset-wherefrom", 8000);
   const originWrap = await vis("dataset-origin", 6000);
   s = await shot("11_ro_provenance");

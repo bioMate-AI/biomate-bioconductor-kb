@@ -40,6 +40,7 @@
 
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login.js";
+import { deleteProjectLoudly } from "./_project-ui.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -262,7 +263,7 @@ test.describe.serial("conference-project-collab", () => {
         (p: any) => typeof p.name === "string" && p.name.startsWith("BD Summit MG Demo")
       );
       for (const p of stale) {
-        await page.request.delete(`${BASE_URL}/api/projects/${p.id}`).catch(() => {});
+        await deleteProjectLoudly(page.request, p.id, { inHook: true });
         console.log(`[setup] cleaned up stale project: ${p.id} "${p.name}"`);
       }
     }
@@ -290,7 +291,7 @@ test.describe.serial("conference-project-collab", () => {
     if (!projectId) return;
     const page = await browser.newPage();
     await loginAsFixture(page);
-    await page.request.delete(`${BASE_URL}/api/projects/${projectId}`).catch(() => {});
+    await deleteProjectLoudly(page.request, projectId, { inHook: true });
     console.log(`[teardown] project deleted: ${projectId}`);
     await page.close();
   });

@@ -1,0 +1,63 @@
+{
+  "$comment": "Expected per-format outcomes for e2e/dataset-format-matrix.e2e.ts. Written for the TARGET behaviour of docs/20261112_DATASET_PANEL_AUDIT.md (profile.viewKind, quality 'unassessed', per-kind stats, per-kind panel views, no Table/Columns/Plot on non-tables). The harness computes PASS / PARTIAL / FAIL from these checks and writes the counts to e2e/format-matrix-results.json; nobody grades by hand. Change an expectation only for a benchmark-design error (the expected answer is wrong for the format), never to match current behaviour.",
+  "contract": {
+    "dataset-object": "[data-testid=dataset-object] carries data-view-kind = profile.viewKind (one of viewKinds)",
+    "dataset-preview": "[data-testid=dataset-preview] carries data-preview-kind = the renderer actually shown (one of viewKinds, or 'none' / 'error'), and aria-busy=true while it loads",
+    "stats": "each stat card is [data-testid=dataset-stat][data-stat=<key>] (keys: rows, columns, size, type, sequences, reads, cells, genes, …)",
+    "quality": "[data-testid=data-perception][data-quality] in good | watch | blocked | unassessed; watch/blocked always list >= 1 [data-testid=perception-why-item]",
+    "columns": "table header cells: th[data-column-name] (falls back to th innerText); compared case-insensitively",
+    "toggles": "Table/Columns/Plot/Edit controls are [data-testid=dataset-preview-toggle-<key>] and render only for kinds where they mean something (tableKinds)",
+    "loading": "every loading indicator inside dataset-object is [data-testid$=-loading] or [aria-busy=true]",
+    "tree": "folder rows [data-testid=folder-<path>] carry aria-expanded"
+  },
+  "viewKinds": ["table", "sequence", "reads", "alignment", "anndata", "matrix", "molecules", "structure", "density", "image", "json", "signal", "markdown", "text"],
+  "tableKinds": ["table"],
+  "kindStats": {
+    "table": { "require": ["rows", "columns"] },
+    "sequence": { "require": ["sequences"], "forbid": ["rows", "columns"] },
+    "reads": { "require": ["reads"], "forbid": ["rows", "columns"] },
+    "*": { "forbid": ["rows", "columns"] }
+  },
+  "nonTableForbiddenToggles": ["table", "columns", "plot", "edit"],
+  "qualitySets": {
+    "assessed": ["good", "watch"],
+    "unassessed": ["unassessed"],
+    "either": ["good", "watch", "unassessed"]
+  },
+  "items": {
+    "csv":          { "viewKind": "table", "previewKind": "table", "columns": ["x", "y", "z"], "minColumns": 3, "quality": "assessed" },
+    "tsv":          { "viewKind": "table", "previewKind": "table", "minColumns": 3, "notColumns": ["1", "68", "4.1"], "quality": "assessed", "note": "header-less numeric table" },
+    "bed":          { "viewKind": "table", "previewKind": "table", "columns": ["chrom", "start", "end", "name", "score", "strand"], "minColumns": 6, "quality": "assessed" },
+    "bed-complete": { "viewKind": "table", "previewKind": "table", "columns": ["chrom", "start", "end"], "minColumns": 12, "quality": "assessed" },
+    "gtf":          { "viewKind": "table", "previewKind": "table", "columns": ["seqname", "source", "feature", "start", "end"], "minColumns": 9, "quality": "assessed" },
+    "gff3":         { "viewKind": "table", "previewKind": "table", "columns": ["seqid", "source", "type", "start", "end"], "minColumns": 9, "quality": "assessed" },
+    "fasta":        { "viewKind": "sequence", "previewKind": "sequence", "quality": "assessed" },
+    "fasta-gz":     { "viewKind": "sequence", "previewKind": "sequence", "quality": "assessed" },
+    "fastq":        { "viewKind": "reads", "previewKind": "reads", "quality": "assessed" },
+    "fastq-gz":     { "viewKind": "reads", "previewKind": "reads", "quality": "assessed" },
+    "vcf":          { "viewKind": "table", "previewKind": "table", "columns": ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"], "minColumns": 8, "quality": "assessed" },
+    "vcf-gz":       { "viewKind": "table", "previewKind": "table", "columns": ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"], "minColumns": 8, "quality": "assessed" },
+    "bam":          { "viewKind": "alignment", "previewKind": "alignment", "quality": "unassessed" },
+    "cram":         { "viewKind": "alignment", "previewKind": "alignment", "quality": "unassessed" },
+    "h5ad":         { "viewKind": "anndata", "previewKind": "anndata", "quality": "either" },
+    "loom":         { "viewKind": "matrix", "previewKind": "matrix", "quality": "either" },
+    "xlsx":         { "viewKind": "table", "previewKind": "table", "minColumns": 2, "quality": "either" },
+    "mtx":          { "viewKind": "matrix", "previewKind": "matrix", "quality": "either" },
+    "sdf":          { "viewKind": "molecules", "previewKind": "molecules", "quality": "either" },
+    "smi":          { "viewKind": "table", "previewKind": "table", "columns": ["smiles"], "minColumns": 2, "quality": "assessed" },
+    "pdb":          { "viewKind": "structure", "previewKind": "structure", "quality": "either" },
+    "cif":          { "viewKind": "structure", "previewKind": "structure", "quality": "either" },
+    "mrc":          { "viewKind": "density", "previewKind": "density", "quality": "unassessed" },
+    "tiff":         { "viewKind": "image", "previewKind": "image", "quality": "unassessed" },
+    "json":         { "viewKind": "json", "previewKind": "json", "quality": "either" },
+    "pod5":         { "viewKind": "signal", "previewKind": "signal", "quality": "unassessed" },
+    "gene-list":    { "viewKind": "table", "previewKind": "table", "minColumns": 1, "maxColumns": 1, "notColumns": ["TP53"], "quality": "assessed", "note": "single-column, header-less: TP53 is data, not a header" },
+    "narrowpeak":   { "viewKind": "table", "previewKind": "table", "columns": ["chrom", "start", "end"], "minColumns": 10, "quality": "assessed" },
+    "pairs-S1_R1":  { "viewKind": "reads", "previewKind": "reads", "quality": "assessed" },
+    "pairs-S1_R2":  { "viewKind": "reads", "previewKind": "reads", "quality": "assessed" },
+    "pairs-S2_R1":  { "viewKind": "reads", "previewKind": "reads", "quality": "assessed" },
+    "tenx-matrix":  { "viewKind": "matrix", "previewKind": "matrix", "quality": "either" },
+    "tenx-barcodes":{ "viewKind": "table", "previewKind": "table", "minColumns": 1, "maxColumns": 1, "notColumns": ["AAACATACAACCAC-1"], "quality": "assessed" },
+    "tenx-features":{ "viewKind": "table", "previewKind": "table", "minColumns": 3, "maxColumns": 3, "notColumns": ["ENSG00000243485", "MIR1302-2HG"], "quality": "assessed", "note": "10x features.tsv is header-less" }
+  }
+}

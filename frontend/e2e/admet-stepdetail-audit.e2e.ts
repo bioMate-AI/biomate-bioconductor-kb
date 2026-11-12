@@ -21,12 +21,6 @@ const RUN_ID = "e2c3e772-580d-4a59-be1c-487999a072b4"; // completed ADMET run
 test("ADMET step display + StepDetail audit", async ({ page }) => {
   test.setTimeout(4 * 60 * 1000);
   await loginAsFixture(page);
-  await page.route(/amazonaws\.com/, async (route) => {
-    const h = { ...route.request().headers() };
-    delete h["authorization"]; delete h["Authorization"];
-    delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-    await route.continue({ headers: h });
-  });
 
   await page.goto(`${BASE_URL}/debug/viewer/${RUN_ID}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.waitForTimeout(7000);
