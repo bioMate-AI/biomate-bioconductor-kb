@@ -151,6 +151,9 @@ interface ChatInputProps {
 /** Mirrors MAX_DATASET_REFS in frontend/server/dataset-cap.ts. */
 const MAX_DATASET_REFS = 32
 
+/** The composer column: the input box and its attachment chips share it. */
+export const COMPOSER_MAX_WIDTH = 660
+
 export function ChatInput({
   voiceContextKey,
   onSend,
@@ -583,7 +586,9 @@ export function ChatInput({
       {linkingDataset && <p role="status" className="text-xs text-muted-foreground">Linking project file…</p>}
       {datasetLinkError && <p role="alert" className="text-xs text-destructive">{datasetLinkError} Return to Files and select an available file.</p>}
       {(attachedFiles.length > 0 || selectedDatasets.length > 0) && (
-        <div className="flex flex-wrap gap-2 mb-3">
+        // Same column as the composer below (max 660px, centred): a chip far left of a centred
+        // composer did not read as attached to it.
+        <div className="flex flex-wrap gap-2" style={{ maxWidth: COMPOSER_MAX_WIDTH, margin: '0 auto 0.75rem', width: '100%' }} data-testid="composer-attachments">
           {attachedFiles.map(file => (
             <div
               key={file.id}
@@ -791,7 +796,7 @@ export function ChatInput({
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
         boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',
         padding: '10px 12px',
-        maxWidth: 660,
+        maxWidth: COMPOSER_MAX_WIDTH,
         margin: '0 auto',
         width: '100%',
         display: 'flex',

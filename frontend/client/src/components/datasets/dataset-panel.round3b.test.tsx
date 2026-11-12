@@ -152,7 +152,7 @@ describe("AnnData summary", () => {
     render(<AnnDataSummary profile={prof} kind="anndata" />)
     expect(screen.getByTestId("dataset-anndata-no-layers")).toHaveTextContent("No layers: the expression values are in X only.")
     expect(screen.queryByTestId("dataset-anndata-layers")).toBeNull()
-    expect(screen.getByTestId("dataset-anndata-groups")).toHaveTextContent("Stored components (HDF5 groups) · 4")
+    expect(screen.getByTestId("dataset-anndata-groups")).toHaveTextContent("Stored parts of the file · 4")
     expect(screen.getByTestId("dataset-anndata-groups")).toHaveTextContent("uns")
   })
   it("the note does not point to Jupyter while Open-in is not offered", async () => {

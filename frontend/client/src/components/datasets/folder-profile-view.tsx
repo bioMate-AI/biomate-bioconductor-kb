@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { folderProfileUrl, useFolderProfile, type FolderProfile, type FolderSample } from "./datasets-api"
 import { kindLabel, localizedFormatLabel } from "./dataset-presentation"
 import { VIEW_KINDS, type ViewKind } from "./dataset-view-model"
+import { breakAtSeparators } from "./name-breaks"
 
 const base = (p: string | null | undefined) => (p ? p.split("/").pop() || p : "")
 
@@ -64,6 +65,14 @@ function Rollup({ prof }: { prof: FolderProfile }) {
   )
 }
 
+/** The folder's kind badge: "MAGeCK counts files" for a single-format folder, never "Mixed formats". */
+export function folderKindText(p: Pick<FolderProfile, "kind" | "kindFormat">): string {
+  if (p.kind === "single_format" && p.kindFormat?.label) {
+    return t("folder_profile.kind_single_format", { label: localizedFormatLabel({ ext: p.kindFormat.format, label: p.kindFormat.label }) })
+  }
+  return tOr(`folder_profile.kind_${p.kind}`, p.kind)
+}
+
 const PATTERN_KEYS = new Set(["Rs", "illumina", "dot12s"])
 const MAX_EXCLUDED_SHOWN = 8
 
@@ -92,7 +101,7 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
           </CardTitle>
           {prof && (
             <Badge variant="outline" className="text-xs" data-testid="folder-profile-kind">
-              {tOr(`folder_profile.kind_${prof.kind}`, prof.kind)}
+              {folderKindText(prof)}
             </Badge>
           )}
           {prof?.fastq && (
@@ -127,8 +136,9 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
 
             {prof.fastq && prof.fastq.samples.length > 0 && (
               <div className="space-y-2" data-testid="folder-samples">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
+                {/* The download buttons wrap under the heading in a narrow panel, never clipped. */}
+                <div className="flex flex-wrap items-center gap-2" data-testid="folder-samples-head">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1 whitespace-nowrap">
                     {t("folder_profile.samples_heading", { n: prof.fastq.samples.length })}
                   </p>
                   {prof.samplesheet && (
@@ -191,8 +201,9 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
                         return (
                           <tr key={`${s.sample}-${i}`} className="border-t" data-testid={`folder-sample-row-${s.sample}`} data-status={s.status}>
                             <td className="px-2 py-1 font-mono">{s.sample}</td>
-                            <td className="px-2 py-1 font-mono [overflow-wrap:anywhere]" title={s.forward ?? ""}>{base(s.forward) || "—"}</td>
-                            <td className="px-2 py-1 font-mono [overflow-wrap:anywhere]" title={s.reverse ?? ""}>{base(s.reverse) || "—"}</td>
+                            {/* File names break only after a separator (S1_R1.<wbr>fastq.<wbr>gz), never mid-word. */}
+                            <td className="px-2 py-1 font-mono [overflow-wrap:break-word]" title={s.forward ?? ""} data-testid="folder-sample-read1">{s.forward ? breakAtSeparators(base(s.forward)) : "—"}</td>
+                            <td className="px-2 py-1 font-mono [overflow-wrap:break-word]" title={s.reverse ?? ""} data-testid="folder-sample-read2">{s.reverse ? breakAtSeparators(base(s.reverse)) : "—"}</td>
                             <td className="px-2 py-1">
                               <span
                                 className={cn("inline-flex rounded-full border px-1.5 py-0.5", STATUS_BADGE[s.status])}

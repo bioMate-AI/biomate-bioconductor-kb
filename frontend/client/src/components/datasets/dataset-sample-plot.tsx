@@ -19,6 +19,42 @@ export interface DatasetSamplePlotProps {
   decimal?: string | null;
   /** i18n passthrough; (key, vars) — matches the app's narrowed t signature. */
   t?: (key: string, vars?: any) => string;
+  /** The profiler's per-column stats: their `role` says which columns are not measurements. */
+  columnStats?: Array<{ name: string; role?: string | null }> | null;
+  /** The table's true row count, when more rows exist than are loaded. */
+  total?: number | null;
+  /** Load every row (offered when `total` exceeds the loaded rows). */
+  onLoadAll?: () => void;
+  loading?: boolean;
+}
+
+/** Roles of columns that are not measurements: identifiers, a layout's annotation columns
+ *  (featureCounts Chr / Start / End / Strand / Length), the class label, a single-valued column. */
+const NON_MEASUREMENT_ROLES = new Set(["identifier", "annotation", "label", "constant"]);
+/** Coordinate / bookkeeping column names, for profiles that carry no roles. */
+const COORDINATE_NAME = /^(chr(om(osome)?)?|chrom_?(start|end)|(tx|cds|gene)?_?(start|end)|start|end|stop|begin|pos(ition)?|strand|length|len|width|bin|index|idx|row|rank|id)$/i;
+
+/**
+ * The column a plot opens on: a MEASUREMENT (counts, values) — never an identifier, an annotation /
+ * coordinate column (a featureCounts table opened on "Start", its gene coordinates), the label or a
+ * constant. The profiler marks every numeric column with a role (round 4): `measurement` wins;
+ * a profile without roles falls back to the column name (coordinate / bookkeeping names are
+ * skipped); failing both, the first numeric column. The selector still offers all of them.
+ */
+export function defaultPlotColumn(
+  columns: string[], numCols: number[], columnStats?: Array<{ name: string; role?: string | null }> | null,
+): number {
+  if (numCols.length === 0) return -1;
+  const roleOf = new Map((columnStats ?? []).map((c) => [c.name, c.role ?? null]));
+  const role = (ci: number) => roleOf.get(columns[ci] ?? "") ?? null;
+  const measured = numCols.find((ci) => role(ci) === "measurement");
+  if (measured !== undefined) return measured;
+  const plausible = numCols.find((ci) => {
+    const r = role(ci);
+    if (r && NON_MEASUREMENT_ROLES.has(r)) return false;
+    return !COORDINATE_NAME.test((columns[ci] ?? "").trim());
+  });
+  return plausible ?? numCols[0];
 }
 
 /**
@@ -110,11 +146,14 @@ export function histogramBins(values: number[], targetBins = 12, tag?: string): 
   });
 }
 
-export function DatasetSamplePlot({ columns, sampleRows, decimal, t }: DatasetSamplePlotProps) {
+export function DatasetSamplePlot({ columns, sampleRows, decimal, t, columnStats, total, onLoadAll, loading }: DatasetSamplePlotProps) {
   const tr = t || ((_k: string, v?: any) => `Distribution of column “${v?.col}” · rows loaded: ${v?.n}`);
   const numCols = useMemo(() => numericColumnIndices(columns, sampleRows, decimal), [columns, sampleRows, decimal]);
-  const [sel, setSel] = useState<number>(numCols[0] ?? -1);
-  const colIdx = numCols.includes(sel) ? sel : (numCols[0] ?? -1);
+  const fallback = useMemo(() => defaultPlotColumn(columns, numCols, columnStats), [columns, numCols, columnStats]);
+  const [sel, setSel] = useState<number | null>(null);
+  const colIdx = sel != null && numCols.includes(sel) ? sel : fallback;
+  const partial = typeof total === "number" && total > sampleRows.length;
+  const numFmt = (n: number) => n.toLocaleString(locale === "zh" ? "zh-CN" : "en-US");
 
   const data = useMemo(() => {
     if (colIdx < 0) return [];
@@ -152,9 +191,17 @@ export function DatasetSamplePlot({ columns, sampleRows, decimal, t }: DatasetSa
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted-foreground" data-testid="dataset-sample-plot-caption">
-        {tr("dataset_obj.plot_sample_caveat", { col: columns[colIdx], n: sampleRows.length.toLocaleString(locale === "zh" ? "zh-CN" : "en-US") })}
+      <p className="text-xs text-muted-foreground" data-testid="dataset-sample-plot-caption" data-partial={partial ? "true" : undefined}>
+        {partial
+          ? tr("dataset_obj.plot_partial_caveat", { col: columns[colIdx], n: numFmt(sampleRows.length), total: numFmt(total!) })
+          : tr("dataset_obj.plot_sample_caveat", { col: columns[colIdx], n: numFmt(sampleRows.length) })}
       </p>
+      {partial && onLoadAll && (
+        <button type="button" className="rounded border px-2 py-0.5 text-xs hover:bg-muted disabled:opacity-50"
+          disabled={loading} onClick={onLoadAll} data-testid="dataset-sample-plot-load-all">
+          {tr("dataset_obj.plot_load_all")}
+        </button>
+      )}
     </div>
   );
 }

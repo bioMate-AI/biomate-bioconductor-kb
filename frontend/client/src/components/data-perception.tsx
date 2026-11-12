@@ -161,6 +161,9 @@ export interface DataPerceptionProps {
   kind?: ViewKind;
   /** The kind's measures are shown by the host (the dataset object's stat grid): do not repeat them. */
   hideStats?: boolean;
+  /** Finding codes the host already shows as CONTENT (the AnnData summary's obs / var / layers, a
+   *  spreadsheet's previewed values): not listed again among the notes. Never hides a verdict's reason. */
+  hideFindings?: ReadonlySet<string>;
   className?: string;
 }
 
@@ -220,7 +223,9 @@ const SORT_ORDER_KEYS = new Set(["unknown", "unsorted", "queryname", "coordinate
 /** Matrix Market value types (the header's `field`): a closed vocabulary shown in the UI language. */
 const MTX_FIELD_KEYS = new Set(["integer", "real", "complex", "pattern", "double"]);
 /** Params that hold a format NAME (e.g. "Text", "PNG"): shown in the UI language like the format chip. */
-const FORMAT_NAME_PARAMS = new Set(["named", "detected"]);
+// Format labels the profiler sends in English ("Text", "Excel (xlsx)"): shown in the UI language.
+// `format` carries the same labels in the "identified as / metadata of {{format}}" notes.
+const FORMAT_NAME_PARAMS = new Set(["named", "detected", "format"]);
 const STRUCTURE_METHOD_KEYS = new Set(["xray", "em", "nmr", "neutron", "fiber", "electron_crystallography"]);
 
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
@@ -293,6 +298,7 @@ export function DataPerception({
   datasetName,
   kind: kindProp,
   hideStats,
+  hideFindings,
   className,
 }: DataPerceptionProps) {
   const quality = effectiveQuality(profile);
@@ -307,8 +313,9 @@ export function DataPerception({
     ? []
     : findings.filter((f) => f.level === quality && f.section !== "plan");
   const isReason = (f: PerceptionFinding) => reasons.includes(f);
-  const signalItems = findings.filter((f) => f.section === "signal" && !isReason(f));
-  const noteItems = findings.filter((f) => f.section === "note" && !isReason(f));
+  const shownByHost = (f: PerceptionFinding) => Boolean(hideFindings?.has(f.code));
+  const signalItems = findings.filter((f) => f.section === "signal" && !isReason(f) && !shownByHost(f));
+  const noteItems = findings.filter((f) => f.section === "note" && !isReason(f) && !shownByHost(f));
   const leakageItems = findings.filter((f) => f.section === "leakage" && !isReason(f));
   const planItems = findings.filter((f) => f.section === "plan");
 
@@ -367,7 +374,7 @@ export function DataPerception({
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="text-sm font-semibold leading-tight">{t("perception.title")}</div>
           {datasetName && (
-            <div className="font-mono text-xs text-muted-foreground [overflow-wrap:break-word]" title={datasetName}>{breakAtSeparators(datasetName)}</div>
+            <div className="font-mono text-xs text-muted-foreground [overflow-wrap:break-word]" title={datasetName} data-testid="data-perception-name">{breakAtSeparators(datasetName.split("/").pop() || datasetName)}</div>
           )}
         </div>
         <span
@@ -387,8 +394,9 @@ export function DataPerception({
         {profile.structured ? <>
           <Stat k={t("perception.stat_format")} v={profile.structured.format} />
           <Stat k={t("perception.stat_root")} v={tOr(`perception.root_${profile.structured.root}`, profile.structured.root)} />
-          {/* Counted at every nesting level — said so, with what each counts on hover. */}
-          <Stat k={t("perception.stat_values")} gloss={t("perception.gloss_values")} v={fmtInt(profile.structured.nodes)} testId="perception-structured-values" />
+          {/* Keys are counted at every nesting level — said so, with what they count on hover. The
+              profiler's `nodes` counts every node, the root and each object / list included, so it
+              is not a count of values: not shown (round 4). */}
           <Stat k={t("perception.stat_keys")} gloss={t("perception.gloss_keys")} v={fmtInt(profile.structured.keys)} testId="perception-structured-keys" />
           <Stat k={t("perception.stat_nulls")} v={fmtInt(profile.structured.nulls)} />
           <Stat k={t("perception.stat_depth")} v={fmtInt(profile.structured.depth)} />
@@ -506,7 +514,14 @@ export function DataPerception({
 
 /** A rendered finding line: its text, and its code (absent on a legacy free-text line). */
 type Line = { text: string; code?: string };
-const findingLine = (f: PerceptionFinding): Line => ({ text: findingText(f), code: f.code });
+const findingLine = (f: PerceptionFinding): Line => ({ text: findingText(f) + expectedQualifier(f), code: f.code });
+
+/** An info-level near-constant column is EXPECTED (few rows / per-record metadata): said so, as a
+ *  neutral note — never a warning. */
+function expectedQualifier(f: PerceptionFinding): string {
+  const why = f.code === "near_constant" && f.level === "info" ? f.params?.expected : undefined;
+  return typeof why === "string" ? ` ${tOr(`perception.near_constant_expected_${why}`, "")}`.trimEnd() : "";
+}
 
 function Section({ title, lines, testId }: { title: string; lines: Line[]; testId: string }) {
   return (

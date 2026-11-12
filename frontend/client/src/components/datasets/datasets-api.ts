@@ -464,7 +464,9 @@ export interface TenxSet {
 
 export interface FolderProfile {
   path: string
-  kind: "fastq_set" | "tenx_matrix" | "mixed" | "empty"
+  kind: "fastq_set" | "tenx_matrix" | "single_format" | "unrecognised" | "mixed" | "empty"
+  /** `single_format`: the one format every file is (the roll-up's only entry). */
+  kindFormat?: { format: string; label: string; viewKind?: string }
   fileCount: number
   /** Grouped by (format, label): each file labelled by the SAME content decision as its own profile
    *  (featureCounts counts vs TSV), with that decision's view kind. */

@@ -155,7 +155,9 @@ const CONTENT: Record<ViewKind, ContentRenderer> = {
  */
 export function datasetViewModel(
   kind: ViewKind,
-  opts: { name: string; hasColumns?: boolean; columnsPending?: boolean; versionable?: boolean; projectFile?: boolean; empty?: boolean } = { name: "" },
+  opts: { name: string; hasColumns?: boolean; columnsPending?: boolean; versionable?: boolean; projectFile?: boolean; empty?: boolean
+    /** A table with a header and no data rows: nothing to edit, nothing for a QC workflow to check. */
+    noDataRows?: boolean } = { name: "" },
 ): DatasetViewModel {
   const ext = fileExt(opts.name)
   // No content at all: one honest "empty" view whatever the kind — no table tools, no edit, no
@@ -171,7 +173,7 @@ export function datasetViewModel(
   // Columns / Plot / Edit to offer — its single view is the profile summary.
   const tableAvailable = tabular && (Boolean(opts.hasColumns) || Boolean(opts.columnsPending))
   const canEdit = kind === "table" && Boolean(opts.versionable) && Boolean(opts.hasColumns) && EDITABLE_EXT.has(ext)
-    && !COMPRESSION.test(opts.name)
+    && !COMPRESSION.test(opts.name) && !opts.noDataRows
   const views: PreviewView[] = tableAvailable
     ? ["table", "columns", "plot", ...(canEdit ? (["edit"] as const) : [])]
     : ["content"]
@@ -186,7 +188,7 @@ export function datasetViewModel(
     useRows: CONTENT[kind] === "rows",
     tableShape: tabular,
     canEdit,
-    canRunQC: QC_KINDS.has(kind),
+    canRunQC: QC_KINDS.has(kind) && !(tabular && opts.noDataRows),
     openInSupported,
     canOpenIn: OPEN_IN_AVAILABLE && openInSupported,
   }
@@ -287,10 +289,43 @@ export function columnProblems(findings: PerceptionFinding[] | undefined): Map<s
   const out = new Map<string, PerceptionFinding[]>()
   for (const f of findings ?? []) {
     const param = COLUMN_PROBLEM_PARAMS[f.code]
-    if (!param || f.section === "plan") continue
+    // Only a finding at watch / blocked level flags a column: an info-level statement (a
+    // near-constant column that is expected with few rows, or per-record metadata) is a note.
+    if (!param || f.section === "plan" || f.level === "info") continue
     const v = f.params?.[param]
     const names = Array.isArray(v) ? v.map(String) : typeof v === "string" ? [v] : []
     for (const n of names) out.set(n, [...(out.get(n) ?? []), f])
   }
   return out
+}
+
+// ── facts shown once ─────────────────────────────────────────────────────────
+
+/** AnnData / Loom findings that the summary view draws as content (obs / var columns, embeddings,
+ *  layers, the file's stored parts). */
+const ANNDATA_CONTENT_CODES = [
+  "anndata_obs", "anndata_var", "anndata_embeddings", "anndata_layers", "anndata_no_layers",
+  "anndata_components", "hdf5_groups", "loom_col_attrs", "loom_row_attrs", "loom_layers",
+]
+
+/** The spreadsheet sheet the profiler read (its first rows), when the profile carries one. */
+export function previewedSheet(profile?: Pick<DataProfile, "previewSheet" | "columns" | "sampleRows"> | null):
+  { name: string; columns: string[]; rows: string[][] } | null {
+  return profile && typeof profile.previewSheet === "string" && profile.columns?.length && profile.sampleRows?.length
+    ? { name: profile.previewSheet, columns: profile.columns, rows: profile.sampleRows } : null
+}
+
+/**
+ * Finding codes the Preview already shows as content, so the QC card does not list them again:
+ * each fact once — the stat grid for numbers, the QC card for findings, the preview for content.
+ *  - the AnnData / Loom summary draws the obs / var columns, embeddings, layers and stored parts;
+ *  - a spreadsheet whose first rows are previewed: "preview of sheet X" repeats the caption.
+ */
+export function findingsShownAsContent(content: ContentRenderer, profile?: DataProfile | null): ReadonlySet<string> {
+  if (!profile) return new Set()
+  if (content === "anndata") return new Set(ANNDATA_CONTENT_CODES)
+  // ("metadata was read; values not analysed" is not emitted by the profiler when it read the
+  // preview rows — round-4 backend — so only the caption's twin is left to drop here.)
+  if (content === "summary" && previewedSheet(profile)) return new Set(["spreadsheet_preview"])
+  return new Set()
 }

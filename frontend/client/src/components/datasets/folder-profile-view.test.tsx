@@ -113,7 +113,7 @@ describe("Folder view", () => {
     expect(calls.some((u) => u === "/api/projects/proj-1/folders/profile?path=pairs")).toBe(true)
     expect(screen.getByTestId("folder-sample-row-S1").getAttribute("data-status")).toBe("paired")
     expect(screen.getByTestId("folder-sample-row-S2").getAttribute("data-status")).toBe("orphan")
-    expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Orphan")
+    expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Missing mate — single-end")
     const dl = screen.getByTestId("folder-samplesheet-download")
     expect(dl.getAttribute("href")).toBe("/api/projects/proj-1/folders/profile?path=pairs&download=samplesheet")
     expect(screen.getByTestId("folder-rollup")).toHaveTextContent("Files: 3 — 3 FASTQ · pairs: 1")

@@ -119,8 +119,11 @@ describe("AnnData (U5)", () => {
     }
     renderObj("pbmc3k.h5ad")
     const sum = await screen.findByTestId("dataset-anndata-summary")
-    expect(within(sum).getByTestId("dataset-anndata-shape")).toHaveTextContent("2,700")
-    expect(within(sum).getByTestId("dataset-anndata-shape")).toHaveTextContent("32,738")
+    // N5 (round 4): cells × genes are the stat grid's numbers, shown once — not again in the summary.
+    expect(within(sum).queryByTestId("dataset-anndata-shape")).toBeNull()
+    const grid = screen.getByTestId("dataset-stat-grid")
+    expect(grid.querySelector('[data-stat="cells"]')).toHaveTextContent("2,700")
+    expect(grid.querySelector('[data-stat="genes"]')).toHaveTextContent("32,738")
     expect(within(sum).getByTestId("dataset-anndata-obs")).toHaveTextContent("louvain")
     expect(within(sum).getByTestId("dataset-anndata-var")).toHaveTextContent("gene_ids")
     expect(within(sum).getByTestId("dataset-anndata-embeddings")).toHaveTextContent("X_umap")
@@ -128,7 +131,7 @@ describe("AnnData (U5)", () => {
     expect(within(sum).getByTestId("dataset-anndata-layers")).toHaveTextContent("Layers · 1")
     expect(within(sum).getByTestId("dataset-anndata-layers")).toHaveTextContent("counts")
     expect(within(sum).getByTestId("dataset-anndata-layers")).not.toHaveTextContent("obsm")
-    expect(within(sum).getByTestId("dataset-anndata-groups")).toHaveTextContent("Stored components (HDF5 groups) · 5")
+    expect(within(sum).getByTestId("dataset-anndata-groups")).toHaveTextContent("Stored parts of the file · 5")
     expect(screen.queryByTestId("dataset-preview-toggle-table")).toBeNull()
     // cells × genes, not "rows 1 / columns 1" — shown once, in the stat grid (P3), not again in the QC card.
     const card = screen.getByTestId("data-perception")

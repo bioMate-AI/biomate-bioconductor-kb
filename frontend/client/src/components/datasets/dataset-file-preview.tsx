@@ -56,7 +56,7 @@ const MARKDOWN = /\.(md|markdown)$/i
  *  (a FASTQ uploaded as `.txt`, a VCF without its extension). */
 const TEXT_KINDS = new Set<string>(["table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation", "molecules", "document"])
 
-type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "none"
+type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "pending" | "none"
 /** A cryo-EM density map: an image / structure kind whose format is the MRC family. The format
  *  comes from the profiler; without one, only an unambiguous `.mrc` / `.mrcs` name counts. */
 function isDensity(name: string, kind?: string, format?: string): boolean {
@@ -71,8 +71,16 @@ function textUnderMediaName(name: string, format?: string): boolean {
   return Boolean(format) && TEXT_FORMAT.test(format!) && (IMAGE.test(name) || isTiff(name) || /\.pdf$/i.test(name))
 }
 
-/** How a file is previewed: by its content kind when the profiler read it, else by its name. */
-function previewMode(name: string, kind?: string, format?: string): Mode {
+/** Named as an image / TIFF / PDF: a name the profiler can overturn (it read text, not pixels). */
+const MEDIA_NAME = (name: string) => IMAGE.test(name) || isTiff(name) || /\.pdf$/i.test(name)
+
+/** How a file is previewed: by its content kind when the profiler read it, else by its name.
+ *  While the profile is still coming, a media name is not trusted yet: "pending" fetches nothing,
+ *  so a "fake.png" holding text never first loads as a (broken) image and then flips to text —
+ *  the browser cached the image request without CORS headers and the text fetch of the same URL
+ *  then failed ("file content unavailable"). */
+export function previewMode(name: string, kind?: string, format?: string, profilePending = false): Mode {
+  if (profilePending && !format && MEDIA_NAME(name)) return "pending"
   // A "fake.png" that holds text is shown as the text it is (the QC card says so).
   if (textUnderMediaName(name, format)) return "text"
   if (GZ_TEXT.test(name)) return "gz"
@@ -232,7 +240,7 @@ function tiffWhy(code: string | undefined, reason: string | undefined): string |
 export type FilePreviewStatus = "loading" | "ready" | "error" | "none"
 
 /** Uses the same permission-checked signed URL as Download. HTML stays inert text. */
-export function DatasetFilePreview({ projectId, fileId, name, kind, format, structure, onStatus }: {
+export function DatasetFilePreview({ projectId, fileId, name, kind, format, structure, onStatus, profilePending }: {
   projectId: string; fileId: string; name: string
   /** The content kind from the dataset view model (DatasetObject passes it). */
   kind?: ViewKind
@@ -242,13 +250,15 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
   structure?: StructureEvidence | null
   /** Told every status change (DatasetObject passes it). */
   onStatus?: (status: FilePreviewStatus) => void
+  /** The profile (kind + format) is still being read (DatasetObject passes it). */
+  profilePending?: boolean
 }) {
   const [state, setState] = useState<{
     url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean; broken?: boolean
     /** TIFF: an object URL of the rendered PNG + what it shows, or why it could not be drawn. */
     png?: string; pngInfo?: TiffPreviewInfo | null; tiffFallback?: { code?: string; reason?: string }
   }>({})
-  const mode = previewMode(name, kind, format)
+  const mode = previewMode(name, kind, format, Boolean(profilePending))
   const status: FilePreviewStatus =
     mode === "none" || state.noDecompress ? "none"
     : state.error || state.broken ? "error"
@@ -262,7 +272,7 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
     let objectUrl: string | null = null
     setState({})
     ;(async () => {
-      if (mode === "none") return
+      if (mode === "none" || mode === "pending") return
       const gz = mode === "gz"
       if (gz && !decompressionAvailable()) { setState({ noDecompress: true }); return }
       if (mode === "tiff") {

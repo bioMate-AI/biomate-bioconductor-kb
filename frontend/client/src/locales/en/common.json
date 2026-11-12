@@ -530,7 +530,9 @@
       "transfer": "Transfer ownership",
       "transfer_body": "This makes {{name}} the owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.",
       "message_count": "{{n}} messages",
-      "add_tag": "tag"
+      "add_tag": "tag",
+      "files_footer": "Upload data files, then let BioMate select and run the right workflow for you.",
+      "analyze_with_biomate": "Analyze with BioMate"
     }
   },
   "file_tree": {
@@ -612,8 +614,8 @@
     "quality_noref": "No resolvable reference — a data profile is not available for this dataset.",
     "quality_error": "Profile not available — the profiler could not read this dataset.",
     "run_qc": "Run full QC",
-    "run_qc_tip": "Run a full QC workflow on this dataset (e.g. FastQC + MultiQC) through BioMate and open its report",
-    "qc_request": "Run quality control (QC) on this dataset and generate a QC report.",
+    "run_qc_tip": "Opens a chat with this file attached and asks BioMate for a quality-control report. BioMate decides how to check it — an analysis of the file’s contents, or a QC workflow where one fits.",
+    "qc_request": "{{name}}: run quality control (QC) on this file and write a QC report.",
     "produced_by": "Output from workflow",
     "open_run": "Open the run that produced it →",
     "status": "Status",
@@ -669,7 +671,7 @@
     "produced": "Produced",
     "open_as_dataset_title": "Open the dataset object — preview, versions and lineage — in Files",
     "used_by_runs": "used by {{n}} runs",
-    "content_hash": "Content hash",
+    "content_hash": "Fingerprint",
     "dedup_note": "adding the same file again reuses this entry",
     "open_in": "Open in {{tool}}",
     "open_in_title": "Copy this file into an analysis workspace and open it in {{tool}}",
@@ -791,11 +793,11 @@
     "summary_layers": "Layers",
     "summary_anndata_note": "Read from the file’s metadata; the expression values themselves are not loaded here. Open it in Jupyter or ask in chat to analyse it.",
     "summary_anndata_unread": "The file’s structure could not be read here. Open it in Jupyter or ask in chat to inspect it.",
-    "summary_intro": "What was read from this file:",
-    "summary_intro_alignment": "Alignment files are binary; this is what was read from the header:",
-    "summary_intro_matrix": "A Matrix Market file holds only numbers; this is what was read from it:",
-    "summary_intro_table": "This spreadsheet is not shown cell by cell here; this is what was read from it:",
-    "summary_intro_records": "These records are not shown as a table here; this is what was read from them:",
+    "summary_intro": "This file is not shown here. Its numbers are below and what was read from it is under Data QC.",
+    "summary_intro_alignment": "Alignment files are binary and are not shown here. What was read from the header is under Data QC; its counts are below.",
+    "summary_intro_matrix": "A Matrix Market file holds only numbers and is not shown cell by cell. What was read from it is under Data QC; its size is below.",
+    "summary_intro_table": "This spreadsheet is not shown cell by cell here. What was read from it is under Data QC; its counts are below.",
+    "summary_intro_records": "These records are not shown as a table here. What was read from them is under Data QC; their counts are below.",
     "download_state": "This file cannot be shown in the browser. Download it to open it in a compatible application.",
     "download_state_archive": "Archives are not unpacked here. Download it, or upload the files inside it to preview them.",
     "download_state_unknown": "This file’s format was not recognised, so it is not shown here. Download it to open it.",
@@ -838,8 +840,8 @@
     "source_url": "Imported from a link",
     "source_run_code": "Written by an analysis in chat",
     "export_heading": "Export",
-    "export_body": "Package this file with its provenance (RO-Crate) for a repository deposit.",
-    "summary_groups": "Stored components (HDF5 groups)",
+    "export_body": "Package this file with its provenance as an RO-Crate — a research-object package, the standard bundle for depositing data in a repository.",
+    "summary_groups": "Stored parts of the file",
     "stat_top_keys": "Top-level keys",
     "stat_top_items": "Top-level items",
     "stat_top_keys_tip": "Keys of the outermost object only; the data QC card counts keys and values at every level.",
@@ -867,7 +869,12 @@
     "col_header_range": "Range (mean)",
     "col_range": "{{min}} – {{max}} (mean {{mean}})",
     "columns_profiled_note": "Computed by the profiler on all {{total}} rows.",
-    "columns_profiled_subset_note": "Computed by the profiler on the first {{n}} rows of {{total}}."
+    "columns_profiled_subset_note": "Computed by the profiler on the first {{n}} rows of {{total}}.",
+    "fingerprint_tip": "A fingerprint of the file’s exact bytes ({{hash}}). Any change to the content gives a different fingerprint, so equal fingerprints mean identical files.",
+    "fingerprint_copy": "Copy",
+    "fingerprint_copied": "Copied",
+    "plot_partial_caveat": "Distribution of column “{{col}}” · uses the {{n}} loaded rows of {{total}}",
+    "plot_load_all": "Load all rows to plot all"
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -2000,7 +2007,9 @@
     },
     "this_folder": "this folder",
     "list_and": " and ",
-    "folder_path": "{{path}}"
+    "folder_path": "{{path}}",
+    "near_constant_expected_few_rows": "Expected with this few rows — not flagged.",
+    "near_constant_expected_record_metadata": "The same value in every record is per-record metadata — not flagged."
   },
   "failure": {
     "no_error": {
@@ -2112,7 +2121,7 @@
     "col_read2": "Read 2",
     "col_status": "Layout",
     "status_paired": "Paired",
-    "status_orphan": "Orphan",
+    "status_orphan": "Missing mate — single-end",
     "status_single": "Single-end",
     "orphan_tip": "No read-{{missing}} mate in this folder",
     "tenx_heading": "10x Genomics matrix",
@@ -2134,7 +2143,9 @@
     "patterns": "Pairs named by {{patterns}}",
     "pattern_Rs": "_R1/_R2",
     "pattern_illumina": "_1/_2",
-    "pattern_dot12s": ".1.fastq/.2.fastq"
+    "pattern_dot12s": ".1.fastq/.2.fastq",
+    "kind_single_format": "{{label}} files",
+    "kind_unrecognised": "Unrecognised files"
   },
   "dataset_versions": {
     "by": "by {{name}}",
