@@ -37,7 +37,7 @@ import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
 import { locale, t, tStatus } from "@/lib/i18n"
 import { ChatHeaderTitle } from "./chat-header-title"
-import { useApplyInitialDraft } from "@/lib/one-shot-url-param"
+import { useApplyInitialDraft, type DraftOptions } from "@/lib/one-shot-url-param"
 import {
   getRunPrimaryCta,
   isRunNeedsAttention,
@@ -73,6 +73,8 @@ interface ChatWithArtifactsProps {
   /** Pre-filled draft for the chat input — populated once ready but NOT auto-submitted
    *  (used by the project "Analyze with BioMate" flow so the user can edit before sending). */
   initialDraft?: string
+  /** Submit `initialDraft` once its attached files are linked (`?send=1`, e.g. "Run full QC"). */
+  initialDraftSend?: boolean
   /** Called once the initial ?q= message has been sent — the owner must clear it. */
   onInitialMessageConsumed?: () => void
   /** Called once the initial ?draft= has been placed in the composer — the owner must clear it. */
@@ -122,7 +124,7 @@ function persistedActiveProjectId(): string | undefined {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft, onInitialMessageConsumed, onInitialDraftConsumed }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft, initialDraftSend, onInitialMessageConsumed, onInitialDraftConsumed }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -564,6 +566,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(480)
+  const userResizedPanel = useRef(false) // true once the user drags the splitter
   const [chatHidden, setChatHidden] = useState(false)
   const splitLayoutRef = useRef<HTMLDivElement>(null)
   const [splitWidth, setSplitWidth] = useState(1200)
@@ -575,13 +578,21 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     return () => observer.disconnect()
   }, [])
   const panelIsOverlay = isMobile || splitWidth < 880
-  const maxPanelWidth = Math.max(320, Math.min(860, splitWidth - 380))
+  // Allow the panel to take up to ~60% of the window so chat + panel can sit
+  // roughly half-and-half (founder: the panel was too narrow). Keep ≥340px for chat.
+  const maxPanelWidth = Math.max(320, Math.min(Math.round(splitWidth * 0.6), splitWidth - 340))
+  // Default the panel to ~48% of the window (a near-even split) until the user drags
+  // the splitter — after that their choice wins. Overlay (mobile/narrow) is unaffected.
+  useEffect(() => {
+    if (userResizedPanel.current || panelIsOverlay) return
+    setPanelWidth(Math.round(splitWidth * 0.48))
+  }, [splitWidth, panelIsOverlay])
   const visiblePanelWidth = Math.min(panelWidth, maxPanelWidth)
   const panelResizingRef = useRef(false)
   const panelResizeStartX = useRef(0)
   const panelResizeStartW = useRef(0)
   // Ref to ChatInterface's setChatDraft — set when ChatInterface registers it
-  const setChatDraftRef = useRef<((draft: string) => void) | undefined>(undefined)
+  const setChatDraftRef = useRef<((draft: string, opts?: DraftOptions) => void) | undefined>(undefined)
   // Refs registered by ChatInterface so we can trigger sends from the parent
   // (e.g. IntentClarificationCard re-submit, run-again-with-edits).
   const sendChatMessageRef = useRef<
@@ -611,7 +622,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Pre-fill (but do NOT send) a draft message into the chat input. onRegisterSetDraft
   // is registered alongside the sender, so senderReady also signals draft-setter readiness.
-  useApplyInitialDraft(initialDraft, () => setChatDraftRef.current, senderReady, onInitialDraftConsumed)
+  useApplyInitialDraft(initialDraft, () => setChatDraftRef.current, senderReady, onInitialDraftConsumed, { send: initialDraftSend })
 
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
@@ -1853,6 +1864,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (!panelResizingRef.current) return
       const delta = panelResizeStartX.current - ev.clientX // dragging left = wider panel
       const next = Math.min(maxPanelWidth, Math.max(320, panelResizeStartW.current + delta))
+      userResizedPanel.current = true // the user's drag wins over the adaptive default
       setPanelWidth(next)
     }
     const onUp = () => {

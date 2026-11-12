@@ -1,24 +1,115 @@
 {
   "baseUrl": "https://dev-public.biomate.ai",
   "buildInfo": {
-    "commit": "eeb1219cd0382edcb57fb1e6a58522cdda308fc2"
+    "commit": "aefa622172e947f0b646b8cac883a77ffdc3e62c"
   },
-  "startedAt": "2026-11-12T02:25:22.132Z",
-  "projectId": "4d0c3d4f-543c-4cfa-ba3f-172247d64e65",
+  "startedAt": "2026-11-12T11:06:42.517Z",
+  "projectId": "5dabee34-2afc-419e-8030-aae67b930c2a",
+  "expectations": "e2e/format-matrix-expectations.json",
+  "summary": {
+    "PASS": 34,
+    "PARTIAL": 0,
+    "FAIL": 0,
+    "total": 34,
+    "expected": 34
+  },
   "items": [
     {
       "key": "csv",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "2.csv",
       "storedName": "2.csv",
       "galaxyFixture": "2.csv",
       "source": "galaxy/datatypes/test/2.csv",
       "folder": null,
       "expect": "rows table with header x,y,z",
-      "fileId": "b2c0c89e-2859-4e8b-9878-c727bd1d2708",
+      "expected": {
+        "viewKind": "table",
+        "previewKind": "table",
+        "quality": "assessed",
+        "columns": [
+          "x",
+          "y",
+          "z"
+        ],
+        "minColumns": 3
+      },
+      "fileId": "77d6a0e5-038b-492c-a007-fbddbaa1ecfb",
       "settled": true,
-      "settleMs": 11116,
-      "kind": "rows-table",
+      "settleMs": 6710,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "table",
+      "previewKind": "table",
+      "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
         "dataset-preview-toggle-plot",
@@ -33,58 +124,135 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
         "x",
         "y",
         "z"
       ],
       "rowCount": 45,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nEdit\nx\ty\tz\n1\t1\t0.437968019160843\n1\t2\t0.746399640634157\n1\t3\t0.0267063149249279\n1\t4\t0.0216213331527797\n1\t5\t0.146060467736947\n1\t6\t0.359408541898084\n1\t7\t0.23314402740225\n2\t1\t0.599467114821971\n2\t2\t0.0615808215992003\n2\t3\t0.899292109588845\n2\t4\t0.512108580836541\n2\t5\t0.683834724089561\n2\t6\t0.333687966380965\n2\t7\t0.208395624246233\n3\t1\t0.746287037576455\n3\t2\t0.132904250575855\n3\t3\t0.878417734266683\n3\t4\t0.27849896674744\n3\t5\t0.777319029662675\n3\t6\t0.0968161570071586\n3\t7\t0.647062774580836\n4\t1\t0.990873271705157\n4\t2\t0.111363086771885\n4\t3\t0.638036284489945\n4\t4\t0.818292863324447\n4\t5\t0.231287184097297\n4\t6\t0.215988764386662\n4\t7\t0.844634212908857\n5\t1\t0.236484382010452\n5\t2\t0.139939845504822\n5\t3\t0.44",
-      "header": {
-        "name": "2.csv",
-        "quality": "Watch"
-      },
+      "toggles": [
+        "table",
+        "columns",
+        "plot",
+        "edit"
+      ],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "minority_class",
-            "text": "Class “1” is only 14% of rows — consider a balanced sampler."
-          },
-          {
-            "code": "leaked_id",
-            "text": "Column “z” is (nearly) unique per row and perfectly predicts the label — a leaked identifier."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "table_clean"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n2.csv\nWatch\nROWS\n49\nCOLUMNS\n3\nEFFECTIVE N\n49\nWhy “Watch”\nClass “1” is only 14% of rows — consider a balanced sampler.\nColumn “z” is (nearly) unique per row and perfectly predicts the label — a leaked identifier.\nClass balance\n1\n14%\n2\n14%\n3\n14%\n4\n14%\n5\n14%\n6\n14%\n7\n14%\nHow it shaped the plan\n“z” leaks the label\ndrop “z” before modelling"
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.csv\nGood\nGroups in “y”\n\n1 14% · 2 14% · 3 14% · 4 14% · 5 14% · 6 14% · 7 14%\n\nNotes\nRows: 49 · columns: 3; groups are balanced, no column gives the group away, and no column is constant."
       },
-      "stats": "ROWS\n49\nCOLUMNS\n3\nSIZE\n1.1 KB\nTYPE\ntext/csv",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tsv",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "2.tsv",
       "storedName": "2.tsv",
       "galaxyFixture": "2.tabular",
       "source": "galaxy/datatypes/test/2.tabular",
       "folder": null,
       "expect": "rows table (3 numeric columns, header-less)",
-      "fileId": "8c92f512-ace0-49c3-8b9c-6ce29550f9e1",
+      "expected": {
+        "viewKind": "table",
+        "previewKind": "table",
+        "quality": "assessed",
+        "minColumns": 3,
+        "notColumns": [
+          "1",
+          "68",
+          "4.1"
+        ],
+        "note": "header-less numeric table"
+      },
+      "fileId": "1f88feee-c5ea-415e-adc2-246dbe4308bb",
       "settled": true,
-      "settleMs": 6109,
-      "kind": "rows-table",
+      "settleMs": 3014,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "table",
+      "previewKind": "table",
+      "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
         "dataset-preview-toggle-plot",
@@ -99,52 +267,142 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "1",
-        "68",
-        "4.1"
+        "column_1",
+        "column_2",
+        "column_3"
       ],
-      "rowCount": 9,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nEdit\n1\t68\t4.1\n2\t71\t4.6\n3\t62\t3.8\n4\t75\t4.4\n5\t58\t3.2\n6\t60\t3.1\n7\t67\t3.8\n8\t168\t4.1\n9\t171\t4.3\n10\t69\t3.7\nAll 9 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "2.tsv",
-        "quality": "Good"
-      },
+      "rowCount": 10,
+      "toggles": [
+        "table",
+        "columns",
+        "plot",
+        "edit"
+      ],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n2.tsv\nGood\nROWS\n9\nCOLUMNS\n3\nEFFECTIVE N\n9\nNotes\n9 rows × 3 columns; no leakage, imbalance or constant-column issues detected."
+        "whyCount": 0,
+        "codes": [
+          "columns_generated",
+          "table_clean_unlabelled"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.tsv\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 10 · columns: 3; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked."
       },
-      "stats": "ROWS\n9\nCOLUMNS\n3\nSIZE\n93 B\nTYPE\ntext/tab-separated-values",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "bed",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.bed",
       "storedName": "1.bed",
       "galaxyFixture": "1.bed",
       "source": "galaxy/datatypes/test/1.bed",
       "folder": null,
       "expect": "interval table chrom/start/end/name/score/strand…",
-      "fileId": "a14a9e9b-1a91-473c-a102-ad6bb72cc478",
+      "expected": {
+        "viewKind": "intervals",
+        "previewKind": "intervals",
+        "quality": "assessed",
+        "columns": [
+          "chrom",
+          "start",
+          "end",
+          "name",
+          "score",
+          "strand"
+        ],
+        "minColumns": 6
+      },
+      "fileId": "c9a0d474-3698-4e3c-acf5-88e2f64850a1",
       "settled": true,
-      "settleMs": 6515,
-      "kind": "rows-table",
+      "settleMs": 3019,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "intervals",
+      "previewKind": "intervals",
+      "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -158,60 +416,139 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "chr1",
-        "147962192",
-        "147962580",
-        "CCDS989.1_cds_0_0_chr1_147962193_r",
-        "0",
-        "-"
+        "Chrom",
+        "Start",
+        "End",
+        "Name",
+        "Score",
+        "Strand"
       ],
       "rowCount": 45,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nchr1\t147962192\t147962580\tCCDS989.1_cds_0_0_chr1_147962193_r\t0\t-\nchr1\t147984545\t147984630\tCCDS990.1_cds_0_0_chr1_147984546_f\t0\t+\nchr1\t148078400\t148078582\tCCDS993.1_cds_0_0_chr1_148078401_r\t0\t-\nchr1\t148185136\t148185276\tCCDS996.1_cds_0_0_chr1_148185137_f\t0\t+\nchr10\t55251623\t55253124\tCCDS7248.1_cds_0_0_chr10_55251624_r\t0\t-\nchr11\t116124407\t116124501\tCCDS8374.1_cds_0_0_chr11_116124408_r\t0\t-\nchr11\t116206508\t116206563\tCCDS8377.1_cds_0_0_chr11_116206509_f\t0\t+\nchr11\t116211733\t116212337\tCCDS8378.1_cds_0_0_chr11_116211734_r\t0\t-\nchr11\t1812377\t1812407\tCCDS7726.1_cds_0_0_chr11_1812378_f\t0\t+\nchr12\t38440094\t38440321\tCCDS8736.1_cds_0_0_chr12_38440095_r\t0\t-\nchr13\t112381694\t112381953\tCCDS9526.",
-      "header": {
-        "name": "1.bed",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "regions",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "near_constant",
-            "text": "1 column(s) are near-constant (over 99% a single value): 0."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "intervals_summary",
+          "columns_spec",
+          "table_summary",
+          "intervals_stranded"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.bed\nWatch\nROWS\n64\nCOLUMNS\n6\nEFFECTIVE N\n64\nWhy “Watch”\n1 column(s) are near-constant (over 99% a single value): 0.\nNotes\n64 rows × 6 columns."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.bed\nGood\nSignal summary\nGenomic intervals: 65; columns: 6.\nNotes\nBED files have no header row; column names follow the BED specification: Chrom, Start, End, Name, Score, Strand.\nRows: 65 · columns: 6.\nStrand is given (column “Strand”)."
       },
-      "stats": "ROWS\n64\nCOLUMNS\n6\nSIZE\n4.1 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "bed-complete",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "complete.bed",
       "storedName": "complete.bed",
       "galaxyFixture": "complete.bed",
       "source": "galaxy/datatypes/test/complete.bed",
       "folder": null,
       "expect": "BED12 interval table",
-      "fileId": "47975afc-e744-470a-9e09-7fcdba5bdbc1",
+      "expected": {
+        "viewKind": "intervals",
+        "previewKind": "intervals",
+        "quality": "assessed",
+        "columns": [
+          "chrom",
+          "start",
+          "end"
+        ],
+        "minColumns": 12
+      },
+      "fileId": "65b21eaa-e578-42ab-9030-4958e88e9b0e",
       "settled": true,
-      "settleMs": 5489,
-      "kind": "rows-table",
+      "settleMs": 2982,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "intervals",
+      "previewKind": "intervals",
+      "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -231,66 +568,147 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "chr7",
-        "127475281",
-        "127491632",
-        "NM_000230",
-        "0",
-        "+",
-        "127486022",
-        "127488767",
-        "0",
-        "3",
-        "29,172,3225,",
-        "0,10713,13126,"
+        "Chrom",
+        "Start",
+        "End",
+        "Name",
+        "Score",
+        "Strand",
+        "ThickStart",
+        "ThickEnd",
+        "ItemRGB",
+        "BlockCount",
+        "BlockSizes",
+        "BlockStarts"
       ],
-      "rowCount": 1,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nchr7\t127475281\t127491632\tNM_000230\t0\t+\t127486022\t127488767\t0\t3\t29,172,3225,\t0,10713,13126,\nchr7\t127486011\t127488900\tD49487\t0\t+\t127486022\t127488767\t0\t2\t155,490,\t0,2399\nAll 1 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "complete.bed",
-        "quality": "Watch"
-      },
+      "rowCount": 2,
+      "toggles": [],
+      "stats": [
+        "regions",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "near_constant",
-            "text": "12 column(s) are near-constant (over 99% a single value): chr7, 127475281, 127491632, NM_000230, 0, +, 127486022, 127488767."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "intervals_summary",
+          "columns_spec",
+          "table_summary",
+          "intervals_stranded"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ncomplete.bed\nWatch\nROWS\n1\nCOLUMNS\n12\nEFFECTIVE N\n1\nWhy “Watch”\n12 column(s) are near-constant (over 99% a single value): chr7, 127475281, 127491632, NM_000230, 0, +, 127486022, 127488767.\nNotes\n1 rows × 12 columns."
+        "text": "DATA QC\n\nWhat we saw in your data\ncomplete.bed\nGood\nSignal summary\nGenomic intervals: 2; columns: 12.\nNotes\nBED files have no header row; column names follow the BED specification: Chrom, Start, End, Name, Score, Strand, ThickStart, ThickEnd.\nRows: 2 · columns: 12.\nStrand is given (column “Strand”)."
       },
-      "stats": "ROWS\n1\nCOLUMNS\n12\nSIZE\n167 B\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "gtf",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "grch37.75.gtf",
       "storedName": "grch37.75.gtf",
       "galaxyFixture": "grch37.75.gtf",
       "source": "galaxy/datatypes/test/grch37.75.gtf",
       "folder": null,
       "expect": "annotation table seqname/source/feature/start/end/…/attributes",
-      "fileId": "dfbee6ab-f47c-49b4-86b4-6bb653996513",
+      "expected": {
+        "viewKind": "annotation",
+        "previewKind": "annotation",
+        "quality": "assessed",
+        "columns": [
+          "seqname",
+          "source",
+          "feature",
+          "start",
+          "end"
+        ],
+        "minColumns": 9
+      },
+      "fileId": "de2c347f-8895-4d97-81e0-9e1a50d18ebc",
       "settled": true,
-      "settleMs": 6841,
-      "kind": "rows-table",
+      "settleMs": 3000,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "annotation",
+      "previewKind": "annotation",
+      "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -307,744 +725,1692 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "chr1",
-        "pseudogene",
-        "gene",
-        "11869",
-        "14412",
-        ".",
-        "+",
-        ".",
-        "gene_id \"ENSG00000223972\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\";"
+        "Seqname",
+        "Source",
+        "Feature",
+        "Start",
+        "End",
+        "Score",
+        "Strand",
+        "Frame",
+        "Attributes"
       ],
-      "rowCount": 19,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nchr1\tpseudogene\tgene\t11869\t14412\t.\t+\t.\tgene_id \"ENSG00000223972\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\";\nchr1\tprocessed_transcript\ttranscript\t11869\t14409\t.\t+\t.\tgene_id \"ENSG00000223972\"; transcript_id \"ENST00000456328\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\"; transcript_name \"DDX11L1-002\"; transcript_source \"havana\";\nchr1\tprocessed_transcript\texon\t11869\t12227\t.\t+\t.\tgene_id \"ENSG00000223972\"; transcript_id \"ENST00000456328\"; exon_number \"1\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\"; transcript_name \"DDX11L1-002\"; transcript_source \"havana\"; exon_id \"ENSE000022349",
-      "header": {
-        "name": "grch37.75.gtf",
-        "quality": "Watch"
-      },
+      "rowCount": 20,
+      "toggles": [],
+      "stats": [
+        "features",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "near_constant",
-            "text": "4 column(s) are near-constant (over 99% a single value): chr1, ., +, .."
-          },
-          {
-            "code": "minority_class",
-            "text": "Class “gene_id \"ENSG00000223972\"; transcript_id \"ENST00000456328\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\"; transcript_name \"DDX11L1-002\"; transcript_source \"havana\";” is only 5% of rows — consider a balanced sampler."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "annotation_features",
+          "columns_spec",
+          "table_summary"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ngrch37.75.gtf\nWatch\nROWS\n19\nCOLUMNS\n9\nEFFECTIVE N\n19\nWhy “Watch”\n4 column(s) are near-constant (over 99% a single value): chr1, ., +, ..\nClass “gene_id \"ENSG00000223972\"; transcript_id \"ENST00000456328\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\"; transcript_name \"DDX11L1-002\"; transcript_source \"havana\";” is only 5% of rows — consider a balanced sampler.\nClass balance\ngene_id \"ENSG00000223972\"; transcript_id \"ENST00000456328\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\"; transcript_name \"DDX11L1-002\"; transcript_source \"havana\";\n5.3%\ngene_id \"ENSG00000223972\"; transcript_id \"ENST00000456328\"; exon_number \"1\"; gene_name \"DDX11L1\"; gene_source \"ensembl_havana\"; gene_biotype \"pseudogene\"; transcript_name \"DDX11L1-002\"; transcript_source \"havana\"; exon_id \"ENSE00002234944\";\n5.3%\ng"
+        "text": "DATA QC\n\nWhat we saw in your data\ngrch37.75.gtf\nGood\nSignal summary\nFeature lines: 20; comment lines: 0; attribute keys (9): gene_id, gene_name, gene_source, gene_biotype, transcript_id, transcript_name, transcript_source, exon_number.\nNotes\nGTF files have no header row; column names follow the GTF specification: Seqname, Source, Feature, Start, End, Score, Strand, Frame.\nRows: 20 · columns: 9."
       },
-      "stats": "ROWS\n19\nCOLUMNS\n9\nSIZE\n5.6 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "gff3",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "gff.gff3",
       "storedName": "gff.gff3",
       "galaxyFixture": "gff.gff3",
       "source": "galaxy/datatypes/test/gff.gff3",
       "folder": null,
       "expect": "annotation table (GFF3 columns)",
-      "fileId": "fc60215e-4ea7-4415-96db-9218ed11022a",
+      "expected": {
+        "viewKind": "annotation",
+        "previewKind": "annotation",
+        "quality": "assessed",
+        "columns": [
+          "seqid",
+          "source",
+          "type",
+          "start",
+          "end"
+        ],
+        "minColumns": 9
+      },
+      "fileId": "2a2ce175-2f26-4bc6-80e6-e60be75b8a15",
       "settled": true,
-      "settleMs": 5302,
-      "kind": "rich-table-viewer",
+      "settleMs": 2980,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "annotation",
+      "previewKind": "annotation",
+      "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-preview-table",
+        "dataset-preview-filter",
+        "dataset-preview-scroll",
+        "dataset-col-sort-0",
+        "dataset-col-sort-1",
+        "dataset-col-sort-2",
+        "dataset-col-sort-3",
+        "dataset-col-sort-4",
+        "dataset-col-sort-5",
+        "dataset-col-sort-6",
+        "dataset-col-sort-7",
+        "dataset-col-sort-8",
+        "dataset-preview-row",
+        "dataset-preview-rowcount",
+        "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 1,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
-      "columns": [],
-      "rowCount": 0,
-      "otherTableColumns": [
-        "seqname",
-        "source",
-        "feature",
-        "start",
-        "end",
-        "score",
-        "strand",
-        "frame",
-        "attribute"
+      "previewNone": false,
+      "columns": [
+        "Seqid",
+        "Source",
+        "Type",
+        "Start",
+        "End",
+        "Score",
+        "Strand",
+        "Phase",
+        "Attributes"
       ],
-      "previewText": "Table\nColumns\nPlot\n145 rows × 9 cols\nshowing first 100\nseqname\tsource\tfeature\tstart\tend\tscore\tstrand\tframe\tattribute\nctgA\texample\tmy_feature\t22132\t24633\t.\t+\t.\tID=My_feature:f15\nctgA\texample\tmy_feature\t46990\t48410\t.\t-\t.\tID=My_feature:f11\nctgA\texample\tmy_feature\t44705\t47713\t.\t-\t.\tID=My_feature:f01\nctgA\texample\tmy_feature\t36649\t40440\t.\t-\t.\tID=My_feature:f03\nctgA\texample\tmy_feature\t23072\t23185\t.\t+\t.\tID=My_feature:f14\nctgA\texample\tmy_feature\t37242\t38653\t.\t+\t.\tID=My_feature:f04\nctgA\texample\tmotif\t37497\t40559\t.\t-\t.\tID=Motif:m15;Note=7-transmembrane\nctgA\texample\tmy_feature\t36034\t38167\t.\t+\t.\tID=My_feature:f09\nctgA\texample\tmotif\t28332\t30033\t.\t-\t.\tID=Motif:m02;Note=HOX\nctgA\texample\tmy_feature\t4715\t5968",
-      "header": {
-        "name": "gff.gff3",
-        "quality": "Watch"
-      },
+      "rowCount": 45,
+      "toggles": [],
+      "stats": [
+        "features",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_ei71u5jq.gff3); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "annotation_features",
+          "columns_spec",
+          "table_summary"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ngff.gff3\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_ei71u5jq.gff3); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nWhat we saw in your data\ngff.gff3\nGood\nSignal summary\nFeature lines: 145; comment lines: 5; attribute keys (6): ID, Note, Parent, Gene, Target, trace.\nNotes\nGFF3 files have no header row; column names follow the GFF3 specification: Seqid, Source, Type, Start, End, Score, Strand, Phase.\nRows: 145 · columns: 9."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n8.3 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fasta",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fasta",
       "storedName": "1.fasta",
       "galaxyFixture": "1.fasta",
       "source": "galaxy/datatypes/test/1.fasta",
       "folder": null,
       "expect": "sequence viewer (records, lengths)",
-      "fileId": "6101400a-0990-42f4-8cf8-7dc45424c940",
-      "settled": true,
-      "settleMs": 5015,
-      "kind": "text-other",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "sequences",
+        "previewKind": "sequences",
+        "quality": "assessed"
       },
+      "fileId": "fca47b12-1db5-46fa-b7e5-fdbf56326d0a",
+      "settled": true,
+      "settleMs": 2966,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "sequences",
+      "previewKind": "sequences",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fasta-viewer"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\n>hg17\ngtttgccatcttttgctgctctagggaatccagcagctgtcaccatgtaaacaagcccaggctagaccaGTTACCCTCATCATCTTAGCTGATAGCCAGCCAGCCACCACAGGCAtgagtcaggccatattgctggacccacagaattatgagctaaataaatagtcttgggttaagccactaagttttaggcatagtgt…\n21618 bp",
-      "header": {
-        "name": "1.fasta",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "sequences",
+        "bases",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_ppo67jp1.fasta); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "fasta_sequences",
+          "fasta_gc"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.fasta\nWatch\nSEQUENCES\n0\nLENGTH (BP)\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_ppo67jp1.fasta); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fasta\nGood\nSignal summary\nSequences: 1; 21,618 bp in total; length mean 21,618, min 21,618, max 21,618, N50 21,618 (half of all bases lie in sequences at least this long).\nGC content 48.7%."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n21.1 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fasta-gz",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fasta.gz",
       "storedName": "1.fasta.gz",
       "galaxyFixture": "1.fasta.gz",
       "source": "galaxy/datatypes/test/1.fasta.gz",
       "folder": null,
       "expect": "decompressed sequence viewer",
-      "fileId": "38e934df-b5a3-44bc-8c0b-401c0da607d5",
-      "settled": true,
-      "settleMs": 5113,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "sequences",
+        "previewKind": "sequences",
+        "quality": "assessed"
       },
+      "fileId": "67056540-f049-4689-9c8c-842c3b79d27f",
+      "settled": true,
+      "settleMs": 2899,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "sequences",
+      "previewKind": "sequences",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fasta-viewer"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.fasta.gz",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "sequences",
+        "bases",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_alcii29d.gz); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "fasta_sequences",
+          "fasta_gc"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.fasta.gz\nWatch\nSEQUENCES\n0\nLENGTH (BP)\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_alcii29d.gz); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fasta.gz\nGood\nSignal summary\nSequences: 1; 21,618 bp in total; length mean 21,618, min 21,618, max 21,618, N50 21,618 (half of all bases lie in sequences at least this long).\nGC content 48.7%."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n6.8 KB\nTYPE\napplication/gzip",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fastq",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fastq",
       "storedName": "1.fastq",
       "galaxyFixture": "1.fastqsanger",
       "source": "galaxy/datatypes/test/1.fastqsanger",
       "folder": null,
       "expect": "reads viewer (id/seq/qual) + read QC",
-      "fileId": "4e98a026-d45a-401d-b163-08c95390e166",
-      "settled": true,
-      "settleMs": 5246,
-      "kind": "text-other",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "reads",
+        "previewKind": "reads",
+        "quality": "assessed"
       },
+      "fileId": "ca2be021-77c9-4f6c-895b-f1ae76d5bcdf",
+      "settled": true,
+      "settleMs": 2876,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\n>1831_573_1004/1\nAATACTTTCGGCGCCCTAAACCAGCTCACTGGGG\n34 bp\n><C&&9952+C>5<.?<79,=42<292:<(9/-7\n0 bp\n>1831_573_1050/1\nTTTATGGGTATGGCCGCTCACAGGCCAGCGGCCT;@@17?@=>7??@A8?==@4A?A4)&+.'&+'1,\n68 bp",
-      "header": {
-        "name": "1.fastq",
-        "quality": "Good"
-      },
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.fastq\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "whyCount": 0,
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_single_end_named",
+          "fastq_single_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fastq\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nNo read-1/read-2 naming and no mate in this folder: a single-end sample.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
       },
-      "stats": "ROWS\n2\nCOLUMNS\n34\nSIZE\n178 B\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fastq-gz",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fastq.gz",
       "storedName": "1.fastq.gz",
       "galaxyFixture": "1.fastqsanger.gz",
       "source": "galaxy/datatypes/test/1.fastqsanger.gz",
       "folder": null,
       "expect": "decompressed reads viewer + read QC",
-      "fileId": "5a159bea-699c-4e20-a569-51a942bb1f2d",
-      "settled": true,
-      "settleMs": 4876,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "reads",
+        "previewKind": "reads",
+        "quality": "assessed"
       },
+      "fileId": "a25ef92c-8c54-4258-9ccd-2f0a36c2e970",
+      "settled": true,
+      "settleMs": 2895,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.fastq.gz",
-        "quality": "Good"
-      },
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "whyCount": 0,
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_single_end_named",
+          "fastq_single_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nNo read-1/read-2 naming and no mate in this folder: a single-end sample.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
       },
-      "stats": "ROWS\n2\nCOLUMNS\n34\nSIZE\n161 B\nTYPE\napplication/gzip",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "vcf",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.vcf",
       "storedName": "1.vcf",
       "galaxyFixture": "1.vcf",
       "source": "galaxy/datatypes/test/1.vcf",
       "folder": null,
       "expect": "variant table CHROM/POS/ID/REF/ALT/QUAL/FILTER/INFO + samples",
-      "fileId": "5fa99813-511d-4fb3-a7dc-cf41368550bd",
+      "expected": {
+        "viewKind": "variants",
+        "previewKind": "variants",
+        "quality": "assessed",
+        "note": "variant viewer (CHROM/POS/ID/REF/ALT/QUAL/FILTER/INFO), not the generic rows table"
+      },
+      "fileId": "44219fea-2b1e-440b-a4a1-88694a7742a8",
       "settled": true,
-      "settleMs": 5118,
-      "kind": "rich-table-viewer",
+      "settleMs": 2913,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "variants",
+      "previewKind": "variants",
+      "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview"
       ],
-      "elements": {
-        "tables": 1,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [
-        "CHROM",
-        "POS",
-        "ID",
-        "REF",
-        "ALT",
-        "QUAL",
-        "FILTER",
-        "INFO",
-        "FORMAT",
-        "wgs2"
+      "toggles": [],
+      "stats": [
+        "variants",
+        "samples",
+        "size",
+        "type"
       ],
-      "previewText": "Table\nColumns\nPlot\n30 rows × 10 cols\nCHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\twgs2\nchr1\t500\t.\tC\tT\t.\t.\tDP=10\tGT\t1/1\nchr1\t1000\t.\tA\tG\t.\t.\tDP=10\tGT\t0/1\nchr1\t1500\t.\tG\tA\t.\t.\tDP=10\tGT\t1/0\nchr1\t2000\t.\tG\tA\t.\t.\tDP=10\tGT\t1/1\nchr1\t2500\t.\tA\tG\t.\t.\tDP=10\tGT\t0/1\nchr1\t3000\t.\tG\tC\t.\t.\tDP=10\tGT\t1/0\nchr1\t3500\t.\tG\tT\t.\t.\tDP=10\tGT\t1/1\nchr1\t4000\t.\tA\tG\t.\t.\tDP=10\tGT\t0/1\nchr1\t4500\t.\tA\tC\t.\t.\tDP=10\tGT\t1/0\nchr1\t5000\t.\tA\tG\t.\t.\tDP=10\tGT\t1/1\nchr1\t5500\t.\tC\tT\t.\t.\tDP=10\tGT\t0/1\nchr1\t6000\t.\tC\tA\t.\t.\tDP=10\tGT\t1/0\nchr1\t6500\t.\tC\tT\t.\t.\tDP=10\tGT\t1/1\nchr1\t7000\t.\tG\tT\t.\t.\tDP=10\tGT\t0/1\nchr1\t7500\t.\tG\tC\t.\t.\tDP=10\tGT\t1/0\nchr1\t8000\t.\tT\tG\t.\t.\tDP=10\tGT\t1/1\nchr1\t8500\t.\tT\tA\t.\t.\tDP=10\tGT\t0/1\nchr1\t9000\t.\tC\tT\t.\t.\tDP=10\tGT\t1/0\nchr1\t9500\t.\tG\tA\t.\t.\t",
-      "header": {
-        "name": "1.vcf",
-        "quality": "Good"
-      },
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.vcf\nGood\nROWS\n30\nCOLUMNS\n1\nSignal summary\n30 variant records across 1 sample(s).\nNotes\nVCF with 30 variants and 1 genotyped sample(s).\nHow it shaped the plan\n30 variants / 1 samples\nvariant annotation and filtering plan sized accordingly"
+        "whyCount": 0,
+        "codes": [
+          "vcf_records",
+          "vcf_summary",
+          "vcf_sized"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.vcf\nGood\nSignal summary\nVariant records: 30; samples: 1.\nNotes\nVCF — variants: 30; genotyped samples: 1.\nHow it shaped the plan\nvariants: 30 · samples: 1\nvariant annotation and filtering plan sized accordingly"
       },
-      "stats": "ROWS\n30\nCOLUMNS\n1\nSIZE\n1.2 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "vcf-gz",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.vcf.gz",
       "storedName": "1.vcf.gz",
       "galaxyFixture": "1.vcf_bgzip",
       "source": "galaxy/datatypes/test/1.vcf_bgzip",
       "folder": null,
       "expect": "decompressed (bgzip) variant table",
-      "fileId": "98ce6d7b-428d-4cb7-81e9-f36a857417a0",
-      "settled": true,
-      "settleMs": 4974,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "variants",
+        "previewKind": "variants",
+        "quality": "assessed"
       },
+      "fileId": "a6002e7c-c256-4092-8d74-82d1d9f97e39",
+      "settled": true,
+      "settleMs": 2933,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "variants",
+      "previewKind": "variants",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.vcf.gz",
-        "quality": "Good"
-      },
+      "toggles": [],
+      "stats": [
+        "variants",
+        "samples",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.vcf.gz\nGood\nROWS\n30\nCOLUMNS\n1\nSignal summary\n30 variant records across 1 sample(s).\nNotes\nVCF with 30 variants and 1 genotyped sample(s).\nHow it shaped the plan\n30 variants / 1 samples\nvariant annotation and filtering plan sized accordingly"
+        "whyCount": 0,
+        "codes": [
+          "vcf_records",
+          "vcf_summary",
+          "vcf_sized"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.vcf.gz\nGood\nSignal summary\nVariant records: 30; samples: 1.\nNotes\nVCF — variants: 30; genotyped samples: 1.\nHow it shaped the plan\nvariants: 30 · samples: 1\nvariant annotation and filtering plan sized accordingly"
       },
-      "stats": "ROWS\n30\nCOLUMNS\n1\nSIZE\n422 B\nTYPE\napplication/gzip",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "bam",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.bam",
       "storedName": "1.bam",
       "galaxyFixture": "1.bam",
       "source": "galaxy/datatypes/test/1.bam",
       "folder": null,
       "expect": "alignment summary / header (binary; needs server-side decode)",
-      "fileId": "16c50743-459d-4b76-988a-a124f4dda1c3",
-      "settled": true,
-      "settleMs": 5261,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "alignment",
+        "previewKind": "alignment",
+        "quality": "notAnalysed",
+        "note": "header metadata only (references, sort order, read groups); watch only for a real header finding"
       },
+      "fileId": "f9d693ee-b0c5-48a0-9164-94359224d5c5",
+      "settled": true,
+      "settleMs": 2920,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "verdict-has-reason",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "alignment",
+      "previewKind": "alignment",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-kind-summary",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.bam",
-        "quality": "Blocked"
-      },
+      "toggles": [],
+      "stats": [
+        "references",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "blocked",
-        "chip": "Blocked",
-        "findings": [
-          {
-            "code": "parse_failed",
-            "text": "The file could not be parsed: line contains NUL"
-          }
+        "quality": "watch",
+        "whyCount": 1,
+        "codes": [
+          "alignment_no_read_groups",
+          "alignment_references",
+          "alignment_sorted",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.bam\nBlocked\nROWS\n0\nCOLUMNS\n0\nWhy “Blocked”\nThe file could not be parsed: line contains NUL"
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.bam\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nReference sequences in the header: 168 (0 bp in total).\nNotes\nCoordinate-sorted (header SO:coordinate).\nBAM metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n3.5 KB\nTYPE\napplication/octet-stream",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "cram",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "2.cram",
       "storedName": "2.cram",
       "galaxyFixture": "2.cram",
       "source": "galaxy/datatypes/test/2.cram",
       "folder": null,
       "expect": "alignment summary (binary; needs reference)",
-      "fileId": "d5778a21-4363-4a13-bd65-147233f6665e",
-      "settled": true,
-      "settleMs": 4653,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "alignment",
+        "previewKind": "alignment",
+        "quality": "notAnalysed"
       },
+      "fileId": "b848689b-7e6c-4bd3-8f3a-0eb4edb098f6",
+      "settled": true,
+      "settleMs": 2932,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "verdict-has-reason",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "alignment",
+      "previewKind": "alignment",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-kind-summary",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "2.cram",
-        "quality": "Blocked"
-      },
+      "toggles": [],
+      "stats": [
+        "references",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "blocked",
-        "chip": "Blocked",
-        "findings": [
-          {
-            "code": "parse_failed",
-            "text": "The file could not be parsed: line contains NUL"
-          }
+        "quality": "watch",
+        "whyCount": 1,
+        "codes": [
+          "alignment_no_read_groups",
+          "alignment_references",
+          "alignment_sorted",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n2.cram\nBlocked\nROWS\n0\nCOLUMNS\n0\nWhy “Blocked”\nThe file could not be parsed: line contains NUL"
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.cram\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nReference sequences in the header: 7 (137,547,960 bp in total).\nNotes\nCoordinate-sorted (header SO:coordinate).\nCRAM metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n58.7 KB\nTYPE\napplication/octet-stream",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "h5ad",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "pbmc3k_tiny.h5ad",
       "storedName": "pbmc3k_tiny.h5ad",
       "galaxyFixture": "pbmc3k_tiny.h5ad",
       "source": "galaxy/datatypes/test/pbmc3k_tiny.h5ad",
       "folder": null,
       "expect": "AnnData summary (n_obs × n_vars, obs/var columns)",
-      "fileId": "646c4180-515f-4545-9ad3-2ed59cba3d05",
-      "settled": true,
-      "settleMs": 6013,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "anndata",
+        "previewKind": "anndata",
+        "quality": "notAnalysed"
       },
+      "fileId": "785e0a08-9e05-4ec5-892d-0299eeed2440",
+      "settled": true,
+      "settleMs": 2917,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "anndata",
+      "previewKind": "anndata",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-anndata-summary",
+        "dataset-anndata-shape",
+        "dataset-anndata-obs",
+        "dataset-anndata-var",
+        "dataset-anndata-embeddings",
+        "dataset-anndata-no-layers",
+        "dataset-anndata-groups",
+        "dataset-anndata-note"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "pbmc3k_tiny.h5ad",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "cells",
+        "genes",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_vvkfivf7.h5ad); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "anndata_shape",
+          "anndata_obs",
+          "anndata_var",
+          "anndata_embeddings",
+          "anndata_no_layers",
+          "anndata_components",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\npbmc3k_tiny.h5ad\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_vvkfivf7.h5ad); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npbmc3k_tiny.h5ad\nNot checked\nSignal summary\nCells (obs): 1 × genes or features (var): 1.\nNotes\nCell annotation columns (2): n_genes, n_counts.\nGene annotation columns (1): n_cells.\nStored embeddings: X_pca, X_tsne, X_umap.\nNo layers: the expression values are in X only.\nStored components (5): X, obs, obsm, var, varm.\nAnnData (h5ad) metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n4.5 KB\nTYPE\napplication/x-hdf5",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "loom",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "test.loom",
       "storedName": "test.loom",
       "galaxyFixture": "test.loom",
       "source": "galaxy/datatypes/test/test.loom",
       "folder": null,
       "expect": "Loom summary (matrix shape, row/col attrs)",
-      "fileId": "a9e4c224-158b-4bb6-98de-68242dc1d998",
-      "settled": true,
-      "settleMs": 4529,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "loom",
+        "previewKind": "loom",
+        "quality": "notAnalysed"
       },
+      "fileId": "ceaf9a7e-4f68-4a3a-b41d-cb95d1d6a530",
+      "settled": true,
+      "settleMs": 2897,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "loom",
+      "previewKind": "loom",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-anndata-summary",
+        "dataset-anndata-shape",
+        "dataset-anndata-obs",
+        "dataset-anndata-var",
+        "dataset-anndata-note"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "test.loom",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "cells",
+        "genes",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_quxm6byw.loom); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "loom_shape",
+          "loom_row_attrs",
+          "loom_col_attrs",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ntest.loom\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_quxm6byw.loom); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntest.loom\nNot checked\nSignal summary\nGenes (rows): 5 × cells (columns): 10.\nNotes\nGene attributes: Gene.\nCell attributes: Cell.\nLoom metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n13.8 KB\nTYPE\napplication/octet-stream",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "xlsx",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.xlsx",
       "storedName": "1.xlsx",
       "galaxyFixture": "1.excel.xlsx",
       "source": "galaxy/datatypes/test/1.excel.xlsx",
       "folder": null,
       "expect": "sheet rows table",
-      "fileId": "f59b472d-6ba7-4794-86bf-da6975834dd6",
+      "expected": {
+        "viewKind": "document",
+        "previewKind": "document",
+        "quality": "notAnalysed",
+        "requireStats": [
+          "sheets"
+        ],
+        "requirePreviewTestids": [
+          "dataset-spreadsheet-preview",
+          "dataset-preview-table"
+        ],
+        "note": "spreadsheet (round 3, B5): the profile carries the first sheet's first rows (previewSheet + columns + sampleRows); the Preview shows them read-only as a table captioned 'Sheet <name> · first N rows' (no Edit), plus the sheets stat"
+      },
+      "fileId": "250195f0-0e96-4282-ba7a-4dbf34c803cc",
       "settled": true,
-      "settleMs": 4653,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+      "settleMs": 2930,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "preview-testids",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
-      "columns": [],
-      "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.xlsx",
-        "quality": "Watch"
-      },
+      "viewKind": "document",
+      "previewKind": "document",
+      "legacyKind": "rows-table",
+      "previewTestids": [
+        "dataset-kind-summary",
+        "dataset-spreadsheet-preview",
+        "dataset-spreadsheet-caption",
+        "dataset-preview-table",
+        "dataset-preview-filter",
+        "dataset-preview-scroll",
+        "dataset-col-sort-0",
+        "dataset-col-sort-1",
+        "dataset-col-sort-2",
+        "dataset-col-sort-3",
+        "dataset-col-sort-4",
+        "dataset-col-sort-5",
+        "dataset-col-sort-6",
+        "dataset-col-sort-7",
+        "dataset-col-sort-8",
+        "dataset-col-sort-9",
+        "dataset-preview-row",
+        "dataset-preview-rowcount",
+        "dataset-preview-more-columns",
+        "dataset-preview-scope",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
+      "columns": [
+        "column_1",
+        "column_2",
+        "column_3",
+        "column_4",
+        "column_5",
+        "column_6",
+        "column_7",
+        "column_8",
+        "column_9",
+        "column_10"
+      ],
+      "rowCount": 10,
+      "toggles": [],
+      "stats": [
+        "sheets",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_9fp60_mr.xlsx); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "spreadsheet_sheets",
+          "spreadsheet_preview",
+          "spreadsheet_convert",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.xlsx\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_9fp60_mr.xlsx); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.xlsx\nNot checked\nSignal summary\nSheets (1): Sample-spreadsheet-file.\nNotes\nPreview of sheet “Sample-spreadsheet-file”: its first rows (rows shown: 10).\nSpreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.\nExcel (xlsx) metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n6.0 KB\nTYPE\napplication/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "mtx",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.mtx",
       "storedName": "1.mtx",
       "galaxyFixture": "1.mtx",
       "source": "galaxy/datatypes/test/1.mtx",
       "folder": null,
       "expect": "sparse matrix summary (5×5, 8 nnz) or triplet table",
-      "fileId": "0c3f3e61-6d70-483a-af2f-43fb3f095e47",
-      "settled": true,
-      "settleMs": 5373,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "matrix",
+        "previewKind": "matrix",
+        "quality": "notAnalysed",
+        "requireStats": [
+          "entries"
+        ]
       },
+      "fileId": "ef809f95-4683-4790-b553-0b2f2c4571ce",
+      "settled": true,
+      "settleMs": 2950,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "matrix",
+      "previewKind": "matrix",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-kind-summary",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.mtx",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "rows",
+        "columns",
+        "entries",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_olt_z29d.mtx); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "mtx_dimensions",
+          "mtx_orientation",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.mtx\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_olt_z29d.mtx); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.mtx\nNot checked\nSignal summary\n5 × 5 sparse matrix (real); stored entries: 8 (32% non-zero).\nNotes\nMatrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).\nMatrix Market metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n1.2 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "sdf",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "drugbank_drugs.sdf",
       "storedName": "drugbank_drugs.sdf",
       "galaxyFixture": "drugbank_drugs.sdf",
       "source": "galaxy/datatypes/test/drugbank_drugs.sdf",
       "folder": null,
       "expect": "molecule table / 2D structures",
-      "fileId": "1c031cf1-eb61-44f2-8343-0a19bb321959",
-      "settled": true,
-      "settleMs": 4609,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "molecules",
+        "previewKind": "molecules",
+        "quality": "notAnalysed"
       },
+      "fileId": "ad2640ad-0586-4f18-8678-ad0b2c846ea8",
+      "settled": true,
+      "settleMs": 2929,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "molecules",
+      "previewKind": "molecules",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "drugbank_drugs.sdf",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "molecules",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_orgndjuk.sdf); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "molecules_count",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ndrugbank_drugs.sdf\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_orgndjuk.sdf); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nWhat we saw in your data\ndrugbank_drugs.sdf\nNot checked\nSignal summary\nMolecules: 2.\nNotes\nSDF metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n18.6 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "smi",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "drugbank_drugs.smi",
       "storedName": "drugbank_drugs.smi",
       "galaxyFixture": "drugbank_drugs.smi",
       "source": "galaxy/datatypes/test/drugbank_drugs.smi",
       "folder": null,
       "expect": "SMILES table / 2D structures",
-      "fileId": "5ea86529-1d83-458e-a441-1949fc62bee3",
+      "expected": {
+        "viewKind": "table",
+        "previewKind": "table",
+        "quality": "assessed",
+        "columns": [
+          "smiles"
+        ],
+        "minColumns": 1,
+        "requireStats": [
+          "molecules"
+        ],
+        "note": "SMILES spec table (SMILES, TITLE) with a molecules stat"
+      },
+      "fileId": "6a9fc072-4951-48ce-a78e-ef8f71f71f4f",
       "settled": true,
-      "settleMs": 4907,
-      "kind": "rows-table",
+      "settleMs": 2887,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "table",
+      "previewKind": "table",
+      "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -1054,360 +2420,750 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "O=C(N1[C@@H](CCC1)C(=O)NNC(=O)N)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H]1NC(=O)CC1)Cc1[nH]cnc1)Cc1c2c([nH]c1)cccc2)CO)Cc1ccc(O)cc1)COC(C)(C)C)CC(C)C)CCCN=C(N)N",
-        "Goserelin"
+        "SMILES",
+        "TITLE"
       ],
-      "rowCount": 1,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nO=C(N1[C@@H](CCC1)C(=O)NNC(=O)N)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H]1NC(=O)CC1)Cc1[nH]cnc1)Cc1c2c([nH]c1)cccc2)CO)Cc1ccc(O)cc1)COC(C)(C)C)CC(C)C)CCCN=C(N)N\tGoserelin\nNC(=O)CNC(=O)[C@@H](NC(=O)[C@@H]1CCCN1C(=O)[C@H]1NC(=O)[C@@H](NC(=O)[C@H](CCC(=O)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H](NC(=O)CCSSC1)Cc1ccc(cc1)O)CC(=O)N)CCCNC(=N)N\tDesmopressin\nAll 1 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "drugbank_drugs.smi",
-        "quality": "Watch"
-      },
+      "rowCount": 2,
+      "toggles": [
+        "table",
+        "columns"
+      ],
+      "stats": [
+        "rows",
+        "columns",
+        "molecules",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "near_constant",
-            "text": "2 column(s) are near-constant (over 99% a single value): O=C(N1[C@@H](CCC1)C(=O)NNC(=O)N)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H]1NC(=O)CC1)Cc1[nH]cnc1)Cc1c2c([nH]c1)cccc2)CO)Cc1ccc(O)cc1)COC(C)(C)C)CC(C)C)CCCN=C(N)N, Goserelin."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "molecules_count",
+          "columns_spec",
+          "table_summary"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ndrugbank_drugs.smi\nWatch\nROWS\n1\nCOLUMNS\n2\nEFFECTIVE N\n1\nWhy “Watch”\n2 column(s) are near-constant (over 99% a single value): O=C(N1[C@@H](CCC1)C(=O)NNC(=O)N)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H]1NC(=O)CC1)Cc1[nH]cnc1)Cc1c2c([nH]c1)cccc2)CO)Cc1ccc(O)cc1)COC(C)(C)C)CC(C)C)CCCN=C(N)N, Goserelin.\nNotes\n1 rows × 2 columns."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ndrugbank_drugs.smi\nGood\nSignal summary\nMolecules: 2.\nNotes\nSMILES files have no header row; column names follow the SMILES specification: SMILES, TITLE.\nRows: 2 · columns: 2."
       },
-      "stats": "ROWS\n1\nCOLUMNS\n2\nSIZE\n401 B\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pdb",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "5e5z.pdb",
       "storedName": "5e5z.pdb",
       "galaxyFixture": "5e5z.pdb",
       "source": "galaxy/datatypes/test/5e5z.pdb",
       "folder": null,
       "expect": "3D structure viewer",
-      "fileId": "73cf96b3-27fd-47b0-baa3-deb56a32b2f2",
+      "expected": {
+        "viewKind": "structure",
+        "previewKind": "structure",
+        "quality": "notAnalysed",
+        "requireStats": [
+          "chains"
+        ]
+      },
+      "fileId": "3c62635b-aef5-429c-90d2-863367cc19c6",
       "settled": true,
-      "settleMs": 5568,
-      "kind": "rows-table",
+      "settleMs": 2982,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "structure",
+      "previewKind": "structure",
+      "legacyKind": "structure-3d",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-preview-table",
-        "dataset-preview-filter",
-        "dataset-preview-scroll",
-        "dataset-col-sort-0",
-        "dataset-col-sort-1",
-        "dataset-preview-row",
-        "dataset-preview-rowcount",
-        "dataset-preview-scope"
+        "dataset-text-preview",
+        "inline-structure-viewer",
+        "inline-structure-frame"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
-      "columns": [
-        "HEADER DE NOVO PROTEIN",
-        "MEMBRANE PROTEIN 09-OCT-15 5E5Z"
+      "previewNone": false,
+      "columns": [],
+      "rowCount": 0,
+      "toggles": [],
+      "stats": [
+        "chains",
+        "size",
+        "type"
       ],
-      "rowCount": 45,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nHEADER DE NOVO PROTEIN\tMEMBRANE PROTEIN 09-OCT-15 5E5Z\nTITLE STRUCTURE OF THE AMYLOID FORMING PEPTIDE LVHSSN (RESIDUES\nCOMPND MOL_ID: 1;\nCOMPND 2 MOLECULE: LVHSSN (RESIDUES 16-21) FROM ISLET AMYLOID POLYPEPTIDE;\nCOMPND 3 CHAIN: A;\nCOMPND 4 ENGINEERED: YES\nSOURCE MOL_ID: 1;\nSOURCE 2 SYNTHETIC: YES;\nSOURCE 3 ORGANISM_SCIENTIFIC: HOMO SAPIENS;\nSOURCE 4 ORGANISM_TAXID: 9606\nKEYWDS AMYLOID-LIKE PROTOFIBRIL\tDE NOVO PROTEIN\nKEYWDS 2 FIBRIL\nEXPDTA X-RAY DIFFRACTION\nAUTHOR A.B.SORIAGA\tD.EISENBERG\nREVDAT 2 20-JAN-16 5E5Z 1 JRNL\nREVDAT 1 16-DEC-15 5E5Z 0\nJRNL AUTH A.B.SORIAGA\tS.SANGWAN\nJRNL TITL CRYSTAL STRUCTURES OF IAPP AMYLOIDOGENIC SEGMENTS REVEAL A\nJRNL TITL 2 NOVEL PACKING MOTI",
-      "header": {
-        "name": "5e5z.pdb",
-        "quality": "Watch"
-      },
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "high_missing",
-            "text": "1 column(s) have at least 50% missing values: MEMBRANE PROTEIN 09-OCT-15 5E5Z."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "structure_chains",
+          "format_metadata_only",
+          "structure_experimental"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n5e5z.pdb\nWatch\nROWS\n356\nCOLUMNS\n2\nEFFECTIVE N\n331\nLower than the row count: 25 duplicate rows are counted once.\nWhy “Watch”\n1 column(s) have at least 50% missing values: MEMBRANE PROTEIN 09-OCT-15 5E5Z.\nNotes\n356 rows × 2 columns."
+        "text": "DATA QC\n\nWhat we saw in your data\n5e5z.pdb\nNot checked\nSignal summary\nChains (1): A.\nNotes\nPDB metadata was read; the data values themselves have not been analysed.\nExperimental structure (X-ray diffraction): the B-factor column holds atomic displacement, not prediction confidence."
       },
-      "stats": "ROWS\n356\nCOLUMNS\n2\nSIZE\n28.2 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "cif",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "Si.cif",
       "storedName": "Si.cif",
       "galaxyFixture": "Si.cif",
       "source": "galaxy/datatypes/test/Si.cif",
       "folder": null,
       "expect": "3D structure / crystal viewer",
-      "fileId": "8f779337-ac9f-48be-ab20-c018ed2d5faa",
-      "settled": true,
-      "settleMs": 8331,
-      "kind": "structure-3d",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview",
-        "inline-structure-viewer"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 1,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "structure",
+        "previewKind": "structure",
+        "quality": "notAnalysed",
+        "note": "small-molecule crystal: no chains"
       },
+      "fileId": "64381b0c-fc40-438e-8708-cb043f53f1f6",
+      "settled": true,
+      "settleMs": 2944,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "structure",
+      "previewKind": "structure",
+      "legacyKind": "structure-3d",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-structure-viewer",
+        "inline-structure-frame"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nStyle:\nCartoon\nStick\nSphere\nLine",
-      "header": {
-        "name": "Si.cif",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_90idot_4.cif); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "format_identified"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\nSi.cif\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_90idot_4.cif); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nWhat we saw in your data\nSi.cif\nNot checked\nNotes\nIdentified as mmCIF (5.2 KB); its contents are not analysed here."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n5.2 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "mrc",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.mrc",
       "storedName": "1.mrc",
       "galaxyFixture": "1.mrc",
       "source": "galaxy/datatypes/test/1.mrc",
       "folder": null,
       "expect": "density map slices",
-      "fileId": "6ca9b35f-0cb2-495c-a65f-9b08a5dfe33e",
+      "expected": {
+        "viewKind": "image",
+        "previewKind": "image",
+        "quality": "unassessed",
+        "note": "cryo-EM map: the profiler's image kind, drawn by the density viewer (slices)"
+      },
+      "fileId": "d0d59846-15f5-40c6-afb4-c462c7e26cfe",
       "settled": true,
-      "settleMs": 7300,
-      "kind": "density",
+      "settleMs": 2902,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "image",
+      "previewKind": "image",
+      "legacyKind": "density",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "density-map-viewer"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 1,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\n1.mrc\n5×4×1 voxels\nN/A×N/A×N/A Å/vox\nDownload\nXY plane\nXZ plane\nYZ plane\nXY slice\n1 / 1\nContrast\n2.0×\nDimensions\n5×4×1\nVoxel X\nN/A Å\nVoxel Y\nN/A Å\nVoxel Z\nN/A Å",
-      "header": {
-        "name": "1.mrc",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_b_w2xllo.mrc); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "format_identified"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.mrc\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_b_w2xllo.mrc); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.mrc\nNot checked\nNotes\nIdentified as MRC (1.0 KB); its contents are not analysed here."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n1.0 KB\nTYPE\napplication/octet-stream",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tiff",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.tiff",
       "storedName": "1.tiff",
       "galaxyFixture": "1.tiff",
       "source": "galaxy/datatypes/test/1.tiff",
       "folder": null,
       "expect": "image",
-      "fileId": "efb79ad5-a4d5-4040-8bbd-5526c4cb78c7",
-      "settled": true,
-      "settleMs": 5841,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "image",
+        "previewKind": "image",
+        "quality": "unassessed",
+        "requirePreviewTestids": [
+          "dataset-preview-tiff-image"
+        ],
+        "note": "the image itself is drawn: the server renders a TIFF plane to PNG (preview.png) shown as dataset-preview-tiff-image; the download fallback (dataset-preview-tiff-download only) is a PARTIAL"
       },
+      "fileId": "80c11931-dd2d-46a7-934f-f5d0c55b0f32",
+      "settled": true,
+      "settleMs": 3879,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "preview-testids",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "image",
+      "previewKind": "image",
+      "legacyKind": "image",
+      "previewTestids": [
+        "dataset-preview-tiff-image",
+        "dataset-preview-image",
+        "dataset-preview-tiff-caption"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "1.tiff",
-        "quality": "Blocked"
-      },
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "blocked",
-        "chip": "Blocked",
-        "findings": [
-          {
-            "code": "parse_failed",
-            "text": "The file could not be parsed: line contains NUL"
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "format_identified"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.tiff\nBlocked\nROWS\n0\nCOLUMNS\n0\nWhy “Blocked”\nThe file could not be parsed: line contains NUL"
+        "text": "DATA QC\n\nWhat we saw in your data\n1.tiff\nNot checked\nNotes\nIdentified as TIFF (18.9 KB); its contents are not analysed here."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n18.9 KB\nTYPE\nimage/tiff",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "json",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.json",
       "storedName": "1.json",
       "galaxyFixture": "1.json",
       "source": "galaxy/datatypes/test/1.json",
       "folder": null,
       "expect": "JSON tree / value",
-      "fileId": "1cc4420b-c0b7-4263-9895-e0005d81d6db",
+      "expected": {
+        "viewKind": "json",
+        "previewKind": "json",
+        "quality": "notAnalysed"
+      },
+      "fileId": "c8931dcd-a083-4ea5-89c7-272532519cf2",
       "settled": true,
-      "settleMs": 5392,
-      "kind": "json-tree",
+      "settleMs": 2889,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "json",
+      "previewKind": "json",
+      "legacyKind": "json-tree",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview",
         "json-preview"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\n1",
-      "header": {
-        "name": "1.json",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "entries",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "structured_only",
-            "text": "Valid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "structured_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\n1.json\nWatch\nFORMAT\nJSON\nROOT\narray\nVALUES\n2\nKEYS\n0\nNULL VALUES\n0\nNESTING DEPTH\n1\nWhy “Watch”\nValid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.json\nNot checked\nFORMAT\nJSON\nROOT\narray\nVALUES (ALL LEVELS)\n2\nKEYS (ALL LEVELS)\n0\nNULL VALUES\n0\nNESTING DEPTH\n1\nNotes\nValid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n4 B\nTYPE\napplication/json",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pod5",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "test.pod5",
       "storedName": "test.pod5",
       "galaxyFixture": "test.pod5",
       "source": "galaxy/datatypes/test/test.pod5",
       "folder": null,
       "expect": "nanopore read summary (binary)",
-      "fileId": "40701f6c-0906-4c64-9224-27fc13e063dc",
-      "settled": true,
-      "settleMs": 5629,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "binary",
+        "previewKind": "binary",
+        "quality": "unassessed",
+        "note": "nanopore signal container: identified, honest download state"
       },
+      "fileId": "1cdb1ace-47bc-4259-a8f0-d6c9811bc40e",
+      "settled": true,
+      "settleMs": 2925,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "binary",
+      "previewKind": "binary",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-download-state",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "test.pod5",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_aqdayy2c.pod5); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "format_identified"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ntest.pod5\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_aqdayy2c.pod5); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nWhat we saw in your data\ntest.pod5\nNot checked\nNotes\nIdentified as POD5 (18.4 KB); its contents are not analysed here."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n18.4 KB\nTYPE\napplication/octet-stream",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "gene-list",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "gene_list.txt",
       "storedName": "gene_list.txt",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": null,
       "expect": "single-column list (header-less) — 12 genes, no fake header",
-      "fileId": "eee55baa-fb8a-488d-bdfc-a6f0f9374725",
+      "expected": {
+        "viewKind": "table",
+        "previewKind": "table",
+        "quality": "assessed",
+        "minColumns": 1,
+        "maxColumns": 1,
+        "notColumns": [
+          "TP53"
+        ],
+        "note": "single-column, header-less: TP53 is data, not a header"
+      },
+      "fileId": "38fbbbb4-1015-4694-a023-c8e2be6c1d45",
       "settled": true,
-      "settleMs": 5302,
-      "kind": "rows-table",
+      "settleMs": 2885,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-max",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "table",
+      "previewKind": "table",
+      "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-toggle-edit",
         "dataset-preview-table",
         "dataset-preview-filter",
@@ -1417,50 +3173,136 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "TP53"
+        "column_1"
       ],
-      "rowCount": 11,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nEdit\nTP53\nBRCA1\nEGFR\nMYC\nKRAS\nPTEN\nAKT1\nPIK3CA\nCDKN2A\nRB1\nERBB2\nNRAS\nAll 11 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "gene_list.txt",
-        "quality": "Good"
-      },
+      "rowCount": 12,
+      "toggles": [
+        "table",
+        "columns",
+        "edit"
+      ],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ngene_list.txt\nGood\nROWS\n11\nCOLUMNS\n1\nEFFECTIVE N\n11\nNotes\n11 rows × 1 columns; no leakage, imbalance or constant-column issues detected."
+        "whyCount": 0,
+        "codes": [
+          "columns_generated",
+          "table_clean_unlabelled"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngene_list.txt\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 12 · columns: 1; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked."
       },
-      "stats": "ROWS\n11\nCOLUMNS\n1\nSIZE\n64 B\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "narrowpeak",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "peaks.narrowPeak",
       "storedName": "peaks.narrowPeak",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": null,
       "expect": "peak table (10 narrowPeak columns)",
-      "fileId": "321436e2-91d8-4c8c-bed2-6130e37c16e7",
+      "expected": {
+        "viewKind": "intervals",
+        "previewKind": "intervals",
+        "quality": "assessed",
+        "columns": [
+          "chrom",
+          "start",
+          "end"
+        ],
+        "minColumns": 10
+      },
+      "fileId": "272bd63c-f3fe-41cd-8a10-9adf38b2216b",
       "settled": true,
-      "settleMs": 9191,
-      "kind": "rows-table",
+      "settleMs": 2919,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "intervals",
+      "previewKind": "intervals",
+      "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -1478,241 +3320,568 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "chr1",
-        "9980",
-        "10480",
-        "peak_1",
-        "850",
-        ".",
-        "12.51",
-        "45.20",
-        "42.10",
-        "250"
+        "Chrom",
+        "Start",
+        "End",
+        "Name",
+        "Score",
+        "Strand",
+        "SignalValue",
+        "pValue",
+        "qValue",
+        "Peak"
       ],
-      "rowCount": 4,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nchr1\t9980\t10480\tpeak_1\t850\t.\t12.51\t45.20\t42.10\t250\nchr1\t15420\t15890\tpeak_2\t640\t.\t8.33\t30.11\t27.95\t198\nchr2\t120400\t121010\tpeak_3\t1000\t.\t20.02\t88.70\t85.12\t305\nchr3\t500012\t500398\tpeak_4\t412\t.\t5.10\t15.42\t13.00\t160\nchrX\t77001\t77560\tpeak_5\t733\t.\t10.92\t39.03\t36.41\t271\nAll 4 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "peaks.narrowPeak",
-        "quality": "Watch"
-      },
+      "rowCount": 5,
+      "toggles": [],
+      "stats": [
+        "regions",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "near_constant",
-            "text": "1 column(s) are near-constant (over 99% a single value): .."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "intervals_summary",
+          "columns_spec",
+          "table_summary",
+          "intervals_stranded"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\npeaks.narrowPeak\nWatch\nROWS\n4\nCOLUMNS\n10\nEFFECTIVE N\n4\nWhy “Watch”\n1 column(s) are near-constant (over 99% a single value): ..\nNotes\n4 rows × 10 columns."
+        "text": "DATA QC\n\nWhat we saw in your data\npeaks.narrowPeak\nGood\nSignal summary\nGenomic intervals: 5; columns: 10.\nNotes\nnarrowPeak files have no header row; column names follow the narrowPeak specification: Chrom, Start, End, Name, Score, Strand, SignalValue, pValue.\nRows: 5 · columns: 10.\nStrand is given (column “Strand”)."
       },
-      "stats": "ROWS\n4\nCOLUMNS\n10\nSIZE\n262 B\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pairs-S1_R1",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "S1_R1.fastq.gz",
       "storedName": "pairs/S1_R1.fastq.gz",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": "pairs",
       "expect": "reads; folder shows S1 pair",
-      "fileId": "7c091650-ce2d-4fd7-9a0c-0f305d54a783",
-      "settled": true,
-      "settleMs": 5556,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "reads",
+        "previewKind": "reads",
+        "quality": "assessed"
       },
+      "fileId": "8afd755e-267f-4225-a1d9-3561220a6e1c",
+      "settled": true,
+      "settleMs": 3067,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "pairs/S1_R1.fastq.gz",
-        "quality": "Good"
-      },
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\npairs/S1_R1.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "whyCount": 0,
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_paired_mate",
+          "fastq_paired_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R1.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 1 of sample S1; its mate S1_R2.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
       },
-      "stats": "ROWS\n2\nCOLUMNS\n34\nSIZE\n150 B\nTYPE\napplication/gzip",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pairs-S1_R2",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "S1_R2.fastq.gz",
       "storedName": "pairs/S1_R2.fastq.gz",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": "pairs",
       "expect": "reads; pairs with S1_R1",
-      "fileId": "10d21771-08cd-4d27-b9d5-2d88a0f4f728",
-      "settled": true,
-      "settleMs": 4587,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "reads",
+        "previewKind": "reads",
+        "quality": "assessed"
       },
+      "fileId": "bd89b1fe-ff3d-4acc-a58f-cf5a68a10cb6",
+      "settled": true,
+      "settleMs": 2932,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "pairs/S1_R2.fastq.gz",
-        "quality": "Good"
-      },
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\npairs/S1_R2.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "whyCount": 0,
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_paired_mate",
+          "fastq_paired_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R2.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 2 of sample S1; its mate S1_R1.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
       },
-      "stats": "ROWS\n2\nCOLUMNS\n34\nSIZE\n150 B\nTYPE\napplication/gzip",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pairs-S2_R1",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "S2_R1.fastq.gz",
       "storedName": "pairs/S2_R1.fastq.gz",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": "pairs",
       "expect": "reads; flagged as orphan (no R2)",
-      "fileId": "29fa95b4-c320-4622-be14-3ffceabe7c2e",
-      "settled": true,
-      "settleMs": 4435,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "reads",
+        "previewKind": "reads",
+        "quality": "assessed"
       },
+      "fileId": "5a65c4b3-4fa4-410c-85e6-94cf5b178bc2",
+      "settled": true,
+      "settleMs": 2915,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "verdict-has-reason",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "legacyKind": "text",
+      "previewTestids": [
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "pairs/S2_R1.fastq.gz",
-        "quality": "Good"
-      },
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\npairs/S2_R1.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "quality": "watch",
+        "whyCount": 1,
+        "codes": [
+          "fastq_mate_missing",
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_orphan_single_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S2_R1.fastq.gz\nWatch\nWhy “Watch”\nRead 1 of sample S2, but no read-2 mate is in this folder — it runs single-end unless the mate is added.\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nHow it shaped the plan\nMate file missing from the folder\nsingle-end for sample S2 until the mate is added"
       },
-      "stats": "ROWS\n2\nCOLUMNS\n34\nSIZE\n150 B\nTYPE\napplication/gzip",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tenx-matrix",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "matrix.mtx",
       "storedName": "tenx/matrix.mtx",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": "tenx",
       "expect": "5×5 matrix; folder recognised as 10x",
-      "fileId": "b6f6968b-d32a-4145-8fd4-670f0eb7ad13",
-      "settled": true,
-      "settleMs": 4735,
-      "kind": "message",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
-      ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
+      "expected": {
+        "viewKind": "matrix",
+        "previewKind": "matrix",
+        "quality": "notAnalysed"
       },
+      "fileId": "914ca405-eb78-4f3d-8111-4e4a57dc9529",
+      "settled": true,
+      "settleMs": 2997,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "matrix",
+      "previewKind": "matrix",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-kind-summary",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nContent preview is not available for this format. Download the file to open it in a compatible application.",
-      "header": {
-        "name": "tenx/matrix.mtx",
-        "quality": "Watch"
-      },
+      "toggles": [],
+      "stats": [
+        "rows",
+        "columns",
+        "entries",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "unprofilable",
-            "text": "This file type cannot be profiled (perception_5zrbghdj.mtx); only its shape is reported, no leakage or balance checks."
-          }
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "mtx_dimensions",
+          "mtx_tenx_set",
+          "format_metadata_only"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ntenx/matrix.mtx\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nThis file type cannot be profiled (perception_5zrbghdj.mtx); only its shape is reported, no leakage or balance checks."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/matrix.mtx\nNot checked\nSignal summary\n5 × 5 sparse matrix (real); stored entries: 8 (32% non-zero).\nNotes\n10x matrix: rows are the features in features.tsv, columns are the cells in barcodes.tsv (same folder).\nMatrix Market metadata was read; the data values themselves have not been analysed."
       },
-      "stats": "ROWS\n—\nCOLUMNS\n—\nSIZE\n1.2 KB\nTYPE\ntext/plain",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tenx-barcodes",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "barcodes.tsv",
       "storedName": "tenx/barcodes.tsv",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": "tenx",
       "expect": "barcode list (header-less)",
-      "fileId": "999db9ff-8784-4072-93ee-c06fa75bc828",
+      "expected": {
+        "viewKind": "table",
+        "previewKind": "table",
+        "quality": "assessed",
+        "minColumns": 1,
+        "maxColumns": 1,
+        "notColumns": [
+          "AAACATACAACCAC-1"
+        ]
+      },
+      "fileId": "854bdd84-5d48-45e1-9e86-32fc84a726e6",
       "settled": true,
-      "settleMs": 4982,
-      "kind": "rows-table",
+      "settleMs": 2913,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-max",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "table",
+      "previewKind": "table",
+      "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-toggle-edit",
         "dataset-preview-table",
         "dataset-preview-filter",
@@ -1722,50 +3891,141 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "AAACATACAACCAC-1"
+        "barcode"
       ],
-      "rowCount": 4,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nEdit\nAAACATACAACCAC-1\nAAACATTGAGCTAC-1\nAAACATTGATCAGC-1\nAAACCGTGCTTCCG-1\nAAACCGTGTATGCG-1\nAll 4 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "tenx/barcodes.tsv",
-        "quality": "Good"
-      },
+      "rowCount": 5,
+      "toggles": [
+        "table",
+        "columns",
+        "edit"
+      ],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
-        "chip": "Good",
-        "findings": [],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ntenx/barcodes.tsv\nGood\nROWS\n4\nCOLUMNS\n1\nEFFECTIVE N\n4\nNotes\n4 rows × 1 columns; no leakage, imbalance or constant-column issues detected."
+        "whyCount": 0,
+        "codes": [
+          "columns_spec",
+          "table_summary",
+          "tenx_member_headerless"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/barcodes.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: barcode.\nRows: 5 · columns: 1.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
       },
-      "stats": "ROWS\n4\nCOLUMNS\n1\nSIZE\n85 B\nTYPE\ntext/tab-separated-values",
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tenx-features",
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "features.tsv",
       "storedName": "tenx/features.tsv",
       "galaxyFixture": null,
       "source": "inline/derived",
       "folder": "tenx",
       "expect": "features table id/symbol/type (header-less)",
-      "fileId": "739266e3-37e3-480c-b2b0-03cd58669850",
+      "expected": {
+        "viewKind": "table",
+        "previewKind": "table",
+        "quality": "assessed",
+        "minColumns": 3,
+        "maxColumns": 3,
+        "notColumns": [
+          "ENSG00000243485",
+          "MIR1302-2HG"
+        ],
+        "note": "10x features.tsv is header-less"
+      },
+      "fileId": "385269a8-615c-4825-ad2c-f148301d021b",
       "settled": true,
-      "settleMs": 5091,
-      "kind": "rows-table",
+      "settleMs": 2935,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "columns-required",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-min",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "columns-max",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "no-data-as-header",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "rows-shown",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "table",
+      "previewKind": "table",
+      "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-toggle-edit",
         "dataset-preview-table",
         "dataset-preview-filter",
@@ -1777,38 +4037,36 @@
         "dataset-preview-rowcount",
         "dataset-preview-scope"
       ],
-      "elements": {
-        "tables": 0,
-        "pre": 0,
-        "canvas": 0,
-        "img": 0,
-        "iframe": 0
-      },
+      "previewNone": false,
       "columns": [
-        "ENSG00000243485",
-        "MIR1302-2HG",
-        "Gene Expression"
+        "feature_id",
+        "feature_name",
+        "feature_type"
       ],
-      "rowCount": 4,
-      "otherTableColumns": [],
-      "previewText": "Table\nColumns\nPlot\nEdit\nENSG00000243485\tMIR1302-2HG\tGene Expression\nENSG00000237613\tFAM138A\tGene Expression\nENSG00000186092\tOR4F5\tGene Expression\nENSG00000238009\tAL627309.1\tGene Expression\nENSG00000239945\tAL627309.3\tGene Expression\nAll 4 rows loaded\nSorting and filtering apply to all rows.",
-      "header": {
-        "name": "tenx/features.tsv",
-        "quality": "Watch"
-      },
+      "rowCount": 5,
+      "toggles": [
+        "table",
+        "columns",
+        "edit"
+      ],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "chip": "Watch",
-        "findings": [
-          {
-            "code": "near_constant",
-            "text": "1 column(s) are near-constant (over 99% a single value): Gene Expression."
-          }
+        "quality": "good",
+        "whyCount": 0,
+        "codes": [
+          "columns_spec",
+          "table_summary",
+          "tenx_member_headerless"
         ],
-        "text": "DATA QC\nRun full QC\nWhat we saw in your data\ntenx/features.tsv\nWatch\nROWS\n4\nCOLUMNS\n3\nEFFECTIVE N\n4\nWhy “Watch”\n1 column(s) are near-constant (over 99% a single value): Gene Expression.\nNotes\n4 rows × 3 columns."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/features.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: feature_id, feature_name, feature_type.\nRows: 5 · columns: 3.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
       },
-      "stats": "ROWS\n4\nCOLUMNS\n3\nSIZE\n208 B\nTYPE\ntext/tab-separated-values",
       "errors": [],
       "pageErrors": []
     }
@@ -1816,8 +4074,6 @@
   "folders": {
     "pairs": {
       "folderRowVisible": true,
-      "folderRowText": "pairs\n3",
-      "treeText": "pairs\n3\nS2_R1.fastq.gz\n150 B\nS1_R2.fastq.gz\n150 B\nS1_R1.fastq.gz\n150 B",
       "files": [
         {
           "name": "pairs/S1_R1.fastq.gz",
@@ -1834,12 +4090,59 @@
           "storedName": "pairs/S2_R1.fastq.gz",
           "rowVisible": true
         }
-      ]
+      ],
+      "viewShown": true,
+      "view": {
+        "kind": "fastq_set",
+        "samples": [
+          {
+            "testid": "folder-sample-row-S1",
+            "status": "paired"
+          },
+          {
+            "testid": "folder-sample-row-S2",
+            "status": "orphan"
+          }
+        ],
+        "orphans": [
+          "folder-orphan-S2_R1.fastq.gz"
+        ],
+        "tenxDims": [],
+        "findings": [
+          {
+            "code": "folder_fastq_pairs",
+            "level": "info"
+          },
+          {
+            "code": "folder_fastq_orphan",
+            "level": "watch"
+          },
+          {
+            "code": "folder_fastq_mixed_layout",
+            "level": "watch"
+          },
+          {
+            "code": "folder_samplesheet",
+            "level": "info"
+          },
+          {
+            "code": "folder_samplesheet_single_end",
+            "level": "info"
+          }
+        ],
+        "hasDownload": true
+      },
+      "samplesheet": {
+        "filename": "pairs_samplesheet.csv",
+        "csv": "sample,fastq_1,fastq_2\nS1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz\n"
+      },
+      "samplesheetSingle": {
+        "filename": "pairs_samplesheet_single_end.csv",
+        "csv": "sample,fastq_1,fastq_2\nS2,pairs/S2_R1.fastq.gz,\n"
+      }
     },
     "tenx": {
       "folderRowVisible": true,
-      "folderRowText": "tenx\n3",
-      "treeText": "tenx\n3\nfeatures.tsv\n208 B\nbarcodes.tsv\n85 B\nmatrix.mtx\n1.2 KB",
       "files": [
         {
           "name": "tenx/matrix.mtx",
@@ -1856,7 +4159,27 @@
           "storedName": "tenx/features.tsv",
           "rowVisible": true
         }
-      ]
+      ],
+      "viewShown": true,
+      "view": {
+        "kind": "tenx_matrix",
+        "samples": [],
+        "orphans": [],
+        "tenxDims": [
+          "5 cells × 5 genes"
+        ],
+        "findings": [
+          {
+            "code": "folder_tenx_recognised",
+            "level": "info"
+          },
+          {
+            "code": "folder_tenx_headerless",
+            "level": "info"
+          }
+        ],
+        "hasDownload": false
+      }
     }
   },
   "uploadAttempts": {
@@ -1963,5 +4286,5 @@
       201
     ]
   },
-  "finishedAt": "2026-11-12T02:29:09.152Z"
+  "finishedAt": "2026-11-12T11:08:40.685Z"
 }

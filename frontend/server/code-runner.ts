@@ -195,7 +195,7 @@ export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
         ? await imageDataUri(filePath, mediaType)
         : undefined;
       if (image_data_uri) imageBytes += stat.size;
-      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _mtimeMs: stat.mtimeMs } as OutputFile);
+      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _sig: fileSignature(stat) } as OutputFile);
     }
   } catch { /* dir may not exist */ }
   return results;
@@ -267,6 +267,81 @@ export function workspaceDirFor(key: string): string {
   return path.join(CODE_ROOT, `ws-${createHash('sha256').update(key).digest('hex').slice(0, 32)}`);
 }
 
+/** The workspace key of one user's chat session. The session id alone is client-supplied, so the key
+ *  is bound to the AUTHENTICATED user id: another user sending the same session id gets a different
+ *  workspace. Without both ids there is no session workspace (the run is throwaway). */
+export function sessionWorkspaceKey(userId: unknown, sessionId: unknown): string | undefined {
+  const u = userId == null ? '' : String(userId);
+  const s = sessionId == null ? '' : String(sessionId);
+  if (!u || !s) return undefined;
+  // JSON array: unambiguous, so no (user, session) pair can collide with another by concatenation.
+  return JSON.stringify(['chat-ws-v2', u, s]);
+}
+
+/** Calls on one session workspace run one at a time. The workspace (/work/output, staged inputs) is
+ *  shared state, and a call's outputs are what changed in $OUTPUT_DIR between its start and its end —
+ *  only well defined when no other call of the workspace runs meanwhile. The assistant runs a turn's
+ *  tool calls with Promise.all, so without this two parallel run_code calls credited each other's
+ *  files (and, with a fixed script path, ran each other's code). */
+const _workspaceLocks = new Map<string, Promise<void>>();
+async function withWorkspaceLock<T>(dir: string, fn: () => Promise<T>): Promise<T> {
+  const prev = _workspaceLocks.get(dir) ?? Promise.resolve();
+  let release!: () => void;
+  const mine = new Promise<void>(r => { release = r; });
+  const tail = prev.then(() => mine);
+  _workspaceLocks.set(dir, tail);
+  await prev;
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (_workspaceLocks.get(dir) === tail) _workspaceLocks.delete(dir);
+  }
+}
+
+/** One path component for a staged input (dataset id / filename): never a separator, `.`/`..` or NUL,
+ *  so the staged path cannot leave input/<id>/. */
+export function safePathComponent(name: string, fallback: string): string {
+  const s = String(name ?? '').replace(/[\/\\\0]/g, '_');
+  return !s || s === '.' || s === '..' ? fallback : s;
+}
+
+/** Make `dir` a plain directory created by this server. Anything else at that path — a symlink a
+ *  previous run planted (sandbox code can write /work when it runs as the server identity), a file —
+ *  is removed first (rm removes a symlink itself, never its target), so nothing written below it can
+ *  be redirected outside the workspace. Its parent must already be checked. */
+async function ensurePlainDir(dir: string): Promise<void> {
+  const st = await fs.lstat(dir).catch(() => null);
+  if (st && st.isDirectory() && !st.isSymbolicLink()) return;
+  if (st) await fs.rm(dir, { recursive: true, force: true });
+  // EEXIST: a concurrent staging of the same dataset id created it — verified just below.
+  await fs.mkdir(dir, { mode: 0o755 }).catch((e: any) => { if (e?.code !== 'EEXIST') throw e; });
+  const now = await fs.lstat(dir);
+  if (!now.isDirectory() || now.isSymbolicLink()) throw new Error(`[CodeRunner] ${dir} is not a plain directory`);
+}
+
+/** Create `file` with `data`; fails rather than following or reusing anything already at the path. */
+async function writeNewFile(file: string, data: string | Buffer): Promise<void> {
+  const fh = await fs.open(file, fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW, 0o644);
+  try { await fh.writeFile(data); } finally { await fh.close(); }
+}
+
+/** Stage `data` at dir/name without following a symlink at that path: write a fresh temp file, then
+ *  rename it over the target (rename replaces a symlink/file entry, it never writes through it). */
+async function stageFileAt(dir: string, name: string, data: Buffer): Promise<void> {
+  const target = path.join(dir, name);
+  const tmp = path.join(dir, `.staging-${randomUUID()}`);
+  try {
+    await writeNewFile(tmp, data);
+    const st = await fs.lstat(target).catch(() => null);
+    if (st && st.isDirectory() && !st.isSymbolicLink()) await fs.rm(target, { recursive: true, force: true });
+    await fs.rename(tmp, target);
+  } catch (err) {
+    await fs.rm(tmp, { force: true }).catch(() => {});
+    throw err;
+  }
+}
+
 let _lastSweep = 0;
 /** Remove session workspaces idle longer than WORKSPACE_IDLE_MS (at most once per 10 min). */
 export async function sweepIdleWorkspaces(now = Date.now(), force = false): Promise<string[]> {
@@ -278,6 +353,7 @@ export async function sweepIdleWorkspaces(now = Date.now(), force = false): Prom
   for (const name of entries) {
     if (!name.startsWith('ws-')) continue;
     const dir = path.join(CODE_ROOT, name);
+    if (_workspaceLocks.has(dir)) continue; // a call is using it right now
     try {
       const st = await fs.stat(dir);
       if (now - st.mtimeMs > WORKSPACE_IDLE_MS) { await fs.rm(dir, { recursive: true, force: true }); removed.push(dir); }
@@ -286,14 +362,20 @@ export async function sweepIdleWorkspaces(now = Date.now(), force = false): Prom
   return removed;
 }
 
-type DirSnapshot = Map<string, { size: number; mtimeMs: number }>;
+/** Identity of a file's current content: a rewrite changes ctime (and usually mtime/size) even
+ *  within the same millisecond-rounded mtime; a replace (new file, rename) changes the inode. */
+function fileSignature(st: { size: number; mtimeMs: number; ctimeMs: number; ino: number }): string {
+  return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+}
+
+type DirSnapshot = Map<string, string>;
 async function snapshotDir(dir: string): Promise<DirSnapshot> {
   const snap: DirSnapshot = new Map();
   try {
     for (const e of await fs.readdir(dir, { withFileTypes: true })) {
       if (!e.isFile()) continue;
-      const st = await fs.stat(path.join(dir, e.name));
-      snap.set(e.name, { size: st.size, mtimeMs: st.mtimeMs });
+      const st = await fs.lstat(path.join(dir, e.name));
+      if (st.isFile()) snap.set(e.name, fileSignature(st));
     }
   } catch { /* new workspace */ }
   return snap;
@@ -302,13 +384,21 @@ async function snapshotDir(dir: string): Promise<DirSnapshot> {
 // ─── Main executor ────────────────────────────────────────────────────────────
 
 export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
-  const persistent = !!req.workspaceKey;
+  if (!req.workspaceKey) return runCodeIn(req, path.join(CODE_ROOT, randomUUID()), false);
+  const baseDir = workspaceDirFor(req.workspaceKey);
+  return withWorkspaceLock(baseDir, () => runCodeIn(req, baseDir, true));
+}
+
+async function runCodeIn(req: CodeRunRequest, baseDir: string, persistent: boolean): Promise<CodeRunResult> {
   // Allow up to 300s for complex analysis (e.g. parsing large ZIP files, running R stats)
   const timeoutMs = Math.min((req.timeout_seconds ?? 30), 300) * 1000;
-  const baseDir = persistent ? workspaceDirFor(req.workspaceKey!) : path.join(CODE_ROOT, randomUUID());
   const inputDir = path.join(baseDir, 'input');
   const outputDir = path.join(baseDir, 'output');
 
+  // The root must be a real directory (not a symlink planted in the shared /tmp).
+  await fs.mkdir(CODE_ROOT, { recursive: true, mode: 0o755 });
+  const rootSt = await fs.lstat(CODE_ROOT);
+  if (rootSt.isSymbolicLink() || !rootSt.isDirectory()) throw new Error(`[CodeRunner] refusing ${CODE_ROOT}: not a plain directory`);
   if (persistent) {
     sweepIdleWorkspaces().catch(() => {});
     // A reused workspace must be the real directories this server created — never a planted
@@ -318,7 +408,10 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       if (st && (st.isSymbolicLink() || !st.isDirectory())) throw new Error(`[CodeRunner] refusing workspace path ${d}: not a plain directory`);
     }
   }
-  await fs.mkdir(inputDir, { recursive: true });
+  await ensurePlainDir(baseDir);
+  // input/ and input/<id>/ are re-checked on every call: sandbox code of an earlier call may have
+  // replaced them with symlinks (see ensurePlainDir).
+  await ensurePlainDir(inputDir);
   // Files already in the session workspace before this call: only NEW or CHANGED files are this
   // call's outputs (the workspace keeps earlier calls' files).
   const before = await snapshotDir(outputDir);
@@ -340,21 +433,24 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     if (req.input_datasets?.length && req.downloadDataset) {
       await Promise.all(
         req.input_datasets.map(async (ref) => {
-          const datasetId = typeof ref === 'string' ? ref : ref.id;
-          const filename = (typeof ref === 'object' && ref.filename) ? ref.filename : 'dataset';
+          const rawId = typeof ref === 'string' ? ref : ref.id;
+          const datasetId = safePathComponent(rawId, 'dataset');
+          const filename = safePathComponent((typeof ref === 'object' && ref.filename) ? ref.filename : 'dataset', 'dataset');
           const datasetDir = path.join(inputDir, datasetId);
-          await fs.mkdir(datasetDir, { recursive: true });
           try {
-            const stream = await req.downloadDataset!(datasetId);
+            await ensurePlainDir(datasetDir);
+            const stream = await req.downloadDataset!(rawId);
             const chunks: Buffer[] = [];
             for await (const chunk of stream) chunks.push(chunk);
             // Save with the original filename so file-type-aware code works (e.g. zipfile, pandas)
-            await fs.writeFile(path.join(datasetDir, filename), Buffer.concat(chunks));
-            // Also write a generic 'dataset' symlink for backwards compat
+            await stageFileAt(datasetDir, filename, Buffer.concat(chunks));
+            // Also write a generic 'dataset' symlink for backwards compat (replacing whatever is there).
             if (filename !== 'dataset') {
+              const alias = path.join(datasetDir, 'dataset');
+              await fs.rm(alias, { recursive: true, force: true }).catch(() => {});
               try {
-                await fs.symlink(filename, path.join(datasetDir, 'dataset'));
-              } catch { /* ignore if symlink already exists */ }
+                await fs.symlink(filename, alias);
+              } catch { /* a concurrent staging of the same dataset created it */ }
             }
             stagedFiles.push({ id: datasetId, filename, dir: datasetDir });
           } catch (err: any) {
@@ -376,6 +472,9 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     const containerData = SANDBOX_INPUT_DIR;
     const containerOutput = '/work/output';
     let scriptName: string;
+    // Unique per call: a fixed name let a parallel call of the same workspace overwrite the script
+    // before the sandbox read it (dataset-panel audit S4).
+    const callId = randomUUID();
 
     // Absolute CONTAINER path of each staged file (not the host f.dir — that was a latent bug in
     // the Python comment, which printed the host path the sandbox can't see).
@@ -407,9 +506,9 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         pythonAliasImports(req.code),
         pythonReplay(req.prior_code),
       ].filter(Boolean).join('\n');
-      scriptName = 'script.py';
+      scriptName = `script-${callId}.py`;
       scriptPath = path.join(baseDir, scriptName);
-      await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
+      await writeNewFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'python3';
       args = [`/work/${scriptName}`];
     } else if (req.language === 'r') {
@@ -425,9 +524,9 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         rInputFiles,
         `INPUT_PATHS <- unlist(INPUT_FILES, use.names = FALSE)`,
       ].join('\n');
-      scriptName = 'script.R';
+      scriptName = `script-${callId}.R`;
       scriptPath = path.join(baseDir, scriptName);
-      await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
+      await writeNewFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'Rscript';
       args = [`/work/${scriptName}`];
     } else {
@@ -437,9 +536,9 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         `export OUTPUT_DIR=${JSON.stringify(containerOutput)}`,
         `cd ${JSON.stringify(containerOutput)}`,
       ].join('\n');
-      scriptName = 'script.sh';
+      scriptName = `script-${callId}.sh`;
       scriptPath = path.join(baseDir, scriptName);
-      await fs.writeFile(scriptPath, `#!/bin/bash\n${preamble}\n\n${req.code}`);
+      await writeNewFile(scriptPath, `#!/bin/bash\n${preamble}\n\n${req.code}`);
       interpreter = 'bash';
       args = [`/work/${scriptName}`];
     }
@@ -574,11 +673,8 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     const result = sidecarUrl ? await runViaSidecar(sidecarUrl) : await runViaDocker();
 
     const all = await scanOutputDir(outputDir);
-    const output_files = all.filter(f => {
-      const b = before.get(f.name);
-      return !b || b.size !== f.size || b.mtimeMs !== (f as any)._mtimeMs;
-    });
-    for (const f of all) delete (f as any)._mtimeMs;
+    const output_files = all.filter(f => before.get(f.name) !== (f as any)._sig);
+    for (const f of all) delete (f as any)._sig;
     if (req.persistOutputFile) {
       let n = 0;
       for (const f of output_files) {

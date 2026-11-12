@@ -1,57 +1,72 @@
 /**
- * E2E (dev, live, no mocks): dataset-panel FORMAT MATRIX — a measurement, not a pass/fail gate.
+ * E2E (dev, live, no mocks): dataset-panel FORMAT MATRIX — a pass/fail gate per format.
  *
  * For every common bioinformatics format (real fixtures from Galaxy's own datatype tests, plus a
  * few small files written inline and two folder uploads) this harness uploads the file into ONE
- * project, opens it in the Files view (data hub), waits (bounded) for the panel to settle and
- * records what is actually on screen:
- *   - the preview kind shown (rows table + column names / rich viewer / text / image / density /
- *     "no preview" / error), the testids + elements present in the Preview area, a text snippet;
- *   - the QC card: quality chip + finding texts (or the QC card's own empty/error state);
- *   - visible errors (role=alert / destructive text) and page errors;
- *   - a screenshot e2e/screenshots/format-matrix/<name>.png.
- * For folders it also records what the file tree shows (folder row, file rows, counts).
+ * project, opens it in the Files view (data hub), waits for the panel to settle (a condition: no
+ * loading markers and an unchanged DOM for 3 polls, bounded) and checks the outcome against the
+ * committed table e2e/format-matrix-expectations.json:
+ *   core      — settled; dataset-object[data-view-kind] and dataset-preview[data-preview-kind] are
+ *               the expected kinds; no dataset-preview-none where a preview is expected; no visible
+ *               error (role=alert / *-error testid) and no page errors;
+ *   secondary — rows-table columns for rowKinds (required / min / max / must-not-be-header), QC
+ *               verdict class (data-perception[data-quality] ∈ expected set; watch/blocked list a
+ *               reason), per-kind stat cards (dataset-stat[data-stat], the profiler's stat codes),
+ *               and no Table/Columns/Plot/Edit toggles outside toggleKinds.
+ * The kinds are the backend profiler's vocabulary (data_perception.py decide(): viewKind), so the
+ * panel, the profile and this table speak one language.
+ * Verdict per item: PASS (all checks) / PARTIAL (core ok, some secondary failed) / FAIL (a core
+ * check failed). The harness computes the verdicts and the counts and writes them to
+ * e2e/format-matrix-results.json (after every item, so a partial run keeps what it measured);
+ * the test then FAILS unless every item is PASS. Only testids and data-* attributes are read —
+ * never English UI text. The expectations describe the TARGET contract of
+ * docs/20261112_DATASET_PANEL_AUDIT.md, so the matrix is expected to fail until those fixes deploy.
  *
- * Results → e2e/format-matrix-results.json (written after every item, so a partial run keeps
- * what it measured). Per-format verdicts (PASS / PARTIAL / FAIL) are assigned in the report
- * docs/<date>_DATASET_FORMAT_MATRIX.md after reviewing the screenshots — the harness only asserts
- * that the harness itself worked (login, project, uploads, every file opened in the UI).
+ * Folders: the tree's folder rows + each folder opened as an object (folder view) with asserted
+ * facts: pairs/ → S1 paired, S2_R1 orphan, a paired samplesheet (S1) + a single-end sheet (S2) downloaded from the UI; tenx/ →
+ * a recognised 10x matrix with its cells × genes; per-file consequences (S1_R1's QC names its mate,
+ * S2_R1's has fastq_mate_missing, features.tsv is header-less).
  *
- * Rules honoured (CLAUDE.md): fixture account, ONE login, ONE project deleted in finally, never
- * register, no response stubbing. The only page.route strips the harness's own Authorization /
- * x-e2e-test-token headers from requests to amazonaws.com (a presigned S3 URL rejects a second
- * auth mechanism) — same as run-code-outputs.e2e.ts.
+ * Rules honoured (CLAUDE.md): fixture account, ONE login (cookie session; all API calls through
+ * page.request), ONE project deleted loudly in finally, never register, no page.route at all.
  *
  * Content-hash dedup: uploads with identical bytes link to one entry (project-routes.ts), so the
  * folder copies are made byte-distinct (read headers renamed; an extra MatrixMarket comment line).
  *
- * Run: cd frontend && E2E_FIXTURE_PASSWORD="$(cat ~/.config/biomate/e2e_fixture_password)" \
- *      BIOMATE_URL=https://dev-public.biomate.ai npx playwright test e2e/dataset-format-matrix.e2e.ts \
- *      --project=chromium --reporter=line --retries=0
+ * Run: cd frontend && BIOMATE_URL=https://dev-public.biomate.ai npx playwright test \
+ *      e2e/dataset-format-matrix.e2e.ts --project=chromium --reporter=line --retries=0
+ *      (fixtures: GALAXY_DATATYPE_TEST_DIR, else ../backend/lib/galaxy/datatypes/test of this or the
+ *      main checkout — a missing fixture dir FAILS the run, it is not skipped.)
  */
 import { test, expect, type Page } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
 import * as zlib from "zlib";
 import { fileURLToPath } from "url";
-import { BASE_URL, E2E_TOKEN } from "./_fixture-login";
+import { BASE_URL, loginAsFixture } from "./_fixture-login";
+import { createProject, deleteProjectLoudly, uploadFile, openProjectFiles, openFile, revealFile } from "./_project-ui";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const GALAXY_TEST = process.env.GALAXY_DATATYPE_TEST_DIR || "/Users/kky/biomate-review/backend/lib/galaxy/datatypes/test";
+const GALAXY_TEST = [
+  process.env.GALAXY_DATATYPE_TEST_DIR,
+  path.resolve(HERE, "../../backend/lib/galaxy/datatypes/test"),
+  "/Users/kky/biomate-review/backend/lib/galaxy/datatypes/test",
+].find((d): d is string => !!d && fs.existsSync(path.join(d, "2.csv"))) ?? "";
 const SHOTS = path.join(HERE, "screenshots", "format-matrix");
 const RESULTS = path.join(HERE, "format-matrix-results.json");
+const EXPECTATIONS = JSON.parse(fs.readFileSync(path.join(HERE, "format-matrix-expectations.json"), "utf8"));
 const SETTLE_MS = 75_000;
 
 test.use({ deviceScaleFactor: 1 });
 
 type Item = {
-  key: string;            // screenshot / result key
+  key: string;            // screenshot / result / expectation key
   name: string;           // uploaded file name (basename)
   relativePath?: string;  // folder upload: "pairs/S1_R1.fastq.gz"
   folder?: string;        // folder group
   src?: string;           // Galaxy fixture basename
   bytes?: () => Buffer;   // inline / derived content
-  expect: string;         // what an ideal dataset panel shows for this format
+  expect: string;         // what an ideal dataset panel shows for this format (prose; the checks are in the JSON)
 };
 
 const fx = (f: string) => fs.readFileSync(path.join(GALAXY_TEST, f));
@@ -131,224 +146,256 @@ function mimeOf(name: string): string {
   return "application/octet-stream";
 }
 
-/** Snapshot of the open dataset object: preview kind, QC card, errors. Pure DOM read. */
+/** Snapshot of the open dataset object — testids and data-* attributes only (no UI text). */
 async function snapshot(page: Page) {
   return page.evaluate(() => {
     const obj = document.querySelector('[data-testid="dataset-object"]') as HTMLElement | null;
     const q = (sel: string, root: ParentNode = document) => root.querySelector(sel) as HTMLElement | null;
-    const txt = (el: Element | null, n = 600) => ((el as HTMLElement | null)?.innerText || "").replace(/\s+\n/g, "\n").trim().slice(0, n);
     const prev = obj ? q('[data-testid="dataset-preview"]', obj) : null;
     const qc = obj ? q('[data-testid="dataset-quality"]', obj) : null;
-    // The Preview area minus the QC card + stat grid (they live inside dataset-preview).
-    const testids = prev ? Array.from(prev.querySelectorAll("[data-testid]"))
-      .filter((e) => !qc?.contains(e) && !e.closest('[data-testid="dataset-stat-grid"]'))
-      .map((e) => e.getAttribute("data-testid")!).filter((v, i, a) => a.indexOf(v) === i) : [];
-    const inPrev = (sel: string) => prev ? Array.from(prev.querySelectorAll(sel)).filter((e) => !qc?.contains(e) && !e.closest('[data-testid="dataset-stat-grid"]')) : [];
+    const outsideQc = (e: Element) => !qc?.contains(e) && !e.closest('[data-testid="dataset-stat-grid"]');
+    const inPrev = (sel: string) => (prev ? Array.from(prev.querySelectorAll(sel)).filter(outsideQc) : []);
+    const testids = inPrev("[data-testid]").map((e) => e.getAttribute("data-testid")!).filter((v, i, a) => a.indexOf(v) === i);
     const rowsTable = prev ? q('[data-testid="dataset-preview-table"]', prev) : null;
-    const columns = rowsTable ? Array.from(rowsTable.querySelectorAll("thead th")).map((th) => (th as HTMLElement).innerText.trim()).filter(Boolean) : [];
-    const rowCount = rowsTable ? rowsTable.querySelectorAll("tbody tr").length : 0;
-    const textPrev = prev ? q('[data-testid="dataset-text-preview"]', prev) : null;
-    const otherTables = inPrev("table").filter((t) => !rowsTable?.contains(t));
-    const otherCols = otherTables[0] ? Array.from(otherTables[0].querySelectorAll("thead th, tr:first-child th")).map((th) => (th as HTMLElement).innerText.trim()).filter(Boolean).slice(0, 20) : [];
-    let kind = "unknown";
-    if (!obj) kind = "no-dataset-object";
-    else if (rowsTable) kind = "rows-table";
-    else if (q('[data-testid="density-map-viewer"]', prev!)) kind = "density";
-    else if (q('[data-testid="inline-structure-viewer"]', prev!)) kind = "structure-3d";
-    else if (inPrev("img").length) kind = "image";
-    else if (inPrev("iframe").length) kind = "iframe";
-    else if (q('[data-testid="dataset-json-tree"], [data-testid="json-preview"]', prev!)) kind = "json-tree";
-    else if (textPrev && otherTables.length) kind = "rich-table-viewer";
-    else if (textPrev && inPrev("pre, code").length) kind = "text";
-    else if (textPrev) kind = "text-other";
-    else if (q('[data-testid="dataset-preview-none"]', prev!)) kind = "no-preview";
-    else if (q('[data-testid="dataset-rows-error"]', prev!)) kind = "rows-error";
-    else if (q('[data-testid="dataset-preview-loading"]', prev!)) kind = "still-loading";
-    else if (inPrev("canvas").length) kind = "canvas";
-    else if (inPrev('[role="alert"]').length) kind = "preview-error";
-    else kind = "message";
-    // Preview text without QC / stat grid.
-    let previewText = "";
-    if (prev) {
-      const clone = prev.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll('[data-testid="dataset-quality"], [data-testid="dataset-stat-grid"]').forEach((e) => e.remove());
-      document.body.appendChild(clone); clone.style.position = "absolute"; clone.style.left = "-99999px";
-      previewText = txt(clone, 700); clone.remove();
-    }
+    const columns = rowsTable
+      ? Array.from(rowsTable.querySelectorAll("thead th")).map((th) => (th.getAttribute("data-column-name") ?? (th as HTMLElement).innerText).trim()).filter(Boolean)
+      : [];
+    // Legacy heuristic (recorded for diagnosis only; the checks use data-preview-kind).
+    let legacyKind = "unknown";
+    if (!obj) legacyKind = "no-dataset-object";
+    else if (rowsTable) legacyKind = "rows-table";
+    else if (prev && q('[data-testid="density-map-viewer"]', prev)) legacyKind = "density";
+    else if (prev && q('[data-testid="inline-structure-viewer"]', prev)) legacyKind = "structure-3d";
+    else if (inPrev("img").length) legacyKind = "image";
+    else if (prev && q('[data-testid="dataset-json-tree"], [data-testid="json-preview"]', prev)) legacyKind = "json-tree";
+    else if (prev && q('[data-testid="dataset-text-preview"]', prev)) legacyKind = "text";
+    else if (prev && q('[data-testid="dataset-preview-none"]', prev)) legacyKind = "no-preview";
+    else legacyKind = "message";
     const perception = qc ? q('[data-testid="data-perception"]', qc) : null;
-    const stat = obj ? q('[data-testid="dataset-stat-grid"]', obj) : null;
-    const errors = obj ? Array.from(obj.querySelectorAll('[role="alert"], .text-destructive')).map((e) => (e as HTMLElement).innerText.trim()).filter(Boolean) : [];
+    const codes = qc
+      ? Array.from(qc.querySelectorAll('[data-testid="perception-why-item"], [data-testid="perception-finding"]')).map((e) => e.getAttribute("data-code") || "")
+      : [];
+    const errors = obj
+      ? Array.from(obj.querySelectorAll('[role="alert"], [data-testid$="-error"]')).map((e) => e.getAttribute("data-testid") || "role=alert")
+      : [];
     return {
-      kind,
+      viewKind: obj?.getAttribute("data-view-kind") ?? null,
+      previewKind: prev?.getAttribute("data-preview-kind") ?? null,
+      legacyKind,
       previewTestids: testids,
-      elements: { tables: otherTables.length, pre: inPrev("pre").length, canvas: inPrev("canvas").length, img: inPrev("img").length, iframe: inPrev("iframe").length },
-      columns, rowCount, otherTableColumns: otherCols,
-      previewText,
-      header: { name: txt(obj ? q('[data-testid="dataset-object-name"]', obj) : null, 200), quality: txt(obj ? q('[data-testid="dataset-header-quality"]', obj) : null, 60) },
+      previewNone: !!(prev && q('[data-testid="dataset-preview-none"]', prev)),
+      columns,
+      rowCount: rowsTable ? rowsTable.querySelectorAll("tbody tr").length : 0,
+      toggles: obj ? Array.from(obj.querySelectorAll('[data-testid^="dataset-preview-toggle-"]')).map((e) => e.getAttribute("data-testid")!.slice("dataset-preview-toggle-".length)) : [],
+      stats: obj ? Array.from(obj.querySelectorAll('[data-testid="dataset-stat"]')).map((e) => e.getAttribute("data-stat") || "") : [],
+      statGridPresent: !!(obj && q('[data-testid="dataset-stat-grid"]', obj)),
       qc: {
         state: !qc ? "absent" : perception ? "perception" : q('[data-testid="dataset-quality-loading"]', qc) ? "loading"
           : q('[data-testid="dataset-quality-error"]', qc) ? "error" : q('[data-testid="dataset-quality-noref"]', qc) ? "noref" : "other",
-        quality: perception?.getAttribute("data-quality") || null,
-        chip: txt(qc ? q('[data-testid="perception-quality-badge"]', qc) : null, 60),
-        findings: qc ? Array.from(qc.querySelectorAll('[data-testid="perception-why-item"]')).map((e) => ({ code: e.getAttribute("data-code"), text: (e as HTMLElement).innerText.trim() })) : [],
-        text: txt(qc, 900),
+        quality: perception?.getAttribute("data-quality") ?? null,
+        whyCount: qc ? qc.querySelectorAll('[data-testid="perception-why-item"]').length : 0,
+        codes,
+        // The QC card's text is kept for the folder checks that look for a DATA value (a mate's file name).
+        text: ((qc?.innerText) || "").slice(0, 2000),
       },
-      stats: txt(stat, 300),
       errors,
     };
   });
 }
 
-async function settled(page: Page) {
-  return page.evaluate(() => {
+/**
+ * Condition wait: the object is loaded (no *-loading testid, no aria-busy, no untagged role=status
+ * line in the Preview) AND its DOM signature is unchanged for 3 consecutive polls (500 ms apart).
+ */
+async function waitSettled(page: Page, timeout: number): Promise<boolean> {
+  await page.evaluate(() => { (window as any).__mxSig = ""; (window as any).__mxN = 0; });
+  return page.waitForFunction(() => {
+    const w = window as any;
     const obj = document.querySelector('[data-testid="dataset-object"]');
-    if (!obj) return false;
-    if (obj.querySelector('[data-testid="dataset-preview-loading"], [data-testid="dataset-quality-loading"], [data-testid="dataset-preview-columns-loading"]')) return false;
-    const prev = obj.querySelector('[data-testid="dataset-preview"]');
-    // DatasetFilePreview's own loading line ("Loading preview…" / density loading) is role=status.
-    const busy = prev ? Array.from(prev.querySelectorAll('[role="status"]')).some((e) => /load|加载|…/i.test((e as HTMLElement).innerText)) : false;
-    return !busy;
-  });
+    const prev = obj?.querySelector('[data-testid="dataset-preview"]');
+    const busy = !obj || !prev
+      || !!obj.querySelector('[data-testid$="-loading"], [aria-busy="true"]')
+      || Array.from(prev.querySelectorAll('[role="status"]')).some((e) => !e.getAttribute("data-testid") && !e.closest('[data-testid="dataset-quality"]'));
+    if (busy) { w.__mxSig = ""; w.__mxN = 0; return false; }
+    const sig = `${obj!.innerHTML.length}|${obj!.querySelectorAll("*").length}`;
+    if (sig === w.__mxSig) w.__mxN++; else { w.__mxSig = sig; w.__mxN = 0; }
+    return w.__mxN >= 3;
+  }, undefined, { polling: 500, timeout }).then(() => true).catch(() => false);
 }
 
-test("dataset format matrix (measurement): upload → open → preview kind + QC per format", async ({ page, request }) => {
+type Check = { name: string; core: boolean; pass: boolean; detail?: string };
+
+/** Evaluate one item's snapshot against its committed expectation → checks + verdict. */
+function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled: boolean, pageErrors: string[]) {
+  const ex = EXPECTATIONS.items[key];
+  const checks: Check[] = [];
+  const add = (name: string, core: boolean, pass: boolean, detail?: string) => checks.push({ name, core, pass, ...(pass ? {} : { detail }) });
+  if (!ex) {
+    add("expectation-defined", true, false, `no entry for "${key}" in format-matrix-expectations.json`);
+    return { checks, verdict: "FAIL" as const };
+  }
+  const rowKind = (EXPECTATIONS.rowKinds as string[]).includes(ex.viewKind);
+  const toggleKind = (EXPECTATIONS.toggleKinds as string[]).includes(ex.viewKind);
+  add("expectation-vocabulary", true, (EXPECTATIONS.viewKinds as string[]).includes(ex.viewKind),
+    `viewKind "${ex.viewKind}" is not in the profiler's vocabulary`);
+  add("settled", true, settled, `not settled within ${SETTLE_MS} ms`);
+  add("view-kind", true, snap.viewKind === ex.viewKind, `data-view-kind=${snap.viewKind ?? "(missing)"} want ${ex.viewKind}`);
+  add("preview-kind", true, snap.previewKind === ex.previewKind,
+    `data-preview-kind=${snap.previewKind ?? "(missing)"} want ${ex.previewKind} (legacy: ${snap.legacyKind})`);
+  add("has-preview", true, !snap.previewNone, "dataset-preview-none shown where a preview is expected");
+  add("no-errors", true, snap.errors.length === 0, `errors: ${snap.errors.join(", ")}`);
+  add("no-page-errors", true, pageErrors.length === 0, `pageErrors: ${pageErrors.slice(0, 3).join(" | ")}`);
+
+  if (rowKind) {
+    const cols = snap.columns.map((c) => c.toLowerCase());
+    const missing = (ex.columns ?? []).filter((c: string) => !cols.includes(c.toLowerCase()));
+    add("columns-required", false, missing.length === 0, `missing columns ${missing.join(", ")}; got [${snap.columns.slice(0, 12).join(", ")}]`);
+    if (ex.minColumns != null) add("columns-min", false, snap.columns.length >= ex.minColumns, `${snap.columns.length} columns < ${ex.minColumns}`);
+    if (ex.maxColumns != null) add("columns-max", false, snap.columns.length <= ex.maxColumns, `${snap.columns.length} columns > ${ex.maxColumns}`);
+    const asHeader = (ex.notColumns ?? []).filter((c: string) => cols.includes(c.toLowerCase()));
+    add("no-data-as-header", false, asHeader.length === 0, `data value(s) taken as header: ${asHeader.join(", ")}`);
+    add("rows-shown", false, snap.rowCount > 0, "table has no body rows");
+  }
+  if (!toggleKind) {
+    const bad = snap.toggles.filter((t: string) => (EXPECTATIONS.nonTableForbiddenToggles as string[]).includes(t));
+    add("no-table-controls", false, bad.length === 0, `non-table kind shows toggles: ${bad.join(", ")}`);
+  }
+
+  const needIds: string[] = (ex.requirePreviewTestids ?? []).filter((id: string) => !snap.previewTestids.includes(id));
+  if ((ex.requirePreviewTestids ?? []).length) {
+    add("preview-testids", false, needIds.length === 0, `Preview lacks ${needIds.join(", ")}; has [${snap.previewTestids.slice(0, 20).join(", ")}]`);
+  }
+
+  const allowed: string[] = EXPECTATIONS.qualitySets[ex.quality] ?? [];
+  add("quality-class", false, snap.qc.quality !== null && allowed.includes(snap.qc.quality),
+    `data-quality=${snap.qc.quality ?? `(none; qc ${snap.qc.state})`} want ${ex.quality} [${allowed.join("|")}]`);
+  if (snap.qc.quality === "watch" || snap.qc.quality === "blocked") {
+    add("verdict-has-reason", false, snap.qc.whyCount > 0, `${snap.qc.quality} without a perception-why-item`);
+  }
+
+  const ks = EXPECTATIONS.kindStats[ex.viewKind] ?? EXPECTATIONS.kindStats["*"];
+  const required: string[] = [...(ks.require ?? []), ...(ex.requireStats ?? []), ...(EXPECTATIONS.alwaysStats ?? [])];
+  const needStats = required.filter((k: string) => !snap.stats.includes(k));
+  const badStats = (ks.forbid ?? []).filter((k: string) => snap.stats.includes(k));
+  add("stats-per-kind", false, needStats.length === 0 && badStats.length === 0 && snap.statGridPresent,
+    `stat cards [${snap.stats.join(", ") || "(no dataset-stat testids)"}]: missing ${needStats.join(", ") || "-"}; forbidden ${badStats.join(", ") || "-"}`);
+
+  const verdict = checks.some((c) => c.core && !c.pass) ? "FAIL" : checks.some((c) => !c.pass) ? "PARTIAL" : "PASS";
+  return { checks, verdict: verdict as "PASS" | "PARTIAL" | "FAIL" };
+}
+
+test("dataset format matrix: upload → open → per-format outcome vs committed expectations", async ({ page, request }) => {
   test.setTimeout(60 * 60 * 1000);
-  const pw = process.env.E2E_FIXTURE_PASSWORD;
-  test.skip(!pw || !fs.existsSync(GALAXY_TEST), "needs E2E_FIXTURE_PASSWORD and the Galaxy datatype test fixtures");
+  expect(GALAXY_TEST, "Galaxy datatype test fixtures not found (set GALAXY_DATATYPE_TEST_DIR)").not.toBe("");
+  expect(Object.keys(EXPECTATIONS.items).sort(), "every item has exactly one expectation").toEqual(ITEMS.map((i) => i.key).sort());
   fs.mkdirSync(SHOTS, { recursive: true });
 
   const buildInfo = await request.get(`${BASE_URL}/build-info.json`).then((r) => r.json()).catch(() => ({}));
-  const H = { "x-e2e-test-token": E2E_TOKEN };
-  // ONE login for the whole harness: the token drives both the API calls and the browser session.
-  const login = await request.post(`${BASE_URL}/api/auth/login`, { headers: H, data: { email: "lifeifei163361@163.com", password: pw } });
-  expect(login.ok(), `login ${login.status()}`).toBeTruthy();
-  const token = (await login.json()).token as string;
-  expect(token, "login token").toBeTruthy();
-  const auth = { ...H, Authorization: `Bearer ${token}` };
-  const pr = await request.post(`${BASE_URL}/api/projects`, { headers: auth, data: { name: `e2e format matrix ${new Date().toISOString().slice(0, 16)}` } });
-  expect(pr.ok(), `create project ${pr.status()}`).toBeTruthy();
-  const pj = await pr.json(); const projectId = pj.id || pj.project?.id;
-  expect(projectId, "project id").toBeTruthy();
+  await loginAsFixture(page);   // ONE login: cookie session for the browser AND page.request
+  const api = page.request;
+  const projectName = `e2e format matrix ${new Date().toISOString().slice(0, 16)}`;
+  const projectId = await createProject(api, projectName);
 
-  const out: any = { baseUrl: BASE_URL, buildInfo, startedAt: new Date().toISOString(), projectId, items: [] as any[], folders: {} as any };
-  const save = () => fs.writeFileSync(RESULTS, JSON.stringify(out, null, 2) + "\n");
+  const out: any = { baseUrl: BASE_URL, buildInfo, startedAt: new Date().toISOString(), projectId,
+    expectations: "e2e/format-matrix-expectations.json", summary: null, items: [] as any[], folders: {} as any };
+  const summarize = () => {
+    const s: Record<string, number> = { PASS: 0, PARTIAL: 0, FAIL: 0 };
+    for (const r of out.items) s[r.verdict]++;
+    out.summary = { ...s, total: out.items.length, expected: ITEMS.length };
+  };
+  const save = () => { summarize(); fs.writeFileSync(RESULTS, JSON.stringify(out, null, 2) + "\n"); };
   const pageErrors: string[] = [];
   page.on("pageerror", (e) => pageErrors.push(String(e?.message || e).slice(0, 300)));
 
   try {
     // ── Uploads (multipart; relativePath BEFORE the file part keeps folders) ──
-    const uploaded: Record<string, { id: string; storedName: string; status: number; dedup?: boolean }> = {};
-    const uploadAttempts: Record<string, number[]> = {};
-    out.uploadAttempts = uploadAttempts;
+    const uploaded: Record<string, { id: string; storedName: string }> = {};
+    out.uploadAttempts = {} as Record<string, number[]>;
     for (const it of ITEMS) {
-      const buf = it.src ? fx(it.src) : it.bytes!();
-      const multipart: any = {};
-      if (it.relativePath) multipart.relativePath = it.relativePath;
-      multipart.file = { name: it.name, mimeType: mimeOf(it.name), buffer: buf };
-      // A bare gateway 5xx (502/503/504, empty body) is a client↔EC2 blip (dev has no retry layer;
-      // reproduced in isolation the same upload returns 201) — retry it, and record the attempts.
-      let up = await request.post(`${BASE_URL}/api/projects/${projectId}/files/upload`, { headers: auth, multipart, timeout: 120_000 });
-      const attempts: number[] = [up.status()];
-      while ([502, 503, 504].includes(up.status()) && attempts.length < 3) {
-        await page.waitForTimeout(3000);
-        up = await request.post(`${BASE_URL}/api/projects/${projectId}/files/upload`, { headers: auth, multipart, timeout: 120_000 });
-        attempts.push(up.status());
-      }
-      uploadAttempts[it.key] = attempts;
-      const body = await up.json().catch(() => ({}));
-      expect(up.ok(), `upload ${it.name} ${up.status()} ${JSON.stringify(body).slice(0, 200)}`).toBeTruthy();
-      uploaded[it.key] = { id: body.file.id, storedName: body.file.name, status: up.status(), dedup: !!body.deduplicated };
-      expect(body.deduplicated, `${it.name} must be byte-distinct (dedup would hide it)`).toBeFalsy();
+      const up = await uploadFile(api, projectId, it.name, it.src ? fx(it.src) : it.bytes!(), mimeOf(it.name), it.relativePath);
+      out.uploadAttempts[it.key] = up.attempts;
+      expect(up.deduplicated, `${it.name} must be byte-distinct (dedup would hide it)`).toBeFalsy();
+      uploaded[it.key] = { id: up.id, storedName: up.name };
     }
 
-    // ── Browser session from the same token (no second login) ──
-    const u = new URL(BASE_URL);
-    await page.context().addCookies([{ name: "biomate_token", value: token, domain: u.hostname, path: "/", httpOnly: false, secure: false, sameSite: "Lax" }]);
-    await page.context().setExtraHTTPHeaders({ Authorization: `Bearer ${token}`, "X-E2E-Test-Token": E2E_TOKEN, "X-Forwarded-Proto": "https" });
-    // Presigned S3 URLs reject a second auth mechanism: strip OUR headers only (no response stubbing).
-    await page.route(/amazonaws\.com/, async (route) => {
-      const h = { ...route.request().headers() };
-      delete h["authorization"]; delete h["Authorization"]; delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-      await route.continue({ headers: h });
-    });
-    await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
-    await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
-    const projBtn = page.getByTestId(`button-project-${projectId}`);
-    if (!(await projBtn.waitFor({ state: "visible", timeout: 10_000 }).then(() => true).catch(() => false))) {
-      await page.getByTestId("button-projects-section").click({ timeout: 15_000 });
-    }
-    await projBtn.click({ timeout: 30_000, noWaitAfter: true });
-    await page.getByTestId(`project-link-files-${projectId}`).click({ timeout: 15_000, noWaitAfter: true });
-    await page.getByTestId("project-file-tree").first().waitFor({ state: "visible", timeout: 60_000 });
-
-    const ensureVisible = async (fileId: string, folder?: string) => {
-      const open = page.getByTestId(`file-open-${fileId}`);
-      const vis = (l: any) => l.isVisible().catch(() => false);
-      for (let attempt = 0; attempt < 3 && !(await vis(open)); attempt++) {
-        // Folder rows are toggles: click one only when what it hides is not visible.
-        const anyChildShown = await page.locator('[data-testid^="file-open-"], [data-testid^="folder-inputs/"]').first().isVisible().catch(() => false);
-        if (!anyChildShown && (await vis(page.getByTestId("folder-inputs")))) await page.getByTestId("folder-inputs").click();
-        else if (folder && (await vis(page.getByTestId(`folder-inputs/${folder}`)))) await page.getByTestId(`folder-inputs/${folder}`).click();
-        else await page.getByTestId("project-files-refresh-btn").click().catch(() => {});
-        await open.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
-      }
-      return open;
-    };
+    await openProjectFiles(page, projectId, projectName);
 
     for (const it of ITEMS) {
       const up = uploaded[it.key];
       const t0 = Date.now();
       pageErrors.length = 0;
-      const open = await ensureVisible(up.id, it.folder);
-      await open.click({ timeout: 30_000 });
-      // The right file is shown (name contains the basename).
-      await expect(page.getByTestId("dataset-object-name")).toContainText(it.name, { timeout: 30_000 });
+      await openFile(page, up.id, it.name, it.folder);
       const tab = page.getByTestId("dataset-tab-preview");
-      if (await tab.isVisible().catch(() => false)) await tab.click().catch(() => {});
-      let isSettled = false;
-      while (Date.now() - t0 < SETTLE_MS) {
-        if (await settled(page)) { isSettled = true; break; }
-        await page.waitForTimeout(1000);
-      }
-      await page.waitForTimeout(isSettled ? 2500 : 0);   // let a rich viewer paint (3D / density / table)
+      if (await tab.isVisible()) await tab.click();
+      const isSettled = await waitSettled(page, SETTLE_MS);
       const snap = await snapshot(page);
       await page.screenshot({ path: path.join(SHOTS, `${it.key}.png`) });
-      // Also capture the QC card in view (it sits under the preview and may be below the fold).
       const qcLoc = page.getByTestId("dataset-quality");
-      if (await qcLoc.isVisible().catch(() => false)) {
-        await qcLoc.scrollIntoViewIfNeeded().catch(() => {});
-        await qcLoc.screenshot({ path: path.join(SHOTS, `${it.key}.qc.png`) }).catch(() => {});
+      if (await qcLoc.isVisible()) {
+        await qcLoc.scrollIntoViewIfNeeded();
+        await qcLoc.screenshot({ path: path.join(SHOTS, `${it.key}.qc.png`) });
       }
+      const { checks, verdict } = judge(it.key, snap, isSettled, pageErrors);
       out.items.push({
-        key: it.key, uploadedAs: it.name, storedName: up.storedName, galaxyFixture: it.src ?? null,
+        key: it.key, verdict, failed: checks.filter((c) => !c.pass).map((c) => `${c.core ? "core" : "secondary"}:${c.name} — ${c.detail}`),
+        uploadedAs: it.name, storedName: up.storedName, galaxyFixture: it.src ?? null,
         source: it.src ? `galaxy/datatypes/test/${it.src}` : "inline/derived", folder: it.folder ?? null,
-        expect: it.expect, fileId: up.id, settled: isSettled, settleMs: Date.now() - t0,
-        ...snap, pageErrors: [...pageErrors],
+        expect: it.expect, expected: EXPECTATIONS.items[it.key] ?? null, fileId: up.id, settled: isSettled, settleMs: Date.now() - t0,
+        checks, ...snap, pageErrors: [...pageErrors],
       });
       save();
     }
 
-    // ── Folders: what the tree shows ──
+    // ── Folders: what the tree shows, then each folder opened as one object ──
     for (const folder of ["pairs", "tenx"]) {
+      const members = ITEMS.filter((i) => i.folder === folder);
+      await revealFile(page, uploaded[members[0].key].id, folder);   // tree state is explicit, not assumed
       const row = page.getByTestId(`folder-inputs/${folder}`);
-      const rec: any = { folderRowVisible: await row.isVisible().catch(() => false) };
-      rec.folderRowText = rec.folderRowVisible ? (await row.innerText()).trim() : null;
-      // Subtree: the folder row's parent block (row + its children).
-      rec.treeText = await page.evaluate((f) => {
-        const r = document.querySelector(`[data-testid="folder-inputs/${f}"]`) as HTMLElement | null;
-        const block = r?.parentElement;
-        return block ? block.innerText.trim().slice(0, 1500) : null;
-      }, folder);
-      rec.files = ITEMS.filter((i) => i.folder === folder).map((i) => ({ name: i.relativePath, storedName: uploaded[i.key].storedName,
-        rowVisible: false as boolean }));
-      for (const f of rec.files) {
-        const it = ITEMS.find((i) => i.relativePath === f.name)!;
-        f.rowVisible = await page.getByTestId(`file-open-${uploaded[it.key].id}`).isVisible().catch(() => false);
+      const rec: any = { folderRowVisible: await row.isVisible() };
+      rec.files = [] as any[];
+      for (const i of members) {
+        rec.files.push({ name: i.relativePath, storedName: uploaded[i.key].storedName,
+          rowVisible: await page.getByTestId(`file-open-${uploaded[i.key].id}`).isVisible() });
       }
-      if (rec.folderRowVisible) {
-        await row.scrollIntoViewIfNeeded().catch(() => {});
-        const box = await page.getByTestId("project-file-tree").first().boundingBox();
-        await page.screenshot({ path: path.join(SHOTS, `folder-${folder}.png`), ...(box ? { clip: { x: box.x, y: Math.max(0, box.y), width: Math.max(1, box.width), height: Math.min(1080 - Math.max(0, box.y), Math.max(1, box.height)) } } : {}) }).catch(() => page.screenshot({ path: path.join(SHOTS, `folder-${folder}.png`) }));
+      await row.scrollIntoViewIfNeeded();
+      await page.getByTestId("project-file-tree").first().screenshot({ path: path.join(SHOTS, `folder-${folder}.png`) });
+      // The row click opens the folder object (it also toggles the folder; nothing after depends on that).
+      await row.click({ timeout: 15_000 });
+      const view = page.getByTestId("folder-profile");
+      // A folder view that never opens is recorded (and asserted softly below), not a harness abort:
+      // the matrix gate must still report every format.
+      rec.viewShown = await expect(view).toHaveAttribute("data-path", folder, { timeout: 30_000 }).then(() => true, () => false);
+      expect.soft(rec.viewShown, `clicking folder-inputs/${folder} opens the folder object (folder-profile[data-path=${folder}])`).toBe(true);
+      if (rec.viewShown) {
+        await expect(view).not.toHaveAttribute("data-kind", "", { timeout: 60_000 });
+        rec.view = await page.evaluate(() => {
+          const v = document.querySelector('[data-testid="folder-profile"]') as HTMLElement | null;
+          const all = (sel: string) => Array.from(v?.querySelectorAll(sel) ?? []) as HTMLElement[];
+          return v ? {
+            kind: v.getAttribute("data-kind"),
+            samples: all('[data-testid^="folder-sample-row-"]').map((r) => ({ testid: r.getAttribute("data-testid"), status: r.getAttribute("data-status") })),
+            orphans: all('[data-testid^="folder-orphan-"]').map((e) => e.getAttribute("data-testid")),
+            tenxDims: all('[data-testid="folder-tenx-dims"]').map((e) => e.innerText.trim()),
+            findings: all('[data-testid="folder-finding"]').map((e) => ({ code: e.getAttribute("data-code"), level: e.getAttribute("data-level") })),
+            hasDownload: !!v.querySelector('[data-testid="folder-samplesheet-download"]'),
+          } : null;
+        });
+        await view.screenshot({ path: path.join(SHOTS, `folder-${folder}-view.png`) });
+        if (folder === "pairs" && rec.view?.hasDownload) {
+          const [dl] = await Promise.all([
+            page.waitForEvent("download", { timeout: 30_000 }),
+            page.getByTestId("folder-samplesheet-download").click(),
+          ]);
+          const p = await dl.path();
+          rec.samplesheet = { filename: dl.suggestedFilename(), csv: p ? fs.readFileSync(p, "utf8") : null };
+          // Orphans/singles go to their own single-end sheet (a paired sheet holds pairs only).
+          const single = page.getByTestId("folder-samplesheet-single-download");
+          if (await single.count()) {
+            const [dl2] = await Promise.all([page.waitForEvent("download", { timeout: 30_000 }), single.click()]);
+            const p2 = await dl2.path();
+            rec.samplesheetSingle = { filename: dl2.suggestedFilename(), csv: p2 ? fs.readFileSync(p2, "utf8") : null };
+          }
+        }
       }
       out.folders[folder] = rec;
       save();
@@ -356,16 +403,37 @@ test("dataset format matrix (measurement): upload → open → preview kind + QC
     out.finishedAt = new Date().toISOString();
     save();
 
-    // Harness-level assertions only (the per-format outcome is a measurement).
+    // ── Harness integrity (hard) ──
     expect(out.items.length, "every item opened").toBe(ITEMS.length);
-    expect(out.items.filter((r: any) => r.kind === "no-dataset-object").map((r: any) => r.key), "dataset object rendered for every item").toEqual([]);
+
+    // ── Folder-level facts (soft: every fact is reported) ──
+    const pv = out.folders.pairs?.view;
+    expect.soft(pv?.kind, "pairs/ is a FASTQ set").toBe("fastq_set");
+    expect.soft(pv?.samples?.find((r: any) => r.testid === "folder-sample-row-S1")?.status, "S1 is paired").toBe("paired");
+    expect.soft(pv?.samples?.find((r: any) => r.testid === "folder-sample-row-S2")?.status, "S2 is an orphan").toBe("orphan");
+    expect.soft(pv?.orphans ?? [], "S2_R1 flagged as orphan").toContain("folder-orphan-S2_R1.fastq.gz");
+    const sheet = String(out.folders.pairs?.samplesheet?.csv ?? "").trim().split("\n");
+    expect.soft(sheet[0], "samplesheet header").toBe("sample,fastq_1,fastq_2");
+    expect.soft(sheet.length - 1, "paired samplesheet holds pairs only (S1)").toBe(1);
+    const single = String(out.folders.pairs?.samplesheetSingle?.csv ?? "").trim().split("\n");
+    expect.soft(single.slice(1).some((l) => l.startsWith("S2,pairs/S2_R1.fastq.gz")), "orphan S2 is in the single-end samplesheet").toBe(true);
+    expect.soft(sheet[1]).toBe("S1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz");
+    const tv = out.folders.tenx?.view;
+    expect.soft(tv?.kind, "tenx/ is a 10x matrix").toBe("tenx_matrix");
+    expect.soft(tv?.tenxDims?.[0] ?? "", "cells × genes shown").toMatch(/5\D+5/);
+    expect.soft((tv?.findings ?? []).map((f: any) => f.code)).toContain("folder_tenx_headerless");
+
+    // ── Per-file consequences of the folder context (soft; codes + data values only) ──
+    const item = (k: string) => out.items.find((r: any) => r.key === k);
+    expect.soft(String(item("pairs-S1_R1")?.qc?.text ?? ""), "S1_R1's QC names its mate file").toContain("S1_R2.fastq.gz");
+    expect.soft(item("pairs-S1_R1")?.qc?.codes ?? [], "S1_R1 is not treated as a lone single file").not.toContain("fastq_single_file");
+    expect.soft(item("pairs-S2_R1")?.qc?.codes ?? [], "S2_R1: mate missing (perception-why-item / perception-finding data-code)").toContain("fastq_mate_missing");
+
+    // ── The gate: every format meets its expectation ──
+    const notPass = out.items.filter((r: any) => r.verdict !== "PASS").map((r: any) => `${r.key}=${r.verdict} [${r.failed.join("; ")}]`);
+    console.log(`FORMAT MATRIX | ${JSON.stringify(out.summary)}`);
+    expect(notPass, `format matrix ${JSON.stringify(out.summary)}`).toEqual([]);
   } finally {
-    // Cleanup must not be silent: a failed delete leaks the project on the shared fixture account.
-    let del = await request.delete(`${BASE_URL}/api/projects/${projectId}`, { headers: auth }).catch(() => null);
-    if (!del?.ok()) {
-      await new Promise((r) => setTimeout(r, 5000));
-      del = await request.delete(`${BASE_URL}/api/projects/${projectId}`, { headers: auth }).catch(() => null);
-    }
-    if (!del?.ok()) console.warn(`[format-matrix] project ${projectId} NOT deleted (status ${del?.status() ?? "network error"}) — delete it manually`);
+    await deleteProjectLoudly(api, projectId);
   }
 });

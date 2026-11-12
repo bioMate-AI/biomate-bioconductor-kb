@@ -96,6 +96,38 @@ describe("<StepDetail> — provenance + params", () => {
     expect(prov).toHaveTextContent("upstream step output");
   });
 
+  it("collapses the n/a provenance chain to a 'not run yet' line for a step with no run evidence", () => {
+    // A genuinely pending step (no tool/outputs/duration/status) is the
+    // placeholder-heavy case the founder flagged: show one honest line, not a
+    // chain of "tool not reported / version n/a / 0 outputs / duration n/a".
+    const pending = { id: "p1", name: "Validate Input", status: "pending", parameters: {} };
+    render(<StepDetail runId={runId} step={pending as any} onClose={vi.fn()} />);
+    const prov = screen.getByTestId("step-provenance");
+    expect(prov).toHaveTextContent(/not run yet/i);
+    expect(prov).not.toHaveTextContent("version n/a");
+    expect(prov).not.toHaveTextContent("0 outputs");
+  });
+
+  it("still shows the full chain for a ran step that carries evidence but no status string", () => {
+    // Evidence (tool/outputs/duration) means the step ran even with status === "":
+    // it must NOT be collapsed to the pending line.
+    render(<StepDetail runId={runId} step={baseStep} workflowDefinition={workflowDefinition} onClose={vi.fn()} />);
+    const prov = screen.getByTestId("step-provenance");
+    expect(prov).toHaveTextContent("salmon");
+    expect(prov).not.toHaveTextContent(/not run yet/i);
+  });
+
+  it("shows the step description under the name when the definition supplies one", () => {
+    const described = { ...baseStep, description: "Quantify transcript abundance with salmon selective alignment." };
+    render(<StepDetail runId={runId} step={described as any} onClose={vi.fn()} />);
+    expect(screen.getByTestId("step-description")).toHaveTextContent("Quantify transcript abundance");
+  });
+
+  it("omits the description line entirely when none is supplied (no placeholder)", () => {
+    render(<StepDetail runId={runId} step={baseStep} onClose={vi.fn()} />);
+    expect(screen.queryByTestId("step-description")).toBeNull();
+  });
+
   it("renders origin badges and the correct 'N not default' count", () => {
     render(<StepDetail runId={runId} step={baseStep} workflowDefinition={workflowDefinition} onClose={vi.fn()} />);
     // libType default, numBootstraps override, threads unknown → 1 not default.
@@ -151,11 +183,13 @@ describe("<StepDetail> — rendered ⇄ raw toggle", () => {
   });
 });
 
-it('renders actual recorded failure, job and work directory in the full step view', () => {
- render(<StepDetail runId="run" step={{ id: 'failed', name: 'Align', status: 'failed', errorMessage: 'Actual container exit 127', jobId: 'job-7', workDir: '/work/real-task' }} onClose={() => {}} />);
- expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('Actual container exit 127');
- expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('job-7');
- expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('/work/real-task');
+// Founder rule (2026-11-12 leak sweep): the step's job id and work directory are infrastructure — a
+// storage path on cloud runs — so the full step view shows the recorded failure, never those.
+it('renders the actual recorded failure, without job id or work directory', () => {
+ render(<StepDetail runId="run" step={{ id: 'failed', name: 'Align', status: 'failed', errorMessage: 'Actual container exit 127 on AWS Batch', jobId: 'job-7', workDir: 's3://biomate-nextflow-work/nextflow/work/u/r/ab12' }} onClose={() => {}} />);
+ const details = screen.getByTestId('step-recorded-details');
+ expect(details).toHaveTextContent('Actual container exit 127');
+ expect(details.textContent).not.toMatch(/job-7|s3:|biomate-nextflow-work|AWS|Batch/);
 });
 
 // Live dev 2026-11-11: the full step view titled the step with the raw backend

@@ -120,48 +120,39 @@ describe("project-routes — contract", () => {
   it("content-hash dedup (§4.5.1) — column added idempotently, computed + checked at ingest", () => {
     expect(SRC.includes("ADD COLUMN IF NOT EXISTS content_hash")).toBe(true);     // idempotent migration
     expect(SRC.includes('createHash("sha256")')).toBe(true);                       // hash at ingest
-    expect((SRC.match(/_findProjectFileByHash\(/g) ?? []).length).toBeGreaterThanOrEqual(2); // upload + url ingest
-    expect(SRC.includes("deduplicated: true")).toBe(true);                          // dup → link, don't re-insert
     expect(/INSERT INTO project_files[\s\S]{0,160}content_hash/.test(SRC)).toBe(true); // stored on insert
-    expect(SRC.includes("input_context, content_hash, created_at")).toBe(true);     // returned by GET /files
+    // Dedup BEHAVIOUR (same bytes → one entry, also under concurrent uploads) is tested over HTTP in
+    // project-files-integrity.test.ts ("two concurrent uploads of the same bytes").
   });
 
   it("app-level content versioning (§4.4) — table, version-on-reupload, list + restore endpoints", () => {
     // No S3 bucket-versioning: each version is its own object + a project_file_versions row.
     expect(SRC.includes("CREATE TABLE IF NOT EXISTS project_file_versions")).toBe(true);
     expect(SRC.includes("ADD COLUMN IF NOT EXISTS version_no")).toBe(true);
-    // re-upload same name + different content → new version (append-only), never overwrite
-    expect(/_findProjectFileByName[\s\S]{0,900}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true);
-    expect(SRC.includes("versioned: true")).toBe(true);
+    // re-upload same name + different content → new version: behaviour in project-files-integrity.test.ts.
     // list + restore endpoints, authed
     expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions",\s*authenticateToken/.test(SRC)).toBe(true);
     expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/restore",\s*authenticateToken/.test(SRC)).toBe(true);
-    // append-only in BOTH paths (reupload + restore): archive current, then bump version_no.
-    expect((SRC.match(/_archiveCurrentAsVersion\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
-    expect((SRC.match(/version_no = version_no \+ 1/g) ?? []).length).toBeGreaterThanOrEqual(2);
-    expect(/restore[\s\S]{0,900}project_file_versions WHERE file_id/.test(SRC)).toBe(true); // reads the target version's bytes
+    // append-only history for reupload / edit / restore (and its version precondition): behaviour
+    // in project-files-integrity.test.ts.
   });
 
   it("version Compare/diff (§4.4) — authed endpoint reads both versions, column + cell diff", () => {
     expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/diff",\s*authenticateToken/.test(SRC)).toBe(true);
-    expect((SRC.match(/readTextPrefix\(/g) ?? []).length).toBeGreaterThanOrEqual(2);  // both versions read
-    expect(SRC.includes("_parseTabular(")).toBe(true);
-    expect(SRC.includes("changedCells")).toBe(true);
+    // Row numbering by the reader's layout, read errors → 502 and the cell diff are BEHAVIOUR-tested
+    // in project-rows-edit-roundtrip.test.ts and project-files-integrity.test.ts.
     expect(/columns:\s*\{\s*added,\s*removed\s*\}/.test(SRC)).toBe(true);
   });
 
   it("edit-in-place → new version (§4.3/§4.4) — authed, tabular-only, size-capped, applies to FULL file, versions", () => {
     expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/edit",\s*authenticateToken/.test(SRC)).toBe(true);
     expect(/edit[\s\S]{0,700}_isOwnerOrEditor/.test(SRC)).toBe(true);                 // editor gate
-    expect(SRC.includes("Only tabular files (csv/tsv) can be edited")).toBe(true);     // tabular-only
+    // tabular-only: behaviour-tested (.bed / .json / .jsonl → 400, nothing written) in
+    // project-files-integrity.test.ts "edit — tabular files only".
     expect(SRC.includes("10 * 1024 * 1024")).toBe(true);                              // 10 MiB cap
-    expect(/edit[\s\S]{0,1400}readTextPrefix/.test(SRC)).toBe(true);                   // reads the FULL file (not just the sample)
-    expect(/edit[\s\S]{0,2600}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true); // append-only new version
-    // Only edited cells change (quote-aware, CRLF kept), stale/mismatched edits refused, lossy decode refused.
-    expect(/edit[\s\S]{0,3000}applyCellEdits\(text, delim, parsed/.test(SRC)).toBe(true);
-    expect(/edit[\s\S]{0,3000}status\(409\)/.test(SRC)).toBe(true);
-    expect(/Buffer\.byteLength\(text, "utf-8"\) !== size/.test(SRC)).toBe(true);
-    expect(SRC.includes("lines[lineIdx].split(delim)")).toBe(false);
+    // The edit's safety checks are BEHAVIOUR-tested (project-files-integrity.test.ts): whole-file read
+    // (2.7 MB CSV), baseVersion → 409 version_conflict, cell/rowFrom → 409 cell_conflict, strict
+    // UTF-8 → 422, 413, append-only version. Source regexes here could not catch them being disabled.
   });
 
   it("every endpoint goes through authenticateToken", () => {
@@ -171,7 +162,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(35); // grows as endpoints are added (+2 file rename/move 2026-11-11; …, files/import-url, files/:fileId/versions GET + restore POST + diff, edit, rows)
+    expect(authed.length).toBe(38); // grows as endpoints are added (+1 files/:fileId/preview.png 2026-11-12; +1 versions/:versionNo/url 2026-11-12; +1 folders/profile 2026-11-11; +2 file rename/move 2026-11-11; …, files/import-url, files/:fileId/versions GET + restore POST + diff, edit, rows)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {
@@ -242,12 +233,15 @@ describe("project-routes — file rename / move", () => {
   });
 
   it("applies the plan in one transaction, serialized per project, computed from rows read under the lock", () => {
-    expect(applyBlock.includes('client.query("BEGIN")')).toBe(true);
-    expect(applyBlock.includes("pg_advisory_xact_lock")).toBe(true);
-    expect(applyBlock.indexOf("pg_advisory_xact_lock")).toBeLessThan(applyBlock.indexOf("FROM project_files WHERE project_id::text = $1"));
-    expect(applyBlock.includes('client.query("COMMIT")')).toBe(true);
-    expect(applyBlock.includes('client.query("ROLLBACK")')).toBe(true);
-    expect(applyBlock.includes("client.release()")).toBe(true);
+    // The shared project lock (renames, uploads, edits, restores, deletes all take it).
+    const lockBlock = SRC.split("async function _withProjectLock")[1]?.split("\n}")[0] ?? "";
+    expect(lockBlock.includes('client.query("BEGIN")')).toBe(true);
+    expect(lockBlock.indexOf("pg_advisory_xact_lock")).toBeLessThan(lockBlock.indexOf("await fn(client)"));
+    expect(lockBlock.includes('client.query("COMMIT")')).toBe(true);
+    expect(lockBlock.includes('client.query("ROLLBACK")')).toBe(true);
+    expect(lockBlock.includes("client.release()")).toBe(true);
+    expect(applyBlock.includes("_withProjectLock(projectId")).toBe(true);
+    expect(applyBlock.indexOf("_withProjectLock(projectId")).toBeLessThan(applyBlock.indexOf("FROM project_files WHERE project_id::text = $1"));
     // uuid columns compared as text (a non-uuid param must not throw a cast error)
     expect(applyBlock.includes("f.id::text = v.id AND f.project_id::text = $3")).toBe(true);
   });
@@ -268,16 +262,13 @@ describe("project-routes — file rename / move", () => {
   });
 
   it("every NEW object key is allocated so it can't overwrite bytes a renamed file still uses", () => {
-    const store = SRC.split("async function _storeProjectInput")[1]?.split("\nfunction ")[0] ?? "";
-    expect(store.includes("await _allocateObjectKey(o.id, `${o.key}.v${prior.version_no + 1}`)")).toBe(true);
-    expect(store.includes("const key = await _allocateObjectKey(o.id, o.key)")).toBe(true);
-    expect(store.includes("s3Service.putObject(o.key")).toBe(false);
-    const edit = SRC.split('app.post("/api/projects/:id/files/:fileId/edit"')[1]?.split("app.")[0] ?? "";
-    expect(/_allocateObjectKey\(id, `\$\{projectInputKey\(id, String\(cur\.name\), String\(cur\.name\)\)\}\.v/.test(edit)).toBe(true);
-    // allocation checks both current files and archived versions
+    // Allocation checks current files, archived versions AND in-flight reservations (the fake store
+    // in the behaviour tests implements these three sources, so the SQL is pinned here).
     const alloc = SRC.split("async function _allocateObjectKey")[1]?.split("\n}")[0] ?? "";
     expect(alloc.includes("FROM project_files WHERE project_id::text = $1")).toBe(true);
     expect(alloc.includes("FROM project_file_versions WHERE project_id::text = $1")).toBe(true);
+    expect(alloc.includes("FROM project_object_key_reservations")).toBe(true);
+    // Concurrent same-name uploads (S2) are behaviour-tested in project-files-integrity.test.ts.
   });
 });
 

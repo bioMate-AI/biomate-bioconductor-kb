@@ -3,13 +3,19 @@ import { stepFileDisposition } from "./step-file-disposition";
 import { waitForInteractiveSession, waitForDatasetReady } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
+import { proxyTarget, rejectProxyPath } from "./proxy-path";
+import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
 import { planModelFold } from "./model-fold";
-import { authorizeDatasetReference } from "./dataset-reference-access";
+import { datasetAccessGate } from "./dataset-reference-access";
+import { recordProfileSummary } from "./project-file-profiles";
+import { perceptionProxyGate } from "./perception-proxy-gate";
+import { attachmentDisposition } from "./content-disposition";
+import { loadFolderContext } from "./project-folders";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
 import { normalizeUiLanguage, isChineseBrowser, zhDefaultModel } from "./response-language";
@@ -19,7 +25,7 @@ import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } fr
 import { registerVoiceRoutes } from "./voice-routes";
 import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
-import { redactStoragePaths } from "./execution-integrity";
+import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity";
 import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -195,45 +201,6 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
 
 // fetchGalaxyAsUser (user key, else shared admin key, with mid-session recovery) lives in
 // ./galaxy-user-fetch so project-routes.ts shares the exact same key choice.
-
-/**
- * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
- * same path + query, JSON body for methods other than GET/HEAD/DELETE, and the response relayed
- * back (JSON parsed, otherwise raw bytes; Content-Type and Content-Disposition passed through).
- * The key and its mid-session recovery come from fetchGalaxyAsUser. Shared by the ind-report,
- * regulatory, grounded and DL passthroughs (previously four copies of this body).
- */
-function backendPassthrough(label: string) {
-  return async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      return res.send(Buffer.from(await resp.arrayBuffer()));
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: `${label} proxy error`, detail: err.message });
-    }
-  };
-}
 
 // NOTE: the IND report module is PAUSED (feature-flagged off, IND_REPORT_ENABLED) and
 // its document generator runs in the Galaxy backend, out of this proxy's reach — so it is
@@ -3593,8 +3560,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
       const obj = await minioClient.send(new GetObjectCommand({ Bucket: minioBucket, Key: key }));
-      const filename = key.split('/').pop() || 'download';
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // ?name= is the file's display name (project file routes pass it): the saved file is named
+      // like the file, not like its object key ("counts-2.csv.v2"). Header-safe via attachmentDisposition.
+      const requested = typeof req.query.name === 'string' ? req.query.name.trim() : '';
+      res.setHeader('Content-Disposition', attachmentDisposition(requested || key));
       res.setHeader('Content-Type', (obj as any).ContentType || 'application/octet-stream');
       ((obj as any).Body as NodeJS.ReadableStream).pipe(res);
     } catch (error: any) {
@@ -5543,12 +5512,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.all("/api/drug-discovery/*", optionalAuth, async (req: any, res: any) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const targetPath = req.path; // already /api/drug-discovery/...
+      // Only a path under /api/drug-discovery (proxy-path.ts).
+      const target = proxyTarget(req, '/api/drug-discovery');
+      if (!target.ok) return rejectProxyPath(res, target);
+      const targetPath = target.path; // /api/drug-discovery/...
       const method = req.method.toUpperCase();
-
-      // Build query string
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${targetPath}${queryStr}`;
+      const fullPath = `${targetPath}${target.query}`;
 
       // Forward with user's Galaxy API key if available
       const headers: Record<string, string> = {
@@ -5699,9 +5668,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const _dlProxyHandler = backendPassthrough("DL surface");
   const _modelsOwnerProxy = async (req: any, res: any) => {
     try {
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
       await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
-      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const response = await fetchOwnedModelSurface(req.user?.id, `${req.path}${query}`, {
+      const response = await fetchOwnedModelSurface(req.user?.id, `${target.path}${target.query}`, {
         method: req.method,
         ...(!['GET', 'HEAD'].includes(req.method) ? { body: JSON.stringify(req.body || {}) } : {}),
       });
@@ -5722,9 +5692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let galaxyJson: any = {};
     let galaxyStatus = 200;
     try {
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
       await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
+      const fullPath = `${target.path}${target.query}`;
       const resp = await fetchOwnedModelSurface(req.user?.id, fullPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5942,28 +5913,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
-  const requireDatasetAccess = (refFromPath = false) => async (req: any, res: any, next: any) => {
+  // The current key of a project file the user can read, or one of its archived version keys
+  // (dataset-reference-access.ts) — a panel still holding the key it opened, Compare and the
+  // version views all name version keys after an edit / restore.
+  const requireDatasetAccess = (refFromPath = false) =>
+    datasetAccessGate({ query: (q, p) => pool.query(q, p as any[]), bucket: () => s3Service.getBucketName() }, refFromPath);
+  // Folder facts for one file's profile (a FASTQ's mate, a 10x TSV's role) come from the
+  // project's file list, which only this server has: attach `folderContext` = {name, siblings}
+  // for a project input file, and never forward a client-supplied one (project-folders.ts).
+  const attachFolderContext = async (req: any, _res: any, next: any) => {
     try {
-      const pathname = new URL(req.originalUrl, 'http://internal').pathname;
-      const ref = refFromPath
-        ? decodeURIComponent(pathname.slice('/api/datasets/'.length, pathname.lastIndexOf('/')))
-        : req.body?.datasetRef;
-      const decision = await authorizeDatasetReference(ref, req.user?.id, s3Service.getBucketName(), async (key, uid) => {
-        const rows = await pool.query(`SELECT 1 FROM project_files f JOIN projects p ON p.id = f.project_id
-          WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
-            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
-          )) LIMIT 1`, [key, uid]);
-        return rows.rows.length > 0;
-      });
-      if (!decision.allowed) return res.status(decision.status).json({ error: 'Dataset is not accessible to this user' });
-      next();
+      if (req.body && typeof req.body === 'object') {
+        delete req.body.folderContext;
+        // The file the dataset gate resolved (current or archived-version key): its folder facts.
+        const row = req.datasetFile;
+        if (row) {
+          const ctx = await loadFolderContext((q, p) => pool.query(q, p), String(row.project_id), row);
+          if (ctx) req.body.folderContext = ctx;
+        }
+      }
     } catch (error) {
-      console.error('[dataset access]', error instanceof Error ? error.message : error);
-      res.status(403).json({ error: 'Dataset access could not be verified' });
+      // Context is an enhancement: without it the profile states the layout as unknown.
+      console.warn('[perception] folder context unavailable:', error instanceof Error ? error.message : error);
     }
+    next();
   };
-  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
-  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
+  // perceptionProxyGate first: only profile/rows with an allowlisted body are forwarded, so no
+  // client-supplied ref other than the checked datasetRef (files[], dataset_ref) reaches the
+  // backend; folder_profile is reachable only via /api/projects/:id/folders/profile.
+  // recordProfile: the verdict is stored per object key, so the file tree's dot and the panel
+  // show the same profiler result (project-file-profiles.ts).
+  const recordProfile = recordProfileSummary((q, p) => pool.query(q, p as any[]));
+  app.post("/api/perception/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, recordProfile, _dlProxyHandler);
+  app.all("/api/perception/*", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
   //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
@@ -5992,7 +5974,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
-      const path = req.path;
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
+      const path = target.path;
       const method = req.method.toLowerCase();
       let response: any;
       if (method === 'get') {
@@ -6180,7 +6164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { responseType: 'arraybuffer', params: req.query }
         );
         const contentType = response.headers['content-type'] || 'text/plain';
-        const contentDisposition = response.headers['content-disposition'] || `attachment; filename="run_report_${invocationId}.txt"`;
+        const contentDisposition = response.headers['content-disposition'] || 'attachment; filename="run_report.txt"';
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', contentDisposition);
         return res.status(response.status).send(Buffer.from(response.data));
@@ -6399,7 +6383,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Build parameter narrative
         const paramLines = Object.entries(params)
           .filter(([, v]) => v !== null && v !== undefined && v !== '')
-          .map(([k, v]) => `  - ${k}: ${String(v)}`)
+          // A stored file is named by its file name — never a storage URI or upload id (the report is
+          // a user-facing download, and these lines are also the model's input for the narrative).
+          .map(([k, v]) => `  - ${k}: ${redactStoragePaths(String(v)).replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/?/gi, '')}`)
           .join('\n');
 
         // Build step list narrative
@@ -6409,8 +6395,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Output file inventory
         const outputInventory = allOutputFiles.length > 0
-          ? allOutputFiles.map(f => `  - ${f}`).join('\n')
-          : '  (No output files indexed — see S3 bucket directly)';
+          ? allOutputFiles.map(f => `  - ${redactStoragePaths(String(f))}`).join('\n')
+          : '  (No output files indexed yet)';
 
         // Text file context for LLM — inject ALL key report JSONs
         const fileContext = textOutputSamples.length > 0
@@ -6592,7 +6578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Download your results using the BioMate run panel, or contact support if outputs are missing.`,
           ].filter(l => l !== undefined).join('\n');
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-          res.setHeader('Content-Disposition', `attachment; filename="run_report_${invocationId}.txt"`);
+          res.setHeader('Content-Disposition', `attachment; filename="run_report_${String(workflowName || 'run').replace(/[^a-z0-9]+/gi, '_')}.txt"`);
           return res.status(200).send(fallback);
         }
 
@@ -6607,8 +6593,8 @@ EXECUTION STATUS: ${runStatus}
 START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
-CLOUD PLATFORM: ${_isOnprem ? 'On-premises (local Docker executor)' : 'AWS Batch (us-west-2 region)'}
-ORCHESTRATION: BioMate pipeline on ${_isOnprem ? 'on-premises infrastructure' : 'AWS Batch'}`;
+COMPUTE: ${_isOnprem ? 'On-premises (local container executor)' : 'BioMate cloud compute'}
+ORCHESTRATION: BioMate pipeline (Nextflow DSL2)`;
 
         const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
@@ -6635,7 +6621,7 @@ PIPELINE CONTEXT:
 Workflow: ${workflowName}
 Wall time: ${wallTimeStr}
 Steps completed: ${extractedMetrics.steps_completed}
-Platform: AWS Batch, CryoSPARC v5.0.2
+Platform: BioMate cloud compute, CryoSPARC v5.0.2
 Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
 OUTPUT FILES PRODUCED:
 ${allOutputFiles.filter((f: string) => !f.includes('[binary]') || f.includes('.mrc')).slice(0, 20).join('\n')}
@@ -6644,7 +6630,7 @@ SECTION REQUIREMENTS:
 ABSTRACT — 2 sentences max. State particle counts, pixel size, voltage, symmetry, steps, software.
 METHODS — Describe the processing pipeline from the metrics: motion correction → CTF → picking (particle_diameter_A Å) → 2D classification (num_classes_r1 classes) → template picking → ab-initio (num_ab_initio_classes models) → refinement → FSC. Include compute platform.
 DATA — Table of available quantitative results: particle counts at each stage, box size, resolution. Omit any row where the value is "not available" or "not captured".
-OUTPUT — List the output files produced (from OUTPUT FILES PRODUCED above). State S3 location and wall time.
+OUTPUT — List the output files produced (from OUTPUT FILES PRODUCED above) by file name, and the wall time.
 FINDINGS — Scientific interpretation strictly from the available numbers: particle yield efficiency (num_extracted_r2 / num_blob_particles if both are present), classification quality (num_classes_r1 classes), resolution estimate (fsc_0143_resolution). Comment only on results that are present — do not mention absent metrics, pipeline steps, or technical issues.
 SUMMARY — 2 sentences on what the results show and what the recommended next step is based on the data.`;
 
@@ -6660,11 +6646,11 @@ DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metric
 ${commonTail}
 
 === REQUIRED SECTIONS ===
-1. ABSTRACT (120 words) — Number of compounds assessed, model type, key safety findings (hERG IC50, DILI risk), Ames mutagenicity result, cloud platform.
+1. ABSTRACT (120 words) — Number of compounds assessed, model type, key safety findings (hERG IC50, DILI risk), Ames mutagenicity result, compute environment.
 
 2. STUDY OVERVIEW — Biological objective (safety profiling); compounds assessed (use SMILES from smiles_input parameter); expected endpoints (cardiac, hepatic, genotoxic risk).
 
-3. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; BioMate pipeline; RDKit descriptor-based heuristics; MPNN model architecture; DeepPurpose library status.
+3. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; BioMate pipeline; RDKit descriptor-based heuristics; MPNN model architecture; DeepPurpose library status.
 
 4. METHODS —
    4.1 Input Preparation — SMILES standardization; descriptor calculation (logP, MW, TPSA).
@@ -6678,7 +6664,7 @@ ${commonTail}
 
 6. SAFETY INTERPRETATION — Flag compounds exceeding safety thresholds: hERG IC50 < 1 µM (high cardiotoxicity risk), DILI probability > 0.5, Ames positive. Compare to approved drug benchmarks.
 
-7. PIPELINE EXECUTION — Wall time; cloud platform; software versions.
+7. PIPELINE EXECUTION — Wall time; compute environment; software versions.
 
 8. LIMITATIONS AND NEXT STEPS — DeepPurpose availability; in vitro validation recommendation; ClinTox prediction gaps.
 
@@ -6694,7 +6680,7 @@ ${commonTail}
 
 === REQUIRED SECTIONS ===
 1. ABSTRACT — Samples analyzed; aligner; DE tool; significant genes; platform.
-2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; nf-core/rnaseq pipeline; software versions.
+2. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; nf-core/rnaseq pipeline; software versions.
 3. DATA PROCESSING — Reference genome; STAR alignment parameters; read trimming.
 4. DIFFERENTIAL EXPRESSION — DESeq2/edgeR; FDR threshold; LFC cutoff; total_de_genes DE genes.
 5. RESULTS — Upregulated and downregulated gene counts; pathway enrichment summary.
@@ -6711,7 +6697,7 @@ ${commonTail}
 
 === REQUIRED SECTIONS ===
 1. ABSTRACT — Genome; caller; total variants (total_variants); SNPs vs indels.
-2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; nf-core/sarek pipeline.
+2. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; nf-core/sarek pipeline.
 3. METHODS — Alignment (BWA-MEM2); variant calling (GATK HaplotypeCaller / ${params?.tools || 'GATK'}); VQSR/hard filtering.
 4. RESULTS — total_variants variants called; snps SNPs; indels indels.
 5. PIPELINE EXECUTION — Wall time; key parameters.
@@ -6728,7 +6714,7 @@ ${commonTail}
 
 === REQUIRED SECTIONS ===
 1. ABSTRACT — Brief summary of the analysis; key result; platform.
-2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; BioMate pipeline.
+2. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; BioMate pipeline.
 3. INPUT AND PARAMETERS — All input parameters with values.
 4. METHODS — Step-by-step workflow description using workflowSteps.
 5. RESULTS — Key outputs and their scientific interpretation.
@@ -6786,7 +6772,8 @@ ${paramLines || '(none recorded)'}`;
 
         // Single call for all domains — SYSTEM and USER are set per-domain above
         console.log(`[Report] Generating ${isCryoEM ? 'CryoEM' : 'generic'} report via fallback chain`);
-        reportText = await claudeCall(USER);
+        // The narrative is a user-facing download: storage URIs never appear in it.
+        reportText = redactStoragePaths(await claudeCall(USER));
 
         // Non-blocking conformance check: flag (never fix/fabricate) any requirement
         // the output measurably deviates from (e.g. a word cap, findings-first order).
@@ -7593,6 +7580,9 @@ ${paramLines || '(none recorded)'}`;
         memorySessionId: _ltmSessionUuid ?? undefined,
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
+        // The authenticated user only (never a client-supplied id): scopes per-user server state
+        // such as the run_code session workspace.
+        authUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
         // The user's id as stored (UUID). It was Number(id) — NaN for UUID ids, and NaN is falsy, so
         // every per-user chat feature keyed on context.userId was silently skipped: recent runs and
@@ -7747,7 +7737,11 @@ ${paramLines || '(none recorded)'}`;
       })();
 
       const assistantMessage = (() => {
-        const msg = String(assistantResponse.message || "");
+        // Single choke point for the reply text: storage paths and the internal backend's name never
+        // reach the user, whichever generation path produced it (idempotent on already-clean text).
+        const raw = String(assistantResponse.message || "");
+        const zhUser = /[\u4e00-\u9fff]/.test(String(message || ""));
+        const msg = redactUserFacingReply(redactStoragePaths(raw, zhUser), zhUser);
         if (msg.trim()) return msg;
         // Fallback: LLM returned empty — surface recommended tools if available, else generic prompt
         const tools = assistantResponse.recommendedTools;
@@ -13174,9 +13168,9 @@ ${paramLines || '(none recorded)'}`;
               ...run.execution,
               status: 'failed' as any,
               errorMessage:
-                'Run exceeded 12h with no terminal signal — Nextflow process likely died ' +
-                '(container restart, worker recycle, OOM). AWS Batch outputs may still be ' +
-                'recoverable via /api/runs/:id/outputs (publishDir-gap fallback).',
+                // User-facing (workflow panel + after-run report): no infrastructure or API routes.
+                'The run stopped responding and was marked failed after 12 hours. Some outputs may ' +
+                'still be available in the Outputs tab; please run it again.',
               completedAt: new Date(),
             },
           }) || run;
@@ -18645,7 +18639,9 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   app.all("/api/billing/*", optionalAuth, async (req: any, res) => {
     if (!req.user) return res.status(401).json({ error: "Not authenticated" });
     try {
-      const target = `${GALAXY_URL}${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
+      const confined = proxyTarget(req);
+      if (!confined.ok) return rejectProxyPath(res, confined);
+      const target = `${GALAXY_URL}${confined.path}${confined.query}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       // Prefer re-signed Galaxy JWT from cookie auth (supports httpOnly cookie sessions).
       // Fallback: forward raw Authorization header (for clients that still send Bearer tokens).
@@ -19406,7 +19402,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
       })();
 
       const systemPrompt = system || `You are Claude, an AI assistant with access to BioMate's scientific workflow tools.
-BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on AWS Batch.
+BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on its own cloud compute.
 When the user asks to run an analysis or search for a workflow, use the BioMate tools directly.
 Show your reasoning. Tool invocations and results are visible to the user in full.`;
 
@@ -20753,7 +20749,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   const _mcpHost = _mcpUp.hostname;
   const _mcpPort = Number(_mcpUp.port) || (_mcpUp.protocol === "https:" ? 443 : 80);
   function mcpProxy(req: express.Request, res: express.Response) {
-    const url = new URL(req.url, MCP_UPSTREAM);
+    // Only the path of the route that matched (/mcp/…, /oauth/tools/…, the exact discovery paths).
+    const confined = proxyTarget(req);
+    if (!confined.ok) return rejectProxyPath(res, confined);
+    const url = new URL(`${confined.path}${confined.query}`, MCP_UPSTREAM);
     const opts = {
       hostname: _mcpHost,
       port: _mcpPort,

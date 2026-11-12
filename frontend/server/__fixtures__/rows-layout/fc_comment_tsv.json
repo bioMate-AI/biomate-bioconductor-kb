@@ -1,0 +1,42 @@
+{
+ "name": "counts.txt",
+ "rows": {
+  "columns": [
+   "Geneid",
+   "Chr",
+   "Strand",
+   "S1"
+  ],
+  "delimiter": "\t",
+  "headerRow": true,
+  "kind": "table",
+  "limit": 200,
+  "namesSource": "header",
+  "offset": 0,
+  "rows": [
+   [
+    "G1",
+    "chr1",
+    "+",
+    "5"
+   ],
+   [
+    "G2",
+    "chr1",
+    "+",
+    "7"
+   ],
+   [
+    "G3",
+    "chr1",
+    "-",
+    "9"
+   ]
+  ],
+  "skipLines": 1,
+  "tabular": true,
+  "totalRows": 3,
+  "viewKind": "table"
+ },
+ "text": "# Program:featureCounts v2.0.1; Command:\"featureCounts\" \"-a\" \"g.gtf\"\nGeneid\tChr\tStrand\tS1\nG1\tchr1\t+\t5\nG2\tchr1\t+\t7\nG3\tchr1\t-\t9\n"
+}

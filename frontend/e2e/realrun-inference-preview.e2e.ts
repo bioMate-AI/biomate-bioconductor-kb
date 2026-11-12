@@ -34,6 +34,7 @@ import { test, expect, type Page } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
+import { deleteProjectLoudly } from "./_project-ui";
 
 const SHOT_DIR = path.resolve(
   process.cwd(),
@@ -103,7 +104,7 @@ test.describe("Real inference + dataset-preview (live dev)", () => {
     if (projectId) {
       const page = await browser.newPage();
       await loginAsFixture(page);
-      await page.request.delete(`${BASE_URL}/api/projects/${projectId}`).catch(() => {});
+      await deleteProjectLoudly(page.request, projectId, { inHook: true });
       console.log(`[teardown] project deleted ${projectId}`);
       await page.close();
     }

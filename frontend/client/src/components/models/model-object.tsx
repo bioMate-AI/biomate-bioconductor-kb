@@ -20,6 +20,7 @@ import { ChevronLeft, ShieldCheck, GitBranch, Boxes, Plug, History } from "lucid
 import { useModel } from "./models-api"
 import type { ModelDetail, ModelGate } from "./types"
 import { tOr } from "@/lib/i18n"
+import { HintTabsTrigger } from "@/components/ui/hint-tip"
 
 // ── verdict → colour ─────────────────────────────────────────────────────────
 function verdictColor(verdict: string): string {
@@ -170,21 +171,21 @@ export function ModelObject({
       <CardContent>
         <Tabs defaultValue="evidence">
           <TabsList className="mb-3 flex-wrap h-auto">
-            <TabsTrigger value="evidence" className="text-xs" data-testid="model-tab-evidence">
-              <ShieldCheck className="h-3 w-3 mr-1" />Evidence
-            </TabsTrigger>
-            <TabsTrigger value="lineage" className="text-xs" data-testid="model-tab-lineage">
-              <GitBranch className="h-3 w-3 mr-1" />Built from
-            </TabsTrigger>
-            <TabsTrigger value="used" className="text-xs" data-testid="model-tab-used">
-              <Boxes className="h-3 w-3 mr-1" />Used by
-            </TabsTrigger>
-            <TabsTrigger value="iface" className="text-xs" data-testid="model-tab-iface">
-              <Plug className="h-3 w-3 mr-1" />Interface
-            </TabsTrigger>
-            <TabsTrigger value="versions" className="text-xs" data-testid="model-tab-versions">
-              <History className="h-3 w-3 mr-1" />Versions
-            </TabsTrigger>
+            <HintTabsTrigger hint={tOr('hint.model_obj.evidence', '')} value="evidence" className="text-xs" data-testid="model-tab-evidence">
+              <ShieldCheck className="h-3 w-3 mr-1" />{tOr('model_obj.tab.evidence', 'Evidence')}
+            </HintTabsTrigger>
+            <HintTabsTrigger hint={tOr('hint.model_obj.lineage', '')} value="lineage" className="text-xs" data-testid="model-tab-lineage">
+              <GitBranch className="h-3 w-3 mr-1" />{tOr('model_obj.tab.lineage', 'Built from')}
+            </HintTabsTrigger>
+            <HintTabsTrigger hint={tOr('hint.model_obj.used', '')} value="used" className="text-xs" data-testid="model-tab-used">
+              <Boxes className="h-3 w-3 mr-1" />{tOr('model_obj.tab.used', 'Used by')}
+            </HintTabsTrigger>
+            <HintTabsTrigger hint={tOr('hint.model_obj.iface', '')} value="iface" className="text-xs" data-testid="model-tab-iface">
+              <Plug className="h-3 w-3 mr-1" />{tOr('model_obj.tab.iface', 'Interface')}
+            </HintTabsTrigger>
+            <HintTabsTrigger hint={tOr('hint.model_obj.versions', '')} value="versions" className="text-xs" data-testid="model-tab-versions">
+              <History className="h-3 w-3 mr-1" />{tOr('model_obj.tab.versions', 'Versions')}
+            </HintTabsTrigger>
           </TabsList>
 
           {/* ── Evidence: the measured · threshold · verdict gate ── */}

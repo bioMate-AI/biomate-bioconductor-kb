@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { userSettingsService } from "@/lib/user-settings"
 import { t, tOr, setLanguagePreference } from "@/lib/i18n"
+import { HintTabsTrigger } from "@/components/ui/hint-tip"
 import type { UserSettings } from "@shared/schema"
 import {
   User,
@@ -426,18 +427,18 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 min-w-0 flex-1" orientation="vertical">
             <div className="w-36 sm:w-48 shrink-0 overflow-y-auto overscroll-contain border-r bg-muted/50 p-2 sm:p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
-                <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
+                <HintTabsTrigger hint={t('hint.settings.api_keys')} side="right" value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
                   {t('settings.api_keys')}
-                </TabsTrigger>
+                </HintTabsTrigger>
                 {/* Appearance (theme) tab hidden — light only for now; dark mode not reviewed.
                 <TabsTrigger value="appearance" className="justify-start gap-2 p-3" data-testid="tab-appearance">
                   <Palette className="w-4 h-4" />
                   {tOr('settings.appearance', 'Appearance')}
                 </TabsTrigger>
                 */}
-                <TabsTrigger value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</TabsTrigger>
-                {onImportWorkflow && <TabsTrigger value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</TabsTrigger>}
+                <HintTabsTrigger hint={t('hint.settings.connectors')} side="right" value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</HintTabsTrigger>
+                {onImportWorkflow && <HintTabsTrigger hint={t('hint.settings.import')} side="right" value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</HintTabsTrigger>}
                 {/* Stale stub tabs (profile/general/chat/data/notifications/privacy/
                     security/advanced) remain gated below until rebuilt. */}
               </TabsList>

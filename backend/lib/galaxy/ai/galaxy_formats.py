@@ -14,6 +14,8 @@ Contract (all functions NEVER raise):
   extension wins when it maps to a datatype the content supports (its sniffer accepts the
   file, or the content is sniffed as a parent type of it, e.g. ``.smi`` → SMILES when the
   content sniffs as plain ``tabular``); otherwise ``guess_ext`` over the sniff order.
+* :func:`is_text_ext` ``(ext) -> Optional[bool]`` — whether that datatype is text (the
+  profiler's binary judgement honours Galaxy's text identification).
 * :func:`metadata` ``(path, ext) -> Dict`` — metadata for an allow-list of datatypes whose
   ``set_meta`` is cheap and safe here: no file-valued metadata (BAM/CRAM/BCF/TIFF/VcfGz
   need ``metadata.spec`` and a real model), no index building (BAM ``set_meta`` sorts and
@@ -93,13 +95,98 @@ _LABELS: Dict[str, str] = {
     "csv": "CSV", "tsv": "TSV", "tabular": "Tabular", "txt": "Text", "json": "JSON", "yaml": "YAML",
     "jsonl": "JSON Lines", "pdf": "PDF", "png": "PNG", "jpg": "JPEG", "zip": "ZIP",
     "bigwig": "bigWig", "bigbed": "bigBed", "data": "Unknown", "binary": "Binary",
+    "tar": "Tar archive", "fast5.tar": "FAST5 archive (tar)", "fast5.tar.gz": "FAST5 archive (tar.gz)",
+    "fast5.tar.bz2": "FAST5 archive (tar.bz2)", "h5": "HDF5", "bcf_bgzip": "BCF", "fast5": "FAST5",
+    "gif": "GIF", "bmp": "BMP", "svg": "SVG", "html": "HTML", "markdown": "Markdown", "docx": "Word document",
+    "sqlite": "SQLite database", "rds": "R data (RDS)", "mol2": "MOL2", "genbank": "GenBank",
+    "mzml": "mzML", "mzxml": "mzXML", "mgf": "MGF", "biom1": "BIOM", "cool": "Cooler (cool)", "mcool": "Cooler (mcool)",
 }
 
 
+_COMPRESSION_WORDS = {"gz": "gzip", "bz2": "bzip2", "bgz": "bgzip", "xz": "xz", "zst": "zstd"}
+
+
 def label_for(ext: Optional[str]) -> str:
+    """Human label for a Galaxy extension: the known label, else words built from its parts
+    ("fast5.tar.gz" → "FAST5 archive (tar.gz)", "mothur.axes" → "Mothur axes") — never a raw
+    dotted code."""
     if not ext:
         return "Unknown"
-    return _LABELS.get(ext, ext.upper() if len(ext) <= 6 else ext)
+    if ext in _LABELS:
+        return _LABELS[ext]
+    return humanize_ext(ext)
+
+
+def humanize_ext(ext: str) -> str:
+    parts = [p for p in ext.lower().split(".") if p]
+    if not parts:
+        return "Unknown"
+    comp = []
+    while parts and parts[-1] in _COMPRESSION_WORDS:
+        comp.insert(0, parts.pop())
+    archive = bool(parts) and parts[-1] in ("tar", "zip")
+    if archive:
+        comp.insert(0, parts.pop())
+    if not parts:
+        return ("Tar archive" if comp[0] == "tar" else "ZIP archive") if archive else (
+            f"{_COMPRESSION_WORDS.get(comp[0], comp[0])}-compressed file")
+    base = _LABELS.get(".".join(parts))
+    if base is None:
+        words = []
+        for i, p in enumerate(parts):
+            p = p.replace("_", " ")
+            if len(p) <= 5 and any(c.isdigit() for c in p) or len(p) <= 3:
+                words.append(p.upper())
+            else:
+                words.append(p.capitalize() if i == 0 else p)
+        base = " ".join(words)
+    if archive:
+        return f"{base} archive ({'.'.join(comp)})"
+    if comp:
+        return f"{base} ({', '.join(_COMPRESSION_WORDS[c] for c in comp)})"
+    return base
+
+
+# Galaxy datatype class → the panel's view kind, for formats without an explicit mapping.
+def view_for_ext(ext: str) -> Optional[str]:
+    """'image' / 'archive' / 'document' / 'binary' from the datatype's class (None if unknown or
+    Galaxy is unavailable)."""
+    reg = _registry()
+    if reg is None:
+        return None
+    dt = (getattr(reg, "datatypes_by_extension", {}) or {}).get(ext)
+    if dt is None:
+        return None
+    mro = [c.__module__ + "." + c.__name__ for c in type(dt).__mro__]
+    if any(m.startswith("galaxy.datatypes.images.") for m in mro):
+        return "image"
+    if any(m.endswith((".CompressedArchive", ".CompressedZipArchive", ".Tar", ".GenericTar")) for m in mro):
+        return "archive"
+    if any(m.startswith("galaxy.datatypes.text.Html") or m.endswith(".Pdf") for m in mro):
+        return "document"
+    if any(m.startswith("galaxy.datatypes.binary.") for m in mro):
+        return "binary"
+    return None
+
+
+def is_text_ext(ext: Optional[str]) -> Optional[bool]:
+    """Whether Galaxy's datatype for ``ext`` is a TEXT datatype (csv, tabular, txt, json, fasta, …:
+    a subclass of ``galaxy.datatypes.data.Text`` and not of ``binary.Binary``). None when Galaxy is
+    unavailable or the extension is not registered."""
+    reg = _registry()
+    if reg is None or not ext:
+        return None
+    dt = (getattr(reg, "datatypes_by_extension", {}) or {}).get(ext)
+    if dt is None:
+        return None
+    try:
+        from galaxy.datatypes.binary import Binary
+        from galaxy.datatypes.data import Text
+    except Exception:  # noqa: BLE001
+        return None
+    if isinstance(dt, Binary):
+        return False
+    return isinstance(dt, Text)
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +297,20 @@ def _is_large_tar(path: str) -> bool:
         return opener is not None or os.path.getsize(path) > MAX_ARCHIVE_SNIFF_BYTES
     except Exception:  # noqa: BLE001
         return False
+
+
+def extension_for_name(name: str) -> Optional[str]:
+    """The Galaxy extension a filename claims (most specific registered one), without reading
+    the file — for roll-ups over many files. None when Galaxy is unavailable or no candidate
+    extension is a registered datatype."""
+    reg = _registry()
+    if reg is None:
+        return None
+    by_ext = getattr(reg, "datatypes_by_extension", {}) or {}
+    for ext in filename_exts(name):
+        if ext in by_ext:
+            return ext
+    return None
 
 
 def identify(path: str, name: Optional[str] = None) -> Optional[str]:
@@ -361,18 +462,135 @@ def alignment_header(path: str) -> Dict[str, Any]:
     }
 
 
-def xlsx_sheets(path: str) -> Optional[List[Dict[str, Any]]]:
-    """Sheet names + dimensions via openpyxl (read-only); None when openpyxl is missing."""
+def anndata_layers(path: str) -> Optional[List[str]]:
+    """The AnnData layers of an h5ad (keys of its ``layers`` group; [] when it has none), via h5py
+    (present in the Galaxy image). None when h5py is missing or the file cannot be opened."""
     try:
-        import openpyxl
+        import h5py
     except Exception:  # noqa: BLE001
         return None
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
-        out = []
+        try:
+            f = h5py.File(path, "r", locking=False)  # h5py ≥ 3.5 (as Galaxy's own set_meta opens it)
+        except TypeError:
+            f = h5py.File(path, "r")  # older h5py: no ``locking`` argument
+        with f:
+            grp = f.get("layers")
+            if grp is None or not hasattr(grp, "keys"):
+                return []
+            return [str(k) for k in list(grp.keys())[:MAX_META_LIST]]
+    except Exception as exc:  # noqa: BLE001
+        log.info("[galaxy_formats] h5ad layers unreadable for %s: %s", path, exc)
+        return None
+
+
+# The first sheet's preview: at most this many rows (header + data) × columns, read with a
+# BOUNDED streaming scan (openpyxl read-only mode stops after the last requested row) — opening a
+# workbook never parses whole sheets.
+XLSX_PREVIEW_ROWS = 101
+XLSX_PREVIEW_COLS = 50
+
+
+def _xlsx_cell(v: Any) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return "TRUE" if v else "FALSE"
+    if isinstance(v, float) and v.is_integer() and abs(v) < 2 ** 53:
+        return str(int(v))
+    iso = getattr(v, "isoformat", None)
+    if iso is not None:
+        out = iso()
+        return out[:-9] if out.endswith("T00:00:00") else out
+    return str(v)
+
+
+def _bounded_workbook(path: str) -> Any:
+    """The workbook in openpyxl's read-only mode WITHOUT a full parse of every sheet at open.
+
+    openpyxl's read-only ``load_workbook`` sizes each sheet in ``ReadOnlyWorksheet.__init__``
+    through ``WorkSheetParser.parse_dimensions``, which iterparses END events: when a sheet stores
+    no ``<dimension>`` element (openpyxl's own write-only mode and several other writers omit it)
+    the ``<sheetData>`` end event comes only after the WHOLE sheet, so opening a 4 MB workbook
+    parsed all of its cells (≈ 5 s on a laptop, every sheet, before a single row was read). Here
+    each sheet is sized from START events and the scan stops at ``<sheetData>``; rows are then read
+    lazily (and only as many as asked for) by openpyxl's own row parser.
+    """
+    from xml.etree.ElementTree import iterparse
+
+    from openpyxl.reader.excel import ExcelReader
+    from openpyxl.utils.cell import range_boundaries
+    from openpyxl.worksheet._read_only import ReadOnlyWorksheet
+    from openpyxl.xml.constants import SHEET_MAIN_NS
+
+    dim_tag, data_tag = f"{{{SHEET_MAIN_NS}}}dimension", f"{{{SHEET_MAIN_NS}}}sheetData"
+
+    class _BoundedSheet(ReadOnlyWorksheet):
+        def _get_size(self) -> None:  # noqa: D401 — openpyxl hook
+            src = self._get_source()
+            try:
+                for _event, el in iterparse(src, events=("start",)):
+                    if el.tag == dim_tag:
+                        ref = el.get("ref") or ""
+                        try:
+                            bounds = range_boundaries(ref if ":" in ref else f"{ref}:{ref}")
+                        except (ValueError, TypeError):
+                            bounds = None
+                        if bounds and None not in bounds:
+                            self._min_column, self._min_row, self._max_column, self._max_row = bounds
+                        return
+                    if el.tag == data_tag:
+                        return  # no stored dimension: unsized (max_row / max_column stay None)
+            finally:
+                src.close()
+
+    class _Reader(ExcelReader):
+        def read_worksheets(self) -> None:
+            for sheet, rel in self.parser.find_sheets():
+                if rel.target not in self.valid_files or "chartsheet" in (rel.Type or ""):
+                    continue
+                ws = _BoundedSheet(self.wb, sheet.name, rel.target, self.shared_strings)
+                ws.sheet_state = sheet.state
+                self.wb._sheets.append(ws)
+
+    reader = _Reader(path, read_only=True, data_only=True, keep_links=False)
+    reader.read()
+    return reader.wb
+
+
+def xlsx_summary(path: str) -> Optional[Dict[str, Any]]:
+    """{"sheets": [{name, rows, cols}], "preview": {"sheet", "rows": [[str]]}} via openpyxl in
+    read-only mode (see _bounded_workbook); None when openpyxl is missing. ``rows`` / ``cols`` come
+    from the sheet's stored dimension (None when the writer stored none, or one the preview
+    contradicts); the preview holds the first sheet's first non-empty rows (≤ XLSX_PREVIEW_ROWS ×
+    XLSX_PREVIEW_COLS). Cost: the shared-string table + the preview rows, whatever the sheet size."""
+    try:
+        import openpyxl  # noqa: F401
+    except Exception:  # noqa: BLE001
+        return None
+    wb = _bounded_workbook(path)
+    try:
+        sheets: List[Dict[str, Any]] = []
         for ws in wb.worksheets[:MAX_META_LIST]:
-            out.append({"name": str(ws.title), "rows": int(ws.max_row or 0), "cols": int(ws.max_column or 0)})
-        return out
+            sheets.append({"name": str(ws.title), "rows": ws.max_row, "cols": ws.max_column})
+        preview: Optional[Dict[str, Any]] = None
+        if wb.worksheets:
+            ws = wb.worksheets[0]
+            rows: List[List[str]] = []
+            for raw in ws.iter_rows(min_row=1, max_row=XLSX_PREVIEW_ROWS, max_col=XLSX_PREVIEW_COLS,
+                                    values_only=True):
+                cells = [_xlsx_cell(v) for v in raw]
+                while cells and cells[-1] == "":
+                    cells.pop()
+                if cells:
+                    rows.append(cells)
+            preview = {"sheet": str(ws.title), "rows": rows}
+            first = sheets[0]
+            width = max((len(r) for r in rows), default=0)
+            if (first["rows"] is not None and first["rows"] < len(rows)) or \
+                    (first["cols"] is not None and first["cols"] < width):
+                first["rows"] = first["cols"] = None  # a stale stored dimension ("A1"): unknown
+        return {"sheets": sheets, "preview": preview}
     finally:
         wb.close()
 
@@ -384,10 +602,14 @@ def metadata(path: str, ext: Optional[str]) -> Dict[str, Any]:
         return {}
     try:
         if ext in ("bam", "cram", "qname_sorted.bam", "unsorted.bam"):
+            try:
+                import pysam  # noqa: F401 — present in the Galaxy image, not on every host
+            except ImportError:
+                return {"skipped": "pysam_missing"}
             return alignment_header(path)
         if ext == "xlsx":
-            sheets = xlsx_sheets(path)
-            return {"sheets": sheets} if sheets is not None else {"skipped": "openpyxl_missing"}
+            summary = xlsx_summary(path)
+            return summary if summary is not None else {"skipped": "openpyxl_missing"}
         kind = _SET_META_ALLOW.get(ext)
         if kind is None:
             return {}
@@ -405,6 +627,12 @@ def metadata(path: str, ext: Optional[str]) -> Dict[str, Any]:
         ds = _StubDataset(path, dt, ext)
         dt.set_meta(ds, overwrite=True)
         out = {k: _plain(v) for k, v in ds.metadata.items()}
+        if ext == "h5ad":
+            # Galaxy's "layers_names" are the file's TOP-LEVEL groups (X, obs, var, obsm, …), not
+            # AnnData layers; the layers are the keys of the ``layers`` group.
+            layers = anndata_layers(path)
+            if layers is not None:
+                out["anndata_layers"] = layers
         return {k: v for k, v in out.items() if v is not None}
     except Exception as exc:  # noqa: BLE001 — metadata is best-effort
         log.info("[galaxy_formats] metadata(%s) failed for %s: %s", ext, path, exc)

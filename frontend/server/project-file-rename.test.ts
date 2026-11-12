@@ -70,14 +70,40 @@ describe("planFileRename", () => {
     expect(planFileRename(rows, "1", " x/a.csv ")).toEqual({ ok: true, moves: [] });
   });
 
-  it("409 when another file already has the name — including a run output or generated file", () => {
+  it("409 name_conflict when another file or folder in the SAME tree has the name", () => {
     const a = planFileRename(rows, "1", "top.csv");
     expect(a.ok).toBe(false);
     expect(!a.ok && a.status).toBe(409);
+    expect(!a.ok && a.code).toBe("name_conflict");
     expect(!a.ok && a.conflicts).toEqual([{ name: "top.csv", existing: "top.csv" }]);
-    expect((planFileRename(rows, "3", "multiqc_report.html") as any).status).toBe(409);
-    expect((planFileRename(rows, "3", "QC_Report.txt") as any).status).toBe(409);
     expect((planFileRename(rows, "3", "x") as any).status).toBe(409); // "x" is a folder
+    expect((planFileRename(rows, "3", "x/a.csv/deeper") as any).status).toBe(409); // a FILE named like a folder
+    // a generated file clashes only with generated files
+    expect((planFileRename([...rows, { id: "9", name: "plot.png", source: "run_code" }], "5", "plot.png") as any).code).toBe("name_conflict");
+  });
+
+  it("the shared name rule: run outputs and generated files live in other trees than inputs", () => {
+    // run outputs keep their run's names (two runs both write multiqc_report.html) and live under
+    // their run; generated files are listed under Analysis outputs — neither clashes with an input.
+    expect(planFileRename(rows, "3", "multiqc_report.html").ok).toBe(true);
+    expect(planFileRename(rows, "3", "QC_Report.txt").ok).toBe(true);
+    expect(planFileRename(rows, "5", "top.csv").ok).toBe(true);
+  });
+
+  it("every refusal carries a stable code", () => {
+    const code = (p: any) => p.code;
+    expect(code(planFileRename(rows, "4", "renamed.html"))).toBe("run_output");
+    expect(code(planFileRename(rows, "1", "../b.csv"))).toBe("dot_segments");
+    expect(code(planFileRename(rows, "1", "a\u0001b"))).toBe("control_chars");
+    expect(code(planFileRename(rows, "1", " / "))).toBe("empty");
+    expect(code(planFileRename(rows, "1", 42))).toBe("empty");
+    expect(code(planFileRename(rows, "1", "x".repeat(201)))).toBe("segment_too_long");
+    expect(code(planFileRename(rows, "1", Array(33).fill("d").join("/")))).toBe("too_deep");
+    expect(code(planFolderRename(rows, "x", "x"))).toBe("same_name");
+    expect(code(planFolderRename(rows, "x", "x/inner"))).toBe("into_itself");
+    expect(code(planFolderRename(rows, "x", Array(31).fill("d").join("/")))).toBe("limit_after_move"); // x/sub/c.tsv → 33 deep
+    expect(code(planFolderRename([...rows, { id: "7", name: "z/a.csv", source: "upload" }], "x", "z"))).toBe("name_conflict");
+    expect(code(planFolderRename(rows, "x", "../z"))).toBe("dot_segments");
   });
 
   it("400 for an invalid name or a run output; 404 for an unknown file", () => {

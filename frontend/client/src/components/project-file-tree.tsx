@@ -16,7 +16,7 @@
  *     folder, inline: Enter saves, Esc cancels, a clash (409) is shown on the row. Only the
  *     stored name changes; the bytes, versions and lineage stay with the file.
  */
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { isDesktop, desktopPickAndUpload, desktopSaveFile } from "@/lib/desktop";
 import {
   Search,
@@ -34,10 +34,20 @@ import {
   Copy,
   Check,
   Plus,
-  Image,
-  Database,
   Code2,
   FileArchive,
+  FileImage,
+  FileJson,
+  FileSpreadsheet,
+  FileType2,
+  Dna,
+  Grid3x3,
+  Atom,
+  Hexagon,
+  Table2,
+  AlignLeft,
+  Binary,
+  type LucideIcon,
   Eye,
   EyeOff,
   FolderUp,
@@ -45,6 +55,7 @@ import {
   Pencil,
   X,
 } from "lucide-react";
+import { fileExt, kindFromName, type ViewKind } from "@/components/datasets/dataset-view-model";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -54,6 +65,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { t, locale } from "@/lib/i18n";
+import { effectiveQuality } from "@/components/datasets/dataset-view-model";
+import type { PerceptionFinding, PerceptionQuality } from "@/components/data-perception";
 import { filesFromDataTransfer, relativePathOf } from "@/lib/folder-drop";
 
 export interface ProjectFile {
@@ -69,6 +82,9 @@ export interface ProjectFile {
   input_context: Record<string, unknown> | null;
   content_hash?: string | null;
   created_at: string;
+  /** The stored profile verdict: null = not profiled yet; absent on an older server. */
+  profileSummary?: ProfileSummary | null;
+  version_no?: number;
 }
 
 interface FolderNode {
@@ -113,7 +129,8 @@ function sortFoldersFirst(node: FolderNode): void {
 }
 
 export function buildTree(files: ProjectFile[]): TreeNode[] {
-  const inputs: FolderNode = { type: "folder", name: "inputs", path: "inputs", children: [] };
+  // The root's PATH stays "inputs" (test ids, expand state, rename paths); its NAME is localized.
+  const inputs: FolderNode = { type: "folder", name: t("file_tree.inputs_root"), path: "inputs", children: [] };
   const outputsByRun: Record<string, FileNode[]> = {};
   // Files BioMate generated in this project's chats (run_code reports, tables, plots) are results.
   const analysis: FolderNode = { type: "folder", name: t("file_tree.analysis_outputs"), path: "outputs/analysis", children: [] };
@@ -153,19 +170,83 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
   return root;
 }
 
-/** Localized reason for a failed upload response. */
-export function uploadErrorReason(status: number): string {
+/** What the server sends back with a refused upload / import (optional stable code; name clashes). */
+export interface UploadErrorBody {
+  error?: string;
+  code?: string;
+  conflicts?: Array<{ name: string; existing: string }>;
+}
+
+/** Localized reason for a failed upload response. A 409 is a name clash with an existing file or
+ *  folder (the server's `name_conflict`): it names the existing entry, never "server error". */
+export function uploadErrorReason(status: number, body?: UploadErrorBody | null): string {
+  if (status === 409 || body?.code === "name_conflict") {
+    const existing = body?.conflicts?.find((c) => typeof c?.existing === "string" && c.existing)?.existing;
+    return existing ? t("data_hub.tree_err_name_conflict_with", { existing }) : t("data_hub.tree_err_name_conflict");
+  }
   if (status === 413) return t("data_hub.tree_err_too_large");
   if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
   return t("data_hub.tree_err_server", { status });
 }
 
-/** Localized reason for a failed rename / move response. */
-export function renameErrorReason(status: number): string {
-  if (status === 409) return t("file_tree.rename_conflict");
-  if (status === 400) return t("file_tree.rename_invalid");
-  if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
-  return t("data_hub.tree_err_server", { status });
+/** What the server sends back with a refused rename (error text; optional stable code; clashes). */
+export interface RenameErrorBody {
+  error?: string
+  /** Stable reason code, when the server sends one (preferred over matching the text). */
+  code?: string
+  conflicts?: Array<{ name: string; existing: string }>
+}
+
+/**
+ * Stable reason for a refused rename, in the server's vocabulary (project-file-paths.ts
+ * NameErrorCode: run_output, same_name, into_itself, control_chars, dot_segments, empty,
+ * segment_too_long, too_deep, limit_after_move, name_conflict). The server's `code` wins;
+ * a server that sends none is read from its (English, developer-facing) error text, which
+ * names one rule per refusal.
+ */
+export function renameErrorCode(status: number, body?: RenameErrorBody | null): string {
+  if (body?.code) return body.code
+  if (status === 409) return "name_conflict"
+  if (status === 401) return "signed_out"
+  if (status === 403 || status === 404) return "gone"
+  if (status !== 400) return "server"
+  const e = String(body?.error ?? "")
+  if (/run output/i.test(e)) return "run_output"
+  if (/already has that name/i.test(e)) return "same_name"
+  if (/into itself/i.test(e)) return "into_itself"
+  if (/control char/i.test(e)) return "control_chars"
+  if (/\.\./.test(e)) return "dot_segments"
+  if (/is empty/i.test(e)) return "empty"
+  if (/limited to \d+ characters/i.test(e)) return "segment_too_long"
+  if (/nested at most/i.test(e)) return "too_deep"
+  if (/depth or name length/i.test(e)) return "limit_after_move"
+  return "invalid"
+}
+
+const RENAME_400_KEYS: Record<string, string> = {
+  run_output: "file_tree.rename_err_run_output",
+  same_name: "file_tree.rename_err_same_name",
+  into_itself: "file_tree.rename_err_into_itself",
+  control_chars: "file_tree.rename_err_control_chars",
+  dot_segments: "file_tree.rename_err_dot_segment",
+  empty: "file_tree.rename_err_empty",
+  segment_too_long: "file_tree.rename_err_too_long",
+  too_deep: "file_tree.rename_err_too_deep",
+  limit_after_move: "file_tree.rename_err_limits",
+}
+
+/** Localized reason for a failed rename / move response — one message per server reason. */
+export function renameErrorReason(status: number, body?: RenameErrorBody | null): string {
+  const code = renameErrorCode(status, body)
+  if (code === "name_conflict") {
+    const existing = body?.conflicts?.[0]?.existing
+    return existing ? t("file_tree.rename_conflict_with", { existing }) : t("file_tree.rename_conflict")
+  }
+  if (code === "signed_out") return t("file_tree.rename_err_signed_out")
+  if (code === "gone") return t("file_tree.rename_err_gone")
+  if (code === "server") return t("file_tree.rename_err_server", { status })
+  const key = RENAME_400_KEYS[code]
+  return key ? t(key) : t("file_tree.rename_invalid")
 }
 
 /** "inputs/a/b" → ["inputs", "inputs/a", "inputs/a/b"]: folders to keep open after a move. */
@@ -194,7 +275,20 @@ function InlineRename({
 }) {
   const [value, setValue] = useState(initial);
   const [err, setErr] = useState<string | null>(null);
+  // The visible hint is ONE short line (the tree is ~280 px; a long example wrapped mid-word). The
+  // full hint — with an example that keeps the item in its CURRENT folder, moving it into a
+  // subfolder here, never out to the top — is on hover and read to screen readers.
+  const parts = initial.split("/").filter(Boolean);
+  const base = parts.pop() || initial;
+  const example = [...parts, "archive", base].join("/");
+  const hint = t("file_tree.rename_hint_short");
+  const hintFull = t("file_tree.rename_hint", { example, folder: "archive" });
+  const hintId = `${testid}-hint`;
   const [saving, setSaving] = useState(false);
+  // The editor (and its hint / error below the input) must be fully visible inside the
+  // tree's scroll box — a rename on the last row otherwise leaves the hint cut off.
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { boxRef.current?.scrollIntoView?.({ block: "nearest" }); }, [err]);
   const save = async () => {
     const v = value.trim();
     if (!v || saving) return;
@@ -205,11 +299,17 @@ function InlineRename({
     if (e) setErr(e);
   };
   return (
-    <div className="px-2 py-1 space-y-0.5" style={{ paddingLeft: 16 + depth * 20 }}>
+    <div ref={boxRef} className="pr-2 py-1 space-y-0.5" style={{ paddingLeft: treeIndent(depth) }} data-testid={`${testid}-editor`}>
       <input
         value={value}
         autoFocus
-        onFocus={(e) => e.currentTarget.select()}
+        onFocus={(e) => {
+          // Select the whole path with the caret at its START, so the box shows where the path
+          // begins (its folders) rather than scrolling to the tail of a long name.
+          const el = e.currentTarget;
+          el.setSelectionRange(0, el.value.length, "backward");
+          el.scrollLeft = 0;
+        }}
         onChange={(e) => { setValue(e.target.value); setErr(null); }}
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.preventDefault(); void save(); }
@@ -217,29 +317,69 @@ function InlineRename({
         }}
         disabled={saving}
         aria-label={t("file_tree.rename_label")}
-        title={t("file_tree.rename_hint")}
+        aria-describedby={hintId}
+        title={hintFull}
         className={cn("w-full h-6 px-1.5 text-xs rounded border bg-background font-mono", err && "border-destructive")}
         data-testid={`${testid}-input`}
       />
       {err ? (
         <p className="text-fs-xs text-destructive [overflow-wrap:anywhere]" role="alert" data-testid={`${testid}-error`}>{err}</p>
       ) : (
-        <p className="text-fs-xs text-muted-foreground">{t("file_tree.rename_hint")}</p>
+        <p
+          id={hintId}
+          className="truncate whitespace-nowrap text-fs-xs text-muted-foreground"
+          title={hintFull}
+          data-testid={`${testid}-hint`}
+          data-example={example}
+        >{hint}<span className="sr-only"> {hintFull}</span></p>
       )}
     </div>
   );
 }
 
+/**
+ * Row layout contract (U10). The tree is ~280 px wide, so every pixel of indent and every
+ * hidden control is taken from the name:
+ *   - indent grows 12 px per level and stops growing after INDENT_MAX_DEPTH levels;
+ *   - the name is the only flexible item and never shrinks below NAME_MIN_PX;
+ *   - hover/focus actions are an absolutely positioned overlay, so while hidden they take
+ *     no layout width (they used to reserve ~100 px of invisible buttons on every row).
+ */
+const INDENT_BASE_PX = 8;
+const INDENT_STEP_PX = 12;
+const INDENT_MAX_DEPTH = 8;
+export const NAME_MIN_PX = 72;
+export function treeIndent(depth: number): number {
+  return INDENT_BASE_PX + Math.min(Math.max(depth, 0), INDENT_MAX_DEPTH) * INDENT_STEP_PX;
+}
+const NAME_STYLE: CSSProperties = { flex: "1 1 auto", minWidth: NAME_MIN_PX };
+/** Hidden until the row is hovered or a control inside it has keyboard focus; never takes width. */
+const ACTIONS_CLASS =
+  "absolute inset-y-0 right-1 flex items-center gap-0.5 pl-1 rounded-r bg-muted opacity-0 pointer-events-none " +
+  "group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
+const ACTIONS_STYLE: CSSProperties = { position: "absolute" };
+
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)
 
-function fileIcon(name: string, contentType: string) {
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) return Image;
-  if (["csv", "tsv", "xlsx", "parquet"].includes(ext)) return Database;
-  if (["nf", "py", "r", "sh", "ts", "js", "json", "yaml", "yml"].includes(ext)) return Code2;
-  if (["gz", "zip", "tar", "bz2", "zst"].includes(ext)) return FileArchive;
-  if (["txt", "md", "log", "fastq", "fasta", "vcf", "bed", "gtf", "gff"].includes(ext)) return FileText;
-  return File;
+/**
+ * The tree icon for a file: its data kind (the same name → kind table the dataset object uses,
+ * looking through .gz — `S1_R1.fastq.gz` is reads, not an archive), so a PDF, TIFF, h5ad, BAM or
+ * PDB is told apart at a glance instead of all being a blank page.
+ */
+const KIND_ICON: Partial<Record<ViewKind, LucideIcon>> = {
+  table: Table2, records: Table2, json: FileJson, sequences: Dna, reads: Dna, variants: Dna,
+  intervals: AlignLeft, annotation: AlignLeft, alignment: AlignLeft, anndata: Grid3x3, loom: Grid3x3,
+  matrix: Grid3x3, molecules: Hexagon, structure: Atom, image: FileImage, archive: FileArchive, binary: Binary,
+};
+const CODE_EXT = new Set(["nf", "py", "r", "sh", "ts", "js", "config", "toml", "ini"]);
+export function fileIcon(name: string, _contentType?: string | null): LucideIcon {
+  const ext = fileExt(name);
+  if (ext === "pdf") return FileType2;
+  if (["xlsx", "xls"].includes(ext)) return FileSpreadsheet;
+  if (CODE_EXT.has(ext)) return Code2;
+  const kind = kindFromName(name);
+  if (kind === "document") return FileText;
+  return KIND_ICON[kind] ?? (ext === "txt" || ext === "md" || ext === "log" ? FileText : File);
 }
 
 function formatBytes(n: number): string {
@@ -256,18 +396,25 @@ function canPreview(file: ProjectFile): boolean {
   return PREVIEW_EXTS.has(ext) && file.size < 1024 * 1024; // < 1 MB
 }
 
-// Extensions the perception profiler (backend data_perception.py) can read.
-const PROFILABLE_EXTS = new Set([
-  "csv","tsv","txt","tab","vcf","fastq","fq","gz",
-]);
-
-function isProfilable(file: ProjectFile): boolean {
-  const parts = file.name.toLowerCase().split(".");
-  // handle .fastq.gz etc — check the last two extension tokens.
-  const last = parts[parts.length - 1] ?? "";
-  const prev = parts.length > 2 ? parts[parts.length - 2] : "";
-  return PROFILABLE_EXTS.has(last) || PROFILABLE_EXTS.has(prev);
+/**
+ * The file list's stored profile verdict (server round-3): null = not profiled yet; otherwise the
+ * profiler's own quality + finding codes. Whether a file can be profiled is the PROFILER's call
+ * (its `unprofilable` finding → "not checked"), never an extension list here.
+ */
+export interface ProfileSummary {
+  quality: string;
+  findings: Array<{ code: string; level: string; section?: string }>;
+  viewKind?: string | null;
+  profiledAt?: string | null;
 }
+
+/**
+ * Largest file the tree profiles on its own when no verdict is stored yet. The backend downloads
+ * the WHOLE object to profile it, so rendering a project with a multi-GB BAM / FASTQ must not
+ * trigger that from a list row: a bigger file shows a neutral "not checked yet — open to check"
+ * dot and is profiled when the user opens it in the dataset panel.
+ */
+export const TREE_AUTO_PROFILE_MAX_BYTES = 50 * 1024 * 1024;
 
 // Map a perception quality verdict to a dot colour. "unknown" is honest grey —
 // no profile has been computed, NOT a claim of good.
@@ -275,20 +422,41 @@ const QUALITY_DOT: Record<string, string> = {
   good: "bg-emerald-500",
   watch: "bg-amber-500",
   blocked: "bg-red-500",
+  // Identified but not analysed: neutral, never a warning colour.
+  unassessed: "bg-muted-foreground/50",
   unknown: "bg-muted-foreground/40",
+  // Too large to profile from the list: open it to check.
+  pending: "border border-muted-foreground/60 bg-transparent",
 };
 
+const KNOWN_QUALITY = new Set(["good", "watch", "blocked", "unassessed"]);
+
+/** The verdict a stored summary says, through the same rule the dataset object uses. */
+function summaryQuality(summary: ProfileSummary): string {
+  const q = effectiveQuality({
+    quality: summary.quality as PerceptionQuality,
+    findings: (summary.findings ?? []).map((f) => ({ ...f, section: (f.section ?? "note") as PerceptionFinding["section"], level: f.level as PerceptionFinding["level"], params: {} })),
+  });
+  if (KNOWN_QUALITY.has(q)) return q;
+  // The profiler could not read this kind of file: identified, not checked — grey, not "unknown".
+  return (summary.findings ?? []).some((f) => f.code === "unprofilable") ? "unassessed" : "unknown";
+}
+
 /**
- * QualityDot — a per-row ingest-quality indicator. Lazily profiles the file via
- * POST /api/perception/profile the first time the row is rendered, but only for
- * file types the profiler can read. Everything else stays honest grey/unknown.
+ * QualityDot — a per-row ingest-quality indicator. Shows the verdict stored with the file
+ * (`profileSummary`). With none stored yet, profiles a file up to TREE_AUTO_PROFILE_MAX_BYTES
+ * once; a larger file stays "not checked yet — open to check" (no request from the list).
  */
 function QualityDot({ file }: { file: ProjectFile }) {
-  const [quality, setQuality] = useState<string>("unknown");
-  const profilable = isProfilable(file);
+  const summary = file.profileSummary;
+  const stored = summary && typeof summary === "object" && typeof summary.quality === "string" ? summaryQuality(summary) : null;
+  const size = Number(file.size);
+  const autoProfile = stored === null && Number.isFinite(size) && size <= TREE_AUTO_PROFILE_MAX_BYTES;
+  const [fetched, setFetched] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profilable) return;
+    setFetched(null);
+    if (!autoProfile) return;
     let cancelled = false;
     fetch("/api/perception/profile", {
       method: "POST",
@@ -298,27 +466,41 @@ function QualityDot({ file }: { file: ProjectFile }) {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!cancelled && d && typeof d.quality === "string") setQuality(d.quality);
+        // The same verdict the dataset object shows: an older profile's "watch" whose only
+        // reasons are "not analysed" findings is "unassessed" (grey), not a warning.
+        if (!cancelled && d && typeof d.quality === "string") setFetched(effectiveQuality(d));
       })
       .catch(() => { /* stay unknown */ });
     return () => { cancelled = true; };
-  }, [file.s3_key, file.name, profilable]);
+  }, [file.s3_key, file.name, autoProfile]);
 
+  const quality = stored ?? (autoProfile ? fetched ?? "unknown" : "pending");
   const cls = QUALITY_DOT[quality] ?? QUALITY_DOT.unknown;
-  const title = profilable
-    ? t('file_tree.quality', { quality: quality === 'unknown' ? '—' : t(`dataset_obj.quality_${quality}`) })
-    : t('file_tree.quality_unprofiled');
+  const title = quality === "pending"
+    ? t('file_tree.quality_open_to_check')
+    : t('file_tree.quality', { quality: quality === 'unknown' ? '—' : t(`dataset_obj.quality_${quality}`) });
   return (
     <span
       className={cn("h-1.5 w-1.5 rounded-full shrink-0", cls)}
       title={title}
+      aria-label={title}
       data-testid={`file-quality-${file.id}`}
       data-quality={quality}
     />
   );
 }
 
-function FilePreview({ url, name }: { url: string; name: string }) {
+const PREVIEW_LINES = 20;
+const PREVIEW_TABLE_ROWS = 6;
+/** The inline preview is a bounded window, never part of the row flow's width. */
+const PREVIEW_BOX_STYLE: CSSProperties = { maxHeight: 160, overflow: "auto" };
+
+/**
+ * Bounded quick look under a row — only where there is no dataset object view to open
+ * (project page Files tab). Fixed max height, scrolls both ways, never wraps: a file's
+ * text must not reflow down the tree (the data hub opens the full object instead).
+ */
+function FilePreview({ url, name, fileId }: { url: string; name: string; fileId: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   const isImage = ["png","jpg","jpeg","gif","webp","svg"].includes(ext);
   const [content, setContent] = useState<string | null>(null);
@@ -328,32 +510,41 @@ function FilePreview({ url, name }: { url: string; name: string }) {
     fetch(url).then(r => r.text()).then(txt => setContent(txt)).catch(() => setContent(t("data_hub.tree_preview_failed")));
   }, [url, isImage]);
 
+  const boxClass = "mx-2 mt-0.5 mb-1 rounded border bg-muted/30";
+  const testid = `file-preview-${fileId}`;
   if (isImage) {
-    return <img src={url} alt={name} className="max-w-[200px] max-h-40 rounded mt-1 mb-1 ml-9" />;
+    return (
+      <div className={boxClass} style={PREVIEW_BOX_STYLE} data-testid={testid}>
+        <img src={url} alt={name} className="max-w-full max-h-36 m-1 rounded" />
+      </div>
+    );
   }
-  if (content === null) return <div className="ml-9 mt-1 text-xs text-muted-foreground">{t("data_hub.tree_preview_loading")}</div>;
-  const lines = content.split("\n").slice(0, ext === "csv" || ext === "tsv" ? 6 : 20);
-  if ((ext === "csv" || ext === "tsv") && lines.length > 0) {
+  if (content === null) return <div className="mx-2 mt-0.5 mb-1 text-xs text-muted-foreground" data-testid={testid}>{t("data_hub.tree_preview_loading")}</div>;
+  const isTable = ext === "csv" || ext === "tsv";
+  const lines = content.split("\n").slice(0, isTable ? PREVIEW_TABLE_ROWS : PREVIEW_LINES);
+  if (isTable && lines.length > 0) {
     const sep = ext === "tsv" ? "\t" : ",";
     const rows = lines.map(l => l.split(sep));
     return (
-      <div className="ml-9 mt-1 mb-1 overflow-x-auto">
+      <div className={boxClass} style={PREVIEW_BOX_STYLE} data-testid={testid}>
         <table className="text-xs border-collapse">
-          {rows.map((row, i) => (
-            <tr key={i} className={i === 0 ? "font-semibold bg-muted/40" : ""}>
-              {row.map((cell, j) => (
-                <td key={j} className="border border-border px-1.5 py-0.5 max-w-[120px] truncate">{cell}</td>
-              ))}
-            </tr>
-          ))}
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className={i === 0 ? "font-semibold bg-muted/40" : ""}>
+                {row.map((cell, j) => (
+                  <td key={j} className="border border-border px-1.5 py-0.5 whitespace-nowrap">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     );
   }
   return (
-    <pre className="ml-9 mt-1 mb-1 text-xs font-mono bg-muted/40 rounded p-2 overflow-x-auto max-h-40 whitespace-pre-wrap">
-      {lines.join("\n")}
-    </pre>
+    <div className={boxClass} style={PREVIEW_BOX_STYLE} data-testid={testid}>
+      <pre className="m-0 p-2 text-xs font-mono" style={{ whiteSpace: "pre" }}>{lines.join("\n")}</pre>
+    </div>
   );
 }
 
@@ -391,7 +582,9 @@ function FileRow({
   const isCopied = copiedId === file.id;
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const showPreview = canPreview(file);
+  // Where the file opens as a dataset object, that IS the preview — no second, cramped copy
+  // of its contents inside the tree. The quick look stays only where there is no object view.
+  const showPreview = !onOpenDataset && canPreview(file);
   const [renaming, setRenaming] = useState(false);
   // Run outputs keep the name their run gave them (the server refuses those renames too).
   const canRename = Boolean(onRename) && canEdit && file.source !== "run_output";
@@ -422,85 +615,101 @@ function FileRow({
     );
   }
 
+  const nameClass = "truncate text-left text-xs text-foreground";
   return (
     <div>
       <div
-        className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/60 text-sm cursor-default"
-        style={{ paddingLeft: 16 + depth * 20 }}
-        title={file.name}
+        className="group relative flex items-center gap-1.5 pr-2 py-1 rounded hover:bg-muted text-sm cursor-default"
+        style={{ paddingLeft: treeIndent(depth) }}
         data-testid={`file-row-${file.id}`}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <QualityDot file={file} />
+        {/* The full stored name (with its folders) is the name's own tooltip. */}
         {onOpenDataset ? (
           <button
             type="button"
             onClick={() => onOpenDataset(file)}
-            className="flex-1 min-w-0 truncate text-left text-xs text-foreground hover:underline cursor-pointer"
-            title={t('file_tree.open_dataset')}
+            className={cn(nameClass, "hover:underline cursor-pointer")}
+            style={NAME_STYLE}
+            title={file.name}
+            aria-label={`${t("file_tree.open_dataset")}: ${file.name}`}
             data-testid={`file-open-${file.id}`}
           >
             {shown}
           </button>
         ) : (
-          <span className="flex-1 truncate text-xs text-foreground">{shown}</span>
+          <span className={nameClass} style={NAME_STYLE} title={file.name} data-testid={`file-name-${file.id}`}>{shown}</span>
         )}
         {file.step_name && (
-          <span className="text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
+          <span className="min-w-0 max-w-[30%] truncate text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
             {file.step_name}
           </span>
         )}
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
-        {showPreview && (
+        <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`file-actions-${file.id}`}>
+          {showPreview && (
+            <button
+              type="button"
+              title={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
+              aria-label={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
+              aria-expanded={previewOpen}
+              onClick={handleTogglePreview}
+              className="p-0.5 rounded hover:bg-background"
+              data-testid={`file-preview-toggle-${file.id}`}
+            >
+              {previewOpen ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+            </button>
+          )}
           <button
-            title={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
-            onClick={handleTogglePreview}
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
+            type="button"
+            title={t('file_tree.copy_s3')}
+            aria-label={t('file_tree.copy_s3')}
+            onClick={() => onCopy(file.id, file.s3_key)}
+            className="p-0.5 rounded hover:bg-background"
+            data-testid={`file-copy-${file.id}`}
           >
-            {previewOpen ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+            {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
           </button>
-        )}
-        <button
-          title={t('file_tree.copy_s3')}
-          onClick={() => onCopy(file.id, file.s3_key)}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
-          data-testid={`file-copy-${file.id}`}
-        >
-          {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-        </button>
-        <button
-          title={t('actions.download')}
-          onClick={() => onDownload(file.id)}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
-          data-testid={`file-download-${file.id}`}
-        >
-          <Download className="h-3 w-3 text-muted-foreground" />
-        </button>
-        {canRename && (
           <button
-            title={t("file_tree.rename")}
-            aria-label={t("file_tree.rename")}
-            onClick={() => setRenaming(true)}
-            className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
-            data-testid={`file-rename-${file.id}`}
+            type="button"
+            title={t('actions.download')}
+            aria-label={t('actions.download')}
+            onClick={() => onDownload(file.id)}
+            className="p-0.5 rounded hover:bg-background"
+            data-testid={`file-download-${file.id}`}
           >
-            <Pencil className="h-3 w-3 text-muted-foreground" />
+            <Download className="h-3 w-3 text-muted-foreground" />
           </button>
-        )}
-        {file.source === "upload" && canEdit && (
-          <button
-            title={t('actions.delete')}
-            onClick={() => onDelete(file.id)}
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600"
-            data-testid={`file-delete-${file.id}`}
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        )}
+          {canRename && (
+            <button
+              type="button"
+              title={t("file_tree.rename")}
+              aria-label={t("file_tree.rename")}
+              onClick={() => setRenaming(true)}
+              className="p-0.5 rounded hover:bg-background"
+              data-testid={`file-rename-${file.id}`}
+            >
+              <Pencil className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+          {file.source === "upload" && canEdit && (
+            <button
+              type="button"
+              title={t('actions.delete')}
+              aria-label={t('actions.delete')}
+              onClick={() => onDelete(file.id)}
+              className="p-0.5 rounded hover:bg-red-50 hover:text-red-600"
+              data-testid={`file-delete-${file.id}`}
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
-      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} />}
+      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} fileId={file.id} />}
       {previewOpen && file.input_context && (typeof file.input_context.intent === 'string' || Array.isArray(file.input_context.inputFiles)) && (
-        <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5">
+        <div className="mx-2 mt-0.5 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5 [overflow-wrap:anywhere]">
           {typeof file.input_context.intent === 'string' && (
             <div className="italic text-foreground/80">"{file.input_context.intent}"</div>
           )}
@@ -519,10 +728,13 @@ function FolderRow({
   onToggle,
   onRename,
   depth = 0,
+  selected = false,
 }: {
   node: FolderNode;
   expanded: boolean;
   onToggle: () => void;
+  /** This folder is the one open in the folder view. */
+  selected?: boolean;
   /** Rename / move this input folder (relative path, without "inputs/"); resolves to a localized error or null. */
   onRename?: (from: string, to: string) => Promise<string | null>;
   depth?: number;
@@ -547,30 +759,36 @@ function FolderRow({
       />
     );
   }
+  const n = countFiles(node);
   return (
-    <div className="group flex items-center rounded hover:bg-muted/40">
+    <div className={cn("group relative flex items-center rounded hover:bg-muted", selected && "bg-muted/60")}>
       <button
+        type="button"
         onClick={onToggle}
-        className="flex items-center gap-1.5 flex-1 min-w-0 px-2 py-1 text-left"
-        style={{ paddingLeft: 16 + depth * 20 }}
+        className="flex items-center gap-1.5 flex-1 min-w-0 pr-2 py-1 text-left"
+        style={{ paddingLeft: treeIndent(depth) }}
         data-testid={`folder-${node.path}`}
+        aria-expanded={expanded}
+        aria-current={selected ? "true" : undefined}
       >
         <CIcon className="h-3 w-3 text-muted-foreground shrink-0" />
         <FIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
-        <span className="min-w-0 truncate text-xs font-medium text-foreground" title={node.name}>{node.name}</span>
-        <span className="ml-auto text-xs text-muted-foreground" title={t("data_hub.tree_folder_count", { n: countFiles(node) })}>{countFiles(node)}</span>
+        <span className="truncate text-xs font-medium text-foreground" style={NAME_STYLE} title={rel ?? node.name} data-testid={`folder-name-${node.path}`}>{node.name}</span>
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums" title={t("data_hub.tree_folder_count", { n })}>{n}</span>
       </button>
       {onRename && rel && (
-        <button
-          type="button"
-          title={t("file_tree.rename_folder")}
-          aria-label={t("file_tree.rename_folder")}
-          onClick={() => setRenaming(true)}
-          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 mr-2 rounded hover:bg-muted"
-          data-testid={`folder-rename-${node.path}`}
-        >
-          <Pencil className="h-3 w-3 text-muted-foreground" />
-        </button>
+        <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`folder-actions-${node.path}`}>
+          <button
+            type="button"
+            title={t("file_tree.rename_folder")}
+            aria-label={t("file_tree.rename_folder")}
+            onClick={() => setRenaming(true)}
+            className="p-0.5 rounded hover:bg-background"
+            data-testid={`folder-rename-${node.path}`}
+          >
+            <Pencil className="h-3 w-3 text-muted-foreground" />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -591,9 +809,17 @@ export interface ProjectFileTreeProps {
   /** Deep-link target: when this file id is present in the loaded list, open it
    *  as an object once (used by `/files?file=<id>` links from other surfaces). */
   selectFileId?: string;
+  /** Open an INPUT folder as one object (data hub folder view). Called with the folder path
+   *  relative to the inputs root ("" = inputs itself, "pairs", "run1/fastq") on every click of
+   *  its row (the click also expands/collapses it). Run-output groups are not folders. */
+  onOpenFolder?: (path: string) => void;
+  /** The input folder currently open in the folder view (same relative path). */
+  selectedFolder?: string | null;
+  /** Bump to reload the file list (e.g. after the open file was saved as a new version). */
+  reloadKey?: number;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, reloadKey = 0 }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
@@ -636,7 +862,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     }
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   // Deep-link: when a `selectFileId` is supplied and its file has loaded, open
   // it as an object exactly once. This is what makes a dataset reference in the
@@ -692,7 +918,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             body: form,
           });
           if (!res.ok) {
-            failures.push({ name: display, reason: uploadErrorReason(res.status) });
+            const body = await res.json().catch(() => null);
+            failures.push({ name: display, reason: uploadErrorReason(res.status, body) });
           } else {
             ok += 1;
             const body = await res.json().catch(() => null);
@@ -738,6 +965,11 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         body: JSON.stringify({ url }),
       });
       if (!res.ok) {
+        // A name clash says which entry holds the name (same reason as an upload's 409).
+        if (res.status === 409) {
+          const body = await res.json().catch(() => null);
+          throw new Error(t("data_hub.tree_err_item", { name: t("file_tree.err_import_url"), reason: uploadErrorReason(409, body) }));
+        }
         throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_import_url"), status: res.status }));
       }
       setUrlVal("");
@@ -798,9 +1030,12 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) return renameErrorReason(res.status);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as RenameErrorBody | null;
+        return renameErrorReason(res.status, body);
+      }
     } catch {
-      return t("data_hub.tree_err_network");
+      return t("file_tree.rename_err_network");
     }
     setExpandedFolders((prev) => {
       const next = new Set(prev);
@@ -861,9 +1096,21 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       );
     }
     const isOpen = Boolean(q) || expandedFolders.has(node.path);
+    // Input folders (rebuilt from file names) open as folder objects; run groups do not.
+    const inputRel = node.path === "inputs" ? "" : node.path.startsWith("inputs/") ? node.path.slice("inputs/".length) : null;
     return (
       <div key={node.path}>
-        <FolderRow node={node} depth={depth} expanded={isOpen} onToggle={() => toggleFolder(node.path)} onRename={canEdit ? handleRenameFolder : undefined} />
+        <FolderRow
+          node={node}
+          depth={depth}
+          expanded={isOpen}
+          selected={inputRel !== null && inputRel === selectedFolder}
+          onToggle={() => {
+            toggleFolder(node.path);
+            if (inputRel !== null) onOpenFolder?.(inputRel);
+          }}
+          onRename={canEdit ? handleRenameFolder : undefined}
+        />
         {isOpen && node.children.map((child) => renderNode(child, depth + 1))}
       </div>
     );
@@ -990,7 +1237,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       </div>
       {/* Paste-a-URL ingest (design §4.6) — fetches into the project and shows in the tree. */}
       {urlOpen && canEdit && (
-        <div className="flex items-center gap-1 px-1 pb-1" data-testid="project-files-url-row">
+        <div className="flex items-center gap-1 px-1 pb-1 shrink-0" data-testid="project-files-url-row">
           <input
             type="url"
             value={urlVal}
@@ -1015,7 +1262,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
 
       {/* Upload progress + per-file outcome (localized). */}
       {(progress || uploadReport) && (
-        <div className="px-3 py-1.5 border-b text-xs space-y-1" data-testid="project-files-upload-status">
+        <div className="px-3 py-1.5 border-b text-xs space-y-1 shrink-0" data-testid="project-files-upload-status">
           {progress ? (
             <p role="status" className="text-muted-foreground" data-testid="project-files-upload-progress">
               {t("data_hub.tree_uploading", { done: progress.done, total: progress.total })}
@@ -1055,7 +1302,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       )}
 
       {/* Scope hint + search (design §4.2.2) */}
-      <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b">
+      <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b shrink-0" data-testid="project-files-header">
         <p className="text-fs-xs text-muted-foreground">{t('file_tree.scope_hint')}</p>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1070,8 +1317,9 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         </div>
       </div>
 
-      {/* Tree body */}
-      <div className="flex-1 overflow-y-auto py-1">
+      {/* Tree body — the only part that scrolls; the toolbar, upload status and search above
+          never shrink (they used to be squeezed and clipped when the status list appeared). */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 pt-1 pb-3" data-testid="project-files-body">
         {error && (
           <div className="text-xs text-red-600 px-3 py-2">{error}</div>
         )}

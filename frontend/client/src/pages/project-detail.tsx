@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { HintTabsTrigger } from "@/components/ui/hint-tip"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import {
@@ -698,15 +699,15 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={activeTab === "instructions" ? { display: "none" } : undefined}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
-              <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
+              <HintTabsTrigger hint={t('hint.project.chat')} value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
                 <MessageCircle className="w-3.5 h-3.5" />{tOr('projects.page.tab_chat', "Chat")}
                 {sessions.length > 0 && (
                   <span className="text-xs bg-muted rounded px-1">{sessions.length}</span>
                 )}
-              </TabsTrigger>
-              <TabsTrigger value="files" className="flex items-center gap-1.5" data-testid="tab-project-files">
+              </HintTabsTrigger>
+              <HintTabsTrigger hint={t('hint.project.files')} value="files" className="flex items-center gap-1.5" data-testid="tab-project-files">
                 <FileText className="w-3.5 h-3.5" />{tOr('projects.page.tab_files', "Files")}
-              </TabsTrigger>
+              </HintTabsTrigger>
               {/* Project Runs tab hidden to avoid duplicating chat execution history. */}
             </TabsList>
 
@@ -782,8 +783,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 />
               </div>
               <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground">
-                  Upload data files, then let BioMate select and run the right workflow for you.
+                <p className="text-xs text-muted-foreground" data-testid="project-files-footer">
+                  {t('projects.page.files_footer')}
                 </p>
                 <Button
                   size="sm"
@@ -792,7 +793,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   data-testid="button-analyze-files"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
-                  Analyze with BioMate
+                  {t('projects.page.analyze_with_biomate')}
                 </Button>
               </div>
             </TabsContent>

@@ -269,9 +269,72 @@ export interface DatasetRowsState {
    * this many header records. null until the first page arrives (or an older backend).
    */
   headerRow: boolean | null
+  /**
+   * The file version the loaded rows were read from (the rows response's `version`; null on an
+   * older server). An edit sends it as `baseVersion`, so a save made against rows someone has
+   * since replaced is refused (409 version_conflict) instead of landing on the wrong row.
+   * When pages come from different versions, the OLDEST is kept: the user saw stale rows.
+   */
+  version: number | null
+  /**
+   * Leading comment / blank PHYSICAL lines the rows reader skipped before the table (the rows
+   * response's `skipLines`; null when not reported). An edit sends it back so the server numbers
+   * data rows exactly as the rows the user saw were numbered.
+   */
+  skipLines: number | null
+  /**
+   * The field delimiter the rows reader split the table on (the rows response's `delimiter`, e.g.
+   * "," "\t" ";"; null when not reported). An edit sends it back so the server splits the file the
+   * same way — a semicolon CSV is never re-read as one comma column.
+   */
+  delimiter: string | null
+  /**
+   * The decimal mark of the table's numbers when the rows reader reports it (`decimal`, e.g. ","
+   * for a European semicolon CSV holding "1,5"); null when not reported (then ".").
+   */
+  decimal: string | null
+  /**
+   * The rows reader found no content: `empty_file` (0 bytes) or `blank_content` (only blank
+   * lines) — its `{tabular: false, reason: "empty", code}` answer. An empty state, not an error and
+   * not "still loading". null otherwise.
+   */
+  empty: EmptyCode | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null }
+export type EmptyCode = "empty_file" | "blank_content"
+/** The rows reader's "no content" answer (on a 200 or a 415), else null. */
+function emptyCode(body: any): EmptyCode | null {
+  if (!body || typeof body !== "object") return null
+  if (body.code === "empty_file" || body.code === "blank_content") return body.code
+  return body.reason === "empty" ? "empty_file" : null
+}
+
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null, delimiter: null, decimal: null, empty: null }
+
+/**
+ * Same-origin download link for a project file. The server answers with a redirect to a signed
+ * URL that carries `Content-Disposition: attachment; filename=<display name>`, so the browser
+ * saves the file under its display name and the tab never navigates to the storage URL.
+ */
+export function fileDownloadUrl(projectId: string, fileId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url?redirect=1`
+}
+
+/** A TIFF project file's first plane rendered as PNG by the server (owner/member scoped, like Download). */
+export function filePreviewPngUrl(projectId: string, fileId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/preview.png`
+}
+
+/** Start a download of a project file through the same-origin redirect (see fileDownloadUrl). */
+export function downloadProjectFile(projectId: string, fileId: string, name: string): void {
+  const a = document.createElement("a")
+  a.href = fileDownloadUrl(projectId, fileId)
+  a.download = name.split("/").pop() || name
+  a.rel = "noopener"
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
 
 /**
  * Page in a project file's full rows. `loadMore()` fetches the next page (no-op
@@ -279,8 +342,8 @@ const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loadi
  * until the file (or LOAD_ALL_CAP) is exhausted. Disabled when projectId/fileId is
  * missing or the extension is not tabular.
  */
-export function useDatasetRows(projectId: string | undefined, fileId: string, name: string) {
-  const enabled = Boolean(projectId) && rowsSupported(name)
+export function useDatasetRows(projectId: string | undefined, fileId: string, name: string, wanted = true) {
+  const enabled = wanted && Boolean(projectId) && rowsSupported(name)
   const [state, setState] = useState<DatasetRowsState>(EMPTY_ROWS)
   const ref = useRef<DatasetRowsState>(EMPTY_ROWS)
   const inflight = useRef(false)
@@ -293,7 +356,7 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
 
   const fetchPage = useCallback(async (limit: number): Promise<boolean> => {
     const cur = ref.current
-    if (!enabled || inflight.current || cur.unsupported) return false
+    if (!enabled || inflight.current || cur.unsupported || cur.empty) return false
     if (cur.total != null && cur.rows.length >= cur.total) return false
     inflight.current = true
     const myGen = gen.current
@@ -304,17 +367,34 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
         { credentials: "include" },
       )
       if (myGen !== gen.current) return false
-      if (res.status === 415) { commit({ ...ref.current, loading: false, unsupported: true }); return false }
+      if (res.status === 415) {
+        const declined = await Promise.resolve().then(() => res.json()).catch(() => null)
+        if (myGen !== gen.current) return false
+        const empty = emptyCode(declined)
+        commit(empty ? { ...ref.current, loading: false, empty, total: 0 } : { ...ref.current, loading: false, unsupported: true })
+        return false
+      }
       if (!res.ok) { commit({ ...ref.current, loading: false, error: res.status }); return false }
       const body = await res.json()
       if (myGen !== gen.current) return false
+      const empty = emptyCode(body)
+      if (empty || body?.tabular === false) {
+        commit(empty ? { ...ref.current, loading: false, empty, total: 0 } : { ...ref.current, loading: false, unsupported: true })
+        return false
+      }
       const pageRows: string[][] = Array.isArray(body?.rows) ? body.rows : []
       const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
       const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
       const headerRow: boolean | null = typeof body?.headerRow === "boolean" ? body.headerRow : ref.current.headerRow
+      const pageVersion: number | null = typeof body?.version === "number" ? body.version : null
+      const prevVersion = ref.current.version
+      const version = prevVersion == null ? pageVersion : pageVersion == null ? prevVersion : Math.min(prevVersion, pageVersion)
+      const skipLines: number | null = Number.isInteger(body?.skipLines) && body.skipLines >= 0 ? body.skipLines : ref.current.skipLines
+      const delimiter: string | null = typeof body?.delimiter === "string" && body.delimiter.length > 0 ? body.delimiter : ref.current.delimiter
+      const decimal: string | null = body?.decimal === "," || body?.decimal === "." ? body.decimal : ref.current.decimal
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines, delimiter, decimal, empty: null })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })
@@ -324,12 +404,15 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
     }
   }, [enabled, projectId, fileId, commit])
 
+  const [reloads, setReloads] = useState(0)
   useEffect(() => {
     gen.current += 1
     inflight.current = false
     commit(EMPTY_ROWS)
     if (enabled) void fetchPage(ROWS_PAGE)
-  }, [enabled, projectId, fileId, commit, fetchPage])
+  }, [enabled, projectId, fileId, commit, fetchPage, reloads])
+  /** Drop the loaded rows and read the file again from the first page (after a save). */
+  const reload = useCallback(() => setReloads((n) => n + 1), [])
 
   const loadMore = useCallback(() => { void fetchPage(ROWS_PAGE) }, [fetchPage])
   const loadAll = useCallback(async () => {
@@ -343,5 +426,95 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
   }, [fetchPage])
   const retry = loadMore
 
-  return { enabled, ...state, loadMore, loadAll, retry }
+  return { enabled, ...state, loadMore, loadAll, retry, reload }
+}
+
+// ── Folder profile ───────────────────────────────────────────────────────────
+// GET /api/projects/:id/folders/profile?path=<folder> — what an input folder holds as a whole
+// (backend galaxy/ai/folder_profile.py): FASTQ pairs/orphans + samplesheet, 10x matrix sets,
+// or a format roll-up. `path` is relative to the inputs root ("" = root).
+export interface FolderFinding {
+  code: string
+  level: "info" | "watch" | "blocked"
+  params?: Record<string, unknown>
+}
+
+export interface FolderSample {
+  sample: string
+  forward: string | null
+  reverse: string | null
+  status: "paired" | "orphan" | "single"
+  role?: "forward" | "reverse" | null
+  dir?: string
+}
+
+export interface TenxSet {
+  dir: string
+  prefix?: string
+  matrix: string
+  barcodes?: string | null
+  features?: string | null
+  version?: "v2" | "v3" | null
+  complete: boolean
+  missing: string[]
+  genes?: number
+  cells?: number
+  nnz?: number | null
+}
+
+export interface FolderProfile {
+  path: string
+  kind: "fastq_set" | "tenx_matrix" | "single_format" | "unrecognised" | "mixed" | "empty"
+  /** `single_format`: the one format every file is (the roll-up's only entry). */
+  kindFormat?: { format: string; label: string; viewKind?: string }
+  fileCount: number
+  /** Grouped by (format, label): each file labelled by the SAME content decision as its own profile
+   *  (featureCounts counts vs TSV), with that decision's view kind. */
+  rollup: { format: string; label: string; count: number; pairs?: number; viewKind?: string }[]
+  findings: FolderFinding[]
+  fastq?: {
+    verdict: "paired" | "single_end" | "mixed"
+    pattern: string | null
+    /** Every read-token style in use ("Rs" = _R1/_R2, "illumina" = _1/_2, "dot12s" = .1/.2). */
+    patterns?: string[]
+    engine: "galaxy" | "fallback"
+    pairs: number
+    samples: FolderSample[]
+    orphans: string[]
+    singles: string[]
+  }
+  /** The nf-core samplesheet. A run takes ONE layout: with any pair it holds the pairs only
+   *  (`layout` "paired") and the unpaired files go to `single` (a single-end sheet), named in
+   *  `excluded`; without a pair it IS the single-end sheet. Paths are relative to `pathBase`. */
+  samplesheet?: FolderSamplesheet & { single?: FolderSamplesheet; excluded?: string[] }
+  tenx?: { sets: TenxSet[] }
+}
+
+export interface FolderSamplesheet {
+  columns: string[]
+  rows: string[][]
+  csv: string
+  filename: string
+  layout?: "paired" | "single_end"
+  pathBase?: string
+}
+
+export function folderProfileUrl(projectId: string, path: string, download = false): string {
+  const q = new URLSearchParams({ path })
+  if (download) q.set("download", "samplesheet")
+  return `/api/projects/${encodeURIComponent(projectId)}/folders/profile?${q.toString()}`
+}
+
+export function useFolderProfile(projectId: string | null | undefined, path: string | null): UseQueryResult<FolderProfile> {
+  return useQuery<FolderProfile>({
+    queryKey: ["/api/projects/folders/profile", projectId, path],
+    enabled: !!projectId && path !== null,
+    staleTime: 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch(folderProfileUrl(projectId!, path!), { credentials: "include" })
+      if (!res.ok) throw new Error(`${res.status}: failed to profile folder`)
+      return (await res.json()) as FolderProfile
+    },
+  })
 }

@@ -6005,8 +6005,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                         'template_match_score': int(score),
                         'needs_user_feedback': True,
                         'feedback_prompt': (
-                            f"I used a Galaxy reference template ('{best_match.name}', score {int(score)}/12) "
-                            "as a structural guide and composed a Nextflow workflow. "
+                            f"I adapted a reference workflow ('{best_match.name}') as a starting point. "
                             "Please review the tool selection before running."
                         ),
                         'message': composed.get('message', f"Composed Nextflow workflow: {composed.get('workflow_name', best_match.name)}"),

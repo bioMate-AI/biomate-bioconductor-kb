@@ -145,7 +145,9 @@ describe("session_datasets injected into system prompt (canonical path)", () => 
 
   it("the block emits dataset id + name + type and tells the LLM not to re-ask for uploads", () => {
     expect(/<session_datasets>/.test(SRC)).toBe(true);
-    expect(/Galaxy history is the source of truth/.test(SRC)).toBe(true);
+    expect(/these IDs are stable across turns and runs/.test(SRC)).toBe(true);
+    // The model is never told the backend's name (it would repeat it to the user).
+    expect(/Galaxy history is the source of truth/.test(SRC)).toBe(false);
     expect(/Do NOT ask the user to re-upload/.test(SRC)).toBe(true);
   });
 });

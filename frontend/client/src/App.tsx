@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n";
+import { HintTip, HintScope } from "@/components/ui/hint-tip";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -177,6 +178,9 @@ function RootRoute({
   // draft param is stripped (?project= / ?attachFile= stay for the composer), and the
   // value is consumed once applied — see lib/one-shot-url-param.ts.
   const [initialDraft, consumeInitialDraft] = useOneShotUrlParam('draft')
+  // `?send=1` with a draft: the user already chose to run it (data panel "Run full QC") — the
+  // composer submits the draft once its attached files are linked. Read once, like the draft.
+  const [initialDraftSend] = useOneShotUrlParam('send')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -224,6 +228,7 @@ function RootRoute({
         initialMessage={initialMessage}
         initialDemoFiles={initialDemoFiles}
         initialDraft={initialDraft}
+        initialDraftSend={initialDraftSend === '1'}
         // One-shot URL payloads (?q= auto-send, ?draft= prefill) are consumed
         // HERE, at their source. ChatWithArtifacts is keyed by session id, so the
         // first send (new chat → real session) remounts it; if these props were
@@ -471,9 +476,9 @@ function PlatformLayout({
                 background: 'var(--bm-surface, hsl(var(--sidebar)))',
                 borderColor: 'var(--bm-border, hsl(var(--border)))',
               }}
-              title="Sidebar collapsed — panel is open"
             >
               {/* Brand mark */}
+              <HintTip hint={t('hint.rail.expand')}>
               <button
                 onClick={toggleSidebar}
                 className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
@@ -484,18 +489,23 @@ function PlatformLayout({
                   letterSpacing: '-0.03em',
                 }}
                 data-testid="button-sidebar-expand"
-                title="Expand sidebar"
+                aria-label={t('nav.expand_sidebar')}
               >
                 B
               </button>
+              </HintTip>
               {/* Icon buttons */}
-              <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
+              <HintTip hint={t('hint.rail.new_chat')}>
+              <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" aria-label={t('nav.new_chat')}>
                 <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
+              </HintTip>
               {/* Import workflow is available under Settings in the expanded sidebar. */}
-              <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history — expand sidebar">
+              <HintTip hint={t('hint.rail.history')}>
+              <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" aria-label={t('nav.chat_history')}>
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
+              </HintTip>
               <div className="flex-1" />
               {/* <ThemeToggle /> — light only for now */}
             </div>
@@ -970,6 +980,7 @@ function App() {
 
   return (
     <TooltipProvider>
+      <HintScope>
       <Router
         currentChatSession={currentChatSession}
         onChatUpdated={handleChatUpdated}
@@ -998,6 +1009,7 @@ function App() {
         onProjectCreated={handleProjectCreated}
       />
       <Toaster />
+      </HintScope>
     </TooltipProvider>
   );
 }

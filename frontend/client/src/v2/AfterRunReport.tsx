@@ -22,6 +22,8 @@ import { classifyRunFailure } from "@shared/run-failure-classifier";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon, ExternalLink } from "lucide-react";
 import { tOr } from "@/lib/i18n";
+import { userFacingErrorText } from "@/lib/user-facing-text";
+import { HintTip } from "@/components/ui/hint-tip";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
 import { resolveViewer } from "@/components/viewers/inline-content-viewers";
@@ -505,8 +507,8 @@ export function AfterRunReport({
       )}
       <div role="tablist" style={styles.tabBar} data-visible-tabs={visibleTabs.map(([id]) => id).join(',')}>
         {visibleTabs.map(([id, label]) => (
+          <HintTip key={id} hint={tOr(`hint.afterrun.${id}`, '')} side="bottom">
           <button
-            key={id}
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
@@ -518,6 +520,7 @@ export function AfterRunReport({
           >
             {label}
           </button>
+          </HintTip>
         ))}
       </div>
       <div style={styles.body}>
@@ -813,7 +816,7 @@ function FailedRunSection({
 
       {errorMessage && (
         <pre style={styles.errorBlock} data-testid="afterrun-error-message">
-          {humanizeNfError(errorMessage)}
+          {userFacingErrorText(humanizeNfError(errorMessage))}
         </pre>
       )}
 
