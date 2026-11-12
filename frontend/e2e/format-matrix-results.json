@@ -1,27 +1,23 @@
 {
   "baseUrl": "https://dev-public.biomate.ai",
   "buildInfo": {
-    "commit": "05ae64284b525d0e17bc7d667852b1963d4d02a5"
+    "commit": "aefa622172e947f0b646b8cac883a77ffdc3e62c"
   },
-  "startedAt": "2026-11-12T06:18:20.653Z",
-  "projectId": "1c5f7f03-1138-4ff6-a920-2b37d3bb4a11",
+  "startedAt": "2026-11-12T11:06:42.517Z",
+  "projectId": "5dabee34-2afc-419e-8030-aae67b930c2a",
   "expectations": "e2e/format-matrix-expectations.json",
   "summary": {
-    "PASS": 0,
+    "PASS": 34,
     "PARTIAL": 0,
-    "FAIL": 34,
+    "FAIL": 0,
     "total": 34,
     "expected": 34
   },
   "items": [
     {
       "key": "csv",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "2.csv",
       "storedName": "2.csv",
       "galaxyFixture": "2.csv",
@@ -31,18 +27,23 @@
       "expected": {
         "viewKind": "table",
         "previewKind": "table",
+        "quality": "assessed",
         "columns": [
           "x",
           "y",
           "z"
         ],
-        "minColumns": 3,
-        "quality": "assessed"
+        "minColumns": 3
       },
-      "fileId": "ff96aa43-1fe9-4a40-80df-17d0734a0af9",
+      "fileId": "77d6a0e5-038b-492c-a007-fbddbaa1ecfb",
       "settled": true,
-      "settleMs": 4527,
+      "settleMs": 6710,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -51,14 +52,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -103,14 +102,14 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "table",
+      "previewKind": "table",
       "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
         "dataset-preview-toggle-plot",
@@ -138,26 +137,29 @@
         "plot",
         "edit"
       ],
-      "stats": [],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.csv\nGood\nROWS\n49\nCOLUMNS\n3\nEFFECTIVE N\n49\nClass balance\n1\n14%\n2\n14%\n3\n14%\n4\n14%\n5\n14%\n6\n14%\n7\n14%\nNotes\n49 rows × 3 columns; no leakage, imbalance or constant-column issues detected."
+        "codes": [
+          "table_clean"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.csv\nGood\nGroups in “y”\n\n1 14% · 2 14% · 3 14% · 4 14% · 5 14% · 6 14% · 7 14%\n\nNotes\nRows: 49 · columns: 3; groups are balanced, no column gives the group away, and no column is constant."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tsv",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "2.tsv",
       "storedName": "2.tsv",
       "galaxyFixture": "2.tabular",
@@ -167,19 +169,24 @@
       "expected": {
         "viewKind": "table",
         "previewKind": "table",
+        "quality": "assessed",
         "minColumns": 3,
         "notColumns": [
           "1",
           "68",
           "4.1"
         ],
-        "quality": "assessed",
         "note": "header-less numeric table"
       },
-      "fileId": "2cf36e78-a187-47a0-9118-a0460ce94c01",
+      "fileId": "1f88feee-c5ea-415e-adc2-246dbe4308bb",
       "settled": true,
-      "settleMs": 3315,
+      "settleMs": 3014,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -188,14 +195,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -240,14 +245,14 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "table",
+      "previewKind": "table",
       "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
         "dataset-preview-toggle-plot",
@@ -275,26 +280,30 @@
         "plot",
         "edit"
       ],
-      "stats": [],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.tsv\nGood\nROWS\n10\nCOLUMNS\n3\nEFFECTIVE N\n10\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1 … column_3.\n10 rows × 3 columns; no leakage, imbalance or constant-column issues detected."
+        "codes": [
+          "columns_generated",
+          "table_clean_unlabelled"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.tsv\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 10 · columns: 3; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "bed",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.bed",
       "storedName": "1.bed",
       "galaxyFixture": "1.bed",
@@ -302,8 +311,9 @@
       "folder": null,
       "expect": "interval table chrom/start/end/name/score/strand…",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
+        "viewKind": "intervals",
+        "previewKind": "intervals",
+        "quality": "assessed",
         "columns": [
           "chrom",
           "start",
@@ -312,13 +322,17 @@
           "score",
           "strand"
         ],
-        "minColumns": 6,
-        "quality": "assessed"
+        "minColumns": 6
       },
-      "fileId": "ec0c12a4-49c1-4308-8aa1-9d894ead2a19",
+      "fileId": "c9a0d474-3698-4e3c-acf5-88e2f64850a1",
       "settled": true,
-      "settleMs": 3292,
+      "settleMs": 3019,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -327,14 +341,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -372,6 +384,11 @@
           "pass": true
         },
         {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
           "name": "quality-class",
           "core": false,
           "pass": true
@@ -379,17 +396,13 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "intervals",
+      "previewKind": "intervals",
       "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -413,31 +426,33 @@
         "Strand"
       ],
       "rowCount": 45,
-      "toggles": [
-        "table",
+      "toggles": [],
+      "stats": [
+        "regions",
         "columns",
-        "plot"
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.bed\nGood\nROWS\n65\nCOLUMNS\n6\nEFFECTIVE N\n65\nSignal summary\n65 genomic intervals in 6 columns.\nNotes\nBED files have no header row; column names follow the BED specification: Chrom, Start, End, Name, Score, Strand.\n65 rows × 6 columns.\nStrand is given (column “Strand”)."
+        "codes": [
+          "intervals_summary",
+          "columns_spec",
+          "table_summary",
+          "intervals_stranded"
+        ],
+        "text": "DATA QC\n\nWhat we saw in your data\n1.bed\nGood\nSignal summary\nGenomic intervals: 65; columns: 6.\nNotes\nBED files have no header row; column names follow the BED specification: Chrom, Start, End, Name, Score, Strand.\nRows: 65 · columns: 6.\nStrand is given (column “Strand”)."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "bed-complete",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "complete.bed",
       "storedName": "complete.bed",
       "galaxyFixture": "complete.bed",
@@ -445,20 +460,25 @@
       "folder": null,
       "expect": "BED12 interval table",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
+        "viewKind": "intervals",
+        "previewKind": "intervals",
+        "quality": "assessed",
         "columns": [
           "chrom",
           "start",
           "end"
         ],
-        "minColumns": 12,
-        "quality": "assessed"
+        "minColumns": 12
       },
-      "fileId": "394b1319-a1d3-4c3f-90ca-6987697f6a4d",
+      "fileId": "65b21eaa-e578-42ab-9030-4958e88e9b0e",
       "settled": true,
-      "settleMs": 3231,
+      "settleMs": 2982,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -467,14 +487,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -512,6 +530,11 @@
           "pass": true
         },
         {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
           "name": "quality-class",
           "core": false,
           "pass": true
@@ -519,17 +542,13 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "intervals",
+      "previewKind": "intervals",
       "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -565,31 +584,33 @@
         "BlockStarts"
       ],
       "rowCount": 2,
-      "toggles": [
-        "table",
+      "toggles": [],
+      "stats": [
+        "regions",
         "columns",
-        "plot"
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ncomplete.bed\nGood\nROWS\n2\nCOLUMNS\n12\nEFFECTIVE N\n2\nSignal summary\n2 genomic intervals in 12 columns.\nNotes\nBED files have no header row; column names follow the BED specification: Chrom, Start, End, Name, Score, Strand, ThickStart, ThickEnd.\n2 rows × 12 columns.\nStrand is given (column “Strand”)."
+        "codes": [
+          "intervals_summary",
+          "columns_spec",
+          "table_summary",
+          "intervals_stranded"
+        ],
+        "text": "DATA QC\n\nWhat we saw in your data\ncomplete.bed\nGood\nSignal summary\nGenomic intervals: 2; columns: 12.\nNotes\nBED files have no header row; column names follow the BED specification: Chrom, Start, End, Name, Score, Strand, ThickStart, ThickEnd.\nRows: 2 · columns: 12.\nStrand is given (column “Strand”)."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "gtf",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "grch37.75.gtf",
       "storedName": "grch37.75.gtf",
       "galaxyFixture": "grch37.75.gtf",
@@ -597,8 +618,9 @@
       "folder": null,
       "expect": "annotation table seqname/source/feature/start/end/…/attributes",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
+        "viewKind": "annotation",
+        "previewKind": "annotation",
+        "quality": "assessed",
         "columns": [
           "seqname",
           "source",
@@ -606,13 +628,17 @@
           "start",
           "end"
         ],
-        "minColumns": 9,
-        "quality": "assessed"
+        "minColumns": 9
       },
-      "fileId": "f4c55754-b3d8-4207-8e2f-f045b11c8b71",
+      "fileId": "de2c347f-8895-4d97-81e0-9e1a50d18ebc",
       "settled": true,
-      "settleMs": 3360,
+      "settleMs": 3000,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -621,14 +647,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -666,6 +690,11 @@
           "pass": true
         },
         {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
           "name": "quality-class",
           "core": false,
           "pass": true
@@ -673,17 +702,13 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "annotation",
+      "previewKind": "annotation",
       "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -713,31 +738,32 @@
         "Attributes"
       ],
       "rowCount": 20,
-      "toggles": [
-        "table",
+      "toggles": [],
+      "stats": [
+        "features",
         "columns",
-        "plot"
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngrch37.75.gtf\nGood\nROWS\n20\nCOLUMNS\n9\nEFFECTIVE N\n20\nSignal summary\n20 feature lines and 0 comment lines; 9 attribute keys: gene_id, gene_name, gene_source, gene_biotype, transcript_id, transcript_name, transcript_source, exon_number.\nNotes\nGTF files have no header row; column names follow the GTF specification: Seqname, Source, Feature, Start, End, Score, Strand, Frame.\n20 rows × 9 columns."
+        "codes": [
+          "annotation_features",
+          "columns_spec",
+          "table_summary"
+        ],
+        "text": "DATA QC\n\nWhat we saw in your data\ngrch37.75.gtf\nGood\nSignal summary\nFeature lines: 20; comment lines: 0; attribute keys (9): gene_id, gene_name, gene_source, gene_biotype, transcript_id, transcript_name, transcript_source, exon_number.\nNotes\nGTF files have no header row; column names follow the GTF specification: Seqname, Source, Feature, Start, End, Score, Strand, Frame.\nRows: 20 · columns: 9."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "gff3",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "gff.gff3",
       "storedName": "gff.gff3",
       "galaxyFixture": "gff.gff3",
@@ -745,8 +771,9 @@
       "folder": null,
       "expect": "annotation table (GFF3 columns)",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
+        "viewKind": "annotation",
+        "previewKind": "annotation",
+        "quality": "assessed",
         "columns": [
           "seqid",
           "source",
@@ -754,13 +781,17 @@
           "start",
           "end"
         ],
-        "minColumns": 9,
-        "quality": "assessed"
+        "minColumns": 9
       },
-      "fileId": "d1ee9276-2bd4-4f55-8480-39e5a24ad45c",
+      "fileId": "2a2ce175-2f26-4bc6-80e6-e60be75b8a15",
       "settled": true,
-      "settleMs": 3229,
+      "settleMs": 2980,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -769,14 +800,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -814,6 +843,11 @@
           "pass": true
         },
         {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
           "name": "quality-class",
           "core": false,
           "pass": true
@@ -821,17 +855,13 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "annotation",
+      "previewKind": "annotation",
       "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -861,32 +891,32 @@
         "Attributes"
       ],
       "rowCount": 45,
-      "toggles": [
-        "table",
+      "toggles": [],
+      "stats": [
+        "features",
         "columns",
-        "plot"
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngff.gff3\nGood\nROWS\n145\nCOLUMNS\n9\nEFFECTIVE N\n145\nSignal summary\n145 feature lines and 5 comment lines; 6 attribute keys: ID, Note, Parent, Gene, Target, trace.\nNotes\nGFF3 files have no header row; column names follow the GFF3 specification: Seqid, Source, Type, Start, End, Score, Strand, Phase.\n145 rows × 9 columns."
+        "codes": [
+          "annotation_features",
+          "columns_spec",
+          "table_summary"
+        ],
+        "text": "DATA QC\n\nWhat we saw in your data\ngff.gff3\nGood\nSignal summary\nFeature lines: 145; comment lines: 5; attribute keys (6): ID, Note, Parent, Gene, Target, trace.\nNotes\nGFF3 files have no header row; column names follow the GFF3 specification: Seqid, Source, Type, Start, End, Score, Strand, Phase.\nRows: 145 · columns: 9."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fasta",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want sequence",
-        "core:preview-kind — data-preview-kind=(missing) want sequence (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing sequences; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fasta",
       "storedName": "1.fasta",
       "galaxyFixture": "1.fasta",
@@ -894,14 +924,19 @@
       "folder": null,
       "expect": "sequence viewer (records, lengths)",
       "expected": {
-        "viewKind": "sequence",
-        "previewKind": "sequence",
+        "viewKind": "sequences",
+        "previewKind": "sequences",
         "quality": "assessed"
       },
-      "fileId": "1948ebfa-d8ca-4781-8ca4-71ce06c719d6",
+      "fileId": "fca47b12-1db5-46fa-b7e5-fdbf56326d0a",
       "settled": true,
-      "settleMs": 3066,
+      "settleMs": 2966,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -910,14 +945,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want sequence"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want sequence (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -937,8 +970,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
@@ -948,48 +980,44 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing sequences; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "sequences",
+      "previewKind": "sequences",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-text-preview",
+        "inline-fasta-viewer"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "sequences",
+        "bases",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fasta\nGood\nSEQUENCES\n1\nLENGTH (BP)\n21,618\nSignal summary\n1 sequences, 21,618 bp in total; length mean 21,618, min 21,618, max 21,618, N50 21,618.\nGC content 48.7%."
+        "codes": [
+          "fasta_sequences",
+          "fasta_gc"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fasta\nGood\nSignal summary\nSequences: 1; 21,618 bp in total; length mean 21,618, min 21,618, max 21,618, N50 21,618 (half of all bases lie in sequences at least this long).\nGC content 48.7%."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fasta-gz",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want sequence",
-        "core:preview-kind — data-preview-kind=(missing) want sequence (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing sequences; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fasta.gz",
       "storedName": "1.fasta.gz",
       "galaxyFixture": "1.fasta.gz",
@@ -997,14 +1025,19 @@
       "folder": null,
       "expect": "decompressed sequence viewer",
       "expected": {
-        "viewKind": "sequence",
-        "previewKind": "sequence",
+        "viewKind": "sequences",
+        "previewKind": "sequences",
         "quality": "assessed"
       },
-      "fileId": "1a5e801c-2972-4be0-97cc-10d291ce2e85",
+      "fileId": "67056540-f049-4689-9c8c-842c3b79d27f",
       "settled": true,
-      "settleMs": 3179,
+      "settleMs": 2899,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1013,14 +1046,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want sequence"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want sequence (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1040,8 +1071,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
@@ -1051,48 +1081,44 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing sequences; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "sequences",
+      "previewKind": "sequences",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-text-preview",
+        "inline-fasta-viewer"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "sequences",
+        "bases",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fasta.gz\nGood\nSEQUENCES\n1\nLENGTH (BP)\n21,618\nSignal summary\n1 sequences, 21,618 bp in total; length mean 21,618, min 21,618, max 21,618, N50 21,618.\nGC content 48.7%."
+        "codes": [
+          "fasta_sequences",
+          "fasta_gc"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fasta.gz\nGood\nSignal summary\nSequences: 1; 21,618 bp in total; length mean 21,618, min 21,618, max 21,618, N50 21,618 (half of all bases lie in sequences at least this long).\nGC content 48.7%."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fastq",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want reads",
-        "core:preview-kind — data-preview-kind=(missing) want reads (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fastq",
       "storedName": "1.fastq",
       "galaxyFixture": "1.fastqsanger",
@@ -1104,10 +1130,15 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "50cd5ac5-2a10-41cd-aad7-9387180c4151",
+      "fileId": "ca2be021-77c9-4f6c-895b-f1ae76d5bcdf",
       "settled": true,
-      "settleMs": 3069,
+      "settleMs": 2876,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1116,14 +1147,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want reads"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want reads (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1143,8 +1172,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
@@ -1154,48 +1182,48 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "reads",
+      "previewKind": "reads",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fastq\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_single_end_named",
+          "fastq_single_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fastq\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nNo read-1/read-2 naming and no mate in this folder: a single-end sample.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "fastq-gz",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want reads",
-        "core:preview-kind — data-preview-kind=(missing) want reads (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.fastq.gz",
       "storedName": "1.fastq.gz",
       "galaxyFixture": "1.fastqsanger.gz",
@@ -1207,10 +1235,15 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "2d04637a-5bc7-46ba-951d-3af8995a8e75",
+      "fileId": "a25ef92c-8c54-4258-9ccd-2f0a36c2e970",
       "settled": true,
-      "settleMs": 3113,
+      "settleMs": 2895,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1219,14 +1252,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want reads"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want reads (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1246,8 +1277,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
@@ -1257,50 +1287,48 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "reads",
+      "previewKind": "reads",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_single_end_named",
+          "fastq_single_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nNo read-1/read-2 naming and no mate in this folder: a single-end sample.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "vcf",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: text)",
-        "secondary:columns-required — missing columns chrom, pos, id, ref, alt, qual, filter, info; got []",
-        "secondary:columns-min — 0 columns < 8",
-        "secondary:rows-shown — table has no body rows",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.vcf",
       "storedName": "1.vcf",
       "galaxyFixture": "1.vcf",
@@ -1308,25 +1336,20 @@
       "folder": null,
       "expect": "variant table CHROM/POS/ID/REF/ALT/QUAL/FILTER/INFO + samples",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
-        "columns": [
-          "chrom",
-          "pos",
-          "id",
-          "ref",
-          "alt",
-          "qual",
-          "filter",
-          "info"
-        ],
-        "minColumns": 8,
-        "quality": "assessed"
+        "viewKind": "variants",
+        "previewKind": "variants",
+        "quality": "assessed",
+        "note": "variant viewer (CHROM/POS/ID/REF/ALT/QUAL/FILTER/INFO), not the generic rows table"
       },
-      "fileId": "d7c4fa53-061f-45ce-8d59-5feb4e7a88de",
+      "fileId": "44219fea-2b1e-440b-a4a1-88694a7742a8",
       "settled": true,
-      "settleMs": 3078,
+      "settleMs": 2913,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1335,14 +1358,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1360,27 +1381,9 @@
           "pass": true
         },
         {
-          "name": "columns-required",
-          "core": false,
-          "pass": false,
-          "detail": "missing columns chrom, pos, id, ref, alt, qual, filter, info; got []"
-        },
-        {
-          "name": "columns-min",
-          "core": false,
-          "pass": false,
-          "detail": "0 columns < 8"
-        },
-        {
-          "name": "no-data-as-header",
+          "name": "no-table-controls",
           "core": false,
           "pass": true
-        },
-        {
-          "name": "rows-shown",
-          "core": false,
-          "pass": false,
-          "detail": "table has no body rows"
         },
         {
           "name": "quality-class",
@@ -1390,50 +1393,44 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "variants",
+      "previewKind": "variants",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "variants",
+        "samples",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.vcf\nGood\nROWS\n30\nCOLUMNS\n1\nSignal summary\n30 variant records across 1 sample(s).\nNotes\nVCF with 30 variants and 1 genotyped sample(s).\nHow it shaped the plan\n30 variants / 1 samples\nvariant annotation and filtering plan sized accordingly"
+        "codes": [
+          "vcf_records",
+          "vcf_summary",
+          "vcf_sized"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.vcf\nGood\nSignal summary\nVariant records: 30; samples: 1.\nNotes\nVCF — variants: 30; genotyped samples: 1.\nHow it shaped the plan\nvariants: 30 · samples: 1\nvariant annotation and filtering plan sized accordingly"
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "vcf-gz",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: text)",
-        "secondary:columns-required — missing columns chrom, pos, id, ref, alt, qual, filter, info; got []",
-        "secondary:columns-min — 0 columns < 8",
-        "secondary:rows-shown — table has no body rows",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.vcf.gz",
       "storedName": "1.vcf.gz",
       "galaxyFixture": "1.vcf_bgzip",
@@ -1441,25 +1438,19 @@
       "folder": null,
       "expect": "decompressed (bgzip) variant table",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
-        "columns": [
-          "chrom",
-          "pos",
-          "id",
-          "ref",
-          "alt",
-          "qual",
-          "filter",
-          "info"
-        ],
-        "minColumns": 8,
+        "viewKind": "variants",
+        "previewKind": "variants",
         "quality": "assessed"
       },
-      "fileId": "68d2d977-9e23-4567-b0f8-55874616cb86",
+      "fileId": "a6002e7c-c256-4092-8d74-82d1d9f97e39",
       "settled": true,
-      "settleMs": 2981,
+      "settleMs": 2933,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1468,14 +1459,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1493,27 +1482,9 @@
           "pass": true
         },
         {
-          "name": "columns-required",
-          "core": false,
-          "pass": false,
-          "detail": "missing columns chrom, pos, id, ref, alt, qual, filter, info; got []"
-        },
-        {
-          "name": "columns-min",
-          "core": false,
-          "pass": false,
-          "detail": "0 columns < 8"
-        },
-        {
-          "name": "no-data-as-header",
+          "name": "no-table-controls",
           "core": false,
           "pass": true
-        },
-        {
-          "name": "rows-shown",
-          "core": false,
-          "pass": false,
-          "detail": "table has no body rows"
         },
         {
           "name": "quality-class",
@@ -1523,48 +1494,44 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "variants",
+      "previewKind": "variants",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "variants",
+        "samples",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.vcf.gz\nGood\nROWS\n30\nCOLUMNS\n1\nSignal summary\n30 variant records across 1 sample(s).\nNotes\nVCF with 30 variants and 1 genotyped sample(s).\nHow it shaped the plan\n30 variants / 1 samples\nvariant annotation and filtering plan sized accordingly"
+        "codes": [
+          "vcf_records",
+          "vcf_summary",
+          "vcf_sized"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.vcf.gz\nGood\nSignal summary\nVariant records: 30; samples: 1.\nNotes\nVCF — variants: 30; genotyped samples: 1.\nHow it shaped the plan\nvariants: 30 · samples: 1\nvariant annotation and filtering plan sized accordingly"
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "bam",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want alignment",
-        "core:preview-kind — data-preview-kind=(missing) want alignment (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:quality-class — data-quality=watch want unassessed [unassessed]"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.bam",
       "storedName": "1.bam",
       "galaxyFixture": "1.bam",
@@ -1574,12 +1541,18 @@
       "expected": {
         "viewKind": "alignment",
         "previewKind": "alignment",
-        "quality": "unassessed"
+        "quality": "notAnalysed",
+        "note": "header metadata only (references, sort order, read groups); watch only for a real header finding"
       },
-      "fileId": "ec79bb2d-98fe-4bae-8165-110829c47f0b",
+      "fileId": "f9d693ee-b0c5-48a0-9164-94359224d5c5",
       "settled": true,
-      "settleMs": 3304,
+      "settleMs": 2920,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1588,14 +1561,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want alignment"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want alignment (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1615,14 +1586,12 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
           "core": false,
-          "pass": false,
-          "detail": "data-quality=watch want unassessed [unassessed]"
+          "pass": true
         },
         {
           "name": "verdict-has-reason",
@@ -1635,46 +1604,42 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "alignment",
+      "previewKind": "alignment",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-kind-summary",
+        "dataset-kind-download"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "references",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "watch",
-        "whyCount": 2,
+        "whyCount": 1,
         "codes": [
           "alignment_no_read_groups",
+          "alignment_references",
+          "alignment_sorted",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.bam\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nBAM metadata was read; the data values themselves have not been analysed.\nSignal summary\n168 reference sequences in the header (0 bp).\nNotes\nCoordinate-sorted (header SO:coordinate)."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.bam\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nReference sequences in the header: 168 (0 bp in total).\nNotes\nCoordinate-sorted (header SO:coordinate).\nBAM metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "cram",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want alignment",
-        "core:preview-kind — data-preview-kind=(missing) want alignment (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:quality-class — data-quality=watch want unassessed [unassessed]"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "2.cram",
       "storedName": "2.cram",
       "galaxyFixture": "2.cram",
@@ -1684,12 +1649,17 @@
       "expected": {
         "viewKind": "alignment",
         "previewKind": "alignment",
-        "quality": "unassessed"
+        "quality": "notAnalysed"
       },
-      "fileId": "54b876bd-7477-4586-aa77-762c5d2d4fec",
+      "fileId": "b848689b-7e6c-4bd3-8f3a-0eb4edb098f6",
       "settled": true,
-      "settleMs": 3370,
+      "settleMs": 2932,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1698,14 +1668,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want alignment"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want alignment (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1725,14 +1693,12 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
           "core": false,
-          "pass": false,
-          "detail": "data-quality=watch want unassessed [unassessed]"
+          "pass": true
         },
         {
           "name": "verdict-has-reason",
@@ -1745,45 +1711,42 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "alignment",
+      "previewKind": "alignment",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-kind-summary",
+        "dataset-kind-download"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "references",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "watch",
-        "whyCount": 2,
+        "whyCount": 1,
         "codes": [
           "alignment_no_read_groups",
+          "alignment_references",
+          "alignment_sorted",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.cram\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nCRAM metadata was read; the data values themselves have not been analysed.\nSignal summary\n7 reference sequences in the header (137,547,960 bp).\nNotes\nCoordinate-sorted (header SO:coordinate)."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.cram\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nReference sequences in the header: 7 (137,547,960 bp in total).\nNotes\nCoordinate-sorted (header SO:coordinate).\nCRAM metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "h5ad",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want anndata",
-        "core:preview-kind — data-preview-kind=(missing) want anndata (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "pbmc3k_tiny.h5ad",
       "storedName": "pbmc3k_tiny.h5ad",
       "galaxyFixture": "pbmc3k_tiny.h5ad",
@@ -1793,12 +1756,17 @@
       "expected": {
         "viewKind": "anndata",
         "previewKind": "anndata",
-        "quality": "either"
+        "quality": "notAnalysed"
       },
-      "fileId": "ed7ed472-4413-4bff-bd0e-b4c8d6d21189",
+      "fileId": "785e0a08-9e05-4ec5-892d-0299eeed2440",
       "settled": true,
-      "settleMs": 3451,
+      "settleMs": 2917,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1807,14 +1775,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want anndata"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want anndata (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1834,16 +1800,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -1853,44 +1813,52 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "anndata",
+      "previewKind": "anndata",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-anndata-summary",
+        "dataset-anndata-shape",
+        "dataset-anndata-obs",
+        "dataset-anndata-var",
+        "dataset-anndata-embeddings",
+        "dataset-anndata-no-layers",
+        "dataset-anndata-groups",
+        "dataset-anndata-note"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "cells",
+        "genes",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
+          "anndata_shape",
+          "anndata_obs",
+          "anndata_var",
+          "anndata_embeddings",
+          "anndata_no_layers",
+          "anndata_components",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npbmc3k_tiny.h5ad\nWatch\nROWS\n1\nCOLUMNS\n1\nWhy “Watch”\nAnnData (h5ad) metadata was read; the data values themselves have not been analysed.\nSignal summary\n1 cells (obs) × 1 genes or features (var).\nNotes\n2 cell annotation columns: n_genes, n_counts.\n1 gene annotation columns: n_cells.\nStored embeddings: X_pca, X_tsne, X_umap.\nStored groups: X, obs, obsm, var, varm."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npbmc3k_tiny.h5ad\nNot checked\nSignal summary\nCells (obs): 1 × genes or features (var): 1.\nNotes\nCell annotation columns (2): n_genes, n_counts.\nGene annotation columns (1): n_cells.\nStored embeddings: X_pca, X_tsne, X_umap.\nNo layers: the expression values are in X only.\nStored components (5): X, obs, obsm, var, varm.\nAnnData (h5ad) metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "loom",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want matrix",
-        "core:preview-kind — data-preview-kind=(missing) want matrix (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "test.loom",
       "storedName": "test.loom",
       "galaxyFixture": "test.loom",
@@ -1898,14 +1866,19 @@
       "folder": null,
       "expect": "Loom summary (matrix shape, row/col attrs)",
       "expected": {
-        "viewKind": "matrix",
-        "previewKind": "matrix",
-        "quality": "either"
+        "viewKind": "loom",
+        "previewKind": "loom",
+        "quality": "notAnalysed"
       },
-      "fileId": "d712c56e-d43b-4c50-a91f-f6baaf874c6e",
+      "fileId": "ceaf9a7e-4f68-4a3a-b41d-cb95d1d6a530",
       "settled": true,
-      "settleMs": 3514,
+      "settleMs": 2897,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -1914,14 +1887,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want matrix"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want matrix (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -1941,16 +1912,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -1960,46 +1925,46 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "loom",
+      "previewKind": "loom",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-anndata-summary",
+        "dataset-anndata-shape",
+        "dataset-anndata-obs",
+        "dataset-anndata-var",
+        "dataset-anndata-note"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "cells",
+        "genes",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
+          "loom_shape",
+          "loom_row_attrs",
+          "loom_col_attrs",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntest.loom\nWatch\nROWS\n10\nCOLUMNS\n5\nWhy “Watch”\nLoom metadata was read; the data values themselves have not been analysed.\nSignal summary\n5 genes (rows) × 10 cells (columns).\nNotes\nGene attributes: Gene.\nCell attributes: Cell."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntest.loom\nNot checked\nSignal summary\nGenes (rows): 5 × cells (columns): 10.\nNotes\nGene attributes: Gene.\nCell attributes: Cell.\nLoom metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "xlsx",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: message)",
-        "secondary:columns-min — 0 columns < 2",
-        "secondary:rows-shown — table has no body rows",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.xlsx",
       "storedName": "1.xlsx",
       "galaxyFixture": "1.excel.xlsx",
@@ -2007,15 +1972,27 @@
       "folder": null,
       "expect": "sheet rows table",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
-        "minColumns": 2,
-        "quality": "either"
+        "viewKind": "document",
+        "previewKind": "document",
+        "quality": "notAnalysed",
+        "requireStats": [
+          "sheets"
+        ],
+        "requirePreviewTestids": [
+          "dataset-spreadsheet-preview",
+          "dataset-preview-table"
+        ],
+        "note": "spreadsheet (round 3, B5): the profile carries the first sheet's first rows (previewSheet + columns + sampleRows); the Preview shows them read-only as a table captioned 'Sheet <name> · first N rows' (no Edit), plus the sheets stat"
       },
-      "fileId": "d743e418-ffed-42be-a099-80273022118a",
+      "fileId": "250195f0-0e96-4282-ba7a-4dbf34c803cc",
       "settled": true,
-      "settleMs": 3192,
+      "settleMs": 2930,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2024,14 +2001,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2049,26 +2024,14 @@
           "pass": true
         },
         {
-          "name": "columns-required",
+          "name": "no-table-controls",
           "core": false,
           "pass": true
         },
         {
-          "name": "columns-min",
-          "core": false,
-          "pass": false,
-          "detail": "0 columns < 2"
-        },
-        {
-          "name": "no-data-as-header",
+          "name": "preview-testids",
           "core": false,
           "pass": true
-        },
-        {
-          "name": "rows-shown",
-          "core": false,
-          "pass": false,
-          "detail": "table has no body rows"
         },
         {
           "name": "quality-class",
@@ -2076,55 +2039,77 @@
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
-          "core": false,
-          "pass": true
-        },
-        {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
-      "legacyKind": "message",
+      "viewKind": "document",
+      "previewKind": "document",
+      "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-kind-summary",
+        "dataset-spreadsheet-preview",
+        "dataset-spreadsheet-caption",
+        "dataset-preview-table",
+        "dataset-preview-filter",
+        "dataset-preview-scroll",
+        "dataset-col-sort-0",
+        "dataset-col-sort-1",
+        "dataset-col-sort-2",
+        "dataset-col-sort-3",
+        "dataset-col-sort-4",
+        "dataset-col-sort-5",
+        "dataset-col-sort-6",
+        "dataset-col-sort-7",
+        "dataset-col-sort-8",
+        "dataset-col-sort-9",
+        "dataset-preview-row",
+        "dataset-preview-rowcount",
+        "dataset-preview-more-columns",
+        "dataset-preview-scope",
+        "dataset-kind-download"
       ],
       "previewNone": false,
-      "columns": [],
-      "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "columns": [
+        "column_1",
+        "column_2",
+        "column_3",
+        "column_4",
+        "column_5",
+        "column_6",
+        "column_7",
+        "column_8",
+        "column_9",
+        "column_10"
       ],
-      "stats": [],
+      "rowCount": 10,
+      "toggles": [],
+      "stats": [
+        "sheets",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
+          "spreadsheet_sheets",
+          "spreadsheet_preview",
+          "spreadsheet_convert",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.xlsx\nWatch\nROWS\n10\nCOLUMNS\n10\nWhy “Watch”\nExcel (xlsx) metadata was read; the data values themselves have not been analysed.\nSignal summary\n1 sheets: Sample-spreadsheet-file.\nNotes\nSpreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.xlsx\nNot checked\nSignal summary\nSheets (1): Sample-spreadsheet-file.\nNotes\nPreview of sheet “Sample-spreadsheet-file”: its first rows (rows shown: 10).\nSpreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.\nExcel (xlsx) metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "mtx",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want matrix",
-        "core:preview-kind — data-preview-kind=(missing) want matrix (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.mtx",
       "storedName": "1.mtx",
       "galaxyFixture": "1.mtx",
@@ -2134,12 +2119,20 @@
       "expected": {
         "viewKind": "matrix",
         "previewKind": "matrix",
-        "quality": "either"
+        "quality": "notAnalysed",
+        "requireStats": [
+          "entries"
+        ]
       },
-      "fileId": "4529a687-9880-4858-9d1d-978c702d0d95",
+      "fileId": "ef809f95-4683-4790-b553-0b2f2c4571ce",
       "settled": true,
-      "settleMs": 3375,
+      "settleMs": 2950,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2148,14 +2141,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want matrix"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want matrix (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2175,16 +2166,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -2194,44 +2179,43 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "matrix",
+      "previewKind": "matrix",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-kind-summary",
+        "dataset-kind-download"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
+      "toggles": [],
+      "stats": [
+        "rows",
         "columns",
-        "plot"
+        "entries",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
+          "mtx_dimensions",
+          "mtx_orientation",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.mtx\nWatch\nROWS\n5\nCOLUMNS\n5\nWhy “Watch”\nMatrix Market metadata was read; the data values themselves have not been analysed.\nSignal summary\n5 × 5 sparse matrix (real) with 8 stored entries (32% non-zero).\nNotes\nMatrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells)."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.mtx\nNot checked\nSignal summary\n5 × 5 sparse matrix (real); stored entries: 8 (32% non-zero).\nNotes\nMatrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).\nMatrix Market metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "sdf",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want molecules",
-        "core:preview-kind — data-preview-kind=(missing) want molecules (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "drugbank_drugs.sdf",
       "storedName": "drugbank_drugs.sdf",
       "galaxyFixture": "drugbank_drugs.sdf",
@@ -2241,12 +2225,17 @@
       "expected": {
         "viewKind": "molecules",
         "previewKind": "molecules",
-        "quality": "either"
+        "quality": "notAnalysed"
       },
-      "fileId": "8dcb564c-f6af-4034-8e55-fa6a9146b34d",
+      "fileId": "ad2640ad-0586-4f18-8678-ad0b2c846ea8",
       "settled": true,
-      "settleMs": 3422,
+      "settleMs": 2929,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2255,14 +2244,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want molecules"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want molecules (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2282,16 +2269,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -2301,44 +2282,39 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
-      "legacyKind": "message",
+      "viewKind": "molecules",
+      "previewKind": "molecules",
+      "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-text-preview"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "molecules",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
+          "molecules_count",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ndrugbank_drugs.sdf\nWatch\nROWS\n2\nCOLUMNS\n0\nWhy “Watch”\nSDF metadata was read; the data values themselves have not been analysed.\nSignal summary\n2 molecules."
+        "text": "DATA QC\n\nWhat we saw in your data\ndrugbank_drugs.sdf\nNot checked\nSignal summary\nMolecules: 2.\nNotes\nSDF metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "smi",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "drugbank_drugs.smi",
       "storedName": "drugbank_drugs.smi",
       "galaxyFixture": "drugbank_drugs.smi",
@@ -2348,16 +2324,25 @@
       "expected": {
         "viewKind": "table",
         "previewKind": "table",
+        "quality": "assessed",
         "columns": [
           "smiles"
         ],
-        "minColumns": 2,
-        "quality": "assessed"
+        "minColumns": 1,
+        "requireStats": [
+          "molecules"
+        ],
+        "note": "SMILES spec table (SMILES, TITLE) with a molecules stat"
       },
-      "fileId": "d0e0305a-7630-43a6-bcd8-a0410e873b09",
+      "fileId": "6a9fc072-4951-48ce-a78e-ef8f71f71f4f",
       "settled": true,
-      "settleMs": 3136,
+      "settleMs": 2887,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2366,14 +2351,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2418,17 +2401,16 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "table",
+      "previewKind": "table",
       "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -2446,29 +2428,34 @@
       "rowCount": 2,
       "toggles": [
         "table",
-        "columns",
-        "plot"
+        "columns"
       ],
-      "stats": [],
+      "stats": [
+        "rows",
+        "columns",
+        "molecules",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ndrugbank_drugs.smi\nGood\nROWS\n2\nCOLUMNS\n2\nEFFECTIVE N\n2\nSignal summary\n2 molecules.\nNotes\nSMILES files have no header row; column names follow the SMILES specification: SMILES, TITLE.\n2 rows × 2 columns."
+        "codes": [
+          "molecules_count",
+          "columns_spec",
+          "table_summary"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ndrugbank_drugs.smi\nGood\nSignal summary\nMolecules: 2.\nNotes\nSMILES files have no header row; column names follow the SMILES specification: SMILES, TITLE.\nRows: 2 · columns: 2."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pdb",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want structure",
-        "core:preview-kind — data-preview-kind=(missing) want structure (legacy: structure-3d)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "5e5z.pdb",
       "storedName": "5e5z.pdb",
       "galaxyFixture": "5e5z.pdb",
@@ -2478,12 +2465,20 @@
       "expected": {
         "viewKind": "structure",
         "previewKind": "structure",
-        "quality": "either"
+        "quality": "notAnalysed",
+        "requireStats": [
+          "chains"
+        ]
       },
-      "fileId": "43273d2e-1023-4a4c-b4de-6f52a88c350b",
+      "fileId": "3c62635b-aef5-429c-90d2-863367cc19c6",
       "settled": true,
-      "settleMs": 3845,
+      "settleMs": 2982,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2492,14 +2487,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want structure"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want structure (legacy: structure-3d)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2519,16 +2512,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -2538,55 +2525,42 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "structure",
+      "previewKind": "structure",
       "legacyKind": "structure-3d",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview",
         "inline-structure-viewer",
-        "plddt-chart",
-        "plddt-mean",
-        "plddt-bar-0",
-        "plddt-bar-1",
-        "plddt-bar-2",
-        "plddt-bar-3",
-        "plddt-bar-4",
-        "plddt-bar-5",
-        "plddt-readout"
+        "inline-structure-frame"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "chains",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
-          "format_metadata_only"
+          "structure_chains",
+          "format_metadata_only",
+          "structure_experimental"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n5e5z.pdb\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nPDB metadata was read; the data values themselves have not been analysed.\nSignal summary\n1 chains: A."
+        "text": "DATA QC\n\nWhat we saw in your data\n5e5z.pdb\nNot checked\nSignal summary\nChains (1): A.\nNotes\nPDB metadata was read; the data values themselves have not been analysed.\nExperimental structure (X-ray diffraction): the B-factor column holds atomic displacement, not prediction confidence."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "cif",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want structure",
-        "core:preview-kind — data-preview-kind=(missing) want structure (legacy: structure-3d)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "Si.cif",
       "storedName": "Si.cif",
       "galaxyFixture": "Si.cif",
@@ -2596,12 +2570,18 @@
       "expected": {
         "viewKind": "structure",
         "previewKind": "structure",
-        "quality": "either"
+        "quality": "notAnalysed",
+        "note": "small-molecule crystal: no chains"
       },
-      "fileId": "9762a8a7-3208-45bd-818f-51a833d4445c",
+      "fileId": "64381b0c-fc40-438e-8708-cb043f53f1f6",
       "settled": true,
-      "settleMs": 2892,
+      "settleMs": 2944,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2610,14 +2590,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want structure"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want structure (legacy: structure-3d)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2637,16 +2615,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -2656,47 +2628,39 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "structure",
+      "previewKind": "structure",
       "legacyKind": "structure-3d",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview",
-        "inline-structure-viewer"
+        "inline-structure-viewer",
+        "inline-structure-frame"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
           "format_identified"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nSi.cif\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nIdentified as mmCIF (5.2 KB); its contents are not analysed here."
+        "text": "DATA QC\n\nWhat we saw in your data\nSi.cif\nNot checked\nNotes\nIdentified as mmCIF (5.2 KB); its contents are not analysed here."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "mrc",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want density",
-        "core:preview-kind — data-preview-kind=(missing) want density (legacy: density)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:quality-class — data-quality=watch want unassessed [unassessed]"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.mrc",
       "storedName": "1.mrc",
       "galaxyFixture": "1.mrc",
@@ -2704,14 +2668,20 @@
       "folder": null,
       "expect": "density map slices",
       "expected": {
-        "viewKind": "density",
-        "previewKind": "density",
-        "quality": "unassessed"
+        "viewKind": "image",
+        "previewKind": "image",
+        "quality": "unassessed",
+        "note": "cryo-EM map: the profiler's image kind, drawn by the density viewer (slices)"
       },
-      "fileId": "6460ba03-fa42-401a-bdea-0ec40257e6b3",
+      "fileId": "d0d59846-15f5-40c6-afb4-c462c7e26cfe",
       "settled": true,
-      "settleMs": 2833,
+      "settleMs": 2902,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2720,14 +2690,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want density"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want density (legacy: density)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2747,17 +2715,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
-          "core": false,
-          "pass": false,
-          "detail": "data-quality=watch want unassessed [unassessed]"
-        },
-        {
-          "name": "verdict-has-reason",
           "core": false,
           "pass": true
         },
@@ -2767,46 +2728,37 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "image",
+      "previewKind": "image",
       "legacyKind": "density",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "density-map-viewer"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
           "format_identified"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.mrc\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nIdentified as MRC (1.0 KB); its contents are not analysed here."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.mrc\nNot checked\nNotes\nIdentified as MRC (1.0 KB); its contents are not analysed here."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tiff",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want image",
-        "core:preview-kind — data-preview-kind=(missing) want image (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:quality-class — data-quality=watch want unassessed [unassessed]"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.tiff",
       "storedName": "1.tiff",
       "galaxyFixture": "1.tiff",
@@ -2816,12 +2768,21 @@
       "expected": {
         "viewKind": "image",
         "previewKind": "image",
-        "quality": "unassessed"
+        "quality": "unassessed",
+        "requirePreviewTestids": [
+          "dataset-preview-tiff-image"
+        ],
+        "note": "the image itself is drawn: the server renders a TIFF plane to PNG (preview.png) shown as dataset-preview-tiff-image; the download fallback (dataset-preview-tiff-download only) is a PARTIAL"
       },
-      "fileId": "ac517d60-3e79-4ccb-a7b3-d43a2df9781d",
+      "fileId": "80c11931-dd2d-46a7-934f-f5d0c55b0f32",
       "settled": true,
-      "settleMs": 2864,
+      "settleMs": 3879,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2830,14 +2791,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want image"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want image (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2857,17 +2816,15 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
+        },
+        {
+          "name": "preview-testids",
+          "core": false,
+          "pass": true
         },
         {
           "name": "quality-class",
-          "core": false,
-          "pass": false,
-          "detail": "data-quality=watch want unassessed [unassessed]"
-        },
-        {
-          "name": "verdict-has-reason",
           "core": false,
           "pass": true
         },
@@ -2877,46 +2834,39 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
-      "legacyKind": "message",
+      "viewKind": "image",
+      "previewKind": "image",
+      "legacyKind": "image",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-preview-tiff",
-        "dataset-preview-tiff-download"
+        "dataset-preview-tiff-image",
+        "dataset-preview-image",
+        "dataset-preview-tiff-caption"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
           "format_identified"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.tiff\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nIdentified as TIFF (18.9 KB); its contents are not analysed here."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.tiff\nNot checked\nNotes\nIdentified as TIFF (18.9 KB); its contents are not analysed here."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "json",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want json",
-        "core:preview-kind — data-preview-kind=(missing) want json (legacy: json-tree)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "1.json",
       "storedName": "1.json",
       "galaxyFixture": "1.json",
@@ -2926,12 +2876,17 @@
       "expected": {
         "viewKind": "json",
         "previewKind": "json",
-        "quality": "either"
+        "quality": "notAnalysed"
       },
-      "fileId": "44a2c92d-0c74-4c53-b100-6dd9b4f9e949",
+      "fileId": "c8931dcd-a083-4ea5-89c7-272532519cf2",
       "settled": true,
-      "settleMs": 3002,
+      "settleMs": 2889,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -2940,14 +2895,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want json"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want json (legacy: json-tree)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -2967,16 +2920,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
+          "name": "quality-class",
           "core": false,
           "pass": true
         },
@@ -2986,47 +2933,39 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "json",
+      "previewKind": "json",
       "legacyKind": "json-tree",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-text-preview",
         "json-preview"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "entries",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
           "structured_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.json\nWatch\nFORMAT\nJSON\nROOT\narray\nVALUES\n2\nKEYS\n0\nNULL VALUES\n0\nNESTING DEPTH\n1\nWhy “Watch”\nValid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.json\nNot checked\nFORMAT\nJSON\nROOT\narray\nVALUES (ALL LEVELS)\n2\nKEYS (ALL LEVELS)\n0\nNULL VALUES\n0\nNESTING DEPTH\n1\nNotes\nValid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pod5",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want signal",
-        "core:preview-kind — data-preview-kind=(missing) want signal (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:quality-class — data-quality=watch want unassessed [unassessed]"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "test.pod5",
       "storedName": "test.pod5",
       "galaxyFixture": "test.pod5",
@@ -3034,14 +2973,20 @@
       "folder": null,
       "expect": "nanopore read summary (binary)",
       "expected": {
-        "viewKind": "signal",
-        "previewKind": "signal",
-        "quality": "unassessed"
+        "viewKind": "binary",
+        "previewKind": "binary",
+        "quality": "unassessed",
+        "note": "nanopore signal container: identified, honest download state"
       },
-      "fileId": "de53dcf4-ff97-4162-ab78-6572e0031881",
+      "fileId": "1cdb1ace-47bc-4259-a8f0-d6c9811bc40e",
       "settled": true,
-      "settleMs": 2704,
+      "settleMs": 2925,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3050,14 +2995,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want signal"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want signal (legacy: message)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3077,17 +3020,10 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
-          "core": false,
-          "pass": false,
-          "detail": "data-quality=watch want unassessed [unassessed]"
-        },
-        {
-          "name": "verdict-has-reason",
           "core": false,
           "pass": true
         },
@@ -3097,44 +3033,38 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "binary",
+      "previewKind": "binary",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-download-state",
+        "dataset-kind-download"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "unassessed",
+        "whyCount": 0,
         "codes": [
           "format_identified"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntest.pod5\nWatch\nROWS\n0\nCOLUMNS\n0\nWhy “Watch”\nIdentified as POD5 (18.4 KB); its contents are not analysed here."
+        "text": "DATA QC\n\nWhat we saw in your data\ntest.pod5\nNot checked\nNotes\nIdentified as POD5 (18.4 KB); its contents are not analysed here."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "gene-list",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "gene_list.txt",
       "storedName": "gene_list.txt",
       "galaxyFixture": null,
@@ -3144,18 +3074,23 @@
       "expected": {
         "viewKind": "table",
         "previewKind": "table",
+        "quality": "assessed",
         "minColumns": 1,
         "maxColumns": 1,
         "notColumns": [
           "TP53"
         ],
-        "quality": "assessed",
         "note": "single-column, header-less: TP53 is data, not a header"
       },
-      "fileId": "fffff7fe-3e1b-4022-a43b-51273e021d06",
+      "fileId": "38fbbbb4-1015-4694-a023-c8e2be6c1d45",
       "settled": true,
-      "settleMs": 3552,
+      "settleMs": 2885,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3164,14 +3099,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3221,17 +3154,16 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "table",
+      "previewKind": "table",
       "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-toggle-edit",
         "dataset-preview-table",
         "dataset-preview-filter",
@@ -3249,29 +3181,32 @@
       "toggles": [
         "table",
         "columns",
-        "plot",
         "edit"
       ],
-      "stats": [],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngene_list.txt\nGood\nROWS\n12\nCOLUMNS\n1\nEFFECTIVE N\n12\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1 … column_1.\n12 rows × 1 columns; no leakage, imbalance or constant-column issues detected."
+        "codes": [
+          "columns_generated",
+          "table_clean_unlabelled"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngene_list.txt\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 12 · columns: 1; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "narrowpeak",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "peaks.narrowPeak",
       "storedName": "peaks.narrowPeak",
       "galaxyFixture": null,
@@ -3279,20 +3214,25 @@
       "folder": null,
       "expect": "peak table (10 narrowPeak columns)",
       "expected": {
-        "viewKind": "table",
-        "previewKind": "table",
+        "viewKind": "intervals",
+        "previewKind": "intervals",
+        "quality": "assessed",
         "columns": [
           "chrom",
           "start",
           "end"
         ],
-        "minColumns": 10,
-        "quality": "assessed"
+        "minColumns": 10
       },
-      "fileId": "69a71b7b-bc29-4ad5-8e4e-36afc2e317a4",
+      "fileId": "272bd63c-f3fe-41cd-8a10-9adf38b2216b",
       "settled": true,
-      "settleMs": 3434,
+      "settleMs": 2919,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3301,14 +3241,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3346,6 +3284,11 @@
           "pass": true
         },
         {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
           "name": "quality-class",
           "core": false,
           "pass": true
@@ -3353,17 +3296,13 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "intervals",
+      "previewKind": "intervals",
       "legacyKind": "rows-table",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-table",
         "dataset-preview-filter",
         "dataset-preview-scroll",
@@ -3395,32 +3334,33 @@
         "Peak"
       ],
       "rowCount": 5,
-      "toggles": [
-        "table",
+      "toggles": [],
+      "stats": [
+        "regions",
         "columns",
-        "plot"
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npeaks.narrowPeak\nGood\nROWS\n5\nCOLUMNS\n10\nEFFECTIVE N\n5\nSignal summary\n5 genomic intervals in 10 columns.\nNotes\nnarrowPeak files have no header row; column names follow the narrowPeak specification: Chrom, Start, End, Name, Score, Strand, SignalValue, pValue.\n5 rows × 10 columns.\nStrand is given (column “Strand”)."
+        "codes": [
+          "intervals_summary",
+          "columns_spec",
+          "table_summary",
+          "intervals_stranded"
+        ],
+        "text": "DATA QC\n\nWhat we saw in your data\npeaks.narrowPeak\nGood\nSignal summary\nGenomic intervals: 5; columns: 10.\nNotes\nnarrowPeak files have no header row; column names follow the narrowPeak specification: Chrom, Start, End, Name, Score, Strand, SignalValue, pValue.\nRows: 5 · columns: 10.\nStrand is given (column “Strand”)."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pairs-S1_R1",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want reads",
-        "core:preview-kind — data-preview-kind=(missing) want reads (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "S1_R1.fastq.gz",
       "storedName": "pairs/S1_R1.fastq.gz",
       "galaxyFixture": null,
@@ -3432,10 +3372,15 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "23cf2029-bb86-4a2a-b74f-38b725940810",
+      "fileId": "8afd755e-267f-4225-a1d9-3561220a6e1c",
       "settled": true,
-      "settleMs": 4189,
+      "settleMs": 3067,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3444,14 +3389,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want reads"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want reads (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3471,8 +3414,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
@@ -3482,48 +3424,48 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "reads",
+      "previewKind": "reads",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R1.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_paired_mate",
+          "fastq_paired_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R1.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 1 of sample S1; its mate S1_R2.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pairs-S1_R2",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want reads",
-        "core:preview-kind — data-preview-kind=(missing) want reads (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "S1_R2.fastq.gz",
       "storedName": "pairs/S1_R2.fastq.gz",
       "galaxyFixture": null,
@@ -3535,10 +3477,15 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "92393a23-4ffe-4fb9-84ff-a2effac81836",
+      "fileId": "bd89b1fe-ff3d-4acc-a58f-cf5a68a10cb6",
       "settled": true,
-      "settleMs": 3636,
+      "settleMs": 2932,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3547,14 +3494,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want reads"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want reads (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3574,8 +3519,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
+          "pass": true
         },
         {
           "name": "quality-class",
@@ -3585,48 +3529,48 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "reads",
+      "previewKind": "reads",
       "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R2.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
+        "codes": [
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_paired_mate",
+          "fastq_paired_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R2.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 2 of sample S1; its mate S1_R1.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "pairs-S2_R1",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want reads",
-        "core:preview-kind — data-preview-kind=(missing) want reads (legacy: text)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "S2_R1.fastq.gz",
       "storedName": "pairs/S2_R1.fastq.gz",
       "galaxyFixture": null,
@@ -3638,10 +3582,15 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "81217be4-f6f5-470e-9a32-275faeea1f25",
+      "fileId": "5a65c4b3-4fa4-410c-85e6-94cf5b178bc2",
       "settled": true,
-      "settleMs": 3287,
+      "settleMs": 2915,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3650,14 +3599,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want reads"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want reads (legacy: text)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3677,110 +3624,7 @@
         {
           "name": "no-table-controls",
           "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
-        },
-        {
-          "name": "quality-class",
-          "core": false,
           "pass": true
-        },
-        {
-          "name": "stats-per-kind",
-          "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing reads; forbidden -"
-        }
-      ],
-      "viewKind": null,
-      "previewKind": null,
-      "legacyKind": "text",
-      "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
-        "dataset-text-preview"
-      ],
-      "previewNone": false,
-      "columns": [],
-      "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
-      ],
-      "stats": [],
-      "statGridPresent": true,
-      "qc": {
-        "state": "perception",
-        "quality": "good",
-        "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S2_R1.fastq.gz\nGood\nREADS\n2\nREAD LENGTH (BP)\n34\nSignal summary\n2 reads scanned; mean read length 34 bp.\nMean base quality Phred 21.5 (sampled).\nNotes\nA single FASTQ file was profiled — treated as single-end unless a mate file is present.\nHow it shaped the plan\nSingle FASTQ file\nsingle-end pipeline suggested (override if a paired mate exists)"
-      },
-      "errors": [],
-      "pageErrors": []
-    },
-    {
-      "key": "tenx-matrix",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want matrix",
-        "core:preview-kind — data-preview-kind=(missing) want matrix (legacy: message)",
-        "secondary:no-table-controls — non-table kind shows toggles: table, columns, plot"
-      ],
-      "uploadedAs": "matrix.mtx",
-      "storedName": "tenx/matrix.mtx",
-      "galaxyFixture": null,
-      "source": "inline/derived",
-      "folder": "tenx",
-      "expect": "5×5 matrix; folder recognised as 10x",
-      "expected": {
-        "viewKind": "matrix",
-        "previewKind": "matrix",
-        "quality": "either"
-      },
-      "fileId": "61705b2b-9376-4da9-890c-aec13c0a68e0",
-      "settled": true,
-      "settleMs": 4102,
-      "checks": [
-        {
-          "name": "settled",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "view-kind",
-          "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want matrix"
-        },
-        {
-          "name": "preview-kind",
-          "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want matrix (legacy: message)"
-        },
-        {
-          "name": "has-preview",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "no-errors",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "no-page-errors",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "no-table-controls",
-          "core": false,
-          "pass": false,
-          "detail": "non-table kind shows toggles: table, columns, plot"
         },
         {
           "name": "quality-class",
@@ -3798,44 +3642,148 @@
           "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
-      "legacyKind": "message",
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "legacyKind": "text",
       "previewTestids": [
-        "dataset-preview-toggle-table",
-        "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot"
+        "dataset-text-preview",
+        "inline-fastq-viewer",
+        "inline-fastq-read",
+        "inline-fastq-meta"
       ],
       "previewNone": false,
       "columns": [],
       "rowCount": 0,
-      "toggles": [
-        "table",
-        "columns",
-        "plot"
+      "toggles": [],
+      "stats": [
+        "reads",
+        "read_length",
+        "size",
+        "type"
       ],
-      "stats": [],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "watch",
         "whyCount": 1,
         "codes": [
+          "fastq_mate_missing",
+          "fastq_reads",
+          "fastq_mean_quality",
+          "fastq_orphan_single_end"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S2_R1.fastq.gz\nWatch\nWhy “Watch”\nRead 1 of sample S2, but no read-2 mate is in this folder — it runs single-end unless the mate is added.\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nHow it shaped the plan\nMate file missing from the folder\nsingle-end for sample S2 until the mate is added"
+      },
+      "errors": [],
+      "pageErrors": []
+    },
+    {
+      "key": "tenx-matrix",
+      "verdict": "PASS",
+      "failed": [],
+      "uploadedAs": "matrix.mtx",
+      "storedName": "tenx/matrix.mtx",
+      "galaxyFixture": null,
+      "source": "inline/derived",
+      "folder": "tenx",
+      "expect": "5×5 matrix; folder recognised as 10x",
+      "expected": {
+        "viewKind": "matrix",
+        "previewKind": "matrix",
+        "quality": "notAnalysed"
+      },
+      "fileId": "914ca405-eb78-4f3d-8111-4e4a57dc9529",
+      "settled": true,
+      "settleMs": 2997,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "matrix",
+      "previewKind": "matrix",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-kind-summary",
+        "dataset-kind-download"
+      ],
+      "previewNone": false,
+      "columns": [],
+      "rowCount": 0,
+      "toggles": [],
+      "stats": [
+        "rows",
+        "columns",
+        "entries",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
+      "qc": {
+        "state": "perception",
+        "quality": "unassessed",
+        "whyCount": 0,
+        "codes": [
+          "mtx_dimensions",
+          "mtx_tenx_set",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/matrix.mtx\nWatch\nROWS\n5\nCOLUMNS\n5\nWhy “Watch”\nMatrix Market metadata was read; the data values themselves have not been analysed.\nSignal summary\n5 × 5 sparse matrix (real) with 8 stored entries (32% non-zero).\nNotes\nMatrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells)."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/matrix.mtx\nNot checked\nSignal summary\n5 × 5 sparse matrix (real); stored entries: 8 (32% non-zero).\nNotes\n10x matrix: rows are the features in features.tsv, columns are the cells in barcodes.tsv (same folder).\nMatrix Market metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tenx-barcodes",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "barcodes.tsv",
       "storedName": "tenx/barcodes.tsv",
       "galaxyFixture": null,
@@ -3845,17 +3793,22 @@
       "expected": {
         "viewKind": "table",
         "previewKind": "table",
+        "quality": "assessed",
         "minColumns": 1,
         "maxColumns": 1,
         "notColumns": [
           "AAACATACAACCAC-1"
-        ],
-        "quality": "assessed"
+        ]
       },
-      "fileId": "b6757b6f-1870-45bb-a89b-63e360a4a390",
+      "fileId": "854bdd84-5d48-45e1-9e86-32fc84a726e6",
       "settled": true,
-      "settleMs": 3823,
+      "settleMs": 2913,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -3864,14 +3817,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -3921,17 +3872,16 @@
         {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "table",
+      "previewKind": "table",
       "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-toggle-edit",
         "dataset-preview-table",
         "dataset-preview-filter",
@@ -3943,36 +3893,39 @@
       ],
       "previewNone": false,
       "columns": [
-        "column_1"
+        "barcode"
       ],
       "rowCount": 5,
       "toggles": [
         "table",
         "columns",
-        "plot",
         "edit"
       ],
-      "stats": [],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
         "quality": "good",
         "whyCount": 0,
-        "codes": [],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/barcodes.tsv\nGood\nROWS\n5\nCOLUMNS\n1\nEFFECTIVE N\n5\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1 … column_1.\n5 rows × 1 columns; no leakage, imbalance or constant-column issues detected."
+        "codes": [
+          "columns_spec",
+          "table_summary",
+          "tenx_member_headerless"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/barcodes.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: barcode.\nRows: 5 · columns: 1.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
       },
       "errors": [],
       "pageErrors": []
     },
     {
       "key": "tenx-features",
-      "verdict": "FAIL",
-      "failed": [
-        "core:view-kind — data-view-kind=(missing) want table",
-        "core:preview-kind — data-preview-kind=(missing) want table (legacy: rows-table)",
-        "secondary:no-data-as-header — data value(s) taken as header: ENSG00000243485, MIR1302-2HG",
-        "secondary:stats-per-kind — stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
-      ],
+      "verdict": "PASS",
+      "failed": [],
       "uploadedAs": "features.tsv",
       "storedName": "tenx/features.tsv",
       "galaxyFixture": null,
@@ -3982,19 +3935,24 @@
       "expected": {
         "viewKind": "table",
         "previewKind": "table",
+        "quality": "assessed",
         "minColumns": 3,
         "maxColumns": 3,
         "notColumns": [
           "ENSG00000243485",
           "MIR1302-2HG"
         ],
-        "quality": "assessed",
         "note": "10x features.tsv is header-less"
       },
-      "fileId": "bfaccca0-94d9-4e86-b289-a3b57da7e321",
+      "fileId": "385269a8-615c-4825-ad2c-f148301d021b",
       "settled": true,
-      "settleMs": 3261,
+      "settleMs": 2935,
       "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
         {
           "name": "settled",
           "core": true,
@@ -4003,14 +3961,12 @@
         {
           "name": "view-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-view-kind=(missing) want table"
+          "pass": true
         },
         {
           "name": "preview-kind",
           "core": true,
-          "pass": false,
-          "detail": "data-preview-kind=(missing) want table (legacy: rows-table)"
+          "pass": true
         },
         {
           "name": "has-preview",
@@ -4045,8 +4001,7 @@
         {
           "name": "no-data-as-header",
           "core": false,
-          "pass": false,
-          "detail": "data value(s) taken as header: ENSG00000243485, MIR1302-2HG"
+          "pass": true
         },
         {
           "name": "rows-shown",
@@ -4059,24 +4014,18 @@
           "pass": true
         },
         {
-          "name": "verdict-has-reason",
-          "core": false,
-          "pass": true
-        },
-        {
           "name": "stats-per-kind",
           "core": false,
-          "pass": false,
-          "detail": "stat cards [(no dataset-stat testids)]: missing rows, columns; forbidden -"
+          "pass": true
         }
       ],
-      "viewKind": null,
-      "previewKind": null,
+      "viewKind": "table",
+      "previewKind": "table",
       "legacyKind": "rows-table",
       "previewTestids": [
+        "dataset-preview-toggles",
         "dataset-preview-toggle-table",
         "dataset-preview-toggle-columns",
-        "dataset-preview-toggle-plot",
         "dataset-preview-toggle-edit",
         "dataset-preview-table",
         "dataset-preview-filter",
@@ -4090,27 +4039,33 @@
       ],
       "previewNone": false,
       "columns": [
-        "ENSG00000243485",
-        "MIR1302-2HG",
-        "Gene Expression"
+        "feature_id",
+        "feature_name",
+        "feature_type"
       ],
-      "rowCount": 4,
+      "rowCount": 5,
       "toggles": [
         "table",
         "columns",
-        "plot",
         "edit"
       ],
-      "stats": [],
+      "stats": [
+        "rows",
+        "columns",
+        "size",
+        "type"
+      ],
       "statGridPresent": true,
       "qc": {
         "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
+        "quality": "good",
+        "whyCount": 0,
         "codes": [
-          "near_constant"
+          "columns_spec",
+          "table_summary",
+          "tenx_member_headerless"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/features.tsv\nWatch\nROWS\n4\nCOLUMNS\n3\nEFFECTIVE N\n4\nWhy “Watch”\n1 column(s) are near-constant (over 99% a single value): Gene Expression.\nNotes\n4 rows × 3 columns."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/features.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: feature_id, feature_name, feature_type.\nRows: 5 · columns: 3.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
       },
       "errors": [],
       "pageErrors": []
@@ -4136,7 +4091,55 @@
           "rowVisible": true
         }
       ],
-      "viewShown": false
+      "viewShown": true,
+      "view": {
+        "kind": "fastq_set",
+        "samples": [
+          {
+            "testid": "folder-sample-row-S1",
+            "status": "paired"
+          },
+          {
+            "testid": "folder-sample-row-S2",
+            "status": "orphan"
+          }
+        ],
+        "orphans": [
+          "folder-orphan-S2_R1.fastq.gz"
+        ],
+        "tenxDims": [],
+        "findings": [
+          {
+            "code": "folder_fastq_pairs",
+            "level": "info"
+          },
+          {
+            "code": "folder_fastq_orphan",
+            "level": "watch"
+          },
+          {
+            "code": "folder_fastq_mixed_layout",
+            "level": "watch"
+          },
+          {
+            "code": "folder_samplesheet",
+            "level": "info"
+          },
+          {
+            "code": "folder_samplesheet_single_end",
+            "level": "info"
+          }
+        ],
+        "hasDownload": true
+      },
+      "samplesheet": {
+        "filename": "pairs_samplesheet.csv",
+        "csv": "sample,fastq_1,fastq_2\nS1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz\n"
+      },
+      "samplesheetSingle": {
+        "filename": "pairs_samplesheet_single_end.csv",
+        "csv": "sample,fastq_1,fastq_2\nS2,pairs/S2_R1.fastq.gz,\n"
+      }
     },
     "tenx": {
       "folderRowVisible": true,
@@ -4157,7 +4160,26 @@
           "rowVisible": true
         }
       ],
-      "viewShown": false
+      "viewShown": true,
+      "view": {
+        "kind": "tenx_matrix",
+        "samples": [],
+        "orphans": [],
+        "tenxDims": [
+          "5 cells × 5 genes"
+        ],
+        "findings": [
+          {
+            "code": "folder_tenx_recognised",
+            "level": "info"
+          },
+          {
+            "code": "folder_tenx_headerless",
+            "level": "info"
+          }
+        ],
+        "hasDownload": false
+      }
     }
   },
   "uploadAttempts": {
@@ -4264,5 +4286,5 @@
       201
     ]
   },
-  "finishedAt": "2026-11-12T06:21:30.095Z"
+  "finishedAt": "2026-11-12T11:08:40.685Z"
 }
