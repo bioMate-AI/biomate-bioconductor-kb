@@ -1683,6 +1683,23 @@ class ResearchAgent:
                 )
                 evidence['skill_guidance'] += f"\n\n{domain_skills}"
 
+        # Inject the trigger-matched EXPERT skills (domain role skills + source/evidence
+        # intelligence) from SkillManager. The chat path already injects these, but the
+        # GROUNDED answer is produced here in research_agent's own synthesis prompt, which
+        # previously saw only the /app/skills scientific-thinking skills — so an evidence
+        # answer missed the domain-expert interpretation guidance (drug-discovery-chemist,
+        # structural-biologist, evidence-source-selection, …) that the chat framing gets.
+        # Additive, bounded, non-fatal; SkillManager is independent of self.skill_loader.
+        try:
+            from galaxy.ai.skill_manager import get_skill_manager
+            _dom = analysis.get('domain')
+            _pref = [_dom] if _dom and _dom != 'general' else None
+            _xblock = get_skill_manager().build_system_block_auto(question, preferred_domains=_pref)
+            if _xblock:
+                evidence['expert_skill_block'] = _xblock
+        except Exception as _se:
+            log.debug("SkillManager expert skills skipped (non-fatal): %s", _se)
+
         # Search literature using UnifiedLiteratureClient
         if include_citations and self.literature_client:
             try:
@@ -2895,6 +2912,8 @@ class ResearchAgent:
         # Add skill guidance if available
         if evidence.get('skill_guidance'):
             prompt_parts.append(f"## Scientific Skill Guidance\n{evidence['skill_guidance'][:4000]}")
+        if evidence.get('expert_skill_block'):
+            prompt_parts.append(f"## Expert Domain Skills\n{evidence['expert_skill_block'][:5000]}")
 
         # Add benchmark evidence
         if evidence.get('benchmark_results'):

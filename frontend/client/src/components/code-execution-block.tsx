@@ -11,6 +11,13 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check, Download } from 'lucide-react';
 
+/** 23 → "23 B", 2048 → "2.0 KB", 3e6 → "2.9 MB" (a small report read "0.0 KB"). */
+export function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n < 1024) return `${Math.max(0, Math.round(n || 0))} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ToolCallEvent {
@@ -188,7 +195,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 onClick={(e) => e.stopPropagation()}>
                 <FileText size={12} className="text-primary" />
                 <span className="font-semibold">{f.name}</span>
-                <span className="text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</span>
+                <span className="text-muted-foreground">{formatBytes(f.size)}</span>
                 <Download size={12} className="text-primary" />
               </a>
             ) : (
@@ -276,7 +283,7 @@ export function CodeExecutionBlock({ block }: Props) {
                         <FileText size={12} className="text-primary mt-0.5 flex-shrink-0" />
                         <div>
                           <div className="text-xs font-semibold text-accent-foreground">{f.name}</div>
-                          <div className="text-xs text-primary">{(f.size / 1024).toFixed(1)} KB</div>
+                          <div className="text-xs text-primary">{formatBytes(f.size)}</div>
                           {/* Image files are rendered as figures above — don't repeat
                               their useless "(binary)" text preview here. */}
                           {f.preview && !f.image_data_uri && (
