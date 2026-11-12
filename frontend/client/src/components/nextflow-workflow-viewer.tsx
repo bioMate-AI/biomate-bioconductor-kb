@@ -2299,6 +2299,12 @@ export function NextflowWorkflowViewer({
     return withHints.map((p: any) =>
       userOverriddenParams.current.has(p.id || p.name) ? { ...p, overridden: true } : p);
   }, [workflowDefinition, params, toolHintMap]);
+  // Backend-sourced parameter / data-input labels ("Samplesheet", "Matrix") for the
+  // settings-tab input rows, localized for the zh UI (cached label service).
+  const tlParamLabel = useLocalizedLabels([
+    ...renderedParameters.map((p: any) => String(p?.label || p?.name || '')),
+    ...((Array.isArray(workflowDefinition?.data_inputs) ? workflowDefinition.data_inputs : []) as any[]).map((d: any) => String(d?.label || d?.name || '')),
+  ]);
 
   /**
    * Count global params that are required AND still empty.
@@ -3861,7 +3867,7 @@ export function NextflowWorkflowViewer({
               const p: any = r.param;
               return (
                 <div key={p.id || p.name || i} data-testid={isOverride ? 'prerun-override-row' : 'prerun-input-row'} data-status={r.status} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
-                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{p.label || p.name}</span>
+                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{tlParamLabel(String(p.label || p.name || ''))}</span>
                   <span style={{ color: 'var(--text-dim)' }}>→</span>
                   <span style={{ minWidth: 0, flex: 1 }}>
                     {r.empty ? (
