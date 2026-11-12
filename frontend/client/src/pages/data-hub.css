@@ -15,6 +15,12 @@
 .data-hub-file-list {
   height: clamp(12rem, 35vh, 20rem);
   min-width: 0;
+  position: relative;
+}
+
+/* Drag handle on the file list's right edge — only in the two-pane layout. */
+.data-hub-resize-handle {
+  display: none;
 }
 
 /* The "select a dataset" pane matches the file list's height. */
@@ -24,7 +30,25 @@
 
 @container data-hub (min-width: 52rem) {
   .data-hub-panes {
-    grid-template-columns: 17.5rem minmax(0, 1fr);
+    grid-template-columns: var(--data-hub-tree-w, 17.5rem) minmax(0, 1fr);
+  }
+
+  .data-hub-resize-handle {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -0.5rem;
+    width: 0.5rem;
+    cursor: col-resize;
+    z-index: 2;
+    border-radius: 999px;
+  }
+  .data-hub-resize-handle:hover,
+  .data-hub-resize-handle:focus-visible,
+  .data-hub-resize-handle.is-dragging {
+    background: var(--bm-accent-soft, hsl(var(--primary) / 0.15));
+    outline: none;
   }
 
   .data-hub-file-list {

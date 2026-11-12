@@ -853,7 +853,8 @@
     "tree_input_files": "输入文件：",
     "tree_folder_count": "{{n}} 项",
     "tree_err_name_conflict": "项目中已有同名的文件或文件夹",
-    "tree_err_name_conflict_with": "项目中的“{{existing}}”已使用该名称 — 请重命名其中之一后重试"
+    "tree_err_name_conflict_with": "项目中的“{{existing}}”已使用该名称 — 请重命名其中之一后重试",
+    "resize_tree": "拖动以调整文件列表宽度（双击恢复默认）"
   },
   "dialogs": {
     "adjust_filters": "请尝试调整搜索或筛选条件",

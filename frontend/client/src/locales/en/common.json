@@ -847,7 +847,8 @@
     "tree_input_files": "Input files: ",
     "tree_folder_count": "{{n}} items",
     "tree_err_name_conflict": "a file or folder with that name already exists in this project",
-    "tree_err_name_conflict_with": "“{{existing}}” already uses that name in this project — rename one of them and try again"
+    "tree_err_name_conflict_with": "“{{existing}}” already uses that name in this project — rename one of them and try again",
+    "resize_tree": "Drag to resize the file list (double-click to reset)"
   },
   "dialogs": {
     "adjust_filters": "Try adjusting your search or filters",

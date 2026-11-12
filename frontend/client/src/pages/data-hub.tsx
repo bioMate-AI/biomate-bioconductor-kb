@@ -42,6 +42,7 @@ import {
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
 import { FolderProfileView } from "@/components/datasets/folder-profile-view"
 import { downloadProjectFile } from "@/components/datasets/datasets-api"
+import { PaneResizeHandle, useTreeWidth } from "@/components/datasets/pane-resize-handle"
 import { t, tOr, locale } from "@/lib/i18n"
 
 function toDatasetRef(f: ProjectFile): DatasetRef {
@@ -175,6 +176,8 @@ export default function DataHubPage() {
   // field the tree already fetched — no extra round-trip). Kept in memory,
   // mirroring the reference which holds the selection in component state.
   const [selected, setSelected] = useState<ProjectFile | null>(null)
+  // File-tree width in the two-pane layout: user-resizable, remembered (pane-resize-handle).
+  const [treeWidth, setTreeWidth] = useTreeWidth()
   // Or an input folder, opened as one object (pairs, 10x matrix, format roll-up). One of the
   // two is shown; picking either replaces the other.
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
@@ -241,8 +244,9 @@ export default function DataHubPage() {
       ) : (
         // Stack by available workspace width, including sidebar/panel resizing.
         // The reference two-pane layout remains when both panes fit.
-        <div className="data-hub-panes" data-testid="data-hub-panes">
+        <div className="data-hub-panes" data-testid="data-hub-panes" style={{ ["--data-hub-tree-w" as any]: `${treeWidth}px` }}>
           <div className="data-hub-file-list min-w-0">
+            <PaneResizeHandle width={treeWidth} onWidth={setTreeWidth} />
             <ProjectFileTree
               projectId={activeProjectId}
               onOpenDataset={(f) => { setSelectedFolder(null); setSelected(f) }}
