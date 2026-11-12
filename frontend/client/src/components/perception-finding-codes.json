@@ -290,7 +290,7 @@
     "structure_predicted": "Predicted model ({{predictor}}), not an experimental structure: the B-factor column holds the predictor's per-residue confidence (pLDDT for AlphaFold-type models).",
     "structured_only": "Valid {{format}} syntax ({{root}} root). Only the structure was checked; scientific quality has not been assessed.",
     "structured_too_large": "Structural validation is limited to files under 2 million characters; download the file for a complete check.",
-    "table_clean": "Rows: {{rows}} · columns: {{cols}}; no leakage, imbalance or constant-column issues detected.",
+    "table_clean": "Rows: {{rows}} · columns: {{cols}}; groups are balanced, no column gives the group away, and no column is constant.",
     "table_clean_label_unchecked": "Rows: {{rows}} · columns: {{cols}}; no constant-column or missing-value issues detected.",
     "table_clean_unlabelled": "Rows: {{rows}} · columns: {{cols}}; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked.",
     "table_summary": "Rows: {{rows}} · columns: {{cols}}.",

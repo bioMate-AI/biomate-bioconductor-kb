@@ -316,12 +316,8 @@ def test_read_rows_returns_the_delimiter(tmp):
 # Copy — ONE English template table, equal to the en locale
 # ---------------------------------------------------------------------------
 # Codes whose en wording the backend changed this round (the client's locale adopts it).
-_BACKEND_AHEAD_OF_LOCALE = frozenset({"alignment_not_coordinate_sorted"}) | frozenset({
-    # Round 3 (2026-11-12, P8 count-safe wording + W4): the client's en locale adopts these.
-    "alignment_read_groups", "alignment_references", "anndata_obs", "anndata_var", "annotation_features",
-    "fasta_empty_records", "fasta_orphan_lines", "label_free_text", "mtx_dimensions", "nested_row_cap",
-    "nested_tables", "ragged_rows",
-})
+# Backend English and the en locale are one wording (2026-11-12 round 3b): no exemptions.
+_BACKEND_AHEAD_OF_LOCALE = frozenset()
 
 
 def _en_locale():

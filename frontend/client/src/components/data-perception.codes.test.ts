@@ -50,7 +50,6 @@ describe("perception locale coverage", () => {
     // Round-3 seams scientist wording (d71cfa7743, W7 "in plain words"): "groups are balanced, no
     // column gives the group away" instead of the profiler's "no leakage, imbalance or
     // constant-column issues" — the same plain words as the QC card's "Groups (column)" section.
-    table_clean: "round-3 seams plain wording",
   }
   const enText = (codes as any).enText as Record<string, string>
 
