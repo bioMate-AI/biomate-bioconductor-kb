@@ -1274,7 +1274,10 @@
     "origin_not_reported": "运行未报告来源 — 如实标注，而不是凭空猜测",
     "job_id": "任务 ID",
     "work_directory": "工作目录",
-    "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。"
+    "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。",
+    "step_position": "第 {{n}} 步 / 共 {{total}} 步",
+    "prev_step": "上一步",
+    "next_step": "下一步"
   },
   "domains": {
     "drug_discovery": "药物发现",

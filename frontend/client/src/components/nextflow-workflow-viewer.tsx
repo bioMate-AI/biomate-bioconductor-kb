@@ -4629,12 +4629,29 @@ export function NextflowWorkflowViewer({
                   role="region"
                   aria-label={tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}
                 >
+                    {(() => {
+                      // Flat ordered step list (across phases) with phase letters —
+                      // drives the .deephd position + .deepfoot prev/next traversal
+                      // (spec 08 §8.2/§8.3).
+                      const flat: Array<{ raw: any; letter: string }> = groupedPhases.flatMap(
+                        (g: any) => (Array.isArray(g.steps) ? g.steps.map((s: any) => ({ raw: s, letter: g.letter })) : []),
+                      );
+                      const idx = flat.findIndex(
+                        (e) => String(e.raw?.id ?? e.raw?.name ?? '') === String(fullViewStep.id),
+                      );
+                      const pos = idx >= 0
+                        ? { phaseLetter: flat[idx].letter, stepNumber: idx + 1, totalSteps: flat.length }
+                        : {};
+                      const openAt = (i: number) => { if (flat[i]) setFullViewStep(buildStepDetailStep(flat[i].raw)); };
+                      return (
                     <StepDetail
                       runId={activeRunId || ""}
-                      step={fullViewStep}
+                      step={{ ...fullViewStep, ...pos }}
                       workflowDefinition={workflowDefinition}
                       projectId={projectId}
                       onClose={() => setFullViewStep(null)}
+                      onPrev={idx > 0 ? () => openAt(idx - 1) : undefined}
+                      onNext={idx >= 0 && idx < flat.length - 1 ? () => openAt(idx + 1) : undefined}
                       onApplyAndRerun={(edited) => {
                         // Apply the in-place-edited params to the form and re-run
                         // with the merged set (pass merged directly — setParams is
@@ -4653,6 +4670,8 @@ export function NextflowWorkflowViewer({
                         });
                       }}
                     />
+                      );
+                    })()}
                 </div>
               )}
 

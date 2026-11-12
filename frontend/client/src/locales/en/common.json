@@ -1075,7 +1075,10 @@
     "origin_not_reported": "origin not reported by the run — shown honestly rather than guessed",
     "job_id": "Job ID",
     "work_directory": "Work directory",
-    "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files."
+    "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files.",
+    "step_position": "Step {{n}} of {{total}}",
+    "prev_step": "Previous step",
+    "next_step": "Next step"
   },
   "domains": {
     "drug_discovery": "Drug discovery",
