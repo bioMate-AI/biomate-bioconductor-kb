@@ -42,3 +42,56 @@ describe('toolCallDisplayFor — the chat card never shows raw tool input', () =
     expect(toolCallDisplayFor({ code: 'import os\nprint(1)', language: 'python' })).toBe('python');
   });
 });
+
+import { attachmentLocalId, modelFacingUploads } from './galaxy-assistant';
+import { redactInternalBackend, userFacingToolOutput } from '../shared/tool-call-display';
+import { redactStoragePaths } from './execution-integrity';
+
+describe('the response model never sees the backend name (founder 2026-11-12: "there should not have galaxy in output")', () => {
+  const block = '分析一下这张图\n\n[Uploaded datasets: 0.jpeg: dataset_id=11111111-2222-3333-4444-555555555555, galaxy_dataset_id=b9ce582c-fded-4db5-838f-bdd96820f72c, s3_uri=s3://bucket/uploads/u/0.jpeg; notes.txt: dataset_id=n/a, galaxy_dataset_id=f00df00df00df00d]';
+  it('upload block: one neutral dataset_id per file (the backend id, as staging uses), no galaxy key', () => {
+    const out = modelFacingUploads(block);
+    expect(out).not.toMatch(/galaxy/i);
+    expect(out).toContain('0.jpeg: dataset_id=b9ce582c-fded-4db5-838f-bdd96820f72c, s3_uri=s3://bucket/uploads/u/0.jpeg');
+    expect(out).toContain('notes.txt: dataset_id=f00df00df00df00d');
+    expect(out.startsWith('分析一下这张图')).toBe(true);
+  });
+  it('a block with only a BioMate dataset id keeps it', () => {
+    expect(modelFacingUploads('[Uploaded datasets: a.csv: dataset_id=abc-1]')).toBe('[Uploaded datasets: a.csv: dataset_id=abc-1]');
+  });
+  it('read_file maps the model-facing id back to the local copy, this turn or an earlier one', () => {
+    expect(attachmentLocalId('b9ce582c-fded-4db5-838f-bdd96820f72c', { turnMessage: block })).toBe('11111111-2222-3333-4444-555555555555');
+    expect(attachmentLocalId('b9ce582c-fded-4db5-838f-bdd96820f72c', { turnMessage: 'next question', previousMessages: [{ role: 'user', content: block }] }))
+      .toBe('11111111-2222-3333-4444-555555555555');
+    expect(attachmentLocalId('unknown', { turnMessage: block })).toBeUndefined();
+  });
+});
+
+describe('reply guard: the backend is never named to the user', () => {
+  it('strips backend id fields and neutralises backend nouns (en + zh)', () => {
+    expect(redactInternalBackend('Reading galaxy_dataset_id=b9ce582c-fded-4db5-838f-bdd96820f72c now')).toBe('Reading now');
+    expect(redactInternalBackend('Your file is in the Galaxy history.')).toBe('Your file is in your data.');
+    expect(redactInternalBackend('The Galaxy history holds it; the Galaxy backend stores it.')).toBe('Your data holds it; BioMate stores it.');
+    expect(redactInternalBackend('我已把文件存入 Galaxy 历史', true)).toBe('我已把文件存入 你的数据');
+    expect(redactInternalBackend('the galaxy_dataset_id field')).toBe('the dataset ID field');
+  });
+  it('leaves the Galaxy platform itself alone (a user may ask about it)', () => {
+    expect(redactInternalBackend('You can import a Galaxy workflow (.ga) from Settings.')).toBe('You can import a Galaxy workflow (.ga) from Settings.');
+  });
+  it('runs inside redactStoragePaths, the reply choke point, outside code blocks only', () => {
+    expect(redactStoragePaths('Saved to the Galaxy history: s3://b/u/x/report.png\n```\ngalaxy_dataset_id = 1\n```'))
+      .toBe('Saved to your data: report.png\n```\ngalaxy_dataset_id = 1\n```');
+  });
+  it('tool output in the card: id / backend keys dropped, UUIDs and storage URIs cleaned', () => {
+    expect(userFacingToolOutput({ galaxy_dataset_id: 'b9ce582c-fded-4db5-838f-bdd96820f72c', name: 'x.csv', path: 's3://b/k/x.csv', lines: ['a,b'] }))
+      .toEqual({ name: 'x.csv', path: 'x.csv', lines: ['a,b'] });
+    expect(userFacingToolOutput('Dataset not found in Galaxy history')).toBe('Dataset not found in your data');
+  });
+});
+
+describe('legacy attachment lines in older histories', () => {
+  it('[Galaxy dataset: …] is rewritten before it reaches the model', () => {
+    expect(modelFacingUploads('[Galaxy dataset: gse22055_expression.csv (id: f796f3f2)]'))
+      .toBe('[Dataset: gse22055_expression.csv (dataset_id: f796f3f2)]');
+  });
+});

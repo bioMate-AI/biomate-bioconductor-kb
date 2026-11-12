@@ -109,7 +109,7 @@ export function AddSkillForm({ onCreated }: { onCreated?: () => void }) {
         setErr(
           msg ||
           (r.status === 409
-            ? 'This needs personal Galaxy access, or a skill with that name already exists.'
+            ? 'Your account cannot add skills yet, or a skill with that name already exists.'
             : `Could not create the expert (${r.status}).`),
         );
         return;

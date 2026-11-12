@@ -45,8 +45,47 @@ export function toolCallDisplay(
         if (name) parts.push(name);
         continue;
       }
-      parts.push(s.length > MAX_PART ? `${s.slice(0, MAX_PART)}…` : s);
+      const shown = redactInternalBackend(s);
+      parts.push(shown.length > MAX_PART ? `${shown.slice(0, MAX_PART)}…` : shown);
     }
   }
   return Array.from(new Set(parts)).join(' · ');
+}
+
+/** The internal execution backend is never named to the user (founder 2026-11-12: "there should
+ *  not have galaxy in output"). Removes backend id fields (`galaxy_dataset_id=<id>`, bare
+ *  `galaxy_*_id` names) and rewrites the backend's own nouns ("Galaxy history / backend / dataset /
+ *  server / API") to neutral words. A user asking about the Galaxy platform itself ("import a Galaxy
+ *  workflow", ".ga file") is untouched. Prose only — callers skip code blocks. */
+export function redactInternalBackend(text: string, zh = false): string {
+  return String(text || '')
+    .replace(/`?\bgalaxy_[a-z_]*ids?\b`?\s*[=:]\s*`?[A-Za-z0-9-]+`?\s*,?\s*/gi, '')
+    .replace(/`?\bgalaxy_[a-z_]*ids?\b`?/gi, zh ? '数据集 ID' : 'dataset ID')
+    .replace(/\b(?:(?:the|a|your)\s+)?Galaxy\s+(?:history|histories)\b/gi, (_m: string, offset: number, all: string) => zh ? '你的数据'
+      : (/(?:^|[.!?]\s+)$/.test(all.slice(0, offset)) ? 'Your data' : 'your data'))
+    .replace(/\bGalaxy\s+(dataset|datasets)\b/gi, (_m, n: string) => zh ? '数据集' : n.toLowerCase())
+    .replace(/\b(?:the\s+)?Galaxy\s+(?:backend|server|instance|API)\b/gi, 'BioMate')
+    .replace(/Galaxy\s*(?:历史记录|历史|后端|服务器|数据集)/g, (m) => /数据集/.test(m) ? '数据集' : /历史/.test(m) ? '你的数据' : 'BioMate');
+}
+
+/** A tool's result as shown in the expanded chat card: internal id fields and backend-named keys
+ *  dropped, UUID values removed, storage URIs reduced to file names, backend nouns neutralised. */
+export function userFacingToolOutput(value: unknown, depth = 0): unknown {
+  if (depth > 6) return undefined;
+  if (typeof value === 'string') {
+    if (UUID_RE.test(value) && value.trim().length <= 40) return undefined;
+    const s = value.replace(/(?:s3|gs|file):\/\/[^\s"',)\]]+/gi, (m) => baseName(m) || m);
+    return redactInternalBackend(s.replace(new RegExp(UUID_RE.source, 'gi'), '').replace(/\(\s*(?:id:?\s*)?\)/g, ''));
+  }
+  if (Array.isArray(value)) return value.map(v => userFacingToolOutput(v, depth + 1)).filter(v => v !== undefined);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (ID_KEY_RE.test(k) || /galaxy|s3_?(?:key|uri|bucket)/i.test(k)) continue;
+      const cleaned = userFacingToolOutput(v, depth + 1);
+      if (cleaned !== undefined) out[k] = cleaned;
+    }
+    return out;
+  }
+  return value;
 }

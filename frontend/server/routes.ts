@@ -7747,7 +7747,10 @@ ${paramLines || '(none recorded)'}`;
       })();
 
       const assistantMessage = (() => {
-        const msg = String(assistantResponse.message || "");
+        // Single choke point for the reply text: storage paths and the internal backend's name never
+        // reach the user, whichever generation path produced it (idempotent on already-clean text).
+        const raw = String(assistantResponse.message || "");
+        const msg = redactStoragePaths(raw, /[\u4e00-\u9fff]/.test(raw));
         if (msg.trim()) return msg;
         // Fallback: LLM returned empty — surface recommended tools if available, else generic prompt
         const tools = assistantResponse.recommendedTools;

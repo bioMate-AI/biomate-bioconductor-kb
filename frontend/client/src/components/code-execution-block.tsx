@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check, Download } from 'lucide-react';
 import { tOr } from '@/lib/i18n';
-import { toolCallDisplay } from '@shared/tool-call-display';
+import { redactInternalBackend, toolCallDisplay, userFacingToolOutput } from '@shared/tool-call-display';
 
 /** 23 → "23 B", 2048 → "2.0 KB", 3e6 → "2.9 MB" (a small report read "0.0 KB"). */
 export function formatBytes(n: number): string {
@@ -273,7 +273,7 @@ export function CodeExecutionBlock({ block }: Props) {
           {result && (
             <div className="px-3 py-2 bg-background space-y-2">
               {result.error && (
-                <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 dark:text-red-400 px-2 py-1 rounded">{result.error}</div>
+                <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 dark:text-red-400 px-2 py-1 rounded">{String(userFacingToolOutput(result.error) ?? '')}</div>
               )}
               {exitCode !== undefined && exitCode !== 0 && (
                 <div className="text-xs text-red-600 dark:text-red-400">{tOr('tool_card.exit_code', 'Exit code: {{code}}', { code: exitCode })}</div>
@@ -282,7 +282,7 @@ export function CodeExecutionBlock({ block }: Props) {
                 <div>
                   <div className="text-xs text-muted-foreground mb-0.5">{tOr('tool_card.console_output', 'Console output')}</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
-                    {truncate(stdout, 2000)}
+                    {truncate(redactInternalBackend(stdout), 2000)}
                   </pre>
                 </div>
               )}
@@ -314,7 +314,10 @@ export function CodeExecutionBlock({ block }: Props) {
                 <div>
                   <div className="text-xs text-muted-foreground mb-0.5">{tOr('tool_card.result', 'Result')}</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
-                    {truncate(typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2), 2000)}
+                    {(() => {
+                      const shown = userFacingToolOutput(result.output);
+                      return truncate(typeof shown === 'string' ? shown : JSON.stringify(shown, null, 2), 2000);
+                    })()}
                   </pre>
                 </div>
               )}

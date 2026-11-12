@@ -45,4 +45,26 @@ describe('CodeExecutionBlock', () => {
     expect(preview.querySelector('pre')!.className).not.toMatch(/max-h-/);
     expect(preview.textContent).toContain('+2 more lines');
   });
+
+  it('expanded result and error never show backend ids or names', () => {
+    const { container } = render(<CodeExecutionBlock block={{
+      tool_use_id: 't4', name: 'read_file',
+      call: { type: 'tool_call', tool_use_id: 't4', name: 'read_file', input: { dataset_id: UUID }, display: 'x.csv' },
+      result: { type: 'tool_result', tool_use_id: 't4', name: 'read_file',
+        output: { galaxy_dataset_id: UUID, lines: ['a,b'], s3_key: 'uploads/u/x.csv' } },
+    }} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(container.textContent).not.toMatch(/galaxy|b9ce582c|s3/i);
+    expect(container.textContent).toContain('a,b');
+  });
+
+  it('a tool error never names the backend', () => {
+    const { container } = render(<CodeExecutionBlock block={{
+      tool_use_id: 't5', name: 'read_file',
+      call: { type: 'tool_call', tool_use_id: 't5', name: 'read_file', input: { dataset_id: UUID } },
+      result: { type: 'tool_result', tool_use_id: 't5', name: 'read_file', error: `Dataset ${UUID} not found in Galaxy history` },
+    }} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(container.textContent).not.toMatch(/galaxy|b9ce582c/i);
+  });
 });

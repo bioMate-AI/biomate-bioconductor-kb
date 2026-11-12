@@ -651,7 +651,7 @@
     "content_hash": "Content hash",
     "dedup_note": "same bytes link to one entry",
     "open_in": "Open in {{tool}}",
-    "open_in_title": "Stage this file into a Galaxy history and open it in {{tool}}",
+    "open_in_title": "Open this file in {{tool}}",
     "open_in_launching": "Launching…",
     "open_in_failed": "Could not open the interactive tool",
     "restore": "Restore",
@@ -702,7 +702,7 @@
     "preview_tiff": "TIFF images cannot be displayed in the browser. Download the file to open it in an image viewer (e.g. Fiji/ImageJ).",
     "preview_download": "Download",
     "format_chip_title": "File format: {{label}} ({{source}})",
-    "format_source_galaxy": "identified by Galaxy datatype",
+    "format_source_galaxy": "identified from the file's format",
     "format_source_biomate": "identified by BioMate",
     "nested_table": "table {{rows}}×{{cols}}",
     "nested_list": "list · {{n}}",
@@ -1528,7 +1528,7 @@
     "seed_prompt": "Run the {{name}} workflow.",
     "title_short": "Workflows",
     "tab_import": "Import Workflow",
-    "import_tip": "Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow. Once imported it appears under My workflows and can be launched from any chat. BioMate runs it on AWS Batch with your configured environment.",
+    "import_tip": "Upload your own workflow — Nextflow (.nf), or a .ga / .yml workflow file. Once imported it appears under My workflows and can be launched from any chat.",
     "import_file_label": "Workflow file",
     "import_choose_file": "Choose file",
     "import_no_file": "No file chosen",
@@ -1870,12 +1870,12 @@
     "settings": {
       "api_keys": "Personal keys for connecting chat apps and MCP clients to BioMate, and the language-model provider used in chat.",
       "connectors": "Public data sources, your private databases, MCP servers and instrument connections.",
-      "import": "Add your own Nextflow or Galaxy workflow so it can be run from any chat."
+      "import": "Add your own workflow file (Nextflow .nf, or .ga / .yml) so it can be run from any chat."
     },
     "workflows_library": {
       "browse": "Search the curated workflow catalog by task, method or data type.",
       "my": "Workflows you imported — launch any of them from a chat.",
-      "import": "Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow."
+      "import": "Upload your own workflow file — Nextflow (.nf), or .ga / .yml."
     },
     "dataset": {
       "preview": "Look inside the file — a table, image or text view of its contents.",

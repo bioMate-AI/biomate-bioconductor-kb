@@ -664,7 +664,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               <Info style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1, color: 'oklch(0.50 0.12 240)' }} />
               <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.6, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
                 {tOr('workflows_library.import_tip',
-                  'Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow. Once imported it appears under My workflows and can be launched from any chat. BioMate runs it on AWS Batch with your configured environment.')}
+                  'Upload your own workflow — Nextflow (.nf), or a .ga / .yml workflow file. Once imported it appears under My workflows and can be launched from any chat.')}
               </p>
             </div>
 

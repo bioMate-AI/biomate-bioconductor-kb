@@ -161,7 +161,7 @@ Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2),
         input_datasets: {
           type: 'array',
           items: { type: 'string' },
-          description: 'galaxy_dataset_ids of datasets to make available (from [Uploaded datasets:] block)',
+          description: 'dataset_id values of the datasets to make available (from the [Uploaded datasets:] block or <session_datasets>)',
         },
       },
       required: ['language', 'code'],
@@ -179,13 +179,13 @@ Returns a structured summary regardless of format (CSV, TSV, FASTA, VCF, BAM, PD
     input_schema: {
       type: 'object' as const,
       properties: {
-        galaxy_dataset_id: {
+        dataset_id: {
           type: 'string',
-          description: 'The dataset ID from the [Uploaded datasets:] block — use galaxy_dataset_id if present, otherwise use dataset_id',
+          description: 'The dataset_id from the [Uploaded datasets:] block or <session_datasets>',
         },
         n_lines: { type: 'number', description: 'Number of rows/records to preview (default 20)' },
       },
-      required: ['galaxy_dataset_id'],
+      required: ['dataset_id'],
     },
   },
   {
@@ -3103,6 +3103,39 @@ export function attachedDatasetsFromMessage(message: string): Array<{ name: stri
     const galaxyId = /\bgalaxy_dataset_id=([^,\s]+)/.exec(entry)?.[1];
     return { name, datasetId: datasetId && datasetId !== 'n/a' ? datasetId : undefined, galaxyId };
   }).filter(d => d.name && (d.datasetId || d.galaxyId));
+}
+
+/** The "[Uploaded datasets: …]" block as the response model sees it: one neutral `dataset_id` per
+ *  file (the backend id when present — the same id <session_datasets> and run_code staging use —
+ *  else BioMate's), the backend-specific key dropped so the model never learns or repeats it
+ *  (founder 2026-11-12: "there should not have galaxy in output"). s3_uri is kept: it is a
+ *  workflow-parameter value, and replies are guarded by redactStoragePaths. */
+export function modelFacingUploads(text: string): string {
+  return String(text || '')
+    // Legacy attachment lines still in older chat histories.
+    .replace(/\[Galaxy dataset:\s*([^\]]*?)\s*\(id:\s*([^)\s]+)\)\s*\]/gi, '[Dataset: $1 (dataset_id: $2)]')
+    .replace(/\[Uploaded datasets?:\s*([^\]]+)\]/gi, (_all, body: string) => {
+    const entries = body.split(/;\s*/).map((entry) => {
+      const name = entry.split(':')[0].trim();
+      const datasetId = /\bdataset_id=([^,\s;]+)/.exec(entry.replace(/\bgalaxy_dataset_id=[^,\s;]+/gi, ''))?.[1];
+      const backendId = /\bgalaxy_dataset_id=([^,\s;]+)/i.exec(entry)?.[1];
+      const s3Uri = /\bs3_uri=([^,\s;]+)/.exec(entry)?.[1];
+      const id = backendId || (datasetId && datasetId !== 'n/a' ? datasetId : undefined);
+      if (!name) return '';
+      return `${name}: ${[id ? `dataset_id=${id}` : '', s3Uri ? `s3_uri=${s3Uri}` : ''].filter(Boolean).join(', ')}`.replace(/:\s*$/, '');
+    }).filter(Boolean);
+    return `[Uploaded datasets: ${entries.join('; ')}]`;
+  });
+}
+
+/** The local-upload id (BioMate dataset id) of an attachment the model referenced by its
+ *  model-facing id, from this turn's or an earlier turn's upload block. */
+export function attachmentLocalId(id: string, context?: Pick<ChatContext, 'turnMessage' | 'previousMessages'>): string | undefined {
+  const texts = [context?.turnMessage || '', ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : '')];
+  for (const t of texts) {
+    for (const a of attachedDatasetsFromMessage(t)) if (a.galaxyId === id && a.datasetId) return a.datasetId;
+  }
+  return undefined;
 }
 
 /** This turn's uploaded files with their runnable S3 location, for binding to a plan's declared
@@ -9985,10 +10018,10 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         body += `The following selected IDs are not in the current session cache and must be resolved by their exact IDs before use: ${unresolved.join(', ')}. If resolution fails, report that failure; do not substitute another dataset.\n\n`;
       }
       if (directRows) {
-        body += `Datasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${directRows}\n\n`;
+        body += `Datasets attached to this conversation (these IDs are stable across turns and runs):\n${directRows}\n\n`;
       }
       if (projectFileRows) {
-        body += `Project files selected for this operation (authorized exact objects, not Galaxy history):\n${projectFileRows}\n\n`;
+        body += `Project files selected for this operation (authorized exact objects, not conversation uploads):\n${projectFileRows}\n\n`;
       }
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
@@ -10114,7 +10147,7 @@ BioMate's real capability surface (verified, do not extrapolate):
 - **Data ingestion:** users get data in by (a) the upload button, (b) an S3/local path, (c) an SRA/ENA/GEO/ArrayExpress/PXD accession, or (d) **Import from URL** (Data → Import from URL), which fetches any direct HTTP/FTP/S3 link AND a **Google Drive or Dropbox share link** — BioMate converts the share link to a direct download server-side. So BioMate CAN use a user's Google Drive / Dropbox data; NEVER tell a user it "cannot access Google Drive / Dropbox / their cloud files" — instead point them to **Import from URL** and ask for the share link.
 - **4,200+ indexed Nextflow workflows** across 36 biological domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19), and more.
 - **12,312 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
-- **Verified live DB integrations** called directly from the Galaxy backend Python (research_agent + knowledge modules):
+- **Verified live DB integrations** called directly from the BioMate backend (research_agent + knowledge modules):
   - PubChem (compounds; resolve SMILES/CIDs on demand via the backend DB integrations)
   - PubMed / NCBI E-utilities (literature, gene lookups)
   - UniProt REST (proteins)
@@ -10191,7 +10224,7 @@ PROACTIVE-WORK RULE (highest priority):
 BioMate's real capability surface:
 - **4,200+ indexed Nextflow workflows** across 36 domains (transcriptomics 1,695, genomics 756, epigenomics 265, drug_discovery 200, proteomics 186, variant_calling 181, single_cell 100, cryo_em 19, …)
 - **12,312 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
-- **Verified live DB integrations** in the Galaxy backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
+- **Verified live DB integrations** in the BioMate backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
 - **run_code tool** — Python/R/bash in the biomate-biotools sandbox (R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa/iqtree, biopython/pysam pre-installed). **--network=none — cannot reach external APIs.** Light-compute path for ad-hoc / format conversion / small statistical work on data already in the prompt.
 - **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
 - If the user needs to supply project-specific data, ask straightforwardly: "Please upload [format] / provide [value]." Do not phrase it as an environment limitation.
@@ -10251,7 +10284,7 @@ ONE-QUESTION RULE:
 - META-RULE on phrasing: never echo the name of an internal instruction in your reply. Forbidden surface phrases include (but are not limited to): "SECOND-TURN OVERRIDE", "OVERRIDE applies", "ONE-QUESTION RULE", "rule applies", "applying rule X", "META-RULE", "system prompt says", "according to my instructions". Internal scaffolding must stay internal. Just produce the answer the rule prescribes — do not narrate the rule.
 - NEVER show storage locations to the user: no "s3://" URIs, bucket names, the word "S3", upload paths or dataset UUIDs — in any language. Refer to inputs by file name (e.g. pilot_compounds.csv) or by public accession (e.g. SRR1039508). Storage URIs are for tool and workflow parameters only, never for your reply text.
 - When the message contains a "[Prepared inputs: ...]" block, it is background notes about the attached example files (what the data is, column meanings, where it is already staged). Use it to run the request correctly; never quote it, mention it, or call it a "block", "demo context" or "notes".
-- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>, s3_uri=<S3URI>". For run_code: use galaxy_dataset_id (or dataset_id) and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (Nextflow workers access files directly via the s3_uri); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the file at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
+- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, s3_uri=<S3URI>". For read_file and run_code: use the dataset_id and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (Nextflow workers access files directly via the s3_uri); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the file at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
 - Differential-expression file mapping rule: When multiple CSV files are uploaded for a DE workflow (differentialabundance, DESeq2, edgeR, limma), map them as follows based on filename keywords: files containing "sample", "metadata", "samplesheet", "coldata", "design" → use as the 'samplesheet' param (or 'input' if the workflow only declares 'input'). Files containing "count", "matrix", "expression", "counts" → use as the 'matrix' param. Files containing "contrast", "comparison" → use as the 'contrasts' param. NEVER create a generic 'dataset' param. Every uploaded file must map to a named workflow param.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 - GEO accession routing rules:
@@ -10326,7 +10359,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
     const inputsNote = !runnableWorkflow && attachedDatasetsFromMessage(message).length
       ? runCodeInputsNote(message, await this._attachedFileHeads(message, context))
       : '';
-    const userPrompt = `User: ${message}
+    const userPrompt = `User: ${modelFacingUploads(message)}
 ${replyLanguageNote(message)}
 ${inputsNote ? `\n${inputsNote}\n` : ''}
 ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
@@ -10407,7 +10440,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         .slice(-CONTEXT_WINDOW)
         .map((msg) => ({
         role: msg.role as 'user' | 'assistant',
-        content: msg.content,
+        content: typeof msg.content === 'string' ? modelFacingUploads(msg.content) : msg.content,
       }));
 
       // C3 — When context is compressed, generate and store a session summary (fire-and-forget)
@@ -11388,10 +11421,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */
   private async _toolReadFile(input: any, _context: ChatContext): Promise<unknown> {
-    // Accept either galaxy_dataset_id or dataset_id (when Galaxy is unavailable)
+    // The model sees one neutral `dataset_id` (modelFacingUploads); older transcripts may still
+    // pass the legacy key. The local upload copy is keyed by BioMate's dataset id, the backend
+    // store by its own id — attachmentLocalId maps the one the model gave to the local one.
     const { galaxy_dataset_id, dataset_id, n_lines = 20 } = input;
-    const fileId = galaxy_dataset_id || dataset_id;
-    if (!fileId) return { error: 'galaxy_dataset_id or dataset_id is required' };
+    const fileId: string = dataset_id || galaxy_dataset_id;
+    if (!fileId) return { error: 'dataset_id is required' };
 
     // Project-file ids are not Galaxy ids. Preview only the exact
     // server-authorized key that routes.ts placed in this turn's context;
@@ -11424,7 +11459,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     // Check local upload registry first (works when Galaxy is unavailable)
     try {
       const { getUploadedFile } = await import('./routes');
-      const localFile = getUploadedFile(fileId);
+      const localFile = getUploadedFile(fileId) || getUploadedFile(attachmentLocalId(fileId, _context) || '');
       if (localFile?.filePath) {
         // PDF: extract text via pdfplumber (binary readFile returns garbage for PDFs).
         // A PDF has no meaningful "lines" to page through, and slicing to the first
