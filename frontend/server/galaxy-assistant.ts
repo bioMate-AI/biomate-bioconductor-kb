@@ -793,6 +793,8 @@ export interface ChatContext {
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
+  /** Authenticated user id (set by routes.ts from req.user only). */
+  authUserId?: string;
   /**
    * The active project id (uuid) this chat is scoped to, or undefined when the
    * chat is project-less. Set by routes.ts from the server-resolved project
@@ -11341,7 +11343,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   }
 
   private async _toolRunCode(input: any, context?: ChatContext): Promise<unknown> {
-    const { runCode } = await import('./code-runner');
+    const { runCode, sessionWorkspaceKey } = await import('./code-runner');
     const { getUploadedFile } = await import('./routes');
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     const galaxyKey: string = (context?.galaxyAPIOverride as any)?.apiKey || process.env.GALAXY_API_KEY || '';
@@ -11438,8 +11440,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       downloadDataset,
       prior_code: prior.length ? [...prior] : undefined,
       // One workspace per chat session (reference harnesses: Biomni cwd, ScienceBuddy per-episode
-      // container): files in $OUTPUT_DIR survive into later calls and turns.
-      workspaceKey: context?.sessionId ? `chat:${context.sessionId}` : undefined,
+      // container): files in $OUTPUT_DIR survive into later calls and turns. Bound to the
+      // AUTHENTICATED user (authUserId is set by routes.ts from req.user only; context.userId falls
+      // back to a client value on anonymous requests), since the session id is client-supplied.
+      workspaceKey: sessionWorkspaceKey(context?.authUserId, context?.sessionId),
       persistOutputFile: context?.persistGeneratedFile
         ? (f) => context.persistGeneratedFile!(f.hostPath, f.name) : undefined,
     }), { label: 'run_code tool' });

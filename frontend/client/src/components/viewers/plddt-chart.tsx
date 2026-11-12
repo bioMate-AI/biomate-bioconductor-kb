@@ -18,6 +18,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Activity } from "lucide-react"
+import { t } from "@/lib/i18n"
 
 // ---------------------------------------------------------------------------
 // Types (data contract — mirrored by the backend that returns exactly this)
@@ -47,17 +48,19 @@ export interface PlddtChartProps {
 // Colour bands
 // ---------------------------------------------------------------------------
 
-interface Band { min: number; color: string; label: string }
+interface Band { min: number; color: string; key: "very_high" | "confident" | "low" | "very_low" }
 
 // Band colours follow the reference design: very-high/low map to the status
 // tokens (--ok/--warn), confident/very-low use the reference's muted blue/red
 // (#4b8fd6 / #c0563f) rather than the saturated Tailwind primaries.
 const PL_BANDS: Band[] = [
-  { min: 90, color: "var(--ok)",   label: "very high" }, // green
-  { min: 70, color: "#4b8fd6",     label: "confident" }, // reference blue
-  { min: 50, color: "var(--warn)", label: "low" },       // amber
-  { min: 0,  color: "#c0563f",     label: "very low" },  // reference red
+  { min: 90, color: "var(--ok)",   key: "very_high" }, // green
+  { min: 70, color: "#4b8fd6",     key: "confident" }, // reference blue
+  { min: 50, color: "var(--warn)", key: "low" },       // amber
+  { min: 0,  color: "#c0563f",     key: "very_low" },  // reference red
 ]
+
+const bandLabel = (b: Band) => t(`dataset_obj.plddt_band_${b.key}`)
 
 function bandOf(v: number): Band {
   return PL_BANDS.find(b => v >= b.min) ?? PL_BANDS[PL_BANDS.length - 1]
@@ -77,7 +80,7 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
     return (
       <Card className={className} data-testid="plddt-chart">
         <CardContent className="py-4">
-          <p className="text-xs text-muted-foreground">No per-residue confidence data available.</p>
+          <p className="text-xs text-muted-foreground">{t("dataset_obj.plddt_none")}</p>
         </CardContent>
       </Card>
     )
@@ -100,15 +103,15 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Activity className="h-4 w-4" />
-          Per-residue confidence
+          <span title={t("dataset_obj.plddt_gloss")}>{t("dataset_obj.plddt_title")}</span>
         </CardTitle>
         <CardDescription className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="text-xs" data-testid="plddt-mean">mean {mean}</Badge>
+          <Badge variant="outline" className="text-xs" data-testid="plddt-mean">{t("dataset_obj.plddt_mean", { mean })}</Badge>
           <span className="flex items-center gap-2 flex-wrap text-fs-xs text-muted-foreground">
             {PL_BANDS.map(b => (
-              <span key={b.label} className="inline-flex items-center gap-1">
+              <span key={b.key} className="inline-flex items-center gap-1">
                 <span className="inline-block h-2 w-2 rounded-sm" style={{ background: b.color }} />
-                {b.label}
+                {bandLabel(b)}
               </span>
             ))}
           </span>
@@ -124,7 +127,7 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
             className="w-full"
             style={{ height: 120 }}
             role="img"
-            aria-label="Per-residue confidence bar chart"
+            aria-label={t("dataset_obj.plddt_chart_label")}
           >
             {[50, 70, 90].map(y => (
               <line
@@ -165,16 +168,16 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
         <div className="flex items-center gap-2 flex-wrap text-xs min-h-[20px]" data-testid="plddt-readout">
           {active !== null ? (
             <>
-              <span className="font-mono font-semibold">residue {active + 1}</span>
+              <span className="font-mono font-semibold">{t("dataset_obj.plddt_residue", { n: active + 1 })}</span>
               <span className="font-mono">{plddt[active]}</span>
               <Badge variant="outline" className="text-xs" style={{ color: bandOf(plddt[active]).color }}>
-                {bandOf(plddt[active]).label}
+                {bandLabel(bandOf(plddt[active]))}
               </Badge>
-              <span className="text-fs-xs text-muted-foreground">click to centre the 3D view here</span>
+              <span className="text-fs-xs text-muted-foreground">{t("dataset_obj.plddt_click_here")}</span>
             </>
           ) : (
             <span className="text-fs-xs text-muted-foreground">
-              Hover a residue for its score; click to centre the 3D view on it.
+              {t("dataset_obj.plddt_hover_hint")}
             </span>
           )}
         </div>
@@ -203,8 +206,7 @@ export function PlddtChart({ plddt, regions = [], onSelectResidue, className }: 
         )}
 
         <p className="text-fs-xs text-muted-foreground">
-          A structure picture with no confidence chart invites a claim its low-confidence loops
-          cannot support. The two are one output, shown together.
+          {t("dataset_obj.plddt_note")}
         </p>
       </CardContent>
     </Card>

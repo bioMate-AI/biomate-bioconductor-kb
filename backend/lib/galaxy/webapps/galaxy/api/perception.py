@@ -3,6 +3,11 @@ Data-perception API — thin endpoint over the rules-first profiler.
 
 POST /api/perception/profile  { datasetRef }  ->  DataProfile
 POST /api/perception/rows     { datasetRef, offset, limit }  ->  one page of FULL rows
+POST /api/perception/folder_profile { path, projectId, files: [{name, datasetRef}] } -> FolderProfile
+
+Both per-file calls accept an optional ``folderContext`` = ``{name, siblings}`` (the file's
+project path and the other paths of its folder). The Node server that owns the project's file
+list adds it; the profiler uses it for folder-level facts (a FASTQ's mate, a 10x TSV's role).
 
 The profiler ``galaxy.ai.data_perception`` does all the numeric work
 (deterministic, no LLM, no network). This module only resolves ``datasetRef``
@@ -23,7 +28,7 @@ import logging
 import os
 import tempfile
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -40,6 +45,9 @@ class PerceptionProfileRequest(BaseModel):
     dataset_ref: Optional[str] = None
     # Optional display name for header crumb / notes only.
     name: Optional[str] = None
+    # {"name": <project path>, "siblings": [<other paths in the same folder>]} — set by the
+    # Node server from project_files, never trusted for access (that is checked upstream).
+    folderContext: Optional[Dict[str, Any]] = None
 
     def resolved_ref(self) -> Optional[str]:
         return self.datasetRef or self.dataset_ref
@@ -147,12 +155,13 @@ def perception_profile(request: PerceptionProfileRequest) -> Dict[str, Any]:
 
     path = _resolve_path(ref)
     if not path:
-        return blocked_profile(
-            "unresolvable_ref", f"Could not resolve datasetRef to a readable file: {ref!r}."
-        ).to_dict()
+        # The ref is not echoed: it can be an internal key or path.
+        p = blocked_profile("unresolvable_ref", "")
+        p.view_kind = "unknown"
+        return p.to_dict()
 
     try:
-        return profile_dataset(path, name=request.name)
+        return profile_dataset(path, name=request.name, context=request.folderContext)
     finally:
         # Clean up an S3 download; leave local/mounted files untouched.
         if _is_perception_tempfile(path):
@@ -250,13 +259,17 @@ def _reader_version() -> str:
     return READ_ROWS_VERSION
 
 
-def _read_meta(path: str) -> Optional[Dict[str, Any]]:
+def _read_meta(path: str, layout_key: str = "") -> Optional[Dict[str, Any]]:
     try:
         with open(path + ".meta.json", "r", encoding="utf-8") as f:
             meta = json.load(f)
         # Columns / totals cached by an older reader (e.g. before header inference, when line 1
         # was always the header) describe different rows: re-read instead of serving them.
         if meta.get("reader") != _reader_version():
+            return None
+        # Same bytes read under a different folder context (a features.tsv that has since gained
+        # its 10x matrix sibling) have a different header decision.
+        if meta.get("layout", "") != layout_key:
             return None
         if isinstance(meta.get("columns"), list) and isinstance(meta.get("totalRows"), int):
             return meta
@@ -265,11 +278,12 @@ def _read_meta(path: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _write_meta(path: str, columns: Any, total: int) -> None:
+def _write_meta(path: str, columns: Any, total: int, layout_key: str = "") -> None:
     tmp = f"{path}.meta.json.{os.getpid()}.part"
     try:
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"columns": columns, "totalRows": total, "reader": _reader_version()}, f)
+            json.dump({"columns": columns, "totalRows": total, "reader": _reader_version(),
+                       "layout": layout_key}, f)
         os.replace(tmp, path + ".meta.json")
     except OSError:
         pass
@@ -283,9 +297,10 @@ def perception_rows(request: PerceptionRowsRequest) -> Dict[str, Any]:
     readers the profiler uses — so the table and the QC card describe the same rows.
     Unresolvable refs return ``{"error": ...}`` (the Node layer maps it to an HTTP status).
     """
-    from galaxy.ai.data_perception import read_rows
+    from galaxy.ai.data_perception import read_rows, rows_layout_key
 
     ref = request.resolved_ref()
+    layout_key = rows_layout_key(request.folderContext)
     if not ref:
         return {"error": "no_ref"}
     s3_ref = _split_s3_ref(ref)
@@ -297,12 +312,171 @@ def perception_rows(request: PerceptionRowsRequest) -> Dict[str, Any]:
         cached = False
     if not path:
         return {"error": "unresolvable_ref"}
-    known = _read_meta(path) if cached else None
+    known = _read_meta(path, layout_key) if cached else None
     try:
-        page = read_rows(path, request.offset, request.limit, known=known)
+        page = read_rows(path, request.offset, request.limit, known=known, context=request.folderContext,
+                         name=request.name or os.path.basename(s3_ref[1] if s3_ref else path))
     except Exception as exc:  # noqa: BLE001 — a parse error is a result, not a crash
+        # The detail stays in the log: exception text carries temp paths and library internals.
         log.warning("[perception] rows read failed for %s: %s", ref, exc)
-        return {"error": "parse_failed", "detail": str(exc)[:300]}
+        return {"error": "parse_failed"}
     if cached and known is None and page.get("tabular"):
-        _write_meta(path, page.get("columns", []), int(page.get("totalRows", 0)))
+        _write_meta(path, page.get("columns", []), int(page.get("totalRows", 0)), layout_key)
     return page
+
+
+# ---------------------------------------------------------------------------
+# Folder profile — what a project folder holds as a whole (pairs, 10x sets, roll-up).
+# ---------------------------------------------------------------------------
+class FolderProfileRequest(BaseModel):
+    path: str = ""
+    # The project the folder belongs to (the Node server resolved it and checked the caller's
+    # access). Every datasetRef must be an S3 key inside ``projects/<projectId>/``.
+    projectId: Optional[str] = None
+    # [{"name": <project path>, "datasetRef": <S3 key>}] — every file below `path` (set by the
+    # Node server from project_files; entries without a string name are ignored).
+    files: List[Dict[str, Any]] = []
+
+
+_HEAD_BYTES = 64 * 1024
+
+
+def _decompress_head(raw: bytes) -> bytes:
+    """Decompress the leading bytes of a gzip / bzip2 stream (a partial stream is fine)."""
+    import zlib
+
+    if raw[:2] == b"\x1f\x8b":
+        try:
+            return zlib.decompressobj(wbits=47).decompress(raw)
+        except zlib.error:
+            return b""
+    if raw[:3] == b"BZh":
+        import bz2
+
+        try:
+            return bz2.BZ2Decompressor().decompress(raw)
+        except (OSError, EOFError):
+            return b""
+    return raw
+
+
+def _default_bucket() -> str:
+    return (
+        os.environ.get("AWS_S3_NEXTFLOW_BUCKET")
+        or os.environ.get("AWS_S3_UPLOAD_BUCKET")
+        or "biomate-nextflow-work"
+    )
+
+
+_PROJECT_KEY_PREFIX = "projects/"
+
+
+def _project_of_key(key: str) -> Optional[str]:
+    """``<id>`` of a ``projects/<id>/<path>`` key, or None for any other / unsafe key."""
+    if not key.startswith(_PROJECT_KEY_PREFIX) or "\\" in key or "\x00" in key:
+        return None
+    parts = key.split("/")
+    if len(parts) < 3 or not parts[1] or not parts[-1] or any(p in ("", ".", "..") for p in parts[1:]):
+        return None
+    return parts[1]
+
+
+def folder_object_ref(dataset_ref: Any, project_id: Optional[str]) -> Optional[tuple]:
+    """(bucket, key) for a folder-profile datasetRef that is a server-resolved project object:
+    a bare ``projects/<projectId>/…`` key (or ``s3://<the uploads bucket>/projects/<projectId>/…``).
+    Everything else — absolute or relative local paths, ``file://``, other buckets, keys outside
+    the project — is refused (None): the endpoint never reads what a request merely names."""
+    if not isinstance(dataset_ref, str) or not dataset_ref or not project_id:
+        return None
+    ref = dataset_ref
+    bucket = _default_bucket()
+    if ref.startswith("s3://"):
+        bkey = ref[len("s3://"):]
+        if "/" not in bkey:
+            return None
+        b, key = bkey.split("/", 1)
+        if b != bucket:
+            return None
+    elif "://" in ref or ref.startswith("/") or ref.startswith("~"):
+        return None
+    else:
+        key = ref
+    if _project_of_key(key) != project_id:
+        return None
+    return bucket, key
+
+
+def _s3_head(bucket: str, key: str) -> Optional[bytes]:
+    """First _HEAD_BYTES of an object: a ranged GET, never the whole object (a 10x matrix can be
+    gigabytes)."""
+    try:
+        import boto3  # available in the Galaxy backend
+
+        obj = boto3.client("s3").get_object(Bucket=bucket, Key=key, Range=f"bytes=0-{_HEAD_BYTES - 1}")
+        return obj["Body"].read()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("[perception] head read failed for s3://%s/%s: %s", bucket, key, exc)
+        return None
+
+
+def _read_head(obj: Optional[tuple]) -> Optional[str]:
+    """First ~64 KB (decompressed) of a validated project object as text; None when unreadable."""
+    if not obj:
+        return None
+    raw = _s3_head(*obj)
+    if raw is None:
+        return None
+    return _decompress_head(raw).decode("utf-8", errors="replace")
+
+
+def _galaxy_classifier():
+    """name → (format key, label) from Galaxy's datatype registry (by filename only), falling
+    back to folder_profile's own table when Galaxy's datatypes are unavailable."""
+    from galaxy.ai import folder_profile
+
+    try:
+        from galaxy.ai import galaxy_formats as gf
+    except Exception:  # noqa: BLE001
+        return folder_profile.default_classify
+
+    def classify(name: str):
+        ext = None
+        try:
+            ext = gf.extension_for_name(name)
+        except Exception:  # noqa: BLE001
+            ext = None
+        if not ext or ext in gf.GENERIC_EXTS - {"tsv", "tabular", "txt"}:
+            return folder_profile.default_classify(name)
+        return ext, gf.label_for(ext)
+
+    return classify
+
+
+@router.post("/api/perception/folder_profile", summary="Profile a project folder as a whole")
+def perception_folder_profile(request: FolderProfileRequest) -> Dict[str, Any]:
+    """Return the FolderProfile for ``files`` (every file below ``path``; names are project
+    paths). Only the matrix of each 10x set is read (its first 64 KB, for cells × genes), and only
+    when its datasetRef is an S3 key of the request's project (:func:`folder_object_ref`).
+
+    ``projectId`` comes from the Node server, which resolved the folder's files from the project
+    it authorised. Without it nothing is read (the profile is built from the names alone); refs
+    naming anything else — a local path, another bucket, another project — are never read.
+    """
+    from galaxy.ai.folder_profile import profile_folder
+
+    project_id = request.projectId if isinstance(request.projectId, str) and request.projectId else None
+    named: Dict[str, Any] = {}
+    for f in request.files or []:
+        if isinstance(f, dict) and isinstance(f.get("name"), str):
+            named[f["name"]] = f.get("datasetRef")
+    refs: Dict[str, Optional[tuple]] = {n: folder_object_ref(r, project_id) for n, r in named.items()}
+    refused = sum(1 for n, r in named.items() if r is not None and refs[n] is None)
+    if refused:
+        log.warning("[perception] folder_profile refused %d datasetRef(s) outside projects/%s/", refused,
+                    project_id or "?")
+    return profile_folder(
+        request.path or "",
+        list(named),
+        read_head=lambda name: _read_head(refs.get(name)),
+        classify=_galaxy_classifier(),
+    )

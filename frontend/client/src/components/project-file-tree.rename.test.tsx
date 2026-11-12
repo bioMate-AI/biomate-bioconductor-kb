@@ -51,6 +51,13 @@ async function openFolderX() {
 }
 
 describe("ProjectFileTree — rename / move a file", () => {
+  it("the hint gives a concrete move example built from the file's own name", async () => {
+    render(<ProjectFileTree projectId="p1" />)
+    fireEvent.click(await openFolderX())
+    expect(screen.getByTestId("file-rename-f1-hint").textContent).toMatch(/data\/a\.csv/)
+    expect(screen.getByTestId("file-rename-f1-hint").textContent).toMatch(/[“"]data[”"]/)
+  })
+
   it("Enter saves the new name (with folders) via PATCH and the tree shows the new place", async () => {
     render(<ProjectFileTree projectId="p1" />)
     fireEvent.click(await openFolderX())

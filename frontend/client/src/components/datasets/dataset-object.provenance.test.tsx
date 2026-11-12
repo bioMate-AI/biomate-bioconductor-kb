@@ -75,7 +75,9 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(screen.queryByTestId("dataset-header-type")).toBeNull()
     expect(screen.queryByTestId("dataset-header-size")).toBeNull()
     const grid = screen.getByTestId("dataset-stat-grid")
-    expect(grid.textContent).toContain("text/tab-separated-values")
+    // The type is a human label for the data kind, never a raw MIME string (U11).
+    expect(grid.querySelector("[data-testid=dataset-stat][data-stat=type]")).toHaveTextContent("Table")
+    expect(grid.textContent).not.toContain("text/tab-separated-values")
     expect(grid.textContent).toMatch(/MB|KB/) // a real size, not blank/NaN
   })
 
@@ -206,7 +208,7 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect((cell as HTMLInputElement).value).toBe("a, quoted")
     fireEvent.change(cell, { target: { value: "control" } })
     fireEvent.click(screen.getByTestId("dataset-edit-save"))
-    await waitFor(() => expect(edited?.edits).toEqual([{ row: 1, col: 1, from: "a, quoted", value: "control" }]))
+    await waitFor(() => expect(edited?.edits).toEqual([{ row: 1, col: 1, from: "a, quoted", value: "control", rowFrom: ["EGFR", "a, quoted"] }]))
     await screen.findByTestId("dataset-edit-saved")
   })
 
@@ -305,14 +307,16 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
 })
 
 describe("DatasetObject — unavailable metadata and action error scope", () => {
-  it("shows unknown dimensions and readable JSON MIME for non-tabular generic-storage objects", async () => {
+  it("non-tabular objects show a human type label and no rows/columns cards (shape is not rows × columns)", async () => {
     global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ shape: { rows: 0, cols: 0 }, quality: "watch", notes: [] }) })) as unknown as typeof fetch
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(<QueryClientProvider client={qc}><DatasetObject dataset={{ ...RUN, name: "report.json", contentType: "application/octet-stream" }} /></QueryClientProvider>)
     await screen.findByTestId("dataset-header-quality")
     const grid = screen.getByTestId("dataset-stat-grid")
-    expect(grid).toHaveTextContent("application/json")
-    expect(within(grid).getAllByText("—")).toHaveLength(2)
+    expect(grid).toHaveTextContent("Structured data (JSON / YAML)")
+    expect(grid).not.toHaveTextContent("application/json")
+    expect(within(grid).queryAllByText("—")).toHaveLength(0)
+    expect(grid).not.toHaveTextContent(/rows/i)
   })
 
   // SKIPPED 2026-11-11: exercises the open-in button, which is disabled (not

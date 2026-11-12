@@ -1,0 +1,34 @@
+{
+ "name": "blank.csv",
+ "rows": {
+  "columns": [
+   "id",
+   "val"
+  ],
+  "delimiter": ",",
+  "headerRow": true,
+  "kind": "table",
+  "limit": 200,
+  "namesSource": "header",
+  "offset": 0,
+  "rows": [
+   [
+    "A",
+    "1"
+   ],
+   [
+    "B",
+    "2"
+   ],
+   [
+    "C",
+    "3"
+   ]
+  ],
+  "skipLines": 1,
+  "tabular": true,
+  "totalRows": 3,
+  "viewKind": "table"
+ },
+ "text": "\nid,val\nA,1\nB,2\nC,3\n"
+}

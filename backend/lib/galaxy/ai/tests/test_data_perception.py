@@ -151,7 +151,7 @@ def test_constant_and_missing_columns(tmp):
 
     prof = profile_dataset(path)
     assert prof["quality"] == "watch", prof
-    sig = " ".join(prof["signalSummary"])
+    sig = " ".join(prof["signalSummary"]).lower()
     assert "near-constant" in sig, prof
     assert "missing" in sig, prof
     print("PASS test_constant_and_missing_columns")
@@ -241,7 +241,8 @@ def test_train_test_overlap(tmp):
 def test_unknown_type_degrades(tmp):
     path = _write(tmp, "mystery.xyz", "some binary-ish text\nwith no delimiter\n")
     prof = profile_to_dataclass(path).to_dict()
-    assert prof["quality"] in ("watch", "blocked"), prof
+    # Identified (plain text) but not analysed: "unassessed", never "good" and never a fake "watch".
+    assert prof["quality"] == "unassessed" and prof["viewKind"] == "document", prof
     assert "leakage" not in prof and "classBalance" not in prof, prof
     print("PASS test_unknown_type_degrades")
 
@@ -258,10 +259,16 @@ def test_structured_json_and_yaml(tmp):
 
 
 def test_invalid_structured_file(tmp):
-    for suffix, text in (("json", '{"bad": }'), ("yaml", "bad: [")):
-        p = profile_dataset(_write(tmp, "invalid." + suffix, text))
-        assert p["quality"] == "blocked", p
-        assert "Could not parse" in p["notes"][0], p
+    # Invalid JSON is not JSON: the content (text) decides, and the name/content contradiction is a finding.
+    p = profile_dataset(_write(tmp, "invalid.json", '{"bad": }'))
+    assert p["format"]["ext"] != "json" and p["viewKind"] == "document", p
+    assert p["findings"][0]["code"] == "name_content_mismatch" and p["quality"] == "watch", p
+    assert p["findings"][0]["params"] == {"named": "JSON", "detected": "Text"}, p["findings"][0]
+    # Nearly any text is YAML syntax-wise, so a YAML parse error is a blocked profile — with a reason
+    # in words, never the parser's raw message.
+    p = profile_dataset(_write(tmp, "invalid.yaml", "bad: ["))
+    assert p["quality"] == "blocked" and p["findings"][0]["code"] == "parse_failed", p
+    assert p["findings"][0]["params"]["error"] == "the YAML is not valid", p
     print("PASS test_invalid_structured_file")
 
 
@@ -289,7 +296,7 @@ def test_jsonl_records_not_csv(tmp):
         assert p.columns == ["source", "drug", "page", "headers", "rows"], p.columns
         assert p.sample_rows[0][3] == '["A, B",""]', p.sample_rows[0][3]
         # 'source' is constant: flagged, and the note must not also claim "no constant-column issues".
-        assert any("near-constant" in s for s in (p.signal_summary or [])), p.signal_summary
+        assert any("near-constant" in s.lower() for s in (p.signal_summary or [])), p.signal_summary
         assert not any("constant-column issues detected" in n for n in p.notes), p.notes
     print("PASS test_jsonl_records_not_csv")
 
@@ -489,7 +496,7 @@ def test_header_inference_generic_tables(tmp):
         assert ("columns_generated" in codes) == (not header), (name, codes)
         if not header:
             assert prof["shape"]["rows"] == text.count("\n"), (name, prof)    # line 1 is data
-            assert any(c in codes for c in ("table_clean", "table_summary")), (name, codes)
+            assert any(c in codes for c in ("table_clean", "table_clean_unlabelled", "table_summary")), (name, codes)
     print("PASS test_header_inference_generic_tables")
 
 
@@ -499,12 +506,15 @@ def test_read_rows_spec_mismatch_is_not_tabular(tmp):
     with open(os.path.join(tmp, "bin.bed"), "wb") as f:
         f.write(b"\x00\x01\x02binary\tjunk\n\x00\x00\n")
     words = _write(tmp, "notes.gtf", "this is\ta note\nnot\tannotation\n")
+    assert _mod.read_rows(os.path.join(tmp, "bin.bed"))["tabular"] is False
+    # Two tab-separated text columns named .gtf: read as the TSV the content is, never as GTF.
+    page = _mod.read_rows(words)
+    assert page["tabular"] is True and page["viewKind"] == "table" and page["columns"] == ["this is", "a note"], page
     for path in (os.path.join(tmp, "bin.bed"), words):
-        page = _mod.read_rows(path)
-        assert page["tabular"] is False, page
         prof = profile_dataset(path)
-        assert "spec_mismatch" in [f["code"] for f in prof["findings"]], prof
-        assert prof["format"]["ext"] == "unknown", prof["format"]
+        mm = [f for f in prof["findings"] if f["code"] == "name_content_mismatch"]
+        assert mm and mm[0]["level"] == "watch", prof
+        assert prof["format"]["ext"] not in ("bed", "gtf") and prof["viewKind"] not in ("intervals", "annotation"), prof
     # An empty BED (only a track line) is a valid, empty table.
     empty = _write(tmp, "empty.bed", "track name=none\n")
     page = _mod.read_rows(empty)
@@ -555,15 +565,18 @@ def _with_galaxy(stub, fn):
 
 
 def test_galaxy_unavailable_fallback(tmp):
+    import gzip as _gz
     bam = os.path.join(tmp, "x.bam")
     with open(bam, "wb") as f:
-        f.write(b"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00")
+        f.write(_gz.compress(b"BAM\x01" + b"\x00" * 64))  # BGZF-compressed BAM magic
     bed = _write(tmp, "fb.bed", "chr1\t1\t5\n")
 
     def run():
         p1 = profile_dataset(bam)
-        assert [f["code"] for f in p1["findings"]] == ["unprofilable"], p1
+        # Identified from its magic bytes without Galaxy; content not analysed → unassessed.
+        assert [f["code"] for f in p1["findings"]] == ["format_identified"], p1
         assert p1["format"]["source"] == "biomate" and p1["format"]["ext"] == "bam", p1["format"]
+        assert p1["viewKind"] == "alignment" and p1["quality"] == "unassessed", p1
         p2 = profile_dataset(bed)
         assert p2["columns"] == ["Chrom", "Start", "End"] and p2["format"]["ext"] == "bed", p2
         return True
@@ -614,7 +627,9 @@ def test_galaxy_metadata_mapping(tmp):
         assert c["anndata_obs"]["params"]["columns"] == ["n_genes", "louvain"], c       # 'index' dropped
         assert c["anndata_embeddings"]["params"]["embeddings"] == ["X_pca", "X_umap"], c
         assert h["format"] == {"ext": "h5ad", "label": "AnnData (h5ad)", "source": "galaxy"}, h["format"]
-        assert h["quality"] == "watch" and c["format_metadata_only"]["level"] == "watch", h
+        # Metadata only: "unassessed" with an info note (not a "watch" that found nothing).
+        assert h["quality"] == "unassessed" and c["format_metadata_only"]["level"] == "info", h
+        assert h["viewKind"] == "anndata" and h["stats"] == [{"code": "cells", "value": 2700}, {"code": "genes", "value": 32738}], h
         b = codes(profile_dataset(files["b.bam"]))
         assert b["alignment_references"]["params"]["references"] == 25, b
         assert b["alignment_not_coordinate_sorted"]["level"] == "watch" and b["alignment_no_read_groups"]["level"] == "watch", b
@@ -629,8 +644,9 @@ def test_galaxy_metadata_mapping(tmp):
         assert lo["shape"] == {"rows": 40, "cols": 500} and codes(lo)["loom_shape"]["params"]["genes"] == 500, lo
         t = profile_dataset(files["g.tiff"])
         assert codes(t)["format_identified"]["params"]["format"] == "TIFF" and t["format"]["source"] == "galaxy", t
-        u = profile_dataset(files["u.bin"])               # Galaxy says only "data": still unprofilable
-        assert "unprofilable" in codes(u) and u["format"]["source"] == "biomate", u
+        u = profile_dataset(files["u.bin"])               # Galaxy says only "data": the HDF5 signature decides
+        assert "format_identified" in codes(u) and u["format"] == {"ext": "h5", "label": "HDF5", "source": "biomate"}, u
+        assert u["quality"] == "unassessed" and "name_content_mismatch" not in codes(u), u
         g = profile_dataset(gtf)
         gc = codes(g)
         assert gc["annotation_features"]["params"]["attributes"] == ["gene_id", "transcript_id"], gc
@@ -642,7 +658,8 @@ def test_galaxy_metadata_mapping(tmp):
         assert sam["format"]["ext"] == "sam" and "columns" not in sam and "format_identified" in codes(sam), sam
         # A greedy Galaxy sniff on a plain table never relabels BioMate's analysed table.
         ct = profile_dataset(counts)
-        assert ct["format"]["source"] == "biomate" and ct["format"]["ext"] == "tabular", ct["format"]
+        assert ct["format"] == {"ext": "tsv", "label": "TSV", "source": "biomate"}, ct["format"]
+        assert ct["viewKind"] == "table", ct
         return True
 
     assert _with_galaxy(stub, run)
@@ -680,7 +697,8 @@ def test_binary_files_never_reach_text_readers(tmp):
         codes = [f["code"] for f in prof["findings"]]
         assert prof["quality"] != "blocked" and "parse_failed" not in codes, (name, prof)
         assert _mod.read_rows(path)["tabular"] is False, name
-    assert "spec_mismatch" in [f["code"] for f in profile_dataset(os.path.join(tmp, "x.csv"))["findings"]]
+    x = profile_dataset(os.path.join(tmp, "x.csv"))
+    assert x["findings"][0]["code"] == "name_content_mismatch" and x["findings"][0]["params"]["named"] == "CSV", x
     # Binary past the first block (FITS: an ASCII header with no line breaks, then binary data), and a
     # text table with a NUL far down: neither is "blocked", neither raises in read_rows.
     fits = os.path.join(tmp, "img.fits")
@@ -689,10 +707,14 @@ def test_binary_files_never_reach_text_readers(tmp):
     late = os.path.join(tmp, "late.tsv")
     with open(late, "wb") as f:
         f.write(b"a\tb\n" + b"1\t2\n" * 3000 + b"\x00\x00\t\x01\n")
-    for path in (fits, late):
-        prof = profile_dataset(path)
-        assert prof["quality"] != "blocked", (path, prof)
-        assert _mod.read_rows(path)["tabular"] is False, path
+    prof = profile_dataset(fits)
+    assert prof["quality"] != "blocked" and _mod.read_rows(fits)["tabular"] is False, prof
+    # One NUL line deep in a TSV does not make the file binary: it stays a table, the NULs are
+    # dropped and reported (audit R9).
+    prof = profile_dataset(late)
+    assert prof["viewKind"] == "table" and prof["shape"]["rows"] == 3001, prof
+    assert {f["code"]: f for f in prof["findings"]}["nul_bytes"]["params"] == {"lines": 1}, prof["findings"]
+    assert _mod.read_rows(late)["tabular"] is True
     # Compressed by magic, whatever the name: bzip2 FASTQ, BGZF VCF named .vcf_bgzip, gzip text .prj.
     import bz2 as _bz2
     fq = os.path.join(tmp, "reads.fastqsanger.bz2")
@@ -713,10 +735,11 @@ def test_binary_files_never_reach_text_readers(tmp):
 
 
 def test_findings_use_the_users_filename(tmp):
-    path = _write(tmp, "perception_ab12cd_mystery.xyz", "plain words\nno delimiter\n")
-    prof = profile_dataset(path, name="mystery.xyz")
+    with open(os.path.join(tmp, "perception_ab12cd_mystery.bin"), "wb") as fh:
+        fh.write(bytes(range(256)) * 40)  # unrecognised binary
+    prof = profile_dataset(os.path.join(tmp, "perception_ab12cd_mystery.bin"), name="mystery.bin")
     f = [x for x in prof["findings"] if x["code"] == "unprofilable"][0]
-    assert f["params"]["name"] == "mystery.xyz" and "perception_" not in " ".join(prof["notes"]), prof
+    assert f["params"]["name"] == "mystery.bin" and "perception_" not in " ".join(prof["notes"]), prof
     print("PASS test_findings_use_the_users_filename")
 
 
@@ -760,6 +783,47 @@ def test_plain_numeric_table_has_no_false_label_or_leakage(tmp):
     prof = profile_dataset(_write(tmp, "imb3.csv", "\n".join(rows) + "\n"))
     assert "minority_class" in [f["code"] for f in prof["findings"]], prof
     print("PASS test_plain_numeric_table_has_no_false_label_or_leakage")
+
+
+def test_folder_context_fastq_layout(tmp):
+    # Single vs paired-end is a FOLDER fact: with the folder context the FASTQ profile names its
+    # mate (or the missing one) instead of "single-end unless a mate file is present".
+    fq = "@r1/1\nACGT\n+\nIIII\n@r2/1\nACGA\n+\nIIII\n"
+    path = _write(tmp, "S1_R1.fastq", fq)
+    sib = ["pairs/S1_R1.fastq", "pairs/S1_R2.fastq", "pairs/S2_R1.fastq"]
+    paired = profile_dataset(path, name="pairs/S1_R1.fastq", context={"name": "pairs/S1_R1.fastq", "siblings": sib})
+    codes = {f["code"]: f for f in paired["findings"]}
+    assert "fastq_single_file" not in codes and "fastq_single_end" not in codes, codes
+    assert codes["fastq_paired_mate"]["params"] == {"read": "1", "sample": "S1", "mate": "S1_R2.fastq"}, codes
+    assert "fastq_paired_end" in codes and paired["quality"] == "good", paired
+    orphan = profile_dataset(path, name="pairs/S2_R1.fastq", context={"name": "pairs/S2_R1.fastq", "siblings": sib})
+    codes = {f["code"]: f for f in orphan["findings"]}
+    assert codes["fastq_mate_missing"]["params"] == {"read": "1", "missing": "2", "sample": "S2"}, codes
+    assert orphan["quality"] == "watch" and "fastq_single_file" not in codes, orphan
+    # No context (a file outside any project folder listing): the honest unknown stays.
+    bare = profile_dataset(path)
+    assert "fastq_single_file" in [f["code"] for f in bare["findings"]]
+    print("PASS test_folder_context_fastq_layout")
+
+
+def test_folder_context_tenx_headerless(tmp):
+    feats = ("ENSG00000243485\tMIR1302-2HG\tGene Expression\nENSG00000237613\tFAM138A\tGene Expression\n"
+             "ENSG00000186092\tOR4F5\tGene Expression\n")
+    path = _write(tmp, "features.tsv", feats)
+    ctx = {"name": "tenx/features.tsv", "siblings": ["tenx/matrix.mtx", "tenx/barcodes.tsv", "tenx/features.tsv"]}
+    prof = profile_dataset(path, name="tenx/features.tsv", context=ctx)
+    assert prof["shape"]["rows"] == 3 and prof["columns"][:3] == ["feature_id", "feature_name", "feature_type"], prof
+    assert prof["sampleRows"][0][0] == "ENSG00000243485", prof["sampleRows"]
+    assert "tenx_member_headerless" in [f["code"] for f in prof["findings"]]
+    page = _mod.read_rows(path, 0, 10, context=ctx)
+    assert page["headerRow"] is False and page["totalRows"] == 3 and page["rows"][0][1] == "MIR1302-2HG", page
+    # Without the folder context the generic inference keeps its own (documented) default.
+    assert _mod.read_rows(path, 0, 10)["headerRow"] is True
+    mtx = _write(tmp, "matrix.mtx", "%%MatrixMarket matrix coordinate integer general\n3 2 2\n1 1 4\n2 2 1\n")
+    mprof = profile_dataset(mtx, context={"name": "tenx/matrix.mtx", "siblings": ctx["siblings"]})
+    codes = {f["code"]: f for f in mprof["findings"]}
+    assert codes["mtx_tenx_set"]["params"] == {"features": "features.tsv", "barcodes": "barcodes.tsv"} and "mtx_orientation" not in codes, codes
+    print("PASS test_folder_context_tenx_headerless")
 
 
 def main():

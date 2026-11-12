@@ -24,16 +24,6 @@ const CSV_FILE = "5288f63c-d6e5-4fcb-b192-f35dad49991b"; // counts_matrix.csv
 test("files module renders JSON structurally and CSV as a table", async ({ page }) => {
   test.setTimeout(4 * 60 * 1000);
   await loginAsFixture(page);
-  // loginAsFixture sets Authorization + X-E2E-Test-Token on EVERY context request;
-  // S3 rejects a presigned URL that also carries an Authorization header (400).
-  // Strip them for direct S3 fetches so the preview exercises the real viewer
-  // (real users never send those headers to S3).
-  await page.route(/amazonaws\.com/, async (route) => {
-    const h = { ...route.request().headers() };
-    delete h["authorization"]; delete h["Authorization"];
-    delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-    await route.continue({ headers: h });
-  });
 
   // Data hub → choose the demo project (sets it active), then open a file.
   await page.goto(`${BASE_URL}/files`, { waitUntil: "domcontentloaded", timeout: 60_000 });

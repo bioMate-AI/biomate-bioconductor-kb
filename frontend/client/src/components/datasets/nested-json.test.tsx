@@ -9,6 +9,9 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { parseNested, recordTables } from "./nested-json"
 import { DatasetRowsTable } from "./dataset-rows-table"
 
+/** Bound for the lazy-loaded JSON viewer chunk to mount. */
+const LAZY_WAIT = 10_000
+
 const columns = ["source", "drug", "page", "headers", "rows"]
 const cell = (v: unknown) => JSON.stringify(v)
 const vision = [
@@ -75,11 +78,13 @@ describe("DatasetRowsTable with nested JSONL cells", () => {
     const row = ["r1", cell({ assay: "hERG", doses: [1, 3, 10], lab: { site: "A" } })]
     render(<DatasetRowsTable {...props} columns={cols} rows={[row]} total={1} />)
     fireEvent.click(screen.getAllByTestId("dataset-preview-row")[0])
-    const tree = await screen.findByTestId("dataset-json-tree")
-    await waitFor(() => expect(tree.textContent).toContain("hERG"))
+    // The JSON viewer is lazy-loaded (its chunk is imported on first open): under a loaded runner
+    // that import alone takes ~2 s, past Testing Library's 1 s default — wait up to 10 s.
+    const tree = await screen.findByTestId("dataset-json-tree", {}, { timeout: LAZY_WAIT })
+    await waitFor(() => expect(tree.textContent).toContain("hERG"), { timeout: LAZY_WAIT })
     expect(tree.textContent).toContain("meta")
     expect(screen.getByTestId("dataset-record-search")).toBeTruthy()
-  })
+  }, 20_000)
 
   it("plain CSV rows are unchanged (no chips, rows not clickable)", () => {
     render(<DatasetRowsTable {...props} columns={["a", "b"]} rows={[["1", "x"], ["2", "y"]]} />)
@@ -104,5 +109,22 @@ describe("DatasetRowsTable edit mode", () => {
     expect(firstShown.getAttribute("data-testid")).toBe("dataset-edit-cell-1-0")
     fireEvent.change(firstShown, { target: { value: "ERBB1" } })
     expect(calls).toEqual([[1, 0, "EGFR", "ERBB1"]])
+  })
+})
+
+describe("multi-line cell values", () => {
+  it("display shows the line break; editing keeps it (textarea, not input)", () => {
+    const calls: unknown[][] = []
+    const props = { columns: ["s", "note"], rows: [["S2", "two\nlines"]], total: 1, loading: false, error: null, onNeedMore: () => {} }
+    const { unmount } = render(<DatasetRowsTable {...props} />)
+    expect(screen.getAllByTestId("dataset-preview-row")[0].textContent).toContain("two ↵ lines")
+    unmount()
+    render(<DatasetRowsTable {...props} editable edits={{}} onEdit={(...a) => calls.push(a)} />)
+    const cell = screen.getByTestId("dataset-edit-cell-0-1")
+    expect(cell.tagName).toBe("TEXTAREA")
+    expect((cell as HTMLTextAreaElement).value).toBe("two\nlines")
+    fireEvent.change(cell, { target: { value: "two\nline" } })
+    expect(calls).toEqual([[0, 1, "two\nlines", "two\nline"]])
+    expect(screen.getByTestId("dataset-edit-cell-0-0").tagName).toBe("INPUT")
   })
 })

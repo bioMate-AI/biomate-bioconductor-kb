@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor, cleanup } from "@testing-library/react"
+import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { gzipSync } from "node:zlib"
 import { DatasetFilePreview } from "./dataset-file-preview"
@@ -134,6 +134,95 @@ it("TIFF: an honest no-preview state with a Download link, never a broken <img>"
   const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="scan.tif" />)
   const state = await screen.findByTestId("dataset-preview-tiff")
   expect(state).toHaveTextContent("TIFF images cannot be displayed in the browser")
-  expect(screen.getByTestId("dataset-preview-tiff-download")).toHaveAttribute("href", "https://files.example/scan.tif")
+  expect(screen.getByTestId("dataset-preview-tiff-download")).toHaveAttribute("href", "/api/projects/p/files/f/url?redirect=1")
   expect(container.querySelector("img")).toBeNull()
+})
+
+it("an image the browser cannot decode says so instead of a broken icon (U6)", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/broken.png" }) }))
+  render(<DatasetFilePreview projectId="p" fileId="f" name="broken.png" />)
+  const img = await screen.findByTestId("dataset-preview-image")
+  fireEvent.error(img)
+  expect(await screen.findByTestId("dataset-preview-image-invalid")).toHaveTextContent("This file is not a valid image")
+  expect(screen.queryByTestId("dataset-preview-image")).toBeNull()
+})
+
+it("Markdown is rendered as a document (headings, emphasis), and raw HTML in it stays inert (U11)", async () => {
+  mockFile("# Study notes\n\nThis is a **markdown** note.\n\n<img src=x onerror=alert(1)>\n")
+  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="notes.md" />)
+  const doc = await screen.findByTestId("dataset-markdown")
+  expect(doc.querySelector("h1")).toHaveTextContent("Study notes")
+  expect(doc.querySelector("strong")).toHaveTextContent("markdown")
+  expect(doc).not.toHaveTextContent("# Study notes")
+  expect(container.querySelector("img")).toBeNull()
+})
+
+it("FASTQ is shown as reads with '@' ids and base quality, never as FASTA '>' records (U11)", async () => {
+  mockFile("@read1 extra\nACGTACGTAC\n+\nIIIIIIIIII\n@read2\nGGGG\n+\n!!!!\n")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="S1_R1.fastq" />)
+  const view = await screen.findByTestId("inline-fastq-viewer")
+  expect(view).toHaveTextContent("@read1")
+  expect(view.textContent).not.toContain(">read1")
+  expect(screen.getAllByTestId("inline-fastq-read")).toHaveLength(2)
+  // 'I' = Phred 40, '!' = Phred 0
+  expect(screen.getAllByTestId("inline-fastq-meta")[0]).toHaveTextContent("mean quality Phred 40.0")
+  expect(screen.getAllByTestId("inline-fastq-meta")[1]).toHaveTextContent("mean quality Phred 0.0")
+})
+
+it("content kind wins over the name: reads uploaded as .txt open in the reads viewer", async () => {
+  mockFile("@r1\nACGT\n+\nIIII\n")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="reads.txt" kind="reads" />)
+  expect(await screen.findByTestId("inline-fastq-viewer")).toHaveTextContent("@r1")
+})
+
+// ── Status for the dataset object (data-preview-kind / aria-busy), audit 2026-11-12 seams ──
+it("reports loading → ready, and marks its loading line with a *-loading testid + aria-busy", async () => {
+  mockFile('{"a":1}')
+  const onStatus = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="data.json" onStatus={onStatus} />)
+  const loading = screen.getByTestId("dataset-file-preview-loading")
+  expect(loading).toHaveAttribute("aria-busy", "true")
+  await screen.findByTestId("json-preview")
+  expect(onStatus.mock.calls.map((c) => c[0])).toEqual(["loading", "ready"])
+})
+it("reports error for a failure the user sees and none for content it cannot show", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }))
+  const onError = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="private.json" onStatus={onError} />)
+  await waitFor(() => expect(onError).toHaveBeenLastCalledWith("error"))
+  cleanup()
+  const onNone = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="blob.xyz" onStatus={onNone} />)
+  await waitFor(() => expect(onNone).toHaveBeenLastCalledWith("none"))
+})
+it("an MRC map (viewKind image) goes to the density viewer, never <img>", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/map.mrc" }) }))
+  const onStatus = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="map.mrc" kind="image" onStatus={onStatus} />)
+  await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("ready"))
+  expect(screen.queryByTestId("dataset-preview-image")).toBeNull()
+})
+it("a TIFF the browser cannot draw is reported as none (no picture shown)", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/x.tiff" }) }))
+  const onStatus = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="x.tiff" kind="image" onStatus={onStatus} />)
+  await screen.findByTestId("dataset-preview-tiff")
+  expect(onStatus).toHaveBeenLastCalledWith("none")
+})
+it("a PLINK .map (a text table per the profile) is NOT routed to the density viewer by its extension", async () => {
+  mockFile("1\trs123\t0\t752566\n1\trs456\t0\t798959\n")
+  const onStatus = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="chr1.map" kind="table" format="tabular" onStatus={onStatus} />)
+  const view = await screen.findByTestId("dataset-text-preview")
+  expect(view).toHaveTextContent("rs123")
+  expect(screen.queryByTestId("dataset-file-preview-loading")).toBeNull()
+  expect(onStatus).toHaveBeenLastCalledWith("ready")
+})
+it("a .map the profiler identified as an MRC map (image + mrc format) goes to the density viewer", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/emd.map" }) }))
+  const onStatus = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="emd_1234.map" kind="image" format="mrc" onStatus={onStatus} />)
+  await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("ready"))
+  expect(screen.queryByTestId("dataset-preview-image")).toBeNull()
+  expect(screen.queryByTestId("dataset-text-preview")).toBeNull()
 })

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "strict": true,
+    "noEmit": true, "skipLibCheck": true, "esModuleInterop": true, "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "files": [
+    "_fixture-login.ts", "_project-ui.ts", "dataset-edit-safety.e2e.ts", "dataset-format-matrix.e2e.ts",
+    "jsonl-nested-tables.e2e.ts", "run-code-outputs.e2e.ts", "project-file-rename.e2e.ts",
+    "dataset-panel-full.e2e.ts", "admet-step-verify.e2e.ts", "afterrun-capture.e2e.ts",
+    "admet-stepdetail-audit.e2e.ts", "files-viz-verify.e2e.ts", "project-notes.e2e.ts",
+    "realrun-inference-preview.e2e.ts", "conference-project-collab.e2e.ts", "project-workspace.e2e.ts"
+  ]
+}

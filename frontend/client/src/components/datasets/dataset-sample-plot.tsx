@@ -7,6 +7,7 @@
 // Jupyter/RStudio. Non-numeric / too-small samples → `hasNumericColumns` is false
 // and the caller keeps the Jupyter/chat fallback (never an empty axis).
 import { useMemo, useState } from "react";
+import { locale } from "@/lib/i18n";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -38,19 +39,58 @@ export function hasNumericColumns(columns: string[], rows: string[][]): boolean 
   return numericColumnIndices(columns, rows).length > 0;
 }
 
-function histogram(values: number[], bins = 12): Array<{ bin: string; count: number }> {
+export interface HistogramBin {
+  /** Bin start, formatted (the axis tick). */
+  bin: string;
+  /** "start – end" in the same format (the tooltip). */
+  range: string;
+  start: number;
+  end: number;
+  count: number;
+}
+
+/** A "nice" step (1, 2, 2.5 or 5 × 10^k) at least `raw` wide. */
+function niceStep(raw: number): number {
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+
+/**
+ * A number formatter for one axis: locale grouping (1,840 / zh 1,840), the SAME number of
+ * decimals on every tick (enough to tell neighbouring edges apart), and compact notation for
+ * millions and beyond (1.8M / 180万). Never scientific "1.84e+3".
+ */
+export function axisNumberFormat(step: number, maxAbs: number, tag = locale === "zh" ? "zh-CN" : "en-US"): (v: number) => string {
+  if (maxAbs >= 1e6) {
+    const nf = new Intl.NumberFormat(tag, { notation: "compact", maximumSignificantDigits: 3 });
+    return (v) => nf.format(v);
+  }
+  let decimals = step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step)));
+  // 2.5 × 10^k steps need one more digit (0.25, 0.5, 0.75).
+  if (decimals < 6 && Math.abs(Math.round(step * 10 ** decimals) - step * 10 ** decimals) > 1e-9) decimals += 1;
+  const nf = new Intl.NumberFormat(tag, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return (v) => nf.format(Math.abs(v) < step * 1e-9 ? 0 : v);
+}
+
+/** Histogram on nice, aligned bin edges with human-formatted labels. Pure + testable. */
+export function histogramBins(values: number[], targetBins = 12, tag?: string): HistogramBin[] {
   if (values.length === 0) return [];
   const min = Math.min(...values), max = Math.max(...values);
-  if (min === max) return [{ bin: String(min), count: values.length }];
-  const w = (max - min) / bins;
-  const counts = new Array(bins).fill(0);
-  for (const v of values) {
-    let b = Math.floor((v - min) / w);
-    if (b >= bins) b = bins - 1;
-    if (b < 0) b = 0;
-    counts[b]++;
+  if (min === max) {
+    const fmt = axisNumberFormat(Math.abs(min) || 1, Math.abs(min), tag);
+    return [{ bin: fmt(min), range: fmt(min), start: min, end: max, count: values.length }];
   }
-  return counts.map((count, i) => ({ bin: (min + i * w).toPrecision(3), count }));
+  const step = niceStep((max - min) / targetBins);
+  const first = Math.floor(min / step) * step;
+  const n = Math.max(1, Math.floor((max - first) / step) + 1);
+  const counts = new Array(n).fill(0);
+  for (const v of values) counts[Math.min(n - 1, Math.max(0, Math.floor((v - first) / step)))]++;
+  const fmt = axisNumberFormat(step, Math.max(Math.abs(first), Math.abs(first + n * step)), tag);
+  return counts.map((count, i) => {
+    const start = first + i * step, end = start + step;
+    return { bin: fmt(start), range: `${fmt(start)} – ${fmt(end)}`, start, end, count };
+  });
 }
 
 export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotProps) {
@@ -65,7 +105,7 @@ export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotP
     const vals = sampleRows
       .map((r) => Number((r?.[colIdx] ?? "").trim()))
       .filter((v) => Number.isFinite(v));
-    return histogram(vals);
+    return histogramBins(vals);
   }, [colIdx, sampleRows]);
 
   if (colIdx < 0 || data.length === 0) return null; // caller renders the fallback
@@ -88,8 +128,11 @@ export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotP
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="bin" tick={{ fontSize: 10, fill: "var(--text-muted)" }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} width={28} allowDecimals={false} />
-            <Tooltip contentStyle={{ fontSize: 'var(--fs-xs)', background: "var(--bg-elev, #fff)", border: "1px solid var(--border)", borderRadius: 6 }} />
-            <Bar dataKey="count" fill="var(--accent, oklch(0.55 0.18 260))" radius={[2, 2, 0, 0]} />
+            <Tooltip
+              labelFormatter={(_l, payload) => (payload?.[0]?.payload as HistogramBin | undefined)?.range ?? String(_l)}
+              contentStyle={{ fontSize: 'var(--fs-xs)', background: "var(--bg-elev, #fff)", border: "1px solid var(--border)", borderRadius: 6 }}
+            />
+            <Bar dataKey="count" name={t ? t("dataset_obj.plot_count") : "Count"} fill="var(--accent, oklch(0.55 0.18 260))" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

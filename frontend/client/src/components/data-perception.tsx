@@ -17,15 +17,17 @@
  * `findings`) falls back to the free text.
  */
 
-import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight, CircleDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { t, tOr } from "@/lib/i18n";
+import { t, tOr, locale } from "@/lib/i18n";
+import { AT_LEAST_STAT, datasetKind, effectiveQuality, profileStats, type StatItem, type ViewKind } from "@/components/datasets/dataset-view-model";
 
 // ---------------------------------------------------------------------------
 // Types — the shape the backend profiler emits (DataProfile.to_dict()).
 // ---------------------------------------------------------------------------
 
-export type PerceptionQuality = "good" | "watch" | "blocked";
+/** "unassessed" = the file was identified but its content was not analysed — neither good nor a warning. */
+export type PerceptionQuality = "good" | "watch" | "blocked" | "unassessed";
 
 export interface ClassBalanceEntry {
   /** Class / group label as it appears in the data. */
@@ -82,6 +84,27 @@ export interface DataProfile {
   sampleRows?: string[][];
   /** Detected file format (absent on profiles from older backends). */
   format?: DatasetFormat;
+  /** Content-first data kind (table, reads, anndata, image…); absent on older profiles. */
+  viewKind?: string;
+  /** For a structure file: how it was determined (`method`, e.g. "X-RAY DIFFRACTION") and whether
+   *  it is a predicted model. Decides whether B-factors are pLDDT; absent on older profiles. */
+  structure?: StructureEvidence;
+  /** The kind's headline numbers, rendered as `perception.stat.<code>`; absent on older profiles. */
+  stats?: { code: string; value: number | string; atLeast?: boolean }[];
+}
+
+/** The profiler's evidence about a structure file's origin (data_perception.py
+ *  _structure_provenance; it reads the whole file, the preview only a prefix). */
+export interface StructureEvidence {
+  /** The method as the file states it (EXPDTA / _exptl.method), raw. */
+  method?: string | null;
+  /** Experimental method family; null for a model / not stated. */
+  method_key?: "xray" | "em" | "nmr" | "neutron" | "fiber" | "electron_crystallography" | "other" | null;
+  /** true = a predicted model, false = an experimental structure, null = not determined. */
+  predicted?: boolean | null;
+  predictor?: string | null;
+  /** What the B-factor column holds. */
+  bfactor?: "confidence" | "displacement" | null;
 }
 
 /** A dataset's detected format: `source` says who identified it — Galaxy's datatype
@@ -99,6 +122,8 @@ export interface DataPerceptionProps {
   planImpact?: { observed: string; effect: string }[];
   /** Optional dataset name for the header crumb. */
   datasetName?: string;
+  /** The file's data kind (from the dataset view model); derived from the profile/name when absent. */
+  kind?: ViewKind;
   className?: string;
 }
 
@@ -128,26 +153,64 @@ const QUALITY_META: Record<
     dot: "bg-red-500",
     panel: "border-red-500/30 bg-red-500/5",
   },
+  // Identified, content not analysed: neutral grey — not a warning.
+  unassessed: {
+    icon: CircleDashed,
+    badge: "border-border bg-muted text-muted-foreground",
+    dot: "bg-muted-foreground/50",
+    panel: "",
+  },
 };
 
+const NUM_LOCALE = locale === "zh" ? "zh-CN" : "en-US";
+
 function fmtInt(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString(NUM_LOCALE);
+}
+
+/** A stat's value as shown: grouped digits, and "at least N" for a sampled / capped count. */
+export function formatStatValue(s: Pick<StatItem, "value" | "atLeast">): string {
+  const v = s.value;
+  const n = typeof v === "number" ? (Number.isInteger(v) ? fmtInt(v) : v.toLocaleString(NUM_LOCALE, { maximumFractionDigits: 1 })) : String(v);
+  return s.atLeast ? t("perception.at_least_value", { n }) : n;
 }
 
 function fmtPct(frac: number): string {
   return `${(frac * 100).toFixed(frac < 0.1 ? 1 : 0)}%`;
 }
 
+const SORT_ORDER_KEYS = new Set(["unknown", "unsorted", "queryname", "coordinate"]);
+const STRUCTURE_METHOD_KEYS = new Set(["xray", "em", "nmr", "neutron", "fiber", "electron_crystallography"]);
+
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
- *  locale's separator, `at_least` → a "≥" prefix, structural roots translated. */
+ *  locale's separator, `at_least` → the qualified count reads "at least N" (backend
+ *  _AT_LEAST_PARAMS), structural roots translated. */
 function findingVars(f: PerceptionFinding): Record<string, string | number> {
-  const vars: Record<string, string | number> = { prefix: "" };
+  const vars: Record<string, string | number> = {};
   for (const [k, v] of Object.entries(f.params ?? {})) {
-    if (k === "at_least") vars.prefix = v ? "≥" : "";
+    if (k === "at_least") continue;
     else if (Array.isArray(v)) vars[k] = v.map(String).join(t("perception.list_sep"));
     else if (typeof v === "number") vars[k] = Number.isInteger(v) ? fmtInt(v) : String(v);
     else if (k === "root" && typeof v === "string") vars[k] = tOr(`perception.root_${v}`, v);
     else if (v != null) vars[k] = String(v);
+  }
+  // A BAM/SAM sort order is a closed vocabulary (`order_key`): shown in the UI language, never the
+  // header's raw SO: value or the backend's English `order_words`. Any other value is quoted raw.
+  if (f.code === "alignment_not_coordinate_sorted") {
+    const orderKey = f.params?.order_key;
+    const order = f.params?.order;
+    vars.order_words = typeof orderKey === "string" && SORT_ORDER_KEYS.has(orderKey)
+      ? t(`perception.sort_order.${orderKey}`)
+      : order != null && order !== "" ? `“${String(order)}”`
+      : typeof f.params?.order_words === "string" ? f.params.order_words : t("perception.sort_order.unknown");
+  }
+  // An experimental structure's method family (`method_key`) in the UI language; "other" / none
+  // keeps the method as the file states it.
+  const methodKey = f.params?.method_key;
+  if (typeof methodKey === "string" && STRUCTURE_METHOD_KEYS.has(methodKey)) vars.method = t(`perception.structure_method.${methodKey}`);
+  const qualified = AT_LEAST_STAT[f.code];
+  if (f.params?.at_least && qualified && vars[qualified] !== undefined) {
+    vars[qualified] = t("perception.at_least_value", { n: vars[qualified] });
   }
   return vars;
 }
@@ -165,17 +228,20 @@ export function DataPerception({
   profile,
   planImpact,
   datasetName,
+  kind: kindProp,
   className,
 }: DataPerceptionProps) {
-  const q = QUALITY_META[profile.quality];
+  const quality = effectiveQuality(profile);
+  const q = QUALITY_META[quality] ?? QUALITY_META.watch;
+  const kind = kindProp ?? datasetKind(datasetName ?? "", profile);
   const QIcon = q.icon;
   const structuredMode = Array.isArray(profile.findings);
   const findings = profile.findings ?? [];
 
   // "Why Watch / Blocked": the findings at the verdict's level are its reasons.
-  const reasons = profile.quality === "good"
+  const reasons = quality === "good" || quality === "unassessed"
     ? []
-    : findings.filter((f) => f.level === profile.quality && f.section !== "plan");
+    : findings.filter((f) => f.level === quality && f.section !== "plan");
   const isReason = (f: PerceptionFinding) => reasons.includes(f);
   const signalItems = findings.filter((f) => f.section === "signal" && !isReason(f));
   const noteItems = findings.filter((f) => f.section === "note" && !isReason(f));
@@ -184,16 +250,11 @@ export function DataPerception({
 
   const hasClassBalance = !!profile.classBalance && profile.classBalance.length > 0;
 
-  // For sequence files the profiler's shape.rows/cols are reads × read-length,
-  // not table rows/columns — label them accordingly.
-  const nm = (datasetName || "").toLowerCase();
-  const isFastq = /\.(fastq|fq)(\.gz)?$/.test(nm);
-  const isFasta = /\.(fasta|fa|fna|faa)(\.gz)?$/.test(nm);
-  const rowLabel = t(isFastq ? "perception.stat_reads" : isFasta ? "perception.stat_sequences" : "perception.stat_rows");
-  const colLabel = t(isFastq ? "perception.stat_read_length" : isFasta ? "perception.stat_length" : "perception.stat_columns");
+  // The kind's own measures (reads, cells × genes, variants…) — rows × columns only for tables.
+  const stats = profile.structured ? [] : profileStats(profile, kind);
 
   // Effective-N hint states the REAL reason the backend reported — never a generic guess.
-  const effBase = profile.profiledRows ?? profile.shape.rows;
+  const effBase = profile.profiledRows ?? profile.shape?.rows ?? 0;
   const effHints: string[] = [];
   if (typeof profile.effectiveN === "number" && profile.effectiveN < effBase) {
     if (profile.effectiveNReason === "dedup") {
@@ -213,12 +274,12 @@ export function DataPerception({
   const legacyNotes = !structuredMode ? profile.notes : [];
   const legacySignal = !structuredMode ? profile.signalSummary ?? [] : [];
   const legacyPlan = !structuredMode ? planImpact ?? [] : [];
-  const whyTitle = t(profile.quality === "blocked" ? "perception.why_blocked" : "perception.why_watch");
+  const whyTitle = t(quality === "blocked" ? "perception.why_blocked" : "perception.why_watch");
 
   return (
     <div
       data-testid="data-perception"
-      data-quality={profile.quality}
+      data-quality={quality}
       className={cn(
         "shadcn-card rounded-xl border bg-card border-card-border text-card-foreground shadow-sm",
         "flex flex-col gap-4 p-5",
@@ -242,7 +303,7 @@ export function DataPerception({
           )}
         >
           <QIcon className="h-3.5 w-3.5" aria-hidden />
-          {t(`perception.quality_${profile.quality}`)}
+          {t(`perception.quality_${quality}`)}
         </span>
       </div>
 
@@ -255,13 +316,13 @@ export function DataPerception({
           <Stat k={t("perception.stat_keys")} v={fmtInt(profile.structured.keys)} />
           <Stat k={t("perception.stat_nulls")} v={fmtInt(profile.structured.nulls)} />
           <Stat k={t("perception.stat_depth")} v={fmtInt(profile.structured.depth)} />
-        </> : <>
-          <Stat k={rowLabel} v={fmtInt(profile.shape.rows)} />
-          <Stat k={colLabel} v={fmtInt(profile.shape.cols)} />
-        </>}
+        </> : stats.map((s) => (
+          <Stat key={s.code} k={tOr(`perception.stat.${s.code}`, s.code)} v={formatStatValue(s)} testId={`perception-stat-${s.code}`} stat={s.code} />
+        ))}
         {typeof profile.effectiveN === "number" && (
           <Stat
             k={t("perception.stat_effective_n")}
+            gloss={t("perception.gloss_effective_n")}
             v={fmtInt(profile.effectiveN)}
             hints={effHints}
             testId="perception-effective-n"
@@ -271,7 +332,7 @@ export function DataPerception({
       </div>
 
       {/* Why Watch / Blocked — the signals that set the verdict. */}
-      {structuredMode && profile.quality !== "good" && (
+      {structuredMode && quality !== "good" && quality !== "unassessed" && (
         <div data-testid="perception-why" className={cn("flex flex-col gap-1.5 rounded-lg border p-3", q.panel)}>
           <div className="text-xs font-semibold text-foreground">{whyTitle}</div>
           {reasons.length > 0 ? (
@@ -297,11 +358,19 @@ export function DataPerception({
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden />
           <div>
-            <span className="font-semibold text-amber-600 dark:text-amber-400">
-              {t("perception.section_leakage")}{" "}
-            </span>
+            <span
+              className="font-semibold text-amber-600 underline decoration-dotted underline-offset-2 dark:text-amber-400"
+              title={t("perception.gloss_leakage")}
+              data-testid="perception-leakage-gloss"
+            >
+              {t("perception.section_leakage")}
+            </span>{" "}
             <span className="text-foreground">
-              {structuredMode ? leakageItems.map((f) => findingText(f)).join(" ") : profile.leakage!.detail}
+              {structuredMode
+                ? leakageItems.map((f, i) => (
+                  <span key={i} data-testid="perception-finding" data-code={f.code}>{i > 0 ? " " : ""}{findingText(f)}</span>
+                ))
+                : profile.leakage!.detail}
             </span>
           </div>
         </div>
@@ -335,13 +404,13 @@ export function DataPerception({
       {/* Signal summary */}
       {(signalItems.length > 0 || legacySignal.length > 0) && (
         <Section title={t("perception.section_signal")} testId="perception-signal"
-          lines={structuredMode ? signalItems.map((f) => findingText(f)) : legacySignal} />
+          lines={structuredMode ? signalItems.map(findingLine) : legacySignal.map((text) => ({ text }))} />
       )}
 
       {/* Notes */}
       {(noteItems.length > 0 || legacyNotes.length > 0) && (
         <Section title={t("perception.section_notes")} testId="perception-notes"
-          lines={structuredMode ? noteItems.map((f) => findingText(f)) : legacyNotes} />
+          lines={structuredMode ? noteItems.map(findingLine) : legacyNotes.map((text) => ({ text }))} />
       )}
 
       {/* How it shaped the plan */}
@@ -350,10 +419,11 @@ export function DataPerception({
           <div className="text-xs font-semibold text-muted-foreground">{t("perception.section_plan")}</div>
           <div className="flex flex-col gap-1.5">
             {(structuredMode
-              ? planItems.map((f) => ({ observed: findingText(f), effect: findingText(f, "_effect") }))
-              : legacyPlan
+              ? planItems.map((f) => ({ observed: findingText(f), effect: findingText(f, "_effect"), code: f.code as string | undefined }))
+              : legacyPlan.map((p) => ({ ...p, code: undefined as string | undefined }))
             ).map((p, i) => (
-              <div key={i} className="flex flex-wrap items-center gap-1.5 text-xs">
+              <div key={i} className="flex flex-wrap items-center gap-1.5 text-xs"
+                {...(p.code ? { "data-testid": "perception-finding", "data-code": p.code } : {})}>
                 <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">{p.observed}</span>
                 <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="text-muted-foreground">{p.effect}</span>
@@ -366,15 +436,20 @@ export function DataPerception({
   );
 }
 
-function Section({ title, lines, testId }: { title: string; lines: string[]; testId: string }) {
+/** A rendered finding line: its text, and its code (absent on a legacy free-text line). */
+type Line = { text: string; code?: string };
+const findingLine = (f: PerceptionFinding): Line => ({ text: findingText(f), code: f.code });
+
+function Section({ title, lines, testId }: { title: string; lines: Line[]; testId: string }) {
   return (
     <div className="flex flex-col gap-1.5" data-testid={testId}>
       <div className="text-xs font-semibold text-muted-foreground">{title}</div>
       <ul className="flex flex-col gap-1">
         {lines.map((s, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs">
+          <li key={i} className="flex items-start gap-2 text-xs"
+            {...(s.code ? { "data-testid": "perception-finding", "data-code": s.code } : {})}>
             <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-            <span className="text-foreground [overflow-wrap:anywhere]">{s}</span>
+            <span className="text-foreground [overflow-wrap:anywhere]">{s.text}</span>
           </li>
         ))}
       </ul>
@@ -388,17 +463,27 @@ function Stat({
   hints,
   testId,
   wide,
+  gloss,
+  stat,
 }: {
   k: string;
   v: string;
   hints?: string[];
+  /** A plain-language definition of the term, on hover / for screen readers. */
+  gloss?: string;
   testId?: string;
   /** Span two columns so a reason hint wraps on readable lines instead of being cropped. */
   wide?: boolean;
+  /** The stat code (`data-stat`), for the kind's own measures. */
+  stat?: string;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-0.5", wide && "col-span-2")} data-testid={testId}>
-      <span className="text-fs-xs font-medium uppercase tracking-wide text-muted-foreground">{k}</span>
+    <div className={cn("flex min-w-0 flex-col gap-0.5", wide && "col-span-2")} data-testid={testId} data-stat={stat}>
+      <span
+        className={cn("text-fs-xs font-medium uppercase tracking-wide text-muted-foreground", gloss && "cursor-help underline decoration-dotted underline-offset-2")}
+        title={gloss}
+        data-testid={gloss ? "perception-stat-gloss" : undefined}
+      >{k}</span>
       <span className="text-sm font-semibold tabular-nums">{v}</span>
       {hints?.map((h, i) => (
         <span

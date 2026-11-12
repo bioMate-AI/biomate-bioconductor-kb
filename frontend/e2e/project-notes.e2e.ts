@@ -10,6 +10,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
+import { deleteProjectLoudly } from "./_project-ui";
 
 test.describe.serial("project-notes", () => {
   let projectId = "";
@@ -34,7 +35,7 @@ test.describe.serial("project-notes", () => {
     if (!projectId) return;
     const page = await browser.newPage();
     await loginAsFixture(page);
-    await page.request.delete(`${BASE_URL}/api/projects/${projectId}`).catch(() => {});
+    await deleteProjectLoudly(page.request, projectId, { inHook: true });
     await page.close();
   });
 
