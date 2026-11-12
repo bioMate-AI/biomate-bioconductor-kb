@@ -52,6 +52,7 @@ import {
   LOAD_ALL_CAP,
 } from "./datasets-api"
 import { DatasetRowsTable } from "./dataset-rows-table"
+import { DatasetVersionsList } from "./dataset-versions-list"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
@@ -761,91 +762,18 @@ export function DatasetObject({
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : effectiveVersions.length ? (
-              <>
-              {versionError && <p className="text-xs text-destructive" data-testid="dataset-version-error">{versionError}</p>}
-              {effectiveVersions.map((v) => (
-                <div
-                  key={v.version}
-                  className={`rounded border px-2 py-1.5 text-xs ${v.current ? "bg-primary/5 border-primary/40" : ""}`}
-                  data-testid={`dataset-version-${v.version}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-semibold">{v.label}</span>
-                    {v.current && (
-                      <Badge variant="outline" className="text-xs">{t('dataset_obj.current')}</Badge>
-                    )}
-                    {v.current && consumers.length > 0 && (
-                      <span className="text-xs text-muted-foreground" data-testid="dataset-version-usedby">
-                        {t('dataset_obj.used_by_runs', { n: consumers.length })}
-                      </span>
-                    )}
-                    {/* Compare this version against current (column + cell diff). */}
-                    {versionable && !v.current && (
-                      <button
-                        className="text-xs text-primary hover:underline disabled:opacity-50"
-                        data-testid={`dataset-version-compare-${v.version}`}
-                        disabled={diffLoading && diffFor === v.version}
-                        onClick={() => handleCompare(v.version)}
-                      >{diffFor === v.version ? t('dataset_obj.compare_hide') : t('dataset_obj.compare')}</button>
-                    )}
-                    {/* Restore a past version (append-only — writes a new version). */}
-                    {versionable && !v.current && (
-                      <button
-                        className="text-xs text-primary hover:underline disabled:opacity-50"
-                        data-testid={`dataset-version-restore-${v.version}`}
-                        disabled={restoringVersion === v.version}
-                        onClick={() => handleRestore(v.version)}
-                      >{restoringVersion === v.version ? t('dataset_obj.restoring') : t('dataset_obj.restore')}</button>
-                    )}
-                    {v.createdAt && (
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {new Date(
-                          typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
-                        ).toLocaleString(INTL_LOCALE)}
-                      </span>
-                    )}
-                  </div>
-                  {v.note && (
-                    <p className="text-sm text-foreground pt-0.5">
-                      {v.note}
-                      {v.author && <span className="text-muted-foreground"> — {v.author}</span>}
-                    </p>
-                  )}
-                  {diffFor === v.version && (
-                    <div className="mt-1.5 rounded border bg-muted/20 p-2 text-xs space-y-1" data-testid={`dataset-version-diff-${v.version}`}>
-                      {diffLoading ? (
-                        <p className="text-muted-foreground">{t('dataset_obj.comparing')}</p>
-                      ) : diffData?.identical ? (
-                        <p className="text-muted-foreground">{t('dataset_obj.diff_identical')}</p>
-                      ) : diffData?.tabular === false ? (
-                        <p className="text-muted-foreground">{t('dataset_obj.diff_nontabular', { a: diffData?.target?.size ?? "?", b: diffData?.current?.size ?? "?" })}</p>
-                      ) : diffData ? (
-                        <>
-                          {(diffData.columns?.added?.length || diffData.columns?.removed?.length) ? (
-                            <p>
-                              {diffData.columns.added?.length ? <span className="text-emerald-600 dark:text-emerald-400">+{diffData.columns.added.join(", ")} </span> : null}
-                              {diffData.columns.removed?.length ? <span className="text-red-600 dark:text-red-400 line-through">−{diffData.columns.removed.join(", ")}</span> : null}
-                            </p>
-                          ) : null}
-                          <p className="text-muted-foreground" data-testid="dataset-diff-cellcount">
-                            {t('dataset_obj.diff_changed_cells', { n: diffData.changedCells?.length ?? 0 })}
-                            {diffData.truncated ? ` ${t('dataset_obj.diff_sampled')}` : ""}
-                          </p>
-                          {(diffData.changedCells ?? []).slice(0, 5).map((c: any, ci: number) => (
-                            <p key={ci} className="font-mono text-fs-xs">
-                              <span className="text-muted-foreground">r{c.row} · {c.col}: </span>
-                              <span className="text-red-600 dark:text-red-400 line-through">{String(c.from) || "∅"}</span>
-                              {" → "}
-                              <span className="text-emerald-600 dark:text-emerald-400">{String(c.to) || "∅"}</span>
-                            </p>
-                          ))}
-                        </>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              ))}
-              </>
+              <DatasetVersionsList
+                versions={effectiveVersions}
+                usedByCount={consumers.length}
+                versionable={versionable}
+                error={versionError}
+                diffFor={diffFor}
+                diffData={diffData}
+                diffLoading={diffLoading}
+                restoringVersion={restoringVersion}
+                onCompare={handleCompare}
+                onRestore={handleRestore}
+              />
             ) : propVersions.length ? (
               propVersions.map((v) => (
                 <div key={v} className="rounded border px-2 py-1 text-xs" data-testid={`dataset-version-${v}`}>

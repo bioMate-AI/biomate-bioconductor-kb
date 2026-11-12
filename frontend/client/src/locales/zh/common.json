@@ -566,7 +566,21 @@
     "rename_label": "新名称",
     "rename_hint": "按 Enter 保存，按 Esc 取消；用“/”可移入文件夹，例如 {{example}} 会移入“{{folder}}”文件夹。",
     "rename_conflict": "项目中已有同名的文件或文件夹。",
-    "rename_invalid": "名称无效：请去掉“..”、控制字符或过长的文件夹名。"
+    "rename_invalid": "该名称不可用，请换一个名称（用“/”分隔文件夹）。",
+    "rename_conflict_with": "项目中的“{{existing}}”已使用该名称，请换一个名称。",
+    "rename_err_run_output": "运行产物保留其运行时生成的名称，不能重命名。",
+    "rename_err_same_name": "该文件夹已是这个名称。",
+    "rename_err_into_itself": "文件夹不能移入它自身或其子文件夹。",
+    "rename_err_control_chars": "名称中含有不可见的控制字符（例如粘贴进来的换行），请重新输入。",
+    "rename_err_dot_segment": "“..”不能用作文件夹名称。",
+    "rename_err_empty": "请输入名称。",
+    "rename_err_too_long": "每个文件夹名或文件名最多 200 个字符。",
+    "rename_err_too_deep": "文件夹最多嵌套 32 层。",
+    "rename_err_limits": "移动后，其中某个文件会超出文件夹层级或名称长度上限。",
+    "rename_err_gone": "你无权重命名此项，或它已不存在。请刷新文件列表。",
+    "rename_err_signed_out": "登录已过期，请重新登录后再试。",
+    "rename_err_server": "服务器未能完成重命名（{{status}}），未做任何更改，请重试。",
+    "rename_err_network": "无法连接服务器，未做任何重命名。请检查网络后重试。"
   },
   "dataset_obj": {
     "quality_good": "良好",
@@ -2350,5 +2364,10 @@
     "tenx_part_barcodes": "Barcodes（细胞）",
     "tenx_part_features": "Features（基因）",
     "tenx_missing": "缺失"
+  },
+  "dataset_versions": {
+    "by": "作者：{{name}}",
+    "diff_row": "第 {{n}} 行",
+    "empty_value": "（空）"
   }
 }

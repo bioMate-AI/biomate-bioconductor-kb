@@ -560,7 +560,21 @@
     "rename_label": "New name",
     "rename_hint": "Enter to save, Esc to cancel. Use “/” to move into a folder — e.g. {{example}} moves it into “{{folder}}”.",
     "rename_conflict": "A file or folder with that name already exists in this project.",
-    "rename_invalid": "That name isn’t allowed — remove “..”, control characters or overly long folder names."
+    "rename_invalid": "That name isn’t allowed. Try a different name (“/” separates folders).",
+    "rename_conflict_with": "“{{existing}}” already uses that name in this project — pick another name.",
+    "rename_err_run_output": "Run outputs keep the name their run gave them, so they can’t be renamed.",
+    "rename_err_same_name": "The folder already has that name.",
+    "rename_err_into_itself": "A folder can’t be moved into itself or one of its own folders.",
+    "rename_err_control_chars": "The name contains an invisible control character (for example a pasted line break). Retype it.",
+    "rename_err_dot_segment": "“..” can’t be used as a folder name.",
+    "rename_err_empty": "Type a name.",
+    "rename_err_too_long": "Each folder or file name can be at most 200 characters.",
+    "rename_err_too_deep": "Folders can be nested at most 32 levels deep.",
+    "rename_err_limits": "After the move, some file inside would exceed the folder depth or name length limit.",
+    "rename_err_gone": "You can’t rename this, or it no longer exists. Refresh the file list.",
+    "rename_err_signed_out": "Your session has expired. Sign in again, then retry.",
+    "rename_err_server": "The server couldn’t rename it ({{status}}). Nothing was changed — try again.",
+    "rename_err_network": "Couldn’t reach the server, so nothing was renamed. Check your connection and try again."
   },
   "dataset_obj": {
     "quality_good": "Good",
@@ -1865,5 +1879,10 @@
     "tenx_part_barcodes": "Barcodes (cells)",
     "tenx_part_features": "Features (genes)",
     "tenx_missing": "missing"
+  },
+  "dataset_versions": {
+    "by": "by {{name}}",
+    "diff_row": "Row {{n}}",
+    "empty_value": "(empty)"
   }
 }
