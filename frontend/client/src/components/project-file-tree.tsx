@@ -122,6 +122,29 @@ function insertInput(root: FolderNode, f: ProjectFile): void {
   node.children.push({ type: "file", name: leaf, file: f });
 }
 
+/** Tree folder path a file sits in ("inputs/run1", "outputs/analysis/<chat folder>", "outputs/<run>"). */
+export function treeFolderOf(f: ProjectFile): string {
+  const dir = f.name.includes("/") ? f.name.slice(0, f.name.lastIndexOf("/")) : "";
+  if (f.source === "run_code") return dir ? `outputs/analysis/${dir}` : "outputs/analysis";
+  if (f.source === "run_output") return `outputs/${f.run_id || "unknown"}`;
+  return dir ? `inputs/${dir}` : "inputs";
+}
+
+/** "a/b/c" → ["a", "a/b", "a/b/c"] (every folder that must be expanded to show c). */
+export function ancestorPaths(p: string): string[] {
+  const parts = p.split("/").filter(Boolean);
+  return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
+}
+
+/** Compact local time for a file row ("11-12 16:28"; earlier years add the year). */
+export function fileTime(iso: string | Date, now: Date = new Date()): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const p = (n: number) => String(n).padStart(2, "0")
+  const md = `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}-${md}`
+}
+
 /** Folders before files at every level; files keep their (newest-first) order. */
 function sortFoldersFirst(node: FolderNode): void {
   node.children.sort((x, y) => (x.type === y.type ? 0 : x.type === "folder" ? -1 : 1));
@@ -136,7 +159,8 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
   const analysis: FolderNode = { type: "folder", name: t("file_tree.analysis_outputs"), path: "outputs/analysis", children: [] };
 
   for (const f of files) {
-    if (f.source === "run_code") { analysis.children.push({ type: "file", name: f.name, file: f }); continue; }
+    // Saved as "<chat title> · <start time>/<file>" (one folder per chat) — nested like inputs.
+    if (f.source === "run_code") { insertInput(analysis, f); continue; }
     // Only run outputs are "results"; everything else the user ingested
     // (upload, pasted URL, connector pull) is an input, regardless of source.
     if (f.source !== "run_output") {
@@ -148,6 +172,7 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
     }
   }
   sortFoldersFirst(inputs);
+  sortFoldersFirst(analysis);
 
   const root: TreeNode[] = [];
   if (inputs.children.length > 0) root.push(inputs);
@@ -663,6 +688,15 @@ function FileRow({
             {file.step_name}
           </span>
         )}
+        {file.created_at && (
+          <span
+            className="text-fs-xs text-muted-foreground/80 shrink-0 tabular-nums hidden sm:inline"
+            title={new Date(file.created_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}
+            data-testid={`file-time-${file.id}`}
+          >
+            {fileTime(file.created_at)}
+          </span>
+        )}
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
         <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`file-actions-${file.id}`}>
           {showPreview && (
@@ -826,6 +860,9 @@ export interface ProjectFileTreeProps {
   /** Deep-link target: when this file id is present in the loaded list, open it
    *  as an object once (used by `/files?file=<id>` links from other surfaces). */
   selectFileId?: string;
+  /** Deep link to a folder (tree path, e.g. "outputs/analysis/<chat folder>"): expand it and its
+   *  parents and scroll it into view — the chat's "open folder" link. */
+  revealFolder?: string;
   /** Open an INPUT folder as one object (data hub folder view). Called with the folder path
    *  relative to the inputs root ("" = inputs itself, "pairs", "run1/fastq") on every click of
    *  its row (the click also expands/collapses it). Run-output groups are not folders. */
@@ -836,7 +873,7 @@ export interface ProjectFileTreeProps {
   reloadKey?: number;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, reloadKey = 0 }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, revealFolder, reloadKey = 0 }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
@@ -891,8 +928,23 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     if (match) {
       openedSelectRef.current = selectFileId;
       onOpenDataset(match);
+      // Expand the folders it sits in, so the opened file is visible in the tree too.
+      const dir = treeFolderOf(match);
+      if (dir) setExpandedFolders((prev) => new Set([...Array.from(prev), ...ancestorPaths(dir)]));
     }
   }, [selectFileId, files, onOpenDataset]);
+
+  // Folder deep link: expand it (and its parents) once, and bring it into view.
+  const revealedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!revealFolder || revealedRef.current === revealFolder || !files.length) return;
+    revealedRef.current = revealFolder;
+    setExpandedFolders((prev) => new Set([...Array.from(prev), ...ancestorPaths(revealFolder)]));
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-testid="folder-${CSS.escape(revealFolder)}"]`);
+      el?.scrollIntoView({ block: "center" });
+    });
+  }, [revealFolder, files]);
 
   // Refresh when another component saves run outputs to this project.
   useEffect(() => {

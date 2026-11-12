@@ -170,3 +170,21 @@ dev line should be left alone.
 
 Verification: tsc clean; server+shared 1953/1953; client 1348 + 1 known load flake
 (`pdf-canvas-viewer`, passes alone).
+
+## Round 5 — live loop on dev (2026-11-12, 02:00–03:30 local)
+
+Deploys (all result=healthy, build-info == pushed PR head): `48baba46` (PR #392),
+`160b6d71` and `3260d799` (PR #393). Live zh e2e `e2e/hints-and-tool-cards.e2e.ts` each time.
+
+| Found live | Root cause | Fix |
+|---|---|---|
+| Chat looked finished after its first sentence for 13–27 s gaps; Stop never shown for a 2-min tool turn (probe sampling every 2 s) | `App.tsx` keys the chat by session id → first message of a new chat REMOUNTS it mid-turn; turn state + abort controller were component state | `lib/active-turns` (per-session store); indicator kept between agent tool steps — `5a908720e2` |
+| read_file card showed `__imageBlocks` and "…analyze it directly" | internal keys / model note displayed | `__` keys hidden; note moved to model-only `__note` |
+| Answer = raw run_code stdout | a text-less max_tokens turn produced `{text:' '}` → API 400 on the final-answer turn → stdout fallback | `assistantTextBlock`; tool turns `max_tokens` 8192 — `3260d79904` |
+| "BioMate is thinking…" English in zh | hardcoded | localized |
+
+Final live run (dev `3260d799`): 3 tool cards, Stop shown during the turn, complete zh QC
+answer after the last card, no backend name / id / storage path anywhere in the chat.
+
+Lane log: 08 → 72 → f9 (48baba46) → 08 (484efdda) → unannounced deploy-images sync
+(100e0e7c) → f9 (160b6d71, 3260d799). Branch-reset incident: see round 4.

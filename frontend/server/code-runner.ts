@@ -19,6 +19,30 @@ import { constants as fsConstants } from 'fs';
 import * as path from 'path';
 import { randomUUID, createHash } from 'crypto';
 
+/** run_code sandbox image. RUN_CODE_IMAGE wins; otherwise the CJK-font layer
+ *  `biomate-runcode:2` (frontend/Dockerfile.runcode — plot labels in Chinese rendered as tofu
+ *  boxes on biotools:1, founder 2026-11-12) when the host has it, else `biomate-biotools:1`.
+ *  Checked once per process. */
+export const RUN_CODE_PREFERRED_IMAGE = 'biomate-runcode:2';
+export const RUN_CODE_BASE_IMAGE = 'biomate-biotools:1';
+let _sandboxImage: Promise<string> | null = null;
+export function resolveSandboxImage(
+  inspect: (image: string) => Promise<boolean> = (image) => new Promise((resolve) => {
+    execFile('docker', ['image', 'inspect', image], { timeout: 15000 }, (err) => resolve(!err));
+  }),
+): Promise<string> {
+  if (process.env.RUN_CODE_IMAGE) return Promise.resolve(process.env.RUN_CODE_IMAGE);
+  if (!_sandboxImage) {
+    _sandboxImage = inspect(RUN_CODE_PREFERRED_IMAGE).then((ok) => {
+      if (!ok) console.warn(`[code-runner] ${RUN_CODE_PREFERRED_IMAGE} not found — using ${RUN_CODE_BASE_IMAGE} (no CJK fonts in plots)`);
+      return ok ? RUN_CODE_PREFERRED_IMAGE : RUN_CODE_BASE_IMAGE;
+    });
+  }
+  return _sandboxImage;
+}
+/** Test helper. */
+export function _resetSandboxImage(): void { _sandboxImage = null; }
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface DatasetRef {
@@ -195,7 +219,7 @@ export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
         ? await imageDataUri(filePath, mediaType)
         : undefined;
       if (image_data_uri) imageBytes += stat.size;
-      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _sig: fileSignature(stat) } as OutputFile);
+      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _sig: await fileSignature(filePath, stat) } as OutputFile);
     }
   } catch { /* dir may not exist */ }
   return results;
@@ -362,20 +386,29 @@ export async function sweepIdleWorkspaces(now = Date.now(), force = false): Prom
   return removed;
 }
 
-/** Identity of a file's current content: a rewrite changes ctime (and usually mtime/size) even
- *  within the same millisecond-rounded mtime; a replace (new file, rename) changes the inode. */
-function fileSignature(st: { size: number; mtimeMs: number; ctimeMs: number; ino: number }): string {
-  return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+/** Identity of a file's CONTENT (size + sha256). Content, not mtime/inode: the silent replay of a
+ *  turn's earlier cells rewrites their files with the same bytes, and a metadata signature counted
+ *  each rewrite as a new output — more files were saved to the project than the chat listed
+ *  (founder 2026-11-12). Files over the hash cap fall back to the metadata signature. */
+const SIGNATURE_HASH_MAX_BYTES = 64 * 1024 * 1024;
+async function fileSignature(filePath: string, st: { size: number; mtimeMs: number; ctimeMs: number; ino: number }): Promise<string> {
+  if (st.size > SIGNATURE_HASH_MAX_BYTES) return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+  try {
+    return `${st.size}:${createHash('sha256').update(await fs.readFile(filePath)).digest('hex')}`;
+  } catch {
+    return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+  }
 }
 
 type DirSnapshot = Map<string, string>;
-async function snapshotDir(dir: string): Promise<DirSnapshot> {
+export async function snapshotDir(dir: string): Promise<DirSnapshot> {
   const snap: DirSnapshot = new Map();
   try {
     for (const e of await fs.readdir(dir, { withFileTypes: true })) {
       if (!e.isFile()) continue;
-      const st = await fs.lstat(path.join(dir, e.name));
-      if (st.isFile()) snap.set(e.name, fileSignature(st));
+      const p = path.join(dir, e.name);
+      const st = await fs.lstat(p);
+      if (st.isFile()) snap.set(e.name, await fileSignature(p, st));
     }
   } catch { /* new workspace */ }
   return snap;
@@ -556,7 +589,7 @@ async function runCodeIn(req: CodeRunRequest, baseDir: string, persistent: boole
     // `aws ecr get-login-password ... | docker login ...`. The bare
     // `biomate-biotools:1` tag works once the image is pulled and re-tagged,
     // or built locally from frontend/Dockerfile.biotools (slower path).
-    const sandboxImage = process.env.RUN_CODE_IMAGE || 'biomate-biotools:1';
+    const sandboxImage = await resolveSandboxImage();
 
     // Container hardening — parity with the Nextflow sandbox
     // (backend/lib/galaxy/ai/compute/sandbox/command.py). Low-risk flags

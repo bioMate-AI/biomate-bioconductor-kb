@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
+import { GeneratedFiles } from "./generated-files"
 import { FindingsCard } from "./findings-card"
 import { t, locale } from "@/lib/i18n"
 import { stripSystemBlocks, attachedNamesFromBlocks, redactInternalRefs } from "@shared/chat-system-blocks"
@@ -695,6 +696,8 @@ export function ChatMessage({
               <ResponseContainer className="w-full">
               {responseContent}
               </ResponseContainer>
+              {/* Everything this reply saved — shown once the turn is done. */}
+              {!isStreaming && <GeneratedFiles blocks={message.metadata?.toolBlocks as ToolBlock[] | undefined} />}
               </>
             )}
           </div>
@@ -1224,7 +1227,8 @@ export function ChatMessage({
             hover/focus so the thread reads as prose, not toolbars. Research
             answers get no second button row (no "Save to project" / "Plan
             analysis" — removed 2026-11-10 per founder review). */}
-        {!hideActions && !isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
+        {/* Copy / download / retry / rate act on a finished reply — hidden while the turn is still running. */}
+        {!hideActions && !isUser && !isStreaming && message.metadata?.type !== "error" && !!message.content?.trim() && (
           <div
             data-testid="message-action-row"
             className={cn(

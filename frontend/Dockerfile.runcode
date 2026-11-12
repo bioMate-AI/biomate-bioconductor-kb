@@ -1,0 +1,20 @@
+# run_code sandbox image = biotools base + CJK fonts + matplotlib defaults + Office/pandoc.
+# A thin layer on biomate-biotools:1 (the heavy R/Bioconductor base is not rebuilt).
+# Tag: biomate-runcode:2 — built on the dev host by scripts/sync_to_dev.sh when missing.
+FROM biomate-biotools:1
+
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-cjk fontconfig pandoc \
+    && rm -rf /var/lib/apt/lists/* && fc-cache -f
+
+# Office documents (founder 2026-11-12: a requested .docx report failed — the sandbox is offline, so
+# `pip install python-docx` inside a run cannot work; ship the libraries in the image).
+RUN pip3 install --no-cache-dir --break-system-packages python-docx python-pptx
+
+COPY sandbox/matplotlibrc /etc/matplotlibrc
+# Sandboxes run read-only with HOME=/tmp and no network: ship a prebuilt font cache so every
+# call does not rebuild it, and point matplotlib at the site config.
+ENV MATPLOTLIBRC=/etc/matplotlibrc \
+    MPLCONFIGDIR=/opt/mplcache
+RUN mkdir -p /opt/mplcache \
+    && python3 -c "import matplotlib.font_manager as fm; fm._load_fontmanager(try_read_cache=False); print([f.name for f in fm.fontManager.ttflist if 'CJK' in f.name][:3])" \
+    && chmod -R a+rwX /opt/mplcache

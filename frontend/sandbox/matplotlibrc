@@ -1,0 +1,8 @@
+# run_code sandbox defaults (frontend/Dockerfile.runcode). Chinese / Japanese / Korean labels
+# render with Noto Sans CJK (founder 2026-11-12: plot titles showed tofu boxes); Latin text
+# keeps DejaVu-compatible metrics. The ASCII hyphen-minus avoids a missing-glyph box in CJK fonts.
+font.family: sans-serif
+font.sans-serif: Noto Sans CJK SC, Noto Sans CJK JP, DejaVu Sans
+axes.unicode_minus: False
+savefig.dpi: 150
+savefig.bbox: tight

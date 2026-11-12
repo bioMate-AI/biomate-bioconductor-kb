@@ -196,7 +196,7 @@ deploy_frontend() {
     frontend/package.json frontend/package-lock.json \
     frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
     frontend/tailwind.config.js frontend/postcss.config.js \
-    frontend/Dockerfile frontend/Dockerfile.biotools 2>/dev/null
+    frontend/Dockerfile frontend/Dockerfile.biotools frontend/Dockerfile.runcode frontend/sandbox/ 2>/dev/null
   log "[frontend] Archive: $(du -sh $tar_file | cut -f1)"
 
   # NOTE: deploy_frontend runs with set -e DISABLED — do_sync is invoked as
@@ -245,6 +245,13 @@ deploy_frontend() {
       echo "[frontend] Biotools base missing — building (this is slow, runs once)..."
       docker build -t biomate-biotools:1 \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile.biotools \
+        /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
+    fi
+    # run_code sandbox = biotools + CJK fonts + matplotlib defaults (thin layer, fast).
+    if ! docker image inspect biomate-runcode:2 >/dev/null 2>&1; then
+      echo "[frontend] run_code sandbox image missing — building biomate-runcode:2..."
+      docker build -t biomate-runcode:2 \
+        -f /opt/biomate/frontend_sync/frontend/Dockerfile.runcode \
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
     fi
 

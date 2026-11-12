@@ -2459,9 +2459,12 @@ export function registerProjectRoutes(app: Express): void {
  */
 export async function storeGeneratedFileInProject(o: {
   projectId: string; uid: string; hostPath: string; name: string;
+  /** Per-chat folder (chat-output-folder.ts) — outputs of different chats stay apart. */
+  folder?: string;
 }): Promise<{ file: any; versioned: boolean; deduplicated?: boolean } | null> {
   if (!(await _isOwnerOrEditor(o.projectId, o.uid))) return null;
-  const { name, keyPath } = projectInputPath(o.name);
+  const base = String(o.name || "").replace(/\\/g, "/").split("/").filter(Boolean).pop() || "file";
+  const { name, keyPath } = o.folder ? projectInputPath(base, `${o.folder}/${base}`) : projectInputPath(o.name);
   const key = `projects/${o.projectId}/generated/${keyPath}`;
   const buf = fs.readFileSync(o.hostPath);
   const contentHash = createHash("sha256").update(buf).digest("hex");
