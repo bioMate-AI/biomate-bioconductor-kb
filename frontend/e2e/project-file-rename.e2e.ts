@@ -130,8 +130,12 @@ test.describe("project file rename / move", () => {
       await page.getByTestId("project-files-refresh-btn").click();
       const yFolder = page.getByTestId("folder-inputs/y");
       await expect(yFolder).toBeVisible({ timeout: 10_000 });
-      await yFolder.hover();
-      await page.getByTestId("folder-rename-inputs/y").click();
+      // Reach the hover/focus-only action by keyboard: hovering is racy here (the refresh re-renders
+      // the tree and rows shift under the pointer), and the overlay also opens on focus-within.
+      await yFolder.focus();
+      await page.keyboard.press("Tab");
+      await expect(page.getByTestId("folder-rename-inputs/y")).toBeFocused();
+      await page.keyboard.press("Enter");
       const fin = page.getByTestId("folder-rename-inputs/y-input");
       await expect(fin).toHaveValue("y");
       await fin.fill("z");
