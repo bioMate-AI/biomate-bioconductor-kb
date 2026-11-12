@@ -90,7 +90,9 @@ def test_leaky_feature(tmp):
     assert prof["quality"] == "watch", prof
     assert "leakage" in prof, prof
     assert "leaky" in prof["leakage"]["detail"], prof
-    assert any("drop" in pi["effect"] for pi in prof["planImpact"]), prof
+    # The plan tells you to keep the group-revealing column out of a model (wording 2026-11-12:
+    # "leave “leaky” out of any model that predicts the group").
+    assert any("leaky" in pi["effect"] and "out of" in pi["effect"] for pi in prof["planImpact"]), prof
     print("PASS test_leaky_feature")
 
 
@@ -191,7 +193,9 @@ def test_vcf_profile(tmp):
     prof = profile_dataset(path)
     assert prof["shape"]["rows"] == 3, prof
     assert prof["shape"]["cols"] == 2, prof  # two samples
-    assert any("variant" in n.lower() for n in prof["notes"]), prof
+    # Round 5: the counts are stated once — the vcf_records signal (beside the variants/samples stats).
+    assert [f["code"] for f in prof["findings"]] == ["vcf_records"], prof["findings"]
+    assert any("variant" in n.lower() for n in prof["signalSummary"]), prof
     print("PASS test_vcf_profile")
 
 

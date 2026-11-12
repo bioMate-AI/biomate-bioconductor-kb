@@ -146,7 +146,8 @@ def test_pairs_folder_paired_and_orphan():
     codes = {f["code"]: f for f in out["findings"]}
     assert codes["folder_fastq_orphan"]["params"] == {"name": "S2_R1.fastq.gz", "sample": "S2", "missing": "R2"}, codes
     assert codes["folder_fastq_orphan"]["level"] == "watch"
-    assert "folder_fastq_mixed_layout" in codes and codes["folder_fastq_pairs"]["params"]["pairs"] == 1, codes
+    # Round 5: the orphan is the one statement of S2's missing mate (no "mixed layout" repeat).
+    assert "folder_fastq_mixed_layout" not in codes and codes["folder_fastq_pairs"]["params"]["pairs"] == 1, codes
     assert out["rollup"] == [{"format": "fastq", "label": "FASTQ", "count": 3, "viewKind": "reads", "pairs": 1}], out["rollup"]
     print("PASS test_pairs_folder_paired_and_orphan")
 

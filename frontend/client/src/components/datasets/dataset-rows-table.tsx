@@ -318,16 +318,19 @@ export function DatasetRowsTable({
   }
 
   const fmt = (n: number) => n.toLocaleString()
+  // A header-only file: nothing to filter, sort or count — the table says "no data rows yet", not
+  // "All 0 rows loaded · sorting and filtering apply to all rows".
+  const noDataRows = total === 0 && rows.length === 0 && !loading && error == null
   return (
-    <div className="space-y-1" data-testid="dataset-preview-table">
-      <input
+    <div className="space-y-1" data-testid="dataset-preview-table" data-no-rows={noDataRows ? "true" : undefined}>
+      {!noDataRows && <input
         value={filterText}
         onChange={(e) => setFilterText(e.target.value)}
         placeholder={t("dataset_obj.filter_placeholder")}
         aria-label={t("dataset_obj.filter_placeholder")}
         data-testid="dataset-preview-filter"
         className="w-full rounded border bg-background px-2 py-1 text-xs mb-1"
-      />
+      />}
       <div className="relative">
       <div
         ref={boxRef}
@@ -426,7 +429,7 @@ export function DatasetRowsTable({
               </tr>
             ))}
             {end < view.length && <tr aria-hidden style={{ height: (view.length - end) * ROW_H }} />}
-            {total === 0 && rows.length === 0 && !loading && (
+            {noDataRows && (
               // A header-only file: its columns are real, it just has no data rows yet.
               <tr data-testid="dataset-preview-no-rows">
                 <td colSpan={Math.max(1, columns.length)} className="px-2 py-2 text-muted-foreground">{t("dataset_obj.no_data_rows")}</td>
@@ -443,7 +446,7 @@ export function DatasetRowsTable({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="dataset-preview-rowcount">
         {hasNested && !openRow && !editable && <span>{t("dataset_obj.record_hint")}</span>}
         {moreRight && <span data-testid="dataset-preview-more-columns">{t("dataset_obj.scroll_more_columns")}</span>}
-        {scope == null && (
+        {scope == null && !noDataRows && (
           <span>
             {allLoaded
               ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
@@ -451,9 +454,9 @@ export function DatasetRowsTable({
           </span>
         )}
         {filterText.trim() && <span>{t("dataset_obj.rows_matching", { n: fmt(view.length) })}</span>}
-        <span data-testid="dataset-preview-scope">
+        {!noDataRows && <span data-testid="dataset-preview-scope">
           {scope ?? (allLoaded ? t("dataset_obj.rows_scope_full") : t("dataset_obj.rows_scope_partial"))}
-        </span>
+        </span>}
         {loading && <span role="status">{t("dataset_obj.loading_more")}</span>}
         {error != null && (
           <span role="alert" className="text-destructive">

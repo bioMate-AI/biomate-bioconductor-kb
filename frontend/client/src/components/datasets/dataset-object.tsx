@@ -17,13 +17,14 @@
  * scoped to that action and never replace the preview/provenance content.
  */
 
-import { useState, useEffect, useCallback, useRef, cloneElement, isValidElement, type ReactNode } from "react"
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, cloneElement, isValidElement, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   ChevronLeft,
+  ChevronRight,
   Eye,
   GitBranch,
   History,
@@ -178,6 +179,27 @@ export function DatasetObject({
   const [tabSel, setTabSel] = useState<{ id: string; tab: "preview" | "versions" | "wherefrom" } | null>(null)
   const tab = tabSel?.id === dataset.id ? tabSel.tab : "preview"
   const setTab = (next: "preview" | "versions" | "wherefrom") => setTabSel({ id: dataset.id, tab: next })
+  // Tab list overflow (narrow panels): which sides hold tabs scrolled out of view.
+  const tablistRef = useRef<HTMLDivElement>(null)
+  const [tabOverflow, setTabOverflow] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
+  const measureTabOverflow = useCallback(() => {
+    const el = tablistRef.current
+    if (!el) return
+    const left = el.scrollLeft > 1
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setTabOverflow((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+  }, [])
+  useLayoutEffect(() => {
+    measureTabOverflow()
+    const el = tablistRef.current
+    if (!el || typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measureTabOverflow)
+      return () => window.removeEventListener("resize", measureTabOverflow)
+    }
+    const ro = new ResizeObserver(measureTabOverflow)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [measureTabOverflow])
   const setPreviewView = (view: PreviewView) => setViewSel({ id: dataset.id, view })
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
@@ -704,7 +726,10 @@ export function DatasetObject({
             selected tab as a raised white box, not an underline. */}
         {/* One line at every width: a narrow panel scrolls the tab list sideways rather than
             wrapping a tab onto a second row. */}
-        <div className="flex w-full min-w-0 flex-nowrap items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-0.5 mb-3 [scrollbar-width:none]" role="tablist" data-testid="dataset-tablist">
+        {/* When the tabs do not fit (a 390 px phone: "Provenance" cut mid-word), the hidden side
+            fades out and a chevron scrolls to it — a cut tab never reads as the whole label. */}
+        <div className="relative mb-3" data-testid="dataset-tablist-wrap" data-overflow-right={tabOverflow.right ? "true" : undefined} data-overflow-left={tabOverflow.left ? "true" : undefined}>
+        <div ref={tablistRef} onScroll={measureTabOverflow} className="flex w-full min-w-0 flex-nowrap items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-0.5 [scrollbar-width:none]" role="tablist" data-testid="dataset-tablist">
           {([
             ["preview", Eye, t('file_tree.preview')],
             ["versions", History, t('dataset_obj.versions')],
@@ -716,8 +741,10 @@ export function DatasetObject({
               role="tab"
               aria-selected={tab === key}
               data-testid={`dataset-tab-${key}`}
-              onClick={() => {
+              onClick={(e) => {
                 setTab(key)
+                // A tab chosen while partly scrolled out of a narrow list comes fully into view.
+                e.currentTarget.scrollIntoView?.({ block: "nearest", inline: "nearest" })
                 if (key === "wherefrom") setWherefromOpened(true)
                 else if (key === "versions") setVersionsOpened(true)
               }}
@@ -732,6 +759,25 @@ export function DatasetObject({
             </button>
             </HintTip>
           ))}
+        </div>
+        {tabOverflow.left && (
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-lg bg-gradient-to-r from-muted to-transparent" data-testid="dataset-tablist-fade-left" />
+        )}
+        {tabOverflow.right && (
+          <>
+            <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-12 rounded-r-lg bg-gradient-to-l from-muted via-muted/80 to-transparent" data-testid="dataset-tablist-fade" />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 flex w-7 items-center justify-center rounded-r-lg text-muted-foreground hover:text-foreground"
+              onClick={() => tablistRef.current?.scrollBy?.({ left: tablistRef.current.clientWidth * 0.6, behavior: "smooth" })}
+              aria-label={t('dataset_obj.tabs_more')}
+              title={t('dataset_obj.tabs_more')}
+              data-testid="dataset-tablist-more"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
         </div>
 
           {/* ── Preview: Table / Columns / Plot + stat grid ── */}
@@ -962,6 +1008,9 @@ export function DatasetObject({
                   // …and what the Preview shows as content (AnnData parts, a sheet's values) is not
                   // listed again among the notes.
                   hideFindings={previewView === "content" ? findingsShownAsContent(vm.content, profile) : undefined}
+                  // …nor a finding that only restates the stat grid's numbers (variants · samples,
+                  // cells × genes, rows · columns), matched by code + params.
+                  shownStats={gridStats}
                 />
               )}
             </div>

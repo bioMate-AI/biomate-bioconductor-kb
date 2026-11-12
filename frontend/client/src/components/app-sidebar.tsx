@@ -63,6 +63,25 @@ interface AppSidebarProps {
   chatSessions?: any[]
 }
 
+type SidebarChatRow = { session_id: string; title: string }
+
+/**
+ * A project's chats in the sidebar: the server's list for it, plus the chats this browser already
+ * holds that were STARTED in it (`projectId` set at creation / first send). The server lists a chat
+ * only after its session has synced and the list is refetched — "Run full QC" sat under "Other
+ * chats" for ~46 s (2026-11-12 round 5). An untouched empty chat is not listed until it is used.
+ */
+export function projectChatRows(
+  projectId: string, serverRows: SidebarChatRow[] | undefined, localSessions: any[], hidden: ReadonlySet<string>,
+): SidebarChatRow[] {
+  const rows = (serverRows ?? []).filter((r) => !hidden.has(r.session_id))
+  const seen = new Set(rows.map((r) => r.session_id))
+  const local = localSessions
+    .filter((c) => c && c.projectId === projectId && !seen.has(c.id) && !hidden.has(c.id) && (c.messages?.length ?? 0) > 0)
+    .map((c) => ({ session_id: String(c.id), title: String(c.title ?? "") }))
+  return [...local, ...rows]
+}
+
 export function AppSidebar({ 
   onNewChat = () => console.log('New chat triggered'),
   onChatSelect = (id) => console.log('Chat selected:', id),
@@ -218,6 +237,13 @@ export function AppSidebar({
     return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
   }
 
+  // Chats started in a project the sidebar lists show under that project at once (projectChatRows),
+  // never first under "Other chats" until the server's per-project list catches up.
+  // (Only an EXPANDED project shows its chats — a collapsed one's stay under "Other chats", as before.)
+  const listedProjectIds = new Set(apiProjects.map((p) => p.id).filter((id) => expandedProjectIds.has(id)))
+  const filedInListedProject = new Set(
+    chatSessions.filter((c: any) => c && typeof c.projectId === "string" && listedProjectIds.has(c.projectId) && (c.messages?.length ?? 0) > 0).map((c: any) => String(c.id)),
+  )
   // Use chat sessions from props; empty list until backend syncs (no mock fallback)
   const recentChats = [...chatSessions]
     .sort((a, b) => new Date(b.lastActivity ?? 0).getTime() - new Date(a.lastActivity ?? 0).getTime())
@@ -400,7 +426,7 @@ export function AppSidebar({
                     </button>
                     </HintTip>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
-                    {(projectSessions[proj.id] || []).map(chat => <HintTip key={chat.session_id} hint={chat.title}><button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button></HintTip>)}
+                    {projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).map(chat => <HintTip key={chat.session_id} hint={chat.title}><button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button></HintTip>)}
                     <HintTip hint={t('hint.nav.project_new_chat')}>
                     <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 'var(--fs-meta)', width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
                     </HintTip>
@@ -426,7 +452,7 @@ export function AppSidebar({
         {recentChats.length > 0 && (
           <>
             <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
-            {recentChats.filter(chat => !deletedChatIds.has(chat.id) && !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
+            {recentChats.filter(chat => !deletedChatIds.has(chat.id) && !filedInListedProject.has(chat.id) && !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id
               const isConfirming = confirmingDeleteChatId === chat.id

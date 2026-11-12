@@ -56,12 +56,13 @@ describe("<DataPerception>", () => {
   });
 
   it("lists leakage + imbalance reasons and a localized plan line", () => {
-    render(<DataPerception profile={WATCH_LEAKY_PROFILE} planImpact={[{ observed: "xx-legacy", effect: "yy" }]} />);
+    // A planning context (a chat turn that built a plan) shows the plan impact; a file page does not.
+    render(<DataPerception profile={WATCH_LEAKY_PROFILE} showPlanImpact planImpact={[{ observed: "xx-legacy", effect: "yy" }]} />);
     const codes = screen.getAllByTestId("perception-why-item").map((el) => el.getAttribute("data-code"));
     expect(codes).toEqual(["minority_class", "batch_confound", "effective_n_imbalance"]);
     const impact = screen.getByTestId("perception-plan-impact");
-    expect(impact).toHaveTextContent("“batch”–label confound");
-    expect(impact).toHaveTextContent("add “batch” as a covariate before modelling");
+    expect(impact).toHaveTextContent("“batch” overlaps with the groups");
+    expect(impact).toHaveTextContent("include “batch” in the design (e.g. as a covariate) for differential analysis");
     // structured mode ignores the legacy free-text planImpact prop
     expect(impact).not.toHaveTextContent("xx-legacy");
   });
@@ -82,7 +83,7 @@ describe("<DataPerception>", () => {
   });
 
   it("falls back to free text only for a legacy profile without findings", () => {
-    render(<DataPerception profile={LEGACY_PROFILE} planImpact={LEGACY_PLAN_IMPACT} />);
+    render(<DataPerception profile={LEGACY_PROFILE} showPlanImpact planImpact={LEGACY_PLAN_IMPACT} />);
     expect(screen.getByTestId("perception-notes")).toHaveTextContent(/Single-end reads detected/);
     expect(screen.getByTestId("perception-plan-impact")).toHaveTextContent("suggested single-end pipeline");
   });
@@ -149,7 +150,7 @@ describe("<DataPerception> — stats per data kind (U2) and copy", () => {
 
 describe("<DataPerception> — e2e contract: every rendered finding carries its code", () => {
   it("signal / note / leakage / plan lines are perception-finding[data-code]; why items keep their own testid", () => {
-    render(<DataPerception datasetName="t.csv" profile={{
+    render(<DataPerception datasetName="t.csv" showPlanImpact profile={{
       shape: { rows: 10, cols: 3 }, quality: "watch", notes: [], labelColumn: "label",
       findings: [
         { section: "note", code: "ragged_rows", level: "watch", params: { count: 2, expected: 3 } },

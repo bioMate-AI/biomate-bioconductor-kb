@@ -1,10 +1,10 @@
 {
   "baseUrl": "https://dev-public.biomate.ai",
   "buildInfo": {
-    "commit": "aefa622172e947f0b646b8cac883a77ffdc3e62c"
+    "commit": "4ea6bb7fa7fcf4fd7f648e42aefad849e4ee8bb5"
   },
-  "startedAt": "2026-11-12T11:06:42.517Z",
-  "projectId": "5dabee34-2afc-419e-8030-aae67b930c2a",
+  "startedAt": "2026-11-12T12:16:38.313Z",
+  "projectId": "8869dd73-4783-47b7-8ec7-8c718241d2e9",
   "expectations": "e2e/format-matrix-expectations.json",
   "summary": {
     "PASS": 34,
@@ -35,9 +35,9 @@
         ],
         "minColumns": 3
       },
-      "fileId": "77d6a0e5-038b-492c-a007-fbddbaa1ecfb",
+      "fileId": "40235208-1213-4f45-9b07-76a0d893ec3f",
       "settled": true,
-      "settleMs": 6710,
+      "settleMs": 6271,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -178,9 +178,9 @@
         ],
         "note": "header-less numeric table"
       },
-      "fileId": "1f88feee-c5ea-415e-adc2-246dbe4308bb",
+      "fileId": "6dae0bfc-90fe-4ce6-ad99-e1018d8d5927",
       "settled": true,
-      "settleMs": 3014,
+      "settleMs": 2652,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -295,7 +295,7 @@
           "columns_generated",
           "table_clean_unlabelled"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.tsv\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 10 · columns: 3; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.tsv\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 10 · columns: 3; no constant columns or missing-value problems. No group column (e.g. condition) was found, so group sizes were not checked."
       },
       "errors": [],
       "pageErrors": []
@@ -324,9 +324,9 @@
         ],
         "minColumns": 6
       },
-      "fileId": "c9a0d474-3698-4e3c-acf5-88e2f64850a1",
+      "fileId": "78da2bf7-8f6d-4a43-89fc-35bd853e22fb",
       "settled": true,
-      "settleMs": 3019,
+      "settleMs": 3014,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -470,9 +470,9 @@
         ],
         "minColumns": 12
       },
-      "fileId": "65b21eaa-e578-42ab-9030-4958e88e9b0e",
+      "fileId": "970b3546-a774-4810-afb4-8c0f427951dc",
       "settled": true,
-      "settleMs": 2982,
+      "settleMs": 2933,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -630,9 +630,9 @@
         ],
         "minColumns": 9
       },
-      "fileId": "de2c347f-8895-4d97-81e0-9e1a50d18ebc",
+      "fileId": "75eeb332-c740-44b0-afe2-50b943ccc25a",
       "settled": true,
-      "settleMs": 3000,
+      "settleMs": 3051,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -783,9 +783,9 @@
         ],
         "minColumns": 9
       },
-      "fileId": "2a2ce175-2f26-4bc6-80e6-e60be75b8a15",
+      "fileId": "97b5795e-9f45-4228-8dff-037927cf3be1",
       "settled": true,
-      "settleMs": 2980,
+      "settleMs": 3063,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -928,9 +928,9 @@
         "previewKind": "sequences",
         "quality": "assessed"
       },
-      "fileId": "fca47b12-1db5-46fa-b7e5-fdbf56326d0a",
+      "fileId": "ff132184-96ee-4836-a257-1662a5fc5ce3",
       "settled": true,
-      "settleMs": 2966,
+      "settleMs": 2948,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1029,9 +1029,9 @@
         "previewKind": "sequences",
         "quality": "assessed"
       },
-      "fileId": "67056540-f049-4689-9c8c-842c3b79d27f",
+      "fileId": "9d2dc7f9-e597-4f88-ac13-4fb5c355a795",
       "settled": true,
-      "settleMs": 2899,
+      "settleMs": 2967,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1130,9 +1130,9 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "ca2be021-77c9-4f6c-895b-f1ae76d5bcdf",
+      "fileId": "4258a052-1dd2-45f5-a6fa-c11d00d8dbe7",
       "settled": true,
-      "settleMs": 2876,
+      "settleMs": 2939,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1235,9 +1235,9 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "a25ef92c-8c54-4258-9ccd-2f0a36c2e970",
+      "fileId": "e1495124-dceb-4f5e-a090-db4979c4379c",
       "settled": true,
-      "settleMs": 2895,
+      "settleMs": 2431,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1341,9 +1341,9 @@
         "quality": "assessed",
         "note": "variant viewer (CHROM/POS/ID/REF/ALT/QUAL/FILTER/INFO), not the generic rows table"
       },
-      "fileId": "44219fea-2b1e-440b-a4a1-88694a7742a8",
+      "fileId": "ea8e9ba3-3338-4f59-83de-f4ddcef73fc9",
       "settled": true,
-      "settleMs": 2913,
+      "settleMs": 2964,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1442,9 +1442,9 @@
         "previewKind": "variants",
         "quality": "assessed"
       },
-      "fileId": "a6002e7c-c256-4092-8d74-82d1d9f97e39",
+      "fileId": "2e71629c-56d5-41d3-80ca-553f3d17d472",
       "settled": true,
-      "settleMs": 2933,
+      "settleMs": 2931,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1544,7 +1544,112 @@
         "quality": "notAnalysed",
         "note": "header metadata only (references, sort order, read groups); watch only for a real header finding"
       },
-      "fileId": "f9d693ee-b0c5-48a0-9164-94359224d5c5",
+      "fileId": "9edf727f-ee58-40f5-8861-a6a0eb26bc69",
+      "settled": true,
+      "settleMs": 2966,
+      "checks": [
+        {
+          "name": "expectation-vocabulary",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "settled",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "view-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "preview-kind",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "has-preview",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-page-errors",
+          "core": true,
+          "pass": true
+        },
+        {
+          "name": "no-table-controls",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "quality-class",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "verdict-has-reason",
+          "core": false,
+          "pass": true
+        },
+        {
+          "name": "stats-per-kind",
+          "core": false,
+          "pass": true
+        }
+      ],
+      "viewKind": "alignment",
+      "previewKind": "alignment",
+      "legacyKind": "message",
+      "previewTestids": [
+        "dataset-kind-summary"
+      ],
+      "previewNone": false,
+      "columns": [],
+      "rowCount": 0,
+      "toggles": [],
+      "stats": [
+        "references",
+        "size",
+        "type"
+      ],
+      "statGridPresent": true,
+      "qc": {
+        "state": "perception",
+        "quality": "watch",
+        "whyCount": 1,
+        "codes": [
+          "alignment_no_read_groups",
+          "alignment_sorted",
+          "format_metadata_only"
+        ],
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.bam\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nNotes\nCoordinate-sorted (header SO:coordinate).\nBAM metadata was read; the data values themselves have not been analysed."
+      },
+      "errors": [],
+      "pageErrors": []
+    },
+    {
+      "key": "cram",
+      "verdict": "PASS",
+      "failed": [],
+      "uploadedAs": "2.cram",
+      "storedName": "2.cram",
+      "galaxyFixture": "2.cram",
+      "source": "galaxy/datatypes/test/2.cram",
+      "folder": null,
+      "expect": "alignment summary (binary; needs reference)",
+      "expected": {
+        "viewKind": "alignment",
+        "previewKind": "alignment",
+        "quality": "notAnalysed"
+      },
+      "fileId": "89948772-dd20-4d70-bedc-36de4c4cf915",
       "settled": true,
       "settleMs": 2920,
       "checks": [
@@ -1608,8 +1713,7 @@
       "previewKind": "alignment",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-kind-summary",
-        "dataset-kind-download"
+        "dataset-kind-summary"
       ],
       "previewNone": false,
       "columns": [],
@@ -1631,114 +1735,7 @@
           "alignment_sorted",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.bam\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nReference sequences in the header: 168 (0 bp in total).\nNotes\nCoordinate-sorted (header SO:coordinate).\nBAM metadata was read; the data values themselves have not been analysed."
-      },
-      "errors": [],
-      "pageErrors": []
-    },
-    {
-      "key": "cram",
-      "verdict": "PASS",
-      "failed": [],
-      "uploadedAs": "2.cram",
-      "storedName": "2.cram",
-      "galaxyFixture": "2.cram",
-      "source": "galaxy/datatypes/test/2.cram",
-      "folder": null,
-      "expect": "alignment summary (binary; needs reference)",
-      "expected": {
-        "viewKind": "alignment",
-        "previewKind": "alignment",
-        "quality": "notAnalysed"
-      },
-      "fileId": "b848689b-7e6c-4bd3-8f3a-0eb4edb098f6",
-      "settled": true,
-      "settleMs": 2932,
-      "checks": [
-        {
-          "name": "expectation-vocabulary",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "settled",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "view-kind",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "preview-kind",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "has-preview",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "no-errors",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "no-page-errors",
-          "core": true,
-          "pass": true
-        },
-        {
-          "name": "no-table-controls",
-          "core": false,
-          "pass": true
-        },
-        {
-          "name": "quality-class",
-          "core": false,
-          "pass": true
-        },
-        {
-          "name": "verdict-has-reason",
-          "core": false,
-          "pass": true
-        },
-        {
-          "name": "stats-per-kind",
-          "core": false,
-          "pass": true
-        }
-      ],
-      "viewKind": "alignment",
-      "previewKind": "alignment",
-      "legacyKind": "message",
-      "previewTestids": [
-        "dataset-kind-summary",
-        "dataset-kind-download"
-      ],
-      "previewNone": false,
-      "columns": [],
-      "rowCount": 0,
-      "toggles": [],
-      "stats": [
-        "references",
-        "size",
-        "type"
-      ],
-      "statGridPresent": true,
-      "qc": {
-        "state": "perception",
-        "quality": "watch",
-        "whyCount": 1,
-        "codes": [
-          "alignment_no_read_groups",
-          "alignment_references",
-          "alignment_sorted",
-          "format_metadata_only"
-        ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.cram\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nReference sequences in the header: 7 (137,547,960 bp in total).\nNotes\nCoordinate-sorted (header SO:coordinate).\nCRAM metadata was read; the data values themselves have not been analysed."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n2.cram\nWatch\nWhy “Watch”\nNo read groups (@RG) in the header: GATK and most variant callers require them.\nSignal summary\nTotal length of the reference sequences in the header: 137,547,960 bp.\nNotes\nCoordinate-sorted (header SO:coordinate).\nCRAM metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
@@ -1758,9 +1755,9 @@
         "previewKind": "anndata",
         "quality": "notAnalysed"
       },
-      "fileId": "785e0a08-9e05-4ec5-892d-0299eeed2440",
+      "fileId": "e8354b03-d084-4ab9-a4aa-905b3d322d1f",
       "settled": true,
-      "settleMs": 2917,
+      "settleMs": 2401,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1818,7 +1815,6 @@
       "legacyKind": "message",
       "previewTestids": [
         "dataset-anndata-summary",
-        "dataset-anndata-shape",
         "dataset-anndata-obs",
         "dataset-anndata-var",
         "dataset-anndata-embeddings",
@@ -1843,14 +1839,9 @@
         "whyCount": 0,
         "codes": [
           "anndata_shape",
-          "anndata_obs",
-          "anndata_var",
-          "anndata_embeddings",
-          "anndata_no_layers",
-          "anndata_components",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npbmc3k_tiny.h5ad\nNot checked\nSignal summary\nCells (obs): 1 × genes or features (var): 1.\nNotes\nCell annotation columns (2): n_genes, n_counts.\nGene annotation columns (1): n_cells.\nStored embeddings: X_pca, X_tsne, X_umap.\nNo layers: the expression values are in X only.\nStored components (5): X, obs, obsm, var, varm.\nAnnData (h5ad) metadata was read; the data values themselves have not been analysed."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npbmc3k_tiny.h5ad\nNot checked\nSignal summary\nCells (obs): 1 × genes or features (var): 1.\nNotes\nAnnData (h5ad) metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
@@ -1870,9 +1861,9 @@
         "previewKind": "loom",
         "quality": "notAnalysed"
       },
-      "fileId": "ceaf9a7e-4f68-4a3a-b41d-cb95d1d6a530",
+      "fileId": "7ca71bef-c776-4665-a19e-014cf6c1f07d",
       "settled": true,
-      "settleMs": 2897,
+      "settleMs": 2410,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -1930,7 +1921,6 @@
       "legacyKind": "message",
       "previewTestids": [
         "dataset-anndata-summary",
-        "dataset-anndata-shape",
         "dataset-anndata-obs",
         "dataset-anndata-var",
         "dataset-anndata-note"
@@ -1952,11 +1942,9 @@
         "whyCount": 0,
         "codes": [
           "loom_shape",
-          "loom_row_attrs",
-          "loom_col_attrs",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntest.loom\nNot checked\nSignal summary\nGenes (rows): 5 × cells (columns): 10.\nNotes\nGene attributes: Gene.\nCell attributes: Cell.\nLoom metadata was read; the data values themselves have not been analysed."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntest.loom\nNot checked\nSignal summary\nGenes (rows): 5 × cells (columns): 10.\nNotes\nLoom metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
@@ -1984,9 +1972,9 @@
         ],
         "note": "spreadsheet (round 3, B5): the profile carries the first sheet's first rows (previewSheet + columns + sampleRows); the Preview shows them read-only as a table captioned 'Sheet <name> · first N rows' (no Edit), plus the sheets stat"
       },
-      "fileId": "250195f0-0e96-4282-ba7a-4dbf34c803cc",
+      "fileId": "8c93f612-fb27-4cdc-ae54-ed7d0c6a903e",
       "settled": true,
-      "settleMs": 2930,
+      "settleMs": 2946,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2067,8 +2055,7 @@
         "dataset-preview-row",
         "dataset-preview-rowcount",
         "dataset-preview-more-columns",
-        "dataset-preview-scope",
-        "dataset-kind-download"
+        "dataset-preview-scope"
       ],
       "previewNone": false,
       "columns": [
@@ -2097,11 +2084,9 @@
         "whyCount": 0,
         "codes": [
           "spreadsheet_sheets",
-          "spreadsheet_preview",
-          "spreadsheet_convert",
-          "format_metadata_only"
+          "spreadsheet_convert"
         ],
-        "text": "DATA QC\n\nWhat we saw in your data\n1.xlsx\nNot checked\nSignal summary\nSheets (1): Sample-spreadsheet-file.\nNotes\nPreview of sheet “Sample-spreadsheet-file”: its first rows (rows shown: 10).\nSpreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.\nExcel (xlsx) metadata was read; the data values themselves have not been analysed."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.xlsx\nNot checked\nSignal summary\nSheets (1): Sample-spreadsheet-file.\nNotes\nSpreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks."
       },
       "errors": [],
       "pageErrors": []
@@ -2124,9 +2109,9 @@
           "entries"
         ]
       },
-      "fileId": "ef809f95-4683-4790-b553-0b2f2c4571ce",
+      "fileId": "fc9ff7ac-34f4-4bc8-ad1b-d21bbf228068",
       "settled": true,
-      "settleMs": 2950,
+      "settleMs": 2884,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2183,8 +2168,7 @@
       "previewKind": "matrix",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-kind-summary",
-        "dataset-kind-download"
+        "dataset-kind-summary"
       ],
       "previewNone": false,
       "columns": [],
@@ -2207,7 +2191,7 @@
           "mtx_orientation",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.mtx\nNot checked\nSignal summary\n5 × 5 sparse matrix (real); stored entries: 8 (32% non-zero).\nNotes\nMatrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).\nMatrix Market metadata was read; the data values themselves have not been analysed."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\n1.mtx\nNot checked\nSignal summary\nSparse matrix of real values; 32% of its cells hold a stored entry.\nNotes\nMatrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).\nMatrix Market metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
@@ -2227,9 +2211,9 @@
         "previewKind": "molecules",
         "quality": "notAnalysed"
       },
-      "fileId": "ad2640ad-0586-4f18-8678-ad0b2c846ea8",
+      "fileId": "1c379aa2-1a9e-42bf-b211-f38f05536338",
       "settled": true,
-      "settleMs": 2929,
+      "settleMs": 2864,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2334,9 +2318,9 @@
         ],
         "note": "SMILES spec table (SMILES, TITLE) with a molecules stat"
       },
-      "fileId": "6a9fc072-4951-48ce-a78e-ef8f71f71f4f",
+      "fileId": "1746c8c9-a32f-4421-aaaa-04f49219e470",
       "settled": true,
-      "settleMs": 2887,
+      "settleMs": 2900,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2470,9 +2454,9 @@
           "chains"
         ]
       },
-      "fileId": "3c62635b-aef5-429c-90d2-863367cc19c6",
+      "fileId": "2a3684d6-6d12-4a56-aa67-f01bf446c9c4",
       "settled": true,
-      "settleMs": 2982,
+      "settleMs": 3017,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2573,9 +2557,9 @@
         "quality": "notAnalysed",
         "note": "small-molecule crystal: no chains"
       },
-      "fileId": "64381b0c-fc40-438e-8708-cb043f53f1f6",
+      "fileId": "fcbe451e-e325-48ca-82f3-2fcf96cc9b27",
       "settled": true,
-      "settleMs": 2944,
+      "settleMs": 2929,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2673,9 +2657,9 @@
         "quality": "unassessed",
         "note": "cryo-EM map: the profiler's image kind, drawn by the density viewer (slices)"
       },
-      "fileId": "d0d59846-15f5-40c6-afb4-c462c7e26cfe",
+      "fileId": "36ba65ab-fc15-43e4-8674-665653eb69aa",
       "settled": true,
-      "settleMs": 2902,
+      "settleMs": 2884,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2774,9 +2758,9 @@
         ],
         "note": "the image itself is drawn: the server renders a TIFF plane to PNG (preview.png) shown as dataset-preview-tiff-image; the download fallback (dataset-preview-tiff-download only) is a PARTIAL"
       },
-      "fileId": "80c11931-dd2d-46a7-934f-f5d0c55b0f32",
+      "fileId": "97455df3-a039-487f-b91d-72ebe741f798",
       "settled": true,
-      "settleMs": 3879,
+      "settleMs": 3965,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2878,9 +2862,9 @@
         "previewKind": "json",
         "quality": "notAnalysed"
       },
-      "fileId": "c8931dcd-a083-4ea5-89c7-272532519cf2",
+      "fileId": "09bd36dc-9b25-4f81-808f-585b2513de3d",
       "settled": true,
-      "settleMs": 2889,
+      "settleMs": 2902,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -2957,7 +2941,7 @@
         "codes": [
           "structured_only"
         ],
-        "text": "DATA QC\n\nWhat we saw in your data\n1.json\nNot checked\nFORMAT\nJSON\nROOT\narray\nVALUES (ALL LEVELS)\n2\nKEYS (ALL LEVELS)\n0\nNULL VALUES\n0\nNESTING DEPTH\n1\nNotes\nValid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
+        "text": "DATA QC\n\nWhat we saw in your data\n1.json\nNot checked\nFORMAT\nJSON\nROOT\narray\nKEYS (ALL LEVELS)\n0\nNULL VALUES\n0\nNESTING DEPTH\n1\nNotes\nValid JSON syntax (array root). Only the structure was checked; scientific quality has not been assessed."
       },
       "errors": [],
       "pageErrors": []
@@ -2978,9 +2962,9 @@
         "quality": "unassessed",
         "note": "nanopore signal container: identified, honest download state"
       },
-      "fileId": "1cdb1ace-47bc-4259-a8f0-d6c9811bc40e",
+      "fileId": "72604b71-9e97-4577-8615-7a1b4a482679",
       "settled": true,
-      "settleMs": 2925,
+      "settleMs": 2879,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3082,9 +3066,9 @@
         ],
         "note": "single-column, header-less: TP53 is data, not a header"
       },
-      "fileId": "38fbbbb4-1015-4694-a023-c8e2be6c1d45",
+      "fileId": "a0b64cf7-1b4a-4014-8174-c16b0a1cfbcc",
       "settled": true,
-      "settleMs": 2885,
+      "settleMs": 2886,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3198,7 +3182,7 @@
           "columns_generated",
           "table_clean_unlabelled"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngene_list.txt\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 12 · columns: 1; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ngene_list.txt\nGood\nNotes\nNo header row detected (line 1 holds data values); columns are named column_1, column_2, …\nRows: 12 · columns: 1; no constant columns or missing-value problems. No group column (e.g. condition) was found, so group sizes were not checked."
       },
       "errors": [],
       "pageErrors": []
@@ -3224,9 +3208,9 @@
         ],
         "minColumns": 10
       },
-      "fileId": "272bd63c-f3fe-41cd-8a10-9adf38b2216b",
+      "fileId": "966e93eb-eab0-4738-909b-c4fd21e38ce6",
       "settled": true,
-      "settleMs": 2919,
+      "settleMs": 2950,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3372,9 +3356,9 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "8afd755e-267f-4225-a1d9-3561220a6e1c",
+      "fileId": "b4b4874b-f15a-42fa-bcb9-5e40da7f2369",
       "settled": true,
-      "settleMs": 3067,
+      "settleMs": 3017,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3457,7 +3441,7 @@
           "fastq_paired_mate",
           "fastq_paired_end"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R1.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 1 of sample S1; its mate S1_R2.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nS1_R1.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 1 of sample S1; its mate S1_R2.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
       },
       "errors": [],
       "pageErrors": []
@@ -3477,9 +3461,9 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "bd89b1fe-ff3d-4acc-a58f-cf5a68a10cb6",
+      "fileId": "5bac81f2-6984-411d-a65a-3c00782f305f",
       "settled": true,
-      "settleMs": 2932,
+      "settleMs": 2950,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3562,7 +3546,7 @@
           "fastq_paired_mate",
           "fastq_paired_end"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S1_R2.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 2 of sample S1; its mate S1_R1.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nS1_R2.fastq.gz\nGood\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nNotes\nPaired-end: read 2 of sample S1; its mate S1_R1.fastq.gz is in the same folder.\nHow it shaped the plan\nMate file in the same folder\npaired-end pipeline (sample S1)"
       },
       "errors": [],
       "pageErrors": []
@@ -3582,9 +3566,9 @@
         "previewKind": "reads",
         "quality": "assessed"
       },
-      "fileId": "5a65c4b3-4fa4-410c-85e6-94cf5b178bc2",
+      "fileId": "94d79b1a-a5c5-462a-a40a-6480a1af5d03",
       "settled": true,
-      "settleMs": 2915,
+      "settleMs": 2933,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3672,7 +3656,7 @@
           "fastq_mean_quality",
           "fastq_orphan_single_end"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\npairs/S2_R1.fastq.gz\nWatch\nWhy “Watch”\nRead 1 of sample S2, but no read-2 mate is in this folder — it runs single-end unless the mate is added.\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nHow it shaped the plan\nMate file missing from the folder\nsingle-end for sample S2 until the mate is added"
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nS2_R1.fastq.gz\nWatch\nWhy “Watch”\nRead 1 of sample S2, but no read-2 mate is in this folder — it runs single-end unless the mate is added.\nSignal summary\nReads scanned: 2; mean read length 34 bp.\nMean base quality: Phred 21.5 (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).\nHow it shaped the plan\nMate file missing from the folder\nsingle-end for sample S2 until the mate is added"
       },
       "errors": [],
       "pageErrors": []
@@ -3692,9 +3676,9 @@
         "previewKind": "matrix",
         "quality": "notAnalysed"
       },
-      "fileId": "914ca405-eb78-4f3d-8111-4e4a57dc9529",
+      "fileId": "e1e7eede-af18-4265-841f-7b82569963c6",
       "settled": true,
-      "settleMs": 2997,
+      "settleMs": 2980,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3751,8 +3735,7 @@
       "previewKind": "matrix",
       "legacyKind": "message",
       "previewTestids": [
-        "dataset-kind-summary",
-        "dataset-kind-download"
+        "dataset-kind-summary"
       ],
       "previewNone": false,
       "columns": [],
@@ -3775,7 +3758,7 @@
           "mtx_tenx_set",
           "format_metadata_only"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/matrix.mtx\nNot checked\nSignal summary\n5 × 5 sparse matrix (real); stored entries: 8 (32% non-zero).\nNotes\n10x matrix: rows are the features in features.tsv, columns are the cells in barcodes.tsv (same folder).\nMatrix Market metadata was read; the data values themselves have not been analysed."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nmatrix.mtx\nNot checked\nSignal summary\nSparse matrix of real values; 32% of its cells hold a stored entry.\nNotes\n10x matrix: rows are the features in features.tsv, columns are the cells in barcodes.tsv (same folder).\nMatrix Market metadata was read; the data values themselves have not been analysed."
       },
       "errors": [],
       "pageErrors": []
@@ -3800,9 +3783,9 @@
           "AAACATACAACCAC-1"
         ]
       },
-      "fileId": "854bdd84-5d48-45e1-9e86-32fc84a726e6",
+      "fileId": "b7013ae9-9587-4a3e-b309-699ff2a6d975",
       "settled": true,
-      "settleMs": 2913,
+      "settleMs": 2932,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -3917,7 +3900,7 @@
           "table_summary",
           "tenx_member_headerless"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/barcodes.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: barcode.\nRows: 5 · columns: 1.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nbarcodes.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: barcode.\nRows: 5 · columns: 1.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
       },
       "errors": [],
       "pageErrors": []
@@ -3944,9 +3927,9 @@
         ],
         "note": "10x features.tsv is header-less"
       },
-      "fileId": "385269a8-615c-4825-ad2c-f148301d021b",
+      "fileId": "b61cb6bc-3560-451e-a0b4-7648ecfa9078",
       "settled": true,
-      "settleMs": 2935,
+      "settleMs": 2948,
       "checks": [
         {
           "name": "expectation-vocabulary",
@@ -4065,7 +4048,7 @@
           "table_summary",
           "tenx_member_headerless"
         ],
-        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\ntenx/features.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: feature_id, feature_name, feature_type.\nRows: 5 · columns: 3.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
+        "text": "DATA QC\n\nRun full QC\nWhat we saw in your data\nfeatures.tsv\nGood\nNotes\n10x Genomics files have no header row; column names follow the 10x Genomics specification: feature_id, feature_name, feature_type.\nRows: 5 · columns: 3.\nPart of the 10x matrix matrix.mtx in this folder: header-less by the 10x specification, so line 1 is data."
       },
       "errors": [],
       "pageErrors": []
@@ -4286,5 +4269,5 @@
       201
     ]
   },
-  "finishedAt": "2026-11-12T11:08:40.685Z"
+  "finishedAt": "2026-11-12T12:18:34.818Z"
 }

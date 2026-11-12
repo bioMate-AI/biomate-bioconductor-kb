@@ -46,9 +46,14 @@ describe("round-3b in Chinese", () => {
     await rtl.waitFor(() => expect(rtl.screen.getByTestId("folder-profile").getAttribute("data-kind")).toBe("mixed"))
     const text = textWithTitles(container)
     expect(text).toContain("本文件夹中的 10x Genomics 矩阵（v3）")
-    expect(text).toContain("根据 _R1/_R2 和 _1/_2 命名规则识别出 2 个双端样本")
-    expect(text).toContain("已生成 nf-core 样本表（双端；sample、fastq_1、fastq_2）：共 2 行。路径相对于项目输入文件。")
-    expect(text).toContain("单独生成单端样本表（samplesheet_single_end.csv，共 1 行）：S3_R1.fastq.gz")
+    // Round 5: the pattern line / paths line / excluded note say these once; the findings list does
+    // not repeat them — their Chinese text is still checked.
+    const { findingText } = await import("@/components/data-perception")
+    const f = (code: string) => findingText(MIXED_FOLDER.findings.find((x) => x.code === code) as any)
+    expect(f("folder_fastq_pairs")).toContain("根据 _R1/_R2 和 _1/_2 命名规则识别出 2 个双端样本")
+    expect(f("folder_samplesheet")).toContain("已生成 nf-core 样本表（双端；sample、fastq_1、fastq_2）：共 2 行。路径相对于项目输入文件。")
+    expect(f("folder_samplesheet_single_end")).toBe("未配对的文件单独生成单端样本表（samplesheet_single_end.csv，共 1 行）。")
+    expect(text).not.toContain("命名规则识别出")
     expect(rtl.screen.getByTestId("folder-samplesheet-single-download")).toHaveTextContent("单端样本表")
     expect(rtl.screen.getByTestId("folder-samplesheet-paths")).toHaveTextContent("双端样本表 · 路径相对于项目输入文件")
     expect(rtl.screen.getByTestId("folder-samplesheet-excluded")).toHaveTextContent("未放入双端样本表（本文件夹中没有配对文件）：S3_R1.fastq.gz")

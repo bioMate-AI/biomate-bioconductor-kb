@@ -15,7 +15,7 @@ import { TableGrid } from "../file-content-view";
 import { PlddtChart } from "./plddt-chart";
 import { t } from "@/lib/i18n";
 import type { StructureEvidence } from "@/components/data-perception";
-import { atomsToFit, computeStructureFit, toThreeDmolView, type FitAtom, type StructureFit } from "./structure-fit";
+import { atomsToFit, cartoonFitAtoms, computeStructureFit, toThreeDmolView, type FitAtom, type StructureFit } from "./structure-fit";
 
 // ---------------------------------------------------------------------------
 // File-extension → viewer registry
@@ -320,9 +320,12 @@ export function structureConfidenceSource(
 export function fitStructure(viewer: any, polymerOnly: boolean, frame?: { width: number; height: number } | null): StructureFit | null {
   // Size the canvas to the frame as it is NOW before fitting (the zoom depends on the aspect).
   viewer.resize?.();
-  const atoms = atomsToFit((viewer.selectedAtoms?.({}) ?? []) as FitAtom[], polymerOnly);
+  const all = (viewer.selectedAtoms?.({}) ?? []) as FitAtom[];
+  // A cartoon is fitted to what it draws — the backbone trace plus the ribbon's half-width — not to
+  // the side chains around it; any other style to its atoms (never scattered solvent).
+  const { atoms, pad } = polymerOnly ? cartoonFitAtoms(all) : { atoms: atomsToFit(all, false), pad: 0 };
   const aspect = frame && frame.width > 0 && frame.height > 0 ? frame.width / frame.height : 1;
-  const fit = computeStructureFit(atoms, { aspect });
+  const fit = computeStructureFit(atoms, { aspect, pad });
   if (fit && typeof viewer.setView === 'function') {
     // zoomTo first: it sets the slab (clipping planes) around the selection; the view is then ours.
     viewer.zoomTo?.(polymerOnly ? { hetflag: false } : {});
