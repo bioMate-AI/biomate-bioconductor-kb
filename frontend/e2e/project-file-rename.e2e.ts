@@ -17,6 +17,7 @@
  * key handling in client/src/components/project-file-tree.rename.test.tsx.
  */
 import { test, expect, type APIRequestContext } from "@playwright/test";
+import { request as pwRequest } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
 const V1 = "id,value\n1,10\n2,20\n";
@@ -44,7 +45,11 @@ async function download(request: APIRequestContext, projectId: string, fileId: s
   const res = await request.get(`${BASE_URL}/api/projects/${projectId}/files/${fileId}/url`);
   expect(res.ok(), `url failed: ${await res.text()}`).toBeTruthy();
   const { url } = await res.json();
-  const bytes = await request.get(url.startsWith("/") ? `${BASE_URL}${url}` : url);
+  // A presigned S3 URL is fetched WITHOUT our auth headers, as a browser does: loginAsFixture puts a
+  // Bearer token on every request of this context, and S3 rejects a second auth mechanism (400).
+  let bytes;
+  if (url.startsWith("/")) bytes = await request.get(`${BASE_URL}${url}`);
+  else { const clean = await pwRequest.newContext(); bytes = await clean.get(url); }
   expect(bytes.ok(), `download failed (${bytes.status()})`).toBeTruthy();
   return bytes.text();
 }

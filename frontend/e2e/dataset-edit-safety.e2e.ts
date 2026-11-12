@@ -62,8 +62,14 @@ test("cell edit rewrites only that cell (quotes, CRLF, multi-line kept); stale e
     }
     await projBtn.click({ timeout: 30_000, noWaitAfter: true });
     await page.getByTestId(`project-link-files-${projectId}`).click({ timeout: 15_000, noWaitAfter: true });
+    // The `inputs` folder opens expanded by default and its row is a TOGGLE: wait for the tree,
+    // give the file time to render, and click the folder only if the file is still hidden
+    // (clicking too early collapsed the open folder — 2026-11-11).
     const open = page.getByTestId(`file-open-${fileId}`);
-    if (!(await open.isVisible().catch(() => false))) await page.getByTestId("folder-inputs").click().catch(() => {});
+    await page.getByTestId("folder-inputs").waitFor({ state: "visible", timeout: 60_000 });
+    if (!(await open.waitFor({ state: "visible", timeout: 5_000 }).then(() => true).catch(() => false))) {
+      await page.getByTestId("folder-inputs").click();
+    }
     await open.click({ timeout: 30_000 });
 
     await page.getByTestId("dataset-preview-toggle-edit").click({ timeout: 60_000 });

@@ -143,6 +143,11 @@ function RecordView({ columns, row, index, onClose }: { columns: string[]; row: 
   )
 }
 
+/** One-line display of a value: line breaks shown as ↵ (a "two\nlines" value must not read "twolines"). */
+function showBreaks(v: string): string {
+  return /\r|\n/.test(v) ? v.replace(/\r\n|\r|\n/g, " ↵ ") : v
+}
+
 export function DatasetRowsTable({
   columns, rows, total, loading, error, onNeedMore, onLoadAll, onRetry, loadAllCap = Infinity,
   editable = false, edits = {}, onEdit,
@@ -242,15 +247,28 @@ export function DatasetRowsTable({
                     const shown = r[ci] ?? ""
                     const key = `${ri}:${ci}`
                     const ed = edits[key]
+                    const value = ed ? ed.value : shown
+                    const cls = `w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${ed ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`
+                    const common = {
+                      value,
+                      "aria-label": `${columns[ci]} · ${ri + 1}`,
+                      "data-testid": `dataset-edit-cell-${ri}-${ci}`,
+                    }
                     return (
                       <td key={ci} className="px-0.5 py-0 border-b">
-                        <input
-                          className={`w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${ed ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`}
-                          value={ed ? ed.value : shown}
-                          aria-label={`${columns[ci]} · ${ri + 1}`}
-                          data-testid={`dataset-edit-cell-${ri}-${ci}`}
-                          onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)}
-                        />
+                        {/\r|\n/.test(value) ? (
+                          // An <input> strips line breaks: editing a multi-line value in one would
+                          // silently save it without them. A one-row textarea keeps them.
+                          <textarea
+                            {...common}
+                            rows={1}
+                            className={`${cls} resize-none overflow-hidden whitespace-pre align-middle`}
+                            style={{ height: ROW_H - 4 }}
+                            onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)}
+                          />
+                        ) : (
+                          <input {...common} className={cls} onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)} />
+                        )}
                       </td>
                     )
                   }
@@ -266,7 +284,7 @@ export function DatasetRowsTable({
                         <span className="rounded border px-1.5 py-px text-[11px] text-muted-foreground font-sans" data-testid="dataset-nested-cell">
                           {nestedLabel(n)}
                         </span>
-                      ) : (r[ci] ?? "")}
+                      ) : showBreaks(r[ci] ?? "")}
                     </td>
                   )
                 })}

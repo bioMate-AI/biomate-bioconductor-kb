@@ -364,6 +364,7 @@ export function DatasetObject({
   const hasFullRows = rowsQ.enabled && !rowsQ.unsupported && rowsQ.columns.length > 0
   const shapeRows = hasFullRows && rowsQ.total != null ? rowsQ.total : profileRows
   const shapeCols = hasFullRows ? rowsQ.columns.length : profileCols
+  const isTabular = hasFullRows || Boolean(profile?.columns?.length)
   // Columns + Plot views compute over the loaded full rows when present, else the sample.
   const statCols = hasFullRows ? rowsQ.columns : profile?.columns
   const statRows = hasFullRows ? rowsQ.rows : profile?.sampleRows
@@ -739,8 +740,11 @@ export function DatasetObject({
 
             {/* Stat grid (design §4.3): rows · columns · size · current version. */}
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
-              <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
-              <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />
+              {/* Rows / columns only for tables: for reads, sequences, alignments or matrices the
+                  profile's shape is not rows × columns (FASTQ showed "COLUMNS 34" = read length);
+                  the QC card above shows those formats' own measures. */}
+              {isTabular && <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />}
+              {isTabular && <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />}
               <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
               <StatCard k={t('dataset_obj.stat_type')} v={datasetContentType(dataset.name, dataset.contentType)} />
             </div>

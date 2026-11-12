@@ -303,14 +303,15 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
 })
 
 describe("DatasetObject — unavailable metadata and action error scope", () => {
-  it("shows unknown dimensions and readable JSON MIME for non-tabular generic-storage objects", async () => {
+  it("non-tabular objects show their readable MIME and no rows/columns cards (shape is not rows × columns)", async () => {
     global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ shape: { rows: 0, cols: 0 }, quality: "watch", notes: [] }) })) as unknown as typeof fetch
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(<QueryClientProvider client={qc}><DatasetObject dataset={{ ...RUN, name: "report.json", contentType: "application/octet-stream" }} /></QueryClientProvider>)
     await screen.findByTestId("dataset-header-quality")
     const grid = screen.getByTestId("dataset-stat-grid")
     expect(grid).toHaveTextContent("application/json")
-    expect(within(grid).getAllByText("—")).toHaveLength(2)
+    expect(within(grid).queryAllByText("—")).toHaveLength(0)
+    expect(grid).not.toHaveTextContent(/rows/i)
   })
 
   it("shows a useful launch failure and clears it when another file opens", async () => {

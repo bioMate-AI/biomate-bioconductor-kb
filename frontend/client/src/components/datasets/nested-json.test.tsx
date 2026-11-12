@@ -106,3 +106,20 @@ describe("DatasetRowsTable edit mode", () => {
     expect(calls).toEqual([[1, 0, "EGFR", "ERBB1"]])
   })
 })
+
+describe("multi-line cell values", () => {
+  it("display shows the line break; editing keeps it (textarea, not input)", () => {
+    const calls: unknown[][] = []
+    const props = { columns: ["s", "note"], rows: [["S2", "two\nlines"]], total: 1, loading: false, error: null, onNeedMore: () => {} }
+    const { unmount } = render(<DatasetRowsTable {...props} />)
+    expect(screen.getAllByTestId("dataset-preview-row")[0].textContent).toContain("two ↵ lines")
+    unmount()
+    render(<DatasetRowsTable {...props} editable edits={{}} onEdit={(...a) => calls.push(a)} />)
+    const cell = screen.getByTestId("dataset-edit-cell-0-1")
+    expect(cell.tagName).toBe("TEXTAREA")
+    expect((cell as HTMLTextAreaElement).value).toBe("two\nlines")
+    fireEvent.change(cell, { target: { value: "two\nline" } })
+    expect(calls).toEqual([[0, 1, "two\nlines", "two\nline"]])
+    expect(screen.getByTestId("dataset-edit-cell-0-0").tagName).toBe("INPUT")
+  })
+})

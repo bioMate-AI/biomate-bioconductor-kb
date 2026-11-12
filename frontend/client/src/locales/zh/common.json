@@ -2163,7 +2163,7 @@
       "nested_tables": "列“{{column}}”：{{tables}} 个嵌套表格，中位 {{median_rows}} 行 × {{median_cols}} 列（最多 {{max_rows}} 行）。",
       "nested_row_cap": "列“{{column}}”中 {{pct}}% 的表格恰好有 {{max_rows}} 行（即最大值），很可能在抽取时被截断。分析前请先检查抽取过程。",
       "nested_blank_cells": "列“{{column}}”的表格中 {{pct}}% 的单元格为空——这是抽取表格中合并单元格或多行单元格的典型特征；分析前请先合并续行。",
-      "columns_generated": "未检测到表头（第 1 行即为数据）；列名依次记为 column_1 … column_{{count}}。",
+      "columns_generated": "未检测到表头（第 1 行即为数据）；列名依次记为 column_1、column_2……",
       "columns_spec": "{{format}} 文件按规范不含表头；列名采用 {{format}} 规范定义：{{columns}}。",
       "columns_comment": "列名取自文件中最后一行“#”注释：{{columns}}。",
       "spec_mismatch": "文件名标为 {{format}}，但内容不符合 {{format}} 格式，因此未按该格式读取。",

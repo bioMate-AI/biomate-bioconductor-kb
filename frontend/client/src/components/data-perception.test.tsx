@@ -28,7 +28,7 @@ describe("<DataPerception>", () => {
     expect(screen.queryByTestId("perception-why")).not.toBeInTheDocument();
     expect(screen.queryByTestId("perception-effective-n-hint")).not.toBeInTheDocument();
     expect(screen.getByTestId("perception-notes")).toHaveTextContent(
-      "24 rows × 18,412 columns; no leakage, imbalance or constant-column issues detected.",
+      "Rows: 24 · columns: 18,412; no leakage, imbalance or constant-column issues detected.",
     );
   });
 
@@ -48,10 +48,10 @@ describe("<DataPerception>", () => {
     render(<DataPerception profile={WATCH_JSONL_PROFILE} />);
     const why = screen.getByTestId("perception-why");
     expect(why).toHaveTextContent("Why “Watch”");
-    expect(why).toHaveTextContent("1 column(s) are near-constant (over 99% a single value): source.");
+    expect(why).toHaveTextContent("Near-constant columns (over 99% a single value): source.");
     // The reason is not repeated in the signal list below it.
     expect(screen.queryByTestId("perception-signal")).not.toBeInTheDocument();
-    expect(screen.getByTestId("perception-notes")).toHaveTextContent("2,281 rows × 5 columns.");
+    expect(screen.getByTestId("perception-notes")).toHaveTextContent("Rows: 2,281 · columns: 5.");
   });
 
   it("lists leakage + imbalance reasons and a localized plan line", () => {
