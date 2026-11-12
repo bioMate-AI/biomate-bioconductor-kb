@@ -564,6 +564,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(480)
+  const userResizedPanel = useRef(false) // true once the user drags the splitter
   const [chatHidden, setChatHidden] = useState(false)
   const splitLayoutRef = useRef<HTMLDivElement>(null)
   const [splitWidth, setSplitWidth] = useState(1200)
@@ -575,7 +576,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     return () => observer.disconnect()
   }, [])
   const panelIsOverlay = isMobile || splitWidth < 880
-  const maxPanelWidth = Math.max(320, Math.min(860, splitWidth - 380))
+  // Allow the panel to take up to ~60% of the window so chat + panel can sit
+  // roughly half-and-half (founder: the panel was too narrow). Keep ≥340px for chat.
+  const maxPanelWidth = Math.max(320, Math.min(Math.round(splitWidth * 0.6), splitWidth - 340))
+  // Default the panel to ~48% of the window (a near-even split) until the user drags
+  // the splitter — after that their choice wins. Overlay (mobile/narrow) is unaffected.
+  useEffect(() => {
+    if (userResizedPanel.current || panelIsOverlay) return
+    setPanelWidth(Math.round(splitWidth * 0.48))
+  }, [splitWidth, panelIsOverlay])
   const visiblePanelWidth = Math.min(panelWidth, maxPanelWidth)
   const panelResizingRef = useRef(false)
   const panelResizeStartX = useRef(0)
@@ -1853,6 +1862,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (!panelResizingRef.current) return
       const delta = panelResizeStartX.current - ev.clientX // dragging left = wider panel
       const next = Math.min(maxPanelWidth, Math.max(320, panelResizeStartW.current + delta))
+      userResizedPanel.current = true // the user's drag wins over the adaptive default
       setPanelWidth(next)
     }
     const onUp = () => {

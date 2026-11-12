@@ -441,6 +441,11 @@ export function buildStepDetailStep(step: any): StepDetailStep {
     name: String(step?.name ?? step?.processName ?? "step"),
     processName: step?.processName ? String(step.processName) : undefined,
     status: step?.status ? String(step.status) : undefined,
+    // Thread the step annotation through so the detail panel can explain what the
+    // step does — real data from the workflow definition, shown only when present.
+    description: typeof step?.description === "string" && step.description.trim()
+      ? step.description.trim()
+      : (typeof step?.summary === "string" && step.summary.trim() ? step.summary.trim() : undefined),
     ...reportedStepDetails(step),
     tool: typeof step?.tool === "string" ? step.tool : undefined,
     toolVersion: typeof step?.toolVersion === "string" ? step.toolVersion : undefined,
