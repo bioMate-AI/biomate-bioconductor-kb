@@ -223,3 +223,34 @@ round-5 leftovers. Each backend fix landed with a test that fails on the commit 
 **Results on dev `64433d94` (computed by the harnesses):** format matrix **PASS 34 / PARTIAL 0 /
 FAIL 0**; `dataset-edit-safety`, `project-file-rename`, `jsonl-nested-tables`, `run-code-outputs`
 (1 pass, 1 skip by design), `dataset-panel-full`: pass. The round-6 fixes are not yet deployed.
+
+## Rounds 6–7 (2026-11-12) — live audit fixes, deployed `72e21ca3`
+
+**Round 6 live audit (on `64433d94`)** found 8 items. Two were already fixed in round-6 leftovers
+(plate wells; `leaked_id`). Fixed in `2aa0348e3f` (backend), `ec46f77709` + `3b0f4bebeb` (client):
+- the small-table note said the group was not checked even when the design check on it ran; it now
+  names exactly what was skipped (group balance, the per-column screen);
+- PDB lists chain IDs, not a count the stat grid already shows;
+- a column with one value in every row is `constant_columns`, not "near-constant (over 99%)", with
+  the column badge and the "expected with this few rows" note;
+- chat titles are the first sentence (cut at a word boundary with "…"); the Run QC chat is titled
+  "QC report: <file>";
+- file-row actions are visible on touch devices (`@media (hover:none)`).
+
+Not changed: the zh "： B" spacing was the full-width colon's own width (no space in the text);
+nested JSON Lines fields in the Plot need a flattening rule in the rows reader first (open).
+
+**Round 7 live audit (on `72e21ca3`)** confirmed all nine round-6 fixes on dev. Dev e2e: all specs
+pass; format matrix 33/34 — `pod5` failed on a transient 502 from the profile proxy, not a profiler
+regression (the same file profiles correctly in dev's Galaxy). Dev logs: 2 of 127 profile requests
+in 24 h returned 502 within ~20 ms with nothing logged by Galaxy (connection-level failure before the
+request reached it; cause not yet confirmed — the logger truncated the detail).
+
+Fixed in round 7 (`bf6e400c63` + follow-up):
+- the profile proxy now reports and logs the transport cause of a 502 (`[passthrough] …` lines), so
+  the next one is diagnosable;
+- a failed profile REQUEST is no longer reported as an unreadable FILE: connection failures and
+  502/503 are retried twice (never 4xx, never a backend timeout), then "Couldn't reach the profiler"
+  with Try again; 403 says no access;
+- zh: no space after "。" before the "expected" qualifier; `constant_columns` / `near_constant` zh
+  text no longer carries a count the en text lacks; `label_few_rows` reworded.
