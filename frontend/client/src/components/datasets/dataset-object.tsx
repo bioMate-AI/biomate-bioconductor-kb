@@ -55,6 +55,9 @@ import { DatasetRowsTable } from "./dataset-rows-table"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
+
+/** Viewer kinds that show a file better than a generic sample table. */
+const HAS_RICH_VIEWER = ["structure", "sequence", "vcf", "annotation"]
 import { datasetContentType, datasetShape, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
@@ -289,19 +292,27 @@ export function DatasetObject({
     }
   }
 
-  // Edit-in-place → save as a new version (design §4.3/§4.4). Only tabular files in
-  // a project. The sample table is editable; edits are applied to the FULL file
-  // server-side (no truncation) and written as a new version.
+  // Edit-in-place → save as a new version (design §4.3/§4.4). Only tabular files in a project.
+  // Editing happens on the full-rows table (untruncated values, any loaded row); the server
+  // rewrites only the edited cells and refuses (409) if a cell no longer holds the value shown.
   const editable = versionable && ["csv", "tsv", "tab", "txt"].includes(fileExt)
-  const [cellEdits, setCellEdits] = useState<Record<string, string>>({})  // key `${row}:${colName}`
+  const [cellEdits, setCellEdits] = useState<Record<string, { from: string; value: string }>>({})  // key `${row}:${col}`
+  const onCellEdit = (row: number, col: number, from: string, value: string) =>
+    setCellEdits((prev) => {
+      const next = { ...prev }
+      const key = `${row}:${col}`
+      if (value === from) delete next[key]
+      else next[key] = { from, value }
+      return next
+    })
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [editSaved, setEditSaved] = useState<number | null>(null)
   const handleSaveEdit = async () => {
     if (!projectId) return
-    const edits = Object.entries(cellEdits).map(([k, value]) => {
+    const edits = Object.entries(cellEdits).map(([k, e]) => {
       const i = k.indexOf(":")
-      return { row: Number(k.slice(0, i)), col: k.slice(i + 1), value }
+      return { row: Number(k.slice(0, i)), col: Number(k.slice(i + 1)), from: e.from, value: e.value }
     })
     if (edits.length === 0) return
     setSavingEdit(true); setEditError(null); setEditSaved(null)
@@ -309,16 +320,19 @@ export function DatasetObject({
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/edit`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edits }),
+        // Row indices are data rows as the rows reader numbered them: after the header record when
+        // the file has one, from line 1 when it does not (a header-less table).
+        body: JSON.stringify(rowsQ.headerRow === null ? { edits } : { edits, headerRows: rowsQ.headerRow ? 1 : 0 }),
       })
       const j = await r.json().catch(() => ({}))
+      if (r.status === 409) throw new Error(t('dataset_obj.edit_conflict'))
       if (!r.ok) throw new Error(t('dataset_obj.with_status', { message: t('dataset_obj.edit_failed'), status: r.status }))
       setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
       await loadProjectVersions()
       refetchProfile?.()
       rowsQ.retry()
     } catch (e: any) {
-      setEditError(e instanceof Error && e.message.startsWith(t('dataset_obj.edit_failed')) ? e.message : t('dataset_obj.edit_failed'))
+      setEditError(e instanceof Error && (e.message.startsWith(t('dataset_obj.edit_failed')) || e.message === t('dataset_obj.edit_conflict')) ? e.message : t('dataset_obj.edit_failed'))
     } finally {
       setSavingEdit(false)
     }
@@ -389,6 +403,22 @@ export function DatasetObject({
           <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
             {currentVersionLabel}
           </Badge>
+          {/* Format chip — the profiler's detected format (Galaxy datatype or BioMate
+              sniffing). Absent on profiles from older backends → no chip. */}
+          {profile?.format?.label && (
+            <Badge
+              variant="outline"
+              className="text-xs font-mono"
+              data-testid="dataset-header-format"
+              data-format-source={profile.format.source}
+              title={t('dataset_obj.format_chip_title', {
+                label: profile.format.label,
+                source: t(profile.format.source === "galaxy" ? 'dataset_obj.format_source_galaxy' : 'dataset_obj.format_source_biomate'),
+              })}
+            >
+              {profile.format.label}
+            </Badge>
+          )}
           {profile?.quality && HEADER_QUALITY[profile.quality] && (
             <span
               className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
@@ -547,6 +577,10 @@ export function DatasetObject({
                 <div className="space-y-2" data-testid="dataset-preview-loading">
                   <Skeleton className="h-16 w-full" />
                 </div>
+              ) : preview && HAS_RICH_VIEWER.includes(resolveViewer(fileExt)) ? (
+                // The file's own viewer (3D structure, sequence, VCF, annotation) beats the
+                // profiler's sample table — a PDB was shown as whitespace-split rows.
+                preview
               ) : profile?.columns?.length && profile.sampleRows?.length ? (
                 // Not a project file (no rows endpoint) — the profiler's sample, labelled as such.
                 <DatasetRowsTable
@@ -626,50 +660,23 @@ export function DatasetObject({
             )}
 
             {previewView === "edit" && (
-              profile?.columns?.length && profile.sampleRows?.length ? (
+              hasFullRows ? (
                 <div className="space-y-2" data-testid="dataset-preview-edit">
-                  <p className="text-xs text-muted-foreground">
-                    {t('dataset_obj.edit_hint', { n: profile.sampleRows.length })}
-                  </p>
-                  <div className="overflow-auto rounded border" style={{ maxHeight: '60vh' }}>
-                    <table className="w-full border-collapse text-sm">
-                      <thead>
-                        <tr style={{ background: 'var(--bm-accent-soft)' }}>
-                          {profile.columns.map((c, i) => (
-                            <th key={i} className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b" style={{ color: 'var(--bm-accent-ink)' }}>{c}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {profile.sampleRows.map((r, ri) => (
-                          <tr key={ri} className="odd:bg-muted/20">
-                            {profile.columns!.map((c, ci) => {
-                              const key = `${ri}:${c}`
-                              const edited = key in cellEdits
-                              return (
-                                <td key={ci} className="px-1 py-0.5 border-b">
-                                  <input
-                                    className={`w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${edited ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`}
-                                    value={edited ? cellEdits[key] : (r[ci] ?? "")}
-                                    data-testid={`dataset-edit-cell-${ri}-${ci}`}
-                                    onChange={(e) => {
-                                      const val = e.target.value
-                                      setCellEdits((prev) => {
-                                        const next = { ...prev }
-                                        if (val === (r[ci] ?? "")) delete next[key]
-                                        else next[key] = val
-                                        return next
-                                      })
-                                    }}
-                                  />
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <p className="text-xs text-muted-foreground">{t('dataset_obj.edit_hint_full')}</p>
+                  <DatasetRowsTable
+                    columns={rowsQ.columns}
+                    rows={rowsQ.rows}
+                    total={rowsQ.total}
+                    loading={rowsQ.loading}
+                    error={rowsQ.error}
+                    onNeedMore={rowsQ.loadMore}
+                    onLoadAll={rowsQ.loadAll}
+                    onRetry={rowsQ.retry}
+                    loadAllCap={LOAD_ALL_CAP}
+                    editable
+                    edits={cellEdits}
+                    onEdit={onCellEdit}
+                  />
                   {editError && <p className="text-xs text-destructive" data-testid="dataset-edit-error">{editError}</p>}
                   {editSaved != null && <p className="text-xs text-emerald-600 dark:text-emerald-400" data-testid="dataset-edit-saved">{t('dataset_obj.edit_saved', { v: editSaved })}</p>}
                   <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { responseLanguageDirective } from "./response-language";
+import { runButtonLabel } from "./ui-labels";
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
@@ -5821,8 +5822,8 @@ Rules:
           workflowGenerated = true;
           const name = cardWorkflowName(recovered) || named?.name || 'the workflow';
           response.message = /[\u4e00-\u9fff]/.test(message)
-            ? `检测到一次模拟数据的尝试，已阻止——不会用编造的数值作为结果。\n\n**${name}** 已就绪（见下方工作流），它使用真实数据运行（工作流自带的示例数据或您提供的数据）。请检查参数后点击运行。`
-            : `A simulated-data attempt was detected and stopped — no made-up numbers are reported.\n\n**${name}** is ready below and runs on real data (the workflow's built-in sample data or yours). Review the parameters and click Run.`;
+            ? `检测到一次模拟数据的尝试，已阻止——不会用编造的数值作为结果。\n\n**${name}** 已就绪（见下方工作流），它使用真实数据运行（工作流自带的示例数据或您提供的数据）。请检查参数后点击“${runButtonLabel('zh')}”。`
+            : `A simulated-data attempt was detected and stopped — no made-up numbers are reported.\n\n**${name}** is ready below and runs on real data (the workflow's built-in sample data or yours). Review the parameters and click "${runButtonLabel('en')}".`;
           onResponseDelta?.(response.message);
         } else {
           log(`Step 6r: no workflow could be built (${recovered?.error || 'no match'}) — the reply asks for data`);
@@ -10195,7 +10196,7 @@ When no workflow was generated AND inline data IS present (technical failure —
 IMPORTANT RULES:
 ${isWorkflowTurn ? `- NEVER compute or calculate results yourself for workflow tasks (e.g., sequence alignment, variant calling, etc.) — ALWAYS run the appropriate BioMate tool or workflow instead` : `- You CAN and SHOULD compute, calculate, and reason directly when no Nextflow workflow panel is open. Use the run_code tool for numerical computations, statistical calculations, sequence operations, or data manipulation. Prefer run_code over mental arithmetic for non-trivial calculations.
 - R/BIOCONDUCTOR EXECUTION PRIORITY: (1) Search BioMate's 1,000+ indexed Bioconductor workflows first — if a match exists, use it. (2) If no match, generate a new workflow. (3) For small ad-hoc tasks or single statistical tests, use run_code with R directly — do not refuse to execute R code.`}
-- If a runnable workflow was generated, explain it and encourage the user to click "Run"
+- If a runnable workflow was generated, explain it and tell the user to review the panel and click "${runButtonLabel(context.uiLanguage)}" (that exact button label)
 - If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
 - If no workflow but tools were found, explain which tool to use and suggest creating a workflow

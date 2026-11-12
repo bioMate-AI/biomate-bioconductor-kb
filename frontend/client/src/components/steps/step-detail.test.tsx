@@ -157,3 +157,16 @@ it('renders actual recorded failure, job and work directory in the full step vie
  expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('job-7');
  expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('/work/real-task');
 });
+
+// Live dev 2026-11-11: the full step view titled the step with the raw backend
+// label "Download samplesheet and count matrix from S3" and an English status.
+describe("StepDetail title — human step name, no infrastructure words", () => {
+  it("shows the cleaned step name (process id only as tooltip) and never 'S3'", () => {
+    const step = { ...baseStep, name: "Download samplesheet and count matrix from S3", processName: "INPUT_DOWNLOAD", status: "pending" };
+    render(<StepDetail runId={runId} step={step as any} onClose={vi.fn()} />);
+    const root = screen.getByTestId("step-detail");
+    expect(root).toHaveTextContent("Download samplesheet and count matrix");
+    expect(root.textContent).not.toMatch(/\bS3\b/);
+    expect(screen.getByTitle("INPUT_DOWNLOAD")).toBeInTheDocument();
+  });
+});

@@ -67,6 +67,10 @@ HIGH_MISSING_FRAC = 0.5
 
 # Minority class below this fraction → imbalance note + watch.
 IMBALANCE_MINORITY_FRAC = 0.2
+# The same rule for any number of classes: imbalanced when the smallest class is below this
+# share of the largest (binary: minority < 20% ⇔ minority/majority < 0.25). Comparing the
+# minority to a fixed 20% called a perfectly balanced 7-class label (14% each) "imbalanced".
+IMBALANCE_MINORITY_RATIO = IMBALANCE_MINORITY_FRAC / (1 - IMBALANCE_MINORITY_FRAC)
 
 # Cap on rows scanned for table profiling (keeps ingest cheap on huge files).
 MAX_TABLE_ROWS = 200_000
@@ -131,6 +135,9 @@ class DataProfile:
     # Rows actually held for statistics when the file exceeds MAX_TABLE_ROWS
     # (``rows`` is always the true total). None when every row was profiled.
     profiled_rows: Optional[int] = None
+    # The file's format for the UI's format chip: {"ext", "label", "source"} where source is
+    # "galaxy" (identified by Galaxy's datatype sniffers) or "biomate" (this module's own sniff).
+    format: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to the exact JSON shape the frontend consumes."""
@@ -151,6 +158,8 @@ class DataProfile:
                 out["duplicateRows"] = self.duplicate_rows
         if self.profiled_rows is not None:
             out["profiledRows"] = self.profiled_rows
+        if self.format is not None:
+            out["format"] = dict(self.format)
         out["findings"] = [dict(f) for f in self.findings]
         if self.class_balance:
             out["classBalance"] = [
@@ -222,42 +231,267 @@ def profile_dataset(path: str, *, name: Optional[str] = None) -> Dict[str, Any]:
 
 def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfile:
     """Same as :func:`profile_dataset` but returns the dataclass (for tests)."""
+    display = name or (os.path.basename(path) if path else "")
     if not path or not os.path.exists(path):
         if path:
-            return blocked_profile("file_not_found", f"File not found: {path!r}.")
-        return blocked_profile("no_path", "No dataset path provided.")
+            p = blocked_profile("file_not_found", f"File not found: {path!r}.")
+        else:
+            p = blocked_profile("no_path", "No dataset path provided.")
+        p.format = _biomate_format("unknown", display, None)
+        return p
 
     try:
         size = os.path.getsize(path)
     except OSError:
         size = -1
     if size == 0:
-        return blocked_profile("empty_file", "File is empty (0 bytes).")
+        p = blocked_profile("empty_file", "File is empty (0 bytes).")
+        p.format = _biomate_format("unknown", display, None)
+        return p
 
     kind = _sniff_kind(path)
+    gext = _galaxy_identify(path, display)
+    # When the filename does not decide the format (.txt, no extension, or an extension BioMate has
+    # no reader for, e.g. .sam / .pdb that only LOOK delimited), Galaxy's content identification
+    # does: a FASTQ saved as .txt is profiled as FASTQ, a SAM or PDB is not read as a CSV.
+    if gext and (kind == "unknown" or (kind == "table" and (_generic_name(display) or _kind_from_name(path) is None))):
+        mapped = _GALAXY_TO_KIND.get(gext)
+        if mapped:
+            kind = mapped
+        elif gext in _GALAXY_NON_TABLE:
+            kind = "unknown"
+    layout: Optional[TableLayout] = None
+    holder: List[TableLayout] = []
+    named = _kind_from_name(path)
     try:
-        if kind in ("json", "yaml"):
-            return _profile_structured(path, kind)
-        if kind == "fastq":
-            return _profile_fastq(path)
-        if kind == "vcf":
-            return _profile_vcf(path)
-        if kind == "table":
-            return _profile_table(path)
-        if kind == "jsonl":
-            return _profile_table(path, reader=_read_jsonl)
-        # Unknown / non-profilable — degrade honestly.
-        p = DataProfile(quality="watch")
-        emit(
-            p, "note", "unprofilable",
-            f"File type not profilable ({os.path.basename(path)}); "
-            "reported shape only, no leakage/balance derived.",
-            "watch", name=os.path.basename(path),
-        )
-        return p
+        if kind == "unknown" and named and _is_binary(path) and not (gext and gext not in _galaxy_generic()):
+            # Named as a text format (.csv, .bed, .fasta, …) but the content is binary.
+            p = DataProfile(quality="watch")
+            label = _named_label(path)
+            emit(p, "note", "spec_mismatch",
+                 f"Named as {label}, but its content does not follow the {label} format, so it was not read as one.",
+                 "watch", format=label)
+            kind = "mismatch"
+        elif kind in ("json", "yaml"):
+            p = _profile_structured(path, kind)
+        elif kind == "fastq":
+            p = _profile_fastq(path)
+        elif kind == "fasta":
+            p = _profile_fasta(path)
+        elif kind == "vcf":
+            p = _profile_vcf(path)
+        elif kind == "table" and _spec_of(path) is not None and not _spec_layout_or_none(path, holder):
+            # Named as a spec format (.bed, .gtf, …) but its lines do not follow it.
+            spec = (_spec_of(path) or ("", None))[0]
+            label = _BIOMATE_LABELS.get(spec, spec.upper())
+            if gext and gext not in _galaxy_generic() and gext not in _KIND_COMPATIBLE_GALAXY["table"]:
+                p = _profile_galaxy_format(path, gext, size)
+            else:
+                p = DataProfile(quality="watch")
+            emit(p, "note", "spec_mismatch",
+                 f"Named as {label}, but its content does not follow the {label} format, so it was not read as one.",
+                 "watch", format=label)
+            kind = "mismatch"
+        elif kind == "table":
+            layout = holder[0] if holder else _table_layout(path)
+            p = _profile_table(path, layout=layout)
+            if layout.spec:
+                _spec_table_findings(p, path, layout, gext)
+        elif kind == "jsonl":
+            p = _profile_table(path, reader=_read_jsonl)
+        elif kind == "mtx":
+            p = _profile_mtx(path)
+        else:
+            p = _profile_unknown(path, display, gext, size)
+    except BinaryContent:
+        # Binary past the first block (the text sniff could not tell): not a text format at all.
+        kind, layout = "unknown", None
+        p = _profile_unknown(path, display, gext, size)
     except Exception as e:  # noqa: BLE001 — defensive: profiling must never crash ingest.
         log.warning("[perception] profiling failed for %s: %s", path, e)
-        return blocked_profile("parse_failed", f"Could not parse file: {e}", error=str(e)[:300])
+        p = blocked_profile("parse_failed", f"Could not parse file: {e}", error=str(e)[:300])
+    p.format = _format_for(kind, gext, display, layout)
+    return p
+
+
+def _profile_unknown(path: str, display: str, gext: Optional[str], size: int) -> DataProfile:
+    """A file BioMate has no profiler for: Galaxy's metadata when Galaxy identified a specific
+    format, else the honest "unprofilable" note."""
+    if gext and gext not in _galaxy_generic():
+        return _profile_galaxy_format(path, gext, size)
+    p = DataProfile(quality="watch")
+    emit(
+        p, "note", "unprofilable",
+        f"File type not profilable ({os.path.basename(display)}); "
+        "reported shape only, no leakage/balance derived.",
+        "watch", name=os.path.basename(display), ext=gext or "",
+    )
+    return p
+
+
+# ---------------------------------------------------------------------------
+# Galaxy datatypes (format identification + metadata) — see galaxy_formats.py
+# ---------------------------------------------------------------------------
+_GF_MODULE: List[Any] = []
+
+
+def _galaxy_formats() -> Any:
+    """The galaxy_formats module. Inside Galaxy it is imported as a package module; when this
+    file is loaded on its own (unit tests, scripts) the sibling file is loaded by path so the
+    heavy ``galaxy.ai`` package __init__ is never triggered. Returns None if it cannot load."""
+    if _GF_MODULE:
+        return _GF_MODULE[0]
+    mod = None
+    try:
+        import sys
+
+        if "galaxy.ai" in sys.modules:
+            import importlib
+
+            mod = importlib.import_module("galaxy.ai.galaxy_formats")
+        else:
+            import importlib.util
+
+            sib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "galaxy_formats.py")
+            spec = importlib.util.spec_from_file_location("_biomate_galaxy_formats", sib)
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules["_biomate_galaxy_formats"] = mod
+                spec.loader.exec_module(mod)
+    except Exception as exc:  # noqa: BLE001 — Galaxy formats are an enhancement, never required
+        log.info("[perception] galaxy_formats unavailable: %s", exc)
+        mod = None
+    _GF_MODULE.append(mod)
+    return mod
+
+
+def _galaxy_identify(path: str, name: str) -> Optional[str]:
+    gf = _galaxy_formats()
+    if gf is None:
+        return None
+    try:
+        return gf.identify(path, name)
+    except Exception as exc:  # noqa: BLE001
+        log.info("[perception] Galaxy identify failed for %s: %s", path, exc)
+        return None
+
+
+def _galaxy_metadata(path: str, ext: str) -> Dict[str, Any]:
+    gf = _galaxy_formats()
+    if gf is None:
+        return {}
+    try:
+        return gf.metadata(path, ext) or {}
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)[:300]}
+
+
+def _galaxy_generic() -> frozenset:
+    gf = _galaxy_formats()
+    return getattr(gf, "GENERIC_EXTS", None) or frozenset({"data", "binary", "txt", "text", "tabular", "tsv"})
+
+
+def _format_label(ext: Optional[str]) -> str:
+    gf = _galaxy_formats()
+    if gf is not None:
+        try:
+            return gf.label_for(ext)
+        except Exception:  # noqa: BLE001
+            pass
+    return (ext or "unknown").upper()
+
+
+# Galaxy extension → the BioMate profiler that analyses it.
+_GALAXY_TO_KIND: Dict[str, str] = {
+    "fastqsanger": "fastq", "fastqsanger.gz": "fastq", "fastqsanger.bz2": "fastq",
+    "fastq": "fastq", "fastq.gz": "fastq", "fastqillumina": "fastq", "fastqsolexa": "fastq",
+    "fastqcssanger": "fastq", "vcf": "vcf", "json": "json", "yaml": "yaml",
+    "fasta": "fasta", "fasta.gz": "fasta",
+}
+# Galaxy formats that are certainly not delimited tables (a .txt holding one is not a table).
+_GALAXY_NON_TABLE = frozenset({
+    "sdf", "pdb", "cif", "mol2", "genbank", "stockholm", "obo", "owl",
+    "sam", "pqr", "gro", "xyz", "phylip", "newick", "nhx", "nexus",
+})
+# Which Galaxy extensions agree with each BioMate kind (else the chip shows BioMate's own).
+_KIND_COMPATIBLE_GALAXY: Dict[str, Tuple[str, ...]] = {
+    "table": ("csv", "tsv", "tabular", "bed", "bed6", "bed12", "bedgraph", "interval", "encodepeak",
+              "gff", "gff3", "gtf", "gff3.gz", "gtf.gz", "smi"),
+    "fastq": ("fastq",),
+    "fasta": ("fasta",),
+    "vcf": ("vcf", "vcf_bgzip"),
+    "json": ("json",),
+    "yaml": ("yaml",),
+    "jsonl": (),
+    "mtx": ("mtx",),
+}
+
+
+def _named_label(path: str) -> str:
+    spec = _spec_of(path)
+    if spec:
+        return _BIOMATE_LABELS.get(spec[0], spec[0].upper())
+    ext = _ext_of(path).lstrip(".")
+    return _BIOMATE_LABELS.get(ext, ext.upper() or "Unknown")
+
+
+def _generic_name(name: str) -> bool:
+    ext = _ext_of(name or "")
+    return ext in ("", ".txt", ".tab", ".dat", ".data")
+
+
+def _biomate_format(kind: str, name: str, layout: Optional["TableLayout"]) -> Dict[str, Any]:
+    """BioMate's own format id from its kind + the filename (used when Galaxy has no better)."""
+    lower = (name or "").lower()
+    gz = lower.endswith(".gz")
+    if kind == "table":
+        named = _ext_of(name or "")
+        if layout is not None and layout.spec:
+            ext = layout.spec
+        elif named == ".csv":
+            ext = "csv"
+        elif named in (".tsv", ".tab"):
+            ext = "tsv"
+        elif layout is not None and len(layout.names) <= 1:
+            ext = "txt"  # one value per line (a gene / ID list)
+        elif layout is not None and layout.delim == "\t":
+            ext = "tabular"
+        else:
+            ext = "csv"
+    elif kind == "mismatch":
+        ext = "unknown"
+    elif kind == "unknown":
+        e = _ext_of(name or "").lstrip(".")
+        ext = e or "unknown"
+    else:
+        ext = kind
+    label = _BIOMATE_LABELS.get(ext) or _format_label(ext)
+    if gz and kind not in ("unknown", "mismatch"):
+        label += " (gzip)"
+    return {"ext": ext, "label": label, "source": "biomate"}
+
+
+_BIOMATE_LABELS: Dict[str, str] = {
+    "csv": "CSV", "tsv": "TSV", "jsonl": "JSON Lines", "json": "JSON", "yaml": "YAML",
+    "fastq": "FASTQ", "fasta": "FASTA", "vcf": "VCF", "mtx": "Matrix Market", "bed": "BED", "bedgraph": "bedGraph",
+    "narrowpeak": "narrowPeak", "broadpeak": "broadPeak", "gtf": "GTF", "gff": "GFF", "gff3": "GFF3",
+    "smi": "SMILES", "unknown": "Unknown", "txt": "Text (one value per line)", "tabular": "Tabular",
+    "bedpe": "BEDPE",
+}
+
+
+def _format_for(kind: str, gext: Optional[str], name: str, layout: Optional["TableLayout"]) -> Dict[str, Any]:
+    """The format chip: Galaxy's identification when it is specific and agrees with how BioMate
+    analysed the file; otherwise BioMate's own."""
+    generic = _galaxy_generic()
+    if gext and gext not in generic:
+        compatible = _KIND_COMPATIBLE_GALAXY.get(kind)
+        ok = compatible is None or any(gext == c or gext.startswith(c) for c in compatible)
+        if kind == "mismatch":  # its lines do not follow the named table format
+            ok = gext not in _KIND_COMPATIBLE_GALAXY["table"]
+        if ok:
+            return {"ext": gext, "label": _format_label(gext), "source": "galaxy"}
+    return _biomate_format(kind, name, layout)
 
 
 # ---------------------------------------------------------------------------
@@ -543,20 +777,92 @@ def _profile_structured(path: str, kind: str) -> DataProfile:
 # ---------------------------------------------------------------------------
 # Sniffing
 # ---------------------------------------------------------------------------
+def _raw_head(path: str, n: int = 8192) -> bytes:
+    """The first ``n`` content bytes (gzip / bzip2 decompressed, by magic number)."""
+    with open(path, "rb") as f:
+        magic = f.read(3)
+    try:
+        if magic[:2] == b"\x1f\x8b":
+            with gzip.open(path, "rb") as g:
+                return g.read(n)
+        if magic == b"BZh":
+            import bz2
+
+            with bz2.open(path, "rb") as b:
+                return b.read(n)
+    except (OSError, EOFError, ValueError):
+        pass
+    with open(path, "rb") as f:
+        return f.read(n)
+
+
+def _utf16_bom(head: bytes) -> bool:
+    return head[:2] in (b"\xff\xfe", b"\xfe\xff")
+
+
+def _is_binary(path: str) -> bool:
+    """True for binary content (BAM, CRAM, TIFF, HDF5, xlsx, FITS, …), judged on the first
+    (decompressed) block: a NUL byte that is not UTF-16 text, a full block without a single line
+    break (no line-oriented text format looks like that), or many control bytes. Binary files must
+    never reach the text readers (csv raised "line contains NUL" and the file was called broken)."""
+    try:
+        head = _raw_head(path)
+    except OSError:
+        return False
+    if _utf16_bom(head):
+        return False
+    if b"\x00" in head:
+        return True
+    if len(head) >= 8192 and b"\n" not in head and b"\r" not in head:
+        return True
+    ctrl = sum(1 for b in head if b < 9 or 13 < b < 32)
+    return bool(head) and ctrl / len(head) > 0.1
+
+
+class BinaryContent(ValueError):
+    """Raised by the text readers on a NUL byte found past the first block."""
+
+
+def _nul_guard(lines: Iterator[str]) -> Iterator[str]:
+    for line in lines:
+        if "\x00" in line:
+            raise BinaryContent("binary content (NUL byte) in a text file")
+        yield line
+
+
 def _open_text(path: str) -> io.TextIOBase:
-    if path.endswith(".gz"):
+    """Text view of a file: gzip / bzip2 decompressed by magic number (a BGZF VCF named
+    ``.vcf_bgzip``, a ``.prj`` that is gzip), UTF-16 when it carries a BOM, else UTF-8."""
+    try:
+        with open(path, "rb") as f:
+            magic = f.read(3)
+    except OSError:
+        magic = b""
+    if magic[:2] == b"\x1f\x8b":
         return gzip.open(path, "rt", encoding="utf-8", errors="replace")
-    return open(path, "rt", encoding="utf-8", errors="replace")
+    if magic == b"BZh":
+        import bz2
+
+        return bz2.open(path, "rt", encoding="utf-8", errors="replace")
+    # UTF-16 text (Excel "Unicode text" exports) carries a BOM; everything else is read as UTF-8.
+    enc = "utf-16" if _utf16_bom(magic) else "utf-8"
+    return open(path, "rt", encoding=enc, errors="replace")
 
 
 def _strip_gz(name: str) -> str:
-    return name[:-3] if name.endswith(".gz") else name
+    """The name without a compression suffix (.gz / .bgz / .bz2)."""
+    for suf in (".gz", ".bgz", ".bz2"):
+        if name.endswith(suf):
+            return name[: -len(suf)]
+    return name
 
 
-def _sniff_kind(path: str) -> str:
-    """Return one of: 'json', 'yaml', 'jsonl', 'fastq', 'vcf', 'table', 'unknown'."""
+def _kind_from_name(path: str) -> Optional[str]:
+    """The text kind a filename extension claims (None when the name claims none)."""
     lower = _strip_gz(path.lower())
     _, ext = os.path.splitext(lower)
+    if ext in _FASTA_EXTS:
+        return "fasta"
     if ext in (".jsonl", ".ndjson"):
         return "jsonl"
     if ext in (".json", ".yaml", ".yml"):
@@ -565,8 +871,20 @@ def _sniff_kind(path: str) -> str:
         return "fastq"
     if ext == ".vcf":
         return "vcf"
-    if ext in (".csv", ".tsv", ".txt", ".tab"):
+    if ext in (".csv", ".tsv", ".txt", ".tab") or ext in _SPEC_TABLE_EXTS:
         return "table"
+    if ext == ".mtx":
+        return "mtx"
+    return None
+
+
+def _sniff_kind(path: str) -> str:
+    """Return one of: 'json', 'yaml', 'jsonl', 'fastq', 'fasta', 'vcf', 'table', 'mtx', 'unknown'."""
+    if _is_binary(path):
+        return "unknown"  # binary formats are identified by Galaxy's datatypes, never parsed as text
+    named = _kind_from_name(path)
+    if named:
+        return named
 
     # Content sniff for extension-less or ambiguous files.
     try:
@@ -577,8 +895,12 @@ def _sniff_kind(path: str) -> str:
         return "unknown"
     if head.startswith("##fileformat=VCF") or head.startswith("#CHROM"):
         return "vcf"
+    if head.startswith("%%MatrixMarket"):
+        return "mtx"
     if head.startswith("@") and second and set(second.strip()) <= set("ACGTNacgtn"):
         return "fastq"
+    if head.startswith(">") and second and second.strip() and second.strip().replace("*", "").replace("-", "").isalpha():
+        return "fasta"
     # JSON Lines: a JSON object per line. Must precede the comma check — every JSON object
     # line contains commas, so it was profiled as CSV (columns like '{"source": "epar_table"').
     if head.lstrip().startswith("{"):
@@ -590,6 +912,393 @@ def _sniff_kind(path: str) -> str:
     if ("," in head) or ("\t" in head):
         return "table"
     return "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Formats read through Galaxy's datatypes (metadata), and Matrix Market.
+# ---------------------------------------------------------------------------
+_INTERVAL_SPECS = frozenset({"bed", "narrowpeak", "broadpeak", "bedgraph", "bedpe"})
+_ANNOTATION_SPECS = frozenset({"gtf", "gff", "gff3"})
+# Galaxy extensions whose metadata describes a spec table.
+_GALAXY_INTERVAL_EXTS = frozenset({"bed", "bed6", "bed12", "bedgraph", "interval", "encodepeak"})
+_GALAXY_ANNOTATION_EXTS = frozenset({"gtf", "gff", "gff3", "gtf.gz", "gff3.gz"})
+
+
+def _human_size(n: int) -> str:
+    size = float(max(0, n))
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if size < 1024 or unit == "TB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{n} B"  # pragma: no cover
+
+
+def _meta_int(meta: Dict[str, Any], key: str) -> Optional[int]:
+    v = meta.get(key)
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float) and v.is_integer():
+        return int(v)
+    return None
+
+
+def _meta_list(meta: Dict[str, Any], key: str, drop: Sequence[str] = ()) -> List[str]:
+    v = meta.get(key)
+    if not isinstance(v, (list, tuple)):
+        return []
+    return [str(x) for x in v if str(x) and str(x) not in drop]
+
+
+def _meta_problem(p: DataProfile, meta: Dict[str, Any], label: str) -> bool:
+    """Emit the note for a skipped/failed metadata read; True when there is no usable metadata."""
+    if meta.get("skipped") == "too_large":
+        emit(p, "note", "format_metadata_skipped",
+             f"{label} metadata was not read: the file ({_human_size(int(meta.get('bytes') or 0))}) is above the "
+             f"{_human_size(int(meta.get('cap') or 0))} limit for in-request reading.",
+             format=label, size=_human_size(int(meta.get("bytes") or 0)),
+             cap=_human_size(int(meta.get("cap") or 0)))
+        return True
+    if meta.get("skipped"):
+        return True
+    if meta.get("error"):
+        emit(p, "note", "format_header_unreadable",
+             f"The {label} header could not be read ({meta['error']}); the file may be truncated or malformed.",
+             "watch", format=label, error=str(meta["error"])[:200])
+        if p.quality == "good":
+            p.quality = "watch"
+        return True
+    return not meta
+
+
+def _spec_table_findings(p: DataProfile, path: str, layout: TableLayout, gext: Optional[str]) -> None:
+    """Format findings for a spec table (BED-like intervals, GTF/GFF annotation, SMILES) from
+    Galaxy's metadata. Without Galaxy the table profile + the columns_spec note stand alone."""
+    spec = layout.spec or ""
+    label = _BIOMATE_LABELS.get(spec, spec.upper())
+    if spec in _INTERVAL_SPECS and gext in _GALAXY_INTERVAL_EXTS:
+        meta = _galaxy_metadata(path, gext)
+        if _meta_problem(p, meta, label):
+            return
+        emit(p, "signal", "intervals_summary",
+             f"{p.rows:,} genomic intervals in {_meta_int(meta, 'columns') or p.cols} columns.",
+             regions=p.rows, columns=_meta_int(meta, "columns") or p.cols)
+        strand = _meta_int(meta, "strandCol")
+        if strand is not None:
+            if strand > 0:
+                name = layout.names[strand - 1] if strand - 1 < len(layout.names) else f"column_{strand}"
+                emit(p, "note", "intervals_stranded", f"Strand is given (column {name!r}).",
+                     column=name, index=strand)
+            else:
+                emit(p, "note", "intervals_unstranded",
+                     "No strand column: intervals are treated as unstranded.")
+    elif spec in _ANNOTATION_SPECS and gext in _GALAXY_ANNOTATION_EXTS:
+        meta = _galaxy_metadata(path, gext)
+        if _meta_problem(p, meta, label):
+            return
+        attrs = meta.get("attribute_types") if isinstance(meta.get("attribute_types"), dict) else {}
+        comments = _meta_int(meta, "comment_lines") or 0
+        emit(p, "signal", "annotation_features",
+             f"{p.rows:,} feature lines, {comments:,} comment line(s); {len(attrs)} attribute key(s): "
+             + ", ".join(_named(list(attrs))) + ".",
+             features=p.rows, comments=comments, count=len(attrs), attributes=_named(list(attrs)))
+    elif spec == "smi" and gext == "smi":
+        meta = _galaxy_metadata(path, gext)
+        if _meta_problem(p, meta, label):
+            return
+        n = _meta_int(meta, "number_of_molecules")
+        if n is not None:
+            emit(p, "signal", "molecules_count", f"{n:,} molecule(s).", molecules=n)
+
+
+def _profile_mtx(path: str) -> DataProfile:
+    """Matrix Market: dimensions + stored entries from the size line (the data is not read)."""
+    p = DataProfile(quality="watch")
+    banner = ""
+    size_line = None
+    with _open_text(path) as f:
+        for i, line in enumerate(f):
+            if i == 0:
+                banner = line.strip()
+            if line.startswith("%") or not line.strip():
+                if i > 10_000:
+                    break
+                continue
+            size_line = line.split()
+            break
+    parts = banner.split()
+    obj = parts[1].lower() if len(parts) > 1 else ""
+    layout = parts[2].lower() if len(parts) > 2 else ""
+    field_ = parts[3].lower() if len(parts) > 3 else ""
+    symmetry = parts[4].lower() if len(parts) > 4 else ""
+    try:
+        dims = [int(x) for x in (size_line or [])]
+    except ValueError:
+        dims = []
+    if not banner.lower().startswith("%%matrixmarket") or len(dims) < 2:
+        p.quality = "blocked"
+        emit(p, "note", "mtx_bad_header",
+             "Not a readable Matrix Market file: the %%MatrixMarket banner or the size line is missing.", "blocked")
+        return p
+    rows, cols = dims[0], dims[1]
+    p.rows, p.cols = rows, cols
+    if layout == "coordinate" and len(dims) >= 3:
+        nnz = dims[2]
+        density = (100.0 * nnz / (rows * cols)) if rows and cols else 0.0
+        emit(p, "signal", "mtx_dimensions",
+             f"{rows:,} × {cols:,} sparse {field_ or 'matrix'} matrix with {nnz:,} stored entries ({density:.2f}% dense).",
+             rows=rows, cols=cols, nnz=nnz, density=round(density, 2), field=field_, symmetry=symmetry)
+    else:
+        emit(p, "signal", "mtx_dense", f"{rows:,} × {cols:,} dense {field_ or 'matrix'} matrix ({obj or 'matrix'}).",
+             rows=rows, cols=cols, field=field_)
+    emit(p, "note", "mtx_orientation",
+         "Matrix Market files carry no row/column names: pair this matrix with its features/barcodes files "
+         "(10x: rows are features, columns are cells).")
+    emit(p, "note", "format_metadata_only",
+         "Matrix Market header read; the values were not analysed.", "watch", format="Matrix Market")
+    return p
+
+
+def _profile_galaxy_format(path: str, ext: str, size: int) -> DataProfile:
+    """A format BioMate has no analysis for, described from Galaxy's metadata (or identified
+    only). Never claims anything about content it did not read."""
+    p = DataProfile(quality="watch")
+    label = _format_label(ext)
+    meta = _galaxy_metadata(path, ext)
+    described = False
+    if not _meta_problem(p, meta, label):
+        described = _galaxy_meta_findings(p, ext, meta, label)
+    if described:
+        emit(p, "note", "format_metadata_only",
+             f"{label} metadata read; the data values themselves were not analysed.", "watch", format=label)
+    elif not any(f["code"] in ("format_header_unreadable",) for f in p.findings):
+        emit(p, "note", "format_identified",
+             f"Identified as {label} ({_human_size(size)}); BioMate does not analyse its contents here.",
+             "watch", format=label, size=_human_size(size))
+    return p
+
+
+def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label: str) -> bool:
+    """Findings from one format's Galaxy metadata; False when nothing useful was in it."""
+    if ext == "h5ad":
+        shape = meta.get("shape")
+        cells = genes = None
+        if isinstance(shape, (list, tuple)) and len(shape) >= 2:
+            cells, genes = _meta_int({"v": shape[0]}, "v"), _meta_int({"v": shape[1]}, "v")
+        cells = cells if cells is not None else _meta_int(meta, "obs_size")
+        genes = genes if genes is not None else _meta_int(meta, "var_size")
+        if cells is None or genes is None:
+            return False
+        p.rows, p.cols = cells, genes
+        obs = _meta_list(meta, "obs_layers", ("index", "_index"))
+        var = _meta_list(meta, "var_layers", ("index", "_index"))
+        emit(p, "signal", "anndata_shape", f"{cells:,} cells (obs) × {genes:,} genes/features (var).",
+             cells=cells, genes=genes)
+        if obs:
+            emit(p, "note", "anndata_obs", f"{len(obs)} cell annotation column(s): {', '.join(_named(obs))}.",
+                 count=len(obs), columns=_named(obs))
+        if var:
+            emit(p, "note", "anndata_var", f"{len(var)} gene annotation column(s): {', '.join(_named(var))}.",
+                 count=len(var), columns=_named(var))
+        obsm = _meta_list(meta, "obsm_layers")
+        if obsm:
+            emit(p, "note", "anndata_embeddings", f"Embeddings stored: {', '.join(_named(obsm))}.",
+                 count=len(obsm), embeddings=_named(obsm))
+        groups = _meta_list(meta, "layers_names")
+        if groups:
+            emit(p, "note", "hdf5_groups", f"Stored groups: {', '.join(_named(groups))}.",
+                 count=len(groups), groups=_named(groups))
+        return True
+    if ext == "loom":
+        shape = meta.get("shape")
+        if not (isinstance(shape, (list, tuple)) and len(shape) >= 2):
+            return False
+        genes, cells = _meta_int({"v": shape[0]}, "v"), _meta_int({"v": shape[1]}, "v")
+        if genes is None or cells is None:
+            return False
+        p.rows, p.cols = cells, genes
+        emit(p, "signal", "loom_shape", f"{genes:,} genes (rows) × {cells:,} cells (columns).",
+             genes=genes, cells=cells)
+        rattrs = _meta_list(meta, "row_attrs_names")
+        cattrs = _meta_list(meta, "col_attrs_names")
+        if rattrs:
+            emit(p, "note", "loom_row_attrs", f"Gene attributes: {', '.join(_named(rattrs))}.",
+                 count=len(rattrs), columns=_named(rattrs))
+        if cattrs:
+            emit(p, "note", "loom_col_attrs", f"Cell attributes: {', '.join(_named(cattrs))}.",
+                 count=len(cattrs), columns=_named(cattrs))
+        layers = _meta_list(meta, "layers_names")
+        if layers:
+            emit(p, "note", "loom_layers", f"Layers: {', '.join(_named(layers))}.",
+                 count=len(layers), layers=_named(layers))
+        return True
+    if ext in ("bam", "cram", "qname_sorted.bam", "unsorted.bam"):
+        refs = _meta_int(meta, "reference_count")
+        if refs is None:
+            return False
+        emit(p, "signal", "alignment_references",
+             f"{refs:,} reference sequence(s) in the header ({_meta_int(meta, 'reference_total_length') or 0:,} bp).",
+             references=refs, length=_meta_int(meta, "reference_total_length") or 0,
+             names=_named(_meta_list(meta, "reference_names")))
+        order = str(meta.get("sort_order") or "unknown")
+        if order == "coordinate":
+            emit(p, "note", "alignment_sorted", "Coordinate-sorted (header SO:coordinate).", order=order)
+        else:
+            emit(p, "note", "alignment_not_coordinate_sorted",
+                 f"Sort order is {order!r}, not coordinate: sort before indexing or variant calling.",
+                 "watch", order=order)
+        rgs = _meta_int(meta, "read_group_count") or 0
+        if rgs:
+            samples = _meta_list(meta, "samples")
+            emit(p, "signal", "alignment_read_groups",
+                 f"{rgs} read group(s); sample(s): {', '.join(_named(samples)) or '—'}.",
+                 count=rgs, samples=_named(samples))
+        else:
+            emit(p, "note", "alignment_no_read_groups",
+                 "No read groups (@RG) in the header: GATK and most variant callers require them.", "watch")
+        return True
+    if ext == "sdf":
+        n = _meta_int(meta, "number_of_molecules")
+        if n is None:
+            return False
+        p.rows = n
+        emit(p, "signal", "molecules_count", f"{n:,} molecule(s).", molecules=n)
+        return True
+    if ext in ("pdb", "cif"):
+        chains = _meta_list(meta, "chain_ids")
+        if not chains:
+            return False
+        emit(p, "signal", "structure_chains", f"{len(chains)} chain(s): {', '.join(_named(chains))}.",
+             count=len(chains), chains=_named(chains))
+        return True
+    if ext == "xlsx":
+        sheets = meta.get("sheets")
+        if not isinstance(sheets, list) or not sheets:
+            return False
+        names = [str(sh.get("name")) for sh in sheets if isinstance(sh, dict)]
+        first = sheets[0] if isinstance(sheets[0], dict) else {}
+        p.rows, p.cols = int(first.get("rows") or 0), int(first.get("cols") or 0)
+        emit(p, "signal", "spreadsheet_sheets", f"{len(names)} sheet(s): {', '.join(_named(names))}.",
+             count=len(names), sheets=_named(names))
+        emit(p, "note", "spreadsheet_convert",
+             "Spreadsheets are not profiled cell by cell: export the sheet to CSV to get the table checks.")
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# FASTA
+# ---------------------------------------------------------------------------
+_FASTA_EXTS = (".fa", ".fasta", ".fna", ".faa", ".fas", ".ffn", ".fsa", ".frn", ".mfa")
+# Content bytes scanned per FASTA (decompressed); beyond it the statistics are over a prefix.
+MAX_FASTA_BYTES = 256 * 1024 * 1024
+# Share of residues that must be A/C/G/T/U/N for a nucleotide FASTA (else protein).
+_NUCLEOTIDE_FRAC = 0.9
+# N (unknown base) share that is worth a note.
+_HIGH_N_FRAC = 0.1
+
+
+def _open_bytes(path: str):
+    with open(path, "rb") as f:
+        magic = f.read(3)
+    if magic[:2] == b"\x1f\x8b":
+        return gzip.open(path, "rb")
+    if magic == b"BZh":
+        import bz2
+
+        return bz2.open(path, "rb")
+    return open(path, "rb")
+
+
+def _n50(lengths: Sequence[int]) -> int:
+    total = sum(lengths)
+    acc = 0
+    for n in sorted(lengths, reverse=True):
+        acc += n
+        if acc * 2 >= total:
+            return n
+    return 0
+
+
+def _profile_fasta(path: str) -> DataProfile:
+    """FASTA (plain / gzip / bzip2): sequence count, total / mean / min / max length, N50, and
+    for nucleotides GC% and N share. Streams up to MAX_FASTA_BYTES of content."""
+    p = DataProfile()
+    lengths: List[int] = []
+    cur: Optional[int] = None
+    gc = at = n_bases = residues = scanned = 0
+    truncated = False
+    orphan = 0  # sequence lines before the first '>' header
+    with _open_bytes(path) as f:
+        for line in f:
+            scanned += len(line)
+            if line[:1] == b">":
+                if cur is not None:
+                    lengths.append(cur)
+                if scanned > MAX_FASTA_BYTES:
+                    cur = None
+                    truncated = True
+                    break
+                cur = 0
+                continue
+            if line[:1] == b";":
+                continue  # old-style comment line
+            seq = line.strip()
+            if not seq:
+                continue
+            if cur is None:
+                orphan += 1
+                continue
+            cur += len(seq)
+            residues += len(seq)
+            u = seq.upper()
+            gc += u.count(b"G") + u.count(b"C")
+            at += u.count(b"A") + u.count(b"T") + u.count(b"U")
+            n_bases += u.count(b"N")
+    if cur is not None:
+        lengths.append(cur)
+
+    n = len(lengths)
+    p.rows = n
+    if n == 0:
+        p.quality = "blocked"
+        emit(p, "note", "fasta_no_sequences", "No '>' sequence headers found.", "blocked")
+        return p
+    total = sum(lengths)
+    mean = total / n
+    p.cols = int(round(mean))
+    nucleotide = residues > 0 and (gc + at + n_bases) / residues >= _NUCLEOTIDE_FRAC
+    unit = "bp" if nucleotide else "aa"
+    emit(p, "signal", "fasta_sequences",
+         f"{'≥' if truncated else ''}{n:,} sequences, {total:,} {unit}; length mean {mean:,.0f}, "
+         f"min {min(lengths):,}, max {max(lengths):,}, N50 {_n50(lengths):,}.",
+         sequences=n, at_least=truncated, total=total, unit=unit, mean=int(round(mean)),
+         min=min(lengths), max=max(lengths), n50=_n50(lengths))
+    if nucleotide:
+        gc_pct = round(100.0 * gc / (gc + at), 1) if (gc + at) else 0.0
+        emit(p, "signal", "fasta_gc", f"GC content {gc_pct}% (nucleotide sequences).", pct=gc_pct)
+        n_frac = n_bases / residues if residues else 0.0
+        if n_frac >= _HIGH_N_FRAC:
+            p.quality = "watch"
+            emit(p, "note", "fasta_high_n",
+                 f"{100 * n_frac:.0f}% of bases are N (unknown): gaps or a low-quality assembly.",
+                 "watch", pct=int(round(100 * n_frac)))
+    else:
+        emit(p, "note", "fasta_protein", "Protein sequences (amino-acid alphabet).")
+    empty = sum(1 for x in lengths if x == 0)
+    if empty:
+        p.quality = "watch"
+        emit(p, "note", "fasta_empty_records", f"{empty:,} header(s) with no sequence.", "watch", count=empty)
+    if orphan:
+        p.quality = "watch"
+        emit(p, "note", "fasta_orphan_lines", f"{orphan:,} sequence line(s) before the first '>' header were ignored.",
+             "watch", count=orphan)
+    if truncated:
+        emit(p, "note", "fasta_profiled_subset",
+             f"Statistics cover the first {MAX_FASTA_BYTES // (1024 * 1024)} MB of the file.",
+             mb=MAX_FASTA_BYTES // (1024 * 1024))
+    return p
 
 
 # ---------------------------------------------------------------------------
@@ -709,23 +1418,288 @@ def _sniff_delimiter(path: str) -> str:
     return ","
 
 
-def _iter_table(path: str) -> Iterator[List[str]]:
-    """THE delimited-table parse shared by the profiler and the paged rows reader:
-    yields the header (cells stripped) first, then every non-blank data row as-is."""
-    delim = _sniff_delimiter(path)
+# ---------------------------------------------------------------------------
+# Table layout: delimiter + where the column names come from.
+# ---------------------------------------------------------------------------
+# Header-less spec formats → (spec key, Galaxy extension for its column_names). Their files have
+# no header row by specification; comment/track/browser lines are skipped.
+_SPEC_TABLE_EXTS: Dict[str, Tuple[str, Optional[str]]] = {
+    ".bed": ("bed", "bed"), ".bedgraph": ("bedgraph", None), ".bdg": ("bedgraph", None),
+    ".narrowpeak": ("narrowpeak", "encodepeak"), ".broadpeak": ("broadpeak", None),
+    ".gtf": ("gtf", "gtf"), ".gff": ("gff", "gff"), ".gff3": ("gff3", "gff3"),
+    ".bedpe": ("bedpe", None),
+    ".smi": ("smi", "smi"), ".smiles": ("smi", "smi"),
+}
+# Spec column names. Identical to Galaxy's class ``column_names`` (galaxy.datatypes.interval
+# Bed / ENCODEPeak / Gff / Gff3 / Gtf, galaxy.datatypes.molecules SMILES) — Galaxy's are used
+# when importable; these keep the same names on hosts without Galaxy. bedGraph / broadPeak have
+# no Galaxy class: UCSC bedGraph (chrom start end value) and ENCODE broadPeak (BED6+3).
+_SPEC_FALLBACK_NAMES: Dict[str, List[str]] = {
+    "bed": ["Chrom", "Start", "End", "Name", "Score", "Strand", "ThickStart", "ThickEnd",
+            "ItemRGB", "BlockCount", "BlockSizes", "BlockStarts"],
+    "narrowpeak": ["Chrom", "Start", "End", "Name", "Score", "Strand", "SignalValue", "pValue",
+                   "qValue", "Peak"],
+    "broadpeak": ["Chrom", "Start", "End", "Name", "Score", "Strand", "SignalValue", "pValue", "qValue"],
+    "bedgraph": ["Chrom", "Start", "End", "Value"],
+    "bedpe": ["Chrom1", "Start1", "End1", "Chrom2", "Start2", "End2", "Name", "Score", "Strand1", "Strand2"],
+    "gff": ["Seqname", "Source", "Feature", "Start", "End", "Score", "Strand", "Frame", "Group"],
+    "gff3": ["Seqid", "Source", "Type", "Start", "End", "Score", "Strand", "Phase", "Attributes"],
+    "gtf": ["Seqname", "Source", "Feature", "Start", "End", "Score", "Strand", "Frame", "Attributes"],
+    "smi": ["SMILES", "TITLE"],
+}
+# What a data line of each spec format must look like: (minimum columns, 0-based columns that
+# must be integers). A file whose sampled lines mostly fail this is not that format.
+_SPEC_SHAPE: Dict[str, Tuple[int, Tuple[int, ...]]] = {
+    "bed": (3, (1, 2)), "narrowpeak": (10, (1, 2)), "broadpeak": (9, (1, 2)),
+    "bedgraph": (4, (1, 2)), "bedpe": (6, (1, 2, 4, 5)),
+    "gtf": (9, (3, 4)), "gff": (9, (3, 4)), "gff3": (9, (3, 4)), "smi": (1, ()),
+}
+# Share of sampled spec-format lines that must match _SPEC_SHAPE.
+_SPEC_VALID_FRAC = 0.8
+# Values treated as missing when inferring whether line 1 is a header.
+_MISSING_TOKENS = frozenset({"", "na", "nan", "null", "none", "n/a", "."})
+# Rows sampled to decide header vs data.
+_HEADER_SAMPLE_ROWS = 200
+# A column is numeric when at least this share of its non-empty data values parse as numbers.
+_NUMERIC_COL_FRAC = 0.8
+
+
+@dataclass
+class TableLayout:
+    delim: str
+    # Column names, and where they came from: "header" (line 1), "comment" (the last '#' line of a
+    # spec format), "spec" (the format's specification), "generated" (column_1…: no header row).
+    names: List[str]
+    names_source: str = "header"
+    # True when the first record of the file is a header row (not data). The edit route counts
+    # data rows after this many header records.
+    header_row: bool = True
+    # Spec format key (bed, gtf, …) or None for a generic delimited table.
+    spec: Optional[str] = None
+    # False when a spec-format file's lines do not follow that format (e.g. a binary or a
+    # mislabelled file named .bed): it is then not served or profiled as a table.
+    valid: bool = True
+
+
+def _spec_of(path: str) -> Optional[Tuple[str, Optional[str]]]:
+    _, ext = os.path.splitext(_strip_gz(path.lower()))
+    return _SPEC_TABLE_EXTS.get(ext)
+
+
+def _spec_names(spec: str, galaxy_ext: Optional[str]) -> List[str]:
+    if galaxy_ext:
+        gf = _galaxy_formats()
+        if gf is not None:
+            try:
+                names = gf.spec_column_names(galaxy_ext)
+                if names:
+                    return list(names)
+            except Exception:  # noqa: BLE001
+                pass
+    return list(_SPEC_FALLBACK_NAMES.get(spec, []))
+
+
+def _is_spec_skip(line: str) -> bool:
+    return line.startswith("#") or line.startswith("track") or line.startswith("browser")
+
+
+def _spec_lines(f: Iterator[str]) -> Iterator[str]:
+    """Data lines of a spec format: comment/track/browser and blank lines dropped; a GFF3
+    ``##FASTA`` section ends the feature table."""
+    for line in f:
+        if line.startswith("##FASTA"):
+            return
+        if not line.strip() or _is_spec_skip(line):
+            continue
+        yield line
+
+
+def _spec_reader(lines: Iterator[str], delim: str) -> Iterator[List[str]]:
+    if delim == " ":
+        for line in lines:
+            yield line.split()
+    else:
+        for row in csv.reader(_nul_guard(lines), delimiter=delim, quoting=csv.QUOTE_NONE):
+            yield row
+
+
+def _is_number(v: str) -> bool:
+    try:
+        float(v)
+        return True
+    except ValueError:
+        return False
+
+
+def _is_missing(v: str) -> bool:
+    return v.strip().lower() in _MISSING_TOKENS
+
+
+def _style(v: str) -> Tuple[str, bool]:
+    """Casing class + whitespace presence of a single text value (for one-column lists)."""
+    t = v.strip()
+    letters = [c for c in t if c.isalpha()]
+    if not letters:
+        case = "none"
+    elif all(c.isupper() for c in letters):
+        case = "upper"
+    elif all(c.islower() for c in letters):
+        case = "lower"
+    elif letters[0].isupper() and all(c.islower() for c in letters[1:]):
+        case = "title"
+    else:
+        case = "mixed"
+    return case, any(c.isspace() for c in t)
+
+
+def _line1_is_header(first: List[str], data: List[List[str]]) -> bool:
+    """Whether line 1 of a generic delimited table is a header, decided from the content:
+
+    * a column that is numeric in the data (≥80% of its non-empty values) but text in line 1
+      ⇒ header;
+    * else, if every numeric column's line-1 value is numeric ⇒ no header (line 1 is data);
+    * no numeric column: a single text column whose line 1 differs from the data's majority
+      casing style / whitespace (``gene`` over ``TP53, EGFR``) ⇒ header, same style ⇒ none;
+      several text columns ⇒ header;
+    * anything undecidable ⇒ header (the long-standing default).
+    """
+    if not data:
+        return True
+    width = len(first)
+    saw_numeric_line1 = False
+    for j in range(width):
+        vals = [r[j].strip() for r in data if j < len(r) and not _is_missing(r[j])]
+        if not vals:
+            continue
+        if sum(1 for v in vals if _is_number(v)) / len(vals) < _NUMERIC_COL_FRAC:
+            continue
+        cell = first[j].strip()
+        if _is_missing(cell):
+            continue  # an empty header cell (R's row-name column) is no evidence either way
+        if not _is_number(cell):
+            return True
+        saw_numeric_line1 = True
+    if saw_numeric_line1:
+        return False
+    if width == 1 and all(len(r) <= 1 for r in data):
+        vals = [r[0] for r in data if r and not _is_missing(r[0])]
+        if not vals or _is_missing(first[0]):
+            return True
+        majority = Counter(_style(v) for v in vals).most_common(1)[0][0]
+        return _style(first[0]) != majority
+    return True
+
+
+def _spec_lines_valid(path: str, key: str, delim: str) -> bool:
+    """Whether the sampled data lines follow the spec format's shape (see _SPEC_SHAPE). A file
+    with no data lines (only a track line / comments) is a valid, empty table. Binary content
+    (a NUL byte, or undecodable bytes) is never valid."""
+    min_cols, int_cols = _SPEC_SHAPE.get(key, (1, ()))
+    good = total = 0
     with _open_text(path) as f:
-        for i, row in enumerate(csv.reader(f, delimiter=delim)):
-            if i == 0:
-                yield [c.strip() for c in row]
+        for row in _spec_reader(_spec_lines(f), delim):
+            total += 1
+            joined = "".join(row)
+            if "\x00" in joined or "\ufffd" in joined:
+                return False
+            if len(row) >= min_cols and all(row[j].strip().lstrip("-").isdigit() for j in int_cols):
+                good += 1
+            if total >= _HEADER_SAMPLE_ROWS:
+                break
+    return total == 0 or good / total >= _SPEC_VALID_FRAC
+
+
+def _spec_layout_or_none(path: str, holder: List["TableLayout"]) -> bool:
+    """Layout of a spec-format file (appended to ``holder``) when its lines follow the format;
+    False when they do not or the file is unreadable as text."""
+    try:
+        lay = _table_layout(path)
+    except Exception:  # noqa: BLE001 — unreadable as text ⇒ not that table format
+        return False
+    if not lay.valid:
+        return False
+    holder.append(lay)
+    return True
+
+
+def _table_layout(path: str) -> TableLayout:
+    """Decide the delimiter and the column names of a delimited file (see _line1_is_header for
+    generic tables; spec formats such as BED/GTF/SMILES have no header row by specification)."""
+    spec = _spec_of(path)
+    if spec is not None:
+        key, galaxy_ext = spec
+        comment: Optional[str] = None
+        first: Optional[str] = None
+        with _open_text(path) as f:
+            for line in f:
+                if line.startswith("##FASTA"):
+                    break
+                if not line.strip():
+                    continue
+                if line.startswith("#"):
+                    comment = line
+                    continue
+                if _is_spec_skip(line):
+                    continue
+                first = line
+                break
+        if key == "smi":
+            delim = "\t" if (first is None or "\t" in first) else " "
+        else:
+            delim = "\t"
+        width = len(next(_spec_reader(iter([first]), delim), [])) if first else 0
+        valid = _spec_lines_valid(path, key, delim)
+        if comment is not None and width:
+            cnames = [c.strip() for c in next(_spec_reader(iter([comment.lstrip("#")]), delim), [])]
+            if len(cnames) == width and all(cnames):
+                return TableLayout(delim, cnames, "comment", header_row=True, spec=key, valid=valid)
+        names = _spec_names(key, galaxy_ext)[:width] if width else _spec_names(key, galaxy_ext)
+        names += [f"column_{i + 1}" for i in range(len(names), width)]
+        return TableLayout(delim, names, "spec", header_row=False, spec=key, valid=valid)
+
+    delim = _sniff_delimiter(path)
+    sample: List[List[str]] = []
+    with _open_text(path) as f:
+        for i, row in enumerate(csv.reader(_nul_guard(f), delimiter=delim)):
+            if i > 0 and (not row or all(c == "" for c in row)):
+                continue
+            sample.append(row)
+            if len(sample) > _HEADER_SAMPLE_ROWS:
+                break
+    if not sample:
+        return TableLayout(delim, [], "header", header_row=True)
+    first = sample[0]
+    if _line1_is_header(first, sample[1:]):
+        return TableLayout(delim, [c.strip() for c in first], "header", header_row=True)
+    width = max(len(r) for r in sample)
+    return TableLayout(delim, [f"column_{i + 1}" for i in range(width)], "generated", header_row=False)
+
+
+def _iter_table(path: str, layout: Optional[TableLayout] = None) -> Iterator[List[str]]:
+    """THE delimited-table parse shared by the profiler and the paged rows reader:
+    yields the column names first (see :func:`_table_layout`), then every non-blank data row
+    as-is. With a header row, line 1 is consumed as the names; without one it is data."""
+    lay = layout or _table_layout(path)
+    yield list(lay.names)
+    with _open_text(path) as f:
+        if lay.spec:
+            for row in _spec_reader(_spec_lines(f), lay.delim):
+                if row and not all(c == "" for c in row):
+                    yield row
+            return
+        for i, row in enumerate(csv.reader(_nul_guard(f), delimiter=lay.delim)):
+            if i == 0 and lay.header_row:
                 continue
             if not row or all(c == "" for c in row):
                 continue
             yield row
 
 
-def _read_table(path: str, max_rows: int = MAX_TABLE_ROWS) -> Tuple[List[str], List[List[str]], int]:
+def _read_table(
+    path: str, max_rows: int = MAX_TABLE_ROWS, layout: Optional[TableLayout] = None
+) -> Tuple[List[str], List[List[str]], int]:
     """(header, first ``max_rows`` rows, TRUE total data-row count)."""
-    it = _iter_table(path)
+    it = _iter_table(path, layout)
     header = next(it, [])
     rows: List[List[str]] = []
     total = 0
@@ -795,6 +1769,9 @@ def _read_jsonl(path: str, max_rows: int = MAX_TABLE_ROWS) -> Tuple[List[str], L
 
 # Hard cap on one page of the paged rows reader (the UI asks for ~200 at a time).
 MAX_ROWS_PAGE = 1000
+# Version of how read_rows turns bytes into columns + rows. Cached page metadata (columns, total)
+# written under another version is not reused. Bump when the parse changes what a row is.
+READ_ROWS_VERSION = "2026-11-11.header-inference"
 
 
 def read_rows(
@@ -806,21 +1783,52 @@ def read_rows(
 ) -> Dict[str, Any]:
     """One page of a table-like file's FULL rows, parsed exactly as the profiler parses it.
 
-    Returns ``{kind, tabular, columns, rows, offset, limit, totalRows}``. ``known`` is a
+    Returns ``{kind, tabular, columns, rows, offset, limit, totalRows}`` (tables also carry
+    ``headerRow`` — whether line 1 is a header record, which the edit route needs to number data
+    rows — and ``namesSource``: header | comment | spec | generated). ``known`` is a
     previously returned ``{"columns", "totalRows"}`` for the same bytes: with it the read
     stops once the page is filled (the total and the JSONL key union need a full pass,
     which ``known`` already carries). Non-tabular kinds return ``tabular: False``.
     """
+    try:
+        return _read_rows(path, offset, limit, known=known)
+    except BinaryContent:
+        return {"kind": "unknown", "tabular": False, "reason": "binary"}
+
+
+def _read_rows(
+    path: str,
+    offset: int = 0,
+    limit: int = 200,
+    *,
+    known: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     kind = _sniff_kind(path)
     if kind not in ("table", "jsonl"):
         return {"kind": kind, "tabular": False}
+    layout: Optional[TableLayout] = None
+    if kind == "table":
+        try:
+            layout = _table_layout(path)
+        except BinaryContent:
+            raise
+        except Exception:  # noqa: BLE001
+            if _spec_of(path) is None:
+                raise
+            layout = None
+        if layout is None or not layout.valid:
+            # A file named as a spec format (.bed, .gtf, …) whose lines do not follow it is not a
+            # table: the caller falls back to the text preview instead of showing a parse error.
+            return {"kind": kind, "tabular": False, "reason": "spec_mismatch"}
     offset = max(0, int(offset))
     limit = max(1, min(int(limit), MAX_ROWS_PAGE))
     end = offset + limit
     total = 0
     out: Dict[str, Any] = {"kind": kind, "tabular": True, "offset": offset, "limit": limit}
     if kind == "table":
-        it = _iter_table(path)
+        out["headerRow"] = layout.header_row
+        out["namesSource"] = layout.names_source
+        it = _iter_table(path, layout)
         columns = next(it, [])
         page: List[List[str]] = []
         for row in it:
@@ -917,14 +1925,14 @@ def _nested_table_findings(p: "DataProfile", header: Sequence[str], rows: Sequen
         ncols = sorted(max((len(x) for x in m), default=0) for m in mats)
         med = lambda xs: xs[len(xs) // 2]
         emit(p, "note", "nested_tables",
-             f"{name}: {len(mats):,} embedded tables, median {med(nrows)} rows × {med(ncols)} columns "
+             f"Column {name!r}: {len(mats):,} embedded tables, median {med(nrows)} rows × {med(ncols)} columns "
              f"(largest {nrows[-1]} rows).",
              column=str(name), tables=len(mats), median_rows=med(nrows), median_cols=med(ncols), max_rows=nrows[-1])
         at_max = sum(1 for n in nrows if n == nrows[-1])
         if nrows[-1] >= 3 and nrows[0] < nrows[-1] and at_max / len(nrows) >= NESTED_ROW_CAP_FRAC:
             pct = int(round(100 * at_max / len(nrows)))
             emit(p, "signal", "nested_row_cap",
-                 f"{pct}% of the tables in {name} have exactly {nrows[-1]} rows, the maximum: they were "
+                 f"{pct}% of the tables in column {name!r} have exactly {nrows[-1]} rows, the maximum: they were "
                  f"probably cut off when extracted. Check the extraction before analysing them.",
                  "watch", column=str(name), pct=pct, max_rows=nrows[-1], tables=len(mats))
             watch = True
@@ -933,15 +1941,19 @@ def _nested_table_findings(p: "DataProfile", header: Sequence[str], rows: Sequen
             blank = sum(1 for x in cells if x is None or not str(x).strip()) / len(cells)
             if blank >= NESTED_BLANK_NOTE_FRAC:
                 emit(p, "note", "nested_blank_cells",
-                     f"{int(round(100 * blank))}% of the cells in the {name} tables are blank — typical of merged "
+                     f"{int(round(100 * blank))}% of the cells in the tables of column {name!r} are blank — typical of merged "
                      f"or multi-line cells in extracted tables; join continuation rows before analysis.",
                      column=str(name), pct=int(round(100 * blank)))
     return watch
 
 
-def _profile_table(path: str, reader=None) -> DataProfile:
+def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None) -> DataProfile:
     p = DataProfile()
-    header, rows, total = (reader or _read_table)(path)
+    if reader is not None:
+        header, rows, total = reader(path)
+    else:
+        layout = layout or _table_layout(path)
+        header, rows, total = _read_table(path, layout=layout)
     n_rows = len(rows)  # rows held for statistics (≤ MAX_TABLE_ROWS)
     n_cols = len(header)
     p.rows = total
@@ -960,7 +1972,11 @@ def _profile_table(path: str, reader=None) -> DataProfile:
         # instead of "analyzer cannot read this dataset".
         p.columns = [str(c) for c in header[:MAX_PREVIEW_COLS]]
         p.sample_rows = []
-        emit(p, "note", "header_only", "Header present; no data rows yet.")
+        if layout is not None and not layout.header_row:
+            _column_names_finding(p, layout)
+            emit(p, "note", "table_summary", f"{total:,} rows × {n_cols} columns.", rows=total, cols=n_cols)
+        else:
+            emit(p, "note", "header_only", "Header present; no data rows yet.")
         return p
 
     # Small tabular sample for the Preview tab (columns + first rows), capped.
@@ -968,6 +1984,19 @@ def _profile_table(path: str, reader=None) -> DataProfile:
     p.sample_rows = [
         [_preview_cell(c) for c in r[:MAX_PREVIEW_COLS]] for r in rows[:MAX_PREVIEW_ROWS]
     ]
+    if layout is not None:
+        _column_names_finding(p, layout)
+    if layout is not None and layout.spec:
+        # A spec format (BED, GTF, SMILES, …): its columns are defined by the format, so the
+        # classification checks (label / leakage / balance) and placeholder-column statistics
+        # (BED score 0, strand ".") do not apply. Format findings are added by the caller.
+        _set_dedup_effective_n(p, rows)
+        emit(p, "note", "table_summary", f"{total:,} rows × {n_cols} columns.", rows=total, cols=n_cols)
+        if p.profiled_rows is not None:
+            emit(p, "note", "profiled_subset",
+                 f"Statistics were computed on the first {n_rows:,} of {total:,} rows.",
+                 profiled=n_rows, rows=total)
+        return p
 
     watch = False
 
@@ -1028,7 +2057,8 @@ def _profile_table(path: str, reader=None) -> DataProfile:
                      "watch", a=example[0], b=example[1])
 
             minority_frac = min(frac for _, frac in balance)
-            if minority_frac < IMBALANCE_MINORITY_FRAC:
+            majority_frac = max(frac for _, frac in balance)
+            if minority_frac < IMBALANCE_MINORITY_RATIO * majority_frac:
                 watch = True
                 minority_label = min(balance, key=lambda kv: kv[1])[0]
                 emit(p, "note", "minority_class",
@@ -1072,7 +2102,8 @@ def _profile_table(path: str, reader=None) -> DataProfile:
 
     if watch and p.quality == "good":
         p.quality = "watch"
-    if not p.notes:
+    # Where the column names came from is context, not an issue: it does not displace the summary.
+    if not any(f["section"] == "note" and not f["code"].startswith("columns_") for f in p.findings):
         # "No issues" only when nothing was flagged — the signal list (near-constant / missing
         # columns) was ignored here, so the card said "no constant-column issues" beside a
         # near-constant-column warning.
@@ -1087,6 +2118,24 @@ def _profile_table(path: str, reader=None) -> DataProfile:
              f"Statistics were computed on the first {n_rows:,} of {total:,} rows.",
              profiled=n_rows, rows=total)
     return p
+
+
+def _column_names_finding(p: DataProfile, layout: TableLayout) -> None:
+    """Say where the column names came from when they are not the file's own header row."""
+    names = _named(layout.names)
+    label = _BIOMATE_LABELS.get(layout.spec or "", (layout.spec or "").upper())
+    if layout.names_source == "generated":
+        emit(p, "note", "columns_generated",
+             f"No header row detected (line 1 holds data values); columns are named column_1 … column_{len(layout.names)}.",
+             count=len(layout.names))
+    elif layout.names_source == "spec":
+        emit(p, "note", "columns_spec",
+             f"{label} files have no header row; column names follow the {label} specification: {', '.join(names)}.",
+             format=label, columns=names)
+    elif layout.names_source == "comment":
+        emit(p, "note", "columns_comment",
+             f"Column names taken from the file's last '#' comment line: {', '.join(names)}.",
+             format=label, columns=names)
 
 
 def _set_dedup_effective_n(p: DataProfile, rows: Sequence[Sequence[str]]) -> None:
@@ -1140,14 +2189,13 @@ def _detect_leakage(
             per_value.setdefault(v, Counter())[lbl] += 1
         if not per_value:
             continue
-        correct = 0
-        total = 0
-        for _v, lblcounts in per_value.items():
-            total += sum(lblcounts.values())
-            correct += lblcounts.most_common(1)[0][1]
-        acc = correct / total if total else 0.0
+        acc, base, total = _loo_value_accuracy(per_value)
         distinct_vals = len(per_value)
-        if acc >= LEAKAGE_ACC_THRESHOLD and total >= max(4, int(0.5 * n_rows)):
+        # Leakage = the column predicts the label for rows it has NOT memorised, well beyond the
+        # majority-class baseline. (Scoring each value by its own rows' majority made every
+        # unique-per-row measurement — a float column — "perfectly predict" any label.)
+        if (acc >= LEAKAGE_ACC_THRESHOLD and (acc - base) >= 0.5 * (1.0 - base) and acc > base
+                and total >= max(4, int(0.5 * n_rows))):
             if distinct_vals >= 0.95 * total:
                 emit(p, "leakage", "leaked_id",
                      f"column {header[j]!r} is (near-)unique per row and perfectly predicts the label — leaked id.",
@@ -1209,6 +2257,35 @@ def _detect_leakage(
                      "watch", count=overlap)
                 emit(p, "plan", "dedup_splits", "train/test overlap",
                      effect_text="de-duplicated rows across splits before evaluation")
+
+
+def _loo_value_accuracy(per_value: Dict[str, Counter]) -> Tuple[float, float, int]:
+    """(leave-one-out accuracy, majority-class baseline, labelled rows) of predicting the label
+    from one column's value: each row is predicted by the majority label of the OTHER rows with
+    the same value; a value seen once carries no evidence and is predicted by the overall
+    majority label."""
+    overall: Counter = Counter()
+    for lblcounts in per_value.values():
+        overall.update(lblcounts)
+    total = sum(overall.values())
+    if not total:
+        return 0.0, 0.0, 0
+    majority_label, majority_n = overall.most_common(1)[0]
+    correct = 0
+    for lblcounts in per_value.values():
+        n_v = sum(lblcounts.values())
+        for lbl, cnt in lblcounts.items():
+            if n_v == 1:
+                correct += cnt if lbl == majority_label else 0
+                continue
+            others = Counter(lblcounts)
+            others[lbl] -= 1
+            top = max(others.values())
+            # A tie among the other rows is not a prediction of this row's label.
+            winners = [k for k, c in others.items() if c == top]
+            if winners == [lbl]:
+                correct += cnt
+    return correct / total, majority_n / total, total
 
 
 def _effective_n(
