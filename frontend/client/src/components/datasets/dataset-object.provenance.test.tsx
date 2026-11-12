@@ -270,6 +270,9 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     fireEvent.click(screen.getByTestId("dataset-tab-versions"))
     const restoreBtn = await screen.findByTestId("dataset-version-restore-1", {}, { timeout: 4000 })
     fireEvent.click(restoreBtn)
+    // Restore asks first (W1): nothing is written until it is confirmed.
+    expect(restored).toBe(false)
+    fireEvent.click(await screen.findByTestId("dataset-version-restore-yes-1"))
     await waitFor(() => expect(restored).toBe(true))
   })
 

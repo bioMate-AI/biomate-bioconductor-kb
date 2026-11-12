@@ -289,6 +289,11 @@ export interface DatasetRowsState {
    */
   delimiter: string | null
   /**
+   * The decimal mark of the table's numbers when the rows reader reports it (`decimal`, e.g. ","
+   * for a European semicolon CSV holding "1,5"); null when not reported (then ".").
+   */
+  decimal: string | null
+  /**
    * The rows reader found no content: `empty_file` (0 bytes) or `blank_content` (only blank
    * lines) — its `{tabular: false, reason: "empty", code}` answer. An empty state, not an error and
    * not "still loading". null otherwise.
@@ -304,7 +309,7 @@ function emptyCode(body: any): EmptyCode | null {
   return body.reason === "empty" ? "empty_file" : null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null, delimiter: null, empty: null }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null, delimiter: null, decimal: null, empty: null }
 
 /**
  * Same-origin download link for a project file. The server answers with a redirect to a signed
@@ -386,9 +391,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const version = prevVersion == null ? pageVersion : pageVersion == null ? prevVersion : Math.min(prevVersion, pageVersion)
       const skipLines: number | null = Number.isInteger(body?.skipLines) && body.skipLines >= 0 ? body.skipLines : ref.current.skipLines
       const delimiter: string | null = typeof body?.delimiter === "string" && body.delimiter.length > 0 ? body.delimiter : ref.current.delimiter
+      const decimal: string | null = body?.decimal === "," || body?.decimal === "." ? body.decimal : ref.current.decimal
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines, delimiter, empty: null })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines, delimiter, decimal, empty: null })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })

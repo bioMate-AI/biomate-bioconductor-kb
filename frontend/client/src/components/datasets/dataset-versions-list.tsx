@@ -7,7 +7,9 @@
  * - Note: an automatic note that only repeats the label ("v1") is not repeated.
  * - Compare: changed cells are numbered from 1 (data row 1 = the first row under the header);
  *   the diff API reports a 0-based `row`.
+ * - Restore asks first: it writes a NEW current version with the old content (append-only).
  */
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { t, locale } from "@/lib/i18n"
 import type { DatasetVersion } from "./datasets-api"
@@ -28,6 +30,24 @@ export interface VersionDiff {
   columns?: { added?: string[]; removed?: string[] }
   /** `row` is the 0-based data row (header excluded); `rowNumber`, when sent, is already 1-based. */
   changedCells?: Array<{ row: number; rowNumber?: number; col: string; from: unknown; to: unknown }>
+  /** Every changed cell in the compared window (may exceed `changedCells`, which is a list cap). */
+  changedCellCount?: number
+  /** false → the count is a lower bound ("at least N"). */
+  changedCellCountExact?: boolean
+  /** `changedCells` lists only some of the changed cells. */
+  changedCellsTruncated?: boolean
+}
+
+/** Cells shown under a compare. */
+const SHOWN_CELLS = 5
+
+/** "Changed cells: N" / "at least N" — count-safe wording (never "1 changed cells"). */
+export function changedCellsText(d: VersionDiff): string {
+  const n = typeof d.changedCellCount === "number" ? d.changedCellCount : (d.changedCells?.length ?? 0)
+  const shown = n.toLocaleString(INTL_LOCALE)
+  return d.changedCellCountExact === false
+    ? t("dataset_obj.diff_changed_cells_at_least", { n: shown })
+    : t("dataset_obj.diff_changed_cells", { n: shown })
 }
 
 export interface DatasetVersionsListProps {
@@ -75,6 +95,8 @@ function shownValue(v: unknown): string {
 export function DatasetVersionsList({
   versions, usedByCount, versionable, error, diffFor, diffData, diffLoading, restoringVersion, onCompare, onRestore,
 }: DatasetVersionsListProps) {
+  // The version whose Restore was clicked and awaits confirmation.
+  const [confirmFor, setConfirmFor] = useState<string | null>(null)
   return (
     <>
       {error && <p className="text-xs text-destructive" data-testid="dataset-version-error">{error}</p>}
@@ -116,7 +138,8 @@ export function DatasetVersionsList({
                   className="text-xs text-primary hover:underline disabled:opacity-50"
                   data-testid={`dataset-version-restore-${v.version}`}
                   disabled={restoringVersion === v.version}
-                  onClick={() => onRestore(v.version)}
+                  aria-expanded={confirmFor === v.version}
+                  onClick={() => setConfirmFor(confirmFor === v.version ? null : v.version)}
                 >{restoringVersion === v.version ? t("dataset_obj.restoring") : t("dataset_obj.restore")}</button>
               )}
               {time && (
@@ -125,6 +148,23 @@ export function DatasetVersionsList({
                 </span>
               )}
             </div>
+            {versionable && !v.current && confirmFor === v.version && (
+              <div role="group" className="mt-1.5 flex flex-wrap items-center gap-2 rounded border border-amber-500/40 bg-amber-500/5 p-2" data-testid={`dataset-version-restore-confirm-${v.version}`}>
+                <span className="text-sm text-foreground">{t("dataset_obj.restore_confirm", { v: v.label })}</span>
+                <button
+                  type="button"
+                  className="rounded border border-primary bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+                  data-testid={`dataset-version-restore-yes-${v.version}`}
+                  onClick={() => { setConfirmFor(null); onRestore(v.version) }}
+                >{t("dataset_obj.restore_confirm_yes", { v: v.label })}</button>
+                <button
+                  type="button"
+                  className="rounded border px-2 py-0.5 text-xs"
+                  data-testid={`dataset-version-restore-cancel-${v.version}`}
+                  onClick={() => setConfirmFor(null)}
+                >{t("actions.cancel")}</button>
+              </div>
+            )}
             {(note || author) && (
               <p className="text-sm text-foreground pt-0.5" data-testid={`dataset-version-meta-${v.version}`}>
                 {note}
@@ -152,10 +192,12 @@ export function DatasetVersionsList({
                       </p>
                     ) : null}
                     <p className="text-muted-foreground" data-testid="dataset-diff-cellcount">
-                      {t("dataset_obj.diff_changed_cells", { n: diffData.changedCells?.length ?? 0 })}
+                      {changedCellsText(diffData)}
                       {diffData.truncated ? ` ${t("dataset_obj.diff_sampled")}` : ""}
+                      {(diffData.changedCellsTruncated || (diffData.changedCells?.length ?? 0) > SHOWN_CELLS)
+                        ? ` ${t("dataset_obj.diff_first_shown", { n: Math.min(SHOWN_CELLS, diffData.changedCells?.length ?? 0) })}` : ""}
                     </p>
-                    {(diffData.changedCells ?? []).slice(0, 5).map((c, ci) => (
+                    {(diffData.changedCells ?? []).slice(0, SHOWN_CELLS).map((c, ci) => (
                       <p key={ci} className="font-mono text-fs-xs" data-testid="dataset-diff-cell">
                         <span className="text-muted-foreground" data-testid="dataset-diff-cell-where">
                           {t("dataset_versions.diff_row", { n: diffRowNumber(c) })} · {c.col}:{" "}

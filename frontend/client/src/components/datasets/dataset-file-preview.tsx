@@ -64,8 +64,17 @@ function isDensity(name: string, kind?: string, format?: string): boolean {
   return format ? DENSITY_FORMATS.has(format.toLowerCase()) : MRC_NAME.test(name)
 }
 
+/** The profiler's format is a text format (it read the bytes as text: `txt`, `csv`, `json`…). */
+const TEXT_FORMAT = new RegExp(`^(${TEXT_EXTS})$`, "i")
+/** Named as an image / PDF, but the profiler read text: the name is wrong, the content is text. */
+function textUnderMediaName(name: string, format?: string): boolean {
+  return Boolean(format) && TEXT_FORMAT.test(format!) && (IMAGE.test(name) || TIFF.test(name) || /\.pdf$/i.test(name))
+}
+
 /** How a file is previewed: by its content kind when the profiler read it, else by its name. */
 function previewMode(name: string, kind?: string, format?: string): Mode {
+  // A "fake.png" that holds text is shown as the text it is (the QC card says so).
+  if (textUnderMediaName(name, format)) return "text"
   if (GZ_TEXT.test(name)) return "gz"
   if (isTiff(name, format)) return "tiff"
   // A cryo-EM map is an image kind (the profiler's vocabulary) drawn by the density viewer —
@@ -149,14 +158,42 @@ function MarkdownDocument({ text }: { text: string }) {
 }
 
 /** An image the browser cannot decode (a file named .png that holds something else) says so,
- *  instead of a broken-image icon. */
+ *  instead of a broken-image icon. A decoded image shows its pixel size and fits the frame (a tiny
+ *  image is enlarged, crisp; a large one shrunk), with a toggle to its actual size. */
 function ImagePreview({ url, name, broken, onBroken }: { url: string; name: string; broken: boolean; onBroken: () => void }) {
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null)
+  const [actual, setActual] = useState(false)
   if (broken) return (
     <p role="alert" className="text-muted-foreground" data-testid="dataset-preview-image-invalid">
       {t("dataset_obj.image_invalid", { format: fileExt(name).toUpperCase() || "—" })}
     </p>
   )
-  return <img src={url} alt={name} className="max-h-[60vh] max-w-full object-contain" data-testid="dataset-preview-image" onError={onBroken} />
+  const small = dims != null && dims.w < 256 && dims.h < 256
+  return (
+    <div className="space-y-1.5" data-testid="dataset-preview-image-frame" data-zoom={actual ? "actual" : "fit"}>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        {dims && <span data-testid="dataset-preview-image-dims">{t("dataset_obj.image_dims", { w: dims.w.toLocaleString(), h: dims.h.toLocaleString() })}</span>}
+        <button
+          type="button"
+          className="rounded border px-1.5 py-0.5 hover:bg-muted"
+          aria-pressed={actual}
+          data-testid="dataset-preview-image-zoom"
+          onClick={() => setActual((a) => !a)}
+        >{actual ? t("dataset_obj.image_fit") : t("dataset_obj.image_actual")}</button>
+      </div>
+      <div className={`rounded border bg-muted/20 ${actual ? "max-h-[60vh] overflow-auto" : "flex h-[min(60vh,28rem)] items-center justify-center overflow-hidden"}`}>
+        <img
+          src={url}
+          alt={name}
+          className={actual ? "max-w-none" : "h-full w-full object-contain"}
+          style={small && !actual ? { imageRendering: "pixelated" } : undefined}
+          data-testid="dataset-preview-image"
+          onLoad={(e) => { const el = e.currentTarget; if (el.naturalWidth) setDims({ w: el.naturalWidth, h: el.naturalHeight }) }}
+          onError={onBroken}
+        />
+      </div>
+    </div>
+  )
 }
 
 /** The rendered TIFF plane with its caption (what was drawn: page / series / bit depth / stretch). */
@@ -292,6 +329,11 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
   )
   if (state.error) return <p role="alert" className="text-destructive" data-testid="dataset-file-preview-error">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
+    {textUnderMediaName(name, format) && (
+      <p className="text-muted-foreground" data-testid="dataset-preview-name-mismatch">
+        {t("dataset_obj.preview_text_under_name", { format: fileExt(name).toUpperCase() || "—" })}
+      </p>
+    )}
     {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
     {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind, structure) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
     {state.truncated && <p className="text-muted-foreground">{t(state.compressed ? "dataset_obj.preview_truncated_gz" : "dataset_obj.preview_truncated")}</p>}

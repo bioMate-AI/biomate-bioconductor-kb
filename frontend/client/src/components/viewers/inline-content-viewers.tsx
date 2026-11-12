@@ -306,6 +306,17 @@ export function structureConfidenceSource(
  * the chart centres the 3D view on it: chart selection and structure selection
  * are one selection, not two.
  */
+/** Zoom the 3D view to fill the frame with the drawn structure (the polymer only for a cartoon). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function fitStructure(viewer: any, polymerOnly: boolean): void {
+  // Size the canvas to the frame as it is NOW before fitting (the zoom depends on the aspect).
+  viewer.resize?.();
+  const polymer = { hetflag: false };
+  const hasPolymer = polymerOnly && (viewer.selectedAtoms?.(polymer) ?? []).length > 0;
+  viewer.zoomTo(hasPolymer ? polymer : {});
+  viewer.render();
+}
+
 export function InlineStructureViewer({ text, ext, structure }: {
   text: string; ext: string
   /** The profiler's structure evidence (DataProfile.structure), when the file was profiled. */
@@ -352,8 +363,10 @@ export function InlineStructureViewer({ text, ext, structure }: {
             line: { line: {} },
           };
           viewer.setStyle({}, styleObj[style]);
-          viewer.zoomTo();
-          viewer.render();
+          // Fit the frame to what is drawn: the cartoon is the polymer, so solvent and ligand
+          // HETATMs (waters scattered around a crystal) must not set the zoom — they shrank a
+          // small peptide to a speck in the middle of the frame.
+          fitStructure(viewer, style === 'cartoon' && hasBackbone);
           viewerRef.current = viewer;
           (container as HTMLDivElement & { __viewer?: unknown }).__viewer = viewer;
           setStatus('ready');
@@ -369,6 +382,20 @@ export function InlineStructureViewer({ text, ext, structure }: {
 
     return () => { cancelled = true; viewerRef.current = null; };
   }, [text, ext, style, format]);
+
+  // The frame's width follows the panel: re-fit when it changes (the viewer is created at the
+  // width the container had then, e.g. while the panel was still laying out).
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const viewer = viewerRef.current;
+      if (!viewer) return;
+      try { fitStructure(viewer, style === 'cartoon'); } catch { /* best-effort */ }
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [style]);
 
   // Centre the 3D view on a residue when the pLDDT chart fires a selection.
   const centreOnResidue = (residue: number) => {
@@ -416,8 +443,9 @@ export function InlineStructureViewer({ text, ext, structure }: {
       </div>
       <div
         ref={containerRef}
-        className="w-full bg-white rounded border"
+        className="w-full overflow-hidden bg-white rounded border"
         style={{ height: 320, position: 'relative' }}
+        data-testid="inline-structure-frame"
       />
       {hasConfidence && (
         <PlddtChart plddt={plddt} onSelectResidue={centreOnResidue} />

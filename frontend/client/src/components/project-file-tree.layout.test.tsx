@@ -210,7 +210,7 @@ describe("rename errors — one message per server reason (copy audit 5–6)", (
     patch = { status: 400, body: { error: "name may not contain '..'" } }
     render(<ProjectFileTree projectId="p1" />)
     fireEvent.click(await screen.findByTestId("file-rename-top"))
-    expect(screen.getByTestId("file-rename-top-hint").textContent).toMatch(/data\/notes\.txt/)
+    expect(screen.getByTestId("file-rename-top-hint").textContent).toMatch(/archive\/notes\.txt/)
     const input = screen.getByTestId("file-rename-top-input")
     fireEvent.change(input, { target: { value: "../x.txt" } })
     fireEvent.keyDown(input, { key: "Enter" })

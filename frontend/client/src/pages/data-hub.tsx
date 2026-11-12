@@ -44,6 +44,16 @@ import { FolderProfileView } from "@/components/datasets/folder-profile-view"
 import { downloadProjectFile } from "@/components/datasets/datasets-api"
 import { t, tOr, locale } from "@/lib/i18n"
 
+/** The chat entry for "Run full QC": this project, this file attached, the QC request sent. */
+export function runQcChatUrl(projectId: string | null, fileId: string): string {
+  const q = new URLSearchParams()
+  if (projectId) q.set("project", projectId)
+  q.set("attachFile", fileId)
+  q.set("draft", t("dataset_obj.qc_request"))
+  q.set("send", "1")
+  return `/?${q.toString()}`
+}
+
 function toDatasetRef(f: ProjectFile): DatasetRef {
   return {
     id: f.id,
@@ -178,6 +188,9 @@ export default function DataHubPage() {
   // Or an input folder, opened as one object (pairs, 10x matrix, format roll-up). One of the
   // two is shown; picking either replaces the other.
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+  // Bumped when the open file is saved / restored as a new version, so the tree re-reads the list
+  // (sizes, keys) and the selected row is the current one.
+  const [treeReload, setTreeReload] = useState(0)
 
   // Deep-link: `/files?file=<datasetId>` opens that dataset as an object. This
   // is how a live reference chip elsewhere (composer, outputs, report) resolves
@@ -249,6 +262,7 @@ export default function DataHubPage() {
               onOpenFolder={(p) => { setSelected(null); setSelectedFolder(p) }}
               selectedFolder={selectedFolder}
               selectFileId={deepLinkFileId}
+              reloadKey={treeReload}
               canEdit
             />
           </div>
@@ -260,7 +274,14 @@ export default function DataHubPage() {
               <DatasetObject
                 dataset={toDatasetRef(selected)}
                 projectId={activeProjectId ?? undefined}
-                preview={<DatasetFilePreview projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
+                // Keyed by the storage key: a new version (save / restore) re-reads the content.
+                preview={<DatasetFilePreview key={`${selected.id}:${selected.s3_key ?? ""}`} projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
+                onFileChanged={(file) => {
+                  // The server's row for the new version: its storage key replaces the archived one,
+                  // so the profile / rows / links of the open file read the CURRENT version.
+                  setSelected((prev) => (prev && prev.id === file.id ? ({ ...prev, ...(file as Partial<ProjectFile>) }) : prev))
+                  setTreeReload((n) => n + 1)
+                }}
                 onBack={() => setSelected(null)}
                 onDownload={() => handleDownload(selected)}
                 onOpenRun={(runId) =>
@@ -274,17 +295,12 @@ export default function DataHubPage() {
                   window.location.assign(`/?${q.toString()}`)
                 }}
                 onRunQC={() => {
-                  // Run REAL QC through BioMate's engine: attach the dataset and
-                  // pre-fill a QC request (?draft= — review before the billable
-                  // run, and avoids the attach/auto-send race). The chat pipeline
-                  // then selects the QC workflow (FastQC/MultiQC/domain QC), feeds
-                  // this file as input, runs it and shows the report — unlike the
-                  // lightweight ingest profiler in the Data profile section.
-                  const q = new URLSearchParams()
-                  if (activeProjectId) q.set("project", activeProjectId)
-                  q.set("attachFile", selected.id)
-                  q.set("draft", t("dataset_obj.qc_request"))
-                  window.location.assign(`/?${q.toString()}`)
+                  // "Run full QC" does what it says: open a chat in this project with the dataset
+                  // attached and the QC request SENT (`send=1`). The composer sends it only after
+                  // the file is linked (no attach/send race); the chat pipeline then selects the QC
+                  // workflow (FastQC/MultiQC/domain QC), feeds this file as input and runs it —
+                  // unlike the lightweight ingest profiler shown in the Data QC card.
+                  window.location.assign(runQcChatUrl(activeProjectId, selected.id))
                 }}
               />
             ) : (

@@ -22,18 +22,19 @@ describe("<DataPerception>", () => {
     expect(panel).toHaveAttribute("data-quality", "good");
     expect(screen.getByTestId("perception-quality-badge")).toHaveTextContent("Good");
     expect(screen.getByText("18,412")).toBeInTheDocument();
-    expect(screen.getByTestId("perception-effective-n")).toHaveTextContent("24");
+    // Effective N equal to the row count says nothing the row count does not: not shown.
+    expect(screen.queryByTestId("perception-effective-n")).not.toBeInTheDocument();
     expect(screen.getByText("counts.tsv")).toBeInTheDocument();
     // Good: no "why" panel, no reason hint (effective N == rows).
     expect(screen.queryByTestId("perception-why")).not.toBeInTheDocument();
     expect(screen.queryByTestId("perception-effective-n-hint")).not.toBeInTheDocument();
     expect(screen.getByTestId("perception-notes")).toHaveTextContent(
-      "Rows: 24 · columns: 18,412; no leakage, imbalance or constant-column issues detected.",
+      "Rows: 24 · columns: 18,412; groups are balanced, no column gives the group away, and no column is constant.",
     );
   });
 
   it("Effective-N hint names duplicate rows when dedup is the reason (no 'correlation' claim)", () => {
-    render(<DataPerception profile={WATCH_JSONL_PROFILE} datasetName="epar_study_tables.jsonl" />);
+    render(<DataPerception profile={{ ...WATCH_JSONL_PROFILE, labelColumn: "drug" }} datasetName="epar_study_tables.jsonl" />);
     const hint = screen.getByTestId("perception-effective-n-hint");
     expect(hint).toHaveTextContent("1 duplicate rows are counted once");
     expect(screen.getByTestId("perception-effective-n").textContent).not.toMatch(/correlation|imbalance/i);
@@ -149,7 +150,7 @@ describe("<DataPerception> — stats per data kind (U2) and copy", () => {
 describe("<DataPerception> — e2e contract: every rendered finding carries its code", () => {
   it("signal / note / leakage / plan lines are perception-finding[data-code]; why items keep their own testid", () => {
     render(<DataPerception datasetName="t.csv" profile={{
-      shape: { rows: 10, cols: 3 }, quality: "watch", notes: [],
+      shape: { rows: 10, cols: 3 }, quality: "watch", notes: [], labelColumn: "label",
       findings: [
         { section: "note", code: "ragged_rows", level: "watch", params: { count: 2, expected: 3 } },
         { section: "signal", code: "table_summary", level: "info", params: { rows: 10, cols: 3 } },

@@ -55,6 +55,7 @@ import {
 import { cn } from "@/lib/utils";
 import { t, locale } from "@/lib/i18n";
 import { effectiveQuality } from "@/components/datasets/dataset-view-model";
+import type { PerceptionFinding, PerceptionQuality } from "@/components/data-perception";
 import { filesFromDataTransfer, relativePathOf } from "@/lib/folder-drop";
 
 export interface ProjectFile {
@@ -70,6 +71,9 @@ export interface ProjectFile {
   input_context: Record<string, unknown> | null;
   content_hash?: string | null;
   created_at: string;
+  /** The stored profile verdict: null = not profiled yet; absent on an older server. */
+  profileSummary?: ProfileSummary | null;
+  version_no?: number;
 }
 
 interface FolderNode {
@@ -260,9 +264,15 @@ function InlineRename({
 }) {
   const [value, setValue] = useState(initial);
   const [err, setErr] = useState<string | null>(null);
-  // A concrete example of moving: "data/<this name>" puts it into a folder named data.
-  const base = initial.split("/").filter(Boolean).pop() || initial;
-  const hint = t("file_tree.rename_hint", { example: `data/${base}`, folder: "data" });
+  // The visible hint is ONE short line (the tree is ~280 px; a long example wrapped mid-word). The
+  // full hint — with an example that keeps the item in its CURRENT folder, moving it into a
+  // subfolder here, never out to the top — is on hover and read to screen readers.
+  const parts = initial.split("/").filter(Boolean);
+  const base = parts.pop() || initial;
+  const example = [...parts, "archive", base].join("/");
+  const hint = t("file_tree.rename_hint_short");
+  const hintFull = t("file_tree.rename_hint", { example, folder: "archive" });
+  const hintId = `${testid}-hint`;
   const [saving, setSaving] = useState(false);
   // The editor (and its hint / error below the input) must be fully visible inside the
   // tree's scroll box — a rename on the last row otherwise leaves the hint cut off.
@@ -282,7 +292,13 @@ function InlineRename({
       <input
         value={value}
         autoFocus
-        onFocus={(e) => e.currentTarget.select()}
+        onFocus={(e) => {
+          // Select the whole path with the caret at its START, so the box shows where the path
+          // begins (its folders) rather than scrolling to the tail of a long name.
+          const el = e.currentTarget;
+          el.setSelectionRange(0, el.value.length, "backward");
+          el.scrollLeft = 0;
+        }}
         onChange={(e) => { setValue(e.target.value); setErr(null); }}
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.preventDefault(); void save(); }
@@ -290,14 +306,21 @@ function InlineRename({
         }}
         disabled={saving}
         aria-label={t("file_tree.rename_label")}
-        title={hint}
+        aria-describedby={hintId}
+        title={hintFull}
         className={cn("w-full h-6 px-1.5 text-xs rounded border bg-background font-mono", err && "border-destructive")}
         data-testid={`${testid}-input`}
       />
       {err ? (
         <p className="text-fs-xs text-destructive [overflow-wrap:anywhere]" role="alert" data-testid={`${testid}-error`}>{err}</p>
       ) : (
-        <p className="text-fs-xs text-muted-foreground [overflow-wrap:anywhere]" data-testid={`${testid}-hint`}>{hint}</p>
+        <p
+          id={hintId}
+          className="truncate whitespace-nowrap text-fs-xs text-muted-foreground"
+          title={hintFull}
+          data-testid={`${testid}-hint`}
+          data-example={example}
+        >{hint}<span className="sr-only"> {hintFull}</span></p>
       )}
     </div>
   );
@@ -351,18 +374,25 @@ function canPreview(file: ProjectFile): boolean {
   return PREVIEW_EXTS.has(ext) && file.size < 1024 * 1024; // < 1 MB
 }
 
-// Extensions the perception profiler (backend data_perception.py) can read.
-const PROFILABLE_EXTS = new Set([
-  "csv","tsv","txt","tab","vcf","fastq","fq","gz",
-]);
-
-function isProfilable(file: ProjectFile): boolean {
-  const parts = file.name.toLowerCase().split(".");
-  // handle .fastq.gz etc — check the last two extension tokens.
-  const last = parts[parts.length - 1] ?? "";
-  const prev = parts.length > 2 ? parts[parts.length - 2] : "";
-  return PROFILABLE_EXTS.has(last) || PROFILABLE_EXTS.has(prev);
+/**
+ * The file list's stored profile verdict (server round-3): null = not profiled yet; otherwise the
+ * profiler's own quality + finding codes. Whether a file can be profiled is the PROFILER's call
+ * (its `unprofilable` finding → "not checked"), never an extension list here.
+ */
+export interface ProfileSummary {
+  quality: string;
+  findings: Array<{ code: string; level: string; section?: string }>;
+  viewKind?: string | null;
+  profiledAt?: string | null;
 }
+
+/**
+ * Largest file the tree profiles on its own when no verdict is stored yet. The backend downloads
+ * the WHOLE object to profile it, so rendering a project with a multi-GB BAM / FASTQ must not
+ * trigger that from a list row: a bigger file shows a neutral "not checked yet — open to check"
+ * dot and is profiled when the user opens it in the dataset panel.
+ */
+export const TREE_AUTO_PROFILE_MAX_BYTES = 50 * 1024 * 1024;
 
 // Map a perception quality verdict to a dot colour. "unknown" is honest grey —
 // no profile has been computed, NOT a claim of good.
@@ -373,19 +403,38 @@ const QUALITY_DOT: Record<string, string> = {
   // Identified but not analysed: neutral, never a warning colour.
   unassessed: "bg-muted-foreground/50",
   unknown: "bg-muted-foreground/40",
+  // Too large to profile from the list: open it to check.
+  pending: "border border-muted-foreground/60 bg-transparent",
 };
 
+const KNOWN_QUALITY = new Set(["good", "watch", "blocked", "unassessed"]);
+
+/** The verdict a stored summary says, through the same rule the dataset object uses. */
+function summaryQuality(summary: ProfileSummary): string {
+  const q = effectiveQuality({
+    quality: summary.quality as PerceptionQuality,
+    findings: (summary.findings ?? []).map((f) => ({ ...f, section: (f.section ?? "note") as PerceptionFinding["section"], level: f.level as PerceptionFinding["level"], params: {} })),
+  });
+  if (KNOWN_QUALITY.has(q)) return q;
+  // The profiler could not read this kind of file: identified, not checked — grey, not "unknown".
+  return (summary.findings ?? []).some((f) => f.code === "unprofilable") ? "unassessed" : "unknown";
+}
+
 /**
- * QualityDot — a per-row ingest-quality indicator. Lazily profiles the file via
- * POST /api/perception/profile the first time the row is rendered, but only for
- * file types the profiler can read. Everything else stays honest grey/unknown.
+ * QualityDot — a per-row ingest-quality indicator. Shows the verdict stored with the file
+ * (`profileSummary`). With none stored yet, profiles a file up to TREE_AUTO_PROFILE_MAX_BYTES
+ * once; a larger file stays "not checked yet — open to check" (no request from the list).
  */
 function QualityDot({ file }: { file: ProjectFile }) {
-  const [quality, setQuality] = useState<string>("unknown");
-  const profilable = isProfilable(file);
+  const summary = file.profileSummary;
+  const stored = summary && typeof summary === "object" && typeof summary.quality === "string" ? summaryQuality(summary) : null;
+  const size = Number(file.size);
+  const autoProfile = stored === null && Number.isFinite(size) && size <= TREE_AUTO_PROFILE_MAX_BYTES;
+  const [fetched, setFetched] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profilable) return;
+    setFetched(null);
+    if (!autoProfile) return;
     let cancelled = false;
     fetch("/api/perception/profile", {
       method: "POST",
@@ -397,20 +446,22 @@ function QualityDot({ file }: { file: ProjectFile }) {
       .then((d) => {
         // The same verdict the dataset object shows: an older profile's "watch" whose only
         // reasons are "not analysed" findings is "unassessed" (grey), not a warning.
-        if (!cancelled && d && typeof d.quality === "string") setQuality(effectiveQuality(d));
+        if (!cancelled && d && typeof d.quality === "string") setFetched(effectiveQuality(d));
       })
       .catch(() => { /* stay unknown */ });
     return () => { cancelled = true; };
-  }, [file.s3_key, file.name, profilable]);
+  }, [file.s3_key, file.name, autoProfile]);
 
+  const quality = stored ?? (autoProfile ? fetched ?? "unknown" : "pending");
   const cls = QUALITY_DOT[quality] ?? QUALITY_DOT.unknown;
-  const title = profilable
-    ? t('file_tree.quality', { quality: quality === 'unknown' ? '—' : t(`dataset_obj.quality_${quality}`) })
-    : t('file_tree.quality_unprofiled');
+  const title = quality === "pending"
+    ? t('file_tree.quality_open_to_check')
+    : t('file_tree.quality', { quality: quality === 'unknown' ? '—' : t(`dataset_obj.quality_${quality}`) });
   return (
     <span
       className={cn("h-1.5 w-1.5 rounded-full shrink-0", cls)}
       title={title}
+      aria-label={title}
       data-testid={`file-quality-${file.id}`}
       data-quality={quality}
     />
@@ -742,9 +793,11 @@ export interface ProjectFileTreeProps {
   onOpenFolder?: (path: string) => void;
   /** The input folder currently open in the folder view (same relative path). */
   selectedFolder?: string | null;
+  /** Bump to reload the file list (e.g. after the open file was saved as a new version). */
+  reloadKey?: number;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, reloadKey = 0 }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
@@ -787,7 +840,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     }
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   // Deep-link: when a `selectFileId` is supplied and its file has loaded, open
   // it as an object exactly once. This is what makes a dataset reference in the
