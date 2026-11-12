@@ -48,7 +48,8 @@ _stub_package("galaxy.ai.runs", os.path.join(_AI, "runs"))
 
 import galaxy.ai.llm_region as lr  # noqa: E402
 
-CN_ENV_KEYS = ("OPENROUTER_ZH_API_KEY", "OPENROUTER_API_KEY", "LLM_API_URL", "LLM_MODEL", "GALAXY_AI_LLM_MODEL")
+CN_ENV_KEYS = ("OPENROUTER_ZH_API_KEY", "OPENROUTER_API_KEY", "LLM_API_URL", "LLM_MODEL", "GALAXY_AI_LLM_MODEL",
+               "BIOMATE_CN_RESPONSE_MODEL", "OPENROUTER_ZH_DEFAULT_MODEL", "OPENROUTER_CN_DEFAULT_MODEL", "BIOMATE_CN_GALAXY_CHAIN")
 
 
 class _Env:
@@ -277,6 +278,90 @@ def test_9_threads_get_only_the_policy_not_the_request_context():
         request_id.reset(tok)
     assert seen == (CN, None), seen
     assert box == [(CN, None)], box
+
+
+def test_10_galaxy_chain_and_response_default_equal_the_node_set():
+    ts = open(os.path.join(_REPO, "frontend", "server", "llm-region-policy.ts")).read()
+    block = re.search(r"export const CN_MODEL_SET[^=]*=\s*Object\.freeze\(\{(.*?)\n\}\);", ts, re.S).group(1)
+    chain = tuple(re.findall(r"'([^']+)'", re.search(r"galaxyChain:.*?\[(.*?)\]", block, re.S).group(1)))
+    assert chain == lr.CN_GALAXY_CHAIN, (chain, lr.CN_GALAXY_CHAIN)
+    response = re.search(r"response:\s*'([^']+)'", block).group(1)
+    assert response == lr.ZH_DEFAULT_MODEL, (response, lr.ZH_DEFAULT_MODEL)
+
+
+class _FakeResponse:
+    def __init__(self, status: int, model: str):
+        self.status_code = status
+        self.text = "down" if status != 200 else ""
+        self._model = model
+
+    def json(self):
+        return {"choices": [{"message": {"content": f"answer from {self._model}"}}]}
+
+
+def _fake_httpx(fail: set, tried: list):
+    """A stand-in httpx whose Client / AsyncClient answer per model (fail = models returning 502)."""
+    import types
+
+    def _post(url, headers=None, json=None):
+        tried.append(json["model"])
+        return _FakeResponse(502 if json["model"] in fail else 200, json["model"])
+
+    class Client:
+        def __init__(self, timeout=None): ...
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def post(self, url, headers=None, json=None): return _post(url, headers, json)
+
+    class AsyncClient:
+        def __init__(self, timeout=None): ...
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def post(self, url, headers=None, json=None): return _post(url, headers, json)
+
+    return types.SimpleNamespace(Client=Client, AsyncClient=AsyncClient)
+
+
+def test_11_the_chain_falls_through_and_never_leaves_the_list():
+    route = lr.CnRoute(lr.OPENROUTER_URL, "k", "deepseek/deepseek-v4.1-flash", "openrouter_zh_key")
+    saved = sys.modules.get("httpx")
+    tried: list = []
+    sys.modules["httpx"] = _fake_httpx({"deepseek/deepseek-v4.1-flash"}, tried)  # type: ignore[assignment]
+    try:
+        with _Env():
+            assert lr.cn_generate_sync(route, "p") == "answer from z-ai/glm-5.2"
+            assert tried == ["deepseek/deepseek-v4.1-flash", "z-ai/glm-5.2"], tried
+            tried.clear()
+            assert asyncio.run(lr.cn_generate(route, "p")) == "answer from z-ai/glm-5.2"
+            # Every model failing raises — no Gemini / Claude / GPT after the chain.
+            tried.clear()
+            sys.modules["httpx"] = _fake_httpx(set(lr.CN_GALAXY_CHAIN), tried)  # type: ignore[assignment]
+            try:
+                lr.cn_generate_sync(route, "p")
+                raise AssertionError("expected the chain to fail closed")
+            except RuntimeError as exc:
+                assert "Chinese model" in str(exc), exc
+            assert tried == list(lr.CN_GALAXY_CHAIN), tried
+    finally:
+        if saved is not None:
+            sys.modules["httpx"] = saved
+        else:
+            sys.modules.pop("httpx", None)
+
+
+def test_12_chain_and_response_overrides_stay_chinese():
+    assert lr.cn_galaxy_chain({lr.CN_GALAXY_CHAIN_ENV: "z-ai/glm-5.2, openai/gpt-6"}) == ["z-ai/glm-5.2"]
+    assert lr.cn_galaxy_chain({lr.CN_GALAXY_CHAIN_ENV: "google/gemini-3.8-flash"}) == list(lr.CN_GALAXY_CHAIN)
+    # A user's Chinese pick named in the header goes first, then the chain without duplicates.
+    pick = lr.CnRoute(lr.OPENROUTER_URL, "k", "moonshotai/kimi-k3", "openrouter_zh_key")
+    with _Env():
+        assert lr.models_for(pick) == ["moonshotai/kimi-k3", *lr.CN_GALAXY_CHAIN]
+    # On-prem: its one model only.
+    assert lr.models_for(lr.CnRoute("http://dashscope/v1", "none", "qwen-max", "onprem")) == ["qwen-max"]
+    with _Env(BIOMATE_CN_RESPONSE_MODEL="z-ai/glm-5.2", OPENROUTER_ZH_DEFAULT_MODEL="moonshotai/kimi-k3"):
+        assert lr.zh_default_model() == "z-ai/glm-5.2"
+    with _Env(BIOMATE_CN_RESPONSE_MODEL="anthropic/claude-opus-5.5"):
+        assert lr.zh_default_model() == lr.ZH_DEFAULT_MODEL
 
 
 def main():

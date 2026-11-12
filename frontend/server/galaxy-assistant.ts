@@ -34,7 +34,7 @@ import OpenAI from 'openai';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
-import { requireCnRoute, currentLlmPolicy, policyMessagesClient, cnCompletion, isChineseModel, modelIdentity, modelIdentityDirective, OPENROUTER_URL, type ModelIdentity, type LlmRegion } from './llm-region-policy';
+import { requireCnRoute, currentLlmPolicy, policyMessagesClient, cnCompletion, cnRouteForRole, cnRoleMessagesClient, isChineseModel, modelIdentity, modelIdentityDirective, OPENROUTER_URL, type ModelIdentity, type LlmRegion } from './llm-region-policy';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { buildCanonicalFixturePromptSection, matchesCanonicalFixture } from './canonical-fixtures';
 import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
@@ -5346,11 +5346,15 @@ Rules:
     if (openrouterKey && !localOnly()) {
       const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
       if (baseURL.includes('openrouter.ai')) {
-        const orShim = openaiCompatMessagesClient({
+        // China-region users: the Chinese model SET — each call on its role's model (the reply and
+        // tool loop on the response model, Haiku-class calls on the light model, images on the
+        // vision model). Everyone else: the selected model for every Anthropic-SDK call, as before.
+        const cnRoute = requireCnRoute();
+        const orShim = (cnRoute ? cnRoleMessagesClient(cnRoute) : openaiCompatMessagesClient({
           url: baseURL,
           model: context.selectedModel || 'z-ai/glm-5.3-prime',
           key: openrouterKey,
-        }) as unknown as Anthropic;
+        })) as unknown as Anthropic;
         return _anthropicOverride.run(orShim, () => _openrouterAgentic.run(true, runInner));
       }
       const orClient = new OpenAI({ baseURL, apiKey: openrouterKey });
@@ -8650,12 +8654,13 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       // On failure the Gemini path below runs (Flash), then the keyword fallback, marked degraded.
       let orModel = configured.startsWith('openrouter:') ? configured.slice('openrouter:'.length) : '';
       let orKey = process.env.BIOMATE_DECOMP_OPENROUTER_KEY || '';
-      // China-region users: the intent model must be Chinese too (llm-region-policy.ts). Keep a
-      // configured Chinese decomposition model; otherwise the user's Chinese route.
+      // China-region users: the Chinese set's intent model (llm-region-policy.ts CN_MODEL_SET.intent,
+      // overridable by BIOMATE_CN_INTENT_MODEL) on the user's Chinese route — not the deployment's
+      // decomposition model and not the response model.
       const cnRoute = requireCnRoute();
       const cnOnprem = !!cnRoute && cnRoute.url !== OPENROUTER_URL;
-      if (cnRoute && !(orModel && orKey && isChineseModel(orModel))) {
-        orModel = cnRoute.model;
+      if (cnRoute) {
+        orModel = cnRoute.models.intent;
         orKey = cnRoute.key;
       }
       const isGemini = configured.startsWith('gemini-') || !!orModel;
@@ -8666,7 +8671,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       }
       if (orModel && orKey) {
         primaryText = await (cnOnprem
-          ? cnCompletion(cnRoute!, { system: systemPrompt, messages: [{ role: 'user', content: messageForUQU }] })
+          ? cnCompletion(cnRouteForRole(cnRoute!, 'intent'), { system: systemPrompt, messages: [{ role: 'user', content: messageForUQU }] })
           : decomposeViaOpenRouter(orModel, orKey, systemPrompt, messageForUQU)).catch((e: any) => {
           console.warn(`[Intent] primary decomposition model ${orModel} failed (${String(e?.message || e).slice(0, 160)}) — falling back to ${GEMINI_FLASH_MODEL}`);
           return undefined;

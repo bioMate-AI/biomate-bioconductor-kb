@@ -59,9 +59,45 @@ def is_chinese_model(model: Any) -> bool:
     return bool(_CHINESE_BARE_MODEL.match(m))
 
 
+# Mirror of CN_MODEL_SET.galaxyChain in frontend/server/llm-region-policy.ts (parity-tested): the
+# backend chain for China-region requests. The model Node names in the header is tried first, then
+# these in order; a failure falls through to the next, and nothing outside the list is ever used.
+CN_GALAXY_CHAIN = ("deepseek/deepseek-v4.1-flash", "z-ai/glm-5.2", "qwen/qwen3.5-plus-20260420")
+CN_GALAXY_CHAIN_ENV = "BIOMATE_CN_GALAXY_CHAIN"
+
+
 def zh_default_model() -> str:
-    env = os.environ.get("OPENROUTER_ZH_DEFAULT_MODEL") or os.environ.get("OPENROUTER_CN_DEFAULT_MODEL") or ""
-    return env if is_chinese_model(env) else ZH_DEFAULT_MODEL
+    """The response role's model: BIOMATE_CN_RESPONSE_MODEL, else the older OPENROUTER_ZH_DEFAULT_MODEL
+    / OPENROUTER_CN_DEFAULT_MODEL alias, else the set's default — a non-Chinese value is ignored."""
+    for name in ("BIOMATE_CN_RESPONSE_MODEL", "OPENROUTER_ZH_DEFAULT_MODEL", "OPENROUTER_CN_DEFAULT_MODEL"):
+        value = (os.environ.get(name) or "").strip()
+        if value and is_chinese_model(value):
+            return value
+    return ZH_DEFAULT_MODEL
+
+
+def cn_galaxy_chain(env: Optional[Dict[str, str]] = None) -> List[str]:
+    """The backend chain with its env override (comma list); non-Chinese entries are dropped, and an
+    override with none left falls back to the default chain."""
+    env = os.environ if env is None else env
+    override = [m.strip() for m in (env.get(CN_GALAXY_CHAIN_ENV) or "").split(",") if m.strip()]
+    chinese = [m for m in override if is_chinese_model(m)]
+    if len(chinese) != len(override):
+        log.warning("[llm-region] %s has non-Chinese models — ignored: %s", CN_GALAXY_CHAIN_ENV,
+                    [m for m in override if not is_chinese_model(m)])
+    return chinese or list(CN_GALAXY_CHAIN)
+
+
+def models_for(route: "CnRoute") -> List[str]:
+    """The models a China-region backend call may try, in order: the route's model (the one Node
+    named), then the chain. An on-prem route has its one model only."""
+    if route.source == "onprem":
+        return [route.model]
+    out = [route.model]
+    for m in cn_galaxy_chain():
+        if m not in out:
+            out.append(m)
+    return out
 
 
 @dataclass(frozen=True)
@@ -222,12 +258,21 @@ async def cn_generate(route: CnRoute, prompt: Any = None, *, system: Optional[st
                       temperature: float = 0.0, json_mode: bool = False, timeout: float = 120.0) -> str:
     import httpx  # noqa: PLC0415
 
-    body = _chat_body(route, build_messages(prompt, system, messages), max_tokens, temperature, json_mode)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(f"{route.url}/chat/completions", headers=_headers(route), json=body)
-    if response.status_code != 200:
-        raise RuntimeError(f"Chinese model ({route.model}) error: {response.status_code} {response.text[:300]}")
-    return _text(response.json())
+    msgs = build_messages(prompt, system, messages)
+    last: Optional[Exception] = None
+    for model in models_for(route):
+        attempt = CnRoute(route.url, route.key, model, route.source)
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(f"{route.url}/chat/completions", headers=_headers(attempt),
+                                             json=_chat_body(attempt, msgs, max_tokens, temperature, json_mode))
+            if response.status_code != 200:
+                raise RuntimeError(f"Chinese model ({model}) error: {response.status_code} {response.text[:300]}")
+            return _text(response.json())
+        except Exception as exc:  # noqa: BLE001 — fall through to the next Chinese model
+            last = exc
+            log.warning("[llm-region] %s failed (%s) — trying the next Chinese model", model, str(exc)[:160])
+    raise last if last else RuntimeError("no Chinese model to try")
 
 
 def cn_generate_sync(route: CnRoute, prompt: Any = None, *, system: Optional[str] = None,
@@ -235,12 +280,21 @@ def cn_generate_sync(route: CnRoute, prompt: Any = None, *, system: Optional[str
                      temperature: float = 0.0, json_mode: bool = False, timeout: float = 120.0) -> str:
     import httpx  # noqa: PLC0415
 
-    body = _chat_body(route, build_messages(prompt, system, messages), max_tokens, temperature, json_mode)
-    with httpx.Client(timeout=timeout) as client:
-        response = client.post(f"{route.url}/chat/completions", headers=_headers(route), json=body)
-    if response.status_code != 200:
-        raise RuntimeError(f"Chinese model ({route.model}) error: {response.status_code} {response.text[:300]}")
-    return _text(response.json())
+    msgs = build_messages(prompt, system, messages)
+    last: Optional[Exception] = None
+    for model in models_for(route):
+        attempt = CnRoute(route.url, route.key, model, route.source)
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                response = client.post(f"{route.url}/chat/completions", headers=_headers(attempt),
+                                       json=_chat_body(attempt, msgs, max_tokens, temperature, json_mode))
+            if response.status_code != 200:
+                raise RuntimeError(f"Chinese model ({model}) error: {response.status_code} {response.text[:300]}")
+            return _text(response.json())
+        except Exception as exc:  # noqa: BLE001 — fall through to the next Chinese model
+            last = exc
+            log.warning("[llm-region] %s failed (%s) — trying the next Chinese model", model, str(exc)[:160])
+    raise last if last else RuntimeError("no Chinese model to try")
 
 
 def image_part(image_b64: str, mime_type: str = "image/png") -> Dict[str, Any]:

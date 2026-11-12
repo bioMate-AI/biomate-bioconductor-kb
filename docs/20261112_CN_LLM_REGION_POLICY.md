@@ -181,6 +181,65 @@ needed. As hygiene, Node also strips any browser-sent copy of the header
 - Tool-use loops on the China route are text-only: the autofix agent's Anthropic tool calls get a
   plain text answer from the Chinese model (it treats that as the final answer).
 
+## Model set — one Chinese model per role (2026-11-12)
+
+China-region users run each role on its own Chinese model, mirroring the English hybrid
+(`CN_MODEL_SET` in `frontend/server/llm-region-policy.ts`; the backend chain is mirrored as
+`CN_GALAXY_CHAIN` in `backend/lib/galaxy/ai/llm_region.py`, parity-tested). All are reached through
+OpenRouter and were checked on OpenRouter's live `/models` list on 2026-11-12; all support tool
+calling.
+
+| Role | English today (dev) | Chinese set | Env override |
+|---|---|---|---|
+| Intent / task breakdown | GLM 5.2 via OpenRouter (`BIOMATE_INTENT_MODEL`); code default Gemini 3.8 Flash. A Gemini 3.1 Pro tier exists, but `pickGeminiIntentModel` currently always returns Flash. | `z-ai/glm-5.2` | `BIOMATE_CN_INTENT_MODEL` |
+| Main reply + agentic tool loop | GPT-5.6 Luna (`BIOMATE_RESPONSE_MODEL`); code default Gemini 3.8 Flash; Claude Sonnet 4.5 fallback | `deepseek/deepseek-v4.1-flash` (tools + images) | `BIOMATE_CN_RESPONSE_MODEL` (older alias `OPENROUTER_ZH_DEFAULT_MODEL`) |
+| Hard / long reasoning | Gemini 3.1 Pro / Opus / thinking calls | `deepseek/deepseek-v4-pro` (text only) | `BIOMATE_CN_REASONING_MODEL` |
+| Lightweight: tool ranking, titles, session memory, notes, compressor | Claude Haiku 4.5; Gemini Flash (`callGeminiFlash`) | `qwen/qwen3.5-flash-02-23` (tools + images) | `BIOMATE_CN_LIGHT_MODEL` |
+| Image reading | the reply model | `deepseek/deepseek-v4.1-flash` | `BIOMATE_CN_VISION_MODEL` |
+| Backend chain (`llmGenerate`, Galaxy `LLMClient`) | Gemini Flash → Claude Sonnet → GPT | `deepseek/deepseek-v4.1-flash` → `z-ai/glm-5.2` → `qwen/qwen3.5-plus-20260420`, then fail closed | `BIOMATE_CN_GALAXY_CHAIN` (comma list) |
+
+**Benchmark status.** GLM 5.2 and the DeepSeek models have been measured on BioMate's evals. The
+Qwen picks (3.5 Flash, 3.5 Plus) were chosen on capability (tools, images, context) and price. They
+need the routing and tool-call benchmarks before being treated as final.
+
+**How each role is reached:**
+- **Intent:** the decomposition call uses `route.models.intent` on the user's Chinese route.
+- **Reply, tool loop, light, reasoning and images:** these go through Anthropic-SDK calls, served
+  by `cnRoleMessagesClient`. That client picks the role from the model the English code asked for:
+  - Haiku-class → light;
+  - Pro / Opus / a `thinking` call → reasoning;
+  - a call carrying images → vision;
+  - anything else → response.
+  The English side already chooses a model per role, so the Chinese set follows the same split.
+  Both the plain `_getClaude()` path and the OpenRouter agentic override use this client for China
+  users.
+- **`callGeminiFlash`:** the light model.
+- **`llmGenerate`:** walks the chain (`cnChainCompletion`). The first model that answers wins, and
+  `modelUsed` / `fallbackDepth` report which one did.
+- **Galaxy:** tries the model Node names in the header first, then `CN_GALAXY_CHAIN`, in
+  `cn_generate` / `cn_generate_sync`. On-prem routes have one model for every role.
+
+**Overrides.** Every override must itself be a Chinese model (`isChineseModel`). A non-Chinese value
+is ignored with a warning and the role keeps its default. A chain override with no Chinese entries
+left falls back to the default chain.
+
+**User's pick.** A China user's Chinese pick in Settings replaces the response role only. Intent,
+light, reasoning, vision and the chain keep the set.
+
+On the English side, `selected_model` with an OpenRouter key drives every Anthropic-SDK call through
+the shim (`openaiCompatMessagesClient` with one fixed model), including Haiku-class light calls, but
+not intent or `callGeminiFlash`. The Chinese side deliberately keeps light calls on the light model.
+
+**Identity.** The MODEL IDENTITY block names the response model, the one the user talks to. For
+China users it adds that background steps may run on other Chinese models from the same set. The
+chat label stays the response model.
+
+**Tests:**
+- `frontend/server/llm-region-model-set.test.ts` (12);
+- the updated `llm-region-policy.test.ts` (25);
+- `backend/lib/galaxy/ai/tests/test_llm_region.py` tests 10–12: chain parity with Node, fallthrough
+  that never leaves the list, and overrides that stay Chinese.
+
 ## Environment needed
 
 | Var | Where | Effect |

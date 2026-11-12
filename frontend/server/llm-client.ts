@@ -1,5 +1,5 @@
 import { localOnly, localCompletion } from './local-llm.js';
-import { requireCnRoute, cnCompletion } from './llm-region-policy';
+import { requireCnRoute, cnChainCompletion } from './llm-region-policy';
 /**
  * llmGenerate — the ONLY way the frontend should call an LLM.
  *
@@ -83,13 +83,14 @@ export async function llmGenerate(
     return { text: choice.message.content, modelUsed: result.model || process.env.BIOMATE_LOCAL_LLM_MODEL!, fallbackDepth: 0 };
   }
   // China-region users: the Chinese model, not the backend's Gemini/Claude/GPT chain (llm-region-policy.ts).
+  // The backend chain's Chinese replacement: the set's chain, first model that answers.
   const cnRoute = requireCnRoute();
   if (cnRoute) {
-    const text = await cnCompletion(cnRoute, {
+    const { text, model } = await cnChainCompletion(cnRoute, {
       messages: [{ role: 'user', content: opts.prompt }], system: opts.system,
       maxTokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0.7, jsonMode: opts.jsonMode,
     });
-    return { text, modelUsed: cnRoute.model, fallbackDepth: 0 };
+    return { text, modelUsed: model, fallbackDepth: Math.max(0, cnRoute.models.galaxyChain.indexOf(model)) };
   }
   const body = {
     prompt: opts.prompt,

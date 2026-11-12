@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CN_REGION_COUNTRIES, CHINESE_MODEL_VENDORS, classifyRegion, isCnRegionIp, isChineseModel, modelIdentity,
-  modelIdentityDirective, resolveCnRoute, resolveChatLlm, requireCnRoute, llmPolicyStorage, policyStateFor,
+  modelIdentityDirective, resolveCnRoute, CN_MODEL_SET, CN_ROLE_ENV, cnModelSet, cnRoleForMessagesCall, cnChainCompletion, cnRoleMessagesClient, resolveChatLlm, requireCnRoute, llmPolicyStorage, policyStateFor,
   policyMessagesClient, policySummary, checkModelPick, ChineseModelUnavailableError, OPENROUTER_URL,
 } from './llm-region-policy';
 import { CHINESE_MODEL_VENDORS as CLIENT_VENDORS } from '../client/src/lib/llm-region';
@@ -87,14 +87,15 @@ describe('Chinese models', () => {
 describe('China users: Chinese model only, fail closed', () => {
   it('a non-Chinese pick is replaced by the Chinese default; a Chinese pick is honoured', () => {
     expect(resolveCnRoute({ userOpenrouterKey: 'sk-or-user', selectedModel: 'anthropic/claude-sonnet-5.5' }, noEnv))
-      .toEqual({ url: OPENROUTER_URL, key: 'sk-or-user', model: 'deepseek/deepseek-v4.1-flash', source: 'user_openrouter' });
+      .toMatchObject({ url: OPENROUTER_URL, key: 'sk-or-user', model: 'deepseek/deepseek-v4.1-flash', source: 'user_openrouter' });
     expect(resolveCnRoute({ userOpenrouterKey: 'sk-or-user', selectedModel: 'moonshotai/kimi-k3' }, noEnv)!.model).toBe('moonshotai/kimi-k3');
   });
   it('credential order: own OpenRouter key → OPENROUTER_ZH_API_KEY → OPENROUTER_API_KEY → on-prem Chinese LLM', () => {
     expect(resolveCnRoute({}, { OPENROUTER_ZH_API_KEY: 'zh', OPENROUTER_API_KEY: 'sys' } as any)!.source).toBe('openrouter_zh_key');
     expect(resolveCnRoute({}, { OPENROUTER_API_KEY: 'sys' } as any)!.source).toBe('openrouter_system_key');
     expect(resolveCnRoute({}, { LLM_API_URL: 'http://dashscope/v1', LLM_MODEL: 'qwen-max' } as any))
-      .toEqual({ url: 'http://dashscope/v1', key: 'none', model: 'qwen-max', source: 'onprem' });
+      .toMatchObject({ url: 'http://dashscope/v1', key: 'none', model: 'qwen-max', source: 'onprem',
+        models: { intent: 'qwen-max', response: 'qwen-max', reasoning: 'qwen-max', light: 'qwen-max', vision: 'qwen-max', galaxyChain: ['qwen-max'] } });
     expect(resolveCnRoute({}, { LLM_API_URL: 'http://vllm/v1', LLM_MODEL: 'llama-3' } as any)).toBeNull();
     expect(resolveCnRoute({}, noEnv)).toBeNull();
   });
@@ -148,7 +149,8 @@ describe('chat-stream resolution (resolveChatLlm, used by routes.ts on every req
 });
 
 describe('Chinese-model chokepoints (callGeminiFlash, llmGenerate) under a China user', () => {
-  const route = { url: 'http://cn-llm.test/v1', key: 'k', model: 'deepseek/deepseek-v4.1-flash', source: 'openrouter_zh_key' as const };
+  const route = { url: 'http://cn-llm.test/v1', key: 'k', model: 'deepseek/deepseek-v4.1-flash', source: 'openrouter_zh_key' as const,
+    models: { ...CN_MODEL_SET, galaxyChain: [...CN_MODEL_SET.galaxyChain] } };
   const stubCompletion = () => {
     const calls: Array<{ url: string; body: any }> = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string, init: any) => {
@@ -157,7 +159,7 @@ describe('Chinese-model chokepoints (callGeminiFlash, llmGenerate) under a China
     }));
     return calls;
   };
-  it('callGeminiFlash runs on the Chinese model, never Gemini', async () => {
+  it('callGeminiFlash runs on the Chinese set\'s light model, never Gemini', async () => {
     const calls = stubCompletion();
     const { callGeminiFlash } = await import('./gemini-flash');
     const text = await llmPolicyStorage.run({ region: 'cn', reasons: ['ip'], cnRoute: route },
@@ -165,7 +167,7 @@ describe('Chinese-model chokepoints (callGeminiFlash, llmGenerate) under a China
     expect(text).toBe('国产模型回答');
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe('http://cn-llm.test/v1/chat/completions');
-    expect(calls[0].body.model).toBe('deepseek/deepseek-v4.1-flash');
+    expect(calls[0].body.model).toBe('qwen/qwen3.5-flash-02-23');
   });
   it('llmGenerate runs on the Chinese model, not the backend Gemini/Claude chain', async () => {
     const calls = stubCompletion();
