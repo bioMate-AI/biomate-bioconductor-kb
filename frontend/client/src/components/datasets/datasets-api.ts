@@ -345,3 +345,75 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
 
   return { enabled, ...state, loadMore, loadAll, retry }
 }
+
+// ── Folder profile ───────────────────────────────────────────────────────────
+// GET /api/projects/:id/folders/profile?path=<folder> — what an input folder holds as a whole
+// (backend galaxy/ai/folder_profile.py): FASTQ pairs/orphans + samplesheet, 10x matrix sets,
+// or a format roll-up. `path` is relative to the inputs root ("" = root).
+export interface FolderFinding {
+  code: string
+  level: "info" | "watch" | "blocked"
+  params?: Record<string, unknown>
+}
+
+export interface FolderSample {
+  sample: string
+  forward: string | null
+  reverse: string | null
+  status: "paired" | "orphan" | "single"
+  role?: "forward" | "reverse" | null
+  dir?: string
+}
+
+export interface TenxSet {
+  dir: string
+  prefix?: string
+  matrix: string
+  barcodes?: string | null
+  features?: string | null
+  version?: "v2" | "v3" | null
+  complete: boolean
+  missing: string[]
+  genes?: number
+  cells?: number
+  nnz?: number | null
+}
+
+export interface FolderProfile {
+  path: string
+  kind: "fastq_set" | "tenx_matrix" | "mixed" | "empty"
+  fileCount: number
+  rollup: { format: string; label: string; count: number; pairs?: number }[]
+  findings: FolderFinding[]
+  fastq?: {
+    verdict: "paired" | "single_end" | "mixed"
+    pattern: string | null
+    engine: "galaxy" | "fallback"
+    pairs: number
+    samples: FolderSample[]
+    orphans: string[]
+    singles: string[]
+  }
+  samplesheet?: { columns: string[]; rows: string[][]; csv: string; filename: string }
+  tenx?: { sets: TenxSet[] }
+}
+
+export function folderProfileUrl(projectId: string, path: string, download = false): string {
+  const q = new URLSearchParams({ path })
+  if (download) q.set("download", "samplesheet")
+  return `/api/projects/${encodeURIComponent(projectId)}/folders/profile?${q.toString()}`
+}
+
+export function useFolderProfile(projectId: string | null | undefined, path: string | null): UseQueryResult<FolderProfile> {
+  return useQuery<FolderProfile>({
+    queryKey: ["/api/projects/folders/profile", projectId, path],
+    enabled: !!projectId && path !== null,
+    staleTime: 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch(folderProfileUrl(projectId!, path!), { credentials: "include" })
+      if (!res.ok) throw new Error(`${res.status}: failed to profile folder`)
+      return (await res.json()) as FolderProfile
+    },
+  })
+}

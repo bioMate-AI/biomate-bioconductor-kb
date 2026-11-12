@@ -28,7 +28,7 @@ async function fakeQuery(text: string, params: any[] = []): Promise<any> {
     inserted.push(params);
     return { rows: [{ id: "f-new", name: params[2], s3_key: params[3], size: params[4], content_type: params[5], source: "upload" }] };
   }
-  if (/SELECT s3_key, name FROM project_files WHERE id = \$1 AND project_id = \$2/.test(t)) {
+  if (/SELECT s3_key, name(, source)? FROM project_files WHERE id = \$1 AND project_id = \$2/.test(t)) {
     return { rows: fileRows.filter((r) => r.id === params[0] && r.project_id === params[1]) };
   }
   return { rows: [] };

@@ -212,6 +212,20 @@ def _is_large_tar(path: str) -> bool:
         return False
 
 
+def extension_for_name(name: str) -> Optional[str]:
+    """The Galaxy extension a filename claims (most specific registered one), without reading
+    the file — for roll-ups over many files. None when Galaxy is unavailable or no candidate
+    extension is a registered datatype."""
+    reg = _registry()
+    if reg is None:
+        return None
+    by_ext = getattr(reg, "datatypes_by_extension", {}) or {}
+    for ext in filename_exts(name):
+        if ext in by_ext:
+            return ext
+    return None
+
+
 def identify(path: str, name: Optional[str] = None) -> Optional[str]:
     """Galaxy extension of the file at ``path`` (``name`` supplies the filename when the
     path is a temp copy). None when Galaxy is unavailable or nothing could be determined."""
