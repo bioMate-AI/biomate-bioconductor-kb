@@ -4012,7 +4012,7 @@ export class GalaxyAssistant {
 
     const systemPrompt = `${ltmBlock}${projectBlock}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge across genomics, transcriptomics, proteomics, drug discovery, cryo-EM, and clinical research.
 
-Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which supports live workflow execution ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : 'via local Docker'}.${responseLanguageDirective(context.uiLanguage)}`;
+Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which can run workflows directly.${responseLanguageDirective(context.uiLanguage)}`;
 
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       ...(context.previousMessages ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
@@ -5057,7 +5057,11 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false },
       };
     } catch (err: any) {
-      const errMsg = `Failed to launch **${label}**: ${err.message || 'Galaxy API error'}. Make sure Galaxy interactive tools are configured and the tool is installed.`;
+      // User-facing: no backend name or raw backend error text.
+      console.warn(`[GalaxyAssistant] interactive tool launch failed (${label}):`, err?.message);
+      const errMsg = /^zh/i.test(String((context as any)?.uiLanguage || ''))
+        ? `暂时无法启动 **${label}**，请稍后重试；若持续失败请联系支持。`
+        : `Couldn't start **${label}** right now. Please try again in a minute; if it keeps failing, contact support.`;
       onResponseDelta?.(errMsg);
       return {
         message: errMsg,
@@ -6524,10 +6528,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
             message: [
               `I've mapped your request to the **${chain.display_name}** pipeline (${chainPipelineSteps.length} steps):`,
               '',
-              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (path TBD)'}`)
+              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**`)
                 .join('\n'),
               '',
-              'Review the steps below, then click **Confirm & Run** to execute them in order.',
+              `Review the steps below, then click **${runButtonLabel((context as any)?.uiLanguage)}** to execute them in order.`,
             ].join('\n'),
             intentType: 'workflow_generation',
             intentConfidence: 0.9,
@@ -10190,7 +10194,7 @@ BioMate's real capability surface (verified, do not extrapolate):
   Other DBs (KEGG, Reactome, OMIM, HPO, GTEx, ENCODE, DepMap, …) are reachable indirectly: route to an indexed DB-API tool-function as a workflow step rather than disclaiming. Say "I can pull this via the <tool-name> workflow step" — don't tell the user we lack the source.
 - **Auto-injected pre-results** appear in <pre_satisfied_parameters> and similar tags. Read those before answering.
 - **run_code tool** — Python/R/bash in an ephemeral biomate-biotools sandbox. R + Bioconductor (DESeq2, clusterProfiler, edgeR, limma, GSVA, fgsea, ReactomePA), numpy/scipy/pandas/statsmodels, biopython, pysam, cyvcf2, samtools/bcftools/bwa/mafft/iqtree pre-installed. **Sandboxed with --network=none — run_code cannot reach external APIs.** Use it for offline compute on data already in the prompt or attached as a file. If you need data from a DB, route to a workflow step that pulls it.
-- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path. All real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
+- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on BioMate cloud compute via Nextflow — heavy-compute production path. All real workflows run on BioMate cloud compute; there is no local-vs-cloud switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
 - **Reusing prior-run outputs as next-workflow inputs.** Any workflow file parameter accepts the URI \`run:<fullRunId>:outputs/<filename>\`, which the backend automatically resolves to the underlying S3 path. To use this: call \`list_history\` to find the prior run's full id, then \`list_run_outputs\` to get its output file names. The \`param_uri\` field in that tool's response is the exact string to pass as the file param value — do not transform it. Example: a previous variant-calling run \`abcdef1234567890\` produced \`variants.vcf\`; for a variant-annotation workflow, set \`vcf_input = "run:abcdef1234567890:outputs/variants.vcf"\`.
 
 How to behave:
@@ -10211,7 +10215,7 @@ COMPUTATION RULE:
 Two execution surfaces. Pick by scale + whether the task matches an indexed pipeline — NOT by tool name. Bioconductor packages exist on BOTH (the indexed workflow set includes DESeq2 / clusterProfiler / edgeR / limma / Seurat / ReactomePA, AND run_code has the same packages pre-installed). No default direction.
 
 - **run_code** (light path): ad-hoc compute, single statistical test, inline dataset, format conversion, small analyses that finish in seconds-to-minutes. Full scientific stack: R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa, biopython. **--network=none — cannot reach external APIs.** Only works on data already in the prompt or attached.
-- **Nextflow workflow ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : '(local Docker)'}** (heavy path): production pipelines, multi-step orchestration, large datasets, GPU work, anything that needs network access (e.g. a DB-API tool-function step) or per-step containerization.
+- **Nextflow workflow ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on BioMate cloud compute' : '(local Docker)'}** (heavy path): production pipelines, multi-step orchestration, large datasets, GPU work, anything that needs network access (e.g. a DB-API tool-function step) or per-step containerization.
 
 If the user explicitly says "use run_code" or "do not launch a Nextflow workflow", honor that. Otherwise pick based on what fits.
 
@@ -10259,7 +10263,7 @@ BioMate's real capability surface:
 - **12,312 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
 - **Verified live DB integrations** in the BioMate backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
 - **run_code tool** — Python/R/bash in the biomate-biotools sandbox (R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa/iqtree, biopython/pysam pre-installed). **--network=none — cannot reach external APIs.** Light-compute path for ad-hoc / format conversion / small statistical work on data already in the prompt.
-- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
+- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on BioMate cloud compute via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on BioMate cloud compute; there is no local-vs-cloud switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
 - If the user needs to supply project-specific data, ask straightforwardly: "Please upload [format] / provide [value]." Do not phrase it as an environment limitation.
 
 (Inline data — if any — is listed in <pre_satisfied_parameters> above. Never ask for those parameters again.)
@@ -10315,7 +10319,7 @@ ONE-QUESTION RULE:
 - Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
 - If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), generate the workflow immediately. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel. This applies in particular when the user's reply is a confirmation-style answer such as "yes", "yes run with defaults", "go ahead", "run it", "proceed", "ok", "sure", "use the demo data", "fine, use defaults". Treat all of these as instructions to generate the workflow now. Never ask for data twice in the same conversation — if you asked once and the user did not provide data on reply, generate with defaults/synthetic-data fallback.
 - META-RULE on phrasing: never echo the name of an internal instruction in your reply. Forbidden surface phrases include (but are not limited to): "SECOND-TURN OVERRIDE", "OVERRIDE applies", "ONE-QUESTION RULE", "rule applies", "applying rule X", "META-RULE", "system prompt says", "according to my instructions". Internal scaffolding must stay internal. Just produce the answer the rule prescribes — do not narrate the rule.
-- NEVER show storage locations to the user: no "s3://" URIs, bucket names, the word "S3", upload paths or dataset UUIDs — in any language. Refer to inputs by file name (e.g. pilot_compounds.csv) or by public accession (e.g. SRR1039508). Storage URIs are for tool and workflow parameters only, never for your reply text.
+- NEVER show storage locations to the user: no "s3://" URIs, bucket names, the word "S3", upload paths or dataset UUIDs — in any language. Likewise never name the execution infrastructure (AWS, Batch, the internal workflow backend) — say "BioMate's cloud compute". Refer to inputs by file name (e.g. pilot_compounds.csv) or by public accession (e.g. SRR1039508). Storage URIs are for tool and workflow parameters only, never for your reply text.
 - When the message contains a "[Prepared inputs: ...]" block, it is background notes about the attached example files (what the data is, column meanings, where it is already staged). Use it to run the request correctly; never quote it, mention it, or call it a "block", "demo context" or "notes".
 - When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, s3_uri=<S3URI>". For read_file and run_code: use the dataset_id and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (Nextflow workers access files directly via the s3_uri); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the file at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
 - Differential-expression file mapping rule: When multiple CSV files are uploaded for a DE workflow (differentialabundance, DESeq2, edgeR, limma), map them as follows based on filename keywords: files containing "sample", "metadata", "samplesheet", "coldata", "design" → use as the 'samplesheet' param (or 'input' if the workflow only declares 'input'). Files containing "count", "matrix", "expression", "counts" → use as the 'matrix' param. Files containing "contrast", "comparison" → use as the 'contrasts' param. NEVER create a generic 'dataset' param. Every uploaded file must map to a named workflow param.

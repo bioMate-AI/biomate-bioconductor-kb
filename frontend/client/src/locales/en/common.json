@@ -540,7 +540,7 @@
     "open_dataset": "Open dataset",
     "preview": "Preview",
     "hide_preview": "Hide preview",
-    "copy_s3": "Copy S3 path",
+    "copy_s3": "Copy file path",
     "confirm_delete": "Delete this file?",
     "err_load": "Failed to load files",
     "err_upload": "Upload failed",
@@ -1315,10 +1315,11 @@
     "origin_custom": "Custom (yours)",
     "fold_launch_failed": "Could not start the fold: {{detail}}",
     "fold_run_heading": "Structure prediction",
-    "fold_running_note": "Folding on our AWS Batch GPUs (Boltz-2). This takes a few minutes; the structure and confidence will be in the run outputs.",
+    "fold_running_note": "Folding on our GPUs (Boltz-2). This takes a few minutes; the structure and confidence will be in the run outputs.",
     "fold_done_note": "Fold complete — open the run to view the predicted structure and per-residue confidence (pLDDT / PAE).",
     "fold_failed_note": "The fold did not complete. Open the run to see why.",
-    "fold_open_run": "View in Run Manager"
+    "fold_open_run": "View in Run Manager",
+    "fold_compute_badge": "BioMate GPU · Boltz-2"
   },
   "instructions_formats": {
     "edit_title": "Edit output format",

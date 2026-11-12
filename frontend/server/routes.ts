@@ -6180,7 +6180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { responseType: 'arraybuffer', params: req.query }
         );
         const contentType = response.headers['content-type'] || 'text/plain';
-        const contentDisposition = response.headers['content-disposition'] || `attachment; filename="run_report_${invocationId}.txt"`;
+        const contentDisposition = response.headers['content-disposition'] || 'attachment; filename="run_report.txt"';
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', contentDisposition);
         return res.status(response.status).send(Buffer.from(response.data));
@@ -6399,7 +6399,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Build parameter narrative
         const paramLines = Object.entries(params)
           .filter(([, v]) => v !== null && v !== undefined && v !== '')
-          .map(([k, v]) => `  - ${k}: ${String(v)}`)
+          // A stored file is named by its file name — never a storage URI or upload id (the report is
+          // a user-facing download, and these lines are also the model's input for the narrative).
+          .map(([k, v]) => `  - ${k}: ${redactStoragePaths(String(v)).replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/?/gi, '')}`)
           .join('\n');
 
         // Build step list narrative
@@ -6409,8 +6411,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Output file inventory
         const outputInventory = allOutputFiles.length > 0
-          ? allOutputFiles.map(f => `  - ${f}`).join('\n')
-          : '  (No output files indexed — see S3 bucket directly)';
+          ? allOutputFiles.map(f => `  - ${redactStoragePaths(String(f))}`).join('\n')
+          : '  (No output files indexed yet)';
 
         // Text file context for LLM — inject ALL key report JSONs
         const fileContext = textOutputSamples.length > 0
@@ -6592,7 +6594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Download your results using the BioMate run panel, or contact support if outputs are missing.`,
           ].filter(l => l !== undefined).join('\n');
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-          res.setHeader('Content-Disposition', `attachment; filename="run_report_${invocationId}.txt"`);
+          res.setHeader('Content-Disposition', `attachment; filename="run_report_${String(workflowName || 'run').replace(/[^a-z0-9]+/gi, '_')}.txt"`);
           return res.status(200).send(fallback);
         }
 
@@ -6607,8 +6609,8 @@ EXECUTION STATUS: ${runStatus}
 START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
-CLOUD PLATFORM: ${_isOnprem ? 'On-premises (local Docker executor)' : 'AWS Batch (us-west-2 region)'}
-ORCHESTRATION: BioMate pipeline on ${_isOnprem ? 'on-premises infrastructure' : 'AWS Batch'}`;
+COMPUTE: ${_isOnprem ? 'On-premises (local container executor)' : 'BioMate cloud compute'}
+ORCHESTRATION: BioMate pipeline (Nextflow DSL2)`;
 
         const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
@@ -6635,7 +6637,7 @@ PIPELINE CONTEXT:
 Workflow: ${workflowName}
 Wall time: ${wallTimeStr}
 Steps completed: ${extractedMetrics.steps_completed}
-Platform: AWS Batch, CryoSPARC v5.0.2
+Platform: BioMate cloud compute, CryoSPARC v5.0.2
 Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
 OUTPUT FILES PRODUCED:
 ${allOutputFiles.filter((f: string) => !f.includes('[binary]') || f.includes('.mrc')).slice(0, 20).join('\n')}
@@ -6644,7 +6646,7 @@ SECTION REQUIREMENTS:
 ABSTRACT — 2 sentences max. State particle counts, pixel size, voltage, symmetry, steps, software.
 METHODS — Describe the processing pipeline from the metrics: motion correction → CTF → picking (particle_diameter_A Å) → 2D classification (num_classes_r1 classes) → template picking → ab-initio (num_ab_initio_classes models) → refinement → FSC. Include compute platform.
 DATA — Table of available quantitative results: particle counts at each stage, box size, resolution. Omit any row where the value is "not available" or "not captured".
-OUTPUT — List the output files produced (from OUTPUT FILES PRODUCED above). State S3 location and wall time.
+OUTPUT — List the output files produced (from OUTPUT FILES PRODUCED above) by file name, and the wall time.
 FINDINGS — Scientific interpretation strictly from the available numbers: particle yield efficiency (num_extracted_r2 / num_blob_particles if both are present), classification quality (num_classes_r1 classes), resolution estimate (fsc_0143_resolution). Comment only on results that are present — do not mention absent metrics, pipeline steps, or technical issues.
 SUMMARY — 2 sentences on what the results show and what the recommended next step is based on the data.`;
 
@@ -6660,11 +6662,11 @@ DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metric
 ${commonTail}
 
 === REQUIRED SECTIONS ===
-1. ABSTRACT (120 words) — Number of compounds assessed, model type, key safety findings (hERG IC50, DILI risk), Ames mutagenicity result, cloud platform.
+1. ABSTRACT (120 words) — Number of compounds assessed, model type, key safety findings (hERG IC50, DILI risk), Ames mutagenicity result, compute environment.
 
 2. STUDY OVERVIEW — Biological objective (safety profiling); compounds assessed (use SMILES from smiles_input parameter); expected endpoints (cardiac, hepatic, genotoxic risk).
 
-3. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; BioMate pipeline; RDKit descriptor-based heuristics; MPNN model architecture; DeepPurpose library status.
+3. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; BioMate pipeline; RDKit descriptor-based heuristics; MPNN model architecture; DeepPurpose library status.
 
 4. METHODS —
    4.1 Input Preparation — SMILES standardization; descriptor calculation (logP, MW, TPSA).
@@ -6678,7 +6680,7 @@ ${commonTail}
 
 6. SAFETY INTERPRETATION — Flag compounds exceeding safety thresholds: hERG IC50 < 1 µM (high cardiotoxicity risk), DILI probability > 0.5, Ames positive. Compare to approved drug benchmarks.
 
-7. PIPELINE EXECUTION — Wall time; cloud platform; software versions.
+7. PIPELINE EXECUTION — Wall time; compute environment; software versions.
 
 8. LIMITATIONS AND NEXT STEPS — DeepPurpose availability; in vitro validation recommendation; ClinTox prediction gaps.
 
@@ -6694,7 +6696,7 @@ ${commonTail}
 
 === REQUIRED SECTIONS ===
 1. ABSTRACT — Samples analyzed; aligner; DE tool; significant genes; platform.
-2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; nf-core/rnaseq pipeline; software versions.
+2. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; nf-core/rnaseq pipeline; software versions.
 3. DATA PROCESSING — Reference genome; STAR alignment parameters; read trimming.
 4. DIFFERENTIAL EXPRESSION — DESeq2/edgeR; FDR threshold; LFC cutoff; total_de_genes DE genes.
 5. RESULTS — Upregulated and downregulated gene counts; pathway enrichment summary.
@@ -6711,7 +6713,7 @@ ${commonTail}
 
 === REQUIRED SECTIONS ===
 1. ABSTRACT — Genome; caller; total variants (total_variants); SNPs vs indels.
-2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; nf-core/sarek pipeline.
+2. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; nf-core/sarek pipeline.
 3. METHODS — Alignment (BWA-MEM2); variant calling (GATK HaplotypeCaller / ${params?.tools || 'GATK'}); VQSR/hard filtering.
 4. RESULTS — total_variants variants called; snps SNPs; indels indels.
 5. PIPELINE EXECUTION — Wall time; key parameters.
@@ -6728,7 +6730,7 @@ ${commonTail}
 
 === REQUIRED SECTIONS ===
 1. ABSTRACT — Brief summary of the analysis; key result; platform.
-2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; BioMate pipeline.
+2. COMPUTATIONAL ENVIRONMENT — BioMate cloud compute; Nextflow DSL2; BioMate pipeline.
 3. INPUT AND PARAMETERS — All input parameters with values.
 4. METHODS — Step-by-step workflow description using workflowSteps.
 5. RESULTS — Key outputs and their scientific interpretation.
@@ -6786,7 +6788,8 @@ ${paramLines || '(none recorded)'}`;
 
         // Single call for all domains — SYSTEM and USER are set per-domain above
         console.log(`[Report] Generating ${isCryoEM ? 'CryoEM' : 'generic'} report via fallback chain`);
-        reportText = await claudeCall(USER);
+        // The narrative is a user-facing download: storage URIs never appear in it.
+        reportText = redactStoragePaths(await claudeCall(USER));
 
         // Non-blocking conformance check: flag (never fix/fabricate) any requirement
         // the output measurably deviates from (e.g. a word cap, findings-first order).
@@ -13178,9 +13181,9 @@ ${paramLines || '(none recorded)'}`;
               ...run.execution,
               status: 'failed' as any,
               errorMessage:
-                'Run exceeded 12h with no terminal signal — Nextflow process likely died ' +
-                '(container restart, worker recycle, OOM). AWS Batch outputs may still be ' +
-                'recoverable via /api/runs/:id/outputs (publishDir-gap fallback).',
+                // User-facing (workflow panel + after-run report): no infrastructure or API routes.
+                'The run stopped responding and was marked failed after 12 hours. Some outputs may ' +
+                'still be available in the Outputs tab; please run it again.',
               completedAt: new Date(),
             },
           }) || run;
@@ -19410,7 +19413,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
       })();
 
       const systemPrompt = system || `You are Claude, an AI assistant with access to BioMate's scientific workflow tools.
-BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on AWS Batch.
+BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on its own cloud compute.
 When the user asks to run an analysis or search for a workflow, use the BioMate tools directly.
 Show your reasoning. Tool invocations and results are visible to the user in full.`;
 

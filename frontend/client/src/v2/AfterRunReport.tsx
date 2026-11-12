@@ -22,6 +22,7 @@ import { classifyRunFailure } from "@shared/run-failure-classifier";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon, ExternalLink } from "lucide-react";
 import { tOr } from "@/lib/i18n";
+import { userFacingErrorText } from "@/lib/user-facing-text";
 import { HintTip } from "@/components/ui/hint-tip";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
@@ -815,7 +816,7 @@ function FailedRunSection({
 
       {errorMessage && (
         <pre style={styles.errorBlock} data-testid="afterrun-error-message">
-          {humanizeNfError(errorMessage)}
+          {userFacingErrorText(humanizeNfError(errorMessage))}
         </pre>
       )}
 

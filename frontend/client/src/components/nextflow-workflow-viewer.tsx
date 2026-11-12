@@ -26,7 +26,7 @@ import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
-import { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
+import { cleanParamValueForDisplay, userFacingErrorText, userFacingStepName } from '@/lib/user-facing-text';
 import { useLocalizedLabels } from '@/lib/use-localized-labels';
 export { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
 import { AutoLoopPanel } from "./auto-loop-panel";
@@ -1353,19 +1353,8 @@ function PhaseGroupSection({
 
 function sanitizeErrorText(msg: string): string {
   if (!msg) return msg;
-  // Strip stack-trace lines (e.g. "at nextflow.cli.Launcher.main(Launcher.groovy:675)")
-  const withoutStack = msg
-    .split('\n')
-    .filter(l => !/^\s*at\s+[\w.$]+\(/.test(l))
-    .join('\n')
-    .trim();
-  // Replace internal infrastructure names with neutral wording
-  return withoutStack
-    .replace(/\bnextflow\b/gi, 'the pipeline')
-    .replace(/s3:\/\/[^\s'"]+/gi, 'the storage bucket')
-    .replace(/biomate-nextflow-work/gi, 'storage')
-    .replace(/Launcher\.groovy:\d+/gi, '')
-    .trim();
+  // Shared with the after-run report: no storage paths, upload ids or infrastructure names.
+  return userFacingErrorText(msg).replace(/\bnextflow\b/gi, 'the pipeline');
 }
 
 export function NextflowWorkflowViewer({

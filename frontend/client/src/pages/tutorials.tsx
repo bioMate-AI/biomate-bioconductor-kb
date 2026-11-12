@@ -13,7 +13,7 @@ const VIDEOS = [
     id: "C4gQD-xbHnQ",
     title: "Multi-step Workflow Automation with Quality Control",
     description:
-      "See BioMate run a CryoSPARC single-particle analysis end to end — 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, all submitted to AWS Batch GPUs from a single chat message.",
+      "See BioMate run a CryoSPARC single-particle analysis end to end — 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, all run on cloud GPUs from a single chat message.",
   },
   {
     id: "F2DgmBa5gq8",

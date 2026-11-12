@@ -546,7 +546,7 @@
     "open_dataset": "打开数据集",
     "preview": "预览",
     "hide_preview": "隐藏预览",
-    "copy_s3": "复制 S3 路径",
+    "copy_s3": "复制文件路径",
     "confirm_delete": "删除此文件？",
     "err_load": "加载文件失败",
     "err_upload": "上传失败",
@@ -1827,7 +1827,8 @@
     "fold_running_note": "正在我们自己的 GPU 上用 Boltz-2 折叠。这需要几分钟；结构与置信度会出现在运行输出中。",
     "fold_done_note": "折叠完成——打开该运行可查看预测结构和每残基置信度（pLDDT / PAE）。",
     "fold_failed_note": "折叠未完成。打开该运行查看原因。",
-    "fold_open_run": "在运行管理器中查看"
+    "fold_open_run": "在运行管理器中查看",
+    "fold_compute_badge": "BioMate GPU · Boltz-2"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",
