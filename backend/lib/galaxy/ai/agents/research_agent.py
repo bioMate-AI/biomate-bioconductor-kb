@@ -2941,13 +2941,19 @@ class ResearchAgent:
             db_section = ["## Live Database Facts (VERIFIED records retrieved live from authoritative databases: UniProt, PDB, PDBe, AlphaFold, InterPro, ChEMBL, STRING, Ensembl, ClinVar, gnomAD, Open Targets, KEGG/Reactome, MyGene, Monarch)"]
             db_section.append(
                 "These are REAL, confirmed-to-exist records — NOT literature and NOT memory. "
-                "They are authoritative evidence in their own right. When the question asks for "
-                "structures, identifiers, accessions, resolutions, interaction partners, "
-                "activities or any specific value, ANSWER FROM THESE RECORDS and cite their "
-                "EXACT identifiers (e.g. PDB IDs like 1OPL with their resolution, UniProt "
-                "accessions, ChEMBL IDs). The 'never invent an identifier' rule for literature "
-                "does NOT apply here — these identifiers are verified, so name them directly. "
-                "Do not substitute general knowledge for a value present below.\n")
+                "They are authoritative evidence in their own right. QUOTE THE EXACT VALUES "
+                "from the records below — do not paraphrase them from general knowledge and do "
+                "not round or soften them. This covers EVERY value type: PDB IDs with their "
+                "resolution (e.g. 1OPL at 3.42 A); UniProt/Ensembl accessions; ChEMBL IDs with "
+                "their IC50/Ki in nM and pChEMBL value; Open Targets disease names WITH their "
+                "association score (e.g. familial hypercholesterolemia, score 0.86); gnomAD "
+                "constraint (pLI, LOEUF); ClinVar clinical significances; STRING partners with "
+                "their confidence score. When a record below gives the answer, state its exact "
+                "value and name its source database — NEVER hedge it as 'widely known', 'as "
+                "unreferenced background', or 'cannot be provided here'. The 'never invent an "
+                "identifier' rule is for literature only; these records are verified, so cite "
+                "them directly. Prefer a specific value from these records over any general "
+                "statement, for every entity including famous ones.\n")
             df = evidence['db_facts']
 
             # ── Intent-selected federated multi-source evidence ──────────────────
