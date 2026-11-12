@@ -263,9 +263,15 @@ export interface DatasetRowsState {
   error: number | null
   /** The file is not tabular (415) — the caller falls back to the text preview. */
   unsupported: boolean
+  /**
+   * Whether line 1 of the file is a header record (the rows reader infers it from the content:
+   * a header-less numeric table or gene list has none). The edit route numbers data rows after
+   * this many header records. null until the first page arrives (or an older backend).
+   */
+  headerRow: boolean | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null }
 
 /**
  * Page in a project file's full rows. `loadMore()` fetches the next page (no-op
@@ -305,9 +311,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const pageRows: string[][] = Array.isArray(body?.rows) ? body.rows : []
       const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
       const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
+      const headerRow: boolean | null = typeof body?.headerRow === "boolean" ? body.headerRow : ref.current.headerRow
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })

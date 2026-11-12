@@ -67,6 +67,15 @@ describe("applyCellEdits", () => {
     expect(r.text).toBe("﻿chr1\t100\t200\nchr2\t350\t400")
   })
 
+  it("headerRows 0 (a header-less table): row 0 is line 1; with headerRows 1 the same index is line 2", () => {
+    const csv = "1,2.5,x\n3,4.1,y\n"
+    expect(applyCellEdits(csv, ",", [{ row: 0, col: 2, from: "x", value: "X" }], { headerRows: 0 }).text).toBe("1,2.5,X\n3,4.1,y\n")
+    // The wrong numbering cannot land on the wrong cell: the `from` check refuses it.
+    const wrong = applyCellEdits(csv, ",", [{ row: 0, col: 2, from: "x", value: "X" }], { headerRows: 1 })
+    expect(wrong.applied).toBe(0)
+    expect(wrong.conflicts[0]).toEqual({ row: 0, col: 2, expected: "x", actual: "y" })
+  })
+
   it("values match Python's universal-newline reading (\\r inside a quoted field reads as \\n)", () => {
     expect(readCell('a,b\r1,2\r3,"4\r5"\r', ",", 1, 1)).toBe("4\n5")
   })

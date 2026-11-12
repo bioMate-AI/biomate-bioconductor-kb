@@ -320,7 +320,9 @@ export function DatasetObject({
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/edit`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edits }),
+        // Row indices are data rows as the rows reader numbered them: after the header record when
+        // the file has one, from line 1 when it does not (a header-less table).
+        body: JSON.stringify(rowsQ.headerRow === null ? { edits } : { edits, headerRows: rowsQ.headerRow ? 1 : 0 }),
       })
       const j = await r.json().catch(() => ({}))
       if (r.status === 409) throw new Error(t('dataset_obj.edit_conflict'))

@@ -1008,6 +1008,13 @@ export function registerProjectRoutes(app: Express): void {
     const { id, fileId } = req.params;
     const edits = Array.isArray(req.body?.edits) ? req.body.edits : null;
     if (!edits || edits.length === 0) return res.status(400).json({ error: "No edits provided" });
+    // Header records before the data rows, as the rows reader reported (headerRow): 1 (default)
+    // or 0 for a header-less file. A wrong value is caught by the `from` check below (409).
+    const headerRowsRaw = req.body?.headerRows;
+    if (headerRowsRaw !== undefined && headerRowsRaw !== 0 && headerRowsRaw !== 1) {
+      return res.status(400).json({ error: "headerRows must be 0 or 1." });
+    }
+    const headerRows: 0 | 1 = headerRowsRaw === 0 ? 0 : 1;
     try {
       if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
       const row = await pool.query(
@@ -1042,7 +1049,7 @@ export function registerProjectRoutes(app: Express): void {
         }
         parsed.push({ row: r, col: c, from: e.from, value: String(e?.value ?? "") });
       }
-      const result = applyCellEdits(text, delim, parsed, { headerRows: 1 });
+      const result = applyCellEdits(text, delim, parsed, { headerRows });
       if (result.conflicts.length) {
         return res.status(409).json({
           error: "The file changed or a cell no longer holds the value shown; nothing was saved. Reload and edit again.",
@@ -1184,6 +1191,10 @@ export function registerProjectRoutes(app: Express): void {
         offset: body.offset ?? offset,
         limit: body.limit ?? limit,
         totalRows: typeof body.totalRows === "number" ? body.totalRows : null,
+        // Whether line 1 is a header record (inferred from the content) — the client sends it back
+        // as `headerRows` when saving edits so data rows are numbered the same way.
+        headerRow: typeof body.headerRow === "boolean" ? body.headerRow : null,
+        namesSource: typeof body.namesSource === "string" ? body.namesSource : null,
       });
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);
