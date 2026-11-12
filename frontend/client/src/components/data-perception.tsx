@@ -76,8 +76,6 @@ export interface DataProfile {
   notes: string[];
   /** Structured, localizable findings (preferred over the free-text fields). */
   findings?: PerceptionFinding[];
-  /** The file's format (format chip): Galaxy datatype ext when Galaxy identified it, else BioMate's. */
-  format?: { ext: string; label: string; source: "galaxy" | "biomate" };
   /** Column headers of a table-like dataset (capped), for the Preview tab. */
   columns?: string[];
   /** First rows of a table-like dataset (capped), for the Preview tab. */
