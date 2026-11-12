@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, groupStepsIntoPhases, phaseDisplayLetter, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain, isCountMatrixDeWorkflow } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, groupStepsIntoPhases, phaseDisplayLetter, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain, isCountMatrixDeWorkflow, nfcoreProcessKey, mergePlannedWithRecorded } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -754,6 +754,105 @@ describe('phase lettering is positional among displayed phases', () => {
     expect(card.querySelector('.sub')).toBeNull();
     expect(card.textContent).not.toContain('Phase B');
     vi.restoreAllMocks();
+  });
+});
+
+describe('nfcoreProcessKey — planned<->runtime name normalization', () => {
+  it('collapses an nf-core fully-qualified process name to its module tail', () => {
+    expect(nfcoreProcessKey('NFCORE_RNASEQ:RNASEQ:FASTQC')).toBe('fastqc');
+    expect(nfcoreProcessKey('NFCORE_RNASEQ:RNASEQ:STAR_ALIGN')).toBe('staralign');
+    expect(nfcoreProcessKey('NFCORE_SAREK:SAREK:GATK4_HAPLOTYPECALLER')).toBe('gatk4haplotypecaller');
+  });
+  it('maps the short planned name / tool id to the same key', () => {
+    expect(nfcoreProcessKey('fastqc')).toBe('fastqc');
+    expect(nfcoreProcessKey('star_align')).toBe('staralign');       // matches STAR_ALIGN
+    expect(nfcoreProcessKey('STAR_ALIGN')).toBe(nfcoreProcessKey('star_align'));
+  });
+  it('keeps distinct modules distinct (no over-collapse)', () => {
+    expect(nfcoreProcessKey('FASTQC_RAW')).not.toBe(nfcoreProcessKey('FASTQC'));
+    expect(nfcoreProcessKey('')).toBe('');
+    expect(nfcoreProcessKey(undefined)).toBe('');
+  });
+});
+
+describe('mergePlannedWithRecorded — keep full plan, reflect runtime (nf-core)', () => {
+  const planned = (names: string[]) =>
+    names.map((n, i) => ({ id: `p${i}`, name: n, status: 'pending' as const, parameters: { threads: 4 } }));
+  const rec = (name: string, status: any, extra: any = {}) =>
+    ({ id: `r-${name}`, name, processName: name, status, outputFiles: [], ...extra });
+
+  it('CORE FIX: a run stopped after phase 1 keeps phases 2+ visible as pending', () => {
+    const out = mergePlannedWithRecorded(
+      planned(['fastqc', 'star_align', 'salmon_quant']),
+      [rec('NFCORE_RNASEQ:RNASEQ:FASTQC', 'completed')],
+    );
+    expect(out.map(p => p.name)).toEqual(['fastqc', 'star_align', 'salmon_quant']); // nothing dropped
+    expect(out.map(p => p.status)).toEqual(['completed', 'pending', 'pending']);
+  });
+
+  it('matches planned short names to nf-core fully-qualified runtime processes', () => {
+    const out = mergePlannedWithRecorded(
+      planned(['fastqc', 'star_align']),
+      [rec('NFCORE_RNASEQ:RNASEQ:FASTQC', 'completed'), rec('NFCORE_RNASEQ:RNASEQ:STAR_ALIGN', 'running')],
+    );
+    expect(out.find(p => p.name === 'fastqc')!.status).toBe('completed');
+    expect(out.find(p => p.name === 'star_align')!.status).toBe('running');
+  });
+
+  it('a FAILED run keeps its failure evidence on the matched phase', () => {
+    const out = mergePlannedWithRecorded(
+      planned(['fastqc', 'star_align']),
+      [rec('NFCORE_RNASEQ:RNASEQ:STAR_ALIGN', 'failed', { errorMessage: 'OOM killed', workDir: '/work/ab', jobId: 'job-9' })],
+    );
+    const star = out.find(p => p.name === 'star_align')!;
+    expect(star.status).toBe('failed');
+    expect(star.errorMessage).toBe('OOM killed');
+    expect(star.workDir).toBe('/work/ab');
+    expect(star.jobId).toBe('job-9');
+    expect(out.find(p => p.name === 'fastqc')!.status).toBe('pending'); // untouched
+  });
+
+  it('a single record is consumed once — it does not fill several identical planned steps', () => {
+    const out = mergePlannedWithRecorded(
+      planned(['fastqc', 'fastqc']),
+      [rec('NFCORE_RNASEQ:RNASEQ:FASTQC', 'completed')],
+    );
+    expect(out.map(p => p.status)).toEqual(['completed', 'pending']);
+  });
+
+  it('appends a runtime process that matches no planned step (dynamically spawned)', () => {
+    const out = mergePlannedWithRecorded(
+      planned(['fastqc']),
+      [rec('NFCORE_RNASEQ:RNASEQ:FASTQC', 'completed'), rec('NFCORE_RNASEQ:RNASEQ:MULTIQC', 'completed')],
+    );
+    expect(out.map(p => p.name)).toEqual(['fastqc', 'NFCORE_RNASEQ:RNASEQ:MULTIQC']);
+    expect(out.every(p => p.status === 'completed')).toBe(true);
+  });
+
+  it('pre-run (no records) shows the full plan as pending; no planned steps falls back to records', () => {
+    expect(mergePlannedWithRecorded(planned(['fastqc', 'star_align']), []).map(p => p.status))
+      .toEqual(['pending', 'pending']);
+    const recordedOnly = [rec('NFCORE_RNASEQ:RNASEQ:FASTQC', 'completed')];
+    expect(mergePlannedWithRecorded([], recordedOnly)).toEqual(recordedOnly);
+  });
+
+  it('falls back to records when the plan is a placeholder matching nothing in the run', () => {
+    // A generic "Step 1" stub that corresponds to no recorded process must not
+    // appear as a phantom pending step beside the real failed task.
+    const out = mergePlannedWithRecorded(
+      [{ id: 'generic', name: 'Step 1', status: 'pending' as const }],
+      [rec('NFCORE_SCDOWNSTREAM:SOUPX (sample)', 'failed')],
+    );
+    expect(out.map(p => p.name)).toEqual(['NFCORE_SCDOWNSTREAM:SOUPX (sample)']);
+    expect(out[0].status).toBe('failed');
+  });
+
+  it('keeps planned parameters when the runtime record carries none (no param wipe)', () => {
+    const out = mergePlannedWithRecorded(
+      planned(['fastqc']),
+      [rec('NFCORE_RNASEQ:RNASEQ:FASTQC', 'completed')], // parameters undefined/empty
+    );
+    expect(out[0].parameters).toEqual({ threads: 4 });
   });
 });
 
