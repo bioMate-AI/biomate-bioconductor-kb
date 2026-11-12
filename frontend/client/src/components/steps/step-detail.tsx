@@ -322,6 +322,20 @@ export function StepDetail({
   const tl = useLocalizedLabels([stepTitleSrc]);
   const statusKey = String(step.status || '').toLowerCase();
   const statusLabel = statusKey ? tOr(`step_view.status_${statusKey}`, statusKey) : '';
+  // A step that has not started yet has no tool/version/outputs/duration to
+  // report — so the "n/a" provenance chain and the long origin-badge caption are
+  // pure placeholder noise. Collapse them until the step actually runs (founder:
+  // "too much placeholder info in the step detail panel when it is not run yet").
+  // Gate on real run-evidence, NOT the status string alone: a recorded step may
+  // carry a tool / outputs / duration with no explicit status, and that is a step
+  // that ran, not a pending one. Only a step with no evidence at all (and no
+  // terminal/running status) is treated as the placeholder-heavy "not run" case.
+  const hasRunEvidence = !!(
+    step.tool || step.toolVersion || step.duration ||
+    outputs.length > 0 || step.workDir || step.jobId || step.errorMessage
+  );
+  const isTerminalOrRunning = /completed|ok|failed|error|running/.test(statusKey);
+  const isPending = !hasRunEvidence && !isTerminalOrRunning;
   const notDefault = params.filter(p => p.origin === "override" || p.origin === "inherited").length;
   // Any in-place edit pending (drives the "Apply & re-run from here" affordance).
   const anyChanged = params.some(p => !sameValue(vals[p.name], p.value));
@@ -362,7 +376,14 @@ export function StepDetail({
           </div>
         </div>
 
-        {/* Provenance: ran with [inputs] → [tool + version] → [N outputs] · duration */}
+        {/* Provenance: ran with [inputs] → [tool + version] → [N outputs] · duration.
+            Before the step runs there is nothing to attribute, so we show a single
+            "not run yet" line instead of a chain of n/a placeholders. */}
+        {isPending ? (
+          <p data-testid="step-provenance" className="text-xs text-muted-foreground">
+            {tOr('step_view.not_run_yet', 'Not run yet — the tool, outputs and run details appear here once this step starts.')}
+          </p>
+        ) : (
         <div
           data-testid="step-provenance"
           className="flex items-center gap-1.5 flex-wrap text-xs"
@@ -388,6 +409,7 @@ export function StepDetail({
             {step.duration ? step.duration : t('step_view.duration_na')}
           </span>
         </div>
+        )}
       </div>
 
       {/* Body */}
@@ -400,7 +422,7 @@ export function StepDetail({
         {/* Outputs — tabs + rendered/raw switch */}
         <div>
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
-            {outputs.length === 0 && (
+            {outputs.length === 0 && !isPending && (
               <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.outputs_running') : tOr('step_view.output_links_unavailable', 'No output-file links were recorded for this task. Check Outputs for any run-level files.')}</p>
             )}
             {outputs.map(o => (
@@ -483,7 +505,7 @@ export function StepDetail({
         {/* Resolved parameters — origin badges + per-row revert */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-xs font-semibold">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.params_running') : t('step_view.params_ran_with')}</p>
+            <p className="text-xs font-semibold">{isPending ? tOr('step_view.params_planned', 'Parameters') : step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.params_running') : t('step_view.params_ran_with')}</p>
             <span
               data-testid="not-default-count"
               className="rounded border bg-muted/60 px-1.5 py-0.5 text-fs-xs text-muted-foreground"
@@ -492,7 +514,7 @@ export function StepDetail({
             </span>
           </div>
           {params.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{t('step_view.no_params')}</p>
+            <p className="text-xs text-muted-foreground">{isPending ? tOr('step_view.no_params_planned', 'This step has no configurable parameters.') : t('step_view.no_params')}</p>
           ) : (
             <div className="space-y-1.5">
               {params.map(p => {
@@ -549,9 +571,11 @@ export function StepDetail({
               </Button>
             </div>
           )}
-          <p className="text-fs-xs text-muted-foreground mt-2">
-            {t('step_view.params_caption')}
-          </p>
+          {!isPending && params.length > 0 && (
+            <p className="text-fs-xs text-muted-foreground mt-2">
+              {t('step_view.params_caption')}
+            </p>
+          )}
         </div>
       </div>
 

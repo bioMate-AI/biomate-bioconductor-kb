@@ -96,6 +96,27 @@ describe("<StepDetail> — provenance + params", () => {
     expect(prov).toHaveTextContent("upstream step output");
   });
 
+  it("collapses the n/a provenance chain to a 'not run yet' line for a step with no run evidence", () => {
+    // A genuinely pending step (no tool/outputs/duration/status) is the
+    // placeholder-heavy case the founder flagged: show one honest line, not a
+    // chain of "tool not reported / version n/a / 0 outputs / duration n/a".
+    const pending = { id: "p1", name: "Validate Input", status: "pending", parameters: {} };
+    render(<StepDetail runId={runId} step={pending as any} onClose={vi.fn()} />);
+    const prov = screen.getByTestId("step-provenance");
+    expect(prov).toHaveTextContent(/not run yet/i);
+    expect(prov).not.toHaveTextContent("version n/a");
+    expect(prov).not.toHaveTextContent("0 outputs");
+  });
+
+  it("still shows the full chain for a ran step that carries evidence but no status string", () => {
+    // Evidence (tool/outputs/duration) means the step ran even with status === "":
+    // it must NOT be collapsed to the pending line.
+    render(<StepDetail runId={runId} step={baseStep} workflowDefinition={workflowDefinition} onClose={vi.fn()} />);
+    const prov = screen.getByTestId("step-provenance");
+    expect(prov).toHaveTextContent("salmon");
+    expect(prov).not.toHaveTextContent(/not run yet/i);
+  });
+
   it("renders origin badges and the correct 'N not default' count", () => {
     render(<StepDetail runId={runId} step={baseStep} workflowDefinition={workflowDefinition} onClose={vi.fn()} />);
     // libType default, numBootstraps override, threads unknown → 1 not default.
