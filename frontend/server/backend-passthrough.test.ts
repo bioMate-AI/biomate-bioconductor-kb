@@ -31,7 +31,11 @@ beforeAll(async () => {
   galaxy = http.createServer((q, s) => {
     let b = "";
     q.on("data", (c) => (b += c));
-    q.on("end", () => { seen.push(`${q.method} ${q.url} ${b}`); s.setHeader("content-type", "application/json"); s.end('{"ok":true}'); });
+    q.on("end", () => {
+      // A backend that drops the connection before answering (a closed keep-alive socket).
+      if (q.url?.includes("/drop-connection")) { q.socket.destroy(); return; }
+      seen.push(`${q.method} ${q.url} ${b}`); s.setHeader("content-type", "application/json"); s.end('{"ok":true}');
+    });
   });
   await new Promise<void>((r) => galaxy.listen(0, "127.0.0.1", () => r()));
   process.env.GALAXY_URL = `http://127.0.0.1:${(galaxy.address() as AddressInfo).port}`;
@@ -141,5 +145,23 @@ describe("routes.ts — no passthrough forwards the raw request path", () => {
     expect(SRC).not.toMatch(/new URL\(req\.(?:url|originalUrl)\s*,\s*MCP_UPSTREAM/);
     expect(SRC).not.toMatch(/const path = req\.path;/);
     expect((SRC.match(/proxyTarget\(req/g) ?? []).length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe("backendPassthrough — a transport failure is diagnosable", () => {
+  it("502 detail and the log carry the fetch error's cause (code + message), not just 'fetch failed'", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const r = await raw("POST", "/api/datasets/drop-connection", { a: 1 });
+      expect(r.status).toBe(502);
+      expect(r.body.error).toBe("DL surface proxy error");
+      // Node fetch reports "fetch failed"; the reason (socket closed / reset) lives in err.cause.
+      expect(r.body.cause?.code || r.body.cause?.message).toBeTruthy();
+      expect(r.body.detail).not.toBe("fetch failed");
+      const line = warn.mock.calls.map((c) => c.join(" ")).find((l) => l.startsWith("[passthrough]"));
+      expect(line).toMatch(/^\[passthrough\] DL surface POST \/api\/datasets\/drop-connection -> \S+ .+/);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

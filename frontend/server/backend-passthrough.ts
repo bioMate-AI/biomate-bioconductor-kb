@@ -43,8 +43,24 @@ export function backendPassthrough(label: string) {
       return res.send(Buffer.from(await resp.arrayBuffer()));
     } catch (err: any) {
       const status = err.response?.status || 502;
-      return res.status(status).json({ error: `${label} proxy error`, detail: err.message });
+      // Node's fetch rejects with "fetch failed"; the real reason (ECONNRESET, a socket the
+      // backend closed, a timeout) is on err.cause. Report and log it so a 502 is diagnosable.
+      const cause = transportCause(err);
+      console.warn(`[passthrough] ${label} ${req.method} ${req.path} -> ${cause.code || "no-code"} ${cause.message || err?.message}`);
+      return res.status(status).json({
+        error: `${label} proxy error`,
+        detail: cause.message ? `${err?.message}: ${cause.message}` : err?.message,
+        ...(cause.code || cause.message ? { cause } : {}),
+      });
     }
   };
 }
 
+
+/** The innermost cause of a fetch rejection: its code (ECONNRESET, UND_ERR_SOCKET, …) and message. */
+function transportCause(err: any): { code?: string; message?: string } {
+  let c = err?.cause;
+  while (c?.cause) c = c.cause;
+  if (!c) return err?.name === "TimeoutError" ? { code: "TIMEOUT", message: err.message } : {};
+  return { code: c.code ?? c.name, message: c.message };
+}

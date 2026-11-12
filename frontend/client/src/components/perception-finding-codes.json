@@ -255,7 +255,7 @@
     "intervals_summary": "Genomic intervals: {{regions}}; columns: {{columns}}.",
     "intervals_unstranded": "No strand column: the intervals are treated as unstranded.",
     "jsonl_skipped_lines": "Lines that are not valid JSON were skipped: {{count}}.",
-    "label_few_rows": "Column “{{column}}” looks like a group column (e.g. condition), but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
+    "label_few_rows": "“{{column}}” looks like the group column, but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
     "label_free_text": "Column “{{column}}” looks like a label, but its distinct values ({{distinct}}) make it free text, not a class target.",
     "label_no_features": "Column “{{column}}” looks like a group column, but the other columns are identifiers or annotation, so there is nothing to compare between the groups.",
     "label_spellings": "Two spellings of the same label: “{{a}}” and “{{b}}”.",

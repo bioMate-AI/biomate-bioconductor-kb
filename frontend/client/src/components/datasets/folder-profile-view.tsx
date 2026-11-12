@@ -12,6 +12,7 @@ import { Download, Folder } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ProfileErrorState } from "./profile-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { findingText, pathBaseText, type PerceptionFinding } from "@/components/data-perception"
 import { t, tOr } from "@/lib/i18n"
@@ -148,8 +149,10 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
             <Skeleton className="h-4 w-56" />
             <Skeleton className="h-20 w-full" />
           </div>
-        ) : q.isError || !prof || typeof prof.kind !== "string" || !Array.isArray(prof.rollup) ? (
-          <p className="text-sm text-muted-foreground" data-testid="folder-profile-error">{t("folder_profile.error")}</p>
+        ) : q.isError ? (
+          <ProfileErrorState error={q.error} onRetry={() => { void q.refetch() }} retrying={q.isFetching} testId="folder-profile-error" />
+        ) : !prof || typeof prof.kind !== "string" || !Array.isArray(prof.rollup) ? (
+          <p className="text-sm text-muted-foreground" data-testid="folder-profile-error" data-reason="invalid">{t("folder_profile.error")}</p>
         ) : (
           <>
             <Rollup prof={prof} />

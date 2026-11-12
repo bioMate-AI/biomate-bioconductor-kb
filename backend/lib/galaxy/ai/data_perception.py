@@ -363,7 +363,7 @@ _EN_TEXT: Dict[str, str] = {
     'anndata_layers': "Layers stored beside X ({{count}}): {{layers}}.",
     'anndata_no_layers': "No layers: the expression values are in X only.",
     'anndata_components': "Stored components ({{count}}): {{components}}.",
-    'label_few_rows': "Column “{{column}}” looks like a group column (e.g. condition), but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
+    'label_few_rows': "“{{column}}” looks like the group column, but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
     'label_no_features': "Column “{{column}}” looks like a group column, but the other columns are identifiers or annotation, so there is nothing to compare between the groups.",
     'table_clean_label_unchecked': "Rows: {{rows}} · columns: {{cols}}; no constant columns or missing-value problems.",
     'duplicate_rows': "Exact duplicate rows: {{count}}.",

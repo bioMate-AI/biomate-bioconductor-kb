@@ -589,6 +589,12 @@
     "rename_hint_short": "Enter saves · Esc cancels · “/” = folder",
     "quality_open_to_check": "Ingest quality: not checked yet — open the file to check it"
   },
+  "profile_error": {
+    "forbidden": "You don't have access to this dataset's profile.",
+    "unreachable": "Couldn't reach the profiler — the file was not checked. Try again in a moment.",
+    "failed": "The profile request failed ({{status}}) — the file was not checked.",
+    "retry": "Try again"
+  },
   "dataset_obj": {
     "quality_good": "Good",
     "quality_watch": "Watch",
@@ -612,7 +618,6 @@
     "quality_heading": "Data QC",
     "quality_sub": "A quick heuristic read of the data itself — not a full QC run. For real QC, use Run full QC.",
     "quality_noref": "No resolvable reference — a data profile is not available for this dataset.",
-    "quality_error": "Profile not available — the profiler could not read this dataset.",
     "run_qc": "Run full QC",
     "run_qc_tip": "Opens a chat with this file attached and asks BioMate for a quality-control report. BioMate decides how to check it — an analysis of the file’s contents, or a QC workflow where one fits.",
     "qc_request": "QC report: {{name}}. Run quality control (QC) on this file and write the QC report.",
@@ -1954,7 +1959,7 @@
       "anndata_layers": "Layers stored beside X ({{count}}): {{layers}}.",
       "anndata_no_layers": "No layers: the expression values are in X only.",
       "anndata_components": "Stored components ({{count}}): {{components}}.",
-      "label_few_rows": "Column “{{column}}” looks like a group column (e.g. condition), but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
+      "label_few_rows": "“{{column}}” looks like the group column, but with {{rows}} rows (at least {{min_rows}} needed) group balance was not assessed and columns were not screened for predicting the group; batch and donor columns were still checked against the groups.",
       "label_no_features": "Column “{{column}}” looks like a group column, but the other columns are identifiers or annotation, so there is nothing to compare between the groups.",
       "table_clean_label_unchecked": "Rows: {{rows}} · columns: {{cols}}; no constant columns or missing-value problems.",
       "duplicate_rows": "Exact duplicate rows: {{count}}.",

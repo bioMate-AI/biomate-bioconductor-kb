@@ -21,6 +21,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef, cloneElement
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ProfileErrorState } from "./profile-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   ChevronLeft,
@@ -204,7 +205,7 @@ export function DatasetObject({
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
-  const { data: profile, isLoading, isError, refetch: refetchProfile } = usePerceptionProfile(
+  const { data: profile, isLoading, isError, error: profileError, isFetching: profileFetching, refetch: refetchProfile } = usePerceptionProfile(
     dataset.ref,
     dataset.name,
   )
@@ -993,9 +994,12 @@ export function DatasetObject({
                   <Skeleton className="h-16 w-full" />
                 </div>
               ) : isError || !profile ? (
-                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-error">
-                  {t('dataset_obj.quality_error')}
-                </p>
+                <ProfileErrorState
+                  error={profileError}
+                  onRetry={() => { void refetchProfile() }}
+                  retrying={profileFetching}
+                  testId="dataset-quality-error"
+                />
               ) : (
                 <DataPerception
                   profile={profile}
