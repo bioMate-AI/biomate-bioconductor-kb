@@ -107,6 +107,20 @@ function insertInput(root: FolderNode, f: ProjectFile): void {
   node.children.push({ type: "file", name: leaf, file: f });
 }
 
+/** Tree folder path a file sits in ("inputs/run1", "outputs/analysis/<chat folder>", "outputs/<run>"). */
+export function treeFolderOf(f: ProjectFile): string {
+  const dir = f.name.includes("/") ? f.name.slice(0, f.name.lastIndexOf("/")) : "";
+  if (f.source === "run_code") return dir ? `outputs/analysis/${dir}` : "outputs/analysis";
+  if (f.source === "run_output") return `outputs/${f.run_id || "unknown"}`;
+  return dir ? `inputs/${dir}` : "inputs";
+}
+
+/** "a/b/c" → ["a", "a/b", "a/b/c"] (every folder that must be expanded to show c). */
+export function ancestorPaths(p: string): string[] {
+  const parts = p.split("/").filter(Boolean);
+  return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
+}
+
 /** Compact local time for a file row ("11-12 16:28"; earlier years add the year). */
 export function fileTime(iso: string | Date, now: Date = new Date()): string {
   const d = new Date(iso)
@@ -756,6 +770,9 @@ export interface ProjectFileTreeProps {
   /** Deep-link target: when this file id is present in the loaded list, open it
    *  as an object once (used by `/files?file=<id>` links from other surfaces). */
   selectFileId?: string;
+  /** Deep link to a folder (tree path, e.g. "outputs/analysis/<chat folder>"): expand it and its
+   *  parents and scroll it into view — the chat's "open folder" link. */
+  revealFolder?: string;
   /** Open an INPUT folder as one object (data hub folder view). Called with the folder path
    *  relative to the inputs root ("" = inputs itself, "pairs", "run1/fastq") on every click of
    *  its row (the click also expands/collapses it). Run-output groups are not folders. */
@@ -764,7 +781,7 @@ export interface ProjectFileTreeProps {
   selectedFolder?: string | null;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, revealFolder }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
@@ -819,8 +836,23 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     if (match) {
       openedSelectRef.current = selectFileId;
       onOpenDataset(match);
+      // Expand the folders it sits in, so the opened file is visible in the tree too.
+      const dir = treeFolderOf(match);
+      if (dir) setExpandedFolders((prev) => new Set([...Array.from(prev), ...ancestorPaths(dir)]));
     }
   }, [selectFileId, files, onOpenDataset]);
+
+  // Folder deep link: expand it (and its parents) once, and bring it into view.
+  const revealedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!revealFolder || revealedRef.current === revealFolder || !files.length) return;
+    revealedRef.current = revealFolder;
+    setExpandedFolders((prev) => new Set([...Array.from(prev), ...ancestorPaths(revealFolder)]));
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-testid="folder-${CSS.escape(revealFolder)}"]`);
+      el?.scrollIntoView({ block: "center" });
+    });
+  }, [revealFolder, files]);
 
   // Refresh when another component saves run outputs to this project.
   useEffect(() => {

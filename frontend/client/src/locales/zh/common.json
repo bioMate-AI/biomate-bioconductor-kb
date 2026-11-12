@@ -172,7 +172,12 @@
       }
     },
     "typing_thinking": "BioMate 正在思考…",
-    "typing_workflow": "BioMate 正在为您生成工作流…"
+    "typing_workflow": "BioMate 正在为您生成工作流…",
+    "generated_files": "生成的文件（{{n}}）",
+    "open_output_folder": "打开文件夹",
+    "open_in_data": "在数据中打开",
+    "open_file_panel": "在对话旁打开",
+    "file_panel_error": "无法打开此文件，它可能已被删除。"
   },
   "composer": {
     "data": "数据",
@@ -819,7 +824,9 @@
     "consumers_loading": "正在查找使用位置…",
     "columns_loading": "正在读取列信息…",
     "figure_loading": "正在加载图片…",
-    "figure_missing": "未找到图片：{{name}}"
+    "figure_missing": "未找到图片：{{name}}",
+    "html_rendered": "渲染视图",
+    "html_source": "源代码"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

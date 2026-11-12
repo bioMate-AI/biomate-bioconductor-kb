@@ -130,7 +130,7 @@ export function CodeExecutionBlock({ block }: Props) {
   const isError = !!result?.error || (result?.output as any)?.exit_code > 0;
   const exitCode = (result?.output as any)?.exit_code as number | undefined;
   const stdout = (result?.output as any)?.stdout as string | undefined;
-  const outputFiles = (result?.output as any)?.output_files as Array<{ name: string; size: number; preview: string; image_data_uri?: string; download_url?: string }> | undefined;
+  const outputFiles = (result?.output as any)?.output_files as Array<{ name: string; size: number; preview: string; image_data_uri?: string; download_url?: string; project_file_id?: string; project_id?: string; project_file_name?: string }> | undefined;
   // Generated figures (plots) — surfaced inline so they are visible without
   // expanding the tool card (founder feedback 2026-11-10: "where is the plot?").
   const imageFiles = outputFiles?.filter(f => f.image_data_uri) ?? [];

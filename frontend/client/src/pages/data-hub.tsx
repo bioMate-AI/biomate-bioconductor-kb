@@ -44,26 +44,7 @@ import { FolderProfileView } from "@/components/datasets/folder-profile-view"
 import { downloadProjectFile } from "@/components/datasets/datasets-api"
 import { PaneResizeHandle, useTreeWidth } from "@/components/datasets/pane-resize-handle"
 import { t, tOr, locale } from "@/lib/i18n"
-
-function toDatasetRef(f: ProjectFile): DatasetRef {
-  return {
-    id: f.id,
-    name: f.name,
-    ref: f.s3_key || null,
-    // project_files.size is BIGINT → node-postgres returns it as a STRING, so
-    // coerce to a real number here (the DatasetRef.size type expects one, and a
-    // string silently failed the header size-badge's typeof guard).
-    size: f.size == null ? null : Number(f.size),
-    contentType: f.content_type || null,
-    source: f.source,
-    accession: (f.input_context?.accession as string | undefined) ?? null,
-    runId: f.run_id,
-    workflowName: f.workflow_name,
-    stepName: f.step_name,
-    createdAt: f.created_at,
-    contentHash: f.content_hash ?? null,
-  }
-}
+import { toDatasetRef } from "@/components/datasets/to-dataset-ref"
 
 // Map a project lifecycle status to a dot colour. Purely presentational —
 // the status itself comes from the real project record.
@@ -187,6 +168,8 @@ export default function DataHubPage() {
   // to the same object here — the "one object everywhere" handle.
   const search = useSearch()
   const deepLinkFileId = new URLSearchParams(search).get("file") || undefined
+  // "Open folder" from a chat's generated-files list: reveal that folder in the tree.
+  const deepLinkFolder = new URLSearchParams(search).get("folder") || undefined
 
   // Clear the selection when the active project changes — a file id from one
   // project is meaningless in another.
@@ -253,6 +236,7 @@ export default function DataHubPage() {
               onOpenFolder={(p) => { setSelected(null); setSelectedFolder(p) }}
               selectedFolder={selectedFolder}
               selectFileId={deepLinkFileId}
+              revealFolder={deepLinkFolder}
               canEdit
             />
           </div>

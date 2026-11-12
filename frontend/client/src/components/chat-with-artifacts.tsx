@@ -1,4 +1,6 @@
 import { awaitsWorkflowInput } from "@/lib/workflow-response-state"
+import { FilePanel } from "@/components/datasets/file-panel"
+import { OPEN_FILE_IN_PANEL, type OpenFileInPanelDetail } from "@/lib/file-panel-events"
 import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
 // chat-with-artifacts: main chat UI component
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
@@ -178,6 +180,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // A project file opened from the chat (generated-files list, tool cards) — shown in the right
+  // panel over any workflow; closing it reveals the workflow again.
+  const [panelFile, setPanelFile] = useState<OpenFileInPanelDetail | null>(null)
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent<OpenFileInPanelDetail>).detail
+      if (!d?.projectId || !d?.fileId) return
+      e.preventDefault()
+      setPanelFile({ projectId: d.projectId, fileId: d.fileId })
+      setPanelOpen(true)
+    }
+    window.addEventListener(OPEN_FILE_IN_PANEL, onOpen)
+    return () => window.removeEventListener(OPEN_FILE_IN_PANEL, onOpen)
+  }, [])
   // Chat deep-link target after-run tab (set when a chat answer-block link opens the panel).
   const [panelAfterRunTab, setPanelAfterRunTab] = useState<'summary' | 'outputs' | 'report' | undefined>(undefined)
 
@@ -2427,8 +2443,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               // "no need to show at all"). The panel now opens ONLY when a real workflow
               // is detected (the setPanelWorkflow + setPanelOpen paths), never blank.
               if (streaming) pendingPanelFromFiles.current = false
-              if (!streaming && panelOpen && !panelWorkflow) {
-                // Safety: if some other path left the panel open with no workflow, close it.
+              if (!streaming && panelOpen && !panelWorkflow && !panelFile) {
+                // Safety: if some other path left the panel open with no workflow (and no file the
+                // user opened beside the chat), close it.
                 setPanelOpen(false)
                 onWorkflowPanelOpenChange?.(false)
               }
@@ -2476,6 +2493,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 onMouseDown={handlePanelResizeStart}
                 title={t('runs_ui.drag_resize')}
                 data-testid="panel-resize-handle"
+              />
+            )}
+            {panelFile && (
+              <FilePanel
+                projectId={panelFile.projectId}
+                fileId={panelFile.fileId}
+                onClose={() => { setPanelFile(null); if (!panelWorkflow) setPanelOpen(false) }}
               />
             )}
             {!panelWorkflow && <div className="flex justify-end px-3 py-2 border-b"><button onClick={handleClosePanelWorkflow} aria-label={t('runs_ui.close_panel')} data-testid="workflow-panel-close"><X className="h-4 w-4" /></button></div>}

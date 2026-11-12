@@ -7591,6 +7591,7 @@ ${paramLines || '(none recorded)'}`;
             const stored = await storeGeneratedFileInProject({ projectId: _resolvedProjectId, uid: _uid, hostPath, name, folder: await _chatOutputFolder() });
             if (stored?.file?.id) {
               return { dataset_id: String(stored.file.id), project_file_id: String(stored.file.id), project_id: _resolvedProjectId,
+                project_file_name: String(stored.file.name || name),
                 download_url: `/api/projects/${encodeURIComponent(_resolvedProjectId)}/files/${encodeURIComponent(stored.file.id)}/url?redirect=1` };
             }
           }
