@@ -50,14 +50,6 @@ export function unbackedOutputFileClaims(text: string, produced: string[], known
   return claimedOutputFiles(text).filter(n => !have.has(n.toLowerCase()) && !inputs.has(n.toLowerCase()));
 }
 
-export function unbackedFilesNote(files: string[], zh = false): string {
-  if (files.length === 0) return '';
-  const list = files.map(f => `\`${f}\``).join(', ');
-  return zh
-    ? `\n\n> ⚠️ ${list} 并未由本轮执行的代码生成，因此不存在可下载的文件。只有 run_code 实际输出到 $OUTPUT_DIR 的文件才会显示为附件。`
-    : `\n\n> ⚠️ ${list} ${files.length === 1 ? 'was' : 'were'} not produced by any code executed in this turn, so no such downloadable file exists. Only files run_code actually wrote to $OUTPUT_DIR are attached.`;
-}
-
 /** Names of input files attached in the conversation ("[Attached files: a.csv, b.tsv]"). */
 export function attachedInputNames(...texts: string[]): string[] {
   const names: string[] = [];
@@ -75,7 +67,15 @@ export function attachedInputNames(...texts: string[]): string[] {
  *  workflow's real built-in data (dev 2026-11-11: "Run analyze_ebv_antibody_titers on its built-in
  *  data" → run_code simulated OD readings "from literature-based distributions" and reported
  *  group titers as results). Structural: zero staged inputs + a generation call. */
-const SYNTHETIC_DATA_RE = /\bnp\.random\b|\bdefault_rng\b|\brandom\.(?:normal|uniform|randint|choice|gauss|seed|random)\b|\b(?:rnorm|runif|rbinom|rpois|rexp|rgamma|rbeta)\s*\(|\bset\.seed\s*\(|\bsimulat\w*/i;
+// Match genuine input-FABRICATION calls (draws that CREATE the analysed matrix),
+// not reproducibility boilerplate or resampling of real data. `set.seed(...)`,
+// `np.random.seed`, `np.random.permutation/shuffle/choice`, `random.seed`, and a
+// bare `simulat…` substring (which also hit `simulated_annealing` and prose
+// comments) were false positives that wrongly refused real-data run_code — see
+// the 2026-11-11 correctness review. torch / scipy.rvs / sklearn make_* were
+// evading — now covered. requestAsksForSimulation() still lets explicit
+// simulations through regardless.
+const SYNTHETIC_DATA_RE = /\bnp\.random\.(?:rand|randn|standard_normal|normal|uniform|poisson|binomial|exponential|gamma|beta|lognormal|multivariate_normal|standard_t|chisquare|standard_cauchy|dirichlet)\b|\bdefault_rng\b|\brandom\.(?:gauss|normalvariate|lognormvariate|uniform|expovariate|gammavariate|betavariate)\b|\b(?:rnorm|runif|rbinom|rpois|rexp|rgamma|rbeta|rlnorm|rt|rchisq)\s*\(|\btorch\.(?:randn|rand|randint|normal)\b|\.rvs\s*\(|\bmake_(?:classification|regression|blobs|moons|circles|gaussian_quantiles)\b/i;
 export function generatesSyntheticData(code: string, stagedInputCount: number): boolean {
   return stagedInputCount === 0 && SYNTHETIC_DATA_RE.test(code || '');
 }

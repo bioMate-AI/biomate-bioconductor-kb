@@ -643,7 +643,6 @@ function FailedRunSection({
   status,
   errorMessage,
   failedSteps,
-  logTail,
   autofix,
   invocationId,
   runId,
@@ -661,8 +660,6 @@ function FailedRunSection({
   parameters?: Record<string, unknown>;
 }) {
   const cancelled = status === 'cancelled';
-  const tail = (logTail || []).slice(-20);
-  const totalLines = logTail?.length || 0;
 
   // Detailed per-attempt history (lazy-fetched only when user expands).
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -744,7 +741,7 @@ function FailedRunSection({
           </div>
           {autofixExhausted ? (
             <p style={styles.autofixMsg}>
-              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the underlying error and log tail below for the final failure.', { n: autofix?.totalAttempts ?? 0 })}
+              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the error and next step below.', { n: autofix?.totalAttempts ?? 0 })}
             </p>
           ) : autofix?.state === 'succeeded' ? (
             <p style={styles.autofixMsg}>
@@ -831,14 +828,11 @@ function FailedRunSection({
         </div>
       )}
 
-      {tail.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div style={styles.failedStepLabel}>
-            {tOr('afterrun.log_tail', 'Log tail')} {totalLines > tail.length ? tOr('afterrun.log_tail_showing', '(showing last {{n}} of {{total}})', { n: tail.length, total: totalLines }) : tOr('afterrun.log_tail_lines', '({{n}} lines)', { n: tail.length })}
-          </div>
-          <pre style={styles.logTailBlock}>{tail.join('\n')}</pre>
-        </div>
-      )}
+      {/* Raw Nextflow log tail intentionally NOT shown here (founder 2026-11-11:
+          internal engine logs — CacheDB teardown, plugin stop, pf4j DEBUG — must
+          never surface to the user). The user-readable diagnosis + the real error
+          message (humanizeNfError) above are what the user needs; full engine logs
+          remain available in the dedicated job-log viewer for support/debugging. */}
     </div>
   );
 }

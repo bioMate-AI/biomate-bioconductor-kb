@@ -111,8 +111,11 @@ function sortFoldersFirst(node: FolderNode): void {
 export function buildTree(files: ProjectFile[]): TreeNode[] {
   const inputs: FolderNode = { type: "folder", name: "inputs", path: "inputs", children: [] };
   const outputsByRun: Record<string, FileNode[]> = {};
+  // Files BioMate generated in this project's chats (run_code reports, tables, plots) are results.
+  const analysis: FolderNode = { type: "folder", name: t("file_tree.analysis_outputs"), path: "outputs/analysis", children: [] };
 
   for (const f of files) {
+    if (f.source === "run_code") { analysis.children.push({ type: "file", name: f.name, file: f }); continue; }
     // Only run outputs are "results"; everything else the user ingested
     // (upload, pasted URL, connector pull) is an input, regardless of source.
     if (f.source !== "run_output") {
@@ -127,6 +130,7 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
 
   const root: TreeNode[] = [];
   if (inputs.children.length > 0) root.push(inputs);
+  if (analysis.children.length > 0) root.push(analysis);
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
     const firstFile = nodes[0]?.file;
     const wfName = firstFile?.workflow_name ?? t('workflow.labels.workflow');

@@ -33,6 +33,62 @@ log = logging.getLogger(__name__)
 
 _TIMEOUT = 10  # seconds per external call
 
+# Registry (authoritative source catalog) — used to drop category-mismatched sources
+# for a given entity type. Degrade gracefully (keep all sources) if unavailable.
+try:  # pragma: no cover - import guard
+    from galaxy.ai import data_sources as _registry
+except Exception:  # pragma: no cover
+    _registry = None
+
+# Entity-type classes for the mismatch filter. A gene symbol names a protein target,
+# so gene and protein are one class; "compound" is the other. A source is dropped only
+# when its entity_types are a subset of the OTHER class (e.g. PubChem/ChEBI = compound-
+# only, dropped for a gene/protein query). Dual-class and cross-cutting sources survive.
+_MACRO_TYPES = frozenset({"gene", "protein"})
+_COMPOUND_TYPES = frozenset({"compound"})
+
+# Sources that need an API key we may not hold. Keyless they return HTTP 429 on nearly
+# every call (Semantic Scholar's shared pool), so querying them just wastes a request
+# and slows the answer. Drop them unless the key is present; they re-enable the moment
+# the env var is set — no code change. PubMed / Europe PMC / OpenAlex cover literature.
+_KEY_GATED_SOURCES = {"semantic_scholar": "SEMANTIC_SCHOLAR_API_KEY"}
+
+
+def _drop_unauthenticated_sources(srcs: List[str]) -> List[str]:
+    return [s for s in srcs
+            if s not in _KEY_GATED_SOURCES
+            or os.environ.get(_KEY_GATED_SOURCES[s], "").strip()]
+
+
+def _drop_mismatched_sources(srcs: List[str], detected: str) -> List[str]:
+    """Remove sources whose registry entity_types serve EXCLUSIVELY the other class.
+
+    Only filters when the detected type is cleanly gene/protein or compound; for
+    structure/variant/disease/pathway/literature it is a no-op (those are either
+    cross-cutting or already selected deliberately). Unknown sources are kept so the
+    filter never silently reduces coverage.
+    """
+    if detected in _MACRO_TYPES:
+        other = _COMPOUND_TYPES
+    elif detected in _COMPOUND_TYPES:
+        other = _MACRO_TYPES
+    else:
+        return srcs
+    if _registry is None:
+        return srcs
+    kept: List[str] = []
+    for sid in srcs:
+        rec = None
+        try:
+            rec = _registry.by_id(sid)
+        except Exception:
+            rec = None
+        et = set((rec or {}).get("entity_types") or [])
+        # keep when we can't classify it, or it is not exclusively the other class
+        if not et or not et.issubset(other):
+            kept.append(sid)
+    return kept
+
 # ── Air-gap / offline mode ──────────────────────────────────────────────────────
 # In a no-egress (air-gapped) on-prem deployment, every external resolver call would
 # hang for _TIMEOUT before failing. BIOMATE_OFFLINE_MODE short-circuits them: a registered
@@ -291,7 +347,10 @@ def _fetch_pdb(query: str) -> Dict:
     payload = {
         "query": {"type": "terminal", "service": "full_text",
                   "parameters": {"value": query}},
-        "return_type": "entry", "request_options": {"results_slice": {"start": 0, "rows": 5}}
+        # v2 pagination key is "paginate" (start/rows). The old "results_slice" is not
+        # a valid v2 field → HTTP 400 on every text search (dev finding, 2026-11-11,
+        # confirmed against the live endpoint).
+        "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}}
     }
     data = _post_json("https://search.rcsb.org/rcsbsearch/v2/query", payload)
     ids = [r["identifier"] for r in (data or {}).get("result_set", [])[:5]]
@@ -323,11 +382,15 @@ def _fetch_ensembl(query: str) -> Dict:
     return {"source": "ensembl", "results": []}
 
 def _fetch_string(query: str) -> Dict:
+    # Return the actual interaction NETWORK (partners + combined confidence). The old fetcher
+    # only called get_string_ids, which resolves the id but has no 'score' key (so score was
+    # always None) and returns NO partners — the network evidence never arrived (dev finding,
+    # 2026-11-11). interaction_partners accepts the symbol directly; required_score=700 = high.
     q = urllib.parse.quote(query)
-    data = _get(f"https://string-db.org/api/json/get_string_ids"
-                f"?identifiers={q}&species=9606&limit=5&caller_identity=biomate")
-    results = [{"protein_id": p.get("stringId"), "gene": p.get("preferredName"),
-                "score": p.get("score")} for p in (data or [])[:5]]
+    data = _get(f"https://string-db.org/api/json/interaction_partners"
+                f"?identifiers={q}&species=9606&required_score=700&limit=10&caller_identity=biomate")
+    results = [{"partner": p.get("preferredName_B"), "string_id": p.get("stringId_B"),
+                "score": p.get("score")} for p in (data or [])[:10]]
     return {"source": "string", "results": results}
 
 def _fetch_kegg(query: str) -> Dict:
@@ -372,27 +435,39 @@ def _fetch_go(query: str) -> Dict:
                 {"go_id": query.upper(), "name": data.get("label"),
                  "definition": (data.get("definition") or {}).get("val")}
             ]}
+    # QuickGO returns clean GO terms; the old api.geneontology.org autocomplete returned
+    # GENE PRODUCTS (often non-human) with hex-blob ids, not GO: terms.
     q = urllib.parse.quote(query)
-    data = _get(f"https://api.geneontology.org/api/search/entity/autocomplete/{q}"
-                f"?rows=5&ontology=go")
-    results = [{"go_id": d.get("id"), "name": d.get("label")}
-               for d in (data or {}).get("docs", [])[:5]]
+    data = _get(f"https://www.ebi.ac.uk/QuickGO/services/ontology/go/search?query={q}&limit=5",
+                headers={"Accept": "application/json"})
+    results = [{"go_id": d.get("id"), "name": d.get("name"),
+                "definition": (d.get("definition") or {}).get("text")}
+               for d in (data or {}).get("results", [])[:5]]
     return {"source": "go", "results": results}
 
 def _fetch_hpo(query: str) -> Dict:
+    # ontology.jax.org is the live HPO API; the old hpo.jax.org/api/hpo/search now serves a
+    # single-page-app HTML shell (not JSON) → every call failed. Same terms[].{id,name,definition}.
     q = urllib.parse.quote(query)
-    data = _get(f"https://hpo.jax.org/api/hpo/search?q={q}&max=5&offset=0&category=terms")
+    data = _get(f"https://ontology.jax.org/api/hp/search?q={q}&limit=5")
     results = [{"hpo_id": t.get("id"), "name": t.get("name"),
                 "definition": t.get("definition")}
                for t in (data or {}).get("terms", [])[:5]]
     return {"source": "hpo", "results": results}
 
 def _fetch_chebi(query: str) -> Dict:
+    # Live ChEBI search is the backend ES endpoint; searchId.do + webservices/chebi/2.0/lite
+    # are retired (return HTML / 301) → the old fetcher returned [] for every query.
     q = urllib.parse.quote(query)
-    data = _get(f"https://www.ebi.ac.uk/chebi/searchId.do?chebiId={q}&format=json")
-    if not data:
-        data = _get(f"https://www.ebi.ac.uk/webservices/chebi/2.0/lite?search={q}&max_results=5")
-    return {"source": "chebi", "results": data or []}
+    data = _get(f"https://www.ebi.ac.uk/chebi/backend/api/public/es_search/?term={q}&size=5")
+    results = []
+    for hit in (data or {}).get("results", [])[:5]:
+        src = hit.get("_source") or {}
+        results.append({"chebi_id": src.get("chebi_accession"),
+                        "name": src.get("name"),
+                        "definition": src.get("definition"),
+                        "stars": src.get("stars")})
+    return {"source": "chebi", "results": results}
 
 def _fetch_chembl(query: str) -> Dict:
     q = urllib.parse.quote(query)
@@ -406,6 +481,19 @@ def _fetch_chembl(query: str) -> Dict:
                         "formula": props.get("full_molformula"),
                         "mw": props.get("full_mwt"),
                         "smiles": (m.get("molecule_structures") or {}).get("canonical_smiles")})
+    # No molecule by that name → treat the query as a TARGET (gene/protein). This is
+    # the SAR/potency case: "ABL1" is not a molecule, so molecule/search is empty and
+    # the old fetcher returned nothing. Resolve the ChEMBL target so the answer grounds
+    # on real target annotation (dev finding, 2026-11-11: ABL1 → CHEMBL1862).
+    if not results:
+        tq = urllib.parse.quote(query)
+        tdata = _get(f"https://www.ebi.ac.uk/chembl/api/data/target/search"
+                     f"?q={tq}&format=json&limit=3")
+        for t in (tdata or {}).get("targets", [])[:3]:
+            results.append({"chembl_target_id": t.get("target_chembl_id"),
+                            "name": t.get("pref_name"),
+                            "target_type": t.get("target_type"),
+                            "organism": t.get("organism")})
     return {"source": "chembl", "results": results}
 
 def _fetch_pubchem(query: str) -> Dict:
@@ -429,8 +517,10 @@ def _fetch_pubchem(query: str) -> Dict:
     return {"source": "pubchem", "results": results}
 
 def _fetch_interpro(query: str) -> Dict:
+    # /entry/interpro?search= returns real domain entries with results[].metadata; the old
+    # /entry/?search= returned only a DB-counts summary (no results[]) → always empty.
     q = urllib.parse.quote(query)
-    data = _get(f"https://www.ebi.ac.uk/interpro/api/entry/?search={q}&format=json&page_size=5")
+    data = _get(f"https://www.ebi.ac.uk/interpro/api/entry/interpro?search={q}&format=json&page_size=5")
     results = [{"accession": e.get("metadata", {}).get("accession"),
                 "name": e.get("metadata", {}).get("name"),
                 "type": e.get("metadata", {}).get("type")}
@@ -637,8 +727,9 @@ def _fetch_openalex(query: str) -> Dict:
     """OpenAlex — 250M works, concept tagging, institution filtering."""
     q = urllib.parse.quote(query)
     fields = "title,authorships,publication_year,cited_by_count,open_access,concepts"
+    # mailto MUST be a query param (not just the UA) to reach OpenAlex's polite pool.
     data = _get(f"https://api.openalex.org/works"
-                f"?search={q}&per-page=5&select={fields}",
+                f"?search={q}&per-page=5&select={fields}&mailto=admin@biomate.ai",
                 headers={"User-Agent": "BioMate/1.0 (biomate.ai; mailto:admin@biomate.ai)"})
     results = []
     for w in (data or {}).get("results", [])[:5]:
@@ -659,9 +750,11 @@ def _fetch_crossref(query: str) -> Dict:
     """Crossref — cross-publisher scholarly metadata (~150M works across all
     journals/publishers). Broadens peer-reviewed coverage well beyond the
     bibliographic trio (EuropePMC/Semantic Scholar/OpenAlex); JSON REST."""
+    # mailto → polite pool (1→3 req/s, verified); query.bibliographic is more precise than
+    # the generic query= (which matches any field loosely).
     q = urllib.parse.quote(query)
     data = _get(
-        f"https://api.crossref.org/works?query={q}&rows=5"
+        f"https://api.crossref.org/works?query.bibliographic={q}&rows=5&mailto=admin@biomate.ai"
         f"&select=title,author,issued,abstract,DOI,URL,container-title"
     )
     results = []
@@ -767,8 +860,28 @@ def federated_query(
     target_sources = sources or ENTITY_SOURCES.get(detected, ENTITY_SOURCES["gene"])
     # Filter to known sources only
     target_sources = [s for s in target_sources if s in _FETCHERS]
+    # Drop category-mismatched sources for the detected entity type. A gene/protein
+    # target must NOT be looked up in a COMPOUND-only database (PubChem/ChEBI return
+    # 404 for "ABL1" and burn a shared rate-limit slot), and a compound must not be
+    # looked up in a GENE-only database. Registry `entity_types` are the source of
+    # truth; a source is dropped only when it serves EXCLUSIVELY the other class, so
+    # dual-class sources (ChEMBL = protein+compound) and cross-cutting ones
+    # (literature/pathway/variant/disease/structure) always survive. This runs even
+    # when the caller passes an explicit `sources=` list, because that intent-selected
+    # list (facet-based) is exactly what over-includes compound DBs for a target
+    # (live dev finding, 2026-11-11: ABL1 SAR hit PubChem/ChEBI/PDB-by-id).
+    target_sources = _drop_mismatched_sources(target_sources, detected)
+    # Drop sources whose required API key we don't hold (keyless → 429 waste).
+    target_sources = _drop_unauthenticated_sources(target_sources)
 
-    cache_key = f"bm:fq:{detected}:{query.lower().strip()}"
+    # The cache key MUST include the (filtered) source set: an intent-selected fan-out
+    # (e.g. sources=[chembl,pdb,…] for a SAR question) and a default entity-type fan-out
+    # share the same detected type + query text but query DIFFERENT sources. Keying on
+    # type+query alone let a prior default query serve a later source-restricted one from
+    # cache with the WRONG merged set — silently dropping the sources the caller asked for
+    # (committee review, 2026-11-11).
+    _src_key = ",".join(sorted(target_sources))
+    cache_key = f"bm:fq:{detected}:{query.lower().strip()}:{_src_key}"
     cached = _cache_get(cache_key)
     if cached:
         cached["_cached"] = True

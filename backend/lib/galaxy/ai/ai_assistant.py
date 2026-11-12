@@ -2068,11 +2068,14 @@ class AIAssistant:
         # on disk that the resolved file is actually standalone-runnable.
         if filename.endswith('/main.nf'):
             resolved = self._resolve_execution_nf(getattr(match, 'filename', '') or '')
-            if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
+            if resolved is None:
+                return False  # file not on disk — can't run it
+            if not self._nf_file_is_standalone_runnable(resolved):
                 return False
             return True
         if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename or '/bioconductor/' in filename):
-            return True
+            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
+            return resolved is not None
         return False
 
     def _resolve_execution_nf(self, filename: str) -> Optional[Any]:
@@ -2605,11 +2608,19 @@ Respond with a single JSON object — no other text:
     # Params that hold raw biological sequence TEXT (not file paths).
     # When a user's query contains a long AA/NT string, the AI should fill
     # these params directly — not look for an S3 path.
+    # Include both singular and plural forms so e.g. nf-core/proteinfold's
+    # `protein_sequences` param gets auto-filled when a raw AA string is pasted.
     _SEQUENCE_PARAM_NAMES: frozenset = frozenset([
-        'sequence', 'protein_sequence', 'protein_sequences',
-        'dna_sequence', 'rna_sequence',
-        'aa_sequence', 'nt_sequence', 'peptide_sequence', 'query_sequence',
-        'target_sequence', 'input_sequence',
+        'sequence', 'sequences',
+        'protein_sequence', 'protein_sequences',
+        'dna_sequence', 'dna_sequences',
+        'rna_sequence', 'rna_sequences',
+        'aa_sequence', 'aa_sequences',
+        'nt_sequence', 'nt_sequences',
+        'peptide_sequence', 'peptide_sequences',
+        'query_sequence', 'query_sequences',
+        'target_sequence', 'target_sequences',
+        'input_sequence', 'input_sequences',
     ])
 
     # Params that hold chemical structure notations (SMILES, InChI, etc.)
@@ -3563,6 +3574,42 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 })
                 _already_set.add('smiles_list')
 
+        # Rule: extract raw AA or NT sequence from query → first unfilled 'sequence'-type param.
+        # This is rule-based (no LLM) so it is zero-latency and 100% reliable.
+        # Handles patterns like:
+        #   "analyze MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR"
+        #   "帮我跑一下：MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR"
+        # We look for the LONGEST contiguous run of AA/NT letters (≥15) in the query.
+        # If the workflow has a sequence-type param that isn't already set, fill it.
+        _seq_params_unfilled = [
+            p for p in req + opt
+            if self._detect_param_type(p.get("name", ""), str(p.get("default", "") or "")) == "sequence"
+            and p.get("name") not in _already_set
+        ]
+        if _seq_params_unfilled:
+            _AA_CHARS = r'[ACDEFGHIKLMNPQRSTVWYBZXU]'
+            _seq_match = None
+            _best_len = 0
+            for _m in _re.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent, _re.IGNORECASE):
+                if len(_m.group(1)) > _best_len:
+                    _seq_match = _m.group(1)
+                    _best_len = len(_seq_match)
+            if _seq_match:
+                # Fill ALL required sequence params with the found sequence.
+                # Some workflows (e.g. nf-core/proteinfold) declare both `sequence`
+                # and `protein_sequences` as null-required aliases for the same input —
+                # filling only the first leaves the other blocking the Run button.
+                # If there are NO required sequence params, fill the first optional one.
+                _req_seq = [p for p in _seq_params_unfilled if p.get("required", True)]
+                _opt_seq = [p for p in _seq_params_unfilled if not p.get("required", True)]
+                for _sp in (_req_seq if _req_seq else _opt_seq[:1]):
+                    suggestions.append({
+                        "name": _sp["name"],
+                        "value": _seq_match.upper(),
+                        "rationale": "Amino-acid/nucleotide sequence extracted directly from your query.",
+                    })
+                    _already_set.add(_sp["name"])
+
         return suggestions
 
     def _apply_llm_suggestions(
@@ -3712,6 +3759,68 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.warning("[run_via_pipeline] pipeline invocation failed: %s — falling back", exc)
             return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
 
+    # ── Example-data detection ──────────────────────────────────────────────
+    # A workflow "runs on its own example data" when it can execute with NO user
+    # input because its data inputs resolve to bundled/built-in example data. This
+    # is a REAL property of the workflow DEFINITION (never a hard-coded list of
+    # names), derived from the executed .nf:
+    #   (B) a built-in example/demo DATA fallback keyed on the absence of a data
+    #       param — the author's documented "merfish/voyager" pattern: a
+    #       `def demo = ( !params.x )` guard, a demo_mode / input_is_demo /
+    #       demo_used flag, a "built-in demo default" block, or a "param-less"
+    #       quick run. These paths download/use REAL public data (chipseq CTCF,
+    #       atac nf-core BAMs, chemoproteomics LFQ-Analyst, wsi OpenSlide,
+    #       metaboanalystr human_cachexia); and/or
+    #   (A) a data-input param whose default is itself bundled example data — a
+    #       sample_data / test-data FILE PATH (flow cytometry's Accuri FCS) or an
+    #       inline example-values literal (EBV's ELISA OD JSON).
+    # It is NOT a synthetic/random generator (those draw values at runtime and are
+    # blocked elsewhere); every path above is real, fixed, clearly-labelled data.
+    _EXAMPLE_DATA_FALLBACK_RE = re.compile(
+        r'\bdef\s+demo\s*=|\bdemo_mode\b|\binput_is_demo\b|\bdemo_used\b'
+        r'|built-in demo default|param-?less',
+        re.IGNORECASE,
+    )
+    _EXAMPLE_DATA_BUNDLED_PATH_RE = re.compile(
+        r'params\.\w+\s*=\s*["\'][^"\']*'
+        r'(?:sample_data|/test[-_/]|/testdata|example_data|openslide-testdata)'
+        r'[^"\']*\.\w{2,6}["\']',
+        re.IGNORECASE,
+    )
+    _EXAMPLE_DATA_INLINE_RE = re.compile(
+        r'params\.\w*(?:data|od|elisa|readings|counts|matrix|titer)\w*'
+        r'\s*=\s*[\'"]\s*[\[{]',
+        re.IGNORECASE,
+    )
+
+    def _detect_example_data(self, filename: str) -> Optional[Dict[str, Any]]:
+        """Return an example-data descriptor when the workflow runs on its own
+        bundled example data with no user input, else None. Derived from the .nf
+        definition (see the signal notes above) — never from the workflow name."""
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return None
+        try:
+            text = nf_path.read_text(encoding='utf-8', errors='ignore')
+        except Exception:
+            return None
+        has_fallback = bool(self._EXAMPLE_DATA_FALLBACK_RE.search(text))
+        has_bundled = bool(self._EXAMPLE_DATA_BUNDLED_PATH_RE.search(text))
+        has_inline = bool(self._EXAMPLE_DATA_INLINE_RE.search(text))
+        if not (has_fallback or has_bundled or has_inline):
+            return None
+        return {
+            'present': True,
+            # One honest, storage-path-free sentence the reply can surface.
+            'note': ("Runs on the workflow's built-in example dataset when no files "
+                     "are attached — attach your own files to replace it."),
+            'signals': {
+                'fallback': has_fallback,
+                'bundled_default': has_bundled,
+                'inline_default': has_inline,
+            },
+        }
+
     def _return_nextflow_match(
         self,
         match: Any,
@@ -3741,7 +3850,21 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _bound_value = _data_match.group(0) if _data_match and not _data_match.group(0).startswith('[') else None
         data_inputs = [{**d, 'bound': bool(_data_match), 'bound_value': _bound_value}
                        for d in nf_params.get('data_inputs', [])]
-        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
+        # Example-data capability: does THIS workflow run on its own bundled example
+        # data with no user input? A real property of the .nf definition (see
+        # _detect_example_data). When present, the chat reply presents the card as
+        # runnable on the example dataset instead of asking for an upload; the
+        # frontend decides to surface it only when the request carries no user data.
+        # When no run data was provided, mark any executor-owned data input as
+        # satisfied-by-example so the panel shows it bound (not "required, not set").
+        _example_data = self._detect_example_data(match.filename)
+        if _example_data and not _data_match and not uploaded_datasets:
+            data_inputs = [
+                d if d.get('bound') else {**d, 'bound': True, 'bound_value': 'example dataset'}
+                for d in data_inputs
+            ]
+        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} "
+                 f"opt_names={[p['name'] for p in opt]} example_data={bool(_example_data)}")
         sra = self._extract_sra_accession(user_intent)
         if sra:
             req, opt = self._inject_sra_into_params(req, opt, sra)
@@ -3877,6 +4000,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'required_params': req,
                 'optional_params': opt,
                 **({'data_inputs': data_inputs} if data_inputs else {}),
+                **({'example_data': _example_data} if _example_data else {}),
                 **({'parameters': _exec_params} if _exec_params else {}),
                 **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             },
@@ -3884,6 +4008,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'required_params': req,
             'optional_params': opt,
             **({'data_inputs': data_inputs} if data_inputs else {}),
+            **({'example_data': _example_data} if _example_data else {}),
             'generated_parameters': req + opt,
             **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             'validation': {'is_valid': True, 'issues': [], 'warnings': warnings, 'suggestions': []},
@@ -4786,6 +4911,14 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if any(kw in _low for kw in _nucleotide_only_kw):
             return None
 
+        # Do NOT trigger for multi-sequence conservation / alignment requests
+        _MULTI_SEQ_SIGNALS = (
+            'conserv', 'align', 'phylogen', 'multiple sequence', 'multi.*sequence',
+            'compare.*sequence', 'msa', 'homolog', 'evolution',
+        )
+        if any(_re_prot.search(sig, _low) for sig in _MULTI_SEQ_SIGNALS):
+            return None
+
         # A peptide-property request was answered with proteinfold on live dev
         # (2026-11-07), although the prose named an entirely different workflow.
         # Require positive structure intent rather than adding an ever-growing
@@ -4805,7 +4938,33 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.info('[ProteinStructureFastPath] sequence present without folding intent; skipping')
             return None
 
-        top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
+        # Semantic search is more reliable than DB pattern lookup here because
+        # the DB stores nf-core workflow names with hyphens ("nf-core/proteinfold")
+        # which the LIKE-based helpers don't match consistently.
+        results = self.workflow_search.search(
+            "protein structure prediction single sequence folding ESMFold AlphaFold proteinfold",
+            domain="structural_biology",
+            limit=15,
+        )
+        # Walk results: prefer 'proteinfold', accept any single-sequence fold workflow,
+        # but explicitly EXCLUDE multi-sequence conservation/alignment pipelines.
+        _FOLD_NAMES = ('proteinfold', 'alphafold', 'esmfold', 'openfold', 'rosettafold')
+        _EXCLUDE_NAMES = ('conservation', 'align', 'homolog', 'phylogen', 'evolution', 'msa',
+                          'comparative', 'chai1', 'multiple')
+        top = None
+        for match in results:
+            name_low = (getattr(match, 'name', '') or '').lower()
+            fname_low = (getattr(match, 'filename', '') or '').lower()
+            combined = name_low + ' ' + fname_low
+            if any(ex in combined for ex in _EXCLUDE_NAMES):
+                continue
+            if any(fn in combined for fn in _FOLD_NAMES) and self._is_executable_nextflow_match(match):
+                top = match
+                break
+
+        # Fallback to DB LIKE lookup if semantic search didn't yield a runnable match
+        if not top:
+            top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
         if not top:
             log.warning("[ProteinStructureFastPath] proteinfold not found in DB — skipping")
             return None
@@ -5051,6 +5210,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # ADMET-prediction request: skip the ADMET fast path and steer search (hint below).
             _admet_as_constraint = self._admet_is_generation_constraint(user_intent)
             _generative_task = self._is_generative_task(user_intent)
+
             try:
                 _fast_admet = None if _admet_as_constraint else self._try_fast_path_admet_workflow(
                     user_intent, uploaded_datasets=uploaded_datasets
@@ -5685,6 +5845,55 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                                 )
 
                 if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
+                    # ── Credential gate: if the matched workflow requires a license/API key
+                    # that isn't configured, prompt the user to enter their credentials or
+                    # switch to a free alternative instead of silently falling back.
+                    # Mapping: workflow-name fragment → (credential_map key, fallback spec)
+                    # fallback spec: (workflow_name_hint, extra_params_dict)
+                    _CRED_GATE = {
+                        "boltz":      ("boltz2",     ("structure_prediction", {"method": "chai1"})),
+                        "alphafold3": ("alphafold3",  ("structure_prediction", {"method": "chai1"})),
+                        "alphafold":  ("alphafold3",  ("structure_prediction", {"method": "chai1"})),
+                        "chai1":      ("chai1",       ("structure_prediction", {"method": "esmfold"})),
+                    }
+                    _TOOL_DISPLAY_NAMES = {
+                        "boltz2": "Boltz-2",
+                        "alphafold3": "AlphaFold 3",
+                        "chai1": "Chai-1",
+                        "esmfold": "ESMFold",
+                    }
+                    if credential_map:
+                        _match_stem = (getattr(best_match, 'name', '') or '').lower()
+                        for _frag, (_cred_key, _fallback) in _CRED_GATE.items():
+                            if _frag in _match_stem and not credential_map.get(_cred_key, True):
+                                _fb_name, _fb_params = _fallback
+                                _fb_cred_key = _fb_params.get("method")  # chai1 / esmfold
+                                _fb_cred_ok = credential_map.get(_fb_cred_key, True)
+                                # If neither the tool NOR its fallback is available, keep the
+                                # original match so the user at least sees the right name.
+                                if _fb_cred_ok:
+                                    _tool_disp = _TOOL_DISPLAY_NAMES.get(_cred_key, _frag.title())
+                                    _fb_disp   = _TOOL_DISPLAY_NAMES.get(_fb_cred_key or '', (_fb_cred_key or '').title())
+                                    log.info(
+                                        "[UnifiedWorkflowGeneration] credential gate: %s requires "
+                                        "%s — returning credential_required prompt (fallback=%s)",
+                                        best_match.name, _cred_key, _fb_cred_key,
+                                    )
+                                    return {
+                                        'success': False,
+                                        'workflow_type': 'credential_required',
+                                        'missing_credential': _cred_key,
+                                        'tool_name': _tool_disp,
+                                        'fallback_method': _fb_cred_key,
+                                        'fallback_name': _fb_disp,
+                                        'message': (
+                                            f"{_tool_disp} requires an API key or license that hasn't been configured. "
+                                            f"You can enter your credentials to run with {_tool_disp}, "
+                                            f"or switch to {_fb_disp} (available on this deployment)."
+                                        ),
+                                    }
+                                break
+
                     log.info(f"[UnifiedWorkflowGeneration] High-confidence Nextflow match: {best_match.filename}")
                     result = self._return_nextflow_match(
                         match=best_match, score=score, user_intent=user_intent,

@@ -36,7 +36,7 @@ describe("chat surfaces — zh locale", () => {
     const words = (text.match(/[A-Za-z][A-Za-z0-9_]*/g) || [])
       .filter((w) => !ALLOWED.has(w) && !/^[A-Z][A-Z0-9_]*$/.test(w))
     expect([...new Set(words)]).toEqual([])
-    for (const s of ["1 个来源", "检索 · 保留 4 / 24", "阅读", "运行中", "打开", "新对话", "哪里有问题？", "您想做什么？"]) {
+    for (const s of ["1 个来源", "检索 · 保留 4 / 24", "阅读", "运行中", "打开", "新对话", "哪里有问题？", "今天想开展哪项研究？"]) {
       expect(text).toContain(s)
     }
   }, 60_000)

@@ -89,13 +89,23 @@ def _fetch_s2_paper(title_or_query: str) -> list:
     Returns a list of dicts with keys: title, abstract, openAccessPdf, externalIds.
     openAccessPdf is a dict with 'url' key when available.
     """
+    # Semantic Scholar's keyless shared pool returns HTTP 429 on nearly every call, so
+    # without a key this per-citation abstract/PDF enrichment just wastes requests (the
+    # abstract/PDF is recoverable from Europe PMC / OpenAlex anyway). Skip unless we hold
+    # a key; it re-enables the moment SEMANTIC_SCHOLAR_API_KEY is set. This is a THIRD S2
+    # path, separate from the literature client + federated fan-out — the live E2E caught
+    # 6x 429 from here even after those were gated (dev finding, 2026-11-11).
+    import os as _os_s2
+    _s2_key = _os_s2.environ.get("SEMANTIC_SCHOLAR_API_KEY", "").strip()
+    if not _s2_key:
+        return []
     try:
         q = urllib.parse.quote(title_or_query[:200])
         url = (
             f"https://api.semanticscholar.org/graph/v1/paper/search"
             f"?query={q}&fields=title,abstract,openAccessPdf,externalIds&limit=3"
         )
-        result = _http_get(url, headers={"Accept": "application/json"}, timeout=15)
+        result = _http_get(url, headers={"Accept": "application/json", "x-api-key": _s2_key}, timeout=15)
         if result and isinstance(result.get("data"), list):
             return result["data"]
     except Exception as e:
@@ -630,24 +640,26 @@ def lookup_mygene(identifiers: List[str], fields: str = "symbol,name,summary,OMI
     """
     if not identifiers:
         return []
-    results = []
-    for ident in identifiers[:10]:
-        # ENSG IDs and numeric IDs → direct lookup via POST
-        if re.match(r"^ENSG\d+$", ident) or re.match(r"^\d+$", ident):
-            r = _http_post(
-                "https://mygene.info/v3/gene",
-                {"ids": [ident], "fields": fields, "species": "human"},
-                timeout=10,
-            )
-            if isinstance(r, list):
-                results.extend(r)
-        else:
-            # Gene symbol → query endpoint
-            url = (f"https://mygene.info/v3/query?q=symbol:{urllib.parse.quote(ident)}"
-                   f"&fields={urllib.parse.quote(fields)}&species=human&size=1")
-            r = _http_get(url, timeout=10)
-            if r and r.get("hits"):
-                results.extend(r["hits"])
+    ids = list(identifiers)[:10]
+    direct = [i for i in ids if re.match(r"^ENSG\d+$", i) or re.match(r"^\d+$", i)]
+    symbols = [i for i in ids if i not in direct]
+    results: List[dict] = []
+    # ENSG / Entrez IDs → direct batch lookup
+    if direct:
+        r = _http_post("https://mygene.info/v3/gene",
+                       {"ids": direct, "fields": fields, "species": "human"}, timeout=10)
+        if isinstance(r, list):
+            results.extend(r)
+    # Symbols → ONE batched query across symbol+alias+retired scopes. `q=symbol:` alone
+    # missed every alias/legacy name — p53, BCR-ABL, HER2, CD20 returned ZERO; the scoped
+    # batch resolves them (p53→TP53, BCR-ABL→ABL1, HER2→ERBB2) in a single request
+    # (dev finding, 2026-11-11).
+    if symbols:
+        r = _http_post("https://mygene.info/v3/query",
+                       {"q": symbols, "scopes": "symbol,alias,retired",
+                        "fields": fields, "species": "human"}, timeout=10)
+        if isinstance(r, list):
+            results.extend(h for h in r if isinstance(h, dict) and not h.get("notfound"))
     return results
 
 
@@ -673,16 +685,26 @@ def lookup_hpo_genes(hp_terms: List[str], limit: int = 20) -> Dict[str, List[dic
     return out
 
 
-def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
-    """NCBI ClinVar E-utils — pathogenic variants for a gene symbol."""
+def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5,
+                        pathogenic_only: bool = True, signal_errors: bool = False):
+    """NCBI ClinVar E-utils — variants for a gene symbol.
+
+    pathogenic_only=True (default) returns only pathogenic[CLNSIG] variants. For
+    VALIDATION pass pathogenic_only=False to return ALL significances — otherwise a real
+    benign / risk-factor / VUS variant (e.g. the LRRK2 risk allele G2385R, which ClinVar
+    classes "risk factor", not "pathogenic") is absent and would be wrongly flagged as a
+    fabrication. signal_errors=True returns None on a network/HTTP failure (vs [] for a
+    genuinely empty result) so a caller can say "could not check", not "not found"
+    (committee review, 2026-11-11)."""
+    _clnsig = "+pathogenic%5BCLNSIG%5D" if pathogenic_only else ""
     search_url = (
         f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-        f"?db=clinvar&term={urllib.parse.quote(gene_symbol)}%5Bgene%5D+pathogenic%5BCLNSIG%5D"
+        f"?db=clinvar&term={urllib.parse.quote(gene_symbol)}%5Bgene%5D{_clnsig}"
         f"&retmax={max_results}&retmode=json"
     )
     search = _http_get(search_url, timeout=10)
     if not search:
-        return []
+        return None if signal_errors else []
     ids = search.get("esearchresult", {}).get("idlist", [])
     if not ids:
         return []
@@ -692,7 +714,7 @@ def lookup_clinvar_gene(gene_symbol: str, max_results: int = 5) -> List[dict]:
     )
     summary = _http_get(summary_url, timeout=10)
     if not summary:
-        return []
+        return None if signal_errors else []
     results = []
     for uid, doc in summary.get("result", {}).items():
         if uid == "uids":
@@ -744,6 +766,24 @@ def _variant_in_clinvar_titles(claimed, titles):
 def _entity_validation_enabled():
     import os as _os
     return _os.environ.get("BIOMATE_ENTITY_VALIDATION", "").strip().lower() in ("1", "true", "yes")
+
+
+_FOUNDATIONAL_CUES = (
+    "what is the evidence", "evidence linking", "evidence for", "evidence that",
+    "etiolog", "aetiolog", "pathogenesis", "mechanism", "what drives", "what causes",
+    "structure-activity", "structure activity", " sar ", "sar for", "sar of",
+    "discover", "history of", "seminal", "foundational", "basis of", "underlying",
+    "link between", "association between", "causal",
+)
+
+
+def _needs_foundational(question):
+    """True when a question needs the FOUNDATIONAL literature (etiology / mechanism /
+    SAR / evidence-base), not just the last ~5 years — so retrieval should rank by
+    impact and keep seminal papers instead of burying them under recent reviews. The
+    ABL1/LRRK2 failure (every citation 2025-26, foundational papers absent) is this bug."""
+    q = f" {(question or '').lower()} "
+    return any(cue in q for cue in _FOUNDATIONAL_CUES)
 
 
 def lookup_omim_gene(gene_symbol: str) -> List[dict]:
@@ -1673,11 +1713,17 @@ class ResearchAgent:
                 # unverified paper (the 0-mismatched-citations property is preserved).
                 sub_queries = _build_search_queries(question, key_terms, primary_query)
                 _per_q = max(self.max_citations, 15)
+                # Etiology / evidence / SAR / mechanism questions need the FOUNDATIONAL
+                # literature (often 15-25 yrs old) — which a recency-ranked search buries
+                # under recent reviews (the ABL1/LRRK2 "all citations 2025-26" failure).
+                # Flag those so retrieval ranks by IMPACT (citation count) over recency.
+                _foundational = _needs_foundational(question)
 
                 async def _one_query(_q):
                     try:
                         return await self.literature_client.search_bioinformatics(
                             query=_q, max_results=_per_q, recent_years=5, verify_ids=_deep,
+                            recency_balance=_foundational,
                         )
                     except Exception as _e:
                         log.debug(f"sub-query search failed for '{_q[:60]}': {_e}")
@@ -1801,24 +1847,68 @@ class ResearchAgent:
             try:
                 from galaxy.ai.evidence_source_router import select_sources as _select_sources
                 from galaxy.ai.federated_query import federated_query as _federated_query
-                _fed_entities = [e for e in (ids.get("gene_symbols") or []) if e][:2]
-                if _fed_entities:
-                    _fed_sources = _select_sources(question, entities=_fed_entities)
+                # Entities to ground against the DB sources, WITH their types. The type
+                # decides routing (a target → ChEMBL target + PDB; a compound → PubChem +
+                # ChEMBL molecule), and it comes from the LLM's understanding of the
+                # question — NOT a character-pattern regex, which mis-read "ABL1" as a PDB
+                # id and "SAR" as a gene (live dev finding, 2026-11-11). PRIMARY: LLM
+                # extraction. FALLBACK (LLM down / empty): legacy symbol regex validated
+                # by mygene resolution, so a flaky LLM call never drops DB evidence to zero.
+                _fed_typed: List[tuple] = []   # (name, entity_type)
+                _llm_ents = await self._extract_entities_llm(question)
+                if _llm_ents is not None:
+                    _fed_typed = [(e["name"], e["type"]) for e in _llm_ents[:3]]
+                else:
+                    _cands = [e for e in (ids.get("gene_symbols") or []) if e][:5]
+                    if _cands:
+                        try:
+                            _mg_val = lookup_mygene(_cands, fields="symbol,name,summary,OMIM")
+                        except Exception:
+                            _mg_val = []
+                        if _mg_val:
+                            db_facts.setdefault("mygene_annotation", _mg_val)
+                            _resolved = {str(h.get("symbol", "")).upper()
+                                         for h in _mg_val if h.get("symbol")}
+                            _cands = [s for s in _cands if s.upper() in _resolved]
+                        _fed_typed = [(s, "gene") for s in _cands[:2]]
+
+                if _fed_typed:
+                    _fed_names = [n for n, _t in _fed_typed]
+                    _fed_sources = _select_sources(question, entities=_fed_names)
+
+                    def _fed_one(nt, s=_fed_sources):
+                        _n, _t = nt
+                        # Pass the resolved entity_type so federated_query routes by the
+                        # KNOWN type (and drops category-mismatched sources), never the
+                        # char-pattern detector.
+                        return _federated_query(str(_n)[:80], sources=s, entity_type=_t)
+
+                    # Per-entity fan-outs run in PARALLEL under ONE overall budget so the hot
+                    # path can't add N× the per-call timeout sequentially (committee review,
+                    # 2026-11-11). return_exceptions so one failure doesn't sink the others.
+                    _loop = asyncio.get_event_loop()
+                    _fed_results = await asyncio.wait_for(
+                        asyncio.gather(
+                            *[_loop.run_in_executor(None, _fed_one, _nt) for _nt in _fed_typed],
+                            return_exceptions=True,
+                        ),
+                        timeout=20,
+                    )
                     _fed_out: Dict[str, Any] = {}
-                    for _ent in _fed_entities:
-                        _r = await asyncio.get_event_loop().run_in_executor(
-                            None,
-                            lambda e=_ent, s=_fed_sources: _federated_query(str(e)[:80], sources=s),
-                        )
-                        if _r and _r.get("merged"):
-                            _fed_out[_ent] = {
+                    for (_n, _t), _r in zip(_fed_typed, _fed_results):
+                        if isinstance(_r, dict) and _r.get("merged"):
+                            _fed_out[_n] = {
+                                "entity_type": _t,
                                 "sources_queried": _r.get("sources_queried", []),
+                                "sources_succeeded": _r.get("sources_succeeded", []),
                                 "merged": _r["merged"][:8],
                             }
                     if _fed_out:
                         db_facts["federated_evidence"] = _fed_out
                         log.info("federated evidence: %s via %s",
                                  list(_fed_out.keys()), _fed_sources)
+            except asyncio.TimeoutError:
+                log.warning("federated evidence fan-out timed out (non-fatal)")
             except Exception as _fe:
                 log.warning(f"federated evidence fan-out skipped (non-fatal): {_fe}")
 
@@ -1844,7 +1934,12 @@ class ResearchAgent:
                             _tid = await asyncio.get_event_loop().run_in_executor(
                                 None, lambda: _orch.identify(question, context={"query": question}))
                             if _tid:
-                                db_facts["target_ranking"] = _tid
+                                # Store the serialized form: the renderer reads a dict
+                                # (targets[].target/score/tier); the raw OrchestratorResult
+                                # dataclass fails its isinstance(dict) check and renders nothing
+                                # (committee review, 2026-11-11).
+                                db_facts["target_ranking"] = (
+                                    _tid.to_dict() if hasattr(_tid, "to_dict") else _tid)
                                 log.info("target-id ranking attached for a target-ranking question")
             except Exception as _te:
                 log.warning(f"target-id ranking skipped (non-fatal): {_te}")
@@ -2420,9 +2515,14 @@ class ResearchAgent:
             _dbf = evidence.get('db_facts') or {}
             for _k, _v in _dbf.items():
                 if _k == 'federated_evidence' and isinstance(_v, dict):
+                    # Count ONE channel per entity that actually returned merged evidence —
+                    # NOT the attempted source list (sources_queried). The attempted count
+                    # inflated confidence: any real gene attempts ~5-9 sources and UniProt
+                    # returns an identity record regardless, so every gene read "reasonable"
+                    # even with zero on-topic data (committee review, 2026-11-11).
                     for _blk in _v.values():
                         if isinstance(_blk, dict) and _blk.get('merged'):
-                            _n_db_channels += len(_blk.get('sources_queried') or []) or 1
+                            _n_db_channels += 1
                 elif _v:
                     _n_db_channels += 1
             confidence = self._grounding_confidence(evidence_verdict, len(citations), _n_db_channels)
@@ -3275,6 +3375,75 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
         return response
 
     @staticmethod
+    def _parse_json_array(text: str) -> Optional[list]:
+        """Pull the first JSON array out of an LLM response (fenced or bare prose),
+        decoding incrementally so trailing commentary after the ']' doesn't break it."""
+        if not text:
+            return None
+        start = text.find("[")
+        if start == -1:
+            return None
+        raw = text[start:]
+        for end in range(len(raw), 0, -1):
+            cand = raw[:end]
+            if not cand.rstrip().endswith("]"):
+                continue
+            try:
+                val = json.loads(cand)
+                return val if isinstance(val, list) else None
+            except Exception:
+                continue
+        return None
+
+    async def _extract_entities_llm(self, question: str) -> Optional[List[Dict[str, str]]]:
+        """Identify the biological entities a question is ABOUT, with their types, using
+        the LLM — not a regex. Character-pattern typing is what mis-read "ABL1" as a PDB
+        id and "SAR" as a gene; the model knows ABL1 is a target, imatinib a compound,
+        T315I a variant, and that SAR/PK/ADMET are analysis concepts, not entities.
+
+        Returns [{"name","type"}] with type in a controlled vocabulary, or None on any
+        failure so the caller falls back to the legacy extractor (never regress to no
+        DB evidence)."""
+        if not self.llm_client:
+            return None
+        prompt = (
+            "Extract the biological entities this research question is ABOUT, so a "
+            "database search can be routed to the right sources. Return ONLY a JSON "
+            'array. Each element: {"name": <canonical symbol or name>, "type": <one of: '
+            "gene, protein, compound, variant, disease, pathway>}.\n"
+            "Guidance:\n"
+            '- A gene / kinase / therapeutic target (ABL1, EGFR, KRAS) → "gene".\n'
+            '- A drug or small molecule (imatinib, aspirin) → "compound".\n'
+            '- A sequence mutation (T315I, V600E) → "variant".\n'
+            "- EXCLUDE analysis concepts and method acronyms that are NOT entities: "
+            "SAR, structure-activity relationship, PK, PD, ADMET, QC, IC50, potency, "
+            "selectivity, binding.\n"
+            "- Only concrete, nameable entities. If there are none, return [].\n\n"
+            f"Question: {question}\n\nJSON:"
+        )
+        try:
+            raw = await self._call_llm(prompt, max_tokens=300)
+        except Exception as e:
+            log.warning("LLM entity extraction failed (non-fatal, falling back): %s", e)
+            return None
+        ents = self._parse_json_array(raw)
+        if ents is None:
+            return None
+        allowed = {"gene", "protein", "compound", "variant", "disease", "pathway"}
+        out: List[Dict[str, str]] = []
+        seen = set()
+        for e in ents:
+            if not isinstance(e, dict):
+                continue
+            name = str(e.get("name", "")).strip()
+            etype = str(e.get("type", "")).strip().lower()
+            key = (name.lower(), etype)
+            if name and etype in allowed and key not in seen:
+                seen.add(key)
+                out.append({"name": name[:80], "type": etype})
+        return out
+
+    @staticmethod
     def _split_evidence_verdict(answer: str):
         """Strip the leading 'EVIDENCE: addresses|insufficient' line the synthesis prompt asks
         for; return (answer, True/False/None). Tolerates bold/heading markup around it."""
@@ -3319,18 +3488,26 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             try:
                 if ctype == "variant":
                     gene = subject or (text.split()[0] if text.split() else "")
-                    hits = lookup_clinvar_gene(gene, max_results=20) if gene else []
-                    titles = [h.get("title", "") for h in (hits or [])]
+                    # Validate against ALL ClinVar significances (not just pathogenic) so a
+                    # real benign/risk-factor/VUS variant isn't flagged a fabrication; and
+                    # signal_errors so an OUTAGE reads "could not check", not "not found".
+                    hits = (lookup_clinvar_gene(gene, max_results=40, pathogenic_only=False,
+                                                signal_errors=True) if gene else None)
                     if hits is None:
-                        status, note = "unverified", "ClinVar unreachable"
-                    elif _variant_in_clinvar_titles(text, titles):
-                        sig = next((h.get("clinical_significance", "") for h in hits
-                                    if _variant_in_clinvar_titles(text, [h.get("title", "")])), "")
-                        status, note = "verified", (f"ClinVar: {sig}" if sig else "in ClinVar")
-                    elif titles:
-                        status, note = "not_found", f"{gene} has ClinVar variants but not {text}"
+                        status, note = "unverified", (
+                            "could not check (ClinVar unreachable)" if gene
+                            else "could not check (no gene context for the variant)")
                     else:
-                        status, note = "not_found", f"no pathogenic ClinVar variants for {gene}"
+                        titles = [h.get("title", "") for h in hits]
+                        if _variant_in_clinvar_titles(text, titles):
+                            sig = next((h.get("clinical_significance", "") for h in hits
+                                        if _variant_in_clinvar_titles(text, [h.get("title", "")])), "")
+                            # carry significance so a risk-factor isn't read as a pathogenic mutation
+                            status, note = "verified", (f"ClinVar: {sig}" if sig else "in ClinVar")
+                        elif titles:
+                            status, note = "not_found", f"{gene} is in ClinVar but {text} is not a recorded variant"
+                        else:
+                            status, note = "not_found", f"{gene} not found in ClinVar"
                 else:
                     from galaxy.ai.federated_query import federated_query as _fq
                     _r = _fq(subject or text, entity_type=(ctype or None))

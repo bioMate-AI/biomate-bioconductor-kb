@@ -401,7 +401,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl" data-testid="workflow-history-dialog">
         <DialogHeader>
-          <DialogTitle>{library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? "Import workflow" : "Workflows"}</DialogTitle>
+          <DialogTitle>{library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? tOr('workflows_library.tab_import', 'Import Workflow') : tOr('workflows_library.title_short', 'Workflows')}</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
@@ -450,7 +450,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
-            Import Workflow
+            {tOr('workflows_library.tab_import', 'Import Workflow')}
           </button>
         </div>
 
@@ -661,10 +661,9 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
             {/* Tip */}
             <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'oklch(0.97 0.01 240)', borderRadius: 6, border: '1px solid oklch(0.88 0.03 240)' }}>
               <Info style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1, color: 'oklch(0.50 0.12 240)' }} />
-              <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.5, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
-                Upload your own <strong>Nextflow (.nf)</strong> or <strong>Galaxy (.ga / .yml)</strong> workflow.
-                Once imported it appears in <em>My Imports</em> and can be launched from any chat.
-                BioMate will run it on AWS Batch with your configured environment.
+              <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.6, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
+                {tOr('workflows_library.import_tip',
+                  'Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow. Once imported it appears under My workflows and can be launched from any chat. BioMate runs it on AWS Batch with your configured environment.')}
               </p>
             </div>
 
@@ -672,25 +671,25 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                   <CheckCircle2 className="h-5 w-5 shrink-0" />
-                  <p className="text-sm font-medium">{uploadResult.workflow_name} imported successfully</p>
+                  <p className="text-sm font-medium">{tOr('workflows_library.import_success', '{{name}} imported successfully', { name: uploadResult.workflow_name })}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">{uploadResult.message}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={resetUpload}>Import another</Button>
-                  <Button size="sm" onClick={() => { setActiveTab('imports'); fetchImports(''); }}>View in My Imports</Button>
+                  <Button size="sm" variant="outline" onClick={resetUpload}>{tOr('workflows_library.import_another', 'Import another')}</Button>
+                  <Button size="sm" onClick={() => { setActiveTab('imports'); fetchImports(''); }}>{tOr('workflows_library.import_view_mine', 'View in My workflows')}</Button>
                 </div>
               </div>
             ) : (
               <>
                 <div className="space-y-1.5">
                   <Label htmlFor="dlg-wf-file" className="text-sm">
-                    Workflow file <span className="text-muted-foreground text-xs">(.nf, .ga, .yml)</span>
+                    {tOr('workflows_library.import_file_label', 'Workflow file')} <span className="text-muted-foreground text-xs">(.nf, .ga, .yml)</span>
                   </Label>
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => uploadFileRef.current?.click()}>
-                      <Upload className="mr-1.5 h-3.5 w-3.5" />Choose file
+                      <Upload className="mr-1.5 h-3.5 w-3.5" />{tOr('workflows_library.import_choose_file', 'Choose file')}
                     </Button>
-                    <span className="text-xs text-muted-foreground truncate">{uploadFile ? uploadFile.name : 'No file chosen'}</span>
+                    <span className="text-xs text-muted-foreground truncate">{uploadFile ? uploadFile.name : tOr('workflows_library.import_no_file', 'No file chosen')}</span>
                   </div>
                   <input ref={uploadFileRef} type="file" accept=".nf,.ga,.yml,.yaml" className="hidden" data-testid="workflow-file-input"
                     onChange={(e) => {
@@ -708,12 +707,12 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="dlg-wf-name" className="text-sm">Workflow name</Label>
-                  <Input id="dlg-wf-name" value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="My custom workflow" className="text-sm" data-testid="workflow-name-input" />
+                  <Label htmlFor="dlg-wf-name" className="text-sm">{tOr('workflows_library.import_name_label', 'Workflow name')}</Label>
+                  <Input id="dlg-wf-name" value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder={tOr('workflows_library.import_name_placeholder', 'e.g. Custom RNA-seq differential expression')} className="text-sm" data-testid="workflow-name-input" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="dlg-wf-desc" className="text-sm">Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                  <textarea id="dlg-wf-desc" value={uploadDesc} onChange={e => setUploadDesc(e.target.value)} placeholder="What does this workflow do?" rows={3}
+                  <Label htmlFor="dlg-wf-desc" className="text-sm">{tOr('workflows_library.import_desc_label', 'Description')} <span className="text-muted-foreground text-xs">({tOr('common.optional', 'optional')})</span></Label>
+                  <textarea id="dlg-wf-desc" value={uploadDesc} onChange={e => setUploadDesc(e.target.value)} placeholder={tOr('workflows_library.import_desc_placeholder', 'Briefly describe this workflow — its inputs, steps and outputs.')} rows={3}
                     className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                     data-testid="workflow-description-input"
                   />
@@ -721,7 +720,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                 {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
                 <div className="flex justify-end gap-2 pt-1">
                   <Button onClick={handleUploadSubmit} disabled={isUploading || !uploadFile} data-testid="workflow-upload-submit">
-                    {isUploading ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Uploading…</> : 'Import Workflow'}
+                    {isUploading ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />{tOr('workflows_library.import_uploading', 'Uploading…')}</> : tOr('workflows_library.tab_import', 'Import Workflow')}
                   </Button>
                 </div>
               </>

@@ -400,6 +400,41 @@ def test_read_rows_csv_paging_and_non_tabular(tmp):
     print("PASS test_read_rows_csv_paging_and_non_tabular")
 
 
+# ---------------------------------------------------------------------------
+# Nested tables in JSON Lines (epar_study_tables.jsonl, 2026-11-11): 69% of 2,281 extracted tables had
+# exactly 7 rows because the extractor kept t[1:8]; the profile said nothing about the tables.
+# ---------------------------------------------------------------------------
+def test_jsonl_nested_tables_row_cap_and_blanks(tmp):
+    import json as _json
+    recs = []
+    for i in range(40):
+        n = 7 if i < 28 else 3 + (i % 4)          # 70% at the cap of 7 rows, the rest 3..6
+        recs.append({"drug": f"d{i}", "headers": ["Study", "Dose", ""],
+                     "rows": [["s%d" % r, "" if r % 2 else "10 mg", ""] for r in range(n)]})
+    p = profile_dataset(_write(tmp, "tables.jsonl", "\n".join(_json.dumps(r) for r in recs) + "\n"))
+    by = {f["code"]: f for f in p["findings"]}
+    assert by["nested_tables"]["params"] == {"column": "rows", "tables": 40, "median_rows": 7,
+                                             "median_cols": 3, "max_rows": 7}, by["nested_tables"]
+    assert by["nested_row_cap"]["level"] == "watch" and by["nested_row_cap"]["params"]["pct"] == 70, by["nested_row_cap"]
+    cells = [c for r in recs for row in r["rows"] for c in row]
+    expect_pct = int(round(100 * sum(1 for c in cells if not c) / len(cells)))
+    assert by["nested_blank_cells"]["params"]["pct"] == expect_pct, (by["nested_blank_cells"], expect_pct)
+    assert p["quality"] == "watch"
+    print("PASS test_jsonl_nested_tables_row_cap_and_blanks")
+
+
+def test_jsonl_nested_tables_no_cap_when_sizes_vary(tmp):
+    import json as _json
+    recs = [{"rows": [["a", "b"]] * (2 + i % 9)} for i in range(40)]   # 2..10 rows, spread evenly
+    p = profile_dataset(_write(tmp, "vary.jsonl", "\n".join(_json.dumps(r) for r in recs) + "\n"))
+    codes = [f["code"] for f in p["findings"]]
+    assert "nested_tables" in codes and "nested_row_cap" not in codes and "nested_blank_cells" not in codes, codes
+    # Lists that are not tables (list of scalars) are not reported as tables.
+    p2 = profile_dataset(_write(tmp, "tags.jsonl", "\n".join(_json.dumps({"tags": ["x", "y"]}) for _ in range(10)) + "\n"))
+    assert not any(f["code"].startswith("nested_") for f in p2["findings"]), p2["findings"]
+    print("PASS test_jsonl_nested_tables_no_cap_when_sizes_vary")
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     with tempfile.TemporaryDirectory() as tmp:

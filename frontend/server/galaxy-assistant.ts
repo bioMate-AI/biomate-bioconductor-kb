@@ -2,7 +2,7 @@ import { responseLanguageDirective } from "./response-language";
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
-import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
+import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
 import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
@@ -25,7 +25,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
-import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, shouldRequireExecution, SYNTHETIC_DATA_REFUSAL, unbackedFilesNote, unbackedOutputFileClaims } from './execution-integrity';
+import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, shouldRequireExecution, SYNTHETIC_DATA_REFUSAL, unbackedOutputFileClaims } from './execution-integrity';
 import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
@@ -80,7 +80,7 @@ import type {
 import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
 import { attachedNamesFromBlocks, stripSystemBlocks } from '../shared/chat-system-blocks';
 import { decideWorkflowReplyState } from '../shared/workflow-response-state';
-import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk } from '../shared/workflow-data-inputs';
+import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk, shouldRunOnExampleData, exampleDataNote } from '../shared/workflow-data-inputs';
 import {
   parseAttachedFiles,
   bindAttachmentsToParams,
@@ -134,7 +134,13 @@ NEVER generate, simulate or hard-code measurements to stand in for data that was
 available and the request names a workflow or its built-in sample data, do not compute — the
 workflow card runs on its real built-in data; otherwise ask the user for the data.
 
-Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']) — they will be shown to the user.
+Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']). Each file a call writes is saved as a
+dataset of this conversation: the user gets a download link, and its dataset_id is returned in
+output_files. $OUTPUT_DIR persists for the whole conversation — a file written in an earlier call or
+turn is still at os.path.join(os.environ['OUTPUT_DIR'], '<name>'), so read it from there instead of
+recomputing it. Only files actually written there exist; never describe a file you did not write.
+When telling the user about files, name the files and say they are saved (to the project, in a project
+chat) — never mention $OUTPUT_DIR, /work or other internal paths.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
 Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2), set timeout_seconds=120.`,
     input_schema: {
@@ -782,6 +788,9 @@ export interface ChatContext {
    * corrections — so a correction made in project A never surfaces in project B.
    */
   projectId?: string;
+  /** Set by routes.ts: store a run_code output file as a dataset of this session (download link,
+   *  visible to later turns, survives restarts) — the same store as an upload. */
+  persistGeneratedFile?: (hostPath: string, name: string) => Promise<{ dataset_id: string; galaxy_dataset_id?: string; project_file_id?: string; project_id?: string; download_url: string } | undefined>;
   /** When the user has a run's report open in the panel, the client may pass the
    *  exact markdown it is showing (buildFullReportMarkdown) + that run's id. The
    *  edit_report tool uses this as the faithful base so a chat edit forks from
@@ -2659,11 +2668,18 @@ export function workflowNamedInRunRequest(message: string): SelectedWorkflow | n
   const id = new RegExp(verb + String.raw`(nf-core\/[a-z0-9_-]+|[a-z][a-z0-9]*(?:_[a-z0-9]+){2,})(?![\w/-])`, 'i').exec(text)?.[1]
     || new RegExp(verb + String.raw`([a-z][\w.-]{3,})\s+(?:workflow|pipeline)\b`, 'i').exec(text)?.[1]
     || new RegExp(verb + String.raw`([a-z][\w./-]{3,})\s*工作流`, 'i').exec(text)?.[1];
+  // A captured token is only a CANDIDATE name — validated structurally downstream:
+  // the backend resolves selected_workflow by EXACT catalog membership
+  // (_resolve_selected_workflow: "no fuzzy search"), so a generic word like "whole"
+  // in "run the whole workflow" resolves to nothing and the turn falls back to
+  // normal routing. No hand-maintained stop-word list — the catalog is the
+  // authority on what is a workflow name.
   return id ? normalizeSelectedWorkflow({ name: id }) : null;
 }
 
-/** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA… */
-const DATA_IDENTIFIER_RE = /\b(?:[A-Z]{1,6}-)?[A-Z]{2,6}[-_]?\d{3,}\b/g;
+/** Public data identifiers: SRR/ERR/DRR/SRX runs, GSE/GSM series, PRJNA/PRJEB projects, PXD, E-MTAB-…, EGA…
+ *  Case-insensitive: users paste accessions lowercase too ("srr1039508"). */
+const DATA_IDENTIFIER_RE = /\b(?:[A-Z]{1,6}-)?[A-Z]{2,6}[-_]?\d{3,}\b/gi;
 /** File names a user might paste (sample_R1.fastq.gz, counts.csv). */
 const FILE_NAME_RE = /[^\s,;，；、]+\.[A-Za-z][A-Za-z0-9]{0,7}(?:\.gz)?\b/g;
 
@@ -2676,11 +2692,20 @@ const FILE_NAME_RE = /[^\s,;，；、]+\.[A-Za-z][A-Za-z0-9]{0,7}(?:\.gz)?\b/g;
  * Deterministic and language-neutral: any leftover letter or CJK character means "not value-only".
  */
 export function isValueOnlyReply(message: string): boolean {
-  const rest = stripSystemBlocks(message)
+  const base = stripSystemBlocks(message);
+  // Value tokens are FORMAT-defined (accessions, file names, numbers), not a
+  // keyword list \u2014 DATA_IDENTIFIER_RE is case-insensitive so a lowercase accession
+  // ("srr1039508") is caught too. If anything with a letter is left after removing
+  // them, the reply says more than its values and is not value-only. (The commonest
+  // multi-accession phrasings that ALSO carry a connective \u2014 "use SRR\u2026 and SRR\u2026" \u2014
+  // are deliberately NOT special-cased here with a connective word-list; that would
+  // be keyword overfitting. The real gap is the classifier carrying a stale goal
+  // onto a value turn, which is the right place to fix if coverage needs it.)
+  const rest = base
     .replace(DATA_IDENTIFIER_RE, ' ')
     .replace(FILE_NAME_RE, ' ')
     .replace(/\d+/g, ' ');
-  const hadValue = rest !== stripSystemBlocks(message) || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
+  const hadValue = rest !== base || /\[(?:Attached files|Uploaded datasets?)\s*:/i.test(message);
   return hadValue && !/[A-Za-z\u3400-\u9fff]/.test(rest);
 }
 
@@ -2919,11 +2944,12 @@ export async function decomposeViaOpenRouter(model: string, key: string, system:
       const r = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'BioMate' },
-        body: JSON.stringify({ model, max_tokens: 4096, temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        body: JSON.stringify({ model, ...reasoningBudgetBody('https://openrouter.ai/api/v1', 4096), temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
         signal: AbortSignal.timeout(45000),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
       const j: any = await r.json();
+      assertNotReasoningExhausted(j);
       const text = j?.choices?.[0]?.message?.content;
       if (typeof text !== 'string' || !text.trim()) throw new Error('empty response');
       return text;
@@ -2967,8 +2993,17 @@ export function conversationHasPipelineScaleData(
   message: string,
   context?: { previousMessages?: Array<{ role: string; content: string }> },
 ): boolean {
-  const texts = [message, ...((context?.previousMessages || []).filter(m => m.role === 'user').map(m => m.content || ''))];
-  return texts.some(t => attachedNamesFromBlocks(t).some(n => PIPELINE_SCALE_FILE_RE.test(n)));
+  const currentNames = attachedNamesFromBlocks(message || '');
+  if (currentNames.some(n => PIPELINE_SCALE_FILE_RE.test(n))) return true;
+  // The current turn brought its own (non-pipeline) data — that IS the task; a
+  // stale pipeline-scale attachment from an earlier, unrelated turn must not
+  // suppress direct_compute for it (correctness review 2026-11-11: a turn-1 FASTQ
+  // was disabling run_code for a turn-5 "mean of column 3" on a fresh CSV).
+  if (currentNames.length > 0 || hasComputableData(message || '')) return false;
+  // No data on this turn → a carried-over pipeline-scale file is the subject (the
+  // UI adds the dataset block only on the turn the file is attached).
+  return (context?.previousMessages || []).filter(m => m.role === 'user')
+    .some(m => attachedNamesFromBlocks(m.content || '').some(n => PIPELINE_SCALE_FILE_RE.test(n)));
 }
 
 export function conversationHasComputableData(
@@ -9983,15 +10018,30 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const unboundDataInputs = runnableWorkflow
       ? unboundRequiredDataInputs(generatedWorkflow, new Set(Object.keys(inlineDataMap)))
       : [];
+    // Example-data default: the resolved workflow ships its own bundled example
+    // dataset and runs with no user input (backend `example_data.present`, a real
+    // property of the .nf — a built-in demo-data fallback or a data param that
+    // defaults to bundled example data). When the request carries no user data,
+    // the reply presents the card as runnable on the example dataset and does NOT
+    // ask for an upload. When the user DID provide data, their data is used and
+    // this is moot. A workflow that genuinely needs data and ships none is
+    // unaffected — the DATA-FIRST ask still fires (docs/20261111 example-data default).
+    const userSuppliedRunData = hasInlineData
+      || messageCarriesRunData(message)
+      || messageWaivesDataAsk(message)
+      || _matchedFixture !== null;
+    const runsOnExampleData = shouldRunOnExampleData(generatedWorkflow, { runnableWorkflow, userSuppliedRunData });
     const workflowReplyState = decideWorkflowReplyState({
       isWorkflowTurn,
       runnableWorkflow,
       generationFailed: workflowGenerationFailed,
       hasInlineData,
-      messageCarriesData: messageCarriesRunData(message) || messageWaivesDataAsk(message) || _matchedFixture !== null,
+      // Example data satisfies the data-first ask the same way an upload would.
+      messageCarriesData: messageCarriesRunData(message) || messageWaivesDataAsk(message) || _matchedFixture !== null || runsOnExampleData,
       unboundRequiredInputs: unboundDataInputs,
     });
-    const needsDataInput = workflowReplyState === 'generated_needs_input';
+    // Never ask for data when the workflow runs on its own example dataset.
+    const needsDataInput = workflowReplyState === 'generated_needs_input' && !runsOnExampleData;
     const needsInputList = unboundDataInputs
       .map(i => `${i.label}${i.description ? ` (${i.description.replace(/s3:\/\/\S+/gi, '').trim()})` : ''}`)
       .join('; ');
@@ -10157,7 +10207,8 @@ DATA-FIRST RULE (hard prohibition — no exceptions except demo/test/mock):
 - "Input data provided" means the user's message contains ANY of: a file path (e.g. /path/to/sample.fastq, /data/reads_R1.fastq.gz), an S3 URI (s3://…), an SRA/ENA/DDBJ accession (SRR followed by digits, ERR followed by digits, DRR followed by digits), a GEO accession (GSE followed by digits, GSM followed by digits), an ArrayExpress accession (E-MTAB- followed by digits), a PXD accession (PXD followed by digits), a SMILES string, an InChI string, an amino acid sequence, a PDB ID, or an "[Uploaded datasets: ...]" block.
 - **PAPER-AS-SPECIFICATION EXCEPTION:** When the user provides a research paper (URL, DOI, arXiv ID, PMID, "[Attached files: *.pdf]", or "[Paper content: ...]" block) AND asks to reproduce/run/implement the workflow from it, the DATA-FIRST RULE does NOT apply. The paper is the workflow specification. Proceed to workflow generation — BioMate will extract the methods section and map it to an appropriate pipeline. If sample input data is needed to actually run the workflow, ask for it AFTER presenting the generated workflow, not before.
 - SRA ACCESSION RULE: An SRA/ENA/DDBJ accession number (e.g. SRR1518169, ERR204916, DRR013480) IS input data. Treat it as the reads/input parameter. Proceed directly to workflow generation. DO NOT ask for files when an SRA accession is present in the message.
-- If NO input data is present: ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please attach your FASTQ files with the 📎 button, or give an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
+- EXCEPTION — EXAMPLE-DATA WORKFLOW: If the Current context below says "EXAMPLE-DATA WORKFLOW", the resolved workflow runs on its own built-in example dataset and the DATA-FIRST RULE does NOT apply. Do NOT ask for data; present the runnable card and follow that directive.
+- If NO input data is present (and no EXAMPLE-DATA WORKFLOW directive applies): ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please attach your FASTQ files with the 📎 button, or give an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
 - Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it immediately without asking for data. This exception ALSO covers any of these phrasings, treat them as identical: "with defaults", "use defaults", "default parameters", "synthetic data", "synthetic plate", "demo data", "example data", "sample data", "built-in demo", "use the demo data", "no data, just run it", "I just want to see it", "show me how this works". Many BioMate workflows (notably hts_plate_qc_hit_calling, exposure_response_modelling, demo PBPK, the cryo-EM SPA reference workflows) ship with a built-in synthetic-data generator that fires when no input is provided — when the user signals they want to use it, generate the workflow immediately and do NOT ask for an upload.
 
 TURN-2 QUALIFIER RULE:
@@ -10206,11 +10257,11 @@ ${isDrugDevelopmentQuery ? `- Use section labels when possible: "Workflow phases
 Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
-${needsDataInput ? `- Workflow generated; its required data input is not provided yet (${needsInputList}) — use the "generated but required data input not provided yet" format` : runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
+${runsOnExampleData ? `- EXAMPLE-DATA WORKFLOW (overrides the DATA-FIRST RULE): This workflow ships its own built-in example/reference dataset and runs on it when no files are attached. Do NOT ask the user to upload or provide data, and do NOT list missing inputs — the card is runnable now. Present it with the "Workflow generated" format and include exactly one honest sentence to the effect of: "${exampleDataNote(generatedWorkflow)}" Never mention storage paths, S3, buckets or dataset IDs, and do not claim it analyses the user's own data.` : needsDataInput ? `- Workflow generated; its required data input is not provided yet (${needsInputList}) — use the "generated but required data input not provided yet" format` : runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
 ${attachmentsUnused ? `- ATTACHED DATA NOT USED: the user attached ${attachmentsUnusedList.join(', ')}, but this workflow reads none of them — it is configured by parameters only. Do NOT say it was built from, uses, or analyses their data, and do NOT list their files as its inputs. State in one plain sentence that this workflow does not take those files, say what it does run on, and offer to find a workflow that does read that data.` : ''}
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
-  if (!_mfi.length) return '';
+  if (!_mfi.length || runsOnExampleData) return '';
   return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to provide the data by ANY of: the 📎 attach button, a public URL, an SRA/GEO accession, OR **Import from URL** — which fetches a direct link AND a Google Drive / Dropbox **share link** (BioMate converts the share link to a direct download server-side). Never tell the user BioMate "cannot access Google Drive / Dropbox" — it can, via Import from URL with the share link. Use plain language — no "DATA-FIRST RULE" phrasing.`;
 })()}
 ${workflowGenerationFailed && hasInlineData ? '- Workflow generation failed (inline data was present) — use "Technical failure" format, do NOT ask for data the user already provided' : ''}
@@ -10624,8 +10675,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           finalMessage += _disclaimer;
           if (onResponseDelta) onResponseDelta(_disclaimer);
         }
-        const _unbackedNoteNc = this._unbackedFilesNote(finalMessage, message, context);
-        if (_unbackedNoteNc) { finalMessage += _unbackedNoteNc; if (onResponseDelta) onResponseDelta(_unbackedNoteNc); }
+        this._logUnbackedFileClaims(finalMessage, message, context);
         return { message: redactStoragePaths(finalMessage, /[\u4e00-\u9fff]/.test(message)), truncated: false };
       }
       // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
@@ -10884,10 +10934,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         if (onResponseDelta) onResponseDelta(emptyFallback);
         return { message: emptyFallback, truncated: false };
       }
-      const _unbackedNote = this._unbackedFilesNote(qualityEnforcedMessage, message, context);
-      if (_unbackedNote && onResponseDelta) onResponseDelta(_unbackedNote);
+      this._logUnbackedFileClaims(qualityEnforcedMessage, message, context);
       return {
-        message: redactStoragePaths(qualityEnforcedMessage + _unbackedNote, /[\u4e00-\u9fff]/.test(message)),
+        message: redactStoragePaths(qualityEnforcedMessage, /[\u4e00-\u9fff]/.test(message)),
         thinking: thinkingResult.hasThinking ? thinkingResult : undefined,
         truncated: wasTruncated,
       };
@@ -11259,6 +11308,11 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
       prior_code: prior.length ? [...prior] : undefined,
+      // One workspace per chat session (reference harnesses: Biomni cwd, ScienceBuddy per-episode
+      // container): files in $OUTPUT_DIR survive into later calls and turns.
+      workspaceKey: context?.sessionId ? `chat:${context.sessionId}` : undefined,
+      persistOutputFile: context?.persistGeneratedFile
+        ? (f) => context.persistGeneratedFile!(f.hostPath, f.name) : undefined,
     }), { label: 'run_code tool' });
     if (input.language === 'python' && result.exit_code === 0 && context?.runCodeHistory) {
       context.runCodeHistory.codes.push(String(input.code || ''));
@@ -11277,15 +11331,16 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   }
 
   /** Output files a reply presents as produced must be this turn's run_code $OUTPUT_DIR artifacts. */
-  private _unbackedFilesNote(text: string, message: string, context: ChatContext): string {
+  private _logUnbackedFileClaims(text: string, message: string, context: ChatContext): void {
+    // Diagnostics only — never appended to the reply (founder 2026-11-11: remove that footer; it also
+    // misfired on attached input files). Real outputs are now persisted with download links.
     const turn = context?.turnMessage || '';
-    const zh = /[\u4e00-\u9fff]/.test(message);
     const produced = context?.runCodeOutputFiles?.turn === turn ? context.runCodeOutputFiles.names : [];
     const inputs = attachedInputNames(message, ...(context?.previousMessages || []).map(m => typeof m.content === 'string' ? m.content : ''));
     const unbacked = unbackedOutputFileClaims(text, produced, inputs);
     if (unbacked.length) console.warn(`[GalaxyAssistant] reply claims files not produced this turn: ${unbacked.join(', ')}`);
-    return unbackedFilesNote(unbacked, zh);
   }
+
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */
   private async _toolReadFile(input: any, _context: ChatContext): Promise<unknown> {

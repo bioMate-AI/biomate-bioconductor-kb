@@ -1,7 +1,6 @@
 {
   "kind": "synthetic_validation_inputs",
   "seed": 20261105,
-  "historical_s3_prefix": "s3://biomate-nextflow-work/smoke-inputs/hospital_20261105_031724",
   "historical_snf_run": "RID=ab67ad23-cbd7-4b70-b45f-51087f606df3",
   "description": "Synthetic research demonstration. No hospital patient records. Preserved historical input bytes, not a newly executed run or a claim of real-cohort accuracy.",
   "files": {

@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { GalaxyAssistant, stripImageBytesForModel, plotImageBlocks } from './galaxy-assistant';
-import { localMessages, modelAcceptsImages } from './local-llm';
+import { localMessages, modelAcceptsImages, reasoningBudgetBody } from './local-llm';
 import { scanOutputDir } from './code-runner';
 
 // Committee review 2026-11-11 (blocker): run_code plot previews (image_data_uri, base64) were
@@ -115,5 +115,22 @@ describe('run_code preview byte cap', () => {
     } finally {
       await fs.rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('reasoning budget (OpenRouter counts reasoning against max_tokens)', () => {
+  it('adds a separate reasoning cap on OpenRouter and leaves other endpoints alone', () => {
+    expect(reasoningBudgetBody('https://openrouter.ai/api/v1', 4096)).toEqual({ max_tokens: 6144, reasoning: { max_tokens: 2048 } });
+    expect(reasoningBudgetBody('http://10.0.0.5:8000/v1', 4096)).toEqual({ max_tokens: 4096 });
+    expect(reasoningBudgetBody('https://evil.example/openrouter.ai/v1', 4096)).toEqual({ max_tokens: 4096 });
+  });
+});
+
+describe('attachmentDisposition (cross-origin downloads of generated files)', () => {
+  it('builds an RFC 6266 attachment header with a UTF-8 name', async () => {
+    const { attachmentDisposition } = await import('./content-disposition');
+    expect(attachmentDisposition('QC_Report.txt')).toBe(`attachment; filename="QC_Report.txt"; filename*=UTF-8''QC_Report.txt`);
+    expect(attachmentDisposition('generated/质控报告.txt')).toBe(`attachment; filename="____.txt"; filename*=UTF-8''${encodeURIComponent('质控报告.txt')}`);
+    expect(attachmentDisposition('a"b\r\n.csv')).toContain('filename="a_b__.csv"');
   });
 });

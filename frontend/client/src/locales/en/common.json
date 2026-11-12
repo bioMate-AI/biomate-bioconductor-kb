@@ -189,13 +189,13 @@
     "modality_sm": "Small molecule",
     "modality_pep": "Peptide",
     "modality_bio": "Protein / biologic",
-    "heading": "What are you trying to do?",
+    "heading": "What would you like to work on today?",
     "mod_search_name": "Search & evidence",
     "mod_search_desc": "A cited answer over literature, databases and patents",
     "mod_analysis_name": "Data analysis",
     "mod_analysis_desc": "Work on your own data, or try a prepared sample dataset",
     "mod_design_name": "Molecule design & generate",
-    "mod_design_desc": "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
+    "mod_design_desc": "Generate molecule, peptide and protein candidates, then optimise and rank them",
     "mod_models_name": "Models",
     "mod_models_desc": "Train, adapt or optimise a model on your data",
     "sample_title": "Runs on a provided sample dataset ({{ref}}). Edit the goal to use your own.",
@@ -555,7 +555,8 @@
     "import": "Import",
     "import_url_title": "Import a file from a URL into this project",
     "import_url_placeholder": "Paste a file URL (https://…)",
-    "err_import_url": "Could not import from that URL"
+    "err_import_url": "Could not import from that URL",
+    "analysis_outputs": "Analysis outputs"
   },
   "dataset_obj": {
     "quality_good": "Good",
@@ -686,7 +687,13 @@
     "preview_loading_density": "Loading density viewer…",
     "preview_access_error": "Cannot access the file ({{status}}).",
     "preview_read_error": "Cannot read the file ({{status}}).",
-    "preview_unavailable": "The file content is unavailable."
+    "preview_unavailable": "The file content is unavailable.",
+    "nested_table": "table {{rows}}×{{cols}}",
+    "nested_list": "list · {{n}}",
+    "nested_object": "{{n}} fields",
+    "record_title": "Record {{n}}",
+    "record_close": "Close",
+    "record_hint": "Click a row to open the record."
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -1488,7 +1495,21 @@
     "score": "score",
     "score_title": "Relevance score from the ranking engine",
     "chain": "Chain",
-    "seed_prompt": "Run the {{name}} workflow."
+    "seed_prompt": "Run the {{name}} workflow.",
+    "title_short": "Workflows",
+    "tab_import": "Import Workflow",
+    "import_tip": "Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow. Once imported it appears under My workflows and can be launched from any chat. BioMate runs it on AWS Batch with your configured environment.",
+    "import_file_label": "Workflow file",
+    "import_choose_file": "Choose file",
+    "import_no_file": "No file chosen",
+    "import_name_label": "Workflow name",
+    "import_name_placeholder": "e.g. Custom RNA-seq differential expression",
+    "import_desc_label": "Description",
+    "import_desc_placeholder": "Briefly describe this workflow — its inputs, steps and outputs.",
+    "import_uploading": "Uploading…",
+    "import_success": "{{name}} imported successfully",
+    "import_another": "Import another",
+    "import_view_mine": "View in My workflows"
   },
   "citations": {
     "boundary_default": "Synthesizes retrieved literature only — not validated against your project's data. Check against your own data before relying on it.",
@@ -1632,7 +1653,10 @@
       "batch_covariate_effect": "add “{{column}}” as a covariate before modelling",
       "split_overlap": "{{count}} feature row(s) appear in more than one split — train/test overlap.",
       "dedup_splits": "Train/test overlap",
-      "dedup_splits_effect": "de-duplicate rows across splits before evaluation"
+      "dedup_splits_effect": "de-duplicate rows across splits before evaluation",
+      "nested_tables": "{{column}}: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).",
+      "nested_row_cap": "{{pct}}% of the tables in {{column}} have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.",
+      "nested_blank_cells": "{{pct}}% of the cells in the {{column}} tables are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis."
     }
   },
   "failure": {
