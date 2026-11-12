@@ -234,6 +234,85 @@ ssm_run "if [ -f /opt/biomate/.env ]; then cp /opt/biomate/.env /opt/biomate/.en
   "Backing up existing .env"
 echo ""
 
+# Step 1.5: Pre-flight checks — surface IAM + LLM config gaps BEFORE containers start
+# All checks are WARNING-only (non-fatal): a missing perm surfaces here rather than
+# as a silent workflow failure 10 minutes after deploy.  Root cause for adding this:
+# 2026-11-12 — test instance was missing iam:PassRole → all Nextflow Batch submissions
+# returned 403 → every workflow run failed silently until manually diagnosed from logs.
+echo "=== Step 1.5: Pre-flight checks ==="
+# Use a heredoc to avoid quoting hell with single/double quotes inside the ssm_run arg.
+# The unquoted heredoc allows $ENVIRONMENT to expand from the outer bash context;
+# all other dollar-signs that should run on the host use \$ escaping.
+PREFLIGHT_SCRIPT=$(cat <<PREFLIGHTEOF
+set -u
+ACCT="399683337364"
+REGION="\${AWS_REGION:-us-west-2}"
+
+# -- IAM PassRole check --
+# Nextflow must pass biomate-nextflow-task-role to AWS Batch on job submission.
+# Without iam:PassRole, every job returns 403 and Nextflow exits rc=1.
+# The failure only surfaces in /tmp/nextflow_runs/<id>/nextflow.log — NOT in the
+# deploy smoke test — so it goes undetected until a user actually runs a workflow.
+ROLE_NAME=\$(aws sts get-caller-identity --region "\$REGION" --query Arn --output text 2>/dev/null \
+  | sed 's|.*assumed-role/||' | cut -d/ -f1)
+if [ -z "\$ROLE_NAME" ]; then
+  echo "::warning:: pre-flight: could not determine instance role (sts:GetCallerIdentity failed)"
+else
+  TASK_ROLE_ARN="arn:aws:iam::\${ACCT}:role/biomate-nextflow-task-role"
+  PASSROLE_OK=0
+  for pname in \$(aws iam list-role-policies --role-name "\$ROLE_NAME" --region "\$REGION" \
+      --query PolicyNames --output text 2>/dev/null); do
+    DOC=\$(aws iam get-role-policy --role-name "\$ROLE_NAME" --policy-name "\$pname" \
+      --region "\$REGION" --query PolicyDocument --output text 2>/dev/null \
+      | python3 -c "import sys,urllib.parse; print(urllib.parse.unquote(sys.stdin.read()))" 2>/dev/null || true)
+    if echo "\$DOC" | grep -q "PassRole"; then
+      PASSROLE_OK=1
+      echo "✓ pre-flight: iam:PassRole found in policy \$pname on role \$ROLE_NAME"
+      break
+    fi
+  done
+  if [ "\$PASSROLE_OK" -eq 0 ]; then
+    echo "::warning:: pre-flight: iam:PassRole MISSING on role \$ROLE_NAME"
+    echo "   Impact: Nextflow cannot submit AWS Batch jobs — all workflow runs fail rc=1"
+    echo "   Fix: add NextflowPassTaskRole statement to NextflowBatchSubmit policy"
+    echo "        see docs/CLOUD_INSTANCE_REQUIREMENTS.md for the full policy JSON"
+  fi
+fi
+
+# -- LLM API key check --
+# When GALAXY_AI_LLM_PROVIDER=openai_compatible, probe the configured endpoint.
+# A 401 here means AI chat + workflow findings fail silently for every user.
+ENV_FILE="/opt/biomate/.env"
+LLM_PROVIDER=\$(grep "^GALAXY_AI_LLM_PROVIDER=" "\$ENV_FILE" 2>/dev/null | cut -d= -f2- | sed 's/["\x27]//g' | head -1)
+LLM_API_KEY=\$(grep "^LLM_API_KEY=" "\$ENV_FILE" 2>/dev/null | cut -d= -f2- | sed 's/["\x27]//g' | head -1)
+LLM_API_URL=\$(grep "^LLM_API_URL=" "\$ENV_FILE" 2>/dev/null | cut -d= -f2- | sed 's/["\x27]//g' | head -1)
+LLM_MODEL=\$(grep "^LLM_MODEL=" "\$ENV_FILE" 2>/dev/null | cut -d= -f2- | sed 's/["\x27]//g' | head -1)
+if [ "\${LLM_PROVIDER:-}" = "openai_compatible" ] && [ -n "\${LLM_API_KEY:-}" ] && [ -n "\${LLM_API_URL:-}" ]; then
+  LCODE=\$(curl -sS -m 10 -o /dev/null -w "%{http_code}" \\
+    -H "Authorization: Bearer \$LLM_API_KEY" \\
+    -H "Content-Type: application/json" \\
+    -d "{\"model\":\"\${LLM_MODEL:-qwen-plus}\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1}" \\
+    "\$LLM_API_URL/chat/completions" 2>/dev/null || echo "000")
+  if [ "\$LCODE" = "200" ]; then
+    echo "✓ pre-flight: LLM API key valid (HTTP 200 from \$LLM_API_URL)"
+  elif [ "\$LCODE" = "401" ]; then
+    echo "::warning:: pre-flight: LLM API key INVALID — 401 from \$LLM_API_URL"
+    echo "   Impact: all AI chat + workflow findings will return errors"
+    echo "   Fix: update LLM_API_KEY in Secrets Manager ($ENVIRONMENT/biomate/galaxy-env)"
+    echo "        key must be a DashScope API key (sk-xxx), not a RAM AccessKey"
+  else
+    echo "::warning:: pre-flight: LLM API check returned HTTP \$LCODE — could not verify key"
+  fi
+else
+  echo "pre-flight: LLM key check skipped (provider=\${LLM_PROVIDER:-unset})"
+fi
+
+echo "pre-flight checks done"
+PREFLIGHTEOF
+)
+ssm_run "$PREFLIGHT_SCRIPT" "Running pre-flight IAM + LLM checks" 60
+echo ""
+
 # Step 2: Materialize runtime env from AWS Secrets Manager (GitLab-style external config)
 echo "=== Step 2: Load runtime env from Secrets Manager ==="
 #
