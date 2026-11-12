@@ -46,14 +46,16 @@ export function StepAdjustModal({
   // Param values can arrive as structured objects ({value|default|val, type, origin,…}).
   // Pull out the scalar they carry so the field shows the real value — not "[object
   // Object]" (string inputs) or an empty box (number inputs coercing an object to NaN).
-  const coerceParamValue = (v: any): any => {
-    if (v != null && typeof v === "object" && !Array.isArray(v)) {
+  const coerceParamValue = (v: any, depth = 0): any => {
+    if (v != null && typeof v === "object" && !Array.isArray(v) && depth < 5) {
       // Use `!== undefined` (not `in`) so an explicit `value: undefined` falls
       // through to default/val instead of erasing the param (code-review #6).
+      // Recurse (bounded) so a nested wrapper {value:{value:"foo"}} still unwraps
+      // to the scalar rather than rendering [object Object] (multi-LLM review).
       // null / 0 / false / "" are legitimate scalar values and are returned as-is.
-      if (v.value !== undefined) return v.value;
-      if (v.default !== undefined) return v.default;
-      if (v.val !== undefined) return v.val;
+      if (v.value !== undefined) return coerceParamValue(v.value, depth + 1);
+      if (v.default !== undefined) return coerceParamValue(v.default, depth + 1);
+      if (v.val !== undefined) return coerceParamValue(v.val, depth + 1);
       return JSON.stringify(v); // last resort — readable, never "[object Object]"
     }
     return v;
