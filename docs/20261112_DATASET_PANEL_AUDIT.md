@@ -114,3 +114,48 @@ matrix expects `image`. Browsers cannot decode TIFF, so the server renders one p
 Open: run-output TIFFs stored outside `projects/<id>/` are not previewable until the backend can
 verify a server-attested ref for them; only plane 0 / series 0 is reachable from the panel (no page
 picker yet); the format-matrix e2e on dev needs this branch deployed.
+
+## Rounds 2–3 (2026-11-12) — verification, new findings, results on dev
+
+**Process.** Round 2 = a read-only verifier re-checked every ID above against the integrated branch
+with the round-1 probes plus mutation tests (revert a guard → its test must fail). Round 3 = a live
+walkthrough of dev in EN/ZH/390 px. Each round's findings were fixed in parallel streams (one owner
+per file set), integrated on `devline/ds-audit-20261112` (draft PR #390, deploy vehicle; review in
+#387), gated (backend pytest, 7 profiler suites on py3.9, module load inside dev's Galaxy container,
+tsc ×2, full vitest) and deployed through the guarded sync (merges any newer dev deploy, re-gates).
+
+**Round 2 new findings (fixed):** path traversal through the backend passthrough
+(`/api/generate/../perception/*`, shared helper `proxy-path.ts`); text with no newline in 8 KB read as
+binary; edit route vs reader delimiter mismatch (rows carry `delimiter`, edit uses it); missing
+rows→edit round-trip test (recorded real reader fixtures); small X-ray PDBs as documents (`structure`
+evidence: method/predicted); JSONL with a bad first line read as CSV; empty-file / latin-1 / duplicate
+column handling; diff row numbers by the reader's layout; untested 404/tabular guards; specific
+upload-conflict and edit-error messages; zh format labels; density viewer by kind not extension.
+
+**Round 3 new findings (fixed):** Versions tab showed another file's diff; QC card 403 after every
+edit (gate accepted only the current key — now current + archived version keys for members); PDF
+rated Watch ("PDF named PDF", gb18030); tree dots from a stale extension list (now the stored
+profiler verdict; auto-profile only ≤ 50 MB); xlsx slow (bounded reader 4.6 s → 0.03 s) and no
+contents (first-sheet preview); restore UX; decimal-comma typing (`columnStats`); featureCounts false
+alarms (layouts recognised); JSONL cut-off false positive + median; AnnData layers vs groups;
+effective N / groups only with a confident label column; 10x root folder; folder roll-up = file
+panel decision; "Run full QC" sends; rename hint; header/breadcrumb; duplicate stats; Plot only when
+numeric; multi-line cell editor; provenance wording; image fit/zoom; PDB fit; TIFF/OME-TIFF preview
+(server PNG render); paired vs single-end samplesheets; zh/en wording. Also found by e2e on dev:
+header version chip read "v1" until the Versions tab was opened.
+
+**Integration catches (before deploy):** a removed TIFF constant still referenced by another branch
+(runtime ReferenceError in the preview); backend/locale wording drift (parity tests now have no
+exemptions); locale three-way JSON merge with another session's leak sweep.
+
+**Results on dev `aefa6221` (computed by the harnesses, not judged):**
+- `dataset-format-matrix.e2e.ts`: **PASS 34 / PARTIAL 0 / FAIL 0** (baseline `eeb1219c`: 3/13/14 by
+  hand; the asserting harness computed 0/0/34 before the fixes deployed).
+- `dataset-edit-safety` (byte-exact, header-less, stale repeated-value → 409, mis-numbered row →
+  409), `project-file-rename`, `jsonl-nested-tables`, `run-code-outputs`, `dataset-panel-full`: pass.
+
+**Open (owner decisions / later):** fixture password is committed in ~61 tracked files (incl. LLM
+training data) — rotate + scrub; dev's Galaxy container is paused during deploys (`docker commit`),
+stalling users; PR #387's squash onto next-phase lost the run_code persistence wiring (see the PR
+comment); run-output TIFF preview; TIFF page picker; profile verdicts do not refresh after a profiler
+upgrade until re-profiled.
