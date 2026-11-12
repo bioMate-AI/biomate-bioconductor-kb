@@ -258,7 +258,7 @@ export function CodeExecutionBlock({ block }: Props) {
                   {copied ? tOr('tool_card.copied', 'Copied') : tOr('tool_card.copy', 'Copy')}
                 </button>
               </div>
-              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{redactInternalRefs(code)}</pre>
+              <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{redactInternalRefs(code.replace(/^\s*\n/, ''))}</pre>
             </div>
           )}
 

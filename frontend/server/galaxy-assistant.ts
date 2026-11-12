@@ -11546,7 +11546,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
               source: { type: 'base64', media_type: _VISION_MEDIA_TYPES[_imgExt], data: buf.toString('base64') },
             }],
             format_hint: 'image',
-            message: `Image "${localFile.name || fileId}" is shown below — analyze it directly.`,
+            message: `Image "${localFile.name || fileId}" loaded.`,
+            // Model-facing instruction; `__` keys are hidden from the chat card (userFacingToolOutput).
+            __note: 'The image is attached below — analyze it directly.',
           };
         }
         const nodeFs = await import('fs/promises');
