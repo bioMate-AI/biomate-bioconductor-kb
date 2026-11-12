@@ -42,6 +42,7 @@ import {
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
 import { FolderProfileView } from "@/components/datasets/folder-profile-view"
 import { downloadProjectFile } from "@/components/datasets/datasets-api"
+import { followFileList, followFolderRename } from "@/components/datasets/open-object-follow"
 import { PaneResizeHandle, useTreeWidth } from "@/components/datasets/pane-resize-handle"
 import { t, tOr, locale } from "@/lib/i18n"
 import { toDatasetRef } from "@/components/datasets/to-dataset-ref"
@@ -184,6 +185,8 @@ export default function DataHubPage() {
   // Or an input folder, opened as one object (pairs, 10x matrix, format roll-up). One of the
   // two is shown; picking either replaces the other.
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+  // The open file was deleted (from the tree): its name, shown in place of the object.
+  const [deletedName, setDeletedName] = useState<string | null>(null)
   const openedKey = selected ? `file:${selected.id}` : selectedFolder !== null ? `folder:${selectedFolder}` : null
   useEffect(() => {
     if (!openedKey) return
@@ -208,7 +211,18 @@ export default function DataHubPage() {
   useEffect(() => {
     setSelected(null)
     setSelectedFolder(null)
+    setDeletedName(null)
   }, [activeProjectId])
+
+  // The open object follows the tree's file list by id: a renamed / moved file shows its new name
+  // (and is profiled under it), a new version its new key; a deleted file closes, saying so.
+  // (The tree always calls the latest callback, so `selected` here is current.)
+  const followList = (files: ProjectFile[]) => {
+    if (!selected) return
+    const r = followFileList(selected, files)
+    if (r.kind === "updated") setSelected(r.file)
+    else if (r.kind === "deleted") { setSelected(null); setDeletedName(r.name) }
+  }
 
   // Header Download: a same-origin link the server redirects to a signed URL carrying the display
   // name as the attachment filename — the browser saves "counts.csv" (never the storage key
@@ -264,8 +278,10 @@ export default function DataHubPage() {
             <PaneResizeHandle width={treeWidth} onWidth={setTreeWidth} />
             <ProjectFileTree
               projectId={activeProjectId}
-              onOpenDataset={(f) => { setSelectedFolder(null); setSelected(f) }}
-              onOpenFolder={(p) => { setSelected(null); setSelectedFolder(p) }}
+              onOpenDataset={(f) => { setSelectedFolder(null); setDeletedName(null); setSelected(f) }}
+              onOpenFolder={(p) => { setSelected(null); setDeletedName(null); setSelectedFolder(p) }}
+              onFileList={followList}
+              onFolderRenamed={(from, to) => setSelectedFolder((p) => (p === null ? p : followFolderRename(p, from, to)))}
               selectedFolder={selectedFolder}
               selectFileId={deepLinkFileId}
               revealFolder={deepLinkFolder}
@@ -281,8 +297,9 @@ export default function DataHubPage() {
               <DatasetObject
                 dataset={toDatasetRef(selected)}
                 projectId={activeProjectId ?? undefined}
-                // Keyed by the storage key: a new version (save / restore) re-reads the content.
-                preview={<DatasetFilePreview key={`${selected.id}:${selected.s3_key ?? ""}`} projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
+                // Keyed by the storage key and name: a new version (save / restore) re-reads the
+                // content, and a rename re-reads it under the new name (the name sets its kind).
+                preview={<DatasetFilePreview key={`${selected.id}:${selected.s3_key ?? ""}:${selected.name}`} projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
                 onFileChanged={(file) => {
                   // The server's row for the new version: its storage key replaces the archived one,
                   // so the profile / rows / links of the open file read the CURRENT version.
@@ -316,6 +333,11 @@ export default function DataHubPage() {
               <Card data-testid="data-hub-detail-empty" className="data-hub-detail-empty flex flex-col">
                 <CardContent className="flex flex-1 flex-col items-center justify-center gap-1.5 py-8 text-center">
                   <Database className="h-7 w-7 text-muted-foreground/40" />
+                  {deletedName && (
+                    <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]" data-testid="data-hub-open-file-deleted">
+                      {t('data_hub.open_file_deleted', { name: deletedName })}
+                    </p>
+                  )}
                   <p className="text-sm font-medium">{t('data_hub.select_dataset')}</p>
                   <p className="text-xs text-muted-foreground max-w-xs">
                     {t('data_hub.select_dataset_hint')}

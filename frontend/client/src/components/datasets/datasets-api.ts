@@ -91,7 +91,9 @@ export function usePerceptionProfile(
   name?: string,
 ): UseQueryResult<PerceptionResponse> {
   return useQuery<PerceptionResponse>({
-    queryKey: ["/api/perception/profile", datasetRef],
+    // The name is part of the request (the profiler reads the format from it), so it is part of
+    // the key: a renamed file (same storage key) is profiled again under its new name.
+    queryKey: ["/api/perception/profile", datasetRef, name ?? null],
     enabled: !!datasetRef,
     // Profiling is deterministic; don't refetch aggressively.
     staleTime: 5 * 60 * 1000,
