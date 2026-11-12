@@ -51,6 +51,10 @@ export class FakeStore {
   reservations = new Map<string, Row>();
   users: Row[] = [];
   members: Row[] = [];
+  /** projects rows ({id, user_id}) — only the dataset gate's owner check reads them. */
+  projects: Row[] = [];
+  /** project_file_profiles by s3_key. */
+  profiles = new Map<string, Row>();
   activity: Row[] = [];
   objects = new Map<string, Buffer>();
   puts: string[] = [];
@@ -63,6 +67,7 @@ export class FakeStore {
 
   reset(): void {
     this.files = []; this.versions = []; this.reservations.clear(); this.users = []; this.members = [];
+    this.projects = []; this.profiles.clear();
     this.activity = []; this.objects.clear(); this.puts = []; this.deletes = []; this.presigned = [];
     this.putDelayMs = 0;
   }
@@ -171,6 +176,27 @@ export class FakeStore {
     }
     if (/FROM users WHERE id::text = ANY/.test(t)) {
       return ok(this.users.filter((u) => (p[0] as string[]).includes(String(u.id))));
+    }
+
+    // dataset-reference-access.ts DATASET_FILE_SQL: the file whose current or archived-version key
+    // is $1, in a project $2 owns or is a member of; a current-key match first.
+    if (/^SELECT f\.id::text AS id, f\.project_id::text AS project_id, f\.name, f\.source, \(f\.s3_key = \$1\) AS current FROM \(SELECT id AS file_id FROM project_files WHERE s3_key = \$1 UNION ALL SELECT file_id FROM project_file_versions WHERE s3_key = \$1\) k JOIN project_files f ON f\.id = k\.file_id JOIN projects p ON p\.id = f\.project_id WHERE \(p\.user_id::text = \$2 OR EXISTS \( SELECT 1 FROM project_members m WHERE m\.project_id = p\.id AND m\.user_id::text = \$2 \)\) ORDER BY \(f\.s3_key = \$1\) DESC LIMIT 1$/.test(t)) {
+      const [k, uid] = p.map(String);
+      const ids = [...this.files.filter((f) => f.s3_key === k).map((f) => f.id), ...this.versions.filter((v) => v.s3_key === k).map((v) => v.file_id)];
+      const can = (f: Row) => this.projects.some((pr) => pr.id === f.project_id && String(pr.user_id) === uid)
+        || this.members.some((m) => m.project_id === f.project_id && String(m.user_id) === uid);
+      const hits = this.files.filter((f) => ids.includes(f.id) && can(f))
+        .sort((a, b) => Number(b.s3_key === k) - Number(a.s3_key === k));
+      return ok(hits.slice(0, 1).map((f) => ({ id: f.id, project_id: f.project_id, name: f.name, source: f.source, current: f.s3_key === k })));
+    }
+
+    // project_file_profiles (project-file-profiles.ts)
+    if (t.startsWith("INSERT INTO project_file_profiles (s3_key, quality, findings, view_kind, profiled_at) VALUES ($1, $2, $3::jsonb, $4, now()) ON CONFLICT (s3_key) DO UPDATE")) {
+      this.profiles.set(p[0], { s3_key: p[0], quality: p[1], findings: JSON.parse(p[2]), view_kind: p[3], profiled_at: this.now() });
+      return ok();
+    }
+    if (/^SELECT s3_key, quality, findings, view_kind, profiled_at FROM project_file_profiles WHERE s3_key = ANY\(\$1::text\[\]\)$/.test(t)) {
+      return ok((p[0] as string[]).filter((k) => this.profiles.has(k)).map((k) => ({ ...this.profiles.get(k)! })));
     }
 
     // project_files reads
@@ -299,7 +325,7 @@ export class FakeStore {
       return ok([], prev ? 1 : 0);
     }
 
-    if (/project_files|project_file_versions|project_object_key_reservations/.test(t)) {
+    if (/project_files|project_file_versions|project_file_profiles|project_object_key_reservations/.test(t)) {
       throw new Error(`fake store: unhandled statement: ${t}`);
     }
     return ok();

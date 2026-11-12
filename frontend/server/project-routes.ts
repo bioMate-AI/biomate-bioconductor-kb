@@ -37,6 +37,10 @@ import { applyCellEdits, isReaderDelimiter, pickDelimiter, tableRows, READER_DEL
 import path from "path";
 import fs from "fs";
 import { likePrefix, loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
+import { PROFILE_TABLE_DDL, withProfileSummaries } from "./project-file-profiles";
+
+/** pool.query as the plain query function the helper modules take (resolved at call time). */
+const _q = (text: string, params?: unknown[]) => pool.query(text, params as any[]);
 
 async function ensureProjectMembersTable(): Promise<void> {
   await pool.query(`
@@ -210,6 +214,12 @@ async function ensureProjectFilesTable(): Promise<void> {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `).catch(_ddlFailed);
+  // The dataset gate resolves a profile / rows / datasets ref by its object key — the current key
+  // or an archived version's (dataset-reference-access.ts) — on every panel request.
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_files_s3_key_idx ON project_files(s3_key)`).catch(_ddlFailed);
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_file_versions_s3_key_idx ON project_file_versions(s3_key)`).catch(_ddlFailed);
+  // The profiler's verdict per object key (project-file-profiles.ts): the tree's quality dot.
+  await pool.query(PROFILE_TABLE_DDL).catch(_ddlFailed);
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
@@ -890,7 +900,8 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT ${_FILE_COLUMNS} FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
         [id]
       );
-      res.json({ files: result.rows });
+      // profileSummary: the profiler's stored verdict for each file's CURRENT version (or null).
+      res.json({ files: await withProfileSummaries(_q, result.rows) });
     } catch (e: any) {
       console.error("[project_files] list failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to list files" });
@@ -1277,6 +1288,9 @@ export function registerProjectRoutes(app: Express): void {
         if (!upd.rows[0]) throw new Error("restore: version precondition failed under the project lock");
         return { status: 200, body: { file: upd.rows[0], restoredFrom: target } };
       });
+      // The restored row in the files-list shape: its new current s3_key (the ref to profile) and
+      // the profile summary that version already has, if any.
+      if (out.status === 200) (out.body as any).file = (await withProfileSummaries(_q, [(out.body as any).file]))[0];
       if (out.status === 200) {
         await recordProjectActivity(id, uid, "file_restored", { fileId, restoredFrom: target, newVersion: (out.body as any).file.version_no });
       }
@@ -1352,21 +1366,32 @@ export function registerProjectRoutes(app: Express): void {
       const B = _layoutRows(tgtText, ext, tgtLay, 500);  // target (older), with ITS layout
       const added = A.headers.filter((h) => !B.headers.includes(h));
       const removed = B.headers.filter((h) => !A.headers.includes(h));
+      // changedCells lists at most 100 cells; changedCellCount counts EVERY changed cell in the rows
+      // compared (the count to show — never changedCells.length), exact unless the compared window
+      // was truncated (changedCellCountExact false: "at least N").
+      const CELL_CAP = 100;
       const changedCells: Array<{ row: number; rowNumber: number; col: string; from: string; to: string }> = [];
+      let changedCellCount = 0;
       const nRows = Math.min(A.rows.length, B.rows.length);
       const nCols = Math.min(A.headers.length, B.headers.length);
-      for (let i = 0; i < nRows && changedCells.length < 100; i++) {
+      for (let i = 0; i < nRows; i++) {
         for (let j = 0; j < nCols; j++) {
           const av = A.rows[i]?.[j] ?? "", bv = B.rows[i]?.[j] ?? "";
-          if (av !== bv) changedCells.push({ row: i, rowNumber: i + 1, col: A.headers[j] ?? String(j), from: bv, to: av });
+          if (av === bv) continue;
+          changedCellCount++;
+          if (changedCells.length < CELL_CAP) changedCells.push({ row: i, rowNumber: i + 1, col: A.headers[j] ?? String(j), from: bv, to: av });
         }
       }
+      const truncated = (A.rows.length >= 500 || B.rows.length >= 500);
       res.json({
         ...base,
         columns: { added, removed },
         rowsCompared: nRows,
         changedCells,
-        truncated: (A.rows.length >= 500 || B.rows.length >= 500),
+        changedCellCount,
+        changedCellCountExact: !truncated,
+        changedCellsTruncated: changedCellCount > changedCells.length,
+        truncated,
       });
     } catch (e: any) {
       console.error("[project_files] diff failed:", e?.message ?? e);
@@ -1515,6 +1540,8 @@ export function registerProjectRoutes(app: Express): void {
         }
       });
       if (out.status === 200) {
+        // The new version in the files-list shape: its new s3_key is the ref to profile next.
+        (out.body as any).file = (await withProfileSummaries(_q, [(out.body as any).file]))[0];
         await recordProjectActivity(id, uid, "file_versioned", { fileId, name: cur.name, version: baseVersion + 1, editedCells: applied });
       }
       res.status(out.status).json(out.body);
@@ -1545,7 +1572,7 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT ${_FILE_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
-      res.json({ file: row.rows[0], renamed: Boolean(m) });
+      res.json({ file: row.rows[0] ? (await withProfileSummaries(_q, [row.rows[0]]))[0] : row.rows[0], renamed: Boolean(m) });
     } catch (e: any) {
       console.error("[project_files] rename failed:", e?.message ?? e);
       res.status(500).json({ error: "Rename failed" });
@@ -1571,7 +1598,7 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT ${_FILE_COLUMNS} FROM project_files WHERE project_id::text = $1 AND id::text = ANY($2::text[])`,
         [id, ids]
       );
-      res.json({ files: rows.rows, renamed: ids.length });
+      res.json({ files: await withProfileSummaries(_q, rows.rows), renamed: ids.length });
     } catch (e: any) {
       console.error("[project_files] folder rename failed:", e?.message ?? e);
       res.status(500).json({ error: "Folder rename failed" });

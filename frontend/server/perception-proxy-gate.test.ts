@@ -80,7 +80,7 @@ describe("perception proxy gate", () => {
 describe("routes.ts wiring", () => {
   const src = fs.readFileSync(path.join(HERE, "routes.ts"), "utf8");
   it("both perception routes run the gate before the dataset access check and the proxy", () => {
-    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
+    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, recordProfile, _dlProxyHandler\)/);
     expect(src).toMatch(/app\.all\("\/api\/perception\/\*", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
     // no other route proxies /api/perception
     expect((src.match(/"\/api\/perception/g) ?? []).length).toBe(2);
