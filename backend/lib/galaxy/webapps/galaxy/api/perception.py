@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import tempfile
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
@@ -406,27 +407,95 @@ def folder_object_ref(dataset_ref: Any, project_id: Optional[str]) -> Optional[t
     return bucket, key
 
 
+_S3_CLIENT: List[Any] = []
+_S3_CLIENT_LOCK = threading.Lock()
+
+
+def _s3_client() -> Any:
+    """One S3 client per process, created under a lock: a boto3 client is thread-safe to USE, but
+    creating clients from boto3's default session in parallel threads is not (the folder profile
+    reads its objects' heads from a thread pool)."""
+    if not _S3_CLIENT:
+        with _S3_CLIENT_LOCK:
+            if not _S3_CLIENT:
+                import boto3  # available in the Galaxy backend
+
+                _S3_CLIENT.append(boto3.client("s3"))
+    return _S3_CLIENT[0]
+
+
 def _s3_head(bucket: str, key: str) -> Optional[bytes]:
     """First _HEAD_BYTES of an object: a ranged GET, never the whole object (a 10x matrix can be
     gigabytes)."""
     try:
-        import boto3  # available in the Galaxy backend
-
-        obj = boto3.client("s3").get_object(Bucket=bucket, Key=key, Range=f"bytes=0-{_HEAD_BYTES - 1}")
+        obj = _s3_client().get_object(Bucket=bucket, Key=key, Range=f"bytes=0-{_HEAD_BYTES - 1}")
         return obj["Body"].read()
     except Exception as exc:  # noqa: BLE001
         log.warning("[perception] head read failed for s3://%s/%s: %s", bucket, key, exc)
         return None
 
 
-def _read_head(obj: Optional[tuple]) -> Optional[str]:
-    """First ~64 KB (decompressed) of a validated project object as text; None when unreadable."""
+def _read_head(obj: Optional[tuple], raw: Optional[bytes] = None) -> Optional[str]:
+    """First ~64 KB (decompressed) of a validated project object as text; None when unreadable.
+    ``raw`` is its already-fetched head (the folder profile fetches each object once)."""
     if not obj:
         return None
-    raw = _s3_head(*obj)
+    if raw is None:
+        raw = _s3_head(*obj)
     if raw is None:
         return None
     return _decompress_head(raw).decode("utf-8", errors="replace")
+
+
+# The folder roll-up is labelled by the SAME content decision as each file's own profile
+# (data_perception.decide over the object's head). Above this many files the rest are labelled
+# from their names only.
+MAX_FOLDER_DECISIONS = 300
+_FOLDER_FETCH_WORKERS = 8
+
+
+def _fetch_heads(refs: Dict[str, Optional[tuple]], names: List[str]) -> Dict[str, bytes]:
+    """name → raw head bytes for the validated refs among ``names`` (parallel ranged GETs)."""
+    todo = [n for n in names if refs.get(n)][:MAX_FOLDER_DECISIONS]
+    if not todo:
+        return {}
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=min(_FOLDER_FETCH_WORKERS, len(todo))) as pool:
+        heads = list(pool.map(lambda n: _s3_head(*refs[n]), todo))  # type: ignore[misc]
+    return {n: h for n, h in zip(todo, heads) if h}
+
+
+def _head_decisions(heads: Dict[str, bytes]) -> Dict[str, Dict[str, Any]]:
+    """name → {"ext", "label", "viewKind"}: data_perception.decide over each head, written to a
+    temporary file under the file's own basename (the name states the claim, the bytes decide).
+    A head that is only a PREFIX of its object cannot contradict the name for a binary container
+    (an xlsx's zip directory sits at the end of the file): such a decision is dropped, and the
+    file is labelled from its name."""
+    from galaxy.ai.data_perception import UnreadableContent, _reset_damage, decide
+
+    out: Dict[str, Dict[str, Any]] = {}
+    with tempfile.TemporaryDirectory(prefix="perception_folder_") as tmp:
+        for i, (name, raw) in enumerate(heads.items()):
+            base = os.path.basename(name) or "file"
+            sub = os.path.join(tmp, str(i))
+            os.mkdir(sub)
+            path = os.path.join(sub, base)
+            with open(path, "wb") as f:
+                f.write(raw)
+            _reset_damage()  # per-file read damage (truncation of a partial head) never carries over
+            try:
+                d = decide(path, name)
+            except UnreadableContent:
+                continue
+            except Exception as exc:  # noqa: BLE001 — a decision is an enhancement of the roll-up
+                log.info("[perception] folder decision failed for %s: %s", name, exc)
+                continue
+            partial = len(raw) >= _HEAD_BYTES
+            if partial and d.mismatch and d.kind in ("binary", "galaxy"):
+                continue
+            out[name] = {"ext": d.ext, "label": d.label, "viewKind": d.view}
+    return out
 
 
 def _galaxy_classifier():
@@ -474,9 +543,11 @@ def perception_folder_profile(request: FolderProfileRequest) -> Dict[str, Any]:
     if refused:
         log.warning("[perception] folder_profile refused %d datasetRef(s) outside projects/%s/", refused,
                     project_id or "?")
+    heads = _fetch_heads(refs, list(named))
     return profile_folder(
         request.path or "",
         list(named),
-        read_head=lambda name: _read_head(refs.get(name)),
+        read_head=lambda name: _read_head(refs.get(name), heads.get(name)),
         classify=_galaxy_classifier(),
+        decisions=_head_decisions(heads),
     )

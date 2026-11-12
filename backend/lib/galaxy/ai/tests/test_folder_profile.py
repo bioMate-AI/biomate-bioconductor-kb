@@ -139,13 +139,15 @@ def test_pairs_folder_paired_and_orphan():
     assert by["S2"]["status"] == "orphan" and by["S2"]["role"] == "forward", by
     assert fq["orphans"] == ["pairs/S2_R1.fastq.gz"], fq
     sheet = out["samplesheet"]
-    assert sheet["rows"] == [["S1", "pairs/S1_R1.fastq.gz", "pairs/S1_R2.fastq.gz"], ["S2", "pairs/S2_R1.fastq.gz", ""]], sheet
-    assert sheet["csv"].splitlines()[0] == "sample,fastq_1,fastq_2" and len(sheet["csv"].splitlines()) == 3, sheet["csv"]
+    # Round 3 (P10): the paired sheet holds the pairs only; the orphan goes to a single-end sheet.
+    assert sheet["rows"] == [["S1", "pairs/S1_R1.fastq.gz", "pairs/S1_R2.fastq.gz"]], sheet
+    assert sheet["single"]["rows"] == [["S2", "pairs/S2_R1.fastq.gz", ""]], sheet
+    assert sheet["csv"].splitlines()[0] == "sample,fastq_1,fastq_2" and len(sheet["csv"].splitlines()) == 2, sheet["csv"]
     codes = {f["code"]: f for f in out["findings"]}
     assert codes["folder_fastq_orphan"]["params"] == {"name": "S2_R1.fastq.gz", "sample": "S2", "missing": "R2"}, codes
     assert codes["folder_fastq_orphan"]["level"] == "watch"
     assert "folder_fastq_mixed_layout" in codes and codes["folder_fastq_pairs"]["params"]["pairs"] == 1, codes
-    assert out["rollup"] == [{"format": "fastq", "label": "FASTQ", "count": 3, "pairs": 1}], out["rollup"]
+    assert out["rollup"] == [{"format": "fastq", "label": "FASTQ", "count": 3, "viewKind": "reads", "pairs": 1}], out["rollup"]
     print("PASS test_pairs_folder_paired_and_orphan")
 
 
@@ -222,7 +224,7 @@ def test_rollup_mixed_folder():
     out = fp.profile_folder("m", names)
     assert out["kind"] == "mixed" and out["fileCount"] == 12, out
     assert out["rollup"] == [
-        {"format": "fastq", "label": "FASTQ", "count": 8, "pairs": 4},
+        {"format": "fastq", "label": "FASTQ", "count": 8, "viewKind": "reads", "pairs": 4},
         {"format": "csv", "label": "CSV", "count": 2},
         {"format": "unrecognised", "label": "", "count": 2},
     ], out["rollup"]
