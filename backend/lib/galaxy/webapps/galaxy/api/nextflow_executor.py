@@ -1152,6 +1152,17 @@ def _classify_failure(
                        "run this workflow on ARM64 hardware.",
                        False, "report")
 
+    # ── CloudWatch / IAM permission errors (infra configuration gap) ──
+    # Nextflow (Java SDK) logs this when the EC2 instance role lacks logs:GetLogEvents.
+    # It is not a user-fixable input error — point at the IAM root cause.
+    if ("cloudwatchlogs" in low or "accessdeniedexception" in low
+            or "logs:getlogevents" in low or "logs:putlogevents" in low):
+        return verdict("infra_transient",
+                       "The compute environment is missing an AWS CloudWatch Logs "
+                       "permission (logs:GetLogEvents). The run may have partially "
+                       "completed — resume to skip already-finished steps. "
+                       "Ask your admin to add logs:GetLogEvents to the EC2 instance role.",
+                       True, "resume")
     # ── transient infrastructure (a plain resume can succeed) ──
     if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
                               "dockertimeouterror", "cannot pull", "unable to pull",
@@ -1424,7 +1435,7 @@ def _trigger_auto_reroute_on_failure(
                     args=(
                         alternative["nextflow_path"],
                         run_meta.get("user_id", "anonymous"),
-                        dict(run_meta.get("parameters") or {}),
+                        dict(run_meta.get("params") or run_meta.get("parameters") or {}),
                         alternative["domain"],
                         new_run_id,
                         new_inv_id,
@@ -3712,9 +3723,9 @@ process {{
 """
         # On-prem container override for ADMET workflows: admet is a private
         # ECR image (not accessible without AWS credentials). BIOMATE_ADMET_CONTAINER
-        # lets operators substitute a pre-pulled image, e.g. workflow-tools which has
+        # lets operators substitute a pre-pulled image, e.g. biomni-tools which has
         # the biomni package with RDKit-based ADMET fallback when admet_ai is absent.
-        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/workflow-tools:latest
+        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest
         admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
         admet_container_override = ""
         if admet_container:
@@ -3748,10 +3759,10 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  // --pull missing: pull from registry only when image is not in local cache.
-  //   Pre-pulled images (e.g. via GHA sync workflow) are used directly; registry is only
-  //   contacted for images not yet cached (e.g. quay.io bioconductor containers on first run).
-  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
+  // --pull never: use locally-loaded images only; skip registry check so Docker registry
+  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
+  //   _ensure_containers_pulled() handles pulling missing images before Nextflow starts.
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
 }}
 {_arm64_env_block}
 
@@ -4435,7 +4446,7 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
 # excluded — they require AWS credentials unavailable on bare metal / China ECS.
 _ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
     # biomate images: pulled from GHCR
-    "biomate/workflow-tools:latest": "ghcr.io/biomate-ai/workflow-tools:latest",
+    "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
     "biomate/drug-discovery-nf:latest": "ghcr.io/biomate-ai/drug-discovery-nf:latest",
     # Standard public images: use DaoCloud mirror (accessible from China Aliyun ECS)
     "condaforge/miniforge3:latest": "docker.m.daocloud.io/condaforge/miniforge3:latest",
@@ -7684,6 +7695,41 @@ def _execute_nextflow_impl(
         user_id=str(request.user_id) if hasattr(request, "user_id") else "anonymous",
     )
 
+    # ── Param type sanitization ──────────────────────────────────────────────
+    # Guard against the UI / LLM sending boolean True for string/file params.
+    # `isinstance(True, str)` is False so _coerce_mistyped_sequence_params
+    # silently skips booleans, letting them propagate to Nextflow as the string
+    # "true"/"false" — which breaks any .nf that reads the value as a path.
+    #
+    # Strategy: read the .nf file's param defaults. Params declared as string
+    # (params.X = '' or params.X = "something") should never receive a boolean.
+    # For those, drop boolean True/False so the .nf default takes effect.
+    try:
+        _nf_src = nf_path.read_text(encoding="utf-8", errors="replace")
+        import re as _re_san
+        # Collect params declared with string defaults: params.X = '' / params.X = "..."
+        _string_declared_params: set = set()
+        for _m in _re_san.finditer(
+            r"params\.(\w+)\s*=\s*(?:'[^']*'|\"[^\"]*\"|null\b)",
+            _nf_src,
+        ):
+            _string_declared_params.add(_m.group(1))
+        # Also catch params with empty-string defaults (params.X = '')
+        for _m in _re_san.finditer(r"params\.(\w+)\s*=\s*['\"]?\s*['\"]?\s*(?://|$)", _nf_src, _re_san.MULTILINE):
+            _string_declared_params.add(_m.group(1))
+        for _k in list(params.keys()):
+            _v = params[_k]
+            if not isinstance(_v, bool):
+                continue
+            if _k in _string_declared_params:
+                log.info(
+                    "[Nextflow run %s] sanitize: dropping boolean %s for string-typed param '%s'",
+                    run_id, _v, _k,
+                )
+                del params[_k]
+    except Exception as _san_exc:
+        log.debug("[Nextflow run %s] param sanitize skipped: %s", run_id, _san_exc)
+
     # Docking-class param normalization (box_center/box_size → JSON vectors;
     # smiles_list compound NAMES → SMILES). Same pre-launch boundary as the
     # sequence coercion above. No-op for non-docking workflows.
@@ -8434,6 +8480,9 @@ def _execute_nextflow_impl(
         # a run supplied no file/S3 params). See datasets_object.py.
         "parameters": dict(request.parameters or {}),
         "resume_from_run_id": request.resume_from_run_id,
+        # Original params — persisted so resume_nextflow_run can re-inject them
+        # when the "Restart" button sends no body (avoids params.sequence = '' default).
+        "params": dict(params),
     }
     with _runs_lock:
         _runs[run_id] = dict(_run_record_init)
@@ -8454,6 +8503,7 @@ def _execute_nextflow_impl(
             "outdir": str(outdir),
             "workflow_domain": workflow_domain or "",
             "nextflow_path": request.nextflow_path or str(nf_path),
+            "params": dict(params),
         }))
     except Exception as _te:
         log.debug("[timing] Could not write timing.json for %s: %s", run_id, _te)
@@ -9002,13 +9052,32 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
             f"[resume/{run_id}] _runs miss — reconstructed: nextflow_path={nextflow_path} is_batch={_force_batch} user_id={body.user_id!r}"
         )
 
+    # When "Restart" sends no body.parameters, recover the original params so
+    # sequence/fasta params are not silently dropped (Nextflow would use defaults
+    # like params.sequence='' and the workflow fails at startup with "Provide input").
+    # Priority: caller-supplied params > _runs cache > timing.json disk fallback.
+    _resolved_params = body.parameters or None
+    if not _resolved_params:
+        _recovered = prev.get("params") or {}
+        if not _recovered:
+            # Cross-worker fallback: try timing.json
+            try:
+                import json as _rj
+                _tp = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
+                _recovered = _rj.loads(_tp.read_text()).get("params") or {}
+            except Exception:
+                pass
+        if _recovered:
+            _resolved_params = _recovered
+            log.info("[resume/%s] Re-injecting %d original params (no body.parameters supplied)", run_id, len(_recovered))
+
     resume_request = NextflowExecuteRequest(
         nextflow_path=prev["nextflow_path"],
         profile=prev.get("profile"),
         entry=prev.get("entry"),
         workflow_domain=prev.get("workflow_domain"),
         user_id=prev.get("user_id") or body.user_id,
-        parameters=body.parameters or None,
+        parameters=_resolved_params,
         resume_from_run_id=run_id,
         compute_config=(
             {"executor": "awsbatch"} if prev.get("is_batch") else None
