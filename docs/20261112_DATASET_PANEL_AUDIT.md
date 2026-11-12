@@ -254,3 +254,28 @@ Fixed in round 7 (`bf6e400c63` + follow-up):
   with Try again; 403 says no access;
 - zh: no space after "。" before the "expected" qualifier; `constant_columns` / `near_constant` zh
   text no longer carries a count the en text lacks; `label_few_rows` reworded.
+
+## Round 8 (2026-11-12) — deployed `2554e05c`
+
+**Live audit on `0fead9b9`:** all round-7 fixes confirmed. 28 of 28 profile requests returned 200,
+so the new "Couldn't reach the profiler" state was not exercised. The zh joins and copy are correct.
+These also passed: phone folder and Versions views, a Chinese file name, an empty file (Blocked), a
+BOM file. Defects found and fixed:
+- **Chinese column headers were never read** (`cada21734f`). `_name_tokens` only tokenised ASCII, so
+  `分组` (对照/处理) gave "No group column was found". Each CJK run now maps to the English token of
+  the word it ends with: Chinese compounds are head-final, so `实验分组` → group, `样本编号` → id, and
+  `处理时间` → nothing. 组 alone is excluded so that `参考基因组` is not read as a group. Tests in
+  `test_dataset_audit_r8_20261112.py` (4/4; each failed before the fix).
+- **The open object kept its name after a rename or move** (`2a5d0fd918`). The tree now reports its
+  file list and folder renames. The data hub follows the open file by id (new name), closes it when
+  the file is deleted ("“name” was deleted."), and follows a renamed folder. The profile query key
+  includes the name, since the profiler detects the format from the name. The `s3_key` did not go
+  stale: a rename keeps id and key.
+- **Compare on a phone stuck at "Comparing…"**: not a bug. The compare path does not depend on width;
+  the audit captured the screen before the diff response arrived.
+
+**Integration:** dev had meanwhile deployed `ab11d0adca` (chat outputs in per-chat folders,
+resizable Data file list, HTML reports, CJK plot fonts, run_code docx/pptx). The sync's ancestry
+check refused to drop it. Merging conflicted in `project-file-tree.tsx` (props) and `data-hub.tsx`
+(imports); both sides were kept, and tsc plus the data-hub, file-tree and datasets suites passed
+(318 passed) before re-gating.
