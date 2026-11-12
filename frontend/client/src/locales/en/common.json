@@ -811,7 +811,9 @@
     "versions_loading": "Loading versions…",
     "lineage_loading": "Tracing where it came from…",
     "consumers_loading": "Finding where it is used…",
-    "columns_loading": "Reading the columns…"
+    "columns_loading": "Reading the columns…",
+    "figure_loading": "Loading figure…",
+    "figure_missing": "Figure not found: {{name}}"
   },
   "data_hub": {
     "choose_project": "Choose a project",

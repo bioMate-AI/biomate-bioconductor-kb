@@ -107,6 +107,15 @@ function insertInput(root: FolderNode, f: ProjectFile): void {
   node.children.push({ type: "file", name: leaf, file: f });
 }
 
+/** Compact local time for a file row ("11-12 16:28"; earlier years add the year). */
+export function fileTime(iso: string | Date, now: Date = new Date()): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const p = (n: number) => String(n).padStart(2, "0")
+  const md = `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}-${md}`
+}
+
 /** Folders before files at every level; files keep their (newest-first) order. */
 function sortFoldersFirst(node: FolderNode): void {
   node.children.sort((x, y) => (x.type === y.type ? 0 : x.type === "folder" ? -1 : 1));
@@ -121,7 +130,8 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
   const analysis: FolderNode = { type: "folder", name: t("file_tree.analysis_outputs"), path: "outputs/analysis", children: [] };
 
   for (const f of files) {
-    if (f.source === "run_code") { analysis.children.push({ type: "file", name: f.name, file: f }); continue; }
+    // Saved as "<chat title> · <start time>/<file>" (one folder per chat) — nested like inputs.
+    if (f.source === "run_code") { insertInput(analysis, f); continue; }
     // Only run outputs are "results"; everything else the user ingested
     // (upload, pasted URL, connector pull) is an input, regardless of source.
     if (f.source !== "run_output") {
@@ -133,6 +143,7 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
     }
   }
   sortFoldersFirst(inputs);
+  sortFoldersFirst(analysis);
 
   const root: TreeNode[] = [];
   if (inputs.children.length > 0) root.push(inputs);
@@ -571,6 +582,15 @@ function FileRow({
         {file.step_name && (
           <span className="min-w-0 max-w-[30%] truncate text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
             {file.step_name}
+          </span>
+        )}
+        {file.created_at && (
+          <span
+            className="text-fs-xs text-muted-foreground/80 shrink-0 tabular-nums hidden sm:inline"
+            title={new Date(file.created_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}
+            data-testid={`file-time-${file.id}`}
+          >
+            {fileTime(file.created_at)}
           </span>
         )}
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>

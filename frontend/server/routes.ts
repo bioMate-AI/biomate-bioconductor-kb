@@ -25,6 +25,7 @@ import { registerVoiceRoutes } from "./voice-routes";
 import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity";
+import { chatOutputFolderName } from "./chat-output-folder";
 import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -7146,6 +7147,7 @@ ${paramLines || '(none recorded)'}`;
       // from — defense in depth.
       // -----------------------------------------------------------------
       const _resolvedSessionId = (context?.sessionId || context?.memorySessionId) || undefined;
+      let _chatOutputFolderCache: string | undefined;
       let _historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> | undefined =
         Array.isArray(context?.previousMessages) && context.previousMessages.length > 0
           ? context.previousMessages
@@ -7567,11 +7569,26 @@ ${paramLines || '(none recorded)'}`;
         uiLanguage: normalizeUiLanguage((context as any)?.uiLanguage),
         // run_code outputs → session datasets (download link + later turns), the same store as uploads.
         persistGeneratedFile: async (hostPath: string, name: string) => {
+          // One folder per chat, named "<title> · <start time>" (resolved once per turn).
+          const _chatOutputFolder = async (): Promise<string> => {
+            if (_chatOutputFolderCache) return _chatOutputFolderCache;
+            let title: string | undefined; let createdAt: Date | undefined;
+            try {
+              if (_resolvedSessionId) {
+                const r = await pool.query('SELECT title, created_at FROM chat_sessions WHERE session_id = $1 LIMIT 1', [_resolvedSessionId]);
+                title = r.rows?.[0]?.title; createdAt = r.rows?.[0]?.created_at;
+              }
+            } catch { /* fall back to the first message + now */ }
+            if (!title || /^new chat$/i.test(title)) title = String(message || '').split('\n')[0].replace(/\[[^\]]*\]/g, '').trim();
+            _chatOutputFolderCache = chatOutputFolderName({ title, createdAt, timeZone: (context as any)?.timeZone,
+              zh: /^zh/i.test(String((context as any)?.uiLanguage || '')) || /[\u4e00-\u9fff]/.test(String(message || '')) });
+            return _chatOutputFolderCache;
+          };
           // A project chat saves into the project automatically (versioned project file, shown under
           // "Analysis outputs").
           const _uid = req.user?.id != null ? String(req.user.id) : '';
           if (_resolvedProjectId && _uid) {
-            const stored = await storeGeneratedFileInProject({ projectId: _resolvedProjectId, uid: _uid, hostPath, name });
+            const stored = await storeGeneratedFileInProject({ projectId: _resolvedProjectId, uid: _uid, hostPath, name, folder: await _chatOutputFolder() });
             if (stored?.file?.id) {
               return { dataset_id: String(stored.file.id), project_file_id: String(stored.file.id), project_id: _resolvedProjectId,
                 download_url: `/api/projects/${encodeURIComponent(_resolvedProjectId)}/files/${encodeURIComponent(stored.file.id)}/url?redirect=1` };

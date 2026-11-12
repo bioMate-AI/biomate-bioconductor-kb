@@ -219,7 +219,7 @@ export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
         ? await imageDataUri(filePath, mediaType)
         : undefined;
       if (image_data_uri) imageBytes += stat.size;
-      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _sig: fileSignature(stat) } as OutputFile);
+      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _sig: await fileSignature(filePath, stat) } as OutputFile);
     }
   } catch { /* dir may not exist */ }
   return results;
@@ -386,20 +386,29 @@ export async function sweepIdleWorkspaces(now = Date.now(), force = false): Prom
   return removed;
 }
 
-/** Identity of a file's current content: a rewrite changes ctime (and usually mtime/size) even
- *  within the same millisecond-rounded mtime; a replace (new file, rename) changes the inode. */
-function fileSignature(st: { size: number; mtimeMs: number; ctimeMs: number; ino: number }): string {
-  return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+/** Identity of a file's CONTENT (size + sha256). Content, not mtime/inode: the silent replay of a
+ *  turn's earlier cells rewrites their files with the same bytes, and a metadata signature counted
+ *  each rewrite as a new output — more files were saved to the project than the chat listed
+ *  (founder 2026-11-12). Files over the hash cap fall back to the metadata signature. */
+const SIGNATURE_HASH_MAX_BYTES = 64 * 1024 * 1024;
+async function fileSignature(filePath: string, st: { size: number; mtimeMs: number; ctimeMs: number; ino: number }): Promise<string> {
+  if (st.size > SIGNATURE_HASH_MAX_BYTES) return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+  try {
+    return `${st.size}:${createHash('sha256').update(await fs.readFile(filePath)).digest('hex')}`;
+  } catch {
+    return `${st.size}:${st.mtimeMs}:${st.ctimeMs}:${st.ino}`;
+  }
 }
 
 type DirSnapshot = Map<string, string>;
-async function snapshotDir(dir: string): Promise<DirSnapshot> {
+export async function snapshotDir(dir: string): Promise<DirSnapshot> {
   const snap: DirSnapshot = new Map();
   try {
     for (const e of await fs.readdir(dir, { withFileTypes: true })) {
       if (!e.isFile()) continue;
-      const st = await fs.lstat(path.join(dir, e.name));
-      if (st.isFile()) snap.set(e.name, fileSignature(st));
+      const p = path.join(dir, e.name);
+      const st = await fs.lstat(p);
+      if (st.isFile()) snap.set(e.name, await fileSignature(p, st));
     }
   } catch { /* new workspace */ }
   return snap;

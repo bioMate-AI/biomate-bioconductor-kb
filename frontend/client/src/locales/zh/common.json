@@ -817,7 +817,9 @@
     "versions_loading": "正在加载版本…",
     "lineage_loading": "正在追溯来源…",
     "consumers_loading": "正在查找使用位置…",
-    "columns_loading": "正在读取列信息…"
+    "columns_loading": "正在读取列信息…",
+    "figure_loading": "正在加载图片…",
+    "figure_missing": "未找到图片：{{name}}"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

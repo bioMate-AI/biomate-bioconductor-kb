@@ -882,6 +882,8 @@ export function ChatInterface({
           context: {
             previousMessages,
             uiLanguage: locale,
+            // The user's IANA time zone — names the chat's output folder by local time.
+            timeZone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return undefined } })(),
             // Include session ID for memory integration AND server-side
             // assistant-message persistence (see docs/20260529_CHAT_STREAM_PERSISTENCE_GAP.md).
             // The server UPSERTs by assistantMessageId so client + server writes
