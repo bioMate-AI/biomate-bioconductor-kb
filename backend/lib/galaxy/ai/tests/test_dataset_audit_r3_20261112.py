@@ -208,8 +208,9 @@ def test_b5_xlsx_without_a_stored_dimension_is_not_parsed_whole(tmp):
     assert prof["format"]["ext"] == "xlsx" and prof["viewKind"] == "document", prof["format"]
     assert prof["columns"] == ["sample", "condition", "value"], prof.get("columns")
     assert len(prof["sampleRows"]) == dp.MAX_PREVIEW_ROWS and prof["sampleRows"][0] == ["S0", "trt", "0"], prof["sampleRows"][:2]
-    assert prof["previewSheet"] == "data" and "spreadsheet_preview" in _codes(prof), prof["findings"]
-    assert _codes(prof)["spreadsheet_sheets"]["params"]["sheets"] == ["data", "meta"]
+    # Round 5: several sheets + a preview are ONE finding (the sheet names stated once).
+    assert prof["previewSheet"] == "data" and "spreadsheet_sheets" not in _codes(prof), prof["findings"]
+    assert _codes(prof)["spreadsheet_preview_sheets"]["params"]["sheets"] == ["data", "meta"]
     # The sheet stores no size: the profile does not invent one from the preview.
     assert prof["shape"] == {"rows": 0, "cols": 0}, prof["shape"]
 

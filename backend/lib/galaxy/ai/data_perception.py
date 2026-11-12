@@ -250,7 +250,7 @@ _EN_TEXT: Dict[str, str] = {
     'file_not_found': "The file could not be found.",
     'no_path': "No dataset path was provided.",
     'empty_file': "The file is empty (0 bytes).",
-    'unprofilable': "This file type cannot be profiled ({{name}}); only its shape is reported, no leakage or balance checks.",
+    'unprofilable': "This file type cannot be read here ({{name}}); only its size is reported.",
     'parse_failed': "The file could not be parsed; it may be malformed or in a different format than its name suggests.",
     'no_ref': "No dataset reference was provided.",
     'unresolvable_ref': "The dataset reference could not be resolved to a readable file.",
@@ -264,10 +264,7 @@ _EN_TEXT: Dict[str, str] = {
     'fastq_low_quality': "Mean base quality Phred {{q}} is below 20 (more than 1 error in 100 bases) — consider trimming.",
     'fastq_no_records': "No FASTQ records could be parsed — the file may be malformed.",
     'vcf_records': "Variant records: {{variants}}; samples: {{samples}}.",
-    'vcf_summary': "VCF — variants: {{variants}}; genotyped samples: {{samples}}.",
     'vcf_no_variants': "No variant records were found (header only).",
-    'vcf_sized': "variants: {{variants}} · samples: {{samples}}",
-    'vcf_sized_effect': "variant annotation and filtering plan sized accordingly",
     'no_columns': "No columns could be parsed from the table.",
     'header_only': "A header is present but there are no data rows.",
     'near_constant': "Near-constant columns (over {{pct}}% a single value): {{columns}}.",
@@ -285,6 +282,7 @@ _EN_TEXT: Dict[str, str] = {
     'drop_leaky_column': "“{{column}}” reveals the group",
     'drop_leaky_column_effect': "leave “{{column}}” out of any model that predicts the group",
     'batch_confound': "“{{column}}” (batch) lines up almost exactly with the groups, so batch and condition effects cannot be separated — a design problem for differential analysis.",
+    'group_nested': "Each value of “{{column}}” occurs in only one group of “{{label}}”, so {{column}} and {{label}} effects cannot be separated — a confounded design; dropping the column does not fix it.",
     'batch_covariate': "“{{column}}” overlaps with the groups",
     'batch_covariate_effect': "include “{{column}}” in the design (e.g. as a covariate) for differential analysis",
     'split_overlap': "Feature rows that appear in more than one split: {{count}} — train/test overlap.",
@@ -311,11 +309,11 @@ _EN_TEXT: Dict[str, str] = {
     'format_header_unreadable': "The {{format}} header could not be read; the file may be truncated or malformed.",
     'fasta_sequences': "Sequences: {{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}} (half of all bases lie in sequences at least this long).",
     'fasta_no_sequences': "No “>” sequence headers found.",
-    'anndata_shape': "Cells (obs): {{cells}} × genes or features (var): {{genes}}.",
+    'anndata_shape': "Rows of the matrix X are cells (obs); its columns are genes or features (var).",
     'anndata_obs': "Cell annotation columns ({{count}}): {{columns}}.",
     'anndata_var': "Gene annotation columns ({{count}}): {{columns}}.",
     'anndata_embeddings': "Stored embeddings: {{embeddings}}.",
-    'loom_shape': "Genes (rows): {{genes}} × cells (columns): {{cells}}.",
+    'loom_shape': "Rows of the matrix are genes; its columns are cells (the loom layout, transposed relative to AnnData).",
     'loom_row_attrs': "Gene attributes: {{columns}}.",
     'loom_col_attrs': "Cell attributes: {{columns}}.",
     'loom_layers': "Layers: {{layers}}.",
@@ -369,6 +367,8 @@ _EN_TEXT: Dict[str, str] = {
     'table_clean_label_unchecked': "Rows: {{rows}} · columns: {{cols}}; no constant columns or missing-value problems.",
     'duplicate_rows': "Exact duplicate rows: {{count}}.",
     'spreadsheet_preview': "Preview of sheet “{{sheet}}”: its first rows (rows shown: {{rows}}).",
+    'spreadsheet_preview_sheets': "Sheets ({{count}}): {{sheets}}; the preview shows the first rows of “{{sheet}}” (rows shown: {{rows}}).",
+    'sample_groups_from_names': "Sample columns form groups by name: {{groups}}.",
 }
 
 _PLACEHOLDER = re.compile(r"{{\s*(\w+)\s*}}")
@@ -384,6 +384,9 @@ def _fmt_param(v: Any) -> str:
     if isinstance(v, float):
         return f"{v:,.2f}".rstrip("0").rstrip(".") if not v.is_integer() else f"{int(v):,}"
     if isinstance(v, (list, tuple)):
+        if v and all(isinstance(x, dict) and "name" in x and "n" in x for x in v):
+            # Named counts ({name, n} — sample_groups_from_names): "ctrl (2) · treat (2)".
+            return " · ".join(f"{x['name']} ({_fmt_param(x['n'])})" for x in v)
         return ", ".join(str(x) for x in v)
     return str(v)
 
@@ -2425,8 +2428,8 @@ def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label:
         p.stats_map.update(cells=cells, genes=genes)
         obs = _meta_list(meta, "obs_layers", ("index", "_index"))
         var = _meta_list(meta, "var_layers", ("index", "_index"))
-        emit(p, "signal", "anndata_shape", f"{cells:,} cells (obs) × {genes:,} genes/features (var).",
-             cells=cells, genes=genes)
+        # The counts are the cells / genes stats; the finding states the orientation only.
+        emit(p, "signal", "anndata_shape", "", cells=cells, genes=genes)
         if obs:
             emit(p, "note", "anndata_obs", f"{len(obs)} cell annotation column(s): {', '.join(_named(obs))}.",
                  count=len(obs), columns=_named(obs))
@@ -2461,8 +2464,7 @@ def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label:
             return False
         p.rows, p.cols = cells, genes
         p.stats_map.update(cells=cells, genes=genes)
-        emit(p, "signal", "loom_shape", f"{genes:,} genes (rows) × {cells:,} cells (columns).",
-             genes=genes, cells=cells)
+        emit(p, "signal", "loom_shape", "", genes=genes, cells=cells)
         rattrs = _meta_list(meta, "row_attrs_names")
         cattrs = _meta_list(meta, "col_attrs_names")
         if rattrs:
@@ -2531,22 +2533,31 @@ def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label:
         first = sheets[0] if isinstance(sheets[0], dict) else {}
         p.rows, p.cols = int(first.get("rows") or 0), int(first.get("cols") or 0)
         p.stats_map["sheets"] = len(names)
-        emit(p, "signal", "spreadsheet_sheets", "", count=len(names), sheets=_named(names))
-        _spreadsheet_preview(p, meta.get("preview"))
+        # The sheet names are stated by ONE finding: the preview's (one sheet), the combined
+        # sheets-and-preview finding (several sheets), or the sheet list (no preview).
+        previewed = _spreadsheet_preview(p, meta.get("preview"))
+        if not previewed:
+            emit(p, "signal", "spreadsheet_sheets", "", count=len(names), sheets=_named(names))
+        elif len(names) > 1:
+            emit(p, "signal", "spreadsheet_preview_sheets", "", count=len(names), sheets=_named(names),
+                 sheet=p.preview_sheet, rows=len(p.sample_rows or []))
+        else:
+            emit(p, "note", "spreadsheet_preview", "", sheet=p.preview_sheet, rows=len(p.sample_rows or []))
         emit(p, "note", "spreadsheet_convert", "")
         return True
     return False
 
 
-def _spreadsheet_preview(p: DataProfile, preview: Any) -> None:
+def _spreadsheet_preview(p: DataProfile, preview: Any) -> bool:
     """The first sheet's first rows as the profile's preview table (``columns`` + ``sampleRows``,
     the same caps as a delimited table): line 1 is the header when the table rule says so
-    (_line1_is_header), else the columns are named column_1, column_2, …"""
+    (_line1_is_header), else the columns are named column_1, column_2, … True when a preview was
+    set (the caller states it in the sheets finding)."""
     if not isinstance(preview, dict) or not isinstance(preview.get("rows"), list) or not preview["rows"]:
-        return
+        return False
     rows = [[str(c) for c in r] for r in preview["rows"] if isinstance(r, list)]
     if not rows:
-        return
+        return False
     width = max(len(r) for r in rows)
     rows = [r + [""] * (width - len(r)) for r in rows]
     if len(rows) > 1 and _line1_is_header(rows[0], rows[1:]):
@@ -2558,7 +2569,7 @@ def _spreadsheet_preview(p: DataProfile, preview: Any) -> None:
     p.preview_sheet = str(preview.get("sheet") or "")
     # An unsized sheet (no stored dimension) keeps shape 0 × 0: its size is unknown without a
     # full parse, and the preview's row count is not the sheet's.
-    emit(p, "note", "spreadsheet_preview", "", sheet=p.preview_sheet, rows=len(p.sample_rows))
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -2798,13 +2809,13 @@ def _profile_vcf(path: str) -> DataProfile:
     p.rows = n_variants
     p.cols = n_samples
     p.stats_map.update(variants=n_variants, samples=n_samples)
+    # One finding states the counts (the stats carry the same numbers); a second note and a plan
+    # line repeating them were dropped in round 5.
     emit(p, "signal", "vcf_records", "", variants=n_variants, samples=n_samples)
-    emit(p, "note", "vcf_summary", "", variants=n_variants, samples=n_samples)
     if malformed:
         emit(p, "note", "vcf_malformed_lines", "", "watch", count=malformed)
     if n_variants == 0:
         emit(p, "note", "vcf_no_variants", "", "watch")
-    emit(p, "plan", "vcf_sized", "", variants=n_variants, samples=n_samples)
     return p
 
 
@@ -2902,6 +2913,8 @@ KNOWN_TABLE_LAYOUTS: Dict[str, Dict[str, Any]] = {
                       "min_values": 1, "annotation": ("Geneid", "Chr", "Start", "End", "Strand", "Length")},
     "mageck_count": {"label": "MAGeCK counts", "lead": ("sgRNA", "Gene"), "min_values": 1,
                      "annotation": ("sgRNA", "Gene")},
+    # Salmon / RSEM: one sample per file (no sample columns); featureCounts / MAGeCK: the
+    # columns after the lead are the samples (see _matrix_sample_columns).
     "salmon_quant": {"label": "Salmon quantification", "lead": ("Name", "Length", "EffectiveLength", "TPM", "NumReads"),
                      "min_values": 0, "annotation": ("Name", "Length", "EffectiveLength")},
     "rsem_results": {"label": "RSEM quantification",
@@ -3758,23 +3771,28 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     if layout is not None and layout.spec:
         # A spec format (BED, GTF, SMILES, …): its columns are defined by the format, so the
         # classification checks (label / leakage / balance) and placeholder-column statistics
-        # (BED score 0, strand ".") do not apply. Format findings are added by the caller.
+        # (BED score 0, strand ".") do not apply. Format findings are added by the caller. The
+        # per-column statistics are kept, with the format's coordinate / descriptor columns as
+        # ``annotation`` so they are never a plot default or a feature.
+        p.column_stats = _column_stats(header, rows, dec, _spec_annotation_columns(layout.spec, header))
         _set_duplicate_rows(p, rows)
         emit(p, "note", "table_summary", "", rows=total, cols=n_cols)
         if p.profiled_rows is not None:
             emit(p, "note", "profiled_subset", "", profiled=n_rows, rows=total)
         return p
 
+    annotation = set(layout.annotation_columns()) if layout is not None else set()
+    annotation |= _genomic_coordinate_columns(header)
     if n_rows < MIN_ROWS_FOR_CHECKS:
-        # One data row: "near-constant" / "high missingness" / class balance say nothing.
+        # One data row: "near-constant" / "high missingness" / class balance say nothing. The
+        # column types and roles still describe it (a one-record JSON Lines extract's "page").
+        p.column_stats = _column_stats(header, rows, dec, annotation)
         emit(p, "note", "few_data_rows", "", "watch", rows=n_rows)
         _set_duplicate_rows(p, rows)
         emit(p, "note", "table_summary", "", rows=total, cols=n_cols)
         return p
 
     # --- per-column types + statistics (decimal-mark aware), and the columns' roles ---
-    annotation = set(layout.annotation_columns()) if layout is not None else set()
-    annotation |= _genomic_coordinate_columns(header)
     p.column_stats = _column_stats(header, rows, dec, annotation)
     roles = {c["name"]: c.get("role") for c in p.column_stats}
 
@@ -3891,17 +3909,91 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     # "No issues" only when nothing at watch level was found in ANY section, and it names only
     # the checks that actually ran. The clean summaries say no column is constant, so a table
     # with an (expected, info-level) near-constant column closes with the plain summary.
+    # A wide count / expression matrix (features × samples: the samples are COLUMNS) has no group
+    # column by construction, so "no group column was found" is not said of it; sample columns
+    # whose names form groups (ctrl_1, ctrl_2, treat_1 …) are stated instead.
+    sample_cols = _matrix_sample_columns(header, p.column_stats, layout) if label_idx is None else None
+    if sample_cols is not None:
+        groups = _sample_name_groups(sample_cols)
+        if groups:
+            emit(p, "note", "sample_groups_from_names", "", groups=groups)
     if any(f["level"] in ("watch", "blocked") or f["code"] == "near_constant" for f in p.findings):
         emit(p, "note", "table_summary", "", rows=total, cols=n_cols)
     elif confident:
         emit(p, "note", "table_clean", "", rows=total, cols=n_cols)
-    elif label_idx is not None:
+    elif label_idx is not None or sample_cols is not None:
         emit(p, "note", "table_clean_label_unchecked", "", rows=total, cols=n_cols)
     else:
         emit(p, "note", "table_clean_unlabelled", "", rows=total, cols=n_cols)
     if p.profiled_rows is not None:
         emit(p, "note", "profiled_subset", "", profiled=n_rows, rows=total)
     return p
+
+
+# Whole name tokens of a FEATURE-identifier first column of a wide matrix (rows are genes,
+# transcripts, guides, peaks, … and the samples are columns).
+_FEATURE_ID_NAME_TOKENS = frozenset({
+    "gene", "genes", "geneid", "symbol", "ensembl", "transcript", "transcripts", "tx", "feature",
+    "features", "probe", "probes", "probeset", "sgrna", "guide", "protein", "proteins", "peptide",
+    "metabolite", "otu", "asv", "taxon", "taxa", "cpg", "peak", "peaks", "region", "locus",
+})
+# File suffixes a tool leaves on sample column names (featureCounts: S1.bam).
+_SAMPLE_NAME_SUFFIX = re.compile(r"\.(?:sorted\.)?(?:bam|sam|cram|bw|bigwig|bed|fastq|fq|txt|tsv|csv|counts?)$", re.I)
+# A sample name = group prefix (with a letter) + replicate number; a separated replicate word
+# before the number ("ctrl_rep1", "WT-r2", "KO_Rep_3") is not part of the group's name.
+_SAMPLE_NAME_GROUP = re.compile(r"^(.*?)(\d+)$")
+_SAMPLE_REPLICATE_WORD = re.compile(r"(?:[ _.\-]+(?:rep(?:licate)?|r)|(?<=[a-z0-9])Rep)[ _.\-]*$", re.I)
+
+
+def _matrix_sample_columns(header: Sequence[str], column_stats: Optional[Sequence[Dict[str, Any]]],
+                           layout: Optional["TableLayout"]) -> Optional[List[str]]:
+    """The sample columns when the table is a WIDE count / expression matrix, else None.
+
+    A matrix is (a) a recognised count / quantification layout (featureCounts, MAGeCK — the
+    columns after the lead are the samples; Salmon / RSEM — one sample per file, no sample
+    columns), or (b) a table whose first column is a non-numeric feature identifier and every
+    other column is numeric (at least two), where either the first column's name is a feature
+    word (gene_id, Geneid, transcript, sgRNA, … or blank, as R writes row names) or the numeric
+    columns' names form sample groups (ctrl_1, ctrl_2, treat_1). A samples × measurements table
+    (sample, weight_g, conc_mg_ml) is neither, and keeps its group-column note."""
+    if layout is not None and layout.recognised in KNOWN_TABLE_LAYOUTS:
+        lead = KNOWN_TABLE_LAYOUTS[layout.recognised]["lead"]
+        return [str(h) for h in header[len(lead):]] if KNOWN_TABLE_LAYOUTS[layout.recognised]["min_values"] else []
+    # (columnStats cover the first MAX_COLUMN_STATS columns: a wider matrix is judged on those.)
+    if layout is None or not column_stats or len(column_stats) < 3:
+        return None
+    first, rest = column_stats[0], column_stats[1:]
+    if first["type"] not in ("text", "categorical") or first["distinct"] != first["present"]:
+        return None
+    if not all(c["type"] == "numeric" for c in rest):
+        return None
+    names = [str(h) for h in header[1:]]
+    first_name = str(header[0]).strip()
+    if not first_name or set(_name_tokens(first_name)) & _FEATURE_ID_NAME_TOKENS or _sample_name_groups(names):
+        return names
+    return None
+
+
+def _sample_name_groups(names: Sequence[str]) -> Optional[List[Dict[str, Any]]]:
+    """Groups formed by sample column names — ``[{name, n}]`` in first-seen order — when EVERY
+    name is a group prefix + replicate number (ctrl_1, ctrl_2, treat_1; WT_1, KO_2; S1.bam's file
+    suffix is ignored) and there are at least two groups; else None (S1, S2 … is one group)."""
+    if len(names) < 2:
+        return None
+    order: List[str] = []
+    counts: Dict[str, int] = {}
+    for raw in names:
+        m = _SAMPLE_NAME_GROUP.match(_SAMPLE_NAME_SUFFIX.sub("", str(raw).strip()))
+        g = _SAMPLE_REPLICATE_WORD.sub("", m.group(1)).rstrip(" _.-") if m else ""
+        if not re.search(r"[A-Za-z]", g):
+            return None
+        if g not in counts:
+            order.append(g)
+            counts[g] = 0
+        counts[g] += 1
+    if len(order) < 2:
+        return None
+    return [{"name": g, "n": counts[g]} for g in order]
 
 
 def _near_constant_expected(col: Sequence[str], n_rows: int, *, records: bool) -> bool:
@@ -3933,6 +4025,11 @@ _IDENTIFIER_NAME_TOKENS = frozenset({
     "sample", "name", "serial",
 })
 MAX_COLUMN_STATS = 2000
+# Name tokens of a POSITION column (where a record sits in its source), and the words that may
+# accompany them ("page_no", "row_index", "line_number"). A name made only of these words, with
+# at least one position word, is an identifier for any integer values (see _is_identifier).
+_POSITION_ONLY_TOKENS = frozenset({"page", "row", "line", "record", "index", "idx", "serial"})
+_POSITION_NAME_TOKENS = _POSITION_ONLY_TOKENS | frozenset({"no", "num", "number", "nr", "n", "pos"})
 
 
 def _modelling_label(header: Sequence[str], label_idx: int, n_rows: int,
@@ -4045,6 +4142,21 @@ def _genomic_coordinate_columns(header: Sequence[str]) -> set:
     return {h for h, v in low.items() if v in keep}
 
 
+# Columns of a spec format that are VALUES (a plot or a model may use them); every other column
+# of an interval / annotation format (Chrom, Start, End, Strand, Frame, Source, Feature, Phase,
+# Attributes, the BED block columns …) is annotation. Name stays out of both: it is an
+# identifier when its values are distinct (see _column_stats), else a descriptive column.
+_SPEC_VALUE_COLUMNS = frozenset({"score", "value", "signalvalue", "pvalue", "qvalue"})
+_SPEC_PLAIN_COLUMNS = frozenset({"name", "title", "smiles"})
+
+
+def _spec_annotation_columns(spec: str, header: Sequence[str]) -> set:
+    if spec == "smi":
+        return set()
+    return {str(h) for h in header
+            if str(h).strip().lower() not in _SPEC_VALUE_COLUMNS | _SPEC_PLAIN_COLUMNS}
+
+
 def _num(x: float) -> Any:
     """An integral float as an int (30.0 → 30), else the float."""
     return int(x) if float(x).is_integer() and abs(x) < 2 ** 53 else x
@@ -4057,6 +4169,10 @@ def _is_identifier(name: str, present: Sequence[str], distinct: int, typ: str, n
     if typ == "numeric":  # integers only: a measurement (sample_weight 1.25) is never an ID
         if not all(float(x).is_integer() for x in nums):
             return False
+        if toks <= _POSITION_NAME_TOKENS and toks & _POSITION_ONLY_TOKENS:
+            # A position in the source (page, page_no, row_index, line_number): an identifier
+            # whatever its order — an extract of several documents restarts its page numbers.
+            return True
         return distinct == len(present) or all(a <= b for a, b in zip(nums, nums[1:]))
     return distinct == len(present)
 
@@ -4193,6 +4309,12 @@ def _detect_leakage(
                 emit(p, "leakage", "leaked_id",
                      f"column {header[j]!r} is (near-)unique per row and perfectly predicts the label — leaked id.",
                      "watch", column=header[j])
+            elif _nested_in_groups(per_value) and _grouping_values(header[j], col):
+                # A grouping column (donor, subject …) nested within the groups: a confounded
+                # DESIGN, not a leaked feature — dropping the column does not separate the two
+                # effects, so there is no "drop" plan. Other columns are still scanned.
+                emit(p, "leakage", "group_nested", "", "watch", column=header[j], label=str(header[label_idx]))
+                continue
             else:
                 emit(p, "leakage", "leaked_feature",
                      f"column {header[j]!r} predicts the label at {acc*100:.0f}% — target leaked into features.",
@@ -4264,13 +4386,49 @@ def _batch_confound(p: DataProfile, header: Sequence[str], rows: Sequence[Sequen
         total += sum(lblcounts.values())
         pure += lblcounts.most_common(1)[0][1]
     purity = pure / total if total else 0.0
-    if purity >= BATCH_CONFOUND_PURITY:
+    if _nested_in_groups(per_batch):
+        # Every batch lies inside one group and each group spans several batches: the batch is
+        # NESTED in the groups. A covariate cannot be added (it is collinear with the group), so
+        # this is the confounded-design finding, without the covariate plan.
+        emit(p, "leakage", "group_nested", "", "watch", column=header[batch_idx], label=str(header[label_idx]))
+    elif purity >= BATCH_CONFOUND_PURITY:
         emit(p, "leakage", "batch_confound",
              f"{header[batch_idx]!r} (batch/id) is (near-)perfectly correlated with the outcome label.",
              "watch", column=header[batch_idx])
         emit(p, "plan", "batch_covariate", f"{header[batch_idx]}–label leakage",
              effect_text=f"add {header[batch_idx]!r} as a covariate before modelling",
              column=header[batch_idx])
+
+
+def _grouping_values(name: str, values: Sequence[str]) -> bool:
+    """Whether a column's values can be a GROUPING (donor, subject, plate …): non-numeric
+    labels, or integers in a column whose name is a grouping word (donor 1…30, patient_id). A
+    measured value that separates the groups (expression, a score) is a leaked feature instead."""
+    if not _mostly_numeric(values):
+        return True
+    if not set(_name_tokens(name)) & set(_BATCH_NAME_TOKENS):
+        return False
+    present = [v for v in values if v != ""]
+    return all(_is_number(v) and float(v).is_integer() for v in present)
+
+
+def _nested_in_groups(per_value: Dict[str, Counter]) -> bool:
+    """Whether a column is a GROUPING column nested within the label's groups: every value's
+    rows carry one label only, there are more values than groups (so it is not a one-to-one
+    recoding of the label — that IS a leaked feature, or a batch that lines up with the groups),
+    and the values repeat — on average at least two rows per value (a near-unique identifier is a
+    leaked id, not a grouping). E.g. donor D01…D30 with 20 samples each, every donor in one
+    condition: donor and condition effects cannot be separated."""
+    if not per_value:
+        return False
+    groups = set()
+    for lblcounts in per_value.values():
+        present = [k for k, c in lblcounts.items() if c > 0]
+        if len(present) != 1:
+            return False
+        groups.add(present[0])
+    total = sum(sum(c.values()) for c in per_value.values())
+    return len(groups) >= 2 and len(per_value) > len(groups) and total >= 2 * len(per_value)
 
 
 def _loo_value_accuracy(per_value: Dict[str, Counter]) -> Tuple[float, float, int]:

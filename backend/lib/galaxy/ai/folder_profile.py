@@ -535,7 +535,10 @@ def profile_folder(
                      names=[posixpath.basename(p) for p in fq["indexReads"][:8]])
         if fq["singles"] and not fq["pairs"] and not fq["orphans"]:
             _finding(out, "folder_fastq_single_end", n=len(fq["singles"]))
-        if fq["verdict"] == "mixed":
+        if fq["verdict"] == "mixed" and fq["singles"]:
+            # Only with unpaired files WITHOUT read naming: an orphan mate is already stated, file
+            # by file, by folder_fastq_orphan (its sample runs single-end) — saying again that the
+            # folder "mixes paired and unpaired samples" repeated that fact (round 5).
             _finding(out, "folder_fastq_mixed_layout", "watch", pairs=fq["pairs"],
                      unpaired=len(fq["orphans"]) + len(fq["singles"]))
         runs: Dict[str, int] = {}
