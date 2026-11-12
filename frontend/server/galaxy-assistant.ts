@@ -158,6 +158,9 @@ multi-panel "dashboard" unless the user asks for one; plt.savefig(...) then plt.
 Japanese and Korean labels render correctly — label in the user's language. A Markdown report must sit
 next to its figures: write it in the same call as (or after) them and embed each with a bare relative
 link, ![caption](fig1_score_distribution.png) — no directory, no absolute path.
+Documents: Word (.docx) via python-docx (from docx import Document; doc.add_picture(path)) or pandoc
+(pandoc report.md -o report.docx, run from $OUTPUT_DIR so figures resolve); PowerPoint via python-pptx.
+The sandbox has NO network — never pip/apt install; use what is installed.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
 Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2), set timeout_seconds=120.`,
     input_schema: {
