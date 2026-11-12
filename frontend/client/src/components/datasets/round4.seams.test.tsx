@@ -75,7 +75,7 @@ describe("folder view (N8 / N12)", () => {
     expect(await screen.findByTestId("folder-sample-row-S2")).toHaveTextContent("缺少配对——按单端")
     const { waitFor } = await import("@testing-library/react")
     show("top/mageck_count")
-    await waitFor(() => expect(screen.getAllByTestId("folder-profile-kind").map((e) => e.textContent)).toContain("MAGeCK sgRNA 计数表 文件"))
+    await waitFor(() => expect(screen.getAllByTestId("folder-profile-kind").map((e) => e.textContent)).toContain("MAGeCK sgRNA 计数表文件"))
     expect(screen.getAllByTestId("folder-profile-kind").map((e) => e.textContent).join(" ")).not.toContain("多种格式")
   })
 

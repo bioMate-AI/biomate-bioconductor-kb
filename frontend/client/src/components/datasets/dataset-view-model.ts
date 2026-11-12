@@ -234,6 +234,41 @@ export function profileStats(profile: DataProfile, kind: ViewKind): StatItem[] {
   return statsFromFindings(profile.findings)
 }
 
+/**
+ * Findings whose whole content is the kind's headline numbers ("Variant records: 30; samples: 1.",
+ * "Cells (obs): 1 × genes (var): 1.", "Rows: 6 · columns: 5."): each param and the stat code(s) that
+ * show the same number. A finding with any other param says something more and is never listed here.
+ */
+const NUMBERS_ONLY_FINDINGS: Record<string, Record<string, readonly string[]>> = {
+  vcf_records: { variants: ["variants"], samples: ["samples"] },
+  vcf_summary: { variants: ["variants"], samples: ["samples"] },
+  vcf_sized: { variants: ["variants"], samples: ["samples"] },
+  anndata_shape: { cells: ["cells"], genes: ["genes"] },
+  loom_shape: { cells: ["cells"], genes: ["genes"] },
+  table_summary: { rows: ["rows", "records"], cols: ["columns"] },
+  molecules_count: { molecules: ["molecules"] },
+  fastq_reads: { reads: ["reads"], mean_len: ["read_length"] },
+}
+
+const sameNumber = (a: unknown, b: unknown) =>
+  a != null && b != null && (a === b || (Number.isFinite(Number(a)) && Number(a) === Number(b)))
+
+/**
+ * True when `f` only restates numbers the host's stat grid shows with the same values — decided by
+ * the finding's code and params (NUMBERS_ONLY_FINDINGS), never by matching its text. A finding with
+ * an `at_least` qualifier is a lower bound and repeats an "at least" stat only.
+ */
+export function findingRepeatsStats(f: PerceptionFinding, stats: ReadonlyArray<Pick<StatItem, "code" | "value">>): boolean {
+  const spec = NUMBERS_ONLY_FINDINGS[f.code]
+  if (!spec || !f.params) return false
+  const params = Object.entries(f.params).filter(([k]) => k !== "at_least")
+  if (params.length === 0) return false
+  return params.every(([k, v]) => {
+    const codes = spec[k]
+    return Boolean(codes) && stats.some((s) => codes.includes(s.code) && sameNumber(s.value, v))
+  })
+}
+
 /** The count a finding's `at_least` param qualifies (backend _AT_LEAST_PARAMS). */
 export const AT_LEAST_STAT: Record<string, string> = { fastq_reads: "reads", fasta_sequences: "sequences" }
 
@@ -319,13 +354,21 @@ export function previewedSheet(profile?: Pick<DataProfile, "previewSheet" | "col
  * Finding codes the Preview already shows as content, so the QC card does not list them again:
  * each fact once — the stat grid for numbers, the QC card for findings, the preview for content.
  *  - the AnnData / Loom summary draws the obs / var columns, embeddings, layers and stored parts;
- *  - a spreadsheet whose first rows are previewed: "preview of sheet X" repeats the caption.
+ *  - a spreadsheet whose first rows are previewed: "preview of sheet X" repeats the caption, and
+ *    "Sheets (1): X" repeats the caption + the SHEETS stat when X is the only sheet.
  */
 export function findingsShownAsContent(content: ContentRenderer, profile?: DataProfile | null): ReadonlySet<string> {
   if (!profile) return new Set()
   if (content === "anndata") return new Set(ANNDATA_CONTENT_CODES)
   // ("metadata was read; values not analysed" is not emitted by the profiler when it read the
   // preview rows — round-4 backend — so only the caption's twin is left to drop here.)
-  if (content === "summary" && previewedSheet(profile)) return new Set(["spreadsheet_preview"])
+  const sheet = previewedSheet(profile)
+  if (content === "summary" && sheet) {
+    // "Sheets (1): Data." when "Data" is the ONLY sheet: the caption names it and the stat grid counts
+    // it. Decided by the finding's params, never its text; a workbook with more sheets keeps the list.
+    const sheets = (profile.findings ?? []).find((f) => f.code === "spreadsheet_sheets")?.params?.sheets
+    const onlyPreviewed = Array.isArray(sheets) && sheets.length === 1 && String(sheets[0]) === sheet.name
+    return new Set(onlyPreviewed ? ["spreadsheet_preview", "spreadsheet_sheets"] : ["spreadsheet_preview"])
+  }
   return new Set()
 }

@@ -234,6 +234,20 @@ class ChatHistoryService {
     return target;
   }
   
+  /**
+   * The session a message is about to be sent in, filed in `projectId` when it is still EMPTY and in
+   * no project (an untouched chat opened before the project became active — "Run full QC" from the
+   * data panel). The chat then belongs to the project from its first message: locally (the sidebar
+   * lists it there at once) and in the session row pushed to the server (`project_id`). A chat that
+   * already has messages, or a project, is never moved.
+   */
+  fileEmptySessionInProject(sessionId: string, projectId: string | null | undefined): ChatSession | null {
+    const session = this.getSession(sessionId);
+    if (!session || !projectId) return session;
+    if ((session as any).projectId || (session.messages?.length ?? 0) > 0) return session;
+    return this.updateSession(sessionId, { projectId } as Partial<ChatSession>);
+  }
+
   // Update an existing session
   updateSession(sessionId: string, updates: Partial<ChatSession>): ChatSession | null {
     const sessions = this.getAllSessions();

@@ -55,7 +55,7 @@ import {
   Pencil,
   X,
 } from "lucide-react";
-import { fileExt, kindFromName, type ViewKind } from "@/components/datasets/dataset-view-model";
+import { fileExt, kindFromName, VIEW_KINDS, type ViewKind } from "@/components/datasets/dataset-view-model";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -372,8 +372,14 @@ const KIND_ICON: Partial<Record<ViewKind, LucideIcon>> = {
   matrix: Grid3x3, molecules: Hexagon, structure: Atom, image: FileImage, archive: FileArchive, binary: Binary,
 };
 const CODE_EXT = new Set(["nf", "py", "r", "sh", "ts", "js", "config", "toml", "ini"]);
-export function fileIcon(name: string, _contentType?: string | null): LucideIcon {
+export function fileIcon(name: string, _contentType?: string | null, viewKind?: string | null): LucideIcon {
   const ext = fileExt(name);
+  // The profiler read the bytes: its content kind wins over the name (a text file named fake.png is
+  // a document, not an image; a FASTQ named .txt is reads).
+  if (isViewKind(viewKind) && viewKind !== "unknown" && viewKind !== kindFromName(name)) {
+    if (viewKind === "document") return FileText;
+    if (KIND_ICON[viewKind]) return KIND_ICON[viewKind]!;
+  }
   if (ext === "pdf") return FileType2;
   if (["xlsx", "xls"].includes(ext)) return FileSpreadsheet;
   if (CODE_EXT.has(ext)) return Code2;
@@ -389,11 +395,20 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-const PREVIEW_EXTS = new Set(["csv","tsv","txt","log","md","png","jpg","jpeg","gif","webp","svg"]);
+const PREVIEW_EXTS = new Set(["csv","tsv","txt","log","md","jsonl","ndjson","json","png","jpg","jpeg","gif","webp","svg"]);
+const IMAGE_EXTS = new Set(["png","jpg","jpeg","gif","webp","svg"]);
+const isViewKind = (v: unknown): v is ViewKind => typeof v === "string" && (VIEW_KINDS as readonly string[]).includes(v);
 
 function canPreview(file: ProjectFile): boolean {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   return PREVIEW_EXTS.has(ext) && file.size < 1024 * 1024; // < 1 MB
+}
+
+/** Draw the quick look as an image? By the profiled content kind when known (a text file named .png
+ *  is shown as its text, not a broken image), else by the extension. */
+export function previewAsImage(name: string, viewKind?: string | null): boolean {
+  if (isViewKind(viewKind) && viewKind !== "unknown") return viewKind === "image";
+  return IMAGE_EXTS.has(name.split(".").pop()?.toLowerCase() ?? "");
 }
 
 /**
@@ -500,9 +515,9 @@ const PREVIEW_BOX_STYLE: CSSProperties = { maxHeight: 160, overflow: "auto" };
  * (project page Files tab). Fixed max height, scrolls both ways, never wraps: a file's
  * text must not reflow down the tree (the data hub opens the full object instead).
  */
-function FilePreview({ url, name, fileId }: { url: string; name: string; fileId: string }) {
+function FilePreview({ url, name, fileId, viewKind }: { url: string; name: string; fileId: string; viewKind?: string | null }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  const isImage = ["png","jpg","jpeg","gif","webp","svg"].includes(ext);
+  const isImage = previewAsImage(name, viewKind);
   const [content, setContent] = useState<string | null>(null);
 
   useEffect(() => {
@@ -577,7 +592,7 @@ function FileRow({
   /** Nesting depth (1 = directly under a top-level folder). */
   depth?: number;
 }) {
-  const Icon = fileIcon(file.name, file.content_type);
+  const Icon = fileIcon(file.name, file.content_type, file.profileSummary?.viewKind);
   const shown = label ?? file.name;
   const isCopied = copiedId === file.id;
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -623,7 +638,7 @@ function FileRow({
         style={{ paddingLeft: treeIndent(depth) }}
         data-testid={`file-row-${file.id}`}
       >
-        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" data-testid={`file-icon-${file.id}`} />
         <QualityDot file={file} />
         {/* The full stored name (with its folders) is the name's own tooltip. */}
         {onOpenDataset ? (
@@ -707,7 +722,7 @@ function FileRow({
           )}
         </div>
       </div>
-      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} fileId={file.id} />}
+      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} fileId={file.id} viewKind={file.profileSummary?.viewKind} />}
       {previewOpen && file.input_context && (typeof file.input_context.intent === 'string' || Array.isArray(file.input_context.inputFiles)) && (
         <div className="mx-2 mt-0.5 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5 [overflow-wrap:anywhere]">
           {typeof file.input_context.intent === 'string' && (

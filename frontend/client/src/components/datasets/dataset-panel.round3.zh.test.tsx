@@ -32,9 +32,9 @@ describe("round-3 zh copy", () => {
       },
     }))
     const text = screen.getByTestId("data-perception").textContent ?? ""
-    expect(text).toContain("数值类型为 整数")
+    expect(text).toContain("数值类型为整数")
     expect(text).not.toMatch(/integer/)
-    expect(text).toContain("内容是 文本")
+    expect(text).toContain("内容是文本")
     expect(text).not.toMatch(/\bText\b/)
   })
 

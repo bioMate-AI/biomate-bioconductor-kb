@@ -20,7 +20,7 @@
 import { AlertTriangle, CheckCircle2, XCircle, Eye, ArrowRight, CircleDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t, tOr, locale } from "@/lib/i18n";
-import { AT_LEAST_STAT, datasetKind, effectiveQuality, profileStats, type StatItem, type ViewKind } from "@/components/datasets/dataset-view-model";
+import { AT_LEAST_STAT, datasetKind, effectiveQuality, findingRepeatsStats, profileStats, type StatItem, type ViewKind } from "@/components/datasets/dataset-view-model";
 import { formatLabelText } from "@/components/datasets/format-labels";
 import { breakAtSeparators } from "@/components/datasets/name-breaks";
 
@@ -155,6 +155,9 @@ export interface DataPerceptionProps {
   profile: DataProfile;
   /** Legacy free-text cause → effect lines (used only when `findings` is absent). */
   planImpact?: { observed: string; effect: string }[];
+  /** Show "How it shaped the plan". Only a PLANNING context (a chat turn that built a plan from this
+   *  data) has a plan to speak of; a dataset / file page has none, so it is off by default. */
+  showPlanImpact?: boolean;
   /** Optional dataset name for the header crumb. */
   datasetName?: string;
   /** The file's data kind (from the dataset view model); derived from the profile/name when absent. */
@@ -164,6 +167,10 @@ export interface DataPerceptionProps {
   /** Finding codes the host already shows as CONTENT (the AnnData summary's obs / var / layers, a
    *  spreadsheet's previewed values): not listed again among the notes. Never hides a verdict's reason. */
   hideFindings?: ReadonlySet<string>;
+  /** The numbers the host shows in its own stat grid (`{code, value}`): a signal / note finding whose
+   *  every number is one of those stats with the same value (FINDING_STATS, by code and param — never
+   *  by text) is not repeated. Never hides a verdict's reason. */
+  shownStats?: ReadonlyArray<Pick<StatItem, "code" | "value">>;
   className?: string;
 }
 
@@ -226,6 +233,11 @@ const MTX_FIELD_KEYS = new Set(["integer", "real", "complex", "pattern", "double
 // Format labels the profiler sends in English ("Text", "Excel (xlsx)"): shown in the UI language.
 // `format` carries the same labels in the "identified as / metadata of {{format}}" notes.
 const FORMAT_NAME_PARAMS = new Set(["named", "detected", "format"]);
+/** Params whose value findingVars turns into a UI-language LABEL (a format name, a value type, a
+ *  root / sort order / method / layout / folder in words). In Chinese such a label is a word of the
+ *  sentence: no space around it ("数值类型为整数", not "数值类型为 整数"); counts, file names and
+ *  other raw values keep the usual space between CJK and Latin / digits. (zh-perception-spacing.test.ts) */
+export const LABEL_PARAMS = ["format", "named", "detected", "field", "root", "order_words", "method", "layout", "path_base", "dir"] as const;
 const STRUCTURE_METHOD_KEYS = new Set(["xray", "em", "nmr", "neutron", "fiber", "electron_crystallography"]);
 
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
@@ -295,10 +307,12 @@ export function findingText(f: PerceptionFinding, suffix = ""): string {
 export function DataPerception({
   profile,
   planImpact,
+  showPlanImpact = false,
   datasetName,
   kind: kindProp,
   hideStats,
   hideFindings,
+  shownStats,
   className,
 }: DataPerceptionProps) {
   const quality = effectiveQuality(profile);
@@ -313,11 +327,11 @@ export function DataPerception({
     ? []
     : findings.filter((f) => f.level === quality && f.section !== "plan");
   const isReason = (f: PerceptionFinding) => reasons.includes(f);
-  const shownByHost = (f: PerceptionFinding) => Boolean(hideFindings?.has(f.code));
+  const shownByHost = (f: PerceptionFinding) => Boolean(hideFindings?.has(f.code)) || (shownStats != null && findingRepeatsStats(f, shownStats));
   const signalItems = findings.filter((f) => f.section === "signal" && !isReason(f) && !shownByHost(f));
   const noteItems = findings.filter((f) => f.section === "note" && !isReason(f) && !shownByHost(f));
   const leakageItems = findings.filter((f) => f.section === "leakage" && !isReason(f));
-  const planItems = findings.filter((f) => f.section === "plan");
+  const planItems = showPlanImpact ? findings.filter((f) => f.section === "plan") : [];
 
   // Effective N, group balance and "a column gives the group away" are about a table with a group /
   // class label column. A sample sheet, gene list, count matrix or barcode list without one gets
@@ -355,7 +369,7 @@ export function DataPerception({
 
   const legacyNotes = !structuredMode ? profile.notes : [];
   const legacySignal = !structuredMode ? profile.signalSummary ?? [] : [];
-  const legacyPlan = !structuredMode ? planImpact ?? [] : [];
+  const legacyPlan = !structuredMode && showPlanImpact ? planImpact ?? [] : [];
   const whyTitle = t(quality === "blocked" ? "perception.why_blocked" : "perception.why_watch");
 
   return (
