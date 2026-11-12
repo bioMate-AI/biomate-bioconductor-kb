@@ -31,6 +31,7 @@ in the Galaxy backend on Python 3.9.
 """
 from __future__ import annotations
 
+import codecs
 import csv
 import io
 import json
@@ -44,6 +45,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
 log = logging.getLogger(__name__)
+
+# A delimited cell may be far larger than the csv module's 128 KiB default (a sequence, a JSON
+# blob, an embedded table): such a file is valid, not "malformed". Raised, never lowered.
+_CSV_FIELD_LIMIT = 256 * 1024 * 1024
+if csv.field_size_limit() < _CSV_FIELD_LIMIT:
+    csv.field_size_limit(_CSV_FIELD_LIMIT)
 
 # ---------------------------------------------------------------------------
 # Tunables (all deterministic thresholds — documented so notes can cite them).
@@ -151,6 +158,10 @@ class DataProfile:
     # Measures set by the type profilers (code → value) and which of them are lower bounds.
     stats_map: Dict[str, int] = field(default_factory=dict)
     at_least: set = field(default_factory=set)
+    # "," when the table's numbers use a decimal comma (serialized only then, as ``decimal``).
+    decimal: Optional[str] = None
+    # A 3D structure's provenance (see _structure_provenance) — serialized as ``structure``.
+    structure: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to the exact JSON shape the frontend consumes."""
@@ -173,6 +184,10 @@ class DataProfile:
             out["profiledRows"] = self.profiled_rows
         if self.format is not None:
             out["format"] = dict(self.format)
+        if self.decimal:
+            out["decimal"] = self.decimal
+        if self.structure is not None:
+            out["structure"] = dict(self.structure)
         out["viewKind"] = self.view_kind
         out["stats"] = [dict(s) for s in self.stats]
         out["findings"] = [dict(f) for f in self.findings]
@@ -198,137 +213,122 @@ class DataProfile:
 # say the same thing. ``{{name}}`` placeholders are the finding's params; counts are written so
 # they read correctly for 1 and for many ("Columns with …: a, b", never "column(s)").
 _EN_TEXT: Dict[str, str] = {
-    'file_not_found': 'The file could not be found.',
-    'no_path': 'No dataset path was provided.',
-    'empty_file': 'The file is empty (0 bytes).',
-    'unprofilable': 'This file type cannot be profiled ({{name}}); only its shape is reported, no leakage or balance checks.',
-    'parse_failed': 'The file could not be parsed: {{error}}',
-    'no_ref': 'No dataset reference was provided.',
-    'unresolvable_ref': 'The dataset reference could not be resolved to a readable file.',
-    'structured_too_large': 'Structural validation is limited to files under 2 million characters; download the file for a complete check.',
-    'structured_only': 'Valid {{format}} syntax ({{root}} root). Only the structure was checked; scientific quality has not been assessed.',
-    'fastq_reads': '{{prefix}}Reads scanned: {{reads}}; mean read length {{mean_len}} bp.',
-    'fastq_mean_quality': 'Mean base quality Phred {{q}} (sampled).',
-    'fastq_single_file': 'A single FASTQ file was profiled — treated as single-end unless a mate file is present.',
-    'fastq_single_end': 'Single FASTQ file',
-    'fastq_single_end_effect': 'single-end pipeline suggested (override if a paired mate exists)',
-    'fastq_low_quality': 'Mean base quality Phred {{q}} is below 20 — consider trimming.',
-    'fastq_no_records': 'No FASTQ records could be parsed — the file may be malformed.',
-    'vcf_records': 'Variant records: {{variants}}; samples: {{samples}}.',
-    'vcf_summary': 'VCF — variants: {{variants}}; genotyped samples: {{samples}}.',
-    'vcf_no_variants': 'No variant records were found (header only).',
-    'vcf_sized': 'variants: {{variants}} · samples: {{samples}}',
-    'vcf_sized_effect': 'variant annotation and filtering plan sized accordingly',
-    'no_columns': 'No columns could be parsed from the table.',
-    'header_only': 'A header is present but there are no data rows yet.',
-    'near_constant': 'Near-constant columns (over {{pct}}% a single value): {{columns}}.',
-    'high_missing': 'Columns with at least {{pct}}% missing values: {{columns}}.',
-    'label_spellings': 'Two spellings of the same label: “{{a}}” and “{{b}}”.',
-    'minority_class': 'Class “{{label}}” is only {{pct}}% of rows — consider a balanced sampler.',
-    'effective_n_imbalance': 'Effective N ({{n}}) is far below the row count ({{rows}}) — bounded by the minority class under strong imbalance.',
-    'effective_n_dedup': 'Effective N ({{n}}) is below the row count ({{rows}}) — duplicate rows ({{duplicates}}) reduce the independent samples.',
-    'label_free_text': 'Column “{{column}}” looks like a label but has {{distinct}} distinct values — treated as free text, not a class target.',
-    'table_summary': 'Rows: {{rows}} · columns: {{cols}}.',
-    'table_clean': 'Rows: {{rows}} · columns: {{cols}}; no leakage, imbalance or constant-column issues detected.',
-    'profiled_subset': 'Statistics were computed on the first {{profiled}} of {{rows}} rows.',
-    'leaked_id': 'Column “{{column}}” is (nearly) unique per row and perfectly predicts the label — a leaked identifier.',
-    'leaked_feature': 'Column “{{column}}” predicts the label with {{pct}}% accuracy — the target has leaked into the features.',
-    'drop_leaky_column': '“{{column}}” leaks the label',
-    'drop_leaky_column_effect': 'drop “{{column}}” before modelling',
-    'batch_confound': '“{{column}}” (batch/ID) is (nearly) perfectly correlated with the outcome label.',
-    'batch_covariate': '“{{column}}”–label confound',
-    'batch_covariate_effect': 'add “{{column}}” as a covariate before modelling',
-    'split_overlap': '{{count}} feature row(s) appear in more than one split — train/test overlap.',
-    'dedup_splits': 'Train/test overlap',
-    'dedup_splits_effect': 'de-duplicate rows across splits before evaluation',
-    'nested_tables': 'Column “{{column}}”: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).',
-    'nested_row_cap': '{{pct}}% of the tables in column “{{column}}” have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.',
-    'nested_blank_cells': '{{pct}}% of the cells in the tables of column “{{column}}” are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis.',
-    'columns_generated': 'No header row detected (line 1 holds data values); columns are named column_1, column_2, …',
-    'columns_spec': '{{format}} files have no header row; column names follow the {{format}} specification: {{columns}}.',
+    'file_not_found': "The file could not be found.",
+    'no_path': "No dataset path was provided.",
+    'empty_file': "The file is empty (0 bytes).",
+    'unprofilable': "This file type cannot be profiled ({{name}}); only its shape is reported, no leakage or balance checks.",
+    'parse_failed': "The file could not be parsed; it may be malformed or in a different format than its name suggests.",
+    'no_ref': "No dataset reference was provided.",
+    'unresolvable_ref': "The dataset reference could not be resolved to a readable file.",
+    'structured_too_large': "Structural validation is limited to files under 2 million characters; download the file for a complete check.",
+    'structured_only': "Valid {{format}} syntax ({{root}} root). Only the structure was checked; scientific quality has not been assessed.",
+    'fastq_reads': "Reads scanned: {{reads}}; mean read length {{mean_len}} bp.",
+    'fastq_mean_quality': "Mean base quality: Phred {{q}} (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).",
+    'fastq_single_file': "A single FASTQ file was profiled — treated as single-end unless a mate file is present.",
+    'fastq_single_end': "Single FASTQ file",
+    'fastq_single_end_effect': "single-end pipeline suggested (override if a paired mate exists)",
+    'fastq_low_quality': "Mean base quality Phred {{q}} is below 20 (more than 1 error in 100 bases) — consider trimming.",
+    'fastq_no_records': "No FASTQ records could be parsed — the file may be malformed.",
+    'vcf_records': "Variant records: {{variants}}; samples: {{samples}}.",
+    'vcf_summary': "VCF — variants: {{variants}}; genotyped samples: {{samples}}.",
+    'vcf_no_variants': "No variant records were found (header only).",
+    'vcf_sized': "variants: {{variants}} · samples: {{samples}}",
+    'vcf_sized_effect': "variant annotation and filtering plan sized accordingly",
+    'no_columns': "No columns could be parsed from the table.",
+    'header_only': "A header is present but there are no data rows.",
+    'near_constant': "Near-constant columns (over {{pct}}% a single value): {{columns}}.",
+    'high_missing': "Columns with at least {{pct}}% missing values: {{columns}}.",
+    'label_spellings': "Two spellings of the same label: “{{a}}” and “{{b}}”.",
+    'minority_class': "Class “{{label}}” is only {{pct}}% of rows — consider a balanced sampler.",
+    'effective_n_imbalance': "Effective N ({{n}}) is far below the row count ({{rows}}) — bounded by the minority class under strong imbalance.",
+    'effective_n_dedup': "Effective N ({{n}}) is below the row count ({{rows}}) — duplicate rows ({{duplicates}}) reduce the independent samples.",
+    'label_free_text': "Column “{{column}}” looks like a label but has {{distinct}} distinct values — treated as free text, not a class target.",
+    'table_summary': "Rows: {{rows}} · columns: {{cols}}.",
+    'table_clean': "Rows: {{rows}} · columns: {{cols}}; no leakage, imbalance or constant-column issues detected.",
+    'profiled_subset': "Statistics were computed on the first {{profiled}} of {{rows}} rows.",
+    'leaked_id': "Column “{{column}}” is (nearly) unique per row and perfectly predicts the label — a leaked identifier.",
+    'leaked_feature': "Column “{{column}}” predicts the label with {{pct}}% accuracy — the target has leaked into the features.",
+    'drop_leaky_column': "“{{column}}” leaks the label",
+    'drop_leaky_column_effect': "drop “{{column}}” before modelling",
+    'batch_confound': "“{{column}}” (batch/ID) is (nearly) perfectly correlated with the outcome label.",
+    'batch_covariate': "“{{column}}”–label confound",
+    'batch_covariate_effect': "add “{{column}}” as a covariate before modelling",
+    'split_overlap': "Feature rows that appear in more than one split: {{count}} — train/test overlap.",
+    'dedup_splits': "Train/test overlap",
+    'dedup_splits_effect': "de-duplicate rows across splits before evaluation",
+    'nested_tables': "Column “{{column}}”: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).",
+    'nested_row_cap': "{{pct}}% of the tables in column “{{column}}” have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.",
+    'nested_blank_cells': "{{pct}}% of the cells in the tables of column “{{column}}” are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis.",
+    'columns_generated': "No header row detected (line 1 holds data values); columns are named column_1, column_2, …",
+    'columns_spec': "{{format}} files have no header row; column names follow the {{format}} specification: {{columns}}.",
     'columns_comment': "Column names taken from the file's last “#” comment line: {{columns}}.",
-    'intervals_summary': 'Genomic intervals: {{regions}}; columns: {{columns}}.',
-    'intervals_stranded': 'Strand is given (column “{{column}}”).',
-    'intervals_unstranded': 'No strand column: the intervals are treated as unstranded.',
-    'annotation_features': '{{features}} feature lines and {{comments}} comment lines; {{count}} attribute keys: {{attributes}}.',
-    'molecules_count': 'Molecules: {{molecules}}.',
-    'mtx_bad_header': 'Not a readable Matrix Market file: the %%MatrixMarket banner or the size line is missing.',
-    'mtx_dimensions': '{{rows}} × {{cols}} sparse matrix ({{field}}) with {{nnz}} stored entries ({{density}}% non-zero).',
-    'mtx_dense': '{{rows}} × {{cols}} dense matrix ({{field}}).',
-    'mtx_orientation': 'Matrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).',
-    'format_metadata_only': '{{format}} metadata was read; the data values themselves have not been analysed.',
-    'format_identified': 'Identified as {{format}} ({{size}}); its contents are not analysed here.',
-    'format_metadata_skipped': '{{format}} metadata was not read: the file ({{size}}) is above the {{cap}} limit for reading during upload.',
-    'format_header_unreadable': 'The {{format}} header could not be read ({{error}}); the file may be truncated or malformed.',
-    'fasta_sequences': '{{prefix}}Sequences: {{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}}.',
-    'fasta_no_sequences': 'No “>” sequence headers found.',
-    'anndata_shape': 'Cells (obs): {{cells}} × genes or features (var): {{genes}}.',
-    'anndata_obs': '{{count}} cell annotation columns: {{columns}}.',
-    'anndata_var': '{{count}} gene annotation columns: {{columns}}.',
-    'anndata_embeddings': 'Stored embeddings: {{embeddings}}.',
-    'hdf5_groups': 'Stored groups: {{groups}}.',
-    'loom_shape': 'Genes (rows): {{genes}} × cells (columns): {{cells}}.',
-    'loom_row_attrs': 'Gene attributes: {{columns}}.',
-    'loom_col_attrs': 'Cell attributes: {{columns}}.',
-    'loom_layers': 'Layers: {{layers}}.',
-    'alignment_references': '{{references}} reference sequences in the header ({{length}} bp).',
-    'alignment_sorted': 'Coordinate-sorted (header SO:coordinate).',
-    'alignment_not_coordinate_sorted': 'Sort order is “{{order}}”, not coordinate: sort the file before indexing or variant calling.',
-    'alignment_read_groups': '{{count}} read groups; samples: {{samples}}.',
-    'alignment_no_read_groups': 'No read groups (@RG) in the header: GATK and most variant callers require them.',
-    'structure_chains': 'Chains ({{count}}): {{chains}}.',
-    'spreadsheet_sheets': 'Sheets ({{count}}): {{sheets}}.',
-    'spreadsheet_convert': 'Spreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.',
-    'fasta_gc': 'GC content {{pct}}%.',
-    'fasta_high_n': '{{pct}}% of bases are N (unknown): gaps or a low-quality assembly.',
-    'fasta_protein': 'Protein sequences (amino-acid alphabet).',
-    'fasta_empty_records': '{{count}} headers have no sequence.',
-    'fasta_orphan_lines': '{{count}} sequence lines before the first “>” header were ignored.',
-    'fasta_profiled_subset': 'Statistics cover the first {{mb}} MB of the file.',
-    'fastq_paired_mate': 'Paired-end: read {{read}} of sample {{sample}}; its mate {{mate}} is in the same folder.',
-    'fastq_paired_end': 'Mate file in the same folder',
-    'fastq_paired_end_effect': 'paired-end pipeline (sample {{sample}})',
-    'fastq_mate_missing': 'Read {{read}} of sample {{sample}}, but no read-{{missing}} mate is in this folder — it runs single-end unless the mate is added.',
-    'fastq_orphan_single_end': 'Mate file missing from the folder',
-    'fastq_orphan_single_end_effect': 'single-end for sample {{sample}} until the mate is added',
-    'fastq_single_end_named': 'No read-1/read-2 naming and no mate in this folder: a single-end sample.',
-    'tenx_member_headerless': 'Part of the 10x matrix {{matrix}} in this folder: header-less by the 10x specification, so line 1 is data.',
-    'mtx_tenx_set': '10x matrix: rows are the features in {{features}}, columns are the cells in {{barcodes}} (same folder).',
+    'intervals_summary': "Genomic intervals: {{regions}}; columns: {{columns}}.",
+    'intervals_stranded': "Strand is given (column “{{column}}”).",
+    'intervals_unstranded': "No strand column: the intervals are treated as unstranded.",
+    'annotation_features': "{{features}} feature lines and {{comments}} comment lines; {{count}} attribute keys: {{attributes}}.",
+    'molecules_count': "Molecules: {{molecules}}.",
+    'mtx_bad_header': "Not a readable Matrix Market file: the %%MatrixMarket banner or the size line is missing.",
+    'mtx_dimensions': "{{rows}} × {{cols}} sparse matrix ({{field}}) with {{nnz}} stored entries ({{density}}% non-zero).",
+    'mtx_dense': "{{rows}} × {{cols}} dense matrix ({{field}}).",
+    'mtx_orientation': "Matrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).",
+    'format_metadata_only': "{{format}} metadata was read; the data values themselves have not been analysed.",
+    'format_identified': "Identified as {{format}} ({{size}}); its contents are not analysed here.",
+    'format_metadata_skipped': "{{format}} metadata was not read: the file ({{size}}) is above the {{cap}} limit for reading during upload.",
+    'format_header_unreadable': "The {{format}} header could not be read; the file may be truncated or malformed.",
+    'fasta_sequences': "Sequences: {{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}} (half of all bases lie in sequences at least this long).",
+    'fasta_no_sequences': "No “>” sequence headers found.",
+    'anndata_shape': "Cells (obs): {{cells}} × genes or features (var): {{genes}}.",
+    'anndata_obs': "{{count}} cell annotation columns: {{columns}}.",
+    'anndata_var': "{{count}} gene annotation columns: {{columns}}.",
+    'anndata_embeddings': "Stored embeddings: {{embeddings}}.",
+    'hdf5_groups': "Stored groups: {{groups}}.",
+    'loom_shape': "Genes (rows): {{genes}} × cells (columns): {{cells}}.",
+    'loom_row_attrs': "Gene attributes: {{columns}}.",
+    'loom_col_attrs': "Cell attributes: {{columns}}.",
+    'loom_layers': "Layers: {{layers}}.",
+    'alignment_references': "{{references}} reference sequences in the header ({{length}} bp).",
+    'alignment_sorted': "Coordinate-sorted (header SO:coordinate).",
+    'alignment_not_coordinate_sorted': "Sort order is {{order_words}}, not by coordinate: sort the file before indexing or variant calling.",
+    'alignment_read_groups': "{{count}} read groups; samples: {{samples}}.",
+    'alignment_no_read_groups': "No read groups (@RG) in the header: GATK and most variant callers require them.",
+    'structure_chains': "Chains ({{count}}): {{chains}}.",
+    'spreadsheet_sheets': "Sheets ({{count}}): {{sheets}}.",
+    'spreadsheet_convert': "Spreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.",
+    'fasta_gc': "GC content {{pct}}%.",
+    'fasta_high_n': "{{pct}}% of bases are N (unknown): gaps or a low-quality assembly.",
+    'fasta_protein': "Protein sequences (amino-acid alphabet).",
+    'fasta_empty_records': "{{count}} headers have no sequence.",
+    'fasta_orphan_lines': "{{count}} sequence lines before the first “>” header were ignored.",
+    'fasta_profiled_subset': "Statistics cover the first {{mb}} MB of the file.",
+    'fastq_paired_mate': "Paired-end: read {{read}} of sample {{sample}}; its mate {{mate}} is in the same folder.",
+    'fastq_paired_end': "Mate file in the same folder",
+    'fastq_paired_end_effect': "paired-end pipeline (sample {{sample}})",
+    'fastq_mate_missing': "Read {{read}} of sample {{sample}}, but no read-{{missing}} mate is in this folder — it runs single-end unless the mate is added.",
+    'fastq_orphan_single_end': "Mate file missing from the folder",
+    'fastq_orphan_single_end_effect': "single-end for sample {{sample}} until the mate is added",
+    'fastq_single_end_named': "No read-1/read-2 naming and no mate in this folder: a single-end sample.",
+    'tenx_member_headerless': "Part of the 10x matrix {{matrix}} in this folder: header-less by the 10x specification, so line 1 is data.",
+    'mtx_tenx_set': "10x matrix: rows are the features in {{features}}, columns are the cells in {{barcodes}} (same folder).",
+    'name_content_mismatch': "Named as {{named}}, but the content is {{detected}} — it is shown and checked as {{detected}}.",
+    'compressed_unreadable': "The compressed file could not be decompressed: it is corrupt or not actually compressed.",
+    'compressed_corrupt': "The compressed data is corrupt partway through, so the file cannot be read reliably.",
+    'compressed_truncated': "The compressed file ends early (truncated): only the readable part was checked.",
+    'nul_bytes': "Lines with NUL bytes, which were ignored: {{lines}}.",
+    'jsonl_skipped_lines': "Lines that are not valid JSON were skipped: {{count}}.",
+    'ragged_rows': "Rows whose number of fields differs from the header ({{expected}} fields): {{count}}.",
+    'table_clean_unlabelled': "Rows: {{rows}} · columns: {{cols}}; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked.",
+    'few_data_rows': "Too few data rows for the column and label checks (rows: {{rows}}).",
+    'blank_content': "The file holds only blank lines.",
+    'comment_lines_skipped': "Comment lines before the table were skipped: {{count}}.",
+    'fastq_malformed_records': "Records that do not follow the four-line FASTQ layout (or whose quality line differs in length from the sequence): {{count}} of {{checked}} checked.",
+    'fastq_index_read': "Index read ({{read}}) of sample {{sample}}: it holds the sample barcodes, not biological reads, and is used only for demultiplexing.",
+    'vcf_malformed_lines': "Data lines with fewer than 8 tab-separated columns: {{count}}.",
+    'text_encoding_legacy': "The file is not UTF-8 text; it was read as {{encoding}}. Check that accented or non-Latin characters display correctly — tools that expect UTF-8 may misread them.",
+    'text_encoding_replaced': "Byte sequences that are not valid UTF-8 were replaced with “�”: {{count}}.",
+    'duplicate_column_names': "Column names used more than once: {{columns}}. Tools that look columns up by name keep only one of them or rename them.",
+    'structure_experimental': "Experimental structure ({{method}}): the B-factor column holds atomic displacement, not prediction confidence.",
+    'structure_predicted': "Predicted model ({{predictor}}), not an experimental structure: the B-factor column holds the predictor's per-residue confidence (pLDDT for AlphaFold-type models).",
 }
-
-_EN_TEXT.update({
-    # Wording the UI renders with its own prefix: the backend says "at least" in words.
-    "fastq_reads": "Reads scanned: {{reads}}; mean read length {{mean_len}} bp.",
-    "fasta_sequences": "Sequences: {{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, "
-                       "max {{max}}, N50 {{n50}}.",
-    "parse_failed": "The file could not be parsed: {{error}}.",
-    "header_only": "A header is present but there are no data rows.",
-    "alignment_not_coordinate_sorted": "Sort order is {{order_words}}, not by coordinate: sort the file before "
-                                       "indexing or variant calling.",
-    "format_identified": "Identified as {{format}} ({{size}}); its contents are not analysed here.",
-    # Findings added with the 2026-11-12 profiler audit (codes the UI renders from its locale).
-    "name_content_mismatch": "Named as {{named}}, but the content is {{detected}}: it is read as what the "
-                             "content is.",
-    "compressed_unreadable": "The compressed file could not be decompressed: it is corrupt or not actually "
-                             "compressed.",
-    "compressed_corrupt": "The compressed data is corrupt partway through, so the file cannot be read reliably.",
-    "compressed_truncated": "The compressed file ends early (truncated): only the readable part was checked.",
-    "nul_bytes": "Lines with NUL bytes, which were ignored: {{lines}}.",
-    "jsonl_skipped_lines": "Lines that are not valid JSON were skipped: {{count}}.",
-    "ragged_rows": "Rows whose number of fields differs from the header ({{expected}} fields): {{count}}.",
-    "table_clean_unlabelled": "Rows: {{rows}} · columns: {{cols}}; no constant-column or missing-value issues "
-                              "detected. No class-label column was found, so leakage and class balance were not "
-                              "checked.",
-    "few_data_rows": "Too few data rows for the column and label checks (rows: {{rows}}).",
-    "blank_content": "The file holds only blank lines.",
-    "comment_lines_skipped": "Comment lines before the table were skipped: {{count}}.",
-    "fastq_malformed_records": "Records that do not follow the four-line FASTQ layout (or whose quality line "
-                               "differs in length from the sequence): {{count}} of {{checked}} checked.",
-    "fastq_index_read": "Index read ({{read}}) of sample {{sample}}: it holds the sample barcodes, not "
-                        "biological reads, and is used only for demultiplexing.",
-    "vcf_malformed_lines": "Data lines with fewer than 8 tab-separated columns: {{count}}.",
-    "fasta_profiled_subset": "Statistics cover the first {{mb}} MB of the file.",
-})
 
 _PLACEHOLDER = re.compile(r"{{\s*(\w+)\s*}}")
 # Counts written as "at least N" when the finding says they are lower bounds.
@@ -438,11 +438,11 @@ def profile_to_dataclass(
         size = os.path.getsize(path)
     except OSError:
         size = -1
-    if size == 0:
-        return _finish(blocked_profile("empty_file", ""), unknown)
-
     _reset_damage()
     try:
+        empty = _empty_content(path, size)
+        if empty:
+            return _finish(blocked_profile(empty, ""), unknown)
         d = decide(path, display)
     except UnreadableContent:
         return _finish(blocked_profile("compressed_unreadable", ""), unknown)
@@ -462,10 +462,33 @@ def profile_to_dataclass(
         emit(p, "note", "compressed_truncated", "", "watch")
     if dmg["nul_lines"]:
         emit(p, "note", "nul_bytes", "", "watch", lines=dmg["nul_lines"])
+    if not dmg["corrupt"]:
+        if d.encoding in _LEGACY_ENCODINGS:
+            emit(p, "note", "text_encoding_legacy", "", "watch", encoding=ENCODING_NAMES[d.encoding])
+        if dmg["replaced"]:
+            emit(p, "note", "text_encoding_replaced", "", "watch", count=dmg["replaced"])
     if d.mismatch:
         emit(p, "note", "name_content_mismatch", "", "watch", named=d.mismatch[0], detected=d.mismatch[1])
         p.findings.insert(0, p.findings.pop())
     return _finish(p, d)
+
+
+def _empty_content(path: str, size: int) -> Optional[str]:
+    """The blocking finding for a file with no content — "empty_file" (0 bytes) or "blank_content"
+    (only whitespace, after decompression) — or None. ONE gate for the profile and read_rows, so
+    an empty file is never "blocked" in the card and a pageable table in the grid."""
+    if size == 0:
+        return "empty_file"
+    head = _raw_head(path, HEAD_BYTES)
+    if len(head) < HEAD_BYTES:
+        if _utf16_bom(head) or _utf16_encoding(head):
+            enc = "utf-16" if _utf16_bom(head) else _utf16_encoding(head)
+            blank = not head.decode(enc or "utf-16", errors="replace").strip()
+        else:
+            blank = not head.lstrip(b"\xef\xbb\xbf").strip(b" \t\r\n\x0b\x0c")
+        if blank:
+            return "blank_content"
+    return None
 
 
 def _run_profiler(path: str, d: "Decision", display: str, size: int,
@@ -498,7 +521,10 @@ def _run_profiler(path: str, d: "Decision", display: str, size: int,
     if d.kind == "mtx":
         return _profile_mtx(path, member=_context_tenx(context))
     if d.kind in ("galaxy", "binary") and d.ext not in ("binary", "unknown"):
-        return _profile_galaxy_format(path, d.ext, size, d.label)
+        p = _profile_galaxy_format(path, d.ext, size, d.label)
+        if d.ext in _STRUCTURE_FORMATS and d.kind == "galaxy":
+            _structure_findings(p, path, d.ext)
+        return p
     if d.kind == "text":
         if _blank_only(path):
             return blocked_profile("blank_content", "")
@@ -1050,12 +1076,18 @@ def _damage() -> Dict[str, Any]:
     that ended early ("truncated") or failed to decode ("corrupt"), and NUL bytes dropped."""
     d = getattr(_DAMAGE, "d", None)
     if d is None:
-        d = _DAMAGE.d = {"truncated": False, "corrupt": False, "nul_lines": 0}
+        d = _DAMAGE.d = _fresh_damage()
     return d
 
 
+def _fresh_damage() -> Dict[str, Any]:
+    # replaced: undecodable byte sequences replaced by U+FFFD in the fullest read of the file;
+    # replaced_total: the running count all streams of this thread add to (see _CountingText).
+    return {"truncated": False, "corrupt": False, "nul_lines": 0, "replaced": 0, "replaced_total": 0}
+
+
 def _reset_damage() -> None:
-    _DAMAGE.d = {"truncated": False, "corrupt": False, "nul_lines": 0}
+    _DAMAGE.d = _fresh_damage()
 
 
 class _DecompressingStream(io.RawIOBase):
@@ -1164,13 +1196,94 @@ def _open_bytes(path: str) -> io.BufferedReader:
 
 
 def _open_text(path: str) -> io.TextIOBase:
-    """Text view of the content: decompressed by magic number, UTF-16 when it carries a BOM,
-    else UTF-8 with any UTF-8 BOM removed (``utf-8-sig``: a BOM must never become part of the
-    first column name or hide a ``##fileformat`` line)."""
-    raw = _open_bytes(path)
-    head = raw.peek(4096)[:4096] if hasattr(raw, "peek") else b""
-    enc = "utf-16" if _utf16_bom(head) else (_utf16_encoding(head) or "utf-8-sig")
-    return io.TextIOWrapper(raw, encoding=enc, errors="replace")
+    """Text view of the content: decompressed by magic number, in the encoding
+    :func:`_text_encoding` decides from the head (UTF-16 with or without a BOM; UTF-8 with any
+    BOM removed — ``utf-8-sig``: a BOM must never become part of the first column name or hide a
+    ``##fileformat`` line; or the legacy encoding of a file that is clearly not UTF-8). Bytes the
+    encoding cannot decode become U+FFFD and are counted (:class:`_CountingText`)."""
+    try:
+        head = _raw_head(path, HEAD_BYTES)
+    except UnreadableContent:
+        head = b""
+    enc = _text_encoding(head, complete=len(head) < HEAD_BYTES)
+    return _CountingText(_open_bytes(path), encoding=enc, errors=_COUNT_REPLACE)
+
+
+# Decoding errors are replaced by U+FFFD and counted per thread (see _damage()["replaced"]).
+_COUNT_REPLACE = "biomate.count_replace"
+
+
+def _count_replace(exc: UnicodeError) -> Tuple[str, int]:
+    if isinstance(exc, UnicodeDecodeError):
+        _damage()["replaced_total"] += 1
+        return "\ufffd", exc.end
+    raise exc
+
+
+codecs.register_error(_COUNT_REPLACE, _count_replace)
+
+
+class _CountingText(io.TextIOWrapper):
+    """A text stream that records, when closed, how many undecodable byte sequences it replaced.
+    The profiler reads one file several times (layout, rows, …): the count kept is the largest
+    of any one pass (the same bad bytes are not counted twice)."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._replaced_start = _damage()["replaced_total"]
+
+    def close(self) -> None:
+        if not self.closed:
+            d = _damage()
+            d["replaced"] = max(d["replaced"], d["replaced_total"] - self._replaced_start)
+        super().close()
+
+
+# Encodings a non-UTF-8 text file is read in, and their names in findings / read_rows.
+ENCODING_NAMES = {"utf-8-sig": "utf-8", "utf-16": "utf-16", "utf-16-le": "utf-16-le", "utf-16-be": "utf-16-be",
+                  "gb18030": "gb18030", "cp1252": "windows-1252", "latin-1": "latin-1"}
+_LEGACY_ENCODINGS = frozenset({"gb18030", "cp1252", "latin-1"})
+
+
+def _non_ascii(text: str) -> int:
+    return len(text) - len(text.encode("ascii", "ignore"))
+
+
+def _text_encoding(head: bytes, complete: bool = False) -> str:
+    """The codec a text file's content is read with, decided from its head:
+
+    * UTF-16 (BOM, or the every-other-byte-NUL shape of a BOM-less Excel export);
+    * UTF-8 (``utf-8-sig``) when the head is valid UTF-8 — or mostly valid: a few damaged bytes
+      among valid multi-byte characters are replaced and counted, the file is still UTF-8;
+    * otherwise the file is clearly in a legacy 8-bit encoding: GB18030 when the head decodes as
+      it into mostly CJK characters (Chinese Excel exports), else Windows-1252 (a superset of the
+      printable Latin-1 range), else Latin-1, which decodes any byte.
+    """
+    if _utf16_bom(head):
+        return "utf-16"
+    u16 = _utf16_encoding(head)
+    if u16:
+        return u16
+    text = codecs.getincrementaldecoder("utf-8")("replace").decode(head, final=complete)
+    bad = text.count("\ufffd") - head.count(b"\xef\xbf\xbd")
+    if bad <= 0:
+        return "utf-8-sig"
+    good = _non_ascii(text) - text.count("\ufffd")
+    if good > bad:
+        return "utf-8-sig"
+    try:
+        gb = codecs.getincrementaldecoder("gb18030")("strict").decode(head, final=complete)
+        cjk = sum(1 for ch in gb if "\u4e00" <= ch <= "\u9fff" or "\u3000" <= ch <= "\u303f"
+                  or "\uff00" <= ch <= "\uffef")
+        if cjk and cjk >= 0.5 * _non_ascii(gb):
+            return "gb18030"
+    except UnicodeDecodeError:
+        pass
+    try:
+        head.decode("cp1252")
+        return "cp1252"
+    except UnicodeDecodeError:
+        return "latin-1"
 
 
 def _raw_head(path: str, n: int = 8192) -> bytes:
@@ -1209,19 +1322,53 @@ def _utf16_encoding(head: bytes) -> Optional[str]:
     return None
 
 
-def _head_is_binary(head: bytes) -> bool:
-    """Binary content (BAM, CRAM, TIFF, HDF5, xlsx, …), judged on the first decompressed block:
-    a NUL byte that is not UTF-16 text, a full block without a single line break, or many control
-    bytes. Only the first block decides: a stray NUL deep in a CSV does not make it binary."""
+# Control bytes that do not occur in text (everything below 0x20 except TAB, LF, VT, FF, CR, and
+# ESC of ANSI-coloured logs). NUL is counted on its own.
+_CONTROL_BYTES = bytes(b for b in range(1, 32) if b not in (9, 10, 11, 12, 13, 27))
+_HIGH_BYTES = bytes(range(128, 256))
+# The first block judged for binary content; it is extended to the end of the first line.
+BINARY_PROBE_BYTES = 8192
+# Share of control bytes above which content is binary.
+_BINARY_CONTROL_FRAC = 0.1
+# Share of non-ASCII bytes above which content that decodes in no text encoding, and carries some
+# control bytes (more than _BINARY_SOME_CONTROL_FRAC), is binary. Without control bytes it is read
+# as legacy 8-bit text (Cyrillic, Greek, … code pages) and its encoding is reported.
+_BINARY_HIGH_FRAC = 0.3
+_BINARY_SOME_CONTROL_FRAC = 0.01
+
+
+def _count_of(block: bytes, which: bytes) -> int:
+    return len(block) - len(block.translate(None, which))
+
+
+def _head_is_binary(head: bytes, complete: bool = False) -> bool:
+    """Binary content (BAM, CRAM, TIFF, HDF5, xlsx, …), judged on what the bytes ARE — never on
+    line length (a 5,000-column matrix or a minified JSON has a first line far longer than any
+    block): a NUL byte that is not UTF-16 text, many control bytes, or bytes that decode in no
+    text encoding. The block judged is the first BINARY_PROBE_BYTES, extended to the end of the
+    first line when that line is longer (so the judgement covers at least one whole line). Only
+    that block decides: a stray NUL deep in a CSV does not make it binary."""
     if not head or _utf16_bom(head) or _utf16_encoding(head):
         return False
-    block = head[:8192]
+    nl = min((i for i in (head.find(b"\n"), head.find(b"\r")) if i >= 0), default=-1)
+    end = max(BINARY_PROBE_BYTES, nl + 1 if nl >= 0 else len(head))
+    block = head[:end]
+    whole = complete and len(block) == len(head)
     if b"\x00" in block:
         return True
-    if len(block) >= 8192 and b"\n" not in block and b"\r" not in block:
+    ctrl = _count_of(block, _CONTROL_BYTES)
+    if ctrl > _BINARY_CONTROL_FRAC * len(block):
         return True
-    ctrl = sum(1 for b in block if b < 9 or 13 < b < 32)
-    return ctrl / len(block) > 0.1
+    if ctrl <= _BINARY_SOME_CONTROL_FRAC * len(block) or _count_of(block, _HIGH_BYTES) <= _BINARY_HIGH_FRAC * len(block):
+        return False  # text in some encoding (damaged bytes are counted, a legacy encoding reported)
+    # Mostly non-ASCII bytes beside control bytes: text only when they decode (UTF-8, or GB18030).
+    for enc in ("utf-8", "gb18030"):
+        try:
+            codecs.getincrementaldecoder(enc)("strict").decode(block, final=whole)
+            return False
+        except UnicodeDecodeError:
+            continue
+    return True
 
 
 def _nul_guard(lines: Iterator[str]) -> Iterator[str]:
@@ -1471,6 +1618,8 @@ class Decision:
     layout: Optional["TableLayout"] = None
     # The name's claim when the content contradicts it: (named label, detected label).
     mismatch: Optional[Tuple[str, str]] = None
+    # The codec text content is read with (see _text_encoding); None for binary content.
+    encoding: Optional[str] = None
 
     def format(self) -> Dict[str, Any]:
         return {"ext": self.ext, "label": self.label, "source": self.source}
@@ -1535,47 +1684,183 @@ def _sam_valid(lines: Sequence[str]) -> bool:
     return (hdr and (data == 0 or good / data >= 0.9)) or (data >= 1 and good / data >= 0.9)
 
 
-_PDB_RECORDS = ("HEADER", "ATOM  ", "HETATM", "CRYST1", "MODEL ", "REMARK", "COMPND", "SEQRES", "TITLE ")
+# Every record name of the wwPDB coordinate file format (v3.3, columns 1–6), plus the obsolete
+# records older files still carry. A PDB file's lines all start with one of them.
+_PDB_RECORD_NAMES = frozenset({
+    # Title section
+    "HEADER", "OBSLTE", "TITLE", "SPLIT", "CAVEAT", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "NUMMDL",
+    "MDLTYP", "AUTHOR", "REVDAT", "SPRSDE", "JRNL", "REMARK",
+    # Primary structure, heterogen, secondary structure, connectivity annotation, misc.
+    "DBREF", "DBREF1", "DBREF2", "SEQADV", "SEQRES", "MODRES", "HET", "HETNAM", "HETSYN", "FORMUL",
+    "HELIX", "SHEET", "SSBOND", "LINK", "CISPEP", "SITE",
+    # Crystallographic and coordinate transformation
+    "CRYST1", "ORIGX1", "ORIGX2", "ORIGX3", "SCALE1", "SCALE2", "SCALE3", "MTRIX1", "MTRIX2", "MTRIX3",
+    # Coordinates, connectivity, bookkeeping
+    "MODEL", "ATOM", "ANISOU", "TER", "HETATM", "ENDMDL", "CONECT", "MASTER", "END",
+    # Obsolete (pre-v3) records still found in older and program-written files
+    "FTNOTE", "HYDBND", "SLTBRG", "TURN", "SIGATM", "SIGUIJ", "TVECT", "LINKR", "USER",
+})
+_PDB_COORD_RECORDS = ("ATOM", "HETATM")
+
+
+def _pdb_record(line: str) -> str:
+    """The record name of a PDB line (columns 1–6). ATOM/HETATM serials past 99,999 run into the
+    name field (``ATOM100000``), so those two are recognised by prefix."""
+    if line.startswith(_PDB_COORD_RECORDS):
+        return "HETATM" if line.startswith("HETATM") else "ATOM"
+    return line[:6].rstrip()
 
 
 def _pdb_valid(lines: Sequence[str]) -> bool:
+    """PDB coordinates: at least 90% of the non-blank lines are wwPDB records and at least one is
+    an ATOM / HETATM record (a header-only fragment is not a structure)."""
     recs = [ln for ln in lines if ln.strip()]
     if not recs:
         return False
-    hits = sum(1 for ln in recs if ln.startswith(_PDB_RECORDS) or ln.startswith(("END", "TER")))
-    return hits / len(recs) >= 0.9 and any(ln.startswith(("ATOM  ", "HETATM")) for ln in recs)
+    hits = sum(1 for ln in recs if _pdb_record(ln) in _PDB_RECORD_NAMES)
+    return hits / len(recs) >= 0.9 and any(ln.startswith(_PDB_COORD_RECORDS) for ln in recs)
+
+
+# Structure provenance: experimental method vs predicted model.
+_STRUCTURE_FORMATS = frozenset({"pdb", "cif", "mmcif", "pqr"})
+# EXPDTA / _exptl.method values → a method key the UI translates.
+_EXPERIMENTAL_METHODS = (
+    ("X-RAY", "xray"), ("ELECTRON MICROSCOPY", "em"), ("ELECTRON CRYSTALLOGRAPHY", "electron_crystallography"),
+    ("CRYO", "em"), ("NMR", "nmr"), ("NEUTRON", "neutron"), ("FIBER", "fiber"), ("FIBRE", "fiber"),
+    ("POWDER", "xray"), ("SOLUTION SCATTERING", "other"), ("INFRARED", "other"), ("EPR", "other"),
+    ("FLUORESCENCE", "other"),
+)
+# Structure predictors and modelling servers named in headers/titles/remarks, and the words a
+# header uses for a computed model. Their B-factor column holds a confidence score (pLDDT for the
+# AlphaFold family, ESMFold, OmegaFold, Boltz, Chai; QMEAN for SWISS-MODEL), not displacement.
+_PREDICTOR_RE = re.compile(
+    r"\b(ALPHA\s?FOLD\s?\d?|COLAB\s?FOLD|ESM\s?-?\s?FOLD|ROSETTA\s?FOLD|OMEGA\s?FOLD|OPEN\s?FOLD|"
+    r"BOLTZ-?\d?|CHAI-?\d?|PROTENIX|HELIX\s?FOLD\d?|UNI-?FOLD|SWISS-?MODEL|MODELLER|I-?TASSER|TRROSETTA|"
+    r"RF\s?DIFFUSION)\b", re.I)
+# Words that call the whole entry a computed model — trusted only in the records that describe the
+# entry (HEADER, TITLE, KEYWDS, EXPDTA, COMPND), not in free-text remarks ("secondary structure
+# prediction").
+_PREDICTED_WORDS_RE = re.compile(r"\b(THEORETICAL MODEL|COMPUTED MODEL|IN SILICO MODEL|PREDICTED|PREDICTION)\b",
+                                 re.I)
+_ENTRY_RECORDS = frozenset({"HEADER", "TITLE", "KEYWDS", "EXPDTA", "COMPND"})
+_STRUCTURE_HEADER_LINES = 3000
+
+
+def _structure_provenance(path: str, ext: str) -> Dict[str, Any]:
+    """Whether a 3D structure file is EXPERIMENTAL (and by which method) or a PREDICTED model,
+    from its own header: PDB ``EXPDTA`` (``THEORETICAL MODEL`` = predicted) and the header /
+    title / remark records; mmCIF ``_exptl.method`` and ModelCIF ``_ma_`` categories. A predictor
+    named anywhere in the header (AlphaFold, ESMFold, …) makes it predicted. Unknown → None.
+
+    Returns {"method": raw method or None, "method_key": xray|em|nmr|neutron|fiber|
+    electron_crystallography|other|None, "predicted": True|False|None, "predictor": the name or
+    phrase that said so, or None, "bfactor": "confidence"|"displacement"|None} — the backend's
+    signal for whether the B-factor column is a confidence score (pLDDT) or atomic displacement."""
+    method: Optional[str] = None
+    predictor: Optional[str] = None
+    modelcif = False
+    is_cif = ext in ("cif", "mmcif")
+    with _open_text(path) as f:
+        for i, line in enumerate(f):
+            if i >= _STRUCTURE_HEADER_LINES:
+                break
+            if not is_cif:
+                rec = _pdb_record(line)
+                if rec in ("ATOM", "HETATM", "MODEL"):
+                    break  # the header ends where the coordinates begin
+                if rec == "EXPDTA" and method is None:
+                    method = line[6:].strip().rstrip(";").strip() or None
+                if rec in ("HEADER", "TITLE", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "REMARK", "AUTHOR",
+                           "CAVEAT", "JRNL") and predictor is None:
+                    m = _PREDICTOR_RE.search(line[6:]) or (
+                        _PREDICTED_WORDS_RE.search(line[6:]) if rec in _ENTRY_RECORDS else None)
+                    if m:
+                        predictor = " ".join(m.group(1).split())
+            else:
+                st = line.strip()
+                if st.startswith("_atom_site."):
+                    break
+                if st.startswith("_exptl.method") and method is None:
+                    val = st[len("_exptl.method"):].strip().strip("'\"")
+                    method = val or None
+                if st.startswith("_ma_"):
+                    modelcif = True
+                if predictor is None and (st.startswith(("_software.name", "_struct.title", "_ma_", "_exptl."))
+                                          or st[:1] in ("'", '"')):
+                    m = _PREDICTOR_RE.search(st) or (
+                        _PREDICTED_WORDS_RE.search(st) if st.startswith(("_struct.title", "_exptl.")) else None)
+                    if m:
+                        predictor = " ".join(m.group(1).split())
+    method_key: Optional[str] = None
+    predicted: Optional[bool] = None
+    if method:
+        up = method.upper()
+        if "THEORETICAL" in up or "PREDICT" in up or "COMPUTED" in up:
+            predicted = True
+            predictor = predictor or method
+        else:
+            method_key = next((k for word, k in _EXPERIMENTAL_METHODS if word in up), "other")
+            predicted = False
+    if predicted is None and (predictor or modelcif):
+        predicted = True
+        predictor = predictor or "ModelCIF"
+    if predicted is False:
+        predictor = None  # an experimental method decides; a word in a remark does not
+    bfactor = "confidence" if predicted else ("displacement" if predicted is False else None)
+    return {"method": method, "method_key": method_key, "predicted": predicted, "predictor": predictor,
+            "bfactor": bfactor}
+
+
+def _structure_findings(p: DataProfile, path: str, ext: str) -> None:
+    try:
+        info = _structure_provenance(path, ext)
+    except Exception as exc:  # noqa: BLE001 — provenance is a description, never a failure
+        log.info("[perception] structure provenance failed for %s: %s", path, exc)
+        return
+    p.structure = info
+    if info["predicted"] is True:
+        emit(p, "note", "structure_predicted", "", predictor=info["predictor"])
+    elif info["predicted"] is False:
+        emit(p, "note", "structure_experimental", "", method=info["method"], method_key=info["method_key"])
 
 
 def _sdf_valid(text: str) -> bool:
     return "$$$$" in text or "V2000" in text or "V3000" in text or "M  END" in text
 
 
+# Lines sampled to decide JSON Lines.
+_JSONL_SAMPLE_LINES = 50
+
+
+def _jsonl_objects(text: str, complete: bool) -> Tuple[int, int]:
+    """(lines that are JSON objects, non-blank lines sampled) over the first _JSONL_SAMPLE_LINES
+    lines of ``text`` (the last line of a partial head is left out: it can be cut)."""
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    if not complete and len(lines) > 1:
+        lines = lines[:-1]
+    sample = lines[:_JSONL_SAMPLE_LINES]
+    objects = 0
+    for ln in sample:
+        if ln.lstrip().lstrip("\ufeff")[:1] != "{":
+            continue
+        try:
+            if isinstance(json.loads(ln.strip().lstrip("\ufeff")), dict):
+                objects += 1
+        except ValueError:
+            pass
+    return objects, len(sample)
+
+
 def _json_kind(text: str, complete: bool) -> Optional[str]:
-    """'json' / 'jsonl' when the head parses as JSON (Lines), else None. JSON Lines: the first
-    line and at least 80% of the first 50 lines parse on their own (the rest are reported as
-    skipped lines, not a reason to call the file something else)."""
-    s = text.lstrip()
+    """'json' / 'jsonl' when the head parses as JSON (Lines), else None. JSON Lines: of the
+    sampled lines (any of them, the first included), MORE THAN HALF are JSON objects; the others
+    are reported as skipped lines, never a reason to call the file something else."""
+    objects, sampled = _jsonl_objects(text, complete)
+    if sampled >= 2 and objects * 2 > sampled:
+        return "jsonl"
+    s = text.lstrip().lstrip("\ufeff")
     if not s or s[0] not in "{[":
         return None
-    lines = [ln for ln in s.splitlines() if ln.strip()]
-    if not complete and len(lines) > 1:
-        lines = lines[:-1]  # the last line of a partial head may be cut
-    if len(lines) >= 2:
-        sample = lines[:50]
-        ok = 0
-        for ln in sample:
-            try:
-                json.loads(ln)
-                ok += 1
-            except ValueError:
-                pass
-        try:
-            json.loads(sample[0])
-            first_ok = True
-        except ValueError:
-            first_ok = False
-        if first_ok and ok / len(sample) >= 0.8:
-            return "jsonl"
     if complete:
         try:
             json.loads(s)
@@ -1607,6 +1892,9 @@ def _detect_text(path: str, text: str, complete: bool) -> Tuple[str, Optional[st
         return jk, jk
     if first.lstrip()[:1] in ("{", "["):
         return "text", "txt"  # braces that do not parse: broken JSON is text, not a table
+    if first.startswith("data_") and any(ln.startswith(("_atom_site.", "_cell.", "_exptl.", "_entry.id"))
+                                         for ln in lines[:2000]):
+        return "galaxy", "cif"  # mmCIF / PDBx
     if first.startswith("##gff-version"):
         return "table", "gff3"
     if _pdb_valid(lines):
@@ -1638,7 +1926,10 @@ def _validate_claim(path: str, claim_kind: str, claim_ext: str, text: str, compl
     if claim_kind == "mtx":
         return first.startswith("%%MatrixMarket")
     if claim_kind == "jsonl":
-        return _json_kind(text, complete) == "jsonl"
+        # Named JSON Lines: at least half of the sampled lines are JSON objects (one record is a
+        # JSON Lines file of one line); the rest are reported as skipped lines.
+        objects, sampled = _jsonl_objects(text, complete)
+        return objects > 0 and objects * 2 >= sampled
     if claim_kind == "json":
         return _json_kind(text, complete) in ("json", "jsonl") and (
             _json_kind(text, complete) == "json" or not complete)
@@ -1662,11 +1953,6 @@ _KIND_VIEW = {"table": "table", "jsonl": "records", "json": "json", "yaml": "jso
               "fasta": "sequences", "vcf": "variants", "mtx": "matrix", "text": "document"}
 
 
-def _galaxy_identify_safe(path: str, display: str) -> Optional[str]:
-    g = _galaxy_identify(path, display)
-    return g if g and g not in _galaxy_generic() else None
-
-
 def decide(path: str, display: str) -> Decision:
     """Decide what ``path`` (shown as ``display``) is, CONTENT FIRST. Raises UnreadableContent
     for a compressed file that cannot be decoded at all."""
@@ -1677,12 +1963,53 @@ def decide(path: str, display: str) -> Decision:
     return d
 
 
+# A head with fewer line breaks than this is read further (a wide matrix's first line can be
+# longer than HEAD_BYTES), up to MAX_DECISION_HEAD_BYTES.
+_MIN_DECISION_LINES = 5
+MAX_DECISION_HEAD_BYTES = 16 * 1024 * 1024
+
+
+def _line_breaks(head: bytes) -> int:
+    return max(head.count(b"\n"), head.count(b"\r"))
+
+
+def _decision_head(path: str) -> Tuple[bytes, bool]:
+    """(content head, whether it is the whole content) for the format decision: HEAD_BYTES, read
+    further while it holds fewer than _MIN_DECISION_LINES lines of text — a 5,000-column CSV
+    header or a long JSON Lines record is decided from whole lines, not from a cut first line."""
+    n = HEAD_BYTES
+    head = _raw_head(path, n)
+    while len(head) == n and n < MAX_DECISION_HEAD_BYTES and _line_breaks(head) < _MIN_DECISION_LINES \
+            and not _head_is_binary(head):
+        n = min(n * 4, MAX_DECISION_HEAD_BYTES)
+        head = _raw_head(path, n)
+    return head, len(head) < n
+
+
+def _galaxy_says_text(graw: Optional[str]) -> bool:
+    """Galaxy identified the content as a TEXT datatype (csv, tabular, txt, json, …): its sniffers
+    read the bytes as text, which the binary judgement honours."""
+    if not graw:
+        return False
+    gf = _galaxy_formats()
+    fn = getattr(gf, "is_text_ext", None) if gf is not None else None
+    if fn is None:
+        return False
+    try:
+        return bool(fn(graw))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _decide(path: str, display: str) -> Decision:
-    head = _raw_head(path, HEAD_BYTES)
-    complete = len(head) < HEAD_BYTES
+    head, complete = _decision_head(path)
     claim = _name_claim(display)
-    gext = _galaxy_identify_safe(path, display)
-    if _head_is_binary(head):
+    graw = _galaxy_identify(path, display)
+    gext = graw if graw and graw not in _galaxy_generic() else None
+    binary = _head_is_binary(head, complete)
+    if binary and _galaxy_says_text(graw) and _sniff_magic(head, path) is None:
+        binary = False  # Galaxy's sniffers read these bytes as text
+    if binary:
         magic = _sniff_magic(head, path)
         content = gext or magic
         if content == "h5" and claim and _same_family(claim[1], "h5"):
@@ -1701,8 +2028,16 @@ def _decide(path: str, display: str) -> Decision:
             d.mismatch = (claim[2], d.label)
         return d
 
-    enc = "utf-16" if _utf16_bom(head) else (_utf16_encoding(head) or "utf-8-sig")
-    text = head.decode(enc, errors="replace")
+    # The same codec every text reader uses (_open_text decides from the first HEAD_BYTES).
+    enc = _text_encoding(head[:HEAD_BYTES], complete and len(head) <= HEAD_BYTES)
+    text = codecs.getincrementaldecoder(enc)("replace").decode(head, final=complete)
+    d = _decide_text(path, display, text, complete, claim, gext)
+    d.encoding = enc
+    return d
+
+
+def _decide_text(path: str, display: str, text: str, complete: bool, claim: Optional[Tuple[str, str, str]],
+                 gext: Optional[str]) -> Decision:
     # The name's claim is honoured when the content follows it.
     if claim and claim[0] in ("fastq", "vcf", "fasta", "mtx", "json", "jsonl", "yaml", "table"):
         if _validate_claim(path, claim[0], claim[1], text, complete):
@@ -1973,6 +2308,8 @@ def _profile_galaxy_format(path: str, ext: str, size: int, label: Optional[str] 
 
 
 _SORT_ORDER_WORDS = {"queryname": "by read name", "unsorted": "unsorted", "unknown": "not stated in the header"}
+# The SAM specification's @HD SO values.
+_SORT_ORDER_KEYS = frozenset({"unknown", "unsorted", "queryname", "coordinate"})
 
 
 def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label: str) -> bool:
@@ -2047,9 +2384,11 @@ def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label:
         if order == "coordinate":
             emit(p, "note", "alignment_sorted", "", order=order)
         else:
-            # ``order`` stays the header's SO code (queryname | unsorted | unknown) for the UI's
-            # own wording; ``order_words`` is the English.
-            emit(p, "note", "alignment_not_coordinate_sorted", "", "watch", order=order,
+            # ``order`` is the header's SO value as written; ``order_key`` is it mapped onto the SAM
+            # specification's vocabulary (anything else → "unknown") for the UI to translate;
+            # ``order_words`` is the English.
+            key = order if order in _SORT_ORDER_KEYS else "unknown"
+            emit(p, "note", "alignment_not_coordinate_sorted", "", "watch", order=order, order_key=key,
                  order_words=_SORT_ORDER_WORDS.get(order, f"“{order}”"))
         rgs = _meta_int(meta, "read_group_count") or 0
         if rgs:
@@ -2412,6 +2751,9 @@ class TableLayout:
     skip_lines: int = 0
     # Width of the header line; ``names`` is extended with column_N when data rows are wider.
     header_width: int = 0
+    # Decimal mark of the numbers: "," when they are written with a decimal comma (1,5 — only in a
+    # file whose delimiter is not the comma, e.g. a European semicolon CSV), else ".".
+    decimal: str = "."
 
 
 _FROM_NAME = object()
@@ -2468,12 +2810,43 @@ def _spec_reader(lines: Iterator[str], delim: str) -> Iterator[List[str]]:
             yield row
 
 
-def _is_number(v: str) -> bool:
+def _to_float(v: str, decimal: str = ".") -> float:
+    """``v`` as a number; with a decimal-comma layout "1,5" is 1.5 (a value holding both marks,
+    such as "1.234,5", is not read as a number)."""
+    if decimal == "," and "," in v:
+        if "." in v:
+            raise ValueError(v)
+        v = v.replace(",", ".")
+    return float(v)
+
+
+def _is_number(v: str, decimal: str = ".") -> bool:
     try:
-        float(v)
+        _to_float(v, decimal)
         return True
     except ValueError:
         return False
+
+
+_DECIMAL_COMMA_RE = re.compile(r"^[+-]?\d+,\d+(?:[eE][+-]?\d+)?$")
+_DECIMAL_POINT_RE = re.compile(r"^[+-]?(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?$")
+
+
+def _decimal_mark(rows: Sequence[Sequence[str]], delim: str) -> str:
+    """"," when the table's numbers use a decimal comma: the delimiter is not a comma and values
+    like 1,5 make up at least 90% of the fractional numbers sampled; else ".". A comma-delimited
+    file cannot hold an unquoted decimal comma, so its marks are always "."."""
+    if delim == ",":
+        return "."
+    comma = point = 0
+    for r in rows:
+        for c in r:
+            c = c.strip()
+            if _DECIMAL_COMMA_RE.match(c):
+                comma += 1
+            elif _DECIMAL_POINT_RE.match(c):
+                point += 1
+    return "," if comma and comma >= 0.9 * (comma + point) else "."
 
 
 def _is_missing(v: str) -> bool:
@@ -2515,7 +2888,7 @@ def _progression(vals: Sequence[str]) -> bool:
     return len(steps) == 1 and next(iter(steps)) > 0
 
 
-def _line1_is_header(first: List[str], data: List[List[str]]) -> bool:
+def _line1_is_header(first: List[str], data: List[List[str]], decimal: str = ".") -> bool:
     """Whether line 1 of a generic delimited table is a header, decided from each column's value
     distribution:
 
@@ -2532,7 +2905,7 @@ def _line1_is_header(first: List[str], data: List[List[str]]) -> bool:
     """
     if not data:
         # One line: numbers alone are data, anything with text is a header.
-        return not all(_is_number(c) for c in first if not _is_missing(c)) or all(_is_missing(c) for c in first)
+        return not all(_is_number(c, decimal) for c in first if not _is_missing(c)) or all(_is_missing(c) for c in first)
     width = len(first)
     votes = 0
     weak_data = 0
@@ -2542,9 +2915,9 @@ def _line1_is_header(first: List[str], data: List[List[str]]) -> bool:
         cell = first[j].strip()
         if not vals or _is_missing(cell):
             continue  # an empty header cell (R's row-name column) is no evidence either way
-        numeric = sum(1 for v in vals if _is_number(v)) / len(vals) >= _NUMERIC_COL_FRAC
+        numeric = sum(1 for v in vals if _is_number(v, decimal)) / len(vals) >= _NUMERIC_COL_FRAC
         if numeric:
-            if not _is_number(cell):
+            if not _is_number(cell, decimal):
                 return True
             numeric_line1.append(cell)
             continue
@@ -2628,6 +3001,7 @@ def _sniff_table(lines: Sequence[str]) -> Optional[str]:
     if not rest:
         return None
     best: Optional[Tuple[float, int, str]] = None
+    scores: Dict[str, float] = {}
     for order, d in enumerate(_SNIFF_DELIMS):
         if d not in rest[0] and not any(d in ln for ln in rest[1:6]):
             continue
@@ -2642,11 +3016,26 @@ def _sniff_table(lines: Sequence[str]) -> Optional[str]:
         if consistency < 0.5:
             continue
         key = (consistency, -order, d)
+        scores[d] = consistency
         if best is None or key[:2] > best[:2]:
             best = key
     if best is not None:
+        if best[2] == "," and scores.get(";", 0) >= best[0] and _commas_are_decimal(rest):
+            return ";"  # 1,5;2,25 — the commas are decimal marks inside semicolon-separated fields
         return best[2]
     return "\n" if _single_column_list(rest) else None
+
+
+_NON_DECIMAL_COMMA = re.compile(r"(?<!\d),|,(?!\d)")
+
+
+def _commas_are_decimal(lines: Sequence[str]) -> bool:
+    """Every comma of the sampled lines sits between two digits (a decimal mark, as in 1,5)."""
+    return not any(_NON_DECIMAL_COMMA.search(ln.rstrip("\r\n")) for ln in lines)
+
+
+# Longest value of a one-value-per-line list (gene symbols, accessions, SMILES, barcodes).
+_MAX_LIST_ITEM_CHARS = 4096
 
 
 def _single_column_list(lines: Sequence[str]) -> bool:
@@ -2655,6 +3044,8 @@ def _single_column_list(lines: Sequence[str]) -> bool:
     vals = [ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")]
     if not vals:
         return True
+    if any(len(v) > _MAX_LIST_ITEM_CHARS for v in vals):
+        return False  # a list holds names / IDs, not lines of hundreds of kilobytes
     words = [len(v.split()) for v in vals]
     if any(w >= 4 for w in words) and sum(1 for w in words if w >= 2) / len(words) >= 0.2:
         return False
@@ -2703,19 +3094,22 @@ def _table_layout(path: str, spec_key: Any = _FROM_NAME) -> TableLayout:
     if not sample:
         return TableLayout(delim, [], "header", header_row=True, skip_lines=skip)
     first = sample[0]
+    dec = _decimal_mark(sample, delim)
     data_width = max((len(r) for r in sample[1:]), default=len(first))
     if comment is not None and len(sample) and len(_fields(comment.lstrip("#").strip(), delim)) == len(first) > 1 \
-            and not _line1_is_header(first, sample[1:]):
+            and not _line1_is_header(first, sample[1:], dec):
         names = [c.strip() for c in _fields(comment.lstrip("#").strip(), delim)]
         names += [f"column_{i + 1}" for i in range(len(names), data_width)]
-        return TableLayout(delim, names, "comment", header_row=False, skip_lines=skip, header_width=len(first))
-    if _line1_is_header(first, sample[1:]):
+        return TableLayout(delim, names, "comment", header_row=False, skip_lines=skip, header_width=len(first),
+                           decimal=dec)
+    if _line1_is_header(first, sample[1:], dec):
         names = [c.strip() for c in first]
         names += [f"column_{i + 1}" for i in range(len(names), data_width)]
-        return TableLayout(delim, names, "header", header_row=True, skip_lines=skip, header_width=len(first))
+        return TableLayout(delim, names, "header", header_row=True, skip_lines=skip, header_width=len(first),
+                           decimal=dec)
     width = max(len(r) for r in sample)
     return TableLayout(delim, [f"column_{i + 1}" for i in range(width)], "generated", header_row=False,
-                       skip_lines=skip, header_width=width)
+                       skip_lines=skip, header_width=width, decimal=dec)
 
 
 def _spec_layout(path: str, spec: Tuple[str, Optional[str]]) -> TableLayout:
@@ -2880,7 +3274,7 @@ _JSONL_BAD = threading.local()
 MAX_ROWS_PAGE = 1000
 # Version of how read_rows turns bytes into columns + rows. Cached page metadata (columns, total)
 # written under another version is not reused. Bump when the parse changes what a row is.
-READ_ROWS_VERSION = "2026-11-12.content-first"
+READ_ROWS_VERSION = "2026-11-12.r2-encoding-jsonl"
 
 
 def read_rows(
@@ -2897,7 +3291,11 @@ def read_rows(
     Returns ``{kind, viewKind, tabular, columns, rows, offset, limit, totalRows}`` (tables also
     carry ``headerRow`` — whether the first record after ``skipLines`` leading comment/blank
     lines is a header, which the edit route needs to number data rows — and ``namesSource``:
-    header | comment | spec | generated). ``tabular`` is True exactly when the profile's
+    header | comment | spec | generated; ``delimiter`` — the exact field separator, "\\t" "," ";"
+    "|" or " " (None for JSON Lines); ``decimal`` — "," for decimal-comma numbers, else "."; and
+    ``encoding`` — the codec the bytes were read with, which an edit must write back in). An
+    empty or blank file is ``{viewKind: "unknown", tabular: False, reason: "empty"}``, as its
+    profile is blocked. ``tabular`` is True exactly when the profile's
     ``viewKind`` is table / records / intervals / annotation: the SAME content-first decision
     (:func:`decide`), so the panel never pages rows of a SAM, PDB or FASTQ. ``known`` is a
     previously returned ``{"columns", "totalRows"}`` for the same bytes: with it the read stops
@@ -2906,6 +3304,10 @@ def read_rows(
     _reset_damage()
     display = name or os.path.basename(path or "")
     try:
+        empty = _empty_content(path, os.path.getsize(path))
+        if empty:
+            # The profile blocks an empty / blank file with view "unknown": no rows to page either.
+            return {"kind": "unknown", "viewKind": "unknown", "tabular": False, "reason": "empty", "code": empty}
         d = decide(path, display)
     except UnreadableContent:
         return {"kind": "unknown", "viewKind": "unknown", "tabular": False, "reason": "unreadable"}
@@ -2944,9 +3346,17 @@ def _read_rows(
     limit = max(1, min(int(limit), MAX_ROWS_PAGE))
     end = offset + limit
     total = 0
-    out: Dict[str, Any] = {"kind": kind, "viewKind": d.view, "tabular": True, "offset": offset, "limit": limit}
+    out: Dict[str, Any] = {"kind": kind, "viewKind": d.view, "tabular": True, "offset": offset, "limit": limit,
+                           # The codec the bytes were read with (utf-8 | utf-16[-le|-be] | gb18030 |
+                           # windows-1252 | latin-1): an edit must write the file back in it.
+                           "encoding": ENCODING_NAMES.get(d.encoding or "utf-8-sig", d.encoding),
+                           # The exact field separator ("\t", ",", ";", "|", " "); None for JSON Lines.
+                           "delimiter": None}
     if kind == "table":
         assert layout is not None
+        out["delimiter"] = layout.delim
+        # "," when numbers are written with a decimal comma ("1,5" in a semicolon file), else ".".
+        out["decimal"] = layout.decimal
         out["headerRow"] = layout.header_row
         out["namesSource"] = layout.names_source
         out["skipLines"] = layout.skip_lines
@@ -3023,16 +3433,16 @@ def _find_col(header: Sequence[str], tokens: Sequence[str]) -> Optional[int]:
 MAX_NUMERIC_LABEL_CLASSES = 10
 
 
-def _label_like(values: Sequence[str], n_rows: int) -> bool:
+def _label_like(values: Sequence[str], n_rows: int, decimal: str = ".") -> bool:
     """Whether a column's values are class labels: 2…max(20, 10% of rows) distinct values, and
     — when numeric — few distinct integers rather than a continuous measurement."""
     present = [v for v in values if v != ""]
     distinct = set(present)
     if not (2 <= len(distinct) <= max(20, int(0.1 * n_rows))):
         return False
-    numeric = [v for v in distinct if _is_number(v)]
+    numeric = [v for v in distinct if _is_number(v, decimal)]
     if numeric and len(numeric) / len(distinct) >= _NUMERIC_COL_FRAC:
-        if any(not float(v).is_integer() for v in numeric):
+        if any(not _to_float(v, decimal).is_integer() for v in numeric):
             return False
         return len(distinct) <= MAX_NUMERIC_LABEL_CLASSES
     return True
@@ -3111,6 +3521,9 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         layout = layout or _table_layout(path)
         header, rows, total = _read_table(path, layout=layout)
     n_rows = len(rows)  # rows held for statistics (≤ MAX_TABLE_ROWS / MAX_PROFILE_CELLS)
+    dec = layout.decimal if layout is not None else "."
+    if dec == ",":
+        p.decimal = ","
     n_cols = len(header)
     p.rows = total
     p.cols = n_cols
@@ -3127,6 +3540,8 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         p.quality = "blocked"
         emit(p, "note", "no_columns", "", "blocked")
         return p
+    if layout is not None and layout.names_source in ("header", "comment"):
+        _duplicate_columns_finding(p, header)
     if n_rows == 0:
         # A readable but EMPTY table: the columns are shown (so the Preview/Columns views show the
         # real header), and the missing data is something to check, not "Good".
@@ -3188,7 +3603,7 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     candidates = _ranked_cols(header, _LABEL_NAME_TOKENS)
     label_idx: Optional[int] = None
     for c in candidates:
-        if _label_like(_column(rows, c), n_rows):
+        if _label_like(_column(rows, c), n_rows, dec):
             label_idx = c
             break
     if label_idx is not None:
@@ -3231,7 +3646,7 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
                 emit(p, "note", "effective_n_dedup", "", "watch", n=eff_n, rows=n_rows,
                      duplicates=n_rows - unique)
     else:
-        text_candidates = [c for c in candidates if not _mostly_numeric(_column(rows, c))]
+        text_candidates = [c for c in candidates if not _mostly_numeric(_column(rows, c), dec)]
         if text_candidates:
             c = text_candidates[0]
             emit(p, "signal", "label_free_text", "", column=header[c],
@@ -3261,9 +3676,9 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
 MIN_ROWS_FOR_CHECKS = 2
 
 
-def _mostly_numeric(values: Sequence[str]) -> bool:
+def _mostly_numeric(values: Sequence[str], decimal: str = ".") -> bool:
     present = [v for v in values if v != ""]
-    return bool(present) and sum(1 for v in present if _is_number(v)) / len(present) >= _NUMERIC_COL_FRAC
+    return bool(present) and sum(1 for v in present if _is_number(v, decimal)) / len(present) >= _NUMERIC_COL_FRAC
 
 
 def _blank_only(path: str) -> bool:
@@ -3312,6 +3727,15 @@ def _column_names_finding(p: DataProfile, layout: TableLayout) -> None:
         emit(p, "note", "columns_comment",
              f"Column names taken from the file's last '#' comment line: {', '.join(names)}.",
              format=label, columns=names)
+
+
+def _duplicate_columns_finding(p: DataProfile, header: Sequence[str]) -> None:
+    """Column names used more than once: a reader keyed by name (pandas, R, a samplesheet) keeps
+    only one of them or renames them silently."""
+    counts = Counter(str(c).strip() for c in header if str(c).strip())
+    dups = [c for c, n in counts.items() if n > 1]
+    if dups:
+        emit(p, "note", "duplicate_column_names", "", "watch", count=len(dups), columns=_named(dups))
 
 
 def _set_dedup_effective_n(p: DataProfile, rows: Sequence[Sequence[str]]) -> None:
