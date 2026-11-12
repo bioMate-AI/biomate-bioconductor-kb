@@ -1683,6 +1683,23 @@ class ResearchAgent:
                 )
                 evidence['skill_guidance'] += f"\n\n{domain_skills}"
 
+        # Inject the trigger-matched EXPERT skills (domain role skills + source/evidence
+        # intelligence) from SkillManager. The chat path already injects these, but the
+        # GROUNDED answer is produced here in research_agent's own synthesis prompt, which
+        # previously saw only the /app/skills scientific-thinking skills — so an evidence
+        # answer missed the domain-expert interpretation guidance (drug-discovery-chemist,
+        # structural-biologist, evidence-source-selection, …) that the chat framing gets.
+        # Additive, bounded, non-fatal; SkillManager is independent of self.skill_loader.
+        try:
+            from galaxy.ai.skill_manager import get_skill_manager
+            _dom = analysis.get('domain')
+            _pref = [_dom] if _dom and _dom != 'general' else None
+            _xblock = get_skill_manager().build_system_block_auto(question, preferred_domains=_pref)
+            if _xblock:
+                evidence['expert_skill_block'] = _xblock
+        except Exception as _se:
+            log.debug("SkillManager expert skills skipped (non-fatal): %s", _se)
+
         # Search literature using UnifiedLiteratureClient
         if include_citations and self.literature_client:
             try:
@@ -2491,6 +2508,22 @@ class ResearchAgent:
             # Existence check + explicit refusal when nothing is grounded (gap T8).
             # Fail-soft: any error here leaves the answer unchanged.
             ev_status, ev_rows = None, []
+            # DB-grounding signal: when the answer rests on authoritative database records
+            # (resolved structures/variants/interactions/activities with stable ids), an
+            # absence of literature citations must be framed as database-grounded, NOT as
+            # "unreferenced background" — otherwise the resolver + federated evidence we
+            # fetch is thrown away by the literature-only refusal (dev finding 2026-11-12:
+            # ABL1 structures fetched but the answer said "no structures").
+            _dbf_pre = evidence.get('db_facts') or {}
+            _has_db_grounding = False
+            for _k, _v in _dbf_pre.items():
+                if _k == 'federated_evidence' and isinstance(_v, dict):
+                    if any(isinstance(b, dict) and b.get('merged') for b in _v.values()):
+                        _has_db_grounding = True
+                elif _v:
+                    _has_db_grounding = True
+                if _has_db_grounding:
+                    break
             try:
                 from galaxy.ai.agents.citation_check import check_answer_citations
                 _n_lit = len(lit_pool)
@@ -2499,7 +2532,7 @@ class ResearchAgent:
                           for i, c in enumerate(citations)]
                 answer_text, _kept, ev_status, ev_rows = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: check_answer_citations(
-                        answer_text, _cites, n_numbered=_n_lit))
+                        answer_text, _cites, n_numbered=_n_lit, db_grounded=_has_db_grounding))
                 citations = [c for c, r in zip(citations, ev_rows)
                              if r['status'] not in ('not_found', 'title_mismatch')]
             except Exception as _e:
@@ -2895,6 +2928,8 @@ class ResearchAgent:
         # Add skill guidance if available
         if evidence.get('skill_guidance'):
             prompt_parts.append(f"## Scientific Skill Guidance\n{evidence['skill_guidance'][:4000]}")
+        if evidence.get('expert_skill_block'):
+            prompt_parts.append(f"## Expert Domain Skills\n{evidence['expert_skill_block'][:5000]}")
 
         # Add benchmark evidence
         if evidence.get('benchmark_results'):
@@ -2903,8 +2938,16 @@ class ResearchAgent:
 
         # Add live DB facts — these are real query results, not LLM guesses
         if evidence.get('db_facts'):
-            db_section = ["## Live Database Facts (retrieved from GWAS Catalog / Open Targets / Ensembl / Monarch / MyGene / ClinVar)"]
-            db_section.append("Use these EXACT values in your answer — do not substitute from memory.\n")
+            db_section = ["## Live Database Facts (VERIFIED records retrieved live from authoritative databases: UniProt, PDB, PDBe, AlphaFold, InterPro, ChEMBL, STRING, Ensembl, ClinVar, gnomAD, Open Targets, KEGG/Reactome, MyGene, Monarch)"]
+            db_section.append(
+                "These are REAL, confirmed-to-exist records — NOT literature and NOT memory. "
+                "They are authoritative evidence in their own right. When the question asks for "
+                "structures, identifiers, accessions, resolutions, interaction partners, "
+                "activities or any specific value, ANSWER FROM THESE RECORDS and cite their "
+                "EXACT identifiers (e.g. PDB IDs like 1OPL with their resolution, UniProt "
+                "accessions, ChEMBL IDs). The 'never invent an identifier' rule for literature "
+                "does NOT apply here — these identifiers are verified, so name them directly. "
+                "Do not substitute general knowledge for a value present below.\n")
             df = evidence['db_facts']
 
             # ── Intent-selected federated multi-source evidence ──────────────────
@@ -2923,12 +2966,24 @@ class ResearchAgent:
                             continue
                         _src = _m.get('source') or _m.get('db') or _m.get('database') or '?'
                         _label = (_m.get('name') or _m.get('title') or _m.get('id')
-                                  or _m.get('accession') or _m.get('chembl_id') or '')
+                                  or _m.get('accession') or _m.get('chembl_id')
+                                  or _m.get('pdb_id') or _m.get('patent_id')
+                                  or _m.get('partner') or _m.get('uniprot') or '')
+                        # Fall back to the remaining scalar fields so each source's own
+                        # shape renders — PDBe (pdb_id/resolution), STRING (partner/score),
+                        # ChEMBL (chembl_target_id/activity) etc. were being DROPPED because
+                        # the prompt only knew name/summary (dev finding 2026-11-12: ABL1
+                        # structures fetched but rendered blank → LLM said "no structures").
+                        _skip = {'source', 'db', 'database'}
+                        _fields = [f"{_k2}={_v2}" for _k2, _v2 in _m.items()
+                                   if _k2 not in _skip and _v2 not in (None, '', [])
+                                   and not isinstance(_v2, (dict, list))
+                                   and str(_v2) != str(_label)]
                         _detail = (_m.get('summary') or _m.get('description')
-                                   or _m.get('activity') or _m.get('value') or _m.get('type') or '')
+                                   or _m.get('activity') or ", ".join(_fields[:6]))
                         db_section.append(
                             f"- [{_src}] {str(_label)[:90]}"
-                            f"{(' — ' + str(_detail)[:140]) if _detail else ''}")
+                            f"{(' — ' + str(_detail)[:200]) if _detail else ''}")
 
             # ── Ranked candidate targets (target_id fuse_channels), when attached ─
             if df.get('target_ranking'):
@@ -3180,13 +3235,15 @@ class ResearchAgent:
             lit = ["## Retrieved Literature (your ONLY citation list)",
                    "Cite these with [N] using the numbers below. Use ONLY papers from "
                    "this list for [N] citations — never cite a paper that is not listed "
-                   "here, and never invent a DOI, PMID, or PDB ID. Cite only papers whose "
+                   "here, and never invent a DOI or PMID (the exact identifiers in the Live "
+                   "Database Facts above ARE verified — name those directly). Cite only papers whose "
                    "content actually supports the sentence; do not pad with irrelevant [N]. "
                    "End your answer with a one-line '**Evidence boundary:**' stating what "
                    "the evidence does and does not establish and any scope limits.",
                    "Begin your reply with exactly one line, before anything else: "
-                   "'EVIDENCE: addresses' if the papers below directly support an answer to the "
-                   "question, or 'EVIDENCE: insufficient' if they do not (off-topic or silent on it)."]
+                   "'EVIDENCE: addresses' if the papers below OR the Live Database Facts above "
+                   "directly support an answer to the question, or 'EVIDENCE: insufficient' if "
+                   "neither does (off-topic or silent on it)."]
             for i, c in enumerate(cites, 1):
                 authors = ", ".join((getattr(c, 'authors', None) or [])[:6])
                 meta = []

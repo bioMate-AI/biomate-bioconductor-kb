@@ -157,6 +157,11 @@ describe("project-routes — contract", () => {
     expect(SRC.includes("10 * 1024 * 1024")).toBe(true);                              // 10 MiB cap
     expect(/edit[\s\S]{0,1400}readTextPrefix/.test(SRC)).toBe(true);                   // reads the FULL file (not just the sample)
     expect(/edit[\s\S]{0,2600}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true); // append-only new version
+    // Only edited cells change (quote-aware, CRLF kept), stale/mismatched edits refused, lossy decode refused.
+    expect(/edit[\s\S]{0,3000}applyCellEdits\(text, delim, parsed/.test(SRC)).toBe(true);
+    expect(/edit[\s\S]{0,3000}status\(409\)/.test(SRC)).toBe(true);
+    expect(/Buffer\.byteLength\(text, "utf-8"\) !== size/.test(SRC)).toBe(true);
+    expect(SRC.includes("lines[lineIdx].split(delim)")).toBe(false);
   });
 
   it("every endpoint goes through authenticateToken", () => {
@@ -166,7 +171,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(33); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit, rows)
+    expect(authed.length).toBe(35); // grows as endpoints are added (+2 file rename/move 2026-11-11; …, files/import-url, files/:fileId/versions GET + restore POST + diff, edit, rows)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {
@@ -209,6 +214,70 @@ describe("project-routes — contract", () => {
   it("DELETE is hard (calls deleteProject)", () => {
     const deleteBlock = SRC.split('app.delete("/api/projects/:id"')[1] ?? '';
     expect(deleteBlock.includes("memoryService.projects.deleteProject")).toBe(true);
+  });
+});
+
+describe("project-routes — file rename / move", () => {
+  const patchBlock = SRC.split('app.patch("/api/projects/:id/files/:fileId"')[1]?.split("app.post(")[0] ?? "";
+  const folderBlock = SRC.split('app.post("/api/projects/:id/files/rename-folder"')[1]?.split("app.delete(")[0] ?? "";
+  const applyBlock = SRC.split("async function _applyRenamePlan")[1]?.split("\nfunction ")[0] ?? "";
+
+  it("registers PATCH /files/:fileId and POST /files/rename-folder, both authenticated", () => {
+    expect(SRC.match(/app\.patch\("\/api\/projects\/:id\/files\/:fileId", authenticateToken/g)?.length).toBe(1);
+    expect(SRC.match(/app\.post\("\/api\/projects\/:id\/files\/rename-folder", authenticateToken/g)?.length).toBe(1);
+  });
+
+  it("owner/editor only, 404 otherwise (never leak existence)", () => {
+    for (const b of [patchBlock, folderBlock]) {
+      expect(/if \(!\(await _isOwnerOrEditor\(id, uid\)\)\) return res\.status\(404\)/.test(b)).toBe(true);
+    }
+  });
+
+  it("names go through the shared pure planners (sanitize + collision), not ad-hoc checks", () => {
+    expect(patchBlock.includes("planFileRename(rows, fileId, req.body?.name)")).toBe(true);
+    expect(folderBlock.includes("planFolderRename(rows, req.body?.from, req.body?.to)")).toBe(true);
+    // the planner's status (400/404/409) is what the client sees
+    expect(patchBlock.includes("res.status(out.status)")).toBe(true);
+    expect(folderBlock.includes("res.status(out.status)")).toBe(true);
+  });
+
+  it("applies the plan in one transaction, serialized per project, computed from rows read under the lock", () => {
+    expect(applyBlock.includes('client.query("BEGIN")')).toBe(true);
+    expect(applyBlock.includes("pg_advisory_xact_lock")).toBe(true);
+    expect(applyBlock.indexOf("pg_advisory_xact_lock")).toBeLessThan(applyBlock.indexOf("FROM project_files WHERE project_id::text = $1"));
+    expect(applyBlock.includes('client.query("COMMIT")')).toBe(true);
+    expect(applyBlock.includes('client.query("ROLLBACK")')).toBe(true);
+    expect(applyBlock.includes("client.release()")).toBe(true);
+    // uuid columns compared as text (a non-uuid param must not throw a cast error)
+    expect(applyBlock.includes("f.id::text = v.id AND f.project_id::text = $3")).toBe(true);
+  });
+
+  it("only the name changes — S3 objects are not moved or deleted by a rename", () => {
+    for (const b of [patchBlock, folderBlock, applyBlock]) {
+      expect(/s3Service\.(putObject|deleteFile|copy)/.test(b)).toBe(false);
+      expect(/SET s3_key/.test(b)).toBe(false);
+    }
+    expect(applyBlock.includes("SET name = v.new_name")).toBe(true);
+  });
+
+  it("records file_renamed {fileId, from, to} and folder_renamed activity", () => {
+    expect(SRC.includes('| "file_renamed"')).toBe(true);
+    expect(SRC.includes('| "folder_renamed"')).toBe(true);
+    expect(patchBlock.includes('recordProjectActivity(id, uid, "file_renamed", { fileId: m.id, from: m.from, to: m.to })')).toBe(true);
+    expect(folderBlock.includes('recordProjectActivity(id, uid, "folder_renamed"')).toBe(true);
+  });
+
+  it("every NEW object key is allocated so it can't overwrite bytes a renamed file still uses", () => {
+    const store = SRC.split("async function _storeProjectInput")[1]?.split("\nfunction ")[0] ?? "";
+    expect(store.includes("await _allocateObjectKey(o.id, `${o.key}.v${prior.version_no + 1}`)")).toBe(true);
+    expect(store.includes("const key = await _allocateObjectKey(o.id, o.key)")).toBe(true);
+    expect(store.includes("s3Service.putObject(o.key")).toBe(false);
+    const edit = SRC.split('app.post("/api/projects/:id/files/:fileId/edit"')[1]?.split("app.")[0] ?? "";
+    expect(/_allocateObjectKey\(id, `\$\{projectInputKey\(id, String\(cur\.name\), String\(cur\.name\)\)\}\.v/.test(edit)).toBe(true);
+    // allocation checks both current files and archived versions
+    const alloc = SRC.split("async function _allocateObjectKey")[1]?.split("\n}")[0] ?? "";
+    expect(alloc.includes("FROM project_files WHERE project_id::text = $1")).toBe(true);
+    expect(alloc.includes("FROM project_file_versions WHERE project_id::text = $1")).toBe(true);
   });
 });
 

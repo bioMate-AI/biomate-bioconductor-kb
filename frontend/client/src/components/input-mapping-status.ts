@@ -12,6 +12,7 @@
 
 import {
   isDataInputParam,
+  isBoundUserDataParam,
   isOptionalFileOverride,
   isBoundValue,
   type DataInputParamLike,
@@ -149,6 +150,9 @@ export function derivePrerunInputs(
   for (const p of params) {
     const m = merged(p);
     if (isDataInputParam(m)) { primaryParams.push(p); continue; }
+    // Bound to the user's data although the schema does not mark it required
+    // (catalog schemas often declare no `required` list) — still a mapped input.
+    if (isBoundUserDataParam({ ...m, value: p.value })) { primaryParams.push(p); continue; }
     if (!isOptionalFileOverride(m)) continue;
     // An optional file the user/AI actually bound (value differs from its default)
     // IS a mapped input; one still on its default is only an override.

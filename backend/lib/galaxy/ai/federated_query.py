@@ -136,6 +136,7 @@ def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
 _POOL_SIZE = 12
 _CACHE_TTL_STABLE = 86400   # 24h — UniProt, PDB, AlphaFold, etc.
 _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
+_CACHE_TTL_DURABLE = 30 * 86400  # 30d — "last-known-good" for outage fallback (stale-while-error)
 
 # ── Entity-type → sources fan-out map ─────────────────────────────────────────
 # Order within each list doesn't matter (all run in parallel).
@@ -143,14 +144,14 @@ _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
 
 ENTITY_SOURCES: Dict[str, List[str]] = {
     "gene":       ["ncbi_gene", "ensembl", "uniprot", "string", "kegg",
-                   "go", "gnomad", "pubmed", "semantic_scholar"],
-    "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
+                   "go", "gnomad", "opentargets", "pubmed", "semantic_scholar"],
+    "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
                    "go", "chembl", "pubmed", "semantic_scholar"],
     "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
-    "structure":  ["pdb", "alphafold", "interpro"],
-    "disease":    ["hpo", "clinvar", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
+    "structure":  ["pdb", "pdbe", "alphafold", "interpro"],
+    "disease":    ["hpo", "clinvar", "opentargets", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
     "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "biorxiv", "semantic_scholar", "openalex", "crossref"],
 }
 
@@ -249,6 +250,51 @@ def _post_json(url: str, payload: Dict) -> Optional[Any]:
         _note_failure(url, e)
         return None
 
+# ── Shared identifier resolver ──────────────────────────────────────────────────
+
+def resolve_gene(symbol: str) -> Dict[str, Any]:
+    """Resolve a gene symbol/alias → canonical ids: {symbol, entrez, ensembl, uniprot}.
+
+    The KEYSTONE: most sources don't accept a bare symbol — AlphaFold/PDBe need a UniProt
+    accession, gnomAD/Open Targets need an ENSG, KEGG needs an Entrez id. One cached,
+    alias-safe mygene call (p53→TP53, BCR-ABL→ABL1) that every id-needing fetcher shares,
+    so a plain "ABL1" reaches all of them (ABL1 → 25 / ENSG00000097007 / P00519). 24h
+    cache. Returns {} (not an error) when unresolvable."""
+    sym = (symbol or "").strip()
+    if not sym:
+        return {}
+    ck = f"bm:resolve:{sym.lower()}"
+    cached = _cache_get(ck)
+    if cached is not None:
+        return cached
+    out: Dict[str, Any] = {}
+    r = _post_json("https://mygene.info/v3/query",
+                   {"q": [sym], "scopes": "symbol,alias,retired",
+                    "fields": "symbol,entrezgene,ensembl.gene,uniprot.Swiss-Prot",
+                    "species": "human"})
+    hit = r[0] if isinstance(r, list) and r and not r[0].get("notfound") else {}
+    if hit:
+        ens = hit.get("ensembl")
+        if isinstance(ens, list):
+            ens = ens[0] if ens else {}
+        up = (hit.get("uniprot") or {}).get("Swiss-Prot")
+        if isinstance(up, list):
+            up = up[0] if up else None
+        out = {
+            "symbol": hit.get("symbol") or sym,
+            "entrez": str(hit["entrezgene"]) if hit.get("entrezgene") else None,
+            "ensembl": (ens or {}).get("gene"),
+            "uniprot": up,
+        }
+    # cache even an empty result briefly so a non-gene term isn't re-queried every call;
+    # a real resolution gets the full stable TTL.
+    _cache_set(ck, out, _CACHE_TTL_STABLE if out else 3600)
+    return out
+
+
+_UNIPROT_ACC_RE = re.compile(r'^[A-NR-Z0-9][0-9][A-Z0-9]{3}[0-9]$', re.I)
+
+
 # ── Entity type detection ──────────────────────────────────────────────────────
 
 def detect_entity_type(query: str) -> str:
@@ -343,33 +389,64 @@ def _fetch_pdb(query: str) -> Dict:
                  "method": data.get("exptl", [{}])[0].get("method"),
                  "resolution": data.get("reflns", {}).get("d_resolution_high")}
             ]}
-    # Text search
-    payload = {
-        "query": {"type": "terminal", "service": "full_text",
-                  "parameters": {"value": query}},
-        # v2 pagination key is "paginate" (start/rows). The old "results_slice" is not
-        # a valid v2 field → HTTP 400 on every text search (dev finding, 2026-11-11,
-        # confirmed against the live endpoint).
-        "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}}
-    }
+    # For a gene/protein symbol, resolve → UniProt and search RCSB BY that accession.
+    # A bare full_text search for "ABL1" returned the newest entries matching the string
+    # anywhere (9F00, 9KTJ …), NOT ABL1 structures — noise that made the synthesis distrust
+    # the structure evidence and fall back to general knowledge (dev finding, 2026-11-12).
+    _acc = resolve_gene(query).get("uniprot") if not _UNIPROT_ACC_RE.match(query.strip()) else query.strip().upper()
+    if _acc:
+        payload = {
+            "query": {"type": "group", "logical_operator": "and", "nodes": [
+                {"type": "terminal", "service": "text", "parameters": {
+                    "attribute": "rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_accession",
+                    "operator": "exact_match", "value": _acc}},
+                {"type": "terminal", "service": "text", "parameters": {
+                    "attribute": "rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_name",
+                    "operator": "exact_match", "value": "UniProt"}}]},
+            "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}},
+        }
+    else:
+        # Non-gene free text (e.g. a complex/ligand phrase): full-text fallback.
+        payload = {
+            "query": {"type": "terminal", "service": "full_text", "parameters": {"value": query}},
+            "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}},
+        }
     data = _post_json("https://search.rcsb.org/rcsbsearch/v2/query", payload)
     ids = [r["identifier"] for r in (data or {}).get("result_set", [])[:5]]
     return {"source": "pdb", "results": [{"pdb_id": i} for i in ids]}
 
 def _fetch_alphafold(query: str) -> Dict:
-    # Requires UniProt accession
-    if re.match(r'^[A-Z][0-9][A-Z0-9]{3}[0-9]$', query.strip().upper()):
-        acc = query.strip().upper()
-        data = _get(f"https://alphafold.ebi.ac.uk/api/prediction/{acc}")
-        if data and isinstance(data, list):
-            d = data[0]
-            return {"source": "alphafold", "results": [
-                {"uniprot": acc, "model_url": d.get("pdbUrl"),
-                 "pae_image_url": d.get("paeImageUrl"),
-                 "confidence": "pLDDT"}
-            ]}
-    return {"source": "alphafold", "results": [],
-            "note": "Provide UniProt accession for direct AlphaFold lookup"}
+    # AlphaFold is keyed by UniProt accession. A bare gene symbol used to return nothing;
+    # resolve it first (ABL1 → P00519) via the shared resolver (dev finding, 2026-11-11).
+    q = query.strip()
+    acc = q.upper() if _UNIPROT_ACC_RE.match(q) else (resolve_gene(q).get("uniprot") or "")
+    if not acc:
+        return {"source": "alphafold", "results": []}
+    data = _get(f"https://alphafold.ebi.ac.uk/api/prediction/{acc}")
+    if data and isinstance(data, list):
+        d = data[0]
+        return {"source": "alphafold", "results": [
+            {"uniprot": acc, "model_url": d.get("pdbUrl"),
+             "pae_image_url": d.get("paeImageUrl"), "confidence": "pLDDT"}
+        ]}
+    return {"source": "alphafold", "results": []}
+
+
+def _fetch_pdbe(query: str) -> Dict:
+    # PDBe best_structures: ranked EXPERIMENTAL structures for a target (ABL1 → P00519 →
+    # 1opl@3.42Å). Needs a UniProt acc, so resolve a bare symbol. pdbe was in the registry
+    # with NO fetcher — its best endpoint was entirely unused (dev finding, 2026-11-11).
+    q = query.strip()
+    acc = q.upper() if _UNIPROT_ACC_RE.match(q) else (resolve_gene(q).get("uniprot") or "")
+    if not acc:
+        return {"source": "pdbe", "results": []}
+    data = _get(f"https://www.ebi.ac.uk/pdbe/api/mappings/best_structures/{acc}")
+    entries = (data or {}).get(acc) or []
+    results = [{"pdb_id": e.get("pdb_id"), "chain": e.get("chain_id"),
+                "resolution": e.get("resolution"), "coverage": e.get("coverage"),
+                "method": e.get("experimental_method")}
+               for e in entries[:5]]
+    return {"source": "pdbe", "results": results}
 
 def _fetch_ensembl(query: str) -> Dict:
     if re.match(r'^[A-Z][A-Z0-9]+$', query.strip()):
@@ -489,11 +566,27 @@ def _fetch_chembl(query: str) -> Dict:
         tq = urllib.parse.quote(query)
         tdata = _get(f"https://www.ebi.ac.uk/chembl/api/data/target/search"
                      f"?q={tq}&format=json&limit=3")
+        _human_tid = None
         for t in (tdata or {}).get("targets", [])[:3]:
             results.append({"chembl_target_id": t.get("target_chembl_id"),
                             "name": t.get("pref_name"),
                             "target_type": t.get("target_type"),
                             "organism": t.get("organism")})
+            if t.get("organism") == "Homo sapiens" and not _human_tid:
+                _human_tid = t.get("target_chembl_id")
+        # The SAR answer is the ACTIVITY table: pull the most potent IC50s against the
+        # human target (pChEMBL desc) so the answer can cite real nM potencies, not just
+        # the target record (dev finding 2026-11-11: fetcher stopped at the target name).
+        if _human_tid:
+            adata = _get(f"https://www.ebi.ac.uk/chembl/api/data/activity"
+                         f"?target_chembl_id={_human_tid}&standard_type=IC50"
+                         f"&pchembl_value__isnull=false&order_by=-pchembl_value&limit=5&format=json")
+            for a in (adata or {}).get("activities", [])[:5]:
+                results.append({"chembl_id": a.get("molecule_chembl_id"),
+                                "activity_type": a.get("standard_type"),
+                                "value": a.get("standard_value"),
+                                "units": a.get("standard_units"),
+                                "pchembl_value": a.get("pchembl_value")})
     return {"source": "chembl", "results": results}
 
 def _fetch_pubchem(query: str) -> Dict:
@@ -528,13 +621,45 @@ def _fetch_interpro(query: str) -> Dict:
     return {"source": "interpro", "results": results}
 
 def _fetch_gnomad(query: str) -> Dict:
-    gql = """query($term:String!){search(query:$term){
-        ...on GeneSearchResult{gene{gene_id gene_name}}
-        ...on VariantSearchResult{variant{variant_id}}}}"""
-    data = _post_json("https://gnomad.broadinstitute.org/api",
-                      {"query": gql, "variables": {"term": query}})
-    results = (data or {}).get("data", {}).get("search", [])[:5]
-    return {"source": "gnomad", "results": results}
+    # gnomAD is keyed by Ensembl gene id. Resolve a symbol, then pull the gene CONSTRAINT
+    # (LoF intolerance: pLI, LOEUF, missense-z) — the compact, high-value gnomAD gene fact.
+    # The old generic `search` returned only an id, no frequency or constraint (dev finding
+    # 2026-11-12: _fetch_gnomad gave no allele-frequency / no usable signal).
+    q = query.strip()
+    ensg = q if re.match(r'^ENSG\d+$', q, re.I) else resolve_gene(q).get("ensembl")
+    if not ensg:
+        return {"source": "gnomad", "results": []}
+    gql = ('{gene(gene_id:"%s",reference_genome:GRCh38){gene_id symbol '
+           'gnomad_constraint{pli oe_lof oe_lof_upper mis_z}}}' % ensg)
+    data = _post_json("https://gnomad.broadinstitute.org/api", {"query": gql})
+    g = (((data or {}).get("data") or {}).get("gene")) or {}
+    c = g.get("gnomad_constraint") or {}
+    if not c:
+        return {"source": "gnomad", "results": []}
+    return {"source": "gnomad", "results": [{
+        "gene_id": g.get("gene_id"), "symbol": g.get("symbol"),
+        "pLI": c.get("pli"), "LOEUF": c.get("oe_lof_upper"),
+        "oe_lof": c.get("oe_lof"), "missense_z": c.get("mis_z")}]}
+
+
+def _fetch_opentargets(query: str) -> Dict:
+    # Open Targets GraphQL: target → disease associations (genetic/druggability evidence,
+    # scored 0-1). Keyed by Ensembl gene id; resolve a symbol first. The registry listed
+    # opentargets but it had NO fan-out fetcher (dev finding 2026-11-12).
+    q = query.strip()
+    ensg = q if re.match(r'^ENSG\d+$', q, re.I) else resolve_gene(q).get("ensembl")
+    if not ensg:
+        return {"source": "opentargets", "results": []}
+    gql = ('{target(ensemblId:"%s"){approvedSymbol '
+           'associatedDiseases(page:{index:0,size:5}){rows{disease{name} score}}}}' % ensg)
+    data = _post_json("https://api.platform.opentargets.org/api/v4/graphql", {"query": gql})
+    t = (((data or {}).get("data") or {}).get("target")) or {}
+    rows = ((t.get("associatedDiseases") or {}).get("rows")) or []
+    results = [{"target": t.get("approvedSymbol"),
+                "disease": (r.get("disease") or {}).get("name"),
+                "association_score": round(r.get("score") or 0, 3)}
+               for r in rows[:5] if r.get("disease")]
+    return {"source": "opentargets", "results": results}
 
 def _fetch_ncbi_entrez(query: str, db: str) -> Dict:
     q = urllib.parse.quote(query)
@@ -798,6 +923,7 @@ _FETCHERS = {
     "ncbi_gene":        _fetch_ncbi_gene,
     "uniprot":          _fetch_uniprot,
     "pdb":              _fetch_pdb,
+    "pdbe":             _fetch_pdbe,
     "alphafold":        _fetch_alphafold,
     "ensembl":          _fetch_ensembl,
     "string":           _fetch_string,
@@ -810,6 +936,7 @@ _FETCHERS = {
     "pubchem":          _fetch_pubchem,
     "interpro":         _fetch_interpro,
     "gnomad":           _fetch_gnomad,
+    "opentargets":      _fetch_opentargets,
     "dbsnp":            lambda q: _fetch_ncbi_entrez(q, "snp"),
     "clinvar":          lambda q: _fetch_ncbi_entrez(q, "clinvar"),
     "pubmed":           lambda q: _fetch_ncbi_entrez(q, "pubmed"),
@@ -933,8 +1060,21 @@ def federated_query(
     }
 
     ttl = _CACHE_TTL_LITERATURE if detected == "literature" else _CACHE_TTL_STABLE
+    _durable_key = cache_key + ":durable"
     if not failed:   # never cache a partial answer: a rate limit would persist for the whole TTL
         _cache_set(cache_key, out, ttl)
+        # Keep a long-lived last-known-good for outage fallback (stale-while-error).
+        _cache_set(_durable_key, out, _CACHE_TTL_DURABLE)
+        return out
+    # Degraded: one or more sources failed (outage / rate limit / maintenance — the exact
+    # pain this session: EBI 500s, NCBI maintenance, S2 429s). Rather than hand back a
+    # thin/empty live result, serve the last-known-good if we have a richer one, flagged
+    # stale so the caller/UI can say so. No mirror data required.
+    _stale = _cache_get(_durable_key)
+    if isinstance(_stale, dict) and len(_stale.get("merged") or []) > len(merged):
+        return {**_stale, "_stale": True,
+                "_stale_reason": "live sources unavailable (%s); served last-known-good"
+                                 % ",".join(failed[:6])}
     return out
 
 # ── Result merging ─────────────────────────────────────────────────────────────
@@ -951,22 +1091,35 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
     priority = {
         "gene":       ["uniprot", "ncbi_gene", "ensembl", "string", "kegg",
                        "go", "gnomad", "pubmed", "semantic_scholar"],
-        "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
+        "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
                        "go", "chembl", "pubmed", "semantic_scholar"],
         "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
         "variant":    ["clinvar", "dbsnp", "gnomad", "pubmed", "semantic_scholar"],
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
-        "structure":  ["pdb", "alphafold", "interpro"],
+        "structure":  ["pdb", "pdbe", "alphafold", "interpro"],
         "disease":    ["hpo", "clinvar", "europepmc", "pubmed", "semantic_scholar"],
         "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
     }
     ordered = priority.get(entity_type, list(results.keys()))
     remaining = [s for s in results if s not in ordered]
+    src_order = [s for s in (ordered + remaining) if s in results]
 
-    for src in ordered + remaining:
-        if src not in results:
-            continue
-        for item in (results[src].get("results") or []):
+    # ROUND-ROBIN across sources: take each source's top result first, then each source's
+    # 2nd, etc. A strict per-source drain let a high-volume identity source (uniprot/
+    # ncbi_gene) fill all the prompt's top-8 slots and bury structure/activity records
+    # from pdb/pdbe/alphafold/chembl — so a gene-typed target in a STRUCTURE question
+    # fetched the structures but never rendered them (dev finding, 2026-11-12). Priority
+    # order still breaks ties within a rank.
+    _lists = {s: (results[s].get("results") or []) for s in src_order}
+    _maxlen = max((len(v) for v in _lists.values()), default=0)
+    for _rank in range(_maxlen):
+        for src in src_order:
+            _items = _lists[src]
+            if _rank >= len(_items):
+                continue
+            item = _items[_rank]
+            if not isinstance(item, dict):
+                continue
             # Dedup key: prefer explicit id fields, fall back to name/title
             dedup_key = (
                 item.get("accession") or item.get("gene_id") or item.get("pdb_id") or

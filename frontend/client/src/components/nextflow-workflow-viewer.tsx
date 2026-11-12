@@ -25,6 +25,9 @@ import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
+import { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
+import { useLocalizedLabels } from '@/lib/use-localized-labels';
+export { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
 import { ApprovalGate, type ApprovalGateData } from "./approval-gate";
@@ -133,6 +136,7 @@ type ViewerParameter = {
 
 /** Matches a "Phase X" / "Phase X — Name" prefix a backend label may carry. */
 const PHASE_PREFIX_RE = /^phase\s+[a-z0-9]+\s*(?:[—–:-]\s*|$)/i;
+
 
 /** Backend labels may already include their own phase prefix (possibly with a
  *  different letter — e.g. a `// [Phase B]` source annotation on a
@@ -887,6 +891,14 @@ function PhaseGroupSection({
   const phaseSub   = dashIdx > -1 ? label.slice(dashIdx + 1).trim() : '';
 
   const canRunPhase = !!activeRunId && !isGlobalExecutionActive && !isAutofixActive && !isPrereqBlocked && !executionBlockedReason;
+  // Backend-sourced English labels (phase / step / parameter names) localized for
+  // the zh UI via the cached label-translation service; identity elsewhere.
+  const phaseTitleSrc = userFacingStepName(phaseSub || phaseTitle);
+  const tl = useLocalizedLabels([
+    phaseTitleSrc,
+    ...steps.map((st: any) => userFacingStepName(st.name)),
+    ...phaseRenderedParams.map((p: any) => String(p.label ?? '')),
+  ]);
 
   return (
     <div className={`phase ${phaseStatus}${open ? ' open' : ''}`} data-testid={`phase-group-${group.key}`} data-status={phaseStatus}>
@@ -894,9 +906,11 @@ function PhaseGroupSection({
       <div className="phase-head" onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
         <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
         <div className="letter">{letter}</div>
+        {/* The badge already carries the letter; the semantic name ("Input Download")
+            is what a scientist scans for, so it is the title — "Phase A" beside an "A"
+            badge was redundant scaffolding (founder phase-view review 2026-11-11). */}
         <div className="titles">
-          <div className="title">{phaseTitle}</div>
-          {phaseSub && <div className="sub">{phaseSub}</div>}
+          <div className="title" title={label}>{tl(phaseTitleSrc)}</div>
         </div>
         {phaseStatus === 'running' && (
           <span className="chip run">
@@ -906,14 +920,20 @@ function PhaseGroupSection({
         )}
         {phaseStatus === 'completed' && <span className="chip ok">{tOr('panel.chip.done', 'DONE')}</span>}
         {phaseStatus === 'failed'    && <span className="chip err">{tOr('panel.chip.failed', 'FAILED')}</span>}
+        {/* Before the workflow launches every phase is "not started" and cannot run on
+            its own — saying so on each row (plus a disabled 运行) was pure noise. Show
+            only the step count; status + per-phase run appear once a run exists. */}
         {phaseStatus === 'pending' && (
-          <span className="progress-chip"><span>{tOr('panel.phase.not_started', 'Not started')} · </span>{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
+          <span className="progress-chip">
+            {activeRunId ? <span>{tOr('panel.phase.not_started', 'Not started')} · </span> : null}
+            {tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}
+          </span>
         )}
         {(phaseStatus === 'running' || phaseStatus === 'completed') && (
           <span className="progress-chip">{completedCount}/{steps.length}</span>
         )}
-        {/* Run Phase button — always visible in header so test can find it pre-run */}
-        {!allDone && !anyRunning && (
+        {/* Run Phase button — only once a run exists (it can never be used pre-launch). */}
+        {!!activeRunId && !allDone && !anyRunning && (
           <button
             className="btn sm"
             disabled={!canRunPhase}
@@ -959,12 +979,20 @@ function PhaseGroupSection({
                     </span>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {phaseRenderedParams.slice(0, 4).map(p => (
-                        <div key={p.id} style={{ display: 'flex', gap: 6, minWidth: 0 }}>
-                          <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{p.label}:</span>
-                          <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{p.value ?? p.defaultValue ?? '—'}</span>
-                        </div>
-                      ))}
+                      {phaseRenderedParams.slice(0, 4).map(p => {
+                        const shown = cleanParamValueForDisplay(p.value ?? p.defaultValue) || '—';
+                        const isFile = /^[^\s/]+\.[A-Za-z0-9]{1,8}(?:\.gz)?$/.test(shown);
+                        return (
+                          <div key={p.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(72px, max-content) 1fr', columnGap: 10, alignItems: 'center', minWidth: 0 }}>
+                            <span style={{ color: 'var(--text-dim)' }}>{tl(String(p.label ?? ''))}</span>
+                            {isFile ? (
+                              <span className="mono" title={shown} style={{ justifySelf: 'start', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '1px 6px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{shown}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text)', overflowWrap: 'anywhere', minWidth: 0 }}>{shown}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -976,7 +1004,7 @@ function PhaseGroupSection({
                     const missing = p.required && (!p.value || p.value === '');
                     const labelCol = missing ? 'var(--warn)' : 'var(--text-muted)';
                     const borderCol = missing ? 'var(--warn)' : 'var(--border)';
-                    const label = <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>{p.label}{p.required ? ' *' : ''}</span>;
+                    const label = <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>{tl(String(p.label ?? ''))}{p.required ? ' *' : ''}</span>;
 
                     // Multi-value input of the same type (e.g. a multi-compound
                     // smiles_list) → a named-entity list editor, full-width: one
@@ -989,7 +1017,7 @@ function PhaseGroupSection({
                       return (
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="list">
                           <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>
-                            {p.label}{p.required ? ' *' : ''}
+                            {tl(String(p.label ?? ''))}{p.required ? ' *' : ''}
                             <span className="hint" style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-dim)' }}>
                               {items.length} {items.length === 1 ? tOr('panel.item', 'item') : tOr('panel.items', 'items')}
                             </span>
@@ -1020,6 +1048,28 @@ function PhaseGroupSection({
                     // Long single value → full-width stacked field (not a 220px
                     // box crammed into the right column).
                     const strVal = String(p.value ?? p.defaultValue ?? '');
+                    // A param bound to a STORED file (s3://, gs://, file://) is shown as
+                    // its filename, read-only: the storage path is never user-facing and
+                    // is not something to hand-edit. Change it by attaching another file
+                    // or clearing it (founder no-S3 rule; phase-view review 2026-11-11).
+                    if (/^(?:s3|gs|file):\/\//i.test(strVal.trim())) {
+                      const fname = cleanParamValueForDisplay(strVal) || strVal.replace(/\/+$/, '').split('/').pop() || '';
+                      return (
+                        <div key={p.id} className="param-row" data-param={p.id} data-param-kind="stored-file" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: 8, alignItems: 'center' }}>
+                          {label}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <span className="mono" title={fname} data-testid={`param-file-${p.id}`}
+                              style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '1px 6px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-micro)' }}>
+                              {fname || tOr('panel.staged_file', 'staged file')}
+                            </span>
+                            <button type="button" className="linkish" style={{ fontSize: 'var(--fs-xs)' }}
+                              onClick={() => onParamChange(p.id, '')} data-testid={`param-file-clear-${p.id}`}>
+                              {tOr('panel.clear', 'clear')}
+                            </button>
+                          </span>
+                        </div>
+                      );
+                    }
                     const isLong = p.type !== 'number' && p.type !== 'file' && p.type !== 'boolean' && !p.options &&
                       (strVal.length > 40 || strVal.trimStart().startsWith('{'));
                     if (isLong) {
@@ -1139,13 +1189,15 @@ function PhaseGroupSection({
             return (
               <div
                 key={step.id}
-                className={`step ${stepStatus}`}
+                className={`step ${stepStatus}${steps.length === 1 ? ' solo' : ''}`}
                 data-testid={`phase-card-${step.id}`}
                 data-status={s}
               >
                 <div className="step-head">
+                  {/* One indicator per step: the status dot on the rail. The circled
+                      ordinal (①) duplicated it (founder phase-view review 2026-11-11). */}
                   <div className={`name${isFailed ? ' dim' : ''}`}>
-                    {STEP_NUMBERS[idx] ?? `${idx + 1}.`}&nbsp;{step.name}
+                    {tl(userFacingStepName(step.name))}
                   </div>
                   {(() => {
                     const adv = qcAdvisoryByStep?.[String(step.processName || step.name || '')];
@@ -1205,12 +1257,15 @@ function PhaseGroupSection({
                     // params render (with real values) in the phase's params section;
                     // the inline step-meta is for scalar runtime values only, so an
                     // object here would stringify to "[object Object]".
-                    .filter(([,v]) => v !== null && v !== undefined && v !== '' && typeof v !== 'object');
+                    .filter(([,v]) => v !== null && v !== undefined && v !== '' && typeof v !== 'object')
+                    // Already shown in the phase's parameter block above — repeating
+                    // it on the step row was duplicate noise.
+                    .filter(([k]) => !phaseRenderedParams.some((p: any) => (p.id || p.name) === k));
                   if (visible.length === 0) return null;
                   return (
                     <div className="step-meta">
                       {visible.slice(0,3).map(([k,v]) => (
-                        <span key={k}><span style={{opacity:0.6}}>{k}:</span> {String(v)}</span>
+                        <span key={k}><span style={{opacity:0.6}}>{k}:</span> {cleanParamValueForDisplay(v) || '—'}</span>
                       ))}
                     </div>
                   );
@@ -2363,6 +2418,12 @@ export function NextflowWorkflowViewer({
     return withHints.map((p: any) =>
       userOverriddenParams.current.has(p.id || p.name) ? { ...p, overridden: true } : p);
   }, [workflowDefinition, params, toolHintMap]);
+  // Backend-sourced parameter / data-input labels ("Samplesheet", "Matrix") for the
+  // settings-tab input rows, localized for the zh UI (cached label service).
+  const tlParamLabel = useLocalizedLabels([
+    ...renderedParameters.map((p: any) => String(p?.label || p?.name || '')),
+    ...((Array.isArray(workflowDefinition?.data_inputs) ? workflowDefinition.data_inputs : []) as any[]).map((d: any) => String(d?.label || d?.name || '')),
+  ]);
 
   /**
    * Count global params that are required AND still empty.
@@ -3708,15 +3769,9 @@ export function NextflowWorkflowViewer({
               </div>
             </div>
           )}
-          {/* Step-wise controls hint — only when real phase groups exist */}
-          {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
-            <div
-              data-testid="workflow-step-controls-hint"
-              style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
-            >
-              {tOr('panel.phase_hint', 'Click a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.')}
-            </div>
-          )}
+          {/* The pre-launch "click a phase to expand…" paragraph was removed (founder
+              phase-view review 2026-11-11): the chevrons already afford expansion and
+              per-phase run controls now only appear once a run exists. */}
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
           {showQcInline && qcGateData && (status === "running" || status === "paused") && (
             <div className="alert warn" data-testid="qc-gate-inline" style={{ marginBottom: 10 }}>
@@ -3933,7 +3988,7 @@ export function NextflowWorkflowViewer({
               const p: any = r.param;
               return (
                 <div key={p.id || p.name || i} data-testid={isOverride ? 'prerun-override-row' : 'prerun-input-row'} data-status={r.status} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
-                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{p.label || p.name}</span>
+                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{tlParamLabel(String(p.label || p.name || ''))}</span>
                   <span style={{ color: 'var(--text-dim)' }}>→</span>
                   <span style={{ minWidth: 0, flex: 1 }}>
                     {r.empty ? (
@@ -4075,7 +4130,7 @@ export function NextflowWorkflowViewer({
                 <div style={{ marginBottom: 6 }}>{allPhaseParamNames.size > 0
                   ? tOr('panel.params_in_phases', 'Parameters are configured per phase — open the Phases tab to adjust them.')
                   : tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
-                <div style={{ fontSize: 'var(--fs-meta)', opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
+                <div style={{ fontSize: 'var(--fs-meta)', opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "{{button}}" below to start it.', { button: t('workflow.actions.confirm_and_run') })}</div>
               </div>
             );
             return (
@@ -4167,9 +4222,11 @@ export function NextflowWorkflowViewer({
             {/* ── Phase section label ──────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (() => {
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-              const label = hasRealPhases
-                ? tOr('panel.phases_label', 'PHASES · {{n}}', { n: groupedPhases.length })
-                : tOr('panel.steps_label', 'STEPS · {{n}}', { n: updatedPhases.length });
+              // The phases tab badge already shows the phase count; repeating it here
+              // ("阶段 · 4") was the third copy on screen. Only the flat-steps case,
+              // which has no badge of its own, keeps a label.
+              if (hasRealPhases) return null;
+              const label = tOr('panel.steps_label', 'STEPS · {{n}}', { n: updatedPhases.length });
               return (
                 <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}

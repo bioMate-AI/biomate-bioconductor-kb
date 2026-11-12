@@ -238,8 +238,12 @@ export async function downloadDatasetRoCrate(
 // GET /api/projects/:id/files/:fileId/rows?offset=&limit= — one page of the file's
 // FULL rows, parsed by the same backend readers as the profiler (csv/tsv/jsonl).
 
-/** Extensions the rows endpoint can parse (and their gzip variants). */
-const ROWS_EXTS = /\.(csv|tsv|tab|txt|jsonl|ndjson)(\.gz)?$/i
+/** Extensions the rows endpoint is asked to parse (and their gzip variants). Delimited
+ *  tables + JSONL, and the header-less spec formats (BED family, GFF/GTF, SMILES) the
+ *  backend reads with their spec column names. When the backend answers
+ *  `tabular: false` the route returns 415 → `unsupported`, and the Preview falls back
+ *  to the in-browser text/annotation preview (dataset-object.tsx). */
+const ROWS_EXTS = /\.(csv|tsv|tab|txt|jsonl|ndjson|bed|narrowpeak|broadpeak|bedgraph|bedpe|gtf|gff|gff3|smi|smiles)(\.gz)?$/i
 export function rowsSupported(name: string): boolean {
   return ROWS_EXTS.test(name)
 }
@@ -259,9 +263,15 @@ export interface DatasetRowsState {
   error: number | null
   /** The file is not tabular (415) — the caller falls back to the text preview. */
   unsupported: boolean
+  /**
+   * Whether line 1 of the file is a header record (the rows reader infers it from the content:
+   * a header-less numeric table or gene list has none). The edit route numbers data rows after
+   * this many header records. null until the first page arrives (or an older backend).
+   */
+  headerRow: boolean | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null }
 
 /**
  * Page in a project file's full rows. `loadMore()` fetches the next page (no-op
@@ -301,9 +311,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const pageRows: string[][] = Array.isArray(body?.rows) ? body.rows : []
       const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
       const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
+      const headerRow: boolean | null = typeof body?.headerRow === "boolean" ? body.headerRow : ref.current.headerRow
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })

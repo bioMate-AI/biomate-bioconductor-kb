@@ -5,7 +5,7 @@
  */
 import React from "react"
 import { describe, it, expect } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { parseNested, recordTables } from "./nested-json"
 import { DatasetRowsTable } from "./dataset-rows-table"
 
@@ -70,10 +70,39 @@ describe("DatasetRowsTable with nested JSONL cells", () => {
     expect(screen.queryByTestId("dataset-record-view")).toBeNull()
   })
 
+  it("non-table nested values open in the JSON viewer (json-edit-react), searchable", async () => {
+    const cols = ["id", "meta"]
+    const row = ["r1", cell({ assay: "hERG", doses: [1, 3, 10], lab: { site: "A" } })]
+    render(<DatasetRowsTable {...props} columns={cols} rows={[row]} total={1} />)
+    fireEvent.click(screen.getAllByTestId("dataset-preview-row")[0])
+    const tree = await screen.findByTestId("dataset-json-tree")
+    await waitFor(() => expect(tree.textContent).toContain("hERG"))
+    expect(tree.textContent).toContain("meta")
+    expect(screen.getByTestId("dataset-record-search")).toBeTruthy()
+  })
+
   it("plain CSV rows are unchanged (no chips, rows not clickable)", () => {
     render(<DatasetRowsTable {...props} columns={["a", "b"]} rows={[["1", "x"], ["2", "y"]]} />)
     expect(screen.queryAllByTestId("dataset-nested-cell")).toHaveLength(0)
     fireEvent.click(screen.getAllByTestId("dataset-preview-row")[0])
     expect(screen.queryByTestId("dataset-record-view")).toBeNull()
+  })
+})
+
+describe("DatasetRowsTable edit mode", () => {
+  it("after sorting, an edit is keyed by the row's position in the file, with the value shown", () => {
+    const calls: unknown[][] = []
+    render(
+      <DatasetRowsTable
+        columns={["gene", "n"]} rows={[["TP53", "2"], ["EGFR", "1"]]} total={2}
+        loading={false} error={null} onNeedMore={() => {}}
+        editable edits={{}} onEdit={(...a) => calls.push(a)}
+      />,
+    )
+    fireEvent.click(screen.getByTestId("dataset-col-sort-1"))          // sort by n: EGFR first
+    const firstShown = screen.getAllByTestId("dataset-preview-row")[0].querySelector("input")!
+    expect(firstShown.getAttribute("data-testid")).toBe("dataset-edit-cell-1-0")
+    fireEvent.change(firstShown, { target: { value: "ERBB1" } })
+    expect(calls).toEqual([[1, 0, "EGFR", "ERBB1"]])
   })
 })

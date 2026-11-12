@@ -12,6 +12,9 @@
  *     which the server keeps in the stored name, so the tree shows the folders. One
  *     failed file never aborts the batch; failures are listed per file, localized.
  *   - Delete uploaded files (source='upload' only)
+ *   - Rename / move a file (the new name may include folders) and rename / move an input
+ *     folder, inline: Enter saves, Esc cancels, a clash (409) is shown on the row. Only the
+ *     stored name changes; the bytes, versions and lineage stay with the file.
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { isDesktop, desktopPickAndUpload, desktopSaveFile } from "@/lib/desktop";
@@ -39,6 +42,7 @@ import {
   EyeOff,
   FolderUp,
   FilePlus,
+  Pencil,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -154,6 +158,76 @@ export function uploadErrorReason(status: number): string {
   if (status === 413) return t("data_hub.tree_err_too_large");
   if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
   return t("data_hub.tree_err_server", { status });
+}
+
+/** Localized reason for a failed rename / move response. */
+export function renameErrorReason(status: number): string {
+  if (status === 409) return t("file_tree.rename_conflict");
+  if (status === 400) return t("file_tree.rename_invalid");
+  if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
+  return t("data_hub.tree_err_server", { status });
+}
+
+/** "inputs/a/b" → ["inputs", "inputs/a", "inputs/a/b"]: folders to keep open after a move. */
+function folderPathsOf(name: string, includeLeaf: boolean): string[] {
+  const parts = name.split("/").filter(Boolean);
+  if (!includeLeaf) parts.pop();
+  const out = ["inputs"];
+  let path = "inputs";
+  for (const part of parts) { path = `${path}/${part}`; out.push(path); }
+  return out;
+}
+
+/**
+ * Inline name editor shared by file and folder rows: Enter saves, Esc cancels, the server's
+ * refusal (e.g. a clash) stays on the row until the user edits or cancels.
+ */
+function InlineRename({
+  initial, onSave, onCancel, testid, depth,
+}: {
+  initial: string;
+  /** Resolves to a localized error, or null on success. */
+  onSave: (value: string) => Promise<string | null>;
+  onCancel: () => void;
+  testid: string;
+  depth: number;
+}) {
+  const [value, setValue] = useState(initial);
+  const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    const v = value.trim();
+    if (!v || saving) return;
+    if (v === initial) { onCancel(); return; }
+    setSaving(true);
+    const e = await onSave(v);
+    setSaving(false);
+    if (e) setErr(e);
+  };
+  return (
+    <div className="px-2 py-1 space-y-0.5" style={{ paddingLeft: 16 + depth * 20 }}>
+      <input
+        value={value}
+        autoFocus
+        onFocus={(e) => e.currentTarget.select()}
+        onChange={(e) => { setValue(e.target.value); setErr(null); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); void save(); }
+          else if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+        }}
+        disabled={saving}
+        aria-label={t("file_tree.rename_label")}
+        title={t("file_tree.rename_hint")}
+        className={cn("w-full h-6 px-1.5 text-xs rounded border bg-background font-mono", err && "border-destructive")}
+        data-testid={`${testid}-input`}
+      />
+      {err ? (
+        <p className="text-fs-xs text-destructive [overflow-wrap:anywhere]" role="alert" data-testid={`${testid}-error`}>{err}</p>
+      ) : (
+        <p className="text-fs-xs text-muted-foreground">{t("file_tree.rename_hint")}</p>
+      )}
+    </div>
+  );
 }
 
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)
@@ -291,6 +365,7 @@ function FileRow({
   copiedId,
   onCopy,
   onOpenDataset,
+  onRename,
   canEdit = true,
   label,
   depth = 1,
@@ -298,6 +373,8 @@ function FileRow({
   file: ProjectFile;
   projectId: string;
   onDelete: (id: string) => void;
+  /** Rename / move to a new full name; resolves to a localized error or null. */
+  onRename?: (file: ProjectFile, name: string) => Promise<string | null>;
   onDownload: (id: string) => void;
   copiedId: string | null;
   onCopy: (id: string, key: string) => void;
@@ -315,6 +392,9 @@ function FileRow({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const showPreview = canPreview(file);
+  const [renaming, setRenaming] = useState(false);
+  // Run outputs keep the name their run gave them (the server refuses those renames too).
+  const canRename = Boolean(onRename) && canEdit && file.source !== "run_output";
 
   const handleTogglePreview = async () => {
     if (!previewOpen && !previewUrl) {
@@ -326,12 +406,29 @@ function FileRow({
     setPreviewOpen(v => !v);
   };
 
+  if (renaming && onRename) {
+    return (
+      <InlineRename
+        initial={file.name}
+        depth={depth}
+        testid={`file-rename-${file.id}`}
+        onCancel={() => setRenaming(false)}
+        onSave={async (name) => {
+          const e = await onRename(file, name);
+          if (!e) setRenaming(false);
+          return e;
+        }}
+      />
+    );
+  }
+
   return (
     <div>
       <div
         className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/60 text-sm cursor-default"
         style={{ paddingLeft: 16 + depth * 20 }}
         title={file.name}
+        data-testid={`file-row-${file.id}`}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <QualityDot file={file} />
@@ -379,6 +476,17 @@ function FileRow({
         >
           <Download className="h-3 w-3 text-muted-foreground" />
         </button>
+        {canRename && (
+          <button
+            title={t("file_tree.rename")}
+            aria-label={t("file_tree.rename")}
+            onClick={() => setRenaming(true)}
+            className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
+            data-testid={`file-rename-${file.id}`}
+          >
+            <Pencil className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
         {file.source === "upload" && canEdit && (
           <button
             title={t('actions.delete')}
@@ -409,27 +517,62 @@ function FolderRow({
   node,
   expanded,
   onToggle,
+  onRename,
   depth = 0,
 }: {
   node: FolderNode;
   expanded: boolean;
   onToggle: () => void;
+  /** Rename / move this input folder (relative path, without "inputs/"); resolves to a localized error or null. */
+  onRename?: (from: string, to: string) => Promise<string | null>;
   depth?: number;
 }) {
   const FIcon = expanded ? FolderOpen : Folder;
   const CIcon = expanded ? ChevronDown : ChevronRight;
+  const [renaming, setRenaming] = useState(false);
+  // Only folders rebuilt from input file names can be renamed (not "inputs" itself, not run groups).
+  const rel = node.path.startsWith("inputs/") ? node.path.slice("inputs/".length) : null;
+  if (renaming && onRename && rel) {
+    return (
+      <InlineRename
+        initial={rel}
+        depth={depth}
+        testid={`folder-rename-${node.path}`}
+        onCancel={() => setRenaming(false)}
+        onSave={async (to) => {
+          const e = await onRename(rel, to);
+          if (!e) setRenaming(false);
+          return e;
+        }}
+      />
+    );
+  }
   return (
-    <button
-      onClick={onToggle}
-      className="flex items-center gap-1.5 w-full px-2 py-1 rounded hover:bg-muted/40 text-left"
-      style={{ paddingLeft: 16 + depth * 20 }}
-      data-testid={`folder-${node.path}`}
-    >
-      <CIcon className="h-3 w-3 text-muted-foreground shrink-0" />
-      <FIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
-      <span className="min-w-0 truncate text-xs font-medium text-foreground" title={node.name}>{node.name}</span>
-      <span className="ml-auto text-xs text-muted-foreground" title={t("data_hub.tree_folder_count", { n: countFiles(node) })}>{countFiles(node)}</span>
-    </button>
+    <div className="group flex items-center rounded hover:bg-muted/40">
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-1.5 flex-1 min-w-0 px-2 py-1 text-left"
+        style={{ paddingLeft: 16 + depth * 20 }}
+        data-testid={`folder-${node.path}`}
+      >
+        <CIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+        <FIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+        <span className="min-w-0 truncate text-xs font-medium text-foreground" title={node.name}>{node.name}</span>
+        <span className="ml-auto text-xs text-muted-foreground" title={t("data_hub.tree_folder_count", { n: countFiles(node) })}>{countFiles(node)}</span>
+      </button>
+      {onRename && rel && (
+        <button
+          type="button"
+          title={t("file_tree.rename_folder")}
+          aria-label={t("file_tree.rename_folder")}
+          onClick={() => setRenaming(true)}
+          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 mr-2 rounded hover:bg-muted"
+          data-testid={`folder-rename-${node.path}`}
+        >
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -646,6 +789,34 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     }
   };
 
+  /** PATCH/POST a rename; on success refresh the tree and keep the destination folders open. */
+  const submitRename = async (url: string, method: "PATCH" | "POST", body: Record<string, string>, openName: string, includeLeaf: boolean): Promise<string | null> => {
+    try {
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return renameErrorReason(res.status);
+    } catch {
+      return t("data_hub.tree_err_network");
+    }
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      for (const p of folderPathsOf(openName, includeLeaf)) next.add(p);
+      return next;
+    });
+    await load();
+    return null;
+  };
+
+  const handleRenameFile = (file: ProjectFile, name: string) =>
+    submitRename(`/api/projects/${projectId}/files/${file.id}`, "PATCH", { name }, name, false);
+
+  const handleRenameFolder = (from: string, to: string) =>
+    submitRename(`/api/projects/${projectId}/files/rename-folder`, "POST", { from, to }, to, true);
+
   const handleCopy = (id: string, key: string) => {
     const file = files.find((f) => f.id === id);
     // Copy the display NAME, never the storage path/key — no internal
@@ -684,6 +855,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
           copiedId={copiedId}
           onCopy={handleCopy}
           onOpenDataset={onOpenDataset}
+          onRename={canEdit ? handleRenameFile : undefined}
           canEdit={canEdit}
         />
       );
@@ -691,7 +863,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     const isOpen = Boolean(q) || expandedFolders.has(node.path);
     return (
       <div key={node.path}>
-        <FolderRow node={node} depth={depth} expanded={isOpen} onToggle={() => toggleFolder(node.path)} />
+        <FolderRow node={node} depth={depth} expanded={isOpen} onToggle={() => toggleFolder(node.path)} onRename={canEdit ? handleRenameFolder : undefined} />
         {isOpen && node.children.map((child) => renderNode(child, depth + 1))}
       </div>
     );

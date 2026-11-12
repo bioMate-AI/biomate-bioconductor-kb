@@ -9,7 +9,7 @@
  *   ("sorting and filtering apply to the loaded rows only") until every row is
  *   loaded; "Load all rows" makes them whole-file operations.
  */
-import { useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { t } from "@/lib/i18n"
 import { parseNested, recordTables, type NestedValue } from "./nested-json"
@@ -30,6 +30,11 @@ export interface DatasetRowsTableProps {
   onRetry?: () => void
   /** Hide "Load all" above this many rows (browser memory). */
   loadAllCap?: number
+  /** Edit mode: cells become inputs. Edits are keyed `${row}:${col}` by the row's position in
+   *  the file (as loaded, before sort/filter) and keep the value the user saw (`from`). */
+  editable?: boolean
+  edits?: Record<string, { from: string; value: string }>
+  onEdit?: (row: number, col: number, from: string, value: string) => void
 }
 
 /** Short structural label for a nested cell (a JSONL list/object), instead of truncated JSON text. */
@@ -39,28 +44,48 @@ function nestedLabel(n: NestedValue): string {
   return t("dataset_obj.nested_object", { n: n.rows })
 }
 
-/** Collapsible view of any nested JSON value. */
-function JsonTree({ value, depth = 0 }: { value: unknown; depth?: number }) {
-  if (value === null || typeof value !== "object") {
-    return <span className="font-mono text-xs">{value === null ? "null" : JSON.stringify(value)}</span>
-  }
-  const entries = Array.isArray(value) ? value.map((v, i) => [String(i), v] as const) : Object.entries(value as object)
+// Read-only JSON tree (json-edit-react: MIT, no runtime dependencies), loaded only when a record opens.
+const JsonViewer = lazy(() => import("json-edit-react").then((m) => ({ default: m.JsonViewer })))
+
+/** Theme from the app's tokens, so the tree follows light/dark mode. */
+const JSON_THEME = {
+  container: { backgroundColor: "transparent", color: "var(--foreground, inherit)", fontSize: 12, padding: 0 },
+  property: { color: "var(--bm-accent-ink, inherit)" },
+  bracket: { color: "var(--muted-foreground, inherit)" },
+  itemCount: { color: "var(--muted-foreground, inherit)", fontStyle: "normal" },
+  string: { color: "var(--foreground, inherit)" },
+  number: { color: "var(--bm-accent, inherit)" },
+  boolean: { color: "var(--bm-accent, inherit)" },
+  null: { color: "var(--muted-foreground, inherit)" },
+  iconCollection: "var(--muted-foreground, currentColor)",
+  iconCopy: "var(--muted-foreground, currentColor)",
+}
+
+/** Searchable, collapsible view of any nested JSON value. */
+function JsonTree({ value, name, search }: { value: unknown; name: string; search: string }) {
   return (
-    <details open={depth < 1} className="text-xs">
-      <summary className="cursor-pointer text-muted-foreground">
-        {Array.isArray(value) ? `[${entries.length}]` : `{${entries.length}}`}
-      </summary>
-      <div className="pl-4 space-y-0.5">
-        {entries.map(([k, v]) => (
-          <div key={k}><span className="text-muted-foreground font-mono">{k}: </span><JsonTree value={v} depth={depth + 1} /></div>
-        ))}
+    <Suspense fallback={<span className="font-mono text-xs text-muted-foreground">…</span>}>
+      <div data-testid="dataset-json-tree">
+        <JsonViewer
+          data={value}
+          rootName={name}
+          collapse={1}
+          searchText={search}
+          searchFilter="all"
+          showCollectionCount="when-collapsed"
+          showClipboardButton
+          theme={JSON_THEME}
+          minWidth="100%"
+          maxWidth="100%"
+        />
       </div>
-    </details>
+    </Suspense>
   )
 }
 
 /** One record, structured: scalar fields, embedded tables (with a matching header list), JSON trees. */
 function RecordView({ columns, row, index, onClose }: { columns: string[]; row: string[]; index: number; onClose: () => void }) {
+  const [search, setSearch] = useState("")
   const tables = recordTables(columns, row)
   const inTable = new Set(tables.flatMap((tb) => [tb.field, ...(tb.headerField ? [tb.headerField] : [])]))
   return (
@@ -71,13 +96,23 @@ function RecordView({ columns, row, index, onClose }: { columns: string[]; row: 
           {t("dataset_obj.record_close")}
         </Button>
       </div>
+      {columns.some((c, i) => !inTable.has(c) && parseNested(row[i])) && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("dataset_obj.record_search")}
+          aria-label={t("dataset_obj.record_search")}
+          data-testid="dataset-record-search"
+          className="w-full rounded border bg-background px-2 py-1 text-xs"
+        />
+      )}
       <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
         {columns.map((c, i) => {
           if (inTable.has(c)) return null
           const n = parseNested(row[i])
           return [
             <dt key={`k${i}`} className="text-muted-foreground font-mono">{c}</dt>,
-            <dd key={`v${i}`} className="font-mono break-all">{n ? <JsonTree value={n.value} /> : (row[i] ?? "")}</dd>,
+            <dd key={`v${i}`} className="font-mono break-all">{n ? <JsonTree value={n.value} name={c} search={search} /> : (row[i] ?? "")}</dd>,
           ]
         })}
       </dl>
@@ -110,6 +145,7 @@ function RecordView({ columns, row, index, onClose }: { columns: string[]; row: 
 
 export function DatasetRowsTable({
   columns, rows, total, loading, error, onNeedMore, onLoadAll, onRetry, loadAllCap = Infinity,
+  editable = false, edits = {}, onEdit,
 }: DatasetRowsTableProps) {
   const [sortCol, setSortCol] = useState<number | null>(null)
   const [sortAsc, setSortAsc] = useState(true)
@@ -134,6 +170,8 @@ export function DatasetRowsTable({
     }
     return out
   }, [rows, filterText, sortCol, sortAsc])
+  // Row → its position in the file (rows load in file order); stable under sort / filter.
+  const rowIndex = useMemo(() => new Map(rows.map((r, i) => [r, i] as const)), [rows])
   // Columns holding nested JSON (JSONL lists/objects) — then rows open as structured records.
   const hasNested = useMemo(
     () => rows.slice(0, 50).some((r) => r.some((c) => parseNested(c) !== null)),
@@ -193,12 +231,29 @@ export function DatasetRowsTable({
             {slice.map((r, ri) => (
               <tr
                 key={start + ri}
-                className={`odd:bg-muted/20${hasNested ? " cursor-pointer hover:bg-muted/40" : ""}`}
+                className={`odd:bg-muted/20${hasNested && !editable ? " cursor-pointer hover:bg-muted/40" : ""}`}
                 style={{ height: ROW_H }}
                 data-testid="dataset-preview-row"
-                onClick={hasNested ? () => setOpenRow({ row: r, index: rows.indexOf(r) }) : undefined}
+                onClick={hasNested && !editable ? () => setOpenRow({ row: r, index: rowIndex.get(r) ?? 0 }) : undefined}
               >
                 {columns.map((_, ci) => {
+                  if (editable) {
+                    const ri = rowIndex.get(r) ?? 0
+                    const shown = r[ci] ?? ""
+                    const key = `${ri}:${ci}`
+                    const ed = edits[key]
+                    return (
+                      <td key={ci} className="px-0.5 py-0 border-b">
+                        <input
+                          className={`w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${ed ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`}
+                          value={ed ? ed.value : shown}
+                          aria-label={`${columns[ci]} · ${ri + 1}`}
+                          data-testid={`dataset-edit-cell-${ri}-${ci}`}
+                          onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)}
+                        />
+                      </td>
+                    )
+                  }
                   const n = hasNested ? parseNested(r[ci]) : null
                   return (
                     <td
@@ -225,7 +280,7 @@ export function DatasetRowsTable({
         <RecordView columns={columns} row={openRow.row} index={openRow.index} onClose={() => setOpenRow(null)} />
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="dataset-preview-rowcount">
-        {hasNested && !openRow && <span>{t("dataset_obj.record_hint")}</span>}
+        {hasNested && !openRow && !editable && <span>{t("dataset_obj.record_hint")}</span>}
         <span>
           {allLoaded
             ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })

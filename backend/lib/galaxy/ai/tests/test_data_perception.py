@@ -435,11 +435,340 @@ def test_jsonl_nested_tables_no_cap_when_sizes_vary(tmp):
     print("PASS test_jsonl_nested_tables_no_cap_when_sizes_vary")
 
 
+# ---------------------------------------------------------------------------
+# Header inference (2026-11-11): line 1 is a header only when the content says so; spec formats
+# (BED, narrowPeak, GTF, SMILES, …) have no header row and use their specification's names.
+# ---------------------------------------------------------------------------
+def test_header_inference_bed_and_peaks(tmp):
+    bed = _write(tmp, "a.bed", "browser position chr1\ntrack name=x\nchr1\t100\t200\tA\t0\t+\nchr2\t300\t400\tB\t0\t-\n")
+    page = _mod.read_rows(bed)
+    assert page["columns"] == ["Chrom", "Start", "End", "Name", "Score", "Strand"], page
+    assert page["headerRow"] is False and page["namesSource"] == "spec" and page["totalRows"] == 2, page
+    assert page["rows"][0] == ["chr1", "100", "200", "A", "0", "+"], page["rows"]
+    prof = profile_dataset(bed)
+    codes = [f["code"] for f in prof["findings"]]
+    assert "columns_spec" in codes and "classBalance" not in prof and "leakage" not in prof, prof
+    assert prof["format"]["ext"] == "bed", prof["format"]
+    # BED3 → only the first three spec names; a "#chrom start end" line whose width matches names the columns.
+    b3 = _write(tmp, "b3.bed", "#chrom\tbeg\tfin\nchr1\t1\t5\n")
+    page = _mod.read_rows(b3)
+    assert page["columns"] == ["chrom", "beg", "fin"] and page["namesSource"] == "comment", page
+    b3b = _write(tmp, "b3b.bed", "# made by tool v1\nchr1\t1\t5\n")
+    assert _mod.read_rows(b3b)["columns"] == ["Chrom", "Start", "End"]
+    np_ = _write(tmp, "p.narrowPeak", "chr1\t1\t100\tp1\t0\t.\t5.2\t3.1\t2.0\t50\n")
+    page = _mod.read_rows(np_)
+    assert page["columns"][-4:] == ["SignalValue", "pValue", "qValue", "Peak"] and page["totalRows"] == 1, page
+    # A GFF3 ##FASTA section ends the feature table.
+    gff = _write(tmp, "g.gff3", "##gff-version 3\nctg1\t.\tgene\t1\t90\t.\t+\t.\tID=g1\n##FASTA\n>ctg1\nACGT\n")
+    page = _mod.read_rows(gff)
+    assert page["totalRows"] == 1 and page["columns"][0] == "Seqid", page
+    smi = _write(tmp, "s.smi", "CCO ethanol\nc1ccccc1 benzene\n")
+    page = _mod.read_rows(smi)
+    assert page["columns"] == ["SMILES", "TITLE"] and page["rows"][1] == ["c1ccccc1", "benzene"], page
+    print("PASS test_header_inference_bed_and_peaks")
+
+
+def test_header_inference_generic_tables(tmp):
+    cases = [
+        ("genes_h.txt", "gene\nTP53\nBRCA1\nEGFR\n", True, ["gene"]),
+        ("genes_n.txt", "TP53\nBRCA1\nEGFR\n", False, ["column_1"]),
+        ("genes_ws.txt", "Gene Symbol\nTP53\nBRCA1\n", True, ["Gene Symbol"]),
+        ("nohead.csv", "1,2.5,x\n3,4.1,y\n5,6.2,z\n", False, ["column_1", "column_2", "column_3"]),
+        ("normal.csv", "id,value,group\n1,2.5,x\n3,4.1,y\n", True, ["id", "value", "group"]),
+        ("alltext.csv", "name,city\nann,paris\nbob,rome\n", True, ["name", "city"]),
+        ("rnames.csv", ",s1,s2\ng1,1,2\ng2,3,4\n", True, ["", "s1", "s2"]),
+        ("one_line.csv", "a,b,c\n", True, ["a", "b", "c"]),
+    ]
+    for name, text, header, cols in cases:
+        path = _write(tmp, name, text)
+        page = _mod.read_rows(path)
+        assert page["headerRow"] is header and page["columns"] == cols, (name, page)
+        prof = profile_dataset(path)
+        assert prof["shape"]["cols"] == len(cols), (name, prof)
+        codes = [f["code"] for f in prof["findings"]]
+        assert ("columns_generated" in codes) == (not header), (name, codes)
+        if not header:
+            assert prof["shape"]["rows"] == text.count("\n"), (name, prof)    # line 1 is data
+            assert any(c in codes for c in ("table_clean", "table_summary")), (name, codes)
+    print("PASS test_header_inference_generic_tables")
+
+
+def test_read_rows_spec_mismatch_is_not_tabular(tmp):
+    # Named .bed / .gtf but not that format (binary, or lines without integer coordinates): not a
+    # table — read_rows says tabular False (the client falls back to the text preview), never raises.
+    with open(os.path.join(tmp, "bin.bed"), "wb") as f:
+        f.write(b"\x00\x01\x02binary\tjunk\n\x00\x00\n")
+    words = _write(tmp, "notes.gtf", "this is\ta note\nnot\tannotation\n")
+    for path in (os.path.join(tmp, "bin.bed"), words):
+        page = _mod.read_rows(path)
+        assert page["tabular"] is False, page
+        prof = profile_dataset(path)
+        assert "spec_mismatch" in [f["code"] for f in prof["findings"]], prof
+        assert prof["format"]["ext"] == "unknown", prof["format"]
+    # An empty BED (only a track line) is a valid, empty table.
+    empty = _write(tmp, "empty.bed", "track name=none\n")
+    page = _mod.read_rows(empty)
+    assert page["tabular"] is True and page["totalRows"] == 0 and page["headerRow"] is False, page
+    print("PASS test_read_rows_spec_mismatch_is_not_tabular")
+
+
+def test_mtx_header_profile(tmp):
+    path = _write(tmp, "matrix.mtx", "%%MatrixMarket matrix coordinate integer general\n%comment\n33538 2700 2286884\n1 1 3\n")
+    prof = profile_dataset(path)
+    by = {f["code"]: f for f in prof["findings"]}
+    assert prof["shape"] == {"rows": 33538, "cols": 2700}, prof
+    assert by["mtx_dimensions"]["params"]["nnz"] == 2286884 and by["mtx_dimensions"]["params"]["field"] == "integer", by
+    assert prof["format"] == {"ext": "mtx", "label": "Matrix Market", "source": "biomate"}, prof["format"]
+    assert _mod.read_rows(path)["tabular"] is False
+    print("PASS test_mtx_header_profile")
+
+
+# ---------------------------------------------------------------------------
+# Galaxy datatypes integration — degrade when Galaxy is absent; map metadata → findings.
+# ---------------------------------------------------------------------------
+class _StubGalaxy:
+    GENERIC_EXTS = frozenset({"data", "binary", "txt", "text", "tabular", "tsv"})
+
+    def __init__(self, ident, meta):
+        self.ident, self.meta = ident, meta
+
+    def identify(self, path, name=None):
+        return self.ident.get(os.path.basename(name or path))
+
+    def metadata(self, path, ext):
+        return self.meta.get(ext, {})
+
+    def label_for(self, ext):
+        return {"h5ad": "AnnData (h5ad)", "bam": "BAM", "tiff": "TIFF"}.get(ext, (ext or "").upper())
+
+    def spec_column_names(self, ext):
+        return None
+
+
+def _with_galaxy(stub, fn):
+    saved = list(_mod._GF_MODULE)
+    _mod._GF_MODULE[:] = [stub]
+    try:
+        return fn()
+    finally:
+        _mod._GF_MODULE[:] = saved
+
+
+def test_galaxy_unavailable_fallback(tmp):
+    bam = os.path.join(tmp, "x.bam")
+    with open(bam, "wb") as f:
+        f.write(b"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00")
+    bed = _write(tmp, "fb.bed", "chr1\t1\t5\n")
+
+    def run():
+        p1 = profile_dataset(bam)
+        assert [f["code"] for f in p1["findings"]] == ["unprofilable"], p1
+        assert p1["format"]["source"] == "biomate" and p1["format"]["ext"] == "bam", p1["format"]
+        p2 = profile_dataset(bed)
+        assert p2["columns"] == ["Chrom", "Start", "End"] and p2["format"]["ext"] == "bed", p2
+        return True
+
+    assert _with_galaxy(None, run)
+    # The real module on a host without Galaxy's dependencies: unavailable, never raises.
+    gf = _mod._galaxy_formats()
+    assert gf is not None
+    assert gf.filename_exts("a.OME.tif") == ["ome.tiff", "tiff"] and gf.filename_exts("r.fq.gz")[0] == "fastqsanger.gz"
+    if not gf.available():
+        assert gf.identify(bed, "fb.bed") is None and gf.metadata(bed, "bed") == {}
+    print("PASS test_galaxy_unavailable_fallback")
+
+
+def test_galaxy_metadata_mapping(tmp):
+    files = {}
+    for n in ("a.h5ad", "b.bam", "c.fasta", "d.sdf", "e.pdb", "f.xlsx", "g.tiff", "h.loom", "u.bin"):
+        p = os.path.join(tmp, n)
+        with open(p, "wb") as f:
+            f.write(b"\x89HDF\r\n\x1a\n\x00\x00binary")
+        files[n] = p
+    gtf = _write(tmp, "k.gtf", 'chr1\tsrc\texon\t1\t10\t.\t+\t.\tgene_id "g1"; transcript_id "t1";\n')
+    bed = _write(tmp, "m.bed", "chr1\t1\t5\tn\t0\t+\n")
+    counts = _write(tmp, "counts.txt", "gene\ts1\ns2\t1\n")
+    stub = _StubGalaxy(
+        {"a.h5ad": "h5ad", "b.bam": "bam", "c.fasta": "fasta", "d.sdf": "sdf", "e.pdb": "pdb", "f.xlsx": "xlsx",
+         "g.tiff": "tiff", "h.loom": "loom", "u.bin": "data", "k.gtf": "gtf", "noext_seq": "fasta", "aln.sam": "sam", "m.bed": "bed", "counts.txt": "mothur.axes"},
+        {"h5ad": {"shape": [2700, 32738], "obs_layers": ["index", "n_genes", "louvain"], "var_layers": ["index", "gene_ids"],
+                  "obsm_layers": ["X_pca", "X_umap"], "layers_names": ["X", "obs", "obsm", "var"]},
+         "bam": {"reference_count": 25, "reference_total_length": 3100000000, "reference_names": ["chr1"],
+                 "sort_order": "queryname", "read_group_count": 0, "samples": []},
+         "sdf": {"number_of_molecules": 12},
+         "pdb": {"chain_ids": ["A", "B"]},
+         "xlsx": {"sheets": [{"name": "Plate1", "rows": 97, "cols": 12}, {"name": "Notes", "rows": 3, "cols": 1}]},
+         "loom": {"shape": [500, 40], "row_attrs_names": ["Gene"], "col_attrs_names": ["CellID"], "layers_names": [""]},
+         "gtf": {"comment_lines": 0, "attribute_types": {"gene_id": "str", "transcript_id": "str"}},
+         "bed": {"columns": 6, "strandCol": 6}},
+    )
+
+    def codes(p):
+        return {f["code"]: f for f in p["findings"]}
+
+    def run():
+        h = profile_dataset(files["a.h5ad"])
+        c = codes(h)
+        assert h["shape"] == {"rows": 2700, "cols": 32738}, h
+        assert c["anndata_shape"]["params"] == {"cells": 2700, "genes": 32738}, c
+        assert c["anndata_obs"]["params"]["columns"] == ["n_genes", "louvain"], c       # 'index' dropped
+        assert c["anndata_embeddings"]["params"]["embeddings"] == ["X_pca", "X_umap"], c
+        assert h["format"] == {"ext": "h5ad", "label": "AnnData (h5ad)", "source": "galaxy"}, h["format"]
+        assert h["quality"] == "watch" and c["format_metadata_only"]["level"] == "watch", h
+        b = codes(profile_dataset(files["b.bam"]))
+        assert b["alignment_references"]["params"]["references"] == 25, b
+        assert b["alignment_not_coordinate_sorted"]["level"] == "watch" and b["alignment_no_read_groups"]["level"] == "watch", b
+        # Galaxy says FASTA for a file BioMate could not classify (no extension) → BioMate's FASTA profile.
+        fa = profile_dataset(_write(tmp, "noext_seq", ">s1 x\nACGTACGT\n>s2\nGGCC\n"))
+        assert codes(fa)["fasta_sequences"]["params"]["sequences"] == 2 and fa["format"]["source"] == "galaxy", fa
+        assert codes(profile_dataset(files["d.sdf"]))["molecules_count"]["params"]["molecules"] == 12
+        assert codes(profile_dataset(files["e.pdb"]))["structure_chains"]["params"]["chains"] == ["A", "B"]
+        x = profile_dataset(files["f.xlsx"])
+        assert codes(x)["spreadsheet_sheets"]["params"]["sheets"] == ["Plate1", "Notes"] and x["shape"]["rows"] == 97, x
+        lo = profile_dataset(files["h.loom"])
+        assert lo["shape"] == {"rows": 40, "cols": 500} and codes(lo)["loom_shape"]["params"]["genes"] == 500, lo
+        t = profile_dataset(files["g.tiff"])
+        assert codes(t)["format_identified"]["params"]["format"] == "TIFF" and t["format"]["source"] == "galaxy", t
+        u = profile_dataset(files["u.bin"])               # Galaxy says only "data": still unprofilable
+        assert "unprofilable" in codes(u) and u["format"]["source"] == "biomate", u
+        g = profile_dataset(gtf)
+        gc = codes(g)
+        assert gc["annotation_features"]["params"]["attributes"] == ["gene_id", "transcript_id"], gc
+        assert g["columns"][-1] == "Attributes" and g["format"]["ext"] == "gtf" and g["format"]["source"] == "galaxy", g
+        bd = codes(profile_dataset(bed))
+        assert bd["intervals_stranded"]["params"]["column"] == "Strand" and bd["intervals_summary"]["params"]["regions"] == 1, bd
+        # A SAM only looks delimited: its extension names no BioMate reader, so Galaxy's identification wins.
+        sam = profile_dataset(_write(tmp, "aln.sam", "@HD\tVN:1.6\nr1\t0\tchr1\t1\t60\t4M\t*\t0\t0\tACGT\tIIII\n"))
+        assert sam["format"]["ext"] == "sam" and "columns" not in sam and "format_identified" in codes(sam), sam
+        # A greedy Galaxy sniff on a plain table never relabels BioMate's analysed table.
+        ct = profile_dataset(counts)
+        assert ct["format"]["source"] == "biomate" and ct["format"]["ext"] == "tabular", ct["format"]
+        return True
+
+    assert _with_galaxy(stub, run)
+    print("PASS test_galaxy_metadata_mapping")
+
+
+def test_galaxy_formats_helpers():
+    gf = _mod._galaxy_formats()
+    m = gf._Meta({"a": type("E", (), {"default": 1})(), "b": type("E", (), {"default": []})()})
+    assert m.a == 1 and m.b == [] and m.missing is None and not m.element_is_set("a")
+    m.a = 2
+    assert m.element_is_set("a") and dict(m.items())["a"] == 2
+    assert gf._plain({"x": (1, b"ab"), "y": set()}) == {"x": [1, "ab"], "y": []}
+    assert gf.label_for("vcf_bgzip") == "VCF (bgzip)" and gf.label_for(None) == "Unknown"
+    print("PASS test_galaxy_formats_helpers")
+
+
+# ---------------------------------------------------------------------------
+# Dev format matrix (2026-11-11): binary files reported "Blocked: line contains NUL"; temp names in
+# findings; FASTA "0 sequences"; a plain numeric CSV got label/leakage warnings.
+# ---------------------------------------------------------------------------
+def test_binary_files_never_reach_text_readers(tmp):
+    import gzip as _gz
+    samples = {
+        "r.bam": _gz.compress(b"BAM\x01\x00\x00\x00\x00chr1\t1,2\n" * 20),     # BGZF/gzip with tab + comma
+        "r.cram": b"CRAM\x03\x00\x00\x00,\t\n" + bytes(range(256)),
+        "img.tiff": b"II*\x00\x08\x00\x00\x00a,b\tc\n" + b"\x00" * 64,
+        "x.csv": b"a,b\n\x00\x01,\x02\n",
+    }
+    for name, data in samples.items():
+        path = os.path.join(tmp, name)
+        with open(path, "wb") as f:
+            f.write(data)
+        prof = profile_dataset(path)
+        codes = [f["code"] for f in prof["findings"]]
+        assert prof["quality"] != "blocked" and "parse_failed" not in codes, (name, prof)
+        assert _mod.read_rows(path)["tabular"] is False, name
+    assert "spec_mismatch" in [f["code"] for f in profile_dataset(os.path.join(tmp, "x.csv"))["findings"]]
+    # Binary past the first block (FITS: an ASCII header with no line breaks, then binary data), and a
+    # text table with a NUL far down: neither is "blocked", neither raises in read_rows.
+    fits = os.path.join(tmp, "img.fits")
+    with open(fits, "wb") as f:
+        f.write(b"SIMPLE  =                    T / conforms" + b" " * 9000 + b"\x00\x01" * 100)
+    late = os.path.join(tmp, "late.tsv")
+    with open(late, "wb") as f:
+        f.write(b"a\tb\n" + b"1\t2\n" * 3000 + b"\x00\x00\t\x01\n")
+    for path in (fits, late):
+        prof = profile_dataset(path)
+        assert prof["quality"] != "blocked", (path, prof)
+        assert _mod.read_rows(path)["tabular"] is False, path
+    # Compressed by magic, whatever the name: bzip2 FASTQ, BGZF VCF named .vcf_bgzip, gzip text .prj.
+    import bz2 as _bz2
+    fq = os.path.join(tmp, "reads.fastqsanger.bz2")
+    with open(fq, "wb") as f:
+        f.write(_bz2.compress(b"@r1\nACGT\n+\nIIII\n@r2\nACGA\n+\nIIII\n"))
+    vcf = os.path.join(tmp, "calls.vcf_bgzip")
+    with open(vcf, "wb") as f:
+        f.write(_gz.compress(b"##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\ts1\n1\t5\t.\tA\tG\t.\t.\t.\tGT\t0/1\n"))
+    assert {f["code"]: f for f in profile_dataset(fq)["findings"]}["fastq_reads"]["params"]["reads"] == 2
+    assert {f["code"]: f for f in profile_dataset(vcf)["findings"]}["vcf_records"]["params"] == {"variants": 1, "samples": 1}
+    # UTF-16 text (BOM) is text, not binary.
+    u16 = os.path.join(tmp, "u16.tsv")
+    with open(u16, "wb") as f:
+        f.write("gene\tvalue\nTP53\t1\nEGFR\t2\n".encode("utf-16"))
+    page = _mod.read_rows(u16)
+    assert page["columns"] == ["gene", "value"] and page["rows"] == [["TP53", "1"], ["EGFR", "2"]], page
+    print("PASS test_binary_files_never_reach_text_readers")
+
+
+def test_findings_use_the_users_filename(tmp):
+    path = _write(tmp, "perception_ab12cd_mystery.xyz", "plain words\nno delimiter\n")
+    prof = profile_dataset(path, name="mystery.xyz")
+    f = [x for x in prof["findings"] if x["code"] == "unprofilable"][0]
+    assert f["params"]["name"] == "mystery.xyz" and "perception_" not in " ".join(prof["notes"]), prof
+    print("PASS test_findings_use_the_users_filename")
+
+
+def test_fasta_profile_plain_and_gz(tmp):
+    import gzip as _gz
+    text = ">s1 desc\nACGTACGTAC\nGGCC\n>s2\nATATAT\n>s3\nGGGGGGGGGGCCCCCCCCCC\n"
+    plain = _write(tmp, "ref.fa", text)
+    gz = os.path.join(tmp, "ref.fasta.gz")
+    with _gz.open(gz, "wt") as f:
+        f.write(text)
+    for path in (plain, gz):
+        prof = profile_dataset(path)
+        by = {x["code"]: x["params"] for x in prof["findings"]}
+        assert by["fasta_sequences"] == {"sequences": 3, "at_least": False, "total": 40, "unit": "bp", "mean": 13,
+                                         "min": 6, "max": 20, "n50": 20}, by
+        gc = 5 + 4 + 20   # s1: 5 in ACGTACGTAC + 4 in GGCC; s3: 20
+        assert by["fasta_gc"]["pct"] == round(100.0 * gc / 40, 1), by
+        assert prof["shape"]["rows"] == 3 and prof["quality"] == "good", prof
+        assert prof["format"]["ext"] == "fasta", prof["format"]
+    prot = profile_dataset(_write(tmp, "p.faa", ">p1\nMKTLLVLAVLLLSQ\n>p2\n\n"))
+    codes = {x["code"]: x for x in prot["findings"]}
+    assert "fasta_protein" in codes and codes["fasta_sequences"]["params"]["unit"] == "aa", codes
+    assert codes["fasta_empty_records"]["level"] == "watch" and prot["quality"] == "watch", codes
+    print("PASS test_fasta_profile_plain_and_gz")
+
+
+def test_plain_numeric_table_has_no_false_label_or_leakage(tmp):
+    # A 7 × 7 grid (x, y) with a unique float per row (z): y reads as a 7-class label, perfectly
+    # balanced — not "imbalanced" — and a unique-per-row measurement does not "leak" anything.
+    rows = ["x,y,z"] + [f"{i},{j},{((i * 7 + j) * 0.6180339887) % 1:.12f}" for i in range(1, 8) for j in range(1, 8)]
+    prof = profile_dataset(_write(tmp, "grid.csv", "\n".join(rows) + "\n"))
+    codes = [f["code"] for f in prof["findings"]]
+    assert prof["quality"] == "good" and "leakage" not in prof, prof
+    assert not any(c in codes for c in ("minority_class", "leaked_id", "leaked_feature")), codes
+    # A continuous unique-per-row feature beside a binary label: memorising it is not leakage.
+    rows = ["expr,label"] + [f"{i * 0.731:.4f},{'a' if i % 2 else 'b'}" for i in range(60)]
+    prof = profile_dataset(_write(tmp, "cont.csv", "\n".join(rows) + "\n"))
+    assert "leakage" not in prof, prof
+    # Imbalance is still caught for k > 2: 5 / 45 / 50 of 100 rows.
+    rows = ["f,label"] + [f"{i % 9},{'r' if i < 5 else ('s' if i < 50 else 't')}" for i in range(100)]
+    prof = profile_dataset(_write(tmp, "imb3.csv", "\n".join(rows) + "\n"))
+    assert "minority_class" in [f["code"] for f in prof["findings"]], prof
+    print("PASS test_plain_numeric_table_has_no_false_label_or_leakage")
+
+
 def main():
+    import inspect
+
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     with tempfile.TemporaryDirectory() as tmp:
         for t in tests:
-            t(tmp)
+            t(tmp) if inspect.signature(t).parameters else t()
     print(f"\nAll {len(tests)} data-perception tests passed.")
 
 

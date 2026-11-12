@@ -25,9 +25,13 @@ import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import { emailService } from "./email-service";
-import { projectInputPath, projectInputKey, decodeMultipartFilename } from "./project-file-paths";
+import {
+  projectInputPath, projectInputKey, decodeMultipartFilename,
+  planFileRename, planFolderRename, objectKeyCandidates, pickFreeObjectKey,
+} from "./project-file-paths";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
+import { applyCellEdits, parseDelimited, pickDelimiter, type CellEdit } from "./delimited-text";
 import path from "path";
 import fs from "fs";
 
@@ -212,6 +216,24 @@ async function _findProjectFileByName(projectId: string, name: string, sources: 
   } catch { return null; }
 }
 
+/**
+ * The S3 key a NEW object (upload, URL import, generated file, or a new version) is written
+ * to: the name-derived key when no project file or archived version references it, else the
+ * same key with a numeric suffix. Keys are derived from names, and a rename never moves the
+ * object, so after "a.csv" is renamed to "b.csv" its bytes still live at …/a.csv — without
+ * this, uploading a new "a.csv" would overwrite them (and trip the (project_id, s3_key) index).
+ */
+async function _allocateObjectKey(projectId: string, desired: string): Promise<string> {
+  const candidates = objectKeyCandidates(desired);
+  const r = await pool.query(
+    `SELECT s3_key FROM project_files WHERE project_id::text = $1 AND s3_key = ANY($2::text[])
+     UNION SELECT s3_key FROM project_file_versions WHERE project_id::text = $1 AND s3_key = ANY($2::text[])`,
+    [projectId, candidates]
+  );
+  const taken = new Set<string>(r.rows.map((x: any) => String(x.s3_key)));
+  return pickFreeObjectKey(candidates, taken) ?? `${desired}.${randomBytes(4).toString("hex")}`;
+}
+
 /** Append-only: archive a project file's CURRENT content as a project_file_versions
  *  row (design §4.4 — nothing a finished run read can change underneath it). The
  *  current bytes stay at their existing s3_key; this just records them as a past
@@ -219,10 +241,8 @@ async function _findProjectFileByName(projectId: string, name: string, sources: 
 /** Parse tabular text into headers + rows (capped). Delimiter from the extension,
  *  else sniffed. Used by the version Compare/diff (design §4.4). */
 function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
-  const e = (ext || "").toLowerCase();
-  const delim = (e === "tsv" || e === "tab") ? "\t" : (e === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
-  const lines = text.split(/\r?\n/).filter((l) => l.length > 0).slice(0, 500);
-  const rows = lines.map((l) => l.split(delim));
+  // Quote-aware, same rules as the rows reader and the edit route (delimited-text.ts).
+  const rows = parseDelimited(text, pickDelimiter(text, ext), 501);
   return { headers: rows[0] || [], rows: rows.slice(1) };
 }
 
@@ -249,7 +269,7 @@ async function _storeProjectInput(o: {
   // A regenerated analysis file versions the earlier generated one; an upload versions an upload.
   const prior = await _findProjectFileByName(o.id, o.name, o.source === "run_code" ? ["run_code"] : ["upload", "url"]);
   if (prior && prior.content_hash && prior.content_hash !== o.contentHash) {
-    const vkey = `${o.key}.v${prior.version_no + 1}`;
+    const vkey = await _allocateObjectKey(o.id, `${o.key}.v${prior.version_no + 1}`);
     await s3Service.putObject(vkey, o.buf, o.contentType, o.uid);
     await _archiveCurrentAsVersion(prior, o.id, `v${prior.version_no}`, o.uid);
     const upd = await pool.query(
@@ -261,15 +281,58 @@ async function _storeProjectInput(o: {
     await recordProjectActivity(o.id, o.uid, "file_versioned", { fileId: prior.id, name: o.name, version: prior.version_no + 1 });
     return { file: upd.rows[0], versioned: true };
   }
-  await s3Service.putObject(o.key, o.buf, o.contentType, o.uid);
+  const key = await _allocateObjectKey(o.id, o.key);
+  await s3Service.putObject(key, o.buf, o.contentType, o.uid);
   const ins = await pool.query(
     `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-    [o.id, o.uid, o.name, o.key, o.buf.length, o.contentType, o.source, o.contentHash]
+    [o.id, o.uid, o.name, key, o.buf.length, o.contentType, o.source, o.contentHash]
   );
   await recordProjectActivity(o.id, o.uid, "file_added", { fileId: ins.rows[0].id, name: o.name, source: o.source });
   return { file: ins.rows[0], versioned: false };
+}
+
+const _FILE_COLUMNS =
+  "id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, content_hash, version_no, created_at";
+
+/**
+ * Apply a rename plan atomically. Serialized per project (advisory xact lock) so two
+ * concurrent renames can't both pass the collision check; the plan is computed from the rows
+ * read INSIDE the lock, then every move is one UPDATE — all files move or none do.
+ */
+async function _applyRenamePlan(
+  projectId: string,
+  plan: (rows: Array<{ id: string; name: string; source: string }>) => ReturnType<typeof planFileRename>,
+): Promise<ReturnType<typeof planFileRename>> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`project_files:${projectId}`]);
+    const rows = await client.query(
+      `SELECT id::text AS id, name, source FROM project_files WHERE project_id::text = $1`,
+      [projectId]
+    );
+    const out = plan(rows.rows);
+    if (!out.ok || out.moves.length === 0) { await client.query("ROLLBACK"); return out; }
+    const upd = await client.query(
+      `UPDATE project_files f SET name = v.new_name
+       FROM unnest($1::text[], $2::text[]) AS v(id, new_name)
+       WHERE f.id::text = v.id AND f.project_id::text = $3`,
+      [out.moves.map((m) => m.id), out.moves.map((m) => m.to), projectId]
+    );
+    if ((upd.rowCount ?? 0) !== out.moves.length) {
+      await client.query("ROLLBACK");
+      throw new Error(`rename updated ${upd.rowCount} of ${out.moves.length} rows`);
+    }
+    await client.query("COMMIT");
+    return out;
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
 }
 
 function userId(req: Request): string | null {
@@ -345,6 +408,8 @@ export type ProjectActivityEvent =
   | "file_removed"
   | "file_versioned"
   | "file_restored"
+  | "file_renamed"
+  | "folder_renamed"
   | "plan_created";
 
 /**
@@ -1009,6 +1074,13 @@ export function registerProjectRoutes(app: Express): void {
     const { id, fileId } = req.params;
     const edits = Array.isArray(req.body?.edits) ? req.body.edits : null;
     if (!edits || edits.length === 0) return res.status(400).json({ error: "No edits provided" });
+    // Header records before the data rows, as the rows reader reported (headerRow): 1 (default)
+    // or 0 for a header-less file. A wrong value is caught by the `from` check below (409).
+    const headerRowsRaw = req.body?.headerRows;
+    if (headerRowsRaw !== undefined && headerRowsRaw !== 0 && headerRowsRaw !== 1) {
+      return res.status(400).json({ error: "headerRows must be 0 or 1." });
+    }
+    const headerRows: 0 | 1 = headerRowsRaw === 0 ? 0 : 1;
     try {
       if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
       const row = await pool.query(
@@ -1025,31 +1097,39 @@ export function registerProjectRoutes(app: Express): void {
       const size = await s3Service.getFileSize(cur.s3_key).catch(() => 0);
       if (size > CAP) return res.status(413).json({ error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
       const text = await s3Service.readTextPrefix(cur.s3_key, CAP);
-      const delim = (ext === "tsv" || ext === "tab") ? "\t" : (ext === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
-      const keepTrailingNL = /\n$/.test(text);
-      const lines = text.replace(/\n$/, "").split(/\r?\n/);
-      const header = (lines[0] || "").split(delim);
-      let applied = 0;
-      for (const e of edits) {
-        const r = Number(e?.row);               // 0-based DATA row (header excluded)
-        const colName = String(e?.col ?? "");
-        const value = String(e?.value ?? "");
-        const lineIdx = r + 1;                   // +1 for the header line
-        if (!Number.isInteger(r) || r < 0 || lineIdx >= lines.length) continue;
-        const cols = lines[lineIdx].split(delim);
-        let j = header.indexOf(colName);
-        if (j < 0) { const n = Number(colName); j = Number.isInteger(n) ? n : -1; }
-        if (j < 0 || j >= Math.max(cols.length, header.length)) continue;
-        while (cols.length <= j) cols.push("");
-        cols[j] = value;
-        lines[lineIdx] = cols.join(delim);
-        applied++;
+      // The file is rewritten from decoded text: refuse unless decoding was lossless (valid UTF-8,
+      // whole file read) — otherwise saving would replace every invalid byte with U+FFFD.
+      if (!size || Buffer.byteLength(text, "utf-8") !== size || text.includes("\uFFFD")) {
+        return res.status(422).json({ error: "This file is not plain UTF-8 text, so it cannot be edited in place without changing other bytes. Open it in Jupyter/RStudio to edit it." });
       }
+      const delim = pickDelimiter(text, ext);
+      // Each edit names the cell by data-row index + column index (as the Preview's rows reader
+      // numbers them) and carries the value the user saw. Only the edited fields are rewritten
+      // (quoting, line endings and every other byte kept); if any cell no longer holds the value
+      // the user saw, nothing is written (409).
+      const parsed: CellEdit[] = [];
+      for (const e of edits) {
+        const r = Number(e?.row), c = Number(e?.col);
+        if (!Number.isInteger(r) || r < 0 || !Number.isInteger(c) || c < 0 || typeof e?.from !== "string") {
+          return res.status(400).json({ error: "Each edit needs row, col (column index) and from (the value shown)." });
+        }
+        parsed.push({ row: r, col: c, from: e.from, value: String(e?.value ?? "") });
+      }
+      const result = applyCellEdits(text, delim, parsed, { headerRows });
+      if (result.conflicts.length) {
+        return res.status(409).json({
+          error: "The file changed or a cell no longer holds the value shown; nothing was saved. Reload and edit again.",
+          conflicts: result.conflicts.slice(0, 20),
+        });
+      }
+      const applied = result.applied;
       if (applied === 0) return res.status(400).json({ error: "None of the edits matched a cell." });
-      const newText = lines.join("\n") + (keepTrailingNL ? "\n" : "");
+      const newText = result.text;
       const buf = Buffer.from(newText, "utf-8");
       const contentHash = createHash("sha256").update(buf).digest("hex");
-      const vkey = `${projectInputKey(id, String(cur.name), String(cur.name))}.v${cur.version_no + 1}`;
+      // Keyed by the CURRENT name (after a rename, new versions live under the new name);
+      // never onto a key another file/version still references.
+      const vkey = await _allocateObjectKey(id, `${projectInputKey(id, String(cur.name), String(cur.name))}.v${cur.version_no + 1}`);
       await s3Service.putObject(vkey, buf, cur.content_type, uid);
       await _archiveCurrentAsVersion({ ...cur, id: fileId, size }, id, `v${cur.version_no}`, uid);
       const upd = await pool.query(
@@ -1062,6 +1142,60 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] edit failed:", e?.message ?? e);
       res.status(500).json({ error: "Edit failed" });
+    }
+  });
+
+  // ─── PATCH /api/projects/:id/files/:fileId ────────────────────────────
+  // Rename and/or move a project file: body {name}; the new name may include folders
+  // ("y/b.csv"). Only the stored name changes — the S3 object stays at its key (its storage
+  // identity: versions, restore, diff, lineage and completed runs all reference the key or the
+  // file id, never the name). New versions after a rename are keyed by the new name
+  // (projectInputKey(cur.name)) via _allocateObjectKey. Owner/editor only (404 otherwise);
+  // 400 on an invalid name or a run output; 409 when another file/folder already has the name.
+  app.patch("/api/projects/:id/files/:fileId", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const out = await _applyRenamePlan(id, (rows) => planFileRename(rows, fileId, req.body?.name));
+      if (!out.ok) return res.status(out.status).json({ error: out.error, conflicts: out.conflicts });
+      const m = out.moves[0];
+      if (m) await recordProjectActivity(id, uid, "file_renamed", { fileId: m.id, from: m.from, to: m.to });
+      const row = await pool.query(
+        `SELECT ${_FILE_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
+        [fileId, id]
+      );
+      res.json({ file: row.rows[0], renamed: Boolean(m) });
+    } catch (e: any) {
+      console.error("[project_files] rename failed:", e?.message ?? e);
+      res.status(500).json({ error: "Rename failed" });
+    }
+  });
+
+  // ─── POST /api/projects/:id/files/rename-folder ───────────────────────
+  // Rename/move a folder: body {from, to} (folder paths as they appear in file names, e.g.
+  // "run1/fastq" → "archive/run1"). Every user-managed file under `from/` is renamed in ONE
+  // transaction; any clash refuses the whole move (409, nothing changed). Same rules as PATCH.
+  app.post("/api/projects/:id/files/rename-folder", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const out = await _applyRenamePlan(id, (rows) => planFolderRename(rows, req.body?.from, req.body?.to));
+      if (!out.ok) return res.status(out.status).json({ error: out.error, conflicts: out.conflicts });
+      const ids = out.moves.map((m) => m.id);
+      const from = out.from ?? String(req.body.from), to = out.to ?? String(req.body.to);
+      await recordProjectActivity(id, uid, "folder_renamed", { from, to, count: ids.length, fileIds: ids.slice(0, 200) });
+      const rows = await pool.query(
+        `SELECT ${_FILE_COLUMNS} FROM project_files WHERE project_id::text = $1 AND id::text = ANY($2::text[])`,
+        [id, ids]
+      );
+      res.json({ files: rows.rows, renamed: ids.length });
+    } catch (e: any) {
+      console.error("[project_files] folder rename failed:", e?.message ?? e);
+      res.status(500).json({ error: "Folder rename failed" });
     }
   });
 
@@ -1179,6 +1313,11 @@ export function registerProjectRoutes(app: Express): void {
         offset: body.offset ?? offset,
         limit: body.limit ?? limit,
         totalRows: typeof body.totalRows === "number" ? body.totalRows : null,
+        // Whether line 1 is a header record (inferred from the content) — the client sends it back
+        // as `headerRows` when saving edits so data rows are numbered the same way.
+        // Only when the reader reports them (tables); JSONL pages keep their original shape.
+        ...(typeof body.headerRow === "boolean" ? { headerRow: body.headerRow } : {}),
+        ...(typeof body.namesSource === "string" ? { namesSource: body.namesSource } : {}),
       });
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);

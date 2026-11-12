@@ -556,7 +556,13 @@
     "import_url_title": "Import a file from a URL into this project",
     "import_url_placeholder": "Paste a file URL (https://…)",
     "err_import_url": "Could not import from that URL",
-    "analysis_outputs": "Analysis outputs"
+    "analysis_outputs": "Analysis outputs",
+    "rename": "Rename / move",
+    "rename_folder": "Rename / move folder",
+    "rename_label": "New name",
+    "rename_hint": "Enter to save, Esc to cancel. Use “/” to move into a folder.",
+    "rename_conflict": "A file or folder with that name already exists in this project.",
+    "rename_invalid": "That name isn’t allowed — remove “..”, control characters or overly long folder names."
   },
   "dataset_obj": {
     "quality_good": "Good",
@@ -688,12 +694,23 @@
     "preview_access_error": "Cannot access the file ({{status}}).",
     "preview_read_error": "Cannot read the file ({{status}}).",
     "preview_unavailable": "The file content is unavailable.",
+    "preview_gz_unavailable": "This browser cannot decompress files for preview. Download the file to open it, or use a current version of Chrome, Edge, Firefox or Safari.",
+    "preview_gz_corrupt": "The compressed file could not be decoded for preview. Download it to check the file.",
+    "preview_truncated_gz": "Showing the beginning of the decompressed file. Download for the complete file.",
+    "preview_tiff": "TIFF images cannot be displayed in the browser. Download the file to open it in an image viewer (e.g. Fiji/ImageJ).",
+    "preview_download": "Download",
+    "format_chip_title": "File format: {{label}} ({{source}})",
+    "format_source_galaxy": "identified by Galaxy datatype",
+    "format_source_biomate": "identified by BioMate",
     "nested_table": "table {{rows}}×{{cols}}",
     "nested_list": "list · {{n}}",
     "nested_object": "{{n}} fields",
     "record_title": "Record {{n}}",
     "record_close": "Close",
-    "record_hint": "Click a row to open the record."
+    "record_hint": "Click a row to open the record.",
+    "record_search": "Search this record…",
+    "edit_hint_full": "Edit any cell, then save. Saving writes a new version; the previous one stays in Versions. Only the cells you change are rewritten.",
+    "edit_conflict": "Not saved: the file changed, or a cell no longer holds the value shown. Reload and edit again."
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -882,7 +899,9 @@
     "show_more": "Show more",
     "show_less": "Show less",
     "copied": "Copied!",
-    "not_available": "N/A"
+    "not_available": "N/A",
+    "cancel": "Cancel",
+    "unknown_error": "Unknown error"
   },
   "dmta": {
     "campaign": "Campaign",
@@ -1085,7 +1104,17 @@
     "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files.",
     "step_position": "Step {{n}} of {{total}}",
     "prev_step": "Previous step",
-    "next_step": "Next step"
+    "next_step": "Next step",
+    "status_pending": "pending",
+    "status_queued": "queued",
+    "status_submitted": "submitted",
+    "status_running": "running",
+    "status_completed": "completed",
+    "status_ok": "completed",
+    "status_failed": "failed",
+    "status_error": "error",
+    "status_cancelled": "cancelled",
+    "status_skipped": "skipped"
   },
   "domains": {
     "drug_discovery": "Drug discovery",
@@ -1654,9 +1683,51 @@
       "split_overlap": "{{count}} feature row(s) appear in more than one split — train/test overlap.",
       "dedup_splits": "Train/test overlap",
       "dedup_splits_effect": "de-duplicate rows across splits before evaluation",
-      "nested_tables": "{{column}}: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).",
-      "nested_row_cap": "{{pct}}% of the tables in {{column}} have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.",
-      "nested_blank_cells": "{{pct}}% of the cells in the {{column}} tables are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis."
+      "nested_tables": "Column “{{column}}”: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).",
+      "nested_row_cap": "{{pct}}% of the tables in column “{{column}}” have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.",
+      "nested_blank_cells": "{{pct}}% of the cells in the tables of column “{{column}}” are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis.",
+      "columns_generated": "No header row detected (line 1 holds data values); columns are named column_1 … column_{{count}}.",
+      "columns_spec": "{{format}} files have no header row; column names follow the {{format}} specification: {{columns}}.",
+      "columns_comment": "Column names taken from the file's last “#” comment line: {{columns}}.",
+      "spec_mismatch": "Named as {{format}}, but its content does not follow the {{format}} format, so it was not read as one.",
+      "intervals_summary": "{{regions}} genomic intervals in {{columns}} columns.",
+      "intervals_stranded": "Strand is given (column “{{column}}”).",
+      "intervals_unstranded": "No strand column: the intervals are treated as unstranded.",
+      "annotation_features": "{{features}} feature lines and {{comments}} comment lines; {{count}} attribute keys: {{attributes}}.",
+      "molecules_count": "{{molecules}} molecules.",
+      "mtx_bad_header": "Not a readable Matrix Market file: the %%MatrixMarket banner or the size line is missing.",
+      "mtx_dimensions": "{{rows}} × {{cols}} sparse matrix ({{field}}) with {{nnz}} stored entries ({{density}}% non-zero).",
+      "mtx_dense": "{{rows}} × {{cols}} dense matrix ({{field}}).",
+      "mtx_orientation": "Matrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).",
+      "format_metadata_only": "{{format}} metadata was read; the data values themselves have not been analysed.",
+      "format_identified": "Identified as {{format}} ({{size}}); its contents are not analysed here.",
+      "format_metadata_skipped": "{{format}} metadata was not read: the file ({{size}}) is above the {{cap}} limit for reading during upload.",
+      "format_header_unreadable": "The {{format}} header could not be read ({{error}}); the file may be truncated or malformed.",
+      "fasta_sequences": "{{prefix}}{{sequences}} sequences, {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}}.",
+      "fasta_no_sequences": "No “>” sequence headers found.",
+      "anndata_shape": "{{cells}} cells (obs) × {{genes}} genes or features (var).",
+      "anndata_obs": "{{count}} cell annotation columns: {{columns}}.",
+      "anndata_var": "{{count}} gene annotation columns: {{columns}}.",
+      "anndata_embeddings": "Stored embeddings: {{embeddings}}.",
+      "hdf5_groups": "Stored groups: {{groups}}.",
+      "loom_shape": "{{genes}} genes (rows) × {{cells}} cells (columns).",
+      "loom_row_attrs": "Gene attributes: {{columns}}.",
+      "loom_col_attrs": "Cell attributes: {{columns}}.",
+      "loom_layers": "Layers: {{layers}}.",
+      "alignment_references": "{{references}} reference sequences in the header ({{length}} bp).",
+      "alignment_sorted": "Coordinate-sorted (header SO:coordinate).",
+      "alignment_not_coordinate_sorted": "Sort order is “{{order}}”, not coordinate: sort the file before indexing or variant calling.",
+      "alignment_read_groups": "{{count}} read groups; samples: {{samples}}.",
+      "alignment_no_read_groups": "No read groups (@RG) in the header: GATK and most variant callers require them.",
+      "structure_chains": "{{count}} chains: {{chains}}.",
+      "spreadsheet_sheets": "{{count}} sheets: {{sheets}}.",
+      "spreadsheet_convert": "Spreadsheets are not checked cell by cell: export the sheet to CSV to get the table checks.",
+      "fasta_gc": "GC content {{pct}}%.",
+      "fasta_high_n": "{{pct}}% of bases are N (unknown): gaps or a low-quality assembly.",
+      "fasta_protein": "Protein sequences (amino-acid alphabet).",
+      "fasta_empty_records": "{{count}} headers have no sequence.",
+      "fasta_orphan_lines": "{{count}} sequence lines before the first “>” header were ignored.",
+      "fasta_profiled_subset": "Statistics cover the first {{mb}} MB of the file."
     }
   },
   "failure": {
@@ -1740,5 +1811,12 @@
     "inputs_needed": "Needed before running: {{names}}",
     "map_inputs": "Map inputs from earlier steps",
     "filled": "Filled from your files: {{names}}"
+  },
+  "step_adjust": {
+    "title": "Adjust & rerun: {{name}}",
+    "no_params": "No parameters available for this step.",
+    "hint": "Only changed parameters will be applied. The workflow resumes from this step.",
+    "submitting": "Submitting…",
+    "rerun": "Rerun from this step"
   }
 }

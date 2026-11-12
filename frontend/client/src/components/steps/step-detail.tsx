@@ -27,6 +27,8 @@ import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { StepOutputPreview } from "@/components/step-output-preview";
 import { t, tOr } from "@/lib/i18n";
+import { userFacingStepName } from "@/lib/user-facing-text";
+import { useLocalizedLabels } from "@/lib/use-localized-labels";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -314,6 +316,12 @@ export function StepDetail({
   };
 
   const selected = outputs.find(o => o.id === selectedId) || outputs[0] || null;
+  // Human step name (not the technical process id), with infra words stripped and
+  // localized for the zh UI; the process id stays available as the tooltip.
+  const stepTitleSrc = userFacingStepName(step.name || step.processName || '');
+  const tl = useLocalizedLabels([stepTitleSrc]);
+  const statusKey = String(step.status || '').toLowerCase();
+  const statusLabel = statusKey ? tOr(`step_view.status_${statusKey}`, statusKey) : '';
   const notDefault = params.filter(p => p.origin === "override" || p.origin === "inherited").length;
   // Any in-place edit pending (drives the "Apply & re-run from here" affordance).
   const anyChanged = params.some(p => !sameValue(vals[p.name], p.value));
@@ -341,10 +349,10 @@ export function StepDetail({
             <p className="text-fs-xs uppercase tracking-wide text-muted-foreground" data-testid="step-position">
               {step.stepNumber && step.totalSteps
                 ? tOr('step_view.step_position', 'Step {{n}} of {{total}}', { n: step.stepNumber, total: step.totalSteps })
-                : t('step_view.title')}{step.status ? ` · ${step.status}` : ""}
+                : t('step_view.title')}{statusLabel ? ` · ${statusLabel}` : ""}
             </p>
             <p className="font-semibold break-words" title={step.processName || step.name}>
-              {step.processName || step.name}
+              {tl(stepTitleSrc)}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-1 shrink-0">
