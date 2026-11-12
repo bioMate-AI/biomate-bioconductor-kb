@@ -60,8 +60,8 @@ describe("<DataPerception>", () => {
     const codes = screen.getAllByTestId("perception-why-item").map((el) => el.getAttribute("data-code"));
     expect(codes).toEqual(["minority_class", "batch_confound", "effective_n_imbalance"]);
     const impact = screen.getByTestId("perception-plan-impact");
-    expect(impact).toHaveTextContent("“batch”–label confound");
-    expect(impact).toHaveTextContent("add “batch” as a covariate before modelling");
+    expect(impact).toHaveTextContent("“batch” overlaps with the groups");
+    expect(impact).toHaveTextContent("include “batch” in the design (e.g. as a covariate) for differential analysis");
     // structured mode ignores the legacy free-text planImpact prop
     expect(impact).not.toHaveTextContent("xx-legacy");
   });
