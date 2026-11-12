@@ -83,10 +83,41 @@ function sheetDownloadName(folder: string, filename: string): string {
 }
 const csvHref = (csv: string) => `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`
 
+/**
+ * Folder findings the FASTQ samples section already states, by code and params (never text) — each
+ * folder fact once: the sample table's badge for a missing mate, the excluded note for the files
+ * left out of the paired sheet, the pattern line for how pairs were named, the paths line for the
+ * samplesheet. Only when that section is drawn (it is for any FASTQ samples); never another finding.
+ */
+export function findingsShownBySamples(prof: FolderProfile): ReadonlySet<FolderProfile["findings"][number]> {
+  const out = new Set<FolderProfile["findings"][number]>()
+  const fq = prof.fastq
+  if (!fq || fq.samples.length === 0) return out
+  const orphanFiles = new Set(fq.samples.filter((s) => s.status === "orphan").map((s) => base(s.forward || s.reverse)))
+  const orphanSamples = new Set(fq.samples.filter((s) => s.status === "orphan").map((s) => s.sample))
+  const excluded = new Set((prof.samplesheet?.excluded ?? []).slice(0, MAX_EXCLUDED_SHOWN).map((x) => base(x)))
+  const patternLine = (fq.patterns ?? []).some((x) => PATTERN_KEYS.has(x))
+  const pathsLine = Boolean(prof.samplesheet && (prof.samplesheet.layout || prof.samplesheet.pathBase))
+  for (const f of prof.findings ?? []) {
+    const p = (f.params ?? {}) as Record<string, unknown>
+    const names = Array.isArray(p.names) ? p.names.map((x) => base(String(x))) : []
+    if (f.code === "folder_fastq_orphan" && (orphanFiles.has(base(String(p.name ?? ""))) || orphanSamples.has(String(p.sample ?? "")))) out.add(f)
+    // The mixed layout = the header's "Paired + unpaired" badge, and its consequence (the unpaired
+    // files go to their own sheet) is the excluded note.
+    else if (f.code === "folder_fastq_mixed_layout" && fq.verdict === "mixed" && excluded.size > 0) out.add(f)
+    else if (f.code === "folder_samplesheet_single_end" && prof.samplesheet?.single && names.length > 0 && names.every((n) => excluded.has(n))) out.add(f)
+    else if (f.code === "folder_fastq_pairs" && patternLine) out.add(f)
+    else if (f.code === "folder_samplesheet" && pathsLine) out.add(f)
+  }
+  return out
+}
+
 export function FolderProfileView({ projectId, path, className }: { projectId: string; path: string; className?: string }) {
   const q = useFolderProfile(projectId, path)
   const name = path ? path : t("dataset_obj.inputs")
   const prof = q.data
+  const shownBySamples = prof && Array.isArray(prof.findings) ? findingsShownBySamples(prof) : new Set()
+  const shownFindings = (prof?.findings ?? []).filter((f) => !shownBySamples.has(f))
   return (
     <Card className={cn("min-w-0", className)} data-testid="folder-profile" data-kind={prof?.kind ?? ""} data-path={path}>
       <CardHeader className="space-y-1 pb-2">
@@ -123,9 +154,9 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
           <>
             <Rollup prof={prof} />
 
-            {(prof.findings ?? []).length > 0 && (
+            {shownFindings.length > 0 && (
               <ul className="flex flex-col gap-1 rounded border p-2.5" data-testid="folder-findings">
-                {prof.findings.map((f, i) => (
+                {shownFindings.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs" data-testid="folder-finding" data-code={f.code} data-level={f.level}>
                     <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", LEVEL_DOT[f.level] ?? LEVEL_DOT.info)} />
                     <span className="text-foreground [overflow-wrap:anywhere]">{findingText(f as unknown as PerceptionFinding)}</span>

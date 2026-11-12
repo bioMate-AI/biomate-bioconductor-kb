@@ -21,7 +21,7 @@
 
 export interface XYZ { x: number; y: number; z: number }
 
-export interface FitAtom extends XYZ { resn?: string; hetflag?: boolean }
+export interface FitAtom extends XYZ { resn?: string; hetflag?: boolean; atom?: string; ss?: string }
 
 export interface StructureFit {
   /** Model-space point at the centre of the frame. */
@@ -49,6 +49,30 @@ export function atomsToFit<T extends FitAtom>(atoms: T[], polymerOnly: boolean):
   }
   const nonSolvent = finite.filter((a) => !SOLVENT.has(String(a.resn ?? '').trim().toUpperCase()))
   return nonSolvent.length > 0 ? nonSolvent : finite
+}
+
+// 3Dmol's cartoon half-widths (3Dmol.js drawStrand: coilWidth / helixSheetWidth / nucleicAcidWidth),
+// Å either side of the backbone trace.
+const CARTOON_COIL_HALF_WIDTH = 0.5
+const CARTOON_HELIX_SHEET_HALF_WIDTH = 1.3
+const CARTOON_NUCLEIC_HALF_WIDTH = 0.8
+
+/**
+ * What a cartoon actually draws: a ribbon along the backbone TRACE (CA of each residue, P of each
+ * nucleotide), as wide as the secondary structure's half-width either side — not the side chains.
+ * Fitting the frame to every polymer atom left the 5e5z cartoon at 58% of the frame (its side chains
+ * set the zoom, 2026-11-12 round 5). Returns the trace and that half-width as the fit's padding; a
+ * model without atom names (no trace found) falls back to the polymer atoms, unpadded.
+ */
+export function cartoonFitAtoms<T extends FitAtom>(atoms: T[]): { atoms: T[]; pad: number } {
+  const polymer = atomsToFit(atoms, true)
+  const trace = polymer.filter((a) => !a.hetflag && (a.atom === 'CA' || a.atom === 'P'))
+  if (trace.length === 0) return { atoms: polymer, pad: 0 }
+  const pad = Math.max(...trace.map((a) =>
+    a.ss === 'h' || a.ss === 's' ? CARTOON_HELIX_SHEET_HALF_WIDTH
+    : a.atom === 'P' ? CARTOON_NUCLEIC_HALF_WIDTH
+    : CARTOON_COIL_HALF_WIDTH))
+  return { atoms: trace, pad }
 }
 
 /** Symmetric 3×3 eigen-decomposition (Jacobi). Returns eigenvectors as columns, sorted by eigenvalue desc. */
@@ -132,13 +156,16 @@ export interface FitOptions {
   fill?: number
   /** Smallest half-extent fitted, Å — keeps a lone atom from filling the screen. */
   minHalfExtent?: number
+  /** Å the drawn geometry reaches beyond the fitted points on every side (a cartoon's ribbon
+   *  half-width around its trace): added to the extents so the drawing, not the points, fills. */
+  pad?: number
 }
 
 export function computeStructureFit(atoms: XYZ[], opts: FitOptions): StructureFit | null {
   if (atoms.length === 0) return null
   const aspect = Number.isFinite(opts.aspect) && opts.aspect > 0 ? opts.aspect : 1
   const fov = ((opts.fovDeg ?? 20) * Math.PI) / 180
-  const fill = opts.fill ?? 0.82
+  const fill = opts.fill ?? 0.86
   const minHalf = opts.minHalfExtent ?? 3
 
   const n = atoms.length
@@ -171,7 +198,8 @@ export function computeStructureFit(atoms: XYZ[], opts: FitOptions): StructureFi
     y: rows[0][1] * mid[0] + rows[1][1] * mid[1] + rows[2][1] * mid[2],
     z: rows[0][2] * mid[0] + rows[1][2] * mid[1] + rows[2][2] * mid[2],
   }
-  const extent = { x: hi[0] - lo[0], y: hi[1] - lo[1], z: hi[2] - lo[2] }
+  const pad = Number.isFinite(opts.pad) && opts.pad! > 0 ? opts.pad! : 0
+  const extent = { x: hi[0] - lo[0] + 2 * pad, y: hi[1] - lo[1] + 2 * pad, z: hi[2] - lo[2] + 2 * pad }
   // Half-height the frame must show: the box's half-height, or its half-width over the aspect.
   // A tiny model (a lone ion, a 2-atom ligand) is fitted as if its larger half-extent were
   // `minHalfExtent`, so it is shown at a sensible scale rather than magnified to fill the frame.

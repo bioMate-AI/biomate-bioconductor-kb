@@ -196,9 +196,13 @@ describe("folder profile (round 3)", () => {
     await waitFor(() => expect(screen.getByTestId("folder-profile").getAttribute("data-kind")).toBe("mixed"))
     const codeText = (code: string) => screen.getAllByTestId("folder-finding").find((e) => e.getAttribute("data-code") === code)!.textContent
     expect(codeText("folder_tenx_recognised")).toContain("10x Genomics matrix (v3) in this folder: 5 cells × 7 genes")
-    expect(codeText("folder_fastq_pairs")).toContain("from the _R1/_R2 and _1/_2 file naming")
-    expect(codeText("folder_samplesheet")).toContain("(paired-end; sample, fastq_1, fastq_2); rows: 2. Paths are relative to the project's input files.")
-    expect(codeText("folder_samplesheet_single_end")).toContain("separate single-end samplesheet (samplesheet_single_end.csv, rows: 1): S3_R1.fastq.gz")
+    // Round 5 — each folder fact once: the pattern line, the samplesheet paths line and the excluded
+    // note already say what these three findings say, so the list does not repeat them.
+    expect(screen.getAllByTestId("folder-finding").map((e) => e.getAttribute("data-code"))).toEqual(["folder_tenx_recognised"])
+    const f = (code: string) => findingText(MIXED_FOLDER.findings.find((x) => x.code === code) as any)
+    expect(f("folder_fastq_pairs")).toContain("from the _R1/_R2 and _1/_2 file naming")
+    expect(f("folder_samplesheet")).toContain("(paired-end; sample, fastq_1, fastq_2); rows: 2. Paths are relative to the project's input files.")
+    expect(f("folder_samplesheet_single_end")).toBe("Unpaired files go to a separate single-end samplesheet (samplesheet_single_end.csv, rows: 1).")
     expect(screen.getByTestId("folder-tenx-set-.")).toHaveTextContent("this folder")
 
     const single = screen.getByTestId("folder-samplesheet-single-download")

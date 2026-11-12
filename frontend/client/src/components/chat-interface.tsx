@@ -1688,7 +1688,15 @@ export function ChatInterface({
     }
 
     // Add user message to chat session (create one if it doesn't exist)
-    const sessionId = chatSession?.id || chatHistoryService.createNewSession().id
+    // The chat is created in (or, still empty, filed into) the active project from its first
+    // message — the same project the stream context carries — so it never sits under "Other chats".
+    const sendProjectId = (() => {
+      if (activeProjectId) return activeProjectId
+      try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null } catch { return null }
+    })()
+    const sessionId = chatSession?.id
+      ? (chatHistoryService.fileEmptySessionInProject(chatSession.id, sendProjectId), chatSession.id)
+      : chatHistoryService.createNewSession(sendProjectId).id
     const updatedSession = chatHistoryService.addMessage(sessionId, userMessage)
     if (updatedSession && onChatUpdated) {
       onChatUpdated(updatedSession)

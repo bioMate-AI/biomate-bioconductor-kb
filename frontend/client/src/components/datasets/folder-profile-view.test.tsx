@@ -118,9 +118,14 @@ describe("Folder view", () => {
     expect(dl.getAttribute("href")).toBe("/api/projects/proj-1/folders/profile?path=pairs&download=samplesheet")
     expect(screen.getByTestId("folder-rollup")).toHaveTextContent("Files: 3 — 3 FASTQ · pairs: 1")
     expect(screen.getByTestId("folder-profile-verdict")).toHaveTextContent("Paired + unpaired")
-    const orphan = screen.getAllByTestId("folder-finding").find((e) => e.getAttribute("data-code") === "folder_fastq_orphan")!
-    expect(orphan).toHaveTextContent("S2_R1.fastq.gz has no R2 mate in this folder — sample S2 would run single-end.")
-    expect(orphan.getAttribute("data-level")).toBe("watch")
+    // Round 5 — S2's missing mate is said ONCE in the samples section: the row's badge and the
+    // excluded note. The orphan / mixed-layout / single-end / pairs / samplesheet findings repeated it
+    // (five times in all on dev) and are not listed again.
+    expect(screen.queryAllByTestId("folder-finding")).toHaveLength(0)
+    expect(screen.getByTestId("folder-samplesheet-excluded")).toHaveTextContent("Not in the paired samplesheet (no mate in this folder): S2_R1.fastq.gz")
+    const fp2 = screen.getByTestId("folder-profile")
+    expect((fp2.textContent ?? "").split("S2_R1.fastq.gz").length - 1).toBe(2) // the table cell + the excluded note
+    expect(fp2.textContent).not.toContain("would run single-end")
     // The tree row shows it is the open folder; opening a file replaces the folder view.
     expect(screen.getByTestId("folder-inputs/pairs").getAttribute("aria-current")).toBe("true")
   }, 30_000)
@@ -144,7 +149,8 @@ describe("Folder view", () => {
     const text = fp.textContent ?? ""
     expect(text).toContain("共 3 个文件：3 个 FASTQ（1 对）")
     expect(text).toContain("下载样本表")
-    expect(text).toContain("S2_R1.fastq.gz 在本文件夹中没有对应的 R2 文件 — 样本 S2 将按单端处理。")
+    expect(text).toContain("未放入双端样本表（本文件夹中没有配对文件）：S2_R1.fastq.gz")
+    expect(text).not.toContain("将按单端处理")
     const ALLOWED = ["S1_R1.fastq.gz", "S1_R2.fastq.gz", "S2_R1.fastq.gz", "pairs", "S1", "S2", "R2", "FASTQ",
       "_R1/_R2", "nf-core", "sample", "fastq_1", "fastq_2", "samplesheet_single_end.csv"]
     let rest = text
