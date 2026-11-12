@@ -893,6 +893,7 @@
     "status_completed": "Completed",
     "status_paused": "Paused",
     "change_project": "Change project",
+    "open_file_deleted": "“{{name}}” was deleted.",
     "select_dataset": "Select a dataset",
     "select_dataset_hint": "Pick a file from the tree to open it as an object — its quality profile, the runs that produced and consumed it, and its version history.",
     "loading_projects": "Loading projects…",
