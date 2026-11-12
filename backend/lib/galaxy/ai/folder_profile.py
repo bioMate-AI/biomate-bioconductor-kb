@@ -579,13 +579,25 @@ def profile_folder(
         out["tenx"] = {"sets": tenx}
         _finding(out, "folder_tenx_headerless")
 
+    out["rollup"] = sorted(counts.values(), key=lambda c: (c["format"] == "unrecognised", -c["count"], c["label"]))
+    # The folder's kind is decided from the roll-up it shows: "mixed" only when it lists two or
+    # more formats. A folder whose files are all ONE format (one MAGeCK counts table, three CSVs)
+    # is "single_format" and ``kindFormat`` names that format ({format, label[, viewKind]} — the
+    # roll-up entry), or "unrecognised" when no file is identified. A 10x set / FASTQ-only folder
+    # keeps its more specific kind.
     if sets and not fastqs:
         out["kind"] = "tenx_matrix"
     elif fastqs and len(fastqs) == len(paths):
         out["kind"] = "fastq_set"
+    elif len(out["rollup"]) == 1:
+        only = out["rollup"][0]
+        if only["format"] == "unrecognised":
+            out["kind"] = "unrecognised"
+        else:
+            out["kind"] = "single_format"
+            out["kindFormat"] = {k: only[k] for k in ("format", "label", "viewKind") if k in only}
     else:
         out["kind"] = "mixed"
-    out["rollup"] = sorted(counts.values(), key=lambda c: (c["format"] == "unrecognised", -c["count"], c["label"]))
     out["tenxFiles"] = sorted(in_set)
     return out
 

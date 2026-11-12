@@ -256,7 +256,7 @@ def test_w3_featurecounts_layout(tmp):
     assert prof["quality"] == "good" and "near_constant" not in _codes(prof), prof["findings"]
     roles = {c["name"]: c.get("role") for c in prof["columnStats"]}
     assert all(roles[c] == "annotation" for c in ("Geneid", "Chr", "Start", "End", "Strand", "Length")), roles
-    assert roles["S1.bam"] is None, roles
+    assert roles["S1.bam"] == "measurement", roles  # round 4 (N6): count columns
     # The same name claim (.tsv) keeps the recognised label.
     prof = dp.profile_dataset(_w(tmp, "fc.tsv", body))
     assert prof["format"]["label"] == "featureCounts counts", prof["format"]
@@ -295,8 +295,8 @@ def test_w4_identifier_rule(tmp):
     rows = ["sample_count,page,value"] + [f"{(i * 7) % 5},{30 + i // 2},{i * 1.5}" for i in range(20)]
     stats = {c["name"]: c for c in dp.profile_dataset(_w(tmp, "ids.csv", "\n".join(rows) + "\n"))["columnStats"]}
     assert stats["page"].get("role") == "identifier", stats["page"]          # non-decreasing integers
-    assert stats["sample_count"].get("role") is None, stats["sample_count"]  # an unordered count
-    assert stats["value"].get("role") is None, stats["value"]
+    assert stats["sample_count"].get("role") == "measurement", stats["sample_count"]  # an unordered count
+    assert stats["value"].get("role") == "measurement", stats["value"]
 
 
 # ---------------------------------------------------------------------------

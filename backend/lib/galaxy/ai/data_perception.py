@@ -70,6 +70,16 @@ BATCH_MAX_DISTINCT_FRAC = 0.5
 
 # Column is "near-constant" if its single most common value covers this frac.
 NEAR_CONSTANT_FRAC = 0.99
+# The near-constant rule (_near_constant_expected) raises Watch only when BOTH hold:
+#   1. the table has at least NEAR_CONSTANT_MIN_ROWS data rows — on a handful of rows "over 99%
+#      a single value" just means "every row agrees", which says nothing about the data (the same
+#      floor as MODEL_MIN_ROWS for the label statistics);
+#   2. the column is not per-record PROVENANCE of a record file: in JSON Lines every record is
+#      stamped by its extractor with where it came from (source, document, drug, file …), so one
+#      scalar value in EVERY record is expected, not a defect.
+# A near-constant column failing either is stated once at info level (``expected`` says why:
+# "few_rows" | "record_metadata"); it never makes the verdict Watch.
+NEAR_CONSTANT_MIN_ROWS = 20
 
 # Column is "high-missingness" at or above this missing frac.
 HIGH_MISSING_FRAC = 0.5
@@ -292,8 +302,8 @@ _EN_TEXT: Dict[str, str] = {
     'annotation_features': "Feature lines: {{features}}; comment lines: {{comments}}; attribute keys ({{count}}): {{attributes}}.",
     'molecules_count': "Molecules: {{molecules}}.",
     'mtx_bad_header': "Not a readable Matrix Market file: the %%MatrixMarket banner or the size line is missing.",
-    'mtx_dimensions': "{{rows}} × {{cols}} sparse matrix ({{field}}); stored entries: {{nnz}} ({{density}}% non-zero).",
-    'mtx_dense': "{{rows}} × {{cols}} dense matrix ({{field}}).",
+    'mtx_dimensions': "Sparse matrix of {{field}} values; {{density}}% of its cells hold a stored entry.",
+    'mtx_dense': "Dense matrix of {{field}} values.",
     'mtx_orientation': "Matrix Market files carry no row or column names: pair this matrix with its features and barcodes files (10x: rows are features, columns are cells).",
     'format_metadata_only': "{{format}} metadata was read; the data values themselves have not been analysed.",
     'format_identified': "Identified as {{format}} ({{size}}); its contents are not analysed here.",
@@ -309,7 +319,7 @@ _EN_TEXT: Dict[str, str] = {
     'loom_row_attrs': "Gene attributes: {{columns}}.",
     'loom_col_attrs': "Cell attributes: {{columns}}.",
     'loom_layers': "Layers: {{layers}}.",
-    'alignment_references': "Reference sequences in the header: {{references}} ({{length}} bp in total).",
+    'alignment_references': "Total length of the reference sequences in the header: {{length}} bp.",
     'alignment_sorted': "Coordinate-sorted (header SO:coordinate).",
     'alignment_not_coordinate_sorted': "Sort order is {{order_words}}, not by coordinate: sort the file before indexing or variant calling.",
     'alignment_read_groups': "Read groups: {{count}}; samples: {{samples}}.",
@@ -566,7 +576,11 @@ def _run_profiler(path: str, d: "Decision", display: str, size: int,
         if _blank_only(path):
             return blocked_profile("blank_content", "")
         p = DataProfile()
-        emit(p, "note", "format_identified", "", format=d.label, size=_human_size(size))
+        if not d.mismatch:
+            # Under a name that claims another format the name/content note (added by the caller)
+            # already says what the file is and that it is shown as that text: one note, never a
+            # second "identified as …; not analysed" line beside it.
+            emit(p, "note", "format_identified", "", format=d.label, size=_human_size(size))
         return p
     p = DataProfile()
     emit(p, "note", "unprofilable", "", name=os.path.basename(display), ext=d.ext)
@@ -801,6 +815,9 @@ _KIND_COMPATIBLE_GALAXY: Dict[str, Tuple[str, ...]] = {
 }
 
 
+# The generic label of a plain-text DOCUMENT — the same as Galaxy's "txt" format label
+# (galaxy_formats). BioMate's own "txt" label below is the one-value-per-line LIST table.
+_TEXT_LABEL = "Text"
 _BIOMATE_LABELS: Dict[str, str] = {
     "csv": "CSV", "tsv": "TSV", "jsonl": "JSON Lines", "json": "JSON", "yaml": "YAML",
     "fastq": "FASTQ", "fasta": "FASTA", "vcf": "VCF", "mtx": "Matrix Market", "bed": "BED", "bedgraph": "bedGraph",
@@ -811,7 +828,7 @@ _BIOMATE_LABELS: Dict[str, str] = {
     "log": "Log (text)", "md": "Markdown", "markdown": "Markdown", "rst": "reStructuredText", "html": "HTML",
     "htm": "HTML", "xml": "XML", "py": "Python script", "r": "R script", "sh": "Shell script",
     "nf": "Nextflow script", "config": "Configuration", "ini": "Configuration", "toml": "TOML",
-    "readme": "Text",
+    "readme": _TEXT_LABEL,
 }
 
 
@@ -2177,7 +2194,7 @@ def _text_decision(path: str, kind: str, ext: Optional[str], gext: Optional[str]
             return Decision("text", "document", claim[1], claim[2], "biomate", gext)
         if gext and gext not in _galaxy_generic():
             return Decision("text", "document", gext, _format_label(gext), "galaxy", gext)
-        return Decision("text", "document", "txt", "Text", "biomate", gext)
+        return Decision("text", "document", "txt", _TEXT_LABEL, "biomate", gext)
     e = ext or kind
     if gext and any(gext == c or gext.startswith(c) for c in _KIND_COMPATIBLE_GALAXY.get(kind, ())):
         fmt = {"ext": gext, "label": _format_label(gext), "source": "galaxy"}
@@ -2326,7 +2343,6 @@ def _profile_mtx(path: str, member: Optional[Dict[str, Any]] = None) -> DataProf
             size_line = line.split()
             break
     parts = banner.split()
-    obj = parts[1].lower() if len(parts) > 1 else ""
     layout = parts[2].lower() if len(parts) > 2 else ""
     field_ = parts[3].lower() if len(parts) > 3 else ""
     symmetry = parts[4].lower() if len(parts) > 4 else ""
@@ -2347,12 +2363,12 @@ def _profile_mtx(path: str, member: Optional[Dict[str, Any]] = None) -> DataProf
     if layout == "coordinate" and len(dims) >= 3:
         nnz = dims[2]
         density = (100.0 * nnz / (rows * cols)) if rows and cols else 0.0
-        emit(p, "signal", "mtx_dimensions",
-             f"{rows:,} × {cols:,} sparse {field_ or 'matrix'} matrix with {nnz:,} stored entries ({density:.2f}% dense).",
+        # Rows / columns / entries are the profile's stats: the signal states only what they do
+        # not — the value type and the density (params keep the numbers for the UI).
+        emit(p, "signal", "mtx_dimensions", "",
              rows=rows, cols=cols, nnz=nnz, density=round(density, 2), field=field_, symmetry=symmetry)
     else:
-        emit(p, "signal", "mtx_dense", f"{rows:,} × {cols:,} dense {field_ or 'matrix'} matrix ({obj or 'matrix'}).",
-             rows=rows, cols=cols, field=field_)
+        emit(p, "signal", "mtx_dense", "", rows=rows, cols=cols, field=field_)
     if member and member.get("role") == "matrix" and member.get("features") and member.get("barcodes"):
         emit(p, "note", "mtx_tenx_set",
              f"10x matrix: rows are the features in {member['features']}, columns the cells in "
@@ -2377,7 +2393,10 @@ def _profile_galaxy_format(path: str, ext: str, size: int, label: Optional[str] 
     if not _meta_problem(p, meta, label):
         described = _galaxy_meta_findings(p, ext, meta, label)
     if described:
-        emit(p, "note", "format_metadata_only", "", format=label)
+        # Only when no data values were read: a spreadsheet whose first rows are previewed has
+        # had values read (its own notes say the sheet is previewed, not checked cell by cell).
+        if not p.sample_rows:
+            emit(p, "note", "format_metadata_only", "", format=label)
     elif not any(f["code"] in ("format_header_unreadable",) for f in p.findings):
         emit(p, "note", "format_identified", "", format=label, size=_human_size(size))
     return p
@@ -2462,10 +2481,12 @@ def _galaxy_meta_findings(p: DataProfile, ext: str, meta: Dict[str, Any], label:
         if refs is None:
             return False
         p.stats_map["references"] = refs
-        emit(p, "signal", "alignment_references",
-             f"{refs:,} reference sequence(s) in the header ({_meta_int(meta, 'reference_total_length') or 0:,} bp).",
-             references=refs, length=_meta_int(meta, "reference_total_length") or 0,
-             names=_named(_meta_list(meta, "reference_names")))
+        # The count is the profile's "references" stat; the signal adds the total length, and
+        # only when the header states one (a header without LN values has no length to report).
+        total_len = _meta_int(meta, "reference_total_length") or 0
+        if total_len > 0:
+            emit(p, "signal", "alignment_references", "", references=refs, length=total_len,
+                 names=_named(_meta_list(meta, "reference_names")))
         order = str(meta.get("sort_order") or "unknown")
         if order == "coordinate":
             emit(p, "note", "alignment_sorted", "", order=order)
@@ -3753,6 +3774,7 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
 
     # --- per-column types + statistics (decimal-mark aware), and the columns' roles ---
     annotation = set(layout.annotation_columns()) if layout is not None else set()
+    annotation |= _genomic_coordinate_columns(header)
     p.column_stats = _column_stats(header, rows, dec, annotation)
     roles = {c["name"]: c.get("role") for c in p.column_stats}
 
@@ -3760,6 +3782,7 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     # Annotation columns of a recognised layout (featureCounts' Chr / Strand / Length …) are
     # constant or sparse BY DESIGN on many inputs (one chromosome, one strand): not a finding.
     near_constant: List[str] = []
+    expected_constant: List[str] = []
     high_missing: List[str] = []
     for j in range(n_cols):
         if header[j] in annotation:
@@ -3772,10 +3795,18 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
         if non_missing:
             top = Counter(non_missing).most_common(1)[0][1]
             if top / len(non_missing) >= NEAR_CONSTANT_FRAC:
-                near_constant.append(header[j])
+                if _near_constant_expected(col, n_rows, records=reader is not None):
+                    expected_constant.append(header[j])
+                else:
+                    near_constant.append(header[j])
     if near_constant:
         emit(p, "signal", "near_constant", "", "watch", count=len(near_constant), columns=_named(near_constant),
              pct=int(NEAR_CONSTANT_FRAC * 100))
+    elif expected_constant:
+        # Stated once, as information: below the row floor, or per-record provenance.
+        emit(p, "signal", "near_constant", "", count=len(expected_constant), columns=_named(expected_constant),
+             pct=int(NEAR_CONSTANT_FRAC * 100),
+             expected="few_rows" if n_rows < NEAR_CONSTANT_MIN_ROWS else "record_metadata")
     if high_missing:
         emit(p, "signal", "high_missing", "", "watch", count=len(high_missing), columns=_named(high_missing),
              pct=int(HIGH_MISSING_FRAC * 100))
@@ -3858,8 +3889,9 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
             p.stats_map["tables"] = n_tables
 
     # "No issues" only when nothing at watch level was found in ANY section, and it names only
-    # the checks that actually ran.
-    if any(f["level"] in ("watch", "blocked") for f in p.findings):
+    # the checks that actually ran. The clean summaries say no column is constant, so a table
+    # with an (expected, info-level) near-constant column closes with the plain summary.
+    if any(f["level"] in ("watch", "blocked") or f["code"] == "near_constant" for f in p.findings):
         emit(p, "note", "table_summary", "", rows=total, cols=n_cols)
     elif confident:
         emit(p, "note", "table_clean", "", rows=total, cols=n_cols)
@@ -3870,6 +3902,21 @@ def _profile_table(path: str, reader=None, layout: Optional[TableLayout] = None)
     if p.profiled_rows is not None:
         emit(p, "note", "profiled_subset", "", profiled=n_rows, rows=total)
     return p
+
+
+def _near_constant_expected(col: Sequence[str], n_rows: int, *, records: bool) -> bool:
+    """Whether a near-constant column is EXPECTED (info, not Watch) — the rule documented at
+    NEAR_CONSTANT_MIN_ROWS: fewer than that many rows, or, in a record file (JSON Lines), the
+    same scalar in every record (per-record provenance; a nested list/object is data, not a stamp)."""
+    if n_rows < NEAR_CONSTANT_MIN_ROWS:
+        return True
+    if not records:
+        return False
+    values = set(col)
+    if len(values) != 1:
+        return False
+    v = next(iter(values)).strip()
+    return bool(v) and v.lower() not in _MISSING_TOKENS and not v.startswith(("[", "{"))
 
 
 # A label column makes the table a MODELLING table — class balance, effective N and leakage are
@@ -3925,7 +3972,13 @@ def _column_stats(header: Sequence[str], rows: Sequence[Sequence[str]], decimal:
       in file order ("page" 30, 30, 31, … — two tables on one page). The name is required: an
       all-distinct column without one (SMILES, a sequence) is a feature, and a count column whose
       name happens to hold "sample" (sample_count 7, 3, 9) is not ordered, so it stays a value;
-    * "constant" — a single distinct value.
+    * "constant" — a single distinct value;
+    * "measurement" — any other numeric column: a measured / counted value (featureCounts' sample
+      count columns, an expression or assay value) — the columns a plot defaults to. A confident
+      class label is re-marked "label" by the caller.
+
+    Every numeric column therefore carries a role; a categorical / text column without one is an
+    ordinary descriptive column.
     """
     annotation = annotation or set()
     out: List[Dict[str, Any]] = []
@@ -3960,10 +4013,36 @@ def _column_stats(header: Sequence[str], rows: Sequence[Sequence[str]], decimal:
             role = "constant"
         elif present and _is_identifier(str(name), present, distinct, typ, nums):
             role = "identifier"
+        elif typ == "numeric":
+            role = "measurement"
         if role:
             cs["role"] = role
         out.append(cs)
     return out
+
+
+# Genomic coordinate columns of a BED-like / featureCounts-like table that is not a recognised
+# layout (a CSV of chrom,start,end,score,gene; a featureCounts table without its exact header):
+# matched on the WHOLE column name, case-insensitively. They are coordinates, not measurements —
+# never a plot default, a feature or a class — and constant by design on many inputs (one
+# chromosome, one strand). The rule applies only when the table has BOTH a chromosome column
+# and a position column, so a "length" or "end" column of an unrelated table stays a value.
+_COORD_CHROM_NAMES = frozenset({"chr", "chrom", "chromosome", "seqname", "seqnames", "seqid", "contig",
+                                "#chr", "#chrom", "chrom_name"})
+_COORD_POS_NAMES = frozenset({"start", "end", "stop", "pos", "position", "begin", "chromstart", "chromend",
+                              "start_position", "end_position", "txstart", "txend", "thickstart", "thickend"})
+_COORD_EXTRA_NAMES = frozenset({"strand", "length", "width"})
+
+
+def _genomic_coordinate_columns(header: Sequence[str]) -> set:
+    """The names in ``header`` that are genomic coordinates by the rule above (else empty)."""
+    low = {str(h): str(h).strip().lower() for h in header}
+    if not any(v in _COORD_CHROM_NAMES for v in low.values()):
+        return set()
+    if not any(v in _COORD_POS_NAMES for v in low.values()):
+        return set()
+    keep = _COORD_CHROM_NAMES | _COORD_POS_NAMES | _COORD_EXTRA_NAMES
+    return {h for h, v in low.items() if v in keep}
 
 
 def _num(x: float) -> Any:

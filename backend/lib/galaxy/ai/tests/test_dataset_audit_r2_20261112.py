@@ -316,8 +316,9 @@ def test_read_rows_returns_the_delimiter(tmp):
 # Copy — ONE English template table, equal to the en locale
 # ---------------------------------------------------------------------------
 # Codes whose en wording the backend changed this round (the client's locale adopts it).
-# Backend English and the en locale are one wording (2026-11-12 round 3b): no exemptions.
-_BACKEND_AHEAD_OF_LOCALE = frozenset()
+# Backend English and the en locale are one wording (2026-11-12 round 3b). Round 4 (N5) changed
+# these so a finding never repeats the profile's stats; the client's locale adopts them.
+_BACKEND_AHEAD_OF_LOCALE = frozenset({"alignment_references", "mtx_dense", "mtx_dimensions"})
 
 
 def _en_locale():
