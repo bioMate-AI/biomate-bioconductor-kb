@@ -1336,34 +1336,14 @@ enable_interactive_tools() {
   ec2_ssh "sudo env PYTHONDONTWRITEBYTECODE=1 BIOMATE_IT_SOCKET_APPROVED='${BIOMATE_IT_SOCKET_APPROVED:-0}' python3 '$stage/interactive_runtime_recovery.py' --deploy-lease '$REMOTE_SYNC_LEASE' --cli-sha256 2c0c7085014dab521228f90fc5fc714184cbba3ab1dd8d526840dd000ed478b5 $apply_args"
   local result=$?
   ec2_ssh "rm -f '$stage/interactive_runtime_recovery.py' '$stage/interactive_recreate_plan.py' '$stage/interactive_state_migration.py'; rmdir '$stage'" || true
-  # After a successful socket APPLY, the frontend must learn ITs are now launchable.
-  # This BIOMATE_ENABLE_IT path exits before the normal deploy_frontend runs, so the
-  # frontend would otherwise keep INTERACTIVE_TOOLS_ENABLED unset and hide the buttons
-  # even though ITs now work. Recreate the frontend from its current :latest image
-  # (no rebuild) with the flag DERIVED from the live Galaxy docker-socket mount — so
-  # /api/interactive/available flips to available and the IT buttons appear with no
-  # second sync. Non-fatal: a failure just means "run one normal sync to pick it up".
-  if [[ "$result" == "0" && "${BIOMATE_IT_APPLY:-0}" == "1" ]]; then
-    ec2_ssh '
-      if docker inspect biomate-galaxy-dev --format "{{range .Mounts}}{{.Destination}} {{end}}" 2>/dev/null | grep -q "/var/run/docker.sock"; then IT_ENABLED=1; else IT_ENABLED=0; fi
-      if docker image inspect biomate-dev-frontend:latest >/dev/null 2>&1; then
-        mkdir -p /tmp/biomate_code
-        docker rm -f biomate-dev-frontend 2>/dev/null || true
-        docker run -d --name biomate-dev-frontend --network biomate-dev-net \
-          -p 3000:3000 --env-file /opt/biomate/.env \
-          -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
-          -e MCP_UPSTREAM_URL=http://biomate-remote-mcp:8848 \
-          -e BIOMATE_RESPONSE_MODEL=gpt-5.6-luna \
-          -e INTERACTIVE_TOOLS_ENABLED="$IT_ENABLED" \
-          --restart unless-stopped \
-          -v /var/run/docker.sock:/var/run/docker.sock \
-          -v /tmp/biomate_code:/tmp/biomate_code \
-          biomate-dev-frontend:latest >/dev/null
-        docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
-        echo "[galaxy-it] frontend refreshed: INTERACTIVE_TOOLS_ENABLED=$IT_ENABLED"
-      fi
-    ' || log "[galaxy-it] frontend IT-flag refresh failed (non-fatal; run a normal sync to pick it up)"
-  fi
+  # NOTE: after a socket apply the frontend still needs INTERACTIVE_TOOLS_ENABLED=1 for
+  # the IT buttons to show (this BIOMATE_ENABLE_IT path exits before deploy_frontend).
+  # That is handled by the derivation in deploy_frontend (+ the frontend rollback) on
+  # the next NORMAL sync — the tested deploy flow that already recreates the frontend
+  # with proper error handling. We intentionally do NOT recreate the frontend from
+  # here: doing so would `docker rm -f` the running frontend and, on any failure, leave
+  # it down. So: apply grants the socket (proven, health-guarded), then one normal sync
+  # flips the buttons on.
   return "$result"
 }
 

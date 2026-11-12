@@ -370,12 +370,20 @@ status is "registered".`,
   },
   {
     name: 'identify_targets',
-    description: `Identify and rank candidate drug/biomarker TARGETS (genes) for a disease or
-biological question, with provenance. Use this when the user asks "what are the targets for X?",
-"nominate targets for <disease>", "rank these genes as targets", "what's the evidence for GENE in
-DISEASE?", or wants a fast evidence scan before committing to a target. Returns a ranked list of
-genes, each with a confidence TIER (corroborated / nominated / vetoed), a score, which evidence
-CHANNELS fired, per-channel scores and provenance — so the answer is auditable, not asserted.
+    description: `Identify, rank or COMPARE candidate drug/biomarker TARGETS (genes) for a disease or
+biological question, with provenance. Use this ONLY when targets must be DISCOVERED or SCORED: "what are
+the targets for X?", "nominate targets for <disease>", "rank/compare these genes as targets", or a fast
+scan across MANY candidate genes before committing.
+
+DO NOT use this for a SINGLE already-named target where the user asks to EXPLAIN / SUMMARISE / describe the
+disease-link EVIDENCE (e.g. "what is the evidence linking ABL1 to CML?", "why is this target associated
+with the disease?"). That is an evidence-synthesis question, not a ranking — the user already has the target
+and wants a readable, cited narrative of the genetic / somatic / literature / pathway evidence, NOT a
+one-row candidate table. Route those to write_review (grounded evidence narrative) or search_literature +
+query_database (Open Targets association for the named gene), and compose the actual evidence into the
+answer. Returns a ranked list of genes, each with a confidence TIER (corroborated / nominated / vetoed), a
+score, which evidence CHANNELS fired, per-channel scores and provenance — so the answer is auditable, not
+asserted.
 
 HONEST FRAMING: inspect the returned ranking metadata, actual channels, provenance and errors.
 When OpenTargets is available the default order follows its association scores; other channels
