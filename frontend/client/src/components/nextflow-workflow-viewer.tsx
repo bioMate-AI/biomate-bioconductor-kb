@@ -3414,26 +3414,16 @@ export function NextflowWorkflowViewer({
                     {failureRecoveryAdvice(diag.suggested_action, canResumeFailed)}
                   </p>
                 )}
-                {snippet ? (
-                  <details open style={{ marginTop: 4 }}>
-                    <summary style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
-                      {tOr('panel.diag.error_details', 'Error details')}
-                    </summary>
-                    <pre style={{
-                      marginTop: 6, padding: '8px 10px',
-                      background: 'oklch(0.13 0.01 260)', color: 'oklch(0.85 0.01 260)',
-                      borderRadius: 6, fontSize: 'var(--fs-micro)', lineHeight: 1.5,
-                      overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                      maxHeight: 200, overflowY: 'auto',
-                    }}>
-                      {snippet}
-                    </pre>
-                  </details>
-                ) : (diag.suggested_action === 'resume') ? (
+                {/* Raw engine log/snippet intentionally NOT shown (founder 2026-11-11:
+                    internal Nextflow DEBUG/CacheDB/plugin plumbing must never surface
+                    to the user). The plain-language diagnosis above and the real error
+                    message in the report below are what the user reads; full engine
+                    logs stay in the dedicated job-log viewer for support. */}
+                {(!snippet && diag.suggested_action === 'resume') && (
                   <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
                     ℹ️ {tOr('panel.diag.no_log', 'No error log was captured for this run. If resuming keeps failing, report the run to BioMate.')}
                   </p>
-                ) : null}
+                )}
               </div>
             );
           })()}

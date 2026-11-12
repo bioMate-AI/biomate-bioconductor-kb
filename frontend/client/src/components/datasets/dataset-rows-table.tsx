@@ -12,6 +12,7 @@
 import { useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { t } from "@/lib/i18n"
+import { parseNested, recordTables, type NestedValue } from "./nested-json"
 
 const ROW_H = 26
 const OVERSCAN = 20
@@ -31,6 +32,82 @@ export interface DatasetRowsTableProps {
   loadAllCap?: number
 }
 
+/** Short structural label for a nested cell (a JSONL list/object), instead of truncated JSON text. */
+function nestedLabel(n: NestedValue): string {
+  if (n.kind === "matrix") return t("dataset_obj.nested_table", { rows: n.rows, cols: n.cols })
+  if (n.kind === "list") return t("dataset_obj.nested_list", { n: n.rows })
+  return t("dataset_obj.nested_object", { n: n.rows })
+}
+
+/** Collapsible view of any nested JSON value. */
+function JsonTree({ value, depth = 0 }: { value: unknown; depth?: number }) {
+  if (value === null || typeof value !== "object") {
+    return <span className="font-mono text-xs">{value === null ? "null" : JSON.stringify(value)}</span>
+  }
+  const entries = Array.isArray(value) ? value.map((v, i) => [String(i), v] as const) : Object.entries(value as object)
+  return (
+    <details open={depth < 1} className="text-xs">
+      <summary className="cursor-pointer text-muted-foreground">
+        {Array.isArray(value) ? `[${entries.length}]` : `{${entries.length}}`}
+      </summary>
+      <div className="pl-4 space-y-0.5">
+        {entries.map(([k, v]) => (
+          <div key={k}><span className="text-muted-foreground font-mono">{k}: </span><JsonTree value={v} depth={depth + 1} /></div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
+/** One record, structured: scalar fields, embedded tables (with a matching header list), JSON trees. */
+function RecordView({ columns, row, index, onClose }: { columns: string[]; row: string[]; index: number; onClose: () => void }) {
+  const tables = recordTables(columns, row)
+  const inTable = new Set(tables.flatMap((tb) => [tb.field, ...(tb.headerField ? [tb.headerField] : [])]))
+  return (
+    <div className="rounded border p-2 space-y-2" data-testid="dataset-record-view">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold flex-1">{t("dataset_obj.record_title", { n: index + 1 })}</span>
+        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onClose} data-testid="dataset-record-close">
+          {t("dataset_obj.record_close")}
+        </Button>
+      </div>
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
+        {columns.map((c, i) => {
+          if (inTable.has(c)) return null
+          const n = parseNested(row[i])
+          return [
+            <dt key={`k${i}`} className="text-muted-foreground font-mono">{c}</dt>,
+            <dd key={`v${i}`} className="font-mono break-all">{n ? <JsonTree value={n.value} /> : (row[i] ?? "")}</dd>,
+          ]
+        })}
+      </dl>
+      {tables.map((tb) => (
+        <div key={tb.field} className="space-y-1" data-testid="dataset-record-table">
+          <div className="text-xs text-muted-foreground font-mono">
+            {tb.headerField ? `${tb.headerField} + ${tb.field}` : tb.field}
+          </div>
+          <div className="overflow-auto rounded border" style={{ maxHeight: "50vh" }}>
+            <table className="border-collapse text-xs">
+              {tb.header && (
+                <thead><tr>{tb.header.map((h, i) => (
+                  <th key={i} className="border px-2 py-1 text-left font-semibold align-top" style={{ background: "var(--bm-accent-soft)" }}>{h}</th>
+                ))}</tr></thead>
+              )}
+              <tbody>{tb.body.map((r, ri) => (
+                <tr key={ri}>{(Array.isArray(r) ? r : [r]).map((c, ci) => (
+                  <td key={ci} className="border px-2 py-1 align-top whitespace-pre-wrap" style={{ minWidth: 60, maxWidth: 420 }}>
+                    {c == null ? "" : typeof c === "object" ? JSON.stringify(c) : String(c)}
+                  </td>
+                ))}</tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function DatasetRowsTable({
   columns, rows, total, loading, error, onNeedMore, onLoadAll, onRetry, loadAllCap = Infinity,
 }: DatasetRowsTableProps) {
@@ -38,6 +115,7 @@ export function DatasetRowsTable({
   const [sortAsc, setSortAsc] = useState(true)
   const [filterText, setFilterText] = useState("")
   const [scrollTop, setScrollTop] = useState(0)
+  const [openRow, setOpenRow] = useState<{ row: string[]; index: number } | null>(null)
   const boxRef = useRef<HTMLDivElement>(null)
 
   const allLoaded = total != null && rows.length >= total
@@ -56,6 +134,11 @@ export function DatasetRowsTable({
     }
     return out
   }, [rows, filterText, sortCol, sortAsc])
+  // Columns holding nested JSON (JSONL lists/objects) — then rows open as structured records.
+  const hasNested = useMemo(
+    () => rows.slice(0, 50).some((r) => r.some((c) => parseNested(c) !== null)),
+    [rows],
+  )
 
   const viewH = boxRef.current?.clientHeight || FALLBACK_VIEW_H
   const start = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
@@ -108,24 +191,41 @@ export function DatasetRowsTable({
           <tbody>
             {start > 0 && <tr aria-hidden style={{ height: start * ROW_H }} />}
             {slice.map((r, ri) => (
-              <tr key={start + ri} className="odd:bg-muted/20" style={{ height: ROW_H }} data-testid="dataset-preview-row">
-                {columns.map((_, ci) => (
-                  <td
-                    key={ci}
-                    className="whitespace-nowrap px-2 py-0.5 font-mono border-b overflow-hidden text-ellipsis"
-                    style={{ maxWidth: 360 }}
-                    title={r[ci] ?? ""}
-                  >
-                    {r[ci] ?? ""}
-                  </td>
-                ))}
+              <tr
+                key={start + ri}
+                className={`odd:bg-muted/20${hasNested ? " cursor-pointer hover:bg-muted/40" : ""}`}
+                style={{ height: ROW_H }}
+                data-testid="dataset-preview-row"
+                onClick={hasNested ? () => setOpenRow({ row: r, index: rows.indexOf(r) }) : undefined}
+              >
+                {columns.map((_, ci) => {
+                  const n = hasNested ? parseNested(r[ci]) : null
+                  return (
+                    <td
+                      key={ci}
+                      className="whitespace-nowrap px-2 py-0.5 font-mono border-b overflow-hidden text-ellipsis"
+                      style={{ maxWidth: 360 }}
+                      title={n ? undefined : (r[ci] ?? "")}
+                    >
+                      {n ? (
+                        <span className="rounded border px-1.5 py-px text-[11px] text-muted-foreground font-sans" data-testid="dataset-nested-cell">
+                          {nestedLabel(n)}
+                        </span>
+                      ) : (r[ci] ?? "")}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
             {end < view.length && <tr aria-hidden style={{ height: (view.length - end) * ROW_H }} />}
           </tbody>
         </table>
       </div>
+      {openRow && (
+        <RecordView columns={columns} row={openRow.row} index={openRow.index} onClose={() => setOpenRow(null)} />
+      )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="dataset-preview-rowcount">
+        {hasNested && !openRow && <span>{t("dataset_obj.record_hint")}</span>}
         <span>
           {allLoaded
             ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
