@@ -1096,7 +1096,17 @@
     "origin_not_reported": "origin not reported by the run — shown honestly rather than guessed",
     "job_id": "Job ID",
     "work_directory": "Work directory",
-    "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files."
+    "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files.",
+    "status_pending": "pending",
+    "status_queued": "queued",
+    "status_submitted": "submitted",
+    "status_running": "running",
+    "status_completed": "completed",
+    "status_ok": "completed",
+    "status_failed": "failed",
+    "status_error": "error",
+    "status_cancelled": "cancelled",
+    "status_skipped": "skipped"
   },
   "domains": {
     "drug_discovery": "Drug discovery",

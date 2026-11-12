@@ -70,6 +70,23 @@ export function isDataInputParam(p: DataInputParamLike): boolean {
   return CANONICAL_DATA_INPUT_NAMES.has(name);
 }
 
+/**
+ * A param that is BOUND to the user's data even though the schema does not mark it
+ * required: a canonical data-input name (samplesheet, matrix, counts, …) or a value
+ * that is a stored/staged file (s3://, gs://, file://, an absolute path, or a file
+ * name). Many catalog schemas declare no `required` list at all (nf-core
+ * differentialabundance: `required: []`), so `isDataInputParam` alone dropped a
+ * bound samplesheet + matrix and the panel claimed "no data upload needed".
+ */
+export function isBoundUserDataParam(p: DataInputParamLike & { value?: unknown }): boolean {
+  const name = paramName(p);
+  if (!name || name.startsWith('__') || isExecutorSetParam(p)) return false;
+  if (!isBoundValue(p.value)) return false;
+  if (CANONICAL_DATA_INPUT_NAMES.has(name)) return true;
+  const v = String(p.value).trim();
+  return /^(?:s3|gs|file):\/\//i.test(v) || /^\/[^\s]+\.[A-Za-z0-9]{1,8}(?:\.gz)?$/.test(v);
+}
+
 /** An optional file parameter that only overrides a default (genome reference, rRNA manifest, …). */
 export function isOptionalFileOverride(p: DataInputParamLike): boolean {
   return p.type === 'file' && !p.required && !isDataInputParam(p) && !isExecutorSetParam(p);

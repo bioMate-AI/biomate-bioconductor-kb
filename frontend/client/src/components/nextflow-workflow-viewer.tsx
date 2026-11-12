@@ -3871,7 +3871,7 @@ export function NextflowWorkflowViewer({
                     ) : (
                       // Show the clean basename only; the full value (storage URI
                       // or dataset id) stays available on hover, never inline.
-                      <span title={r.dataset?.id ? String(r.dataset.id) : String(r.value)}>
+                      <span title={r.dataset?.name || cleanParamValueForDisplay(r.value)}>
                         {r.dataset?.name || basename(r.value)}
                       </span>
                     )}
@@ -4002,7 +4002,7 @@ export function NextflowWorkflowViewer({
                 <div style={{ marginBottom: 6 }}>{allPhaseParamNames.size > 0
                   ? tOr('panel.params_in_phases', 'Parameters are configured per phase — open the Phases tab to adjust them.')
                   : tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
-                <div style={{ fontSize: 'var(--fs-meta)', opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
+                <div style={{ fontSize: 'var(--fs-meta)', opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "{{button}}" below to start it.', { button: t('workflow.actions.confirm_and_run') })}</div>
               </div>
             );
             return (
