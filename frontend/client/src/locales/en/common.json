@@ -615,7 +615,7 @@
     "quality_error": "Profile not available — the profiler could not read this dataset.",
     "run_qc": "Run full QC",
     "run_qc_tip": "Opens a chat with this file attached and asks BioMate for a quality-control report. BioMate decides how to check it — an analysis of the file’s contents, or a QC workflow where one fits.",
-    "qc_request": "{{name}}: run quality control (QC) on this file and write a QC report.",
+    "qc_request": "QC report: {{name}}. Run quality control (QC) on this file and write the QC report.",
     "produced_by": "Output from workflow",
     "open_run": "Open the run that produced it →",
     "status": "Status",

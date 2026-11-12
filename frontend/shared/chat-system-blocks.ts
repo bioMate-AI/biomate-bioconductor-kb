@@ -114,13 +114,21 @@ export function titleSourceText(text: string | null | undefined): string {
 }
 
 /** Deterministic short title: first ~6 words (or ~24 CJK chars), ≤50 chars. */
+const TITLE_MAX = 50;
+
+/** A title from the message's first sentence: whole when it fits, else cut at a word boundary and
+ *  marked "…". (A fixed six-word cut titled "x.tsv: run quality control (QC) on this file …" as
+ *  "x.tsv: run quality control (QC) on" — mid-sentence, with nothing saying it was cut.) */
 export function fallbackTitle(text: string | null | undefined): string {
   const src = titleSourceText(text).replace(/\s+/g, " ").trim();
   if (!src) return "";
-  const isCjk = /[㐀-鿿]/.test(src) && !/\s/.test(src.slice(0, 24));
-  const short = isCjk ? src.slice(0, 24) : src.split(" ").slice(0, 6).join(" ");
-  const clipped = short.length > 50 ? short.slice(0, 47) + "..." : short;
-  return clipped.length < src.length && !clipped.endsWith("...") && isCjk ? clipped + "…" : clipped;
+  // A sentence ends at . ! ? before a space, or at a CJK full stop — not at the dot in "a.csv".
+  const sentence = src.split(/(?<=[.!?])\s|[。！？]/)[0].replace(/[.!?]$/, "").trim() || src;
+  if (sentence.length <= TITLE_MAX) return sentence;
+  if (/[㐀-鿿]/.test(sentence) && !/\s/.test(sentence.slice(0, 24))) return sentence.slice(0, 24) + "…";
+  const cut = sentence.slice(0, TITLE_MAX);
+  const space = cut.lastIndexOf(" ");
+  return (space > 20 ? cut.slice(0, space) : cut).replace(/[\s,;:–—-]+$/, "") + "…";
 }
 
 /** True when a stored title still contains a raw system block (legacy data). */

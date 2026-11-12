@@ -51,8 +51,8 @@ export function isStackedBelow(list: HTMLElement, detail: HTMLElement): boolean 
 }
 
 /** The chat entry for "Run full QC": this project, this file attached, the QC request sent. The
- *  request starts with the file's name, so the chat it opens is titled by what it checks (a title
- *  cut from "Run quality control (QC) on this…" named nothing). */
+ *  request's first sentence ("QC report: <file>") is the chat's title — a whole phrase naming what
+ *  it checks (fallbackTitle titles a chat by its first sentence). */
 export function runQcChatUrl(projectId: string | null, fileId: string, fileName: string): string {
   const q = new URLSearchParams()
   if (projectId) q.set("project", projectId)

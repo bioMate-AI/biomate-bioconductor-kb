@@ -94,6 +94,16 @@ describe("ProjectFileTree — names stay readable at any depth (U10)", () => {
     expect(screen.getByTestId("file-rename-deep").getAttribute("aria-label")).toBe(t("file_tree.rename"))
   })
 
+  it("row actions are reachable without hover: always shown on touch screens (hover: none)", async () => {
+    render(<ProjectFileTree projectId="p1" onOpenDataset={() => {}} />)
+    await expandDeep()
+    for (const id of ["file-actions-deep", `folder-actions-${DEEP_FOLDERS[2]}`]) {
+      const cls = screen.getByTestId(id).className
+      expect(cls).toContain("[@media(hover:none)]:opacity-100")
+      expect(cls).toContain("[@media(hover:none)]:pointer-events-auto")
+    }
+  })
+
   it("folder rows follow the same contract: flexible name with min width, rename in an overlay", async () => {
     render(<ProjectFileTree projectId="p1" onOpenDataset={() => {}} />)
     await expandDeep()

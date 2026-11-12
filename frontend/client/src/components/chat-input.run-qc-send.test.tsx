@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { ChatInput } from './chat-input';
 import { runQcChatUrl } from '@/pages/data-hub';
+import { fallbackTitle } from '@shared/chat-system-blocks';
 
 vi.mock('./skills-selector', () => ({ SkillsSelector: () => null }));
 
@@ -29,8 +30,9 @@ describe('Run full QC — the request is sent, after the file is linked', () => 
     const url = new URL(runQcChatUrl('project-a', 'file-a', 'pairs/featurecounts.txt'), 'http://x');
     expect(url.searchParams.get('project')).toBe('project-a');
     expect(url.searchParams.getAll('attachFile')).toEqual(['file-a']);
-    // N9 (round 4): the request — and so the chat title cut from it — starts with the file name.
-    expect(url.searchParams.get('draft')).toMatch(/^featurecounts\.txt\b/);
+    // The chat is titled from the request's first sentence: a whole phrase naming the file
+    // (round 6: a six-word cut read "x.tsv: run quality control (QC) on").
+    expect(fallbackTitle(url.searchParams.get('draft'))).toBe('QC report: featurecounts.txt');
     expect(url.searchParams.get('send')).toBe('1');
   });
 
