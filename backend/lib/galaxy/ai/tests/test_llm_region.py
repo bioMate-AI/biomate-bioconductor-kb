@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextvars
 import os
 import re
 import sys
@@ -255,6 +256,27 @@ def test_8_vendor_allow_list_equals_the_node_module():
     assert node == lr.CHINESE_MODEL_VENDORS, (node, lr.CHINESE_MODEL_VENDORS)
     rl = open(os.path.join(_REPO, "frontend", "server", "response-language.ts")).read()
     assert f"ZH_VISION_DEFAULT_MODEL = '{lr.ZH_DEFAULT_MODEL}'" in rl
+
+
+def test_9_threads_get_only_the_policy_not_the_request_context():
+    """Only the LLM policy crosses into a thread. Galaxy scopes its SQLAlchemy session by the
+    REQUEST_ID ContextVar (galaxy.model.base.request_scopefunc, falling back to the thread id): a
+    thread that inherited the whole request context would share the request's session across
+    threads, and keep using it after the request closed it."""
+    lr.install_thread_context_propagation()
+    request_id = contextvars.ContextVar("request_id_standin", default=None)
+    tok = request_id.set({"request": "req-1"})
+    try:
+        with lr.policy_scope(CN):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                seen = ex.submit(lambda: (lr.current_policy(), request_id.get())).result()
+            box: list = []
+            t = threading.Thread(target=lambda: box.append((lr.current_policy(), request_id.get())))
+            t.start(); t.join()
+    finally:
+        request_id.reset(tok)
+    assert seen == (CN, None), seen
+    assert box == [(CN, None)], box
 
 
 def main():

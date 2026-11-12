@@ -314,9 +314,10 @@ def install_thread_context_propagation() -> None:
     any LLM call made there silently used the deployment's Gemini → Claude → GPT chain. That is the
     boundary to fix, once, rather than ~50 call sites:
 
-    - ``ThreadPoolExecutor.submit`` (which ``map`` and ``loop.run_in_executor`` use) runs the work in
-      a copy of the submitter's context;
-    - ``threading.Thread.start`` runs ``run`` in a copy of the starter's context.
+    - ``ThreadPoolExecutor.submit`` (which ``map`` and ``loop.run_in_executor`` use) runs the work with
+      the submitter's policy set;
+    - ``threading.Thread.start`` runs ``run`` with the starter's policy set.
+    Only the policy is carried, never the rest of the request context (see below).
 
     Threads started at boot (pollers) copy the boot context, which has no policy — unchanged.
     Idempotent; called from initialize_fast_app.
@@ -327,24 +328,35 @@ def install_thread_context_propagation() -> None:
     import concurrent.futures.thread as _cft  # noqa: PLC0415
     import threading  # noqa: PLC0415
 
+    # Only the policy crosses the boundary — never the whole context. Galaxy scopes its SQLAlchemy
+    # session by the REQUEST_ID ContextVar (galaxy.model.base.request_scopefunc), so a thread that
+    # copied the request's context would share the request's session across threads and keep
+    # using it after the request closed it.
+    def _with_policy(policy: "LlmPolicy", fn):  # type: ignore[no-untyped-def]
+        def _call(*a, **k):  # type: ignore[no-untyped-def]
+            token = _policy.set(policy)
+            try:
+                return fn(*a, **k)
+            finally:
+                _policy.reset(token)
+        return _call
+
     _orig_submit = _cft.ThreadPoolExecutor.submit
 
     def submit(self, fn, /, *args, **kwargs):  # type: ignore[no-untyped-def]
-        ctx = contextvars.copy_context()
-        return _orig_submit(self, ctx.run, fn, *args, **kwargs)
+        policy = _policy.get()
+        if policy is None:
+            return _orig_submit(self, fn, *args, **kwargs)
+        return _orig_submit(self, _with_policy(policy, fn), *args, **kwargs)
 
     _cft.ThreadPoolExecutor.submit = submit  # type: ignore[assignment]
 
     _orig_start = threading.Thread.start
 
     def start(self):  # type: ignore[no-untyped-def]
-        ctx = contextvars.copy_context()
-        run = self.run
-
-        def _run_in_ctx() -> None:
-            ctx.run(run)
-
-        self.run = _run_in_ctx  # type: ignore[assignment]
+        policy = _policy.get()
+        if policy is not None:
+            self.run = _with_policy(policy, self.run)  # type: ignore[assignment]
         return _orig_start(self)
 
     threading.Thread.start = start  # type: ignore[assignment]
