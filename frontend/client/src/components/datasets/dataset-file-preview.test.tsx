@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor, cleanup } from "@testing-library/react"
+import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { gzipSync } from "node:zlib"
 import { DatasetFilePreview } from "./dataset-file-preview"
@@ -134,6 +134,43 @@ it("TIFF: an honest no-preview state with a Download link, never a broken <img>"
   const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="scan.tif" />)
   const state = await screen.findByTestId("dataset-preview-tiff")
   expect(state).toHaveTextContent("TIFF images cannot be displayed in the browser")
-  expect(screen.getByTestId("dataset-preview-tiff-download")).toHaveAttribute("href", "https://files.example/scan.tif")
+  expect(screen.getByTestId("dataset-preview-tiff-download")).toHaveAttribute("href", "/api/projects/p/files/f/url?redirect=1")
   expect(container.querySelector("img")).toBeNull()
+})
+
+it("an image the browser cannot decode says so instead of a broken icon (U6)", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/broken.png" }) }))
+  render(<DatasetFilePreview projectId="p" fileId="f" name="broken.png" />)
+  const img = await screen.findByTestId("dataset-preview-image")
+  fireEvent.error(img)
+  expect(await screen.findByTestId("dataset-preview-image-invalid")).toHaveTextContent("This file is not a valid image")
+  expect(screen.queryByTestId("dataset-preview-image")).toBeNull()
+})
+
+it("Markdown is rendered as a document (headings, emphasis), and raw HTML in it stays inert (U11)", async () => {
+  mockFile("# Study notes\n\nThis is a **markdown** note.\n\n<img src=x onerror=alert(1)>\n")
+  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="notes.md" />)
+  const doc = await screen.findByTestId("dataset-markdown")
+  expect(doc.querySelector("h1")).toHaveTextContent("Study notes")
+  expect(doc.querySelector("strong")).toHaveTextContent("markdown")
+  expect(doc).not.toHaveTextContent("# Study notes")
+  expect(container.querySelector("img")).toBeNull()
+})
+
+it("FASTQ is shown as reads with '@' ids and base quality, never as FASTA '>' records (U11)", async () => {
+  mockFile("@read1 extra\nACGTACGTAC\n+\nIIIIIIIIII\n@read2\nGGGG\n+\n!!!!\n")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="S1_R1.fastq" />)
+  const view = await screen.findByTestId("inline-fastq-viewer")
+  expect(view).toHaveTextContent("@read1")
+  expect(view.textContent).not.toContain(">read1")
+  expect(screen.getAllByTestId("inline-fastq-read")).toHaveLength(2)
+  // 'I' = Phred 40, '!' = Phred 0
+  expect(screen.getAllByTestId("inline-fastq-meta")[0]).toHaveTextContent("mean quality Phred 40.0")
+  expect(screen.getAllByTestId("inline-fastq-meta")[1]).toHaveTextContent("mean quality Phred 0.0")
+})
+
+it("content kind wins over the name: reads uploaded as .txt open in the reads viewer", async () => {
+  mockFile("@r1\nACGT\n+\nIIII\n")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="reads.txt" kind="reads" />)
+  expect(await screen.findByTestId("inline-fastq-viewer")).toHaveTextContent("@r1")
 })

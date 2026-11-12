@@ -1,5 +1,27 @@
-import { tOr } from "@/lib/i18n"
+import { t, tOr, locale } from "@/lib/i18n"
 import type { DataProfile } from "@/components/data-perception"
+import type { ViewKind } from "./dataset-view-model"
+
+/**
+ * A format label in the UI language. The profiler's labels are English ("FASTQ (gzip)",
+ * "Text (one value per line)", "Excel (xlsx)"): a whole label with its own translation
+ * (`perception.format_label.<ext>`) uses it; otherwise the descriptive qualifier in brackets
+ * is translated word by word (`perception.format_word.<word>`) and the format name kept.
+ */
+export function localizedFormatLabel(format: { ext?: string; label: string }): string {
+  const whole = format.ext ? tOr(`perception.format_label.${format.ext.replace(/\./g, "_")}`, "") : ""
+  if (whole) return whole
+  if (locale !== "zh") return format.label
+  const m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(format.label)
+  if (!m) return format.label
+  const inner = m[2].split(/\s*,\s*/).map((w) => tOr(`perception.format_word.${w.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, w)).join("，")
+  return `${m[1]}（${inner}）`
+}
+
+/** The human name of a data kind ("Table", "Sequencing reads", "Image") — shown instead of a MIME type. */
+export function kindLabel(kind: ViewKind): string {
+  return t(`dataset_obj.kind_${kind}`)
+}
 
 /** Generic storage MIME does not establish that a named JSON file is binary. */
 export function datasetContentType(name: string, declared?: string | null): string {

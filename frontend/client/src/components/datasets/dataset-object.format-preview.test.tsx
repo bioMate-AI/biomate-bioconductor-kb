@@ -81,7 +81,7 @@ describe("format chip", () => {
     const chip = await screen.findByTestId("dataset-header-format")
     expect(chip).toHaveTextContent("narrowPeak")
     expect(chip).toHaveAttribute("data-format-source", "galaxy")
-    expect(chip).toHaveAttribute("title", "File format: narrowPeak (identified by Galaxy datatype)")
+    expect(chip).toHaveAttribute("title", "File format: narrowPeak (identified from its datatype signature)")
     // Sits right after the version chip in the identity row.
     expect(screen.getByTestId("dataset-header-version").nextElementSibling).toBe(chip)
   })

@@ -17,7 +17,7 @@
  * scoped to that action and never replace the preview/provenance content.
  */
 
-import { useState, useEffect, type ReactNode } from "react"
+import { useState, useEffect, cloneElement, isValidElement, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,9 @@ import {
   Pencil,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
+import { datasetKind, datasetViewModel, effectiveQuality, type PreviewView } from "./dataset-view-model"
+import { AnnDataSummary, KindSummary, DownloadState } from "./dataset-kind-views"
+import { DatasetFilePreview } from "./dataset-file-preview"
 import { t, locale } from "@/lib/i18n"
 
 // Dates follow the APP language (not the browser default), so a Chinese UI never shows "Nov 10".
@@ -55,10 +58,7 @@ import { DatasetRowsTable } from "./dataset-rows-table"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
-
-/** Viewer kinds that show a file better than a generic sample table. */
-const HAS_RICH_VIEWER = ["structure", "sequence", "vcf", "annotation"]
-import { datasetContentType, datasetShape, openInErrorMessage } from "./dataset-presentation"
+import { datasetShape, kindLabel, localizedFormatLabel, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -93,6 +93,9 @@ export interface DatasetRef {
   /** sha256 content hash (dedup key), when known. */
   contentHash?: string | null
 }
+
+/** A save failure whose message is already localized for the user. */
+class EditError extends Error {}
 
 function formatBytes(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—"
@@ -129,9 +132,9 @@ const HEADER_QUALITY: Record<PerceptionQuality, { dot: string }> = {
   good: { dot: "bg-emerald-500" },
   watch: { dot: "bg-amber-500" },
   blocked: { dot: "bg-red-500" },
+  // Identified but not analysed: neutral, never a warning colour.
+  unassessed: { dot: "bg-muted-foreground/50" },
 }
-
-type PreviewView = "table" | "columns" | "plot" | "edit"
 
 export function DatasetObject({
   dataset,
@@ -147,8 +150,13 @@ export function DatasetObject({
   // "Where it came from" + Versions lazily fetch their backing data on first open.
   const [wherefromOpened, setWherefromOpened] = useState(false)
   const [versionsOpened, setVersionsOpened] = useState(false)
-  const [previewView, setPreviewView] = useState<PreviewView>("table")
-  const [tab, setTab] = useState<"preview" | "versions" | "wherefrom">("preview")
+  // View + tab choices belong to the file they were made on: opening another file starts
+  // from its own default view (an image never inherits "Columns" from the CSV before it).
+  const [viewSel, setViewSel] = useState<{ id: string; view: PreviewView } | null>(null)
+  const [tabSel, setTabSel] = useState<{ id: string; tab: "preview" | "versions" | "wherefrom" } | null>(null)
+  const tab = tabSel?.id === dataset.id ? tabSel.tab : "preview"
+  const setTab = (next: "preview" | "versions" | "wherefrom") => setTabSel({ id: dataset.id, tab: next })
+  const setPreviewView = (view: PreviewView) => setViewSel({ id: dataset.id, view })
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
@@ -156,10 +164,13 @@ export function DatasetObject({
     dataset.ref,
     dataset.name,
   )
-  // The FULL rows of a project file (paged), parsed by the profiler's own readers.
-  // Falls back to the profile's sample only when the file is not a project file
+  // The file's data kind — content-first (the profiler read the bytes), else its extension — and
+  // the view model that decides which views, stats and actions apply to it.
+  const kind = datasetKind(dataset.name, profile)
+  // The FULL rows of a project file (paged), parsed by the profiler's own readers — only for
+  // kinds shown as rows. Falls back to the profile's sample when the file is not a project file
   // or not tabular (415).
-  const rowsQ = useDatasetRows(projectId, dataset.id, dataset.name)
+  const rowsQ = useDatasetRows(projectId, dataset.id, dataset.name, datasetViewModel(kind, { name: dataset.name }).useRows)
   const lineageQ = useDatasetLineage(wherefromOpened ? dataset.ref : null)
   // Consumers power both the Where-it-came-from lineage AND the Versions tab's
   // "used by N runs" on the current version (spec §4.4), so fetch for either.
@@ -177,9 +188,6 @@ export function DatasetObject({
   useEffect(() => { setOpenInError(null) }, [dataset.id])
   const fileExt = (dataset.name.split(".").pop() || "").toLowerCase()
   const openTool = /^(r|rds|rdata|rda)$/.test(fileExt) ? "rstudio" : "jupyter"
-  // Offer it for data files (a figure/pdf/html doesn't open in a kernel).
-  const canOpenIn = Boolean(projectId) &&
-    ["table", "sequence", "vcf", "annotation", "structure", "r-object", "singlecell", "text"].includes(resolveViewer(fileExt))
   const handleOpenIn = async () => {
     if (!projectId) return
     setOpeningIn(true); setOpenInError(null)
@@ -295,7 +303,6 @@ export function DatasetObject({
   // Edit-in-place → save as a new version (design §4.3/§4.4). Only tabular files in a project.
   // Editing happens on the full-rows table (untruncated values, any loaded row); the server
   // rewrites only the edited cells and refuses (409) if a cell no longer holds the value shown.
-  const editable = versionable && ["csv", "tsv", "tab", "txt"].includes(fileExt)
   const [cellEdits, setCellEdits] = useState<Record<string, { from: string; value: string }>>({})  // key `${row}:${col}`
   const onCellEdit = (row: number, col: number, from: string, value: string) =>
     setCellEdits((prev) => {
@@ -308,6 +315,8 @@ export function DatasetObject({
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [editSaved, setEditSaved] = useState<number | null>(null)
+  // Unsaved edits belong to the file they were typed into — never carried to the next file.
+  useEffect(() => { setCellEdits({}); setEditError(null); setEditSaved(null) }, [dataset.id])
   const handleSaveEdit = async () => {
     if (!projectId) return
     const edits = Object.entries(cellEdits).map(([k, e]) => {
@@ -322,17 +331,29 @@ export function DatasetObject({
         headers: { "Content-Type": "application/json" },
         // Row indices are data rows as the rows reader numbered them: after the header record when
         // the file has one, from line 1 when it does not (a header-less table).
-        body: JSON.stringify(rowsQ.headerRow === null ? { edits } : { edits, headerRows: rowsQ.headerRow ? 1 : 0 }),
+        // `baseVersion`: the version the edited rows were read from — the server refuses the save
+        // (409 version_conflict) if the file has moved on since, so an edit never lands on a
+        // row that someone else's save renumbered.
+        body: JSON.stringify({
+          edits,
+          ...(rowsQ.headerRow === null ? {} : { headerRows: rowsQ.headerRow ? 1 : 0 }),
+          ...(rowsQ.version != null ? { baseVersion: rowsQ.version } : {}),
+        }),
       })
       const j = await r.json().catch(() => ({}))
-      if (r.status === 409) throw new Error(t('dataset_obj.edit_conflict'))
-      if (!r.ok) throw new Error(t('dataset_obj.with_status', { message: t('dataset_obj.edit_failed'), status: r.status }))
+      if (r.status === 409) {
+        const code = (j as any)?.error
+        throw new EditError(t(code === "version_conflict" ? 'dataset_obj.edit_conflict_version'
+          : code === "cell_conflict" ? 'dataset_obj.edit_conflict_cell' : 'dataset_obj.edit_conflict'))
+      }
+      if (!r.ok) throw new EditError(t('dataset_obj.with_status', { message: t('dataset_obj.edit_failed'), status: r.status }))
       setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
       await loadProjectVersions()
       refetchProfile?.()
-      rowsQ.retry()
+      // Re-read the rows from the first page: the next edit must be based on the saved version.
+      rowsQ.reload()
     } catch (e: any) {
-      setEditError(e instanceof Error && (e.message.startsWith(t('dataset_obj.edit_failed')) || e.message === t('dataset_obj.edit_conflict')) ? e.message : t('dataset_obj.edit_failed'))
+      setEditError(e instanceof EditError ? e.message : t('dataset_obj.edit_failed'))
     } finally {
       setSavingEdit(false)
     }
@@ -364,10 +385,33 @@ export function DatasetObject({
   const hasFullRows = rowsQ.enabled && !rowsQ.unsupported && rowsQ.columns.length > 0
   const shapeRows = hasFullRows && rowsQ.total != null ? rowsQ.total : profileRows
   const shapeCols = hasFullRows ? rowsQ.columns.length : profileCols
-  const isTabular = hasFullRows || Boolean(profile?.columns?.length)
   // Columns + Plot views compute over the loaded full rows when present, else the sample.
   const statCols = hasFullRows ? rowsQ.columns : profile?.columns
-  const statRows = hasFullRows ? rowsQ.rows : profile?.sampleRows
+  const statRows = (hasFullRows ? rowsQ.rows : profile?.sampleRows) ?? []
+  const hasColumns = Boolean(statCols?.length)
+  const rowsInFlight = rowsQ.enabled && !rowsQ.unsupported && (rowsQ.error != null || (rowsQ.total == null && rowsQ.columns.length === 0))
+  const vm = datasetViewModel(kind, {
+    name: dataset.name,
+    hasColumns,
+    columnsPending: rowsInFlight || (isLoading && !hasColumns),
+    versionable,
+    projectFile: Boolean(projectId),
+  })
+  const editable = vm.canEdit
+  const canOpenIn = vm.canOpenIn
+  const previewView: PreviewView =
+    viewSel?.id === dataset.id && vm.views.includes(viewSel.view) ? viewSel.view : vm.views[0]
+  const quality = profile ? effectiveQuality(profile) : undefined
+  // The file's own viewer, told the content kind (a FASTQ named .txt shows as reads).
+  const kindPreview = isValidElement(preview) && preview.type === DatasetFilePreview
+    ? cloneElement(preview as React.ReactElement<{ kind?: string }>, { kind })
+    : preview
+  const viewToggles: Array<[PreviewView, typeof TableIcon, string]> = [
+    ["table", TableIcon, t('dataset_obj.view_table')],
+    ["columns", Columns3, t('dataset_obj.view_columns')],
+    ["plot", BarChart3, t('dataset_obj.view_plot')],
+    ["edit", Pencil, t('dataset_obj.view_edit')],
+  ]
 
   return (
     <Card className={`min-w-0 max-w-full ${className ?? ""}`} data-testid="dataset-object">
@@ -413,22 +457,22 @@ export function DatasetObject({
               data-testid="dataset-header-format"
               data-format-source={profile.format.source}
               title={t('dataset_obj.format_chip_title', {
-                label: profile.format.label,
+                label: localizedFormatLabel(profile.format),
                 source: t(profile.format.source === "galaxy" ? 'dataset_obj.format_source_galaxy' : 'dataset_obj.format_source_biomate'),
               })}
             >
-              {profile.format.label}
+              {localizedFormatLabel(profile.format)}
             </Badge>
           )}
-          {profile?.quality && HEADER_QUALITY[profile.quality] && (
+          {quality && HEADER_QUALITY[quality] && (
             <span
-              className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
+              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs${quality === "unassessed" ? " text-muted-foreground" : ""}`}
               data-testid="dataset-header-quality"
-              data-quality={profile.quality}
-              title={t('file_tree.quality', { quality: t('dataset_obj.quality_' + profile.quality) })}
+              data-quality={quality}
+              title={t('file_tree.quality', { quality: t('dataset_obj.quality_' + quality) })}
             >
-              <span className={`h-2 w-2 rounded-full ${HEADER_QUALITY[profile.quality].dot}`} />
-              {t('dataset_obj.quality_' + profile.quality)}
+              <span className={`h-2 w-2 rounded-full ${HEADER_QUALITY[quality].dot}`} />
+              {t('dataset_obj.quality_' + quality)}
             </span>
           )}
 
@@ -515,48 +559,32 @@ export function DatasetObject({
         </div>
 
           {/* ── Preview: Table / Columns / Plot + stat grid ── */}
-          {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview">
-            {/* Columns and plots use the fetched sample, with a clear fallback
-                for non-tabular content that has no numeric columns. */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {([
-                ["table", TableIcon, t('dataset_obj.view_table')],
-                ["columns", Columns3, t('dataset_obj.view_columns')],
-                ["plot", BarChart3, t('dataset_obj.view_plot')],
-              ] as const).map(([key, Icon, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setPreviewView(key)}
-                  data-testid={`dataset-preview-toggle-${key}`}
-                  aria-pressed={previewView === key}
-                  className={
-                    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm " +
-                    (previewView === key
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "hover:bg-muted/50")
-                  }
-                >
-                  <Icon className="h-3 w-3" />{label}
-                </button>
-              ))}
-              {editable && (
-                <button
-                  type="button"
-                  onClick={() => setPreviewView("edit")}
-                  data-testid="dataset-preview-toggle-edit"
-                  aria-pressed={previewView === "edit"}
-                  className={
-                    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm " +
-                    (previewView === "edit" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted/50")
-                  }
-                >
-                  <Pencil className="h-3 w-3" />{t('dataset_obj.view_edit')}
-                </button>
-              )}
-            </div>
+          {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview" data-kind={kind}>
+            {/* View toggles only where a file has more than one meaningful view (tables and
+                records: Table / Columns / Plot / Edit). Every other kind has one view — its own. */}
+            {vm.views.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5" data-testid="dataset-preview-toggles">
+                {viewToggles.filter(([key]) => vm.views.includes(key)).map(([key, Icon, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPreviewView(key)}
+                    data-testid={`dataset-preview-toggle-${key}`}
+                    aria-pressed={previewView === key}
+                    className={
+                      "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm " +
+                      (previewView === key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "hover:bg-muted/50")
+                    }
+                  >
+                    <Icon className="h-3 w-3" />{label}
+                  </button>
+                ))}
+              </div>
+            )}
 
-            {previewView === "table" && (
+            {(previewView === "table" || (previewView === "content" && vm.content === "rows")) && (
               hasFullRows ? (
                 <DatasetRowsTable
                   columns={rowsQ.columns}
@@ -578,10 +606,9 @@ export function DatasetObject({
                 <div className="space-y-2" data-testid="dataset-preview-loading">
                   <Skeleton className="h-16 w-full" />
                 </div>
-              ) : preview && HAS_RICH_VIEWER.includes(resolveViewer(fileExt)) ? (
-                // The file's own viewer (3D structure, sequence, VCF, annotation) beats the
-                // profiler's sample table — a PDB was shown as whitespace-split rows.
-                preview
+              ) : !vm.tableShape && kindPreview ? (
+                // Intervals / annotation / molecules the rows reader declined: the file's own viewer.
+                kindPreview
               ) : profile?.columns?.length && profile.sampleRows?.length ? (
                 // Not a project file (no rows endpoint) — the profiler's sample, labelled as such.
                 <DatasetRowsTable
@@ -593,7 +620,7 @@ export function DatasetObject({
                   onNeedMore={() => {}}
                 />
               ) : (
-                preview ?? (
+                kindPreview ?? (
                   <p className="text-sm text-muted-foreground" data-testid="dataset-preview-none">
                     {t('dataset_obj.no_preview')}
                   </p>
@@ -601,17 +628,28 @@ export function DatasetObject({
               )
             )}
 
+            {previewView === "content" && vm.content === "viewer" && (
+              kindPreview ?? <DownloadState kind={kind} onDownload={onDownload} />
+            )}
+            {previewView === "content" && vm.content === "anndata" && (
+              isLoading ? <Skeleton className="h-16 w-full" /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} />
+            )}
+            {previewView === "content" && vm.content === "summary" && (
+              isLoading ? <Skeleton className="h-16 w-full" /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
+            )}
+            {previewView === "content" && vm.content === "download" && (
+              <DownloadState kind={kind} onDownload={onDownload} />
+            )}
+
             {previewView === "columns" && (
-              // Per-column type / % missing / distinct / watch chip (design §4.3) —
-              // derived client-side from the profiler's column headers + sampled rows
-              // + quality notes, labelled as sample-derived (we never present a sample
-              // stat as whole-file truth). Needs a table-like sample to profile.
-              statCols?.length && statRows?.length ? (
+              // Per-column type / % missing / distinct / watch chip (design §4.3) over the loaded
+              // rows; a header-only table still lists its columns ("no data rows yet").
+              hasColumns ? (
                 <div className="space-y-1">
                   <DatasetColumnsView
-                    columns={statCols}
+                    columns={statCols!}
                     sampleRows={statRows}
-                    notes={profile?.notes ?? []}
+                    findings={profile?.findings ?? []}
                     totalRows={shapeRows ?? undefined}
                     t={t}
                   />
@@ -622,35 +660,21 @@ export function DatasetObject({
                     </Button>
                   )}
                 </div>
-              ) : isLoading ? (
+              ) : (
                 <div className="space-y-2" data-testid="dataset-preview-columns-loading">
                   <Skeleton className="h-16 w-full" />
-                </div>
-              ) : (
-                <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-columns-none">
-                  <p>{t('dataset_obj.columns_not_tabular')}</p>
-                  {onAnalyze && (
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
-                      <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
-                    </Button>
-                  )}
                 </div>
               )
             )}
 
             {previewView === "plot" && (
-              // Leverage the SAMPLE rows already fetched for the Table view: chart
-              // numeric columns client-side (histogram) instead of the old "no plot
-              // data" stub. Non-numeric / too-small samples fall through to the
-              // spec-sanctioned fallback (§4.3): "if nothing numeric is present the
-              // view says so and offers Jupyter or chat, rather than an empty axis."
-              // Full-dataset distributions/PCA remain a Jupyter/chat path.
-              statCols?.length && statRows?.length &&
-              hasNumericColumns(statCols, statRows) ? (
-                <DatasetSamplePlot columns={statCols} sampleRows={statRows} t={t} />
+              // Histogram of a numeric column over the loaded rows. Nothing numeric (or no data
+              // rows) → say so and offer chat, rather than an empty axis (spec §4.3).
+              hasColumns && statRows.length && hasNumericColumns(statCols!, statRows) ? (
+                <DatasetSamplePlot columns={statCols!} sampleRows={statRows} t={t} />
               ) : (
                 <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
-                  <p>{t('dataset_obj.plot_future')}</p>
+                  <p>{t(hasColumns && !statRows.length ? 'dataset_obj.plot_no_rows' : 'dataset_obj.plot_future')}</p>
                   {onAnalyze && (
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
                       <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
@@ -678,7 +702,7 @@ export function DatasetObject({
                     edits={cellEdits}
                     onEdit={onCellEdit}
                   />
-                  {editError && <p className="text-xs text-destructive" data-testid="dataset-edit-error">{editError}</p>}
+                  {editError && <p role="alert" className="text-xs text-destructive" data-testid="dataset-edit-error">{editError}</p>}
                   {editSaved != null && <p className="text-xs text-emerald-600 dark:text-emerald-400" data-testid="dataset-edit-saved">{t('dataset_obj.edit_saved', { v: editSaved })}</p>}
                   <div className="flex items-center gap-2">
                     <Button
@@ -703,7 +727,9 @@ export function DatasetObject({
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
                   {t('dataset_obj.quality_heading')}
                 </p>
-                {onRunQC && (
+                {/* Run full QC only for data a QC workflow exists for (reads, alignments, tables…),
+                    never for an image, document or archive. */}
+                {onRunQC && vm.canRunQC && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -734,21 +760,20 @@ export function DatasetObject({
                   profile={profile}
                   planImpact={profile.planImpact}
                   datasetName={dataset.name}
+                  kind={kind}
                 />
               )}
             </div>
 
-            {/* Stat grid (design §4.3): rows · columns · size · current version. */}
+            {/* Stat grid (design §4.3): rows · columns (tables only) · size · kind. */}
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
               {/* Rows / columns only for tables: for reads, sequences, alignments or matrices the
-                  profile's shape is not rows × columns (FASTQ showed "COLUMNS 34" = read length);
-                  the QC card above shows those formats' own measures. */}
-              {isTabular && <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />}
-              {isTabular && <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />}
+                  shape is not rows × columns; the QC card above shows those kinds' own measures. */}
+              {vm.tableShape && hasColumns && <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString(INTL_LOCALE) : "—"} />}
+              {vm.tableShape && hasColumns && <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />}
               <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
-              <StatCard k={t('dataset_obj.stat_type')} v={datasetContentType(dataset.name, dataset.contentType)} />
+              <StatCard k={t('dataset_obj.stat_type')} v={kindLabel(kind)} testId="dataset-stat-type" />
             </div>
-
             {/* FUTURE: "Ask BioMate to edit this" — a conversational edit that writes
                 a new version. Needs an edit-save / content-versioning endpoint
                 (POST versions appends a NOTE only). Tracked in the audit doc. */}
@@ -1022,9 +1047,9 @@ export function DatasetObject({
   )
 }
 
-function StatCard({ k, v }: { k: string; v: string }) {
+function StatCard({ k, v, testId }: { k: string; v: string; testId?: string }) {
   return (
-    <div className="min-w-0 rounded border px-2.5 py-2">
+    <div className="min-w-0 rounded border px-2.5 py-2" data-testid={testId}>
       <div className="text-fs-xs uppercase tracking-wide text-muted-foreground">{k}</div>
       <div className="text-sm font-mono font-semibold text-foreground [overflow-wrap:anywhere]" title={v}>{v}</div>
     </div>

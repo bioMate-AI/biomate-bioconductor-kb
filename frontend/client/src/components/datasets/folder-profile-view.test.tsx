@@ -108,7 +108,7 @@ describe("Folder view", () => {
     expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Orphan")
     const dl = screen.getByTestId("folder-samplesheet-download")
     expect(dl.getAttribute("href")).toBe("/api/projects/proj-1/folders/profile?path=pairs&download=samplesheet")
-    expect(screen.getByTestId("folder-rollup")).toHaveTextContent("3 file(s): 3 FASTQ (1 pairs)")
+    expect(screen.getByTestId("folder-rollup")).toHaveTextContent("Files: 3 — 3 FASTQ · pairs: 1")
     expect(screen.getByTestId("folder-profile-verdict")).toHaveTextContent("Paired + unpaired")
     const orphan = screen.getAllByTestId("folder-finding").find((e) => e.getAttribute("data-code") === "folder_fastq_orphan")!
     expect(orphan).toHaveTextContent("S2_R1.fastq.gz has no R2 mate in this folder — sample S2 would run single-end.")
