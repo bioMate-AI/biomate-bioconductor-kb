@@ -388,15 +388,28 @@ def _fetch_pdb(query: str) -> Dict:
                  "method": data.get("exptl", [{}])[0].get("method"),
                  "resolution": data.get("reflns", {}).get("d_resolution_high")}
             ]}
-    # Text search
-    payload = {
-        "query": {"type": "terminal", "service": "full_text",
-                  "parameters": {"value": query}},
-        # v2 pagination key is "paginate" (start/rows). The old "results_slice" is not
-        # a valid v2 field → HTTP 400 on every text search (dev finding, 2026-11-11,
-        # confirmed against the live endpoint).
-        "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}}
-    }
+    # For a gene/protein symbol, resolve → UniProt and search RCSB BY that accession.
+    # A bare full_text search for "ABL1" returned the newest entries matching the string
+    # anywhere (9F00, 9KTJ …), NOT ABL1 structures — noise that made the synthesis distrust
+    # the structure evidence and fall back to general knowledge (dev finding, 2026-11-12).
+    _acc = resolve_gene(query).get("uniprot") if not _UNIPROT_ACC_RE.match(query.strip()) else query.strip().upper()
+    if _acc:
+        payload = {
+            "query": {"type": "group", "logical_operator": "and", "nodes": [
+                {"type": "terminal", "service": "text", "parameters": {
+                    "attribute": "rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_accession",
+                    "operator": "exact_match", "value": _acc}},
+                {"type": "terminal", "service": "text", "parameters": {
+                    "attribute": "rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_name",
+                    "operator": "exact_match", "value": "UniProt"}}]},
+            "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}},
+        }
+    else:
+        # Non-gene free text (e.g. a complex/ligand phrase): full-text fallback.
+        payload = {
+            "query": {"type": "terminal", "service": "full_text", "parameters": {"value": query}},
+            "return_type": "entry", "request_options": {"paginate": {"start": 0, "rows": 5}},
+        }
     data = _post_json("https://search.rcsb.org/rcsbsearch/v2/query", payload)
     ids = [r["identifier"] for r in (data or {}).get("result_set", [])[:5]]
     return {"source": "pdb", "results": [{"pdb_id": i} for i in ids]}
