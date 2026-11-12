@@ -112,12 +112,14 @@ def test_folder_profile_endpoint(d):
     assert out["kind"] == "tenx_matrix", out
     s = out["tenx"]["sets"][0]
     assert (s["genes"], s["cells"], s["nnz"]) == (33538, 5, 200000), s
-    assert fake.calls == [(P._default_bucket(), key)], fake.calls  # only the matrix head, by key
+    # Each validated project object's head is read ONCE, by its key (round 3, W9: the roll-up is
+    # labelled by each file's content decision; the matrix's dims reuse the same head).
+    assert sorted(fake.calls) == sorted((P._default_bucket(), f["datasetRef"]) for f in req.files), fake.calls
 
     names = ["pairs/S1_R1.fastq.gz", "pairs/S1_R2.fastq.gz", "pairs/S2_R1.fastq.gz"]
     out = P.perception_folder_profile(P.FolderProfileRequest(path="pairs", files=[{"name": n, "datasetRef": None} for n in names]))
     assert out["kind"] == "fastq_set" and out["fastq"]["pairs"] == 1 and out["fastq"]["orphans"] == ["pairs/S2_R1.fastq.gz"], out
-    assert len(out["samplesheet"]["rows"]) == 2
+    assert len(out["samplesheet"]["rows"]) == 1 and len(out["samplesheet"]["single"]["rows"]) == 1  # P10
     print("PASS test_folder_profile_endpoint")
 
 

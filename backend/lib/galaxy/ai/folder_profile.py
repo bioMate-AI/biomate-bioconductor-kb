@@ -408,6 +408,8 @@ def _fastq_section(fastq_paths: Sequence[str], engine: str = "auto") -> Dict[str
     return {
         "verdict": verdict,
         "pattern": (patterns or [None])[0],
+        # Every read-token style in use (per directory): S1_R1/_R2 beside WT_1_1/_2 is BOTH.
+        "patterns": patterns,
         "engine": used_engine,
         "engineReason": "; ".join(reasons) if used_engine == "fallback" and reasons else None,
         "pairs": n_pairs,
@@ -418,10 +420,12 @@ def _fastq_section(fastq_paths: Sequence[str], engine: str = "auto") -> Dict[str
     }
 
 
-def samplesheet(samples: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-    """nf-core style samplesheet (sample,fastq_1,fastq_2): one row per sample/run; single-end and
-    orphan rows leave fastq_2 empty (a lone R2 becomes that row's fastq_1). Paths are the project
-    file paths. Spaces in sample names become "_" (nf-core rejects them)."""
+# Where samplesheet paths are relative to: the project's input files (the paths the project file
+# tree shows). A pipeline run resolves them against the staged inputs.
+SAMPLESHEET_PATH_BASE = "project inputs"
+
+
+def _sheet(samples: Sequence[Dict[str, Any]], filename: str, layout: str) -> Dict[str, Any]:
     rows = []
     for s in samples:
         fq1 = s.get("forward") or s.get("reverse") or ""
@@ -432,7 +436,28 @@ def samplesheet(samples: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     w.writerow(["sample", "fastq_1", "fastq_2"])
     w.writerows(rows)
     return {"columns": ["sample", "fastq_1", "fastq_2"], "rows": rows, "csv": buf.getvalue(),
-            "filename": "samplesheet.csv"}
+            "filename": filename, "layout": layout, "pathBase": SAMPLESHEET_PATH_BASE}
+
+
+def samplesheet(samples: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """nf-core style samplesheet(s) (sample,fastq_1,fastq_2), one row per sample/run, paths
+    relative to the project's inputs (``pathBase``). Spaces in sample names become "_" (nf-core
+    rejects them).
+
+    A run takes ONE layout, so paired and unpaired files are never mixed in one sheet: with at
+    least one pair, the sheet holds the paired samples only (``layout`` "paired") and the
+    orphans / single files go to a separate single-end sheet in ``single`` (``layout``
+    "single_end", fastq_2 empty, a lone R2 as that row's fastq_1) with ``excluded`` naming them;
+    without any pair the sheet IS the single-end sheet."""
+    paired = [s for s in samples if s.get("status") == "paired"]
+    unpaired = [s for s in samples if s.get("status") != "paired"]
+    if not paired:
+        return _sheet(unpaired, "samplesheet.csv", "single_end")
+    out = _sheet(paired, "samplesheet.csv", "paired")
+    if unpaired:
+        out["single"] = _sheet(unpaired, "samplesheet_single_end.csv", "single_end")
+        out["excluded"] = [s.get("forward") or s.get("reverse") for s in unpaired]
+    return out
 
 
 _PATTERN_LABEL = {"Rs": "_R1/_R2", "illumina": "_1/_2", "dot12s": ".1.fastq/.2.fastq"}
@@ -445,12 +470,17 @@ def profile_folder(
     read_head: Optional[Callable[[str], Optional[str]]] = None,
     classify: Callable[[str], Tuple[str, str]] = default_classify,
     engine: str = "auto",
+    decisions: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Profile the folder ``folder`` ("" = the project's input root) holding ``names`` (project
     file paths, every file below the folder, any depth).
 
     ``read_head(path)`` returns the first few KB of a file as text (decompressed) or None; it is
-    only called for the matrix of each 10x set. Returns the JSON shape the UI consumes.
+    only called for the matrix of each 10x set. ``decisions`` maps a path to the per-file profiler's
+    content decision for it (``{"ext", "label", "viewKind"}`` — data_perception.decide, the SAME
+    decision the file's own profile shows); the roll-up uses it, and ``classify`` (from the name)
+    only for files without one. A ``dir`` param of None in a 10x finding means the profiled
+    folder itself (the client says "this folder"). Returns the JSON shape the UI consumes.
     """
     folder = folder.strip("/")
     paths = sorted({n for n in names if n})
@@ -463,21 +493,33 @@ def profile_folder(
     sets = tenx_sets(paths)
     in_set = {s[r] for s in sets for r in ("matrix", "barcodes", "features") if r in s}
 
-    # Format roll-up (FASTQ carries its pair count).
-    counts: Dict[str, Dict[str, Any]] = {}
+    # Format roll-up (FASTQ carries its pair count), grouped by (format, label) so a TSV and a
+    # featureCounts table — both "tsv" — are listed as the file panel labels them.
+    counts: Dict[Tuple[str, str], Dict[str, Any]] = {}
     for p in paths:
-        key, label = ("fastq", "FASTQ") if p in fastqs else classify(p)
-        c = counts.setdefault(key, {"format": key, "label": label, "count": 0})
+        view: Optional[str] = None
+        dec = (decisions or {}).get(p)
+        if p in fastqs:
+            key, label, view = "fastq", "FASTQ", "reads"
+        elif dec and dec.get("ext") and dec.get("label"):
+            key, label, view = str(dec["ext"]), str(dec["label"]), dec.get("viewKind")
+        else:
+            key, label = classify(p)
+        c = counts.setdefault((key, label), {"format": key, "label": label, "count": 0})
+        if view and "viewKind" not in c:
+            c["viewKind"] = view
         c["count"] += 1
 
     if fastqs:
         fq = _fastq_section(fastqs, engine)
         out["fastq"] = fq
         out["samplesheet"] = samplesheet(fq["samples"])
-        counts["fastq"]["pairs"] = fq["pairs"]
-        pattern = _PATTERN_LABEL.get(fq["pattern"] or "", "")
+        counts[("fastq", "FASTQ")]["pairs"] = fq["pairs"]
+        labels = [_PATTERN_LABEL[x] for x in fq["patterns"] if x in _PATTERN_LABEL]
         if fq["pairs"]:
-            _finding(out, "folder_fastq_pairs", pairs=fq["pairs"], pattern=pattern)
+            # ``pattern``: every naming style in use, joined in English ("_R1/_R2 and _1/_2");
+            # ``patterns``: the same as a list, for a localized join.
+            _finding(out, "folder_fastq_pairs", pairs=fq["pairs"], pattern=" and ".join(labels), patterns=labels)
         for s in fq["samples"]:
             if s["status"] == "orphan":
                 name = posixpath.basename(s["forward"] or s["reverse"])
@@ -502,7 +544,12 @@ def profile_folder(
         for sample, n in sorted(runs.items()):
             if n > 1:
                 _finding(out, "folder_fastq_sample_runs", sample=sample, n=n)
-        _finding(out, "folder_samplesheet", rows=len(out["samplesheet"]["rows"]))
+        sheet = out["samplesheet"]
+        _finding(out, "folder_samplesheet", rows=len(sheet["rows"]), layout=sheet["layout"],
+                 path_base=SAMPLESHEET_PATH_BASE)
+        if sheet.get("single"):
+            _finding(out, "folder_samplesheet_single_end", rows=len(sheet["single"]["rows"]),
+                     filename=sheet["single"]["filename"], names=[posixpath.basename(x) for x in sheet["excluded"][:8]])
 
     if sets:
         tenx = []
@@ -520,13 +567,13 @@ def profile_folder(
                 rec.update(genes=dims["rows"], cells=dims["cols"], nnz=dims["nnz"])
                 _finding(out, "folder_tenx_recognised", cells=dims["cols"], genes=dims["rows"],
                          nnz=dims["nnz"] if dims["nnz"] is not None else "—", version=rec.get("version") or "",
-                         dir=rec["dir"] or ".")
+                         dir=rec["dir"] or None)
             else:
-                _finding(out, "folder_tenx_recognised_nodims", version=rec.get("version") or "", dir=rec["dir"] or ".")
+                _finding(out, "folder_tenx_recognised_nodims", version=rec.get("version") or "", dir=rec["dir"] or None)
                 if read_head is not None:
                     _finding(out, "folder_tenx_mtx_unreadable", "watch", name=posixpath.basename(s["matrix"]))
             if not s["complete"]:
-                _finding(out, "folder_tenx_incomplete", "watch", dir=rec["dir"] or ".",
+                _finding(out, "folder_tenx_incomplete", "watch", dir=rec["dir"] or None,
                          missing=", ".join(s["missing"]))
             tenx.append(rec)
         out["tenx"] = {"sets": tenx}

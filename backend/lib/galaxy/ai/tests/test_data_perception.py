@@ -307,12 +307,14 @@ def test_jsonl_records_not_csv(tmp):
 # imbalance discounted it" even when the only reduction was duplicate rows.
 # ---------------------------------------------------------------------------
 def test_effective_n_reason_dedup_without_label(tmp):
+    # Round 3 (2026-11-12, W7): effective N is a MODELLING notion, reported only with a confident
+    # label; an unlabelled table reports its duplicate rows instead (duplicateRows + a finding).
     rows = ["a,b"] + [f"{i},{i * 2}" for i in range(40)] + ["1,2"] * 10  # 10 exact duplicates
     path = _write(tmp, "dups.csv", "\n".join(rows) + "\n")
     p = profile_dataset(path)
-    assert p["effectiveN"] == 40, p
-    assert p["effectiveNReason"] == "dedup", p
+    assert "effectiveN" not in p and "label" not in p, p
     assert p["duplicateRows"] == 10, p
+    assert [f["params"] for f in p["findings"] if f["code"] == "duplicate_rows"] == [{"count": 10}], p["findings"]
     print("PASS test_effective_n_reason_dedup_without_label")
 
 
