@@ -537,14 +537,21 @@ export function DataPerception({
 
 /** A rendered finding line: its text, and its code (absent on a legacy free-text line). */
 type Line = { text: string; code?: string };
-const findingLine = (f: PerceptionFinding): Line => ({ text: findingText(f) + expectedQualifier(f), code: f.code });
+const findingLine = (f: PerceptionFinding): Line => ({ text: joinSentences(findingText(f), expectedQualifier(f)), code: f.code });
+
+/** Two sentences of one line: a space between them, except after full-width (Chinese)
+ *  punctuation, which carries its own spacing. */
+function joinSentences(first: string, second: string): string {
+  if (!second) return first;
+  return /[。！？；：，、）」』]$/.test(first) ? first + second : `${first} ${second}`;
+}
 
 /** An info-level (near-)constant column is EXPECTED (few rows / per-record metadata): said so, as a
  *  neutral note — never a warning. */
 function expectedQualifier(f: PerceptionFinding): string {
   const constantCode = f.code === "near_constant" || f.code === "constant_columns";
   const why = constantCode && f.level === "info" ? f.params?.expected : undefined;
-  return typeof why === "string" ? ` ${tOr(`perception.near_constant_expected_${why}`, "")}`.trimEnd() : "";
+  return typeof why === "string" ? tOr(`perception.near_constant_expected_${why}`, "").trim() : "";
 }
 
 function Section({ title, lines, testId }: { title: string; lines: Line[]; testId: string }) {

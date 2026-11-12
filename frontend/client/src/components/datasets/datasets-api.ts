@@ -44,6 +44,48 @@ export interface PerceptionResponse extends DataProfile {
  * a ref is supplied. Errors surface via `isError` so the caller can render an
  * honest "quality not available" state.
  */
+/** A profile request the server answered with an error status (a network failure has none).
+ *  `causeCode` is the proxy's transport cause (ECONNRESET, TIMEOUT …) when it reported one. */
+export class ProfileRequestError extends Error {
+  readonly status: number
+  readonly causeCode?: string
+  constructor(status: number, message: string, causeCode?: string) {
+    super(`${status}: ${message}`)
+    this.status = status
+    this.causeCode = causeCode
+  }
+}
+
+/** Why a profile request failed — a statement about the REQUEST, never about the file:
+ *  "forbidden" (403), "unreachable" (no response, or the backend/proxy is down: 502/503/504),
+ *  otherwise "failed". */
+export type ProfileFailure = "forbidden" | "unreachable" | "failed"
+export function profileFailure(err: unknown): ProfileFailure {
+  // fetch() rejects with a TypeError when no response arrived (network down, connection reset).
+  if (err instanceof TypeError) return "unreachable"
+  const status = err instanceof ProfileRequestError ? err.status : undefined
+  if (status === 403) return "forbidden"
+  if (status === 502 || status === 503 || status === 504) return "unreachable"
+  return "failed"
+}
+
+/** Profiling is read-only, so a request that did not reach the profiler is retried (twice); an
+ *  answer from the server (4xx, other 5xx) is not. Nor is a backend timeout (504, or the proxy's
+ *  TIMEOUT cause): the backend did receive it and spent the full timeout on it. */
+export function retryTransientProfile(failureCount: number, err: unknown): boolean {
+  if (failureCount >= 2 || profileFailure(err) !== "unreachable") return false
+  if (err instanceof ProfileRequestError && (err.status === 504 || err.causeCode === "TIMEOUT")) return false
+  return true
+}
+
+/** The error a failed profile response stands for, with the proxy's transport cause if given. */
+async function profileResponseError(res: Response, message: string): Promise<ProfileRequestError> {
+  const body = await res.json().catch(() => null)
+  const code = body && typeof body.cause?.code === "string" ? body.cause.code : undefined
+  return new ProfileRequestError(res.status, message, code)
+}
+export const profileRetryDelay = (attempt: number) => Math.min(400 * 2 ** attempt, 2000)
+
 export function usePerceptionProfile(
   datasetRef: string | null,
   name?: string,
@@ -53,7 +95,8 @@ export function usePerceptionProfile(
     enabled: !!datasetRef,
     // Profiling is deterministic; don't refetch aggressively.
     staleTime: 5 * 60 * 1000,
-    retry: false,
+    retry: retryTransientProfile,
+    retryDelay: profileRetryDelay,
     queryFn: async () => {
       const res = await fetch("/api/perception/profile", {
         method: "POST",
@@ -61,7 +104,7 @@ export function usePerceptionProfile(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ datasetRef, name }),
       })
-      if (!res.ok) throw new Error(`${res.status}: failed to profile dataset`)
+      if (!res.ok) throw await profileResponseError(res, "failed to profile dataset")
       return (await res.json()) as PerceptionResponse
     },
   })
@@ -510,10 +553,11 @@ export function useFolderProfile(projectId: string | null | undefined, path: str
     queryKey: ["/api/projects/folders/profile", projectId, path],
     enabled: !!projectId && path !== null,
     staleTime: 60 * 1000,
-    retry: false,
+    retry: retryTransientProfile,
+    retryDelay: profileRetryDelay,
     queryFn: async () => {
       const res = await fetch(folderProfileUrl(projectId!, path!), { credentials: "include" })
-      if (!res.ok) throw new Error(`${res.status}: failed to profile folder`)
+      if (!res.ok) throw await profileResponseError(res, "failed to profile folder")
       return (await res.json()) as FolderProfile
     },
   })

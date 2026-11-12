@@ -206,3 +206,37 @@ from round-2:
 
 Queued for the sync window after 74's. Verify post-sync: a broad ABL1 SAR query should
 surface BindingDB/Pharos/PDB in the DB-grounded answer (not fall back to literature-only).
+
+---
+
+## Budget fix deployed + remaining broad-query nuance (precisely diagnosed, 2026-11-12 ~08:25)
+
+The budget fix (a90b240743: per-entity wrapper 15s→25s) is DEPLOYED at b9d0ca2a (healthy).
+NOTE: backend-only syncs do NOT move build-info.json (a frontend artifact) — the ledger +
+"Sync OK at <commit>" are authoritative; the ancestry gate checks the ledger. Caused a brief
+cross-session confusion (a peer read build-info and thought the sync hadn't landed).
+
+Dev verification after the budget fix:
+- FOCUSED BindingDB query → WORKS (cites Kd 0.016 nM + SMILES). External APIs healthy.
+- BROAD ABL1 SAR query → STILL literature-only (no BindingDB/Pharos/PDB tables), ~66s.
+
+So the budget fix was necessary (real timeout-race bug) but NOT sufficient for broad queries.
+Precise remaining diagnosis (reasoned from code, needs dev-log confirmation):
+1. A broad ABL1 (protein) query selects **14 sources**; `_fed_out` caps `merged[:8]`, and the
+   merge-priority fix placed bindingdb/pharos at **positions 9–10** of the protein priority
+   (after uniprot/pdb/pdbe/alphafold/interpro/string/go/chembl) — so even when they return,
+   their rows are CUT by the top-8 cap.
+2. Deeper design mismatch: the facet router (`evidence_source_router`) orders sources by
+   QUERY INTENT (bioactivity → chembl/bindingdb/pharos first), but `_merge_results` RE-ORDERS
+   by a generic ENTITY-TYPE priority (protein → structure-first), burying the intent-selected
+   bioactivity sources. The merge should respect the facet-selected order (or the cap should
+   scale with how many sources were intent-selected).
+3. Per-run source variance (the broad answer also lacked PDB #2 → some sources return
+   empty/slow per run under the 14-wide fan-out + 12-thread pool + 15s internal timeout).
+
+DELIBERATELY NOT deploy-iterating a cap/priority tweak against inconsistent external timing
+(CLAUDE.md "No Speculative Deploys"). Correct next step (with dev logs): instrument the broad
+fan-out to log which sources return vs fail/timeout, then either (a) make `_merge_results`
+preserve the facet-selected order for the chosen sources, or (b) raise `_fed_out` merged cap /
+make it intent-aware, or (c) widen `_POOL_SIZE` ≥ max facet source count (14). The CORE
+capability is unaffected — PCSK9 and focused ABL1/BindingDB queries are verified working.

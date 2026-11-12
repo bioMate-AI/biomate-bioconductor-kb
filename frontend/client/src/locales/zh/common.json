@@ -595,6 +595,12 @@
     "rename_hint_short": "Enter 保存 · Esc 取消 · “/”表示文件夹",
     "quality_open_to_check": "导入质量：尚未检查——打开文件即可检查"
   },
+  "profile_error": {
+    "forbidden": "你没有查看该数据集概况的权限。",
+    "unreachable": "暂时无法连接分析服务，文件尚未检查，请稍后重试。",
+    "failed": "概况请求失败（{{status}}），文件尚未检查。",
+    "retry": "重试"
+  },
   "dataset_obj": {
     "quality_good": "良好",
     "quality_watch": "需关注",
@@ -618,7 +624,6 @@
     "quality_heading": "数据质检",
     "quality_sub": "对数据本身的快速启发式解读 — 并非完整的 QC 运行。如需真正的质量检查，请使用「运行完整质量检查」。",
     "quality_noref": "无法解析存储引用 — 该数据集暂时无法生成数据概况。",
-    "quality_error": "概况不可用 — 分析器无法读取该数据集。",
     "run_qc": "运行完整质量检查",
     "run_qc_tip": "打开一个附带此文件的对话，请 BioMate 生成质量控制报告。由 BioMate 决定如何检查——分析文件内容，或在合适时运行 QC 工作流。",
     "qc_request": "QC 报告：{{name}}。请对此文件运行质量控制（QC），并生成 QC 报告。",
@@ -2325,8 +2330,8 @@
       "vcf_sized_effect": "据此确定变异注释与过滤方案的规模",
       "no_columns": "未能从表格中解析出列。",
       "header_only": "有表头，但没有数据行。",
-      "constant_columns": "{{count}} 列为常量（每行都是同一个值）：{{columns}}。",
-      "near_constant": "{{count}} 列几乎为常量（超过 {{pct}}% 为同一值）：{{columns}}。",
+      "constant_columns": "常量列（每行都是同一个值）：{{columns}}。",
+      "near_constant": "近似常量列（超过 {{pct}}% 为同一值）：{{columns}}。",
       "high_missing": "{{count}} 列缺失值不少于 {{pct}}%：{{columns}}。",
       "label_spellings": "同一标签有两种写法：“{{a}}”和“{{b}}”。",
       "minority_class": "类别“{{label}}”仅占 {{pct}}% — 建议使用平衡采样。",
@@ -2434,7 +2439,7 @@
       "anndata_layers": "X 之外存储的数据层（{{count}} 个）：{{layers}}。",
       "anndata_no_layers": "没有额外的数据层：表达值仅存于 X 中。",
       "anndata_components": "文件中存储的组成部分（{{count}} 个）：{{components}}。",
-      "label_few_rows": "列“{{column}}”看似分组列（如处理条件），但只有 {{rows}} 行（至少需要 {{min_rows}} 行），因此未评估各组是否均衡，也未筛查能预测分组的列；批次、供体等列仍已与分组做了比对。",
+      "label_few_rows": "“{{column}}”看似分组列，但只有 {{rows}} 行（至少需要 {{min_rows}} 行），因此未评估各组是否均衡，也未筛查能预测分组的列；批次、供体等列仍已与分组做了比对。",
       "label_no_features": "列“{{column}}”看似分组列，但其余列均为标识符或注释，没有可在组间比较的内容。",
       "table_clean_label_unchecked": "{{rows}} 行 × {{cols}} 列；没有常量列或缺失值问题。",
       "duplicate_rows": "完全重复的行：{{count}} 行。",
