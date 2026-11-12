@@ -102,7 +102,7 @@ describe("round-3b in Chinese", () => {
         expect(text).toContain("完全重复的行：3 行。")
       } else {
         expect(rtl.screen.getByTestId("dataset-header-format")).toHaveTextContent("featureCounts 计数表")
-        expect(text).toContain("列“group”看似类别标签，但表格行数太少，无法检查类别平衡和数据泄漏（共 12 行；至少需要 20 行）。")
+        expect(text).toContain("列“group”看似分组列（如处理条件），但只有")
       }
       const leftover = leftoverEnglish(text, [
         "plate.xlsx", "counts.txt", "Plate1", "well", "od600", "A1", "Excel", "xlsx", "CSV", "Geneid", "S1", "G1", "group",
