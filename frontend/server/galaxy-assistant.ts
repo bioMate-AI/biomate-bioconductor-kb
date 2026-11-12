@@ -26,7 +26,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
-import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, requestAsksForSimulation, shouldRequireExecution, SYNTHETIC_DATA_REFUSAL, unbackedOutputFileClaims } from './execution-integrity';
+import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, shouldRequireExecution, syntheticDataAllowed, SYNTHETIC_DATA_REFUSAL, unbackedOutputFileClaims } from './execution-integrity';
 import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
@@ -873,6 +873,9 @@ export interface ChatContext {
   runCodeOutputFiles?: { turn: string; names: string[] };
   /** run_code refused a simulated-input attempt this turn — the turn must end on real data (the workflow card). */
   syntheticDataRefused?: { turn: string };
+  /** This turn's intent: the user asked for generated / example / synthetic data or a simulation.
+   *  undefined = no intent available this turn (run_code's guard then uses its keyword fallback). */
+  turnSyntheticDataRequested?: boolean;
   /** Set by the authenticated server route, never inferred from proxy fallback. */
   skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
@@ -2120,6 +2123,10 @@ export interface IntentDecomposition {
   needsThinking?: boolean;
   /** Name of a known workflow chain if the query maps to one, else null */
   chainHint?: string | null;
+  /** The user asked for generated / example / demo / synthetic data or a simulation (inferred from
+   *  meaning, any language). undefined = the classifier did not say (run_code's synthetic-input
+   *  guard then falls back to its keyword rule). */
+  userRequestedSyntheticData?: boolean;
   /** LLM's one-line explanation of WHY it classified the intent this way.
    * Computed by the classifier but historically only logged; surfaced to the
    * user as a persistent "why this routing" line. */
@@ -5370,6 +5377,7 @@ Rules:
 
     log('Processing message: ' + message.substring(0, 50));
     context.turnMessage = message;
+    context.turnSyntheticDataRequested = undefined;  // set from this turn's intent below, never carried over
 
     // IT launch shortcut: "帮我启动Jupyter / launch RStudio" → skip intent analysis,
     // call Galaxy IT API directly, return a response with the session URL.
@@ -5492,6 +5500,8 @@ Rules:
     onProgress?.('intent');
     log('Step 1: Analyzing intent');
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
+    // A degraded (keyword last-resort) decomposition carries no inferred intent: leave it unknown.
+    context.turnSyntheticDataRequested = decomposition.degraded ? undefined : decomposition.userRequestedSyntheticData;
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
 
     // Apply intentOverride from a prior IntentClarificationCard chip click.
@@ -8064,6 +8074,13 @@ key_terms: up to 8 specific technical terms that boost workflow search recall. P
 needs_thinking: true only when the query requires multi-step reasoning, pipeline design,
   troubleshooting, or methodology comparison. false for simple workflow execution requests.
 
+user_requested_synthetic_data: ALWAYS include (true/false). true when the user explicitly wants
+  generated values: to generate, simulate, mock up or use example / demo / toy / test / synthetic
+  data (in any language, e.g. "make an example dataset", "生成示例数据", "用模拟数据演示"), or a task that
+  is itself a simulation (Monte Carlo, power / sample-size analysis, simulated curves). false when
+  the user wants their own, attached, staged or a workflow's real built-in data analysed — even if
+  that data is not attached yet. Judge the meaning, not the words.
+
 chain_hint: ONLY set if the user explicitly requests a named multi-step pipeline that spans ALL
   the steps in that chain (e.g. "run the full drug discovery pipeline", "target-to-lead", "rare
   disease multi-modal workup"). NEVER set if the user asks for a single analysis type (RNA-seq,
@@ -8996,6 +9013,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
     const keyTerms: string[] = Array.isArray(result.key_terms) ? result.key_terms : [];
     const needsThinking: boolean = result.needs_thinking === true;
     const chainHint: string | null = typeof result.chain_hint === 'string' ? result.chain_hint : null;
+    // undefined when the classifier did not say — the run_code guard then uses its keyword fallback.
+    const userRequestedSyntheticData: boolean | undefined =
+      typeof result.user_requested_synthetic_data === 'boolean' ? result.user_requested_synthetic_data : undefined;
 
     // Multi-intent format: { intents: [...] }
     if (Array.isArray(result.intents) && result.intents.length > 0) {
@@ -9049,6 +9069,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         inputKinds: parseInputKinds(result.input_kinds),
         needsThinking,
         chainHint,
+        userRequestedSyntheticData,
         rationale: typeof result.rationale === 'string' ? result.rationale : undefined,
       };
     }
@@ -9090,6 +9111,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       inputKinds: parseInputKinds(result.input_kinds),
       needsThinking,
       chainHint,
+      userRequestedSyntheticData,
       rationale: intentRationale,
     };
   }
@@ -11465,8 +11487,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     // the RESULT. A genuine code error or an execution timeout is returned on the
     // first attempt; after retries the real error still surfaces (honest fallback).
     // Made-up input data never becomes a result: refuse (do not run) code that generates its own values
-    // when nothing was staged and the user did not ask for a simulation (EBV, dev 2026-11-11).
-    if (generatesSyntheticData(String(input.code || ''), datasetRefs.length) && !requestAsksForSimulation(context?.turnMessage || '')) {
+    // when nothing was staged and the user did not ask for generated data (EBV, dev 2026-11-11). Whether
+    // they asked is this turn's INTENT (syntheticDataAllowed), not a keyword match (audit round 9).
+    if (generatesSyntheticData(String(input.code || ''), datasetRefs.length)
+        && !syntheticDataAllowed(context?.turnSyntheticDataRequested, context?.turnMessage || '')) {
       console.warn('[GalaxyAssistant] run_code refused: synthetic input data with no staged inputs and no simulation request');
       if (context) context.syntheticDataRefused = { turn: context.turnMessage || '' };
       return { exit_code: 1, stdout: '', stderr: SYNTHETIC_DATA_REFUSAL, output_files: [], refused: 'synthetic_input_data' };
