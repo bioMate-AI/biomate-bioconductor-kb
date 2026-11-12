@@ -34,6 +34,7 @@ import { randomUUID, randomBytes, createHash } from "crypto";
 import { applyCellEdits, parseDelimited, pickDelimiter, type CellEdit } from "./delimited-text";
 import path from "path";
 import fs from "fs";
+import { loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
 
 async function ensureProjectMembersTable(): Promise<void> {
   await pool.query(`
@@ -1282,10 +1283,12 @@ export function registerProjectRoutes(app: Express): void {
     try {
       if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
       const fileRow = await pool.query(
-        `SELECT s3_key, name FROM project_files WHERE id = $1 AND project_id = $2`,
+        `SELECT s3_key, name, source FROM project_files WHERE id = $1 AND project_id = $2`,
         [fileId, id]
       );
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
+      // Folder facts the rows reader needs (a 10x features.tsv beside its matrix is header-less).
+      const folderContext = await loadFolderContext((q, p) => pool.query(q, p), id, fileRow.rows[0]);
       const { fetchGalaxyAsUser, galaxyBaseUrl } = await import("./galaxy-user-fetch");
       const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/rows`, {
         method: "POST",
@@ -1295,6 +1298,7 @@ export function registerProjectRoutes(app: Express): void {
           name: fileRow.rows[0].name,
           offset,
           limit: Math.min(limit, 1000),
+          ...(folderContext ? { folderContext } : {}),
         }),
         signal: AbortSignal.timeout(120_000),
       });
@@ -1322,6 +1326,52 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);
       res.status(502).json({ error: "rows_unavailable" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/folders/profile?path=<folder>[&download=samplesheet] ──
+  // What an input folder holds AS A WHOLE: FASTQ pairs / orphans + an nf-core samplesheet
+  // (Galaxy's auto_pairing), 10x matrix sets with cells × genes, or a format roll-up.
+  // `path` is relative to the inputs root ("" = root; a leading "inputs/" is accepted).
+  // Node selects the folder's files (owner/member scoped, like /rows); the Python
+  // folder_profile decides what they are (backend galaxy/ai/folder_profile.py). The S3 keys
+  // go to the backend only — the response carries project paths, never keys.
+  // ?download=samplesheet returns the samplesheet CSV as an attachment.
+  const MAX_FOLDER_FILES = 10_000;
+  app.get("/api/projects/:id/folders/profile", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    const folder = normalizeFolderPath(req.query.path);
+    if (folder === null) return res.status(400).json({ error: "invalid_path" });
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const files = await loadFolderFiles((q, p) => pool.query(q, p), id, folder);
+      if (folder && !files.length) return res.status(404).json({ error: "folder_not_found" });
+      if (files.length > MAX_FOLDER_FILES) return res.status(413).json({ error: "folder_too_large", max: MAX_FOLDER_FILES });
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await import("./galaxy-user-fetch");
+      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/folder_profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: folder, files: files.map((f) => ({ name: f.name, datasetRef: f.s3_key })) }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      const body: any = await resp.json().catch(() => null);
+      if (!resp.ok || !body || typeof body.kind !== "string") {
+        console.error(`[project_files] folder profile backend ${resp.status} for ${id}:${folder}`);
+        return res.status(502).json({ error: "folder_profile_unavailable" });
+      }
+      if (req.query.download === "samplesheet") {
+        const csv = body.samplesheet?.csv;
+        if (typeof csv !== "string") return res.status(404).json({ error: "no_samplesheet" });
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${samplesheetFilename(folder)}"`);
+        return res.send(csv);
+      }
+      res.json(body);
+    } catch (e: any) {
+      console.error("[project_files] folder profile failed:", e?.message ?? e);
+      res.status(502).json({ error: "folder_profile_unavailable" });
     }
   });
 

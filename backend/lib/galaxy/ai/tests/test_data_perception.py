@@ -762,6 +762,47 @@ def test_plain_numeric_table_has_no_false_label_or_leakage(tmp):
     print("PASS test_plain_numeric_table_has_no_false_label_or_leakage")
 
 
+def test_folder_context_fastq_layout(tmp):
+    # Single vs paired-end is a FOLDER fact: with the folder context the FASTQ profile names its
+    # mate (or the missing one) instead of "single-end unless a mate file is present".
+    fq = "@r1/1\nACGT\n+\nIIII\n@r2/1\nACGA\n+\nIIII\n"
+    path = _write(tmp, "S1_R1.fastq", fq)
+    sib = ["pairs/S1_R1.fastq", "pairs/S1_R2.fastq", "pairs/S2_R1.fastq"]
+    paired = profile_dataset(path, name="pairs/S1_R1.fastq", context={"name": "pairs/S1_R1.fastq", "siblings": sib})
+    codes = {f["code"]: f for f in paired["findings"]}
+    assert "fastq_single_file" not in codes and "fastq_single_end" not in codes, codes
+    assert codes["fastq_paired_mate"]["params"] == {"read": "1", "sample": "S1", "mate": "S1_R2.fastq"}, codes
+    assert "fastq_paired_end" in codes and paired["quality"] == "good", paired
+    orphan = profile_dataset(path, name="pairs/S2_R1.fastq", context={"name": "pairs/S2_R1.fastq", "siblings": sib})
+    codes = {f["code"]: f for f in orphan["findings"]}
+    assert codes["fastq_mate_missing"]["params"] == {"read": "1", "missing": "2", "sample": "S2"}, codes
+    assert orphan["quality"] == "watch" and "fastq_single_file" not in codes, orphan
+    # No context (a file outside any project folder listing): the honest unknown stays.
+    bare = profile_dataset(path)
+    assert "fastq_single_file" in [f["code"] for f in bare["findings"]]
+    print("PASS test_folder_context_fastq_layout")
+
+
+def test_folder_context_tenx_headerless(tmp):
+    feats = ("ENSG00000243485\tMIR1302-2HG\tGene Expression\nENSG00000237613\tFAM138A\tGene Expression\n"
+             "ENSG00000186092\tOR4F5\tGene Expression\n")
+    path = _write(tmp, "features.tsv", feats)
+    ctx = {"name": "tenx/features.tsv", "siblings": ["tenx/matrix.mtx", "tenx/barcodes.tsv", "tenx/features.tsv"]}
+    prof = profile_dataset(path, name="tenx/features.tsv", context=ctx)
+    assert prof["shape"]["rows"] == 3 and prof["columns"][:3] == ["feature_id", "feature_name", "feature_type"], prof
+    assert prof["sampleRows"][0][0] == "ENSG00000243485", prof["sampleRows"]
+    assert "tenx_member_headerless" in [f["code"] for f in prof["findings"]]
+    page = _mod.read_rows(path, 0, 10, context=ctx)
+    assert page["headerRow"] is False and page["totalRows"] == 3 and page["rows"][0][1] == "MIR1302-2HG", page
+    # Without the folder context the generic inference keeps its own (documented) default.
+    assert _mod.read_rows(path, 0, 10)["headerRow"] is True
+    mtx = _write(tmp, "matrix.mtx", "%%MatrixMarket matrix coordinate integer general\n3 2 2\n1 1 4\n2 2 1\n")
+    mprof = profile_dataset(mtx, context={"name": "tenx/matrix.mtx", "siblings": ctx["siblings"]})
+    codes = {f["code"]: f for f in mprof["findings"]}
+    assert codes["mtx_tenx_set"]["params"] == {"features": "features.tsv", "barcodes": "barcodes.tsv"} and "mtx_orientation" not in codes, codes
+    print("PASS test_folder_context_tenx_headerless")
+
+
 def main():
     import inspect
 

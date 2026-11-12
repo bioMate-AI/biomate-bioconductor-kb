@@ -10,7 +10,12 @@
  *   - the QC card: quality chip + finding texts (or the QC card's own empty/error state);
  *   - visible errors (role=alert / destructive text) and page errors;
  *   - a screenshot e2e/screenshots/format-matrix/<name>.png.
- * For folders it also records what the file tree shows (folder row, file rows, counts).
+ * For folders it also records what the file tree shows (folder row, file rows, counts), then
+ * opens each folder as an object (folder view: GET /api/projects/:id/folders/profile) and
+ * ASSERTS the folder-level facts: pairs/ → S1 paired, S2_R1 orphan, a 2-row samplesheet that
+ * downloads from the UI; tenx/ → recognised 10x matrix with its cells × genes. The per-file
+ * consequences are asserted too: S1_R1's QC names its mate (no "single-end unless a mate is
+ * present"), S2_R1's says the mate is missing, features.tsv is header-less (10x spec).
  *
  * Results → e2e/format-matrix-results.json (written after every item, so a partial run keeps
  * what it measured). Per-format verdicts (PASS / PARTIAL / FAIL) are assigned in the report
@@ -191,7 +196,7 @@ async function snapshot(page: Page) {
         quality: perception?.getAttribute("data-quality") || null,
         chip: txt(qc ? q('[data-testid="perception-quality-badge"]', qc) : null, 60),
         findings: qc ? Array.from(qc.querySelectorAll('[data-testid="perception-why-item"]')).map((e) => ({ code: e.getAttribute("data-code"), text: (e as HTMLElement).innerText.trim() })) : [],
-        text: txt(qc, 900),
+        text: txt(qc, 2000),
       },
       stats: txt(stat, 300),
       errors,
@@ -349,6 +354,34 @@ test("dataset format matrix (measurement): upload → open → preview kind + QC
         await row.scrollIntoViewIfNeeded().catch(() => {});
         const box = await page.getByTestId("project-file-tree").first().boundingBox();
         await page.screenshot({ path: path.join(SHOTS, `folder-${folder}.png`), ...(box ? { clip: { x: box.x, y: Math.max(0, box.y), width: Math.max(1, box.width), height: Math.min(1080 - Math.max(0, box.y), Math.max(1, box.height)) } } : {}) }).catch(() => page.screenshot({ path: path.join(SHOTS, `folder-${folder}.png`) }));
+        // Open the folder as one object (the row click also toggles it; either way it opens).
+        await row.click({ timeout: 15_000 });
+        const view = page.getByTestId("folder-profile");
+        await expect(view).toHaveAttribute("data-path", folder, { timeout: 30_000 });
+        await expect(view).not.toHaveAttribute("data-kind", "", { timeout: 60_000 });
+        rec.view = await page.evaluate(() => {
+          const v = document.querySelector('[data-testid="folder-profile"]') as HTMLElement | null;
+          const all = (sel: string) => Array.from(v?.querySelectorAll(sel) ?? []) as HTMLElement[];
+          return v ? {
+            kind: v.getAttribute("data-kind"),
+            rollup: (v.querySelector('[data-testid="folder-rollup"]') as HTMLElement | null)?.innerText ?? null,
+            samples: all('[data-testid^="folder-sample-row-"]').map((r) => ({ testid: r.getAttribute("data-testid"), status: r.getAttribute("data-status"), text: r.innerText.trim() })),
+            orphans: all('[data-testid^="folder-orphan-"]').map((e) => e.getAttribute("data-testid")),
+            tenxDims: all('[data-testid="folder-tenx-dims"]').map((e) => e.innerText.trim()),
+            findings: all('[data-testid="folder-finding"]').map((e) => ({ code: e.getAttribute("data-code"), level: e.getAttribute("data-level"), text: e.innerText.trim() })),
+            hasDownload: !!v.querySelector('[data-testid="folder-samplesheet-download"]'),
+          } : null;
+        });
+        await view.screenshot({ path: path.join(SHOTS, `folder-${folder}-view.png`) }).catch(() => {});
+        if (folder === "pairs" && rec.view?.hasDownload) {
+          // The real download (cookie session, attachment) from the UI link.
+          const [dl] = await Promise.all([
+            page.waitForEvent("download", { timeout: 30_000 }),
+            page.getByTestId("folder-samplesheet-download").click(),
+          ]);
+          const p = await dl.path();
+          rec.samplesheet = { filename: dl.suggestedFilename(), csv: p ? fs.readFileSync(p, "utf8") : null };
+        }
       }
       out.folders[folder] = rec;
       save();
@@ -356,9 +389,34 @@ test("dataset format matrix (measurement): upload → open → preview kind + QC
     out.finishedAt = new Date().toISOString();
     save();
 
-    // Harness-level assertions only (the per-format outcome is a measurement).
+    // Harness-level assertions (the per-format outcome is a measurement).
     expect(out.items.length, "every item opened").toBe(ITEMS.length);
     expect(out.items.filter((r: any) => r.kind === "no-dataset-object").map((r: any) => r.key), "dataset object rendered for every item").toEqual([]);
+
+    // Folder-level facts (asserted): the folder view.
+    const pv = out.folders.pairs?.view;
+    expect(pv?.kind, "pairs/ is a FASTQ set").toBe("fastq_set");
+    expect(pv.samples.find((r: any) => r.testid === "folder-sample-row-S1")?.status, "S1 is paired").toBe("paired");
+    expect(pv.samples.find((r: any) => r.testid === "folder-sample-row-S2")?.status, "S2 is an orphan").toBe("orphan");
+    expect(pv.orphans, "S2_R1 flagged as orphan").toContain("folder-orphan-S2_R1.fastq.gz");
+    const sheet = String(out.folders.pairs?.samplesheet?.csv ?? "").trim().split("\n");
+    expect(sheet[0], "samplesheet header").toBe("sample,fastq_1,fastq_2");
+    expect(sheet.length - 1, "samplesheet has 2 rows (S1 pair + S2 orphan)").toBe(2);
+    expect(sheet[1]).toBe("S1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz");
+    const tv = out.folders.tenx?.view;
+    expect(tv?.kind, "tenx/ is a 10x matrix").toBe("tenx_matrix");
+    expect(tv.tenxDims[0] ?? "", "cells × genes shown").toMatch(/5\D+5/);
+    expect(tv.findings.map((f: any) => f.code)).toContain("folder_tenx_headerless");
+
+    // Per-file consequences of the folder context (asserted).
+    const item = (k: string) => out.items.find((r: any) => r.key === k);
+    const codes = (k: string) => (item(k)?.qc?.findings ?? []).map((f: any) => f.code);
+    // QC "why" items only list the verdict's reasons, so read the codes from the QC card text too.
+    const qcText = (k: string) => String(item(k)?.qc?.text ?? "");
+    expect(qcText("pairs-S1_R1"), "S1_R1 names its mate").toContain("S1_R2.fastq.gz");
+    expect(qcText("pairs-S1_R1")).not.toMatch(/unless a mate file is present/);
+    expect(codes("pairs-S2_R1").concat([qcText("pairs-S2_R1")]).join(" "), "S2_R1: mate missing").toMatch(/fastq_mate_missing|no read-2 mate/);
+    expect(item("tenx-features")?.columns ?? [], "features.tsv is header-less (10x spec)").toContain("feature_id");
   } finally {
     // Cleanup must not be silent: a failed delete leaks the project on the shared fixture account.
     let del = await request.delete(`${BASE_URL}/api/projects/${projectId}`, { headers: auth }).catch(() => null);

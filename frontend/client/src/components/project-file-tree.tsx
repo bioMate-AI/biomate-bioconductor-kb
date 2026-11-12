@@ -518,10 +518,13 @@ function FolderRow({
   onToggle,
   onRename,
   depth = 0,
+  selected = false,
 }: {
   node: FolderNode;
   expanded: boolean;
   onToggle: () => void;
+  /** This folder is the one open in the folder view. */
+  selected?: boolean;
   /** Rename / move this input folder (relative path, without "inputs/"); resolves to a localized error or null. */
   onRename?: (from: string, to: string) => Promise<string | null>;
   depth?: number;
@@ -547,12 +550,13 @@ function FolderRow({
     );
   }
   return (
-    <div className="group flex items-center rounded hover:bg-muted/40">
+    <div className={cn("group flex items-center rounded hover:bg-muted/40", selected && "bg-muted/60")}>
       <button
         onClick={onToggle}
         className="flex items-center gap-1.5 flex-1 min-w-0 px-2 py-1 text-left"
         style={{ paddingLeft: 16 + depth * 20 }}
         data-testid={`folder-${node.path}`}
+        aria-current={selected ? "true" : undefined}
       >
         <CIcon className="h-3 w-3 text-muted-foreground shrink-0" />
         <FIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
@@ -590,9 +594,15 @@ export interface ProjectFileTreeProps {
   /** Deep-link target: when this file id is present in the loaded list, open it
    *  as an object once (used by `/files?file=<id>` links from other surfaces). */
   selectFileId?: string;
+  /** Open an INPUT folder as one object (data hub folder view). Called with the folder path
+   *  relative to the inputs root ("" = inputs itself, "pairs", "run1/fastq") on every click of
+   *  its row (the click also expands/collapses it). Run-output groups are not folders. */
+  onOpenFolder?: (path: string) => void;
+  /** The input folder currently open in the folder view (same relative path). */
+  selectedFolder?: string | null;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
@@ -859,9 +869,21 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       );
     }
     const isOpen = Boolean(q) || expandedFolders.has(node.path);
+    // Input folders (rebuilt from file names) open as folder objects; run groups do not.
+    const inputRel = node.path === "inputs" ? "" : node.path.startsWith("inputs/") ? node.path.slice("inputs/".length) : null;
     return (
       <div key={node.path}>
-        <FolderRow node={node} depth={depth} expanded={isOpen} onToggle={() => toggleFolder(node.path)} onRename={canEdit ? handleRenameFolder : undefined} />
+        <FolderRow
+          node={node}
+          depth={depth}
+          expanded={isOpen}
+          selected={inputRel !== null && inputRel === selectedFolder}
+          onToggle={() => {
+            toggleFolder(node.path);
+            if (inputRel !== null) onOpenFolder?.(inputRel);
+          }}
+          onRename={canEdit ? handleRenameFolder : undefined}
+        />
         {isOpen && node.children.map((child) => renderNode(child, depth + 1))}
       </div>
     );

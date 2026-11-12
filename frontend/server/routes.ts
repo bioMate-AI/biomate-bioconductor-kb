@@ -9,7 +9,8 @@ import { hasPendingWorkflowClarification } from "../shared/workflow-response-sta
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
 import { planModelFold } from "./model-fold";
-import { authorizeDatasetReference } from "./dataset-reference-access";
+import { authorizeDatasetReference, projectDatasetKey } from "./dataset-reference-access";
+import { loadFolderContext } from "./project-folders";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
 import { normalizeUiLanguage, isChineseBrowser, zhDefaultModel } from "./response-language";
@@ -5962,8 +5963,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(403).json({ error: 'Dataset access could not be verified' });
     }
   };
-  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
-  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
+  // Folder facts for one file's profile (a FASTQ's mate, a 10x TSV's role) come from the
+  // project's file list, which only this server has: attach `folderContext` = {name, siblings}
+  // for a project input file, and never forward a client-supplied one (project-folders.ts).
+  const attachFolderContext = async (req: any, _res: any, next: any) => {
+    try {
+      if (req.body && typeof req.body === 'object') {
+        delete req.body.folderContext;
+        const key = projectDatasetKey(req.body.datasetRef, s3Service.getBucketName());
+        if (key && req.user?.id) {
+          const rows = await pool.query(`SELECT f.project_id, f.name, f.source FROM project_files f JOIN projects p ON p.id = f.project_id
+            WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
+              SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
+            )) LIMIT 1`, [key, String(req.user.id)]);
+          const row = rows.rows[0];
+          const ctx = row ? await loadFolderContext((q, p) => pool.query(q, p), String(row.project_id), row) : null;
+          if (ctx) req.body.folderContext = ctx;
+        }
+      }
+    } catch (error) {
+      // Context is an enhancement: without it the profile states the layout as unknown.
+      console.warn('[perception] folder context unavailable:', error instanceof Error ? error.message : error);
+    }
+    next();
+  };
+  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
+  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
   //   GET  /api/datasets/:ref/consumers  -> runs that read it as input

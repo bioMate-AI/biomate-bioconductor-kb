@@ -40,6 +40,7 @@ import {
   type ProjectFile,
 } from "@/components/project-file-tree"
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
+import { FolderProfileView } from "@/components/datasets/folder-profile-view"
 import { t, tOr, locale } from "@/lib/i18n"
 
 function toDatasetRef(f: ProjectFile): DatasetRef {
@@ -173,6 +174,9 @@ export default function DataHubPage() {
   // field the tree already fetched — no extra round-trip). Kept in memory,
   // mirroring the reference which holds the selection in component state.
   const [selected, setSelected] = useState<ProjectFile | null>(null)
+  // Or an input folder, opened as one object (pairs, 10x matrix, format roll-up). One of the
+  // two is shown; picking either replaces the other.
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
 
   // Deep-link: `/files?file=<datasetId>` opens that dataset as an object. This
   // is how a live reference chip elsewhere (composer, outputs, report) resolves
@@ -184,6 +188,7 @@ export default function DataHubPage() {
   // project is meaningless in another.
   useEffect(() => {
     setSelected(null)
+    setSelectedFolder(null)
   }, [activeProjectId])
 
   const handleDownload = async (file: ProjectFile) => {
@@ -249,14 +254,18 @@ export default function DataHubPage() {
           <div className="data-hub-file-list min-w-0">
             <ProjectFileTree
               projectId={activeProjectId}
-              onOpenDataset={(f) => setSelected(f)}
+              onOpenDataset={(f) => { setSelectedFolder(null); setSelected(f) }}
+              onOpenFolder={(p) => { setSelected(null); setSelectedFolder(p) }}
+              selectedFolder={selectedFolder}
               selectFileId={deepLinkFileId}
               canEdit
             />
           </div>
 
           <div className="min-w-0">
-            {selected ? (
+            {selectedFolder !== null && !selected ? (
+              <FolderProfileView projectId={activeProjectId} path={selectedFolder} />
+            ) : selected ? (
               <DatasetObject
                 dataset={toDatasetRef(selected)}
                 projectId={activeProjectId ?? undefined}

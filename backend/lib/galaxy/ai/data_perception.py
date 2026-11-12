@@ -219,17 +219,26 @@ _MAX_NAMED_COLUMNS = 8
 # ---------------------------------------------------------------------------
 # Public entrypoints
 # ---------------------------------------------------------------------------
-def profile_dataset(path: str, *, name: Optional[str] = None) -> Dict[str, Any]:
+def profile_dataset(
+    path: str, *, name: Optional[str] = None, context: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """Profile a dataset file and return the frontend ``DataProfile`` dict.
 
     Sniffs by extension + content, dispatches to a type-specific profiler, and
     always returns a valid shape. Never raises for a profilable-but-messy file;
     only truly-unreadable inputs yield a ``blocked`` verdict.
+
+    ``context`` = ``{"name": <project path>, "siblings": [<other paths in its folder>]}`` (the
+    server that owns the project's file list supplies it). Facts that live at FOLDER level —
+    a FASTQ's mate, a 10x features/barcodes file's role — come from it through the same
+    folder_profile functions the folder view uses; without it they are stated as unknown.
     """
-    return profile_to_dataclass(path, name=name).to_dict()
+    return profile_to_dataclass(path, name=name, context=context).to_dict()
 
 
-def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfile:
+def profile_to_dataclass(
+    path: str, *, name: Optional[str] = None, context: Optional[Dict[str, Any]] = None
+) -> DataProfile:
     """Same as :func:`profile_dataset` but returns the dataclass (for tests)."""
     display = name or (os.path.basename(path) if path else "")
     if not path or not os.path.exists(path):
@@ -275,7 +284,7 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
         elif kind in ("json", "yaml"):
             p = _profile_structured(path, kind)
         elif kind == "fastq":
-            p = _profile_fastq(path)
+            p = _profile_fastq(path, layout=_context_fastq(context))
         elif kind == "fasta":
             p = _profile_fasta(path)
         elif kind == "vcf":
@@ -293,14 +302,23 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
                  "watch", format=label)
             kind = "mismatch"
         elif kind == "table":
-            layout = holder[0] if holder else _table_layout(path)
-            p = _profile_table(path, layout=layout)
-            if layout.spec:
-                _spec_table_findings(p, path, layout, gext)
+            member = _context_tenx(context)
+            if member and member["role"] in _tenx_columns():
+                layout = _tenx_layout(path, member["role"])
+                p = _profile_table(path, layout=layout)
+                emit(p, "note", "tenx_member_headerless",
+                     f"Part of the 10x matrix {member['matrix']} in this folder: a header-less "
+                     f"{member['role']} file by the 10x specification (line 1 is data).",
+                     role=member["role"], matrix=member["matrix"])
+            else:
+                layout = holder[0] if holder else _table_layout(path)
+                p = _profile_table(path, layout=layout)
+                if layout.spec:
+                    _spec_table_findings(p, path, layout, gext)
         elif kind == "jsonl":
             p = _profile_table(path, reader=_read_jsonl)
         elif kind == "mtx":
-            p = _profile_mtx(path)
+            p = _profile_mtx(path, member=_context_tenx(context))
         else:
             p = _profile_unknown(path, display, gext, size)
     except BinaryContent:
@@ -363,6 +381,83 @@ def _galaxy_formats() -> Any:
         mod = None
     _GF_MODULE.append(mod)
     return mod
+
+
+_FP_MODULE: List[Any] = []
+
+
+def _folder_profile() -> Any:
+    """The folder_profile module (same loading rule as :func:`_galaxy_formats`)."""
+    if _FP_MODULE:
+        return _FP_MODULE[0]
+    mod = None
+    try:
+        import sys
+
+        if "galaxy.ai" in sys.modules:
+            import importlib
+
+            mod = importlib.import_module("galaxy.ai.folder_profile")
+        else:
+            import importlib.util
+
+            sib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "folder_profile.py")
+            spec = importlib.util.spec_from_file_location("_biomate_folder_profile", sib)
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules["_biomate_folder_profile"] = mod
+                spec.loader.exec_module(mod)
+    except Exception as exc:  # noqa: BLE001 — folder context is an enhancement, never required
+        log.warning("[perception] folder_profile unavailable: %s", exc)
+        mod = None
+    _FP_MODULE.append(mod)
+    return mod
+
+
+def _context_parts(context: Optional[Dict[str, Any]]) -> Optional[Tuple[str, List[str]]]:
+    if not isinstance(context, dict) or not isinstance(context.get("name"), str):
+        return None
+    sib = context.get("siblings")
+    if not isinstance(sib, list):
+        return None
+    return context["name"], [s for s in sib if isinstance(s, str)]
+
+
+def _context_fastq(context: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    parts = _context_parts(context)
+    fpm = _folder_profile() if parts else None
+    return fpm.fastq_layout(*parts) if fpm else None
+
+
+def _context_tenx(context: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    parts = _context_parts(context)
+    fpm = _folder_profile() if parts else None
+    return fpm.tenx_member(*parts) if fpm else None
+
+
+def rows_layout_key(context: Optional[Dict[str, Any]]) -> str:
+    """What in ``context`` changes how rows are read ("tenx:features" / "tenx:barcodes" / ""):
+    the rows cache keys its column/total metadata on it."""
+    member = _context_tenx(context)
+    return f"tenx:{member['role']}" if member and member["role"] in _tenx_columns() else ""
+
+
+def _tenx_columns() -> Dict[str, List[str]]:
+    fpm = _folder_profile()
+    return getattr(fpm, "TENX_COLUMNS", {}) if fpm else {}
+
+
+def _tenx_layout(path: str, role: str) -> "TableLayout":
+    """A 10x features/barcodes TSV: tab-delimited, NO header row (10x spec), spec column names."""
+    width = 0
+    with _open_text(path) as f:
+        for line in f:
+            if line.strip():
+                width = len(line.rstrip("\r\n").split("\t"))
+                break
+    names = list(_tenx_columns().get(role, []))[:width]
+    names += [f"column_{i + 1}" for i in range(len(names), width)]
+    return TableLayout("\t", names, "spec", header_row=False)
 
 
 def _galaxy_identify(path: str, name: str) -> Optional[str]:
@@ -1012,7 +1107,7 @@ def _spec_table_findings(p: DataProfile, path: str, layout: TableLayout, gext: O
             emit(p, "signal", "molecules_count", f"{n:,} molecule(s).", molecules=n)
 
 
-def _profile_mtx(path: str) -> DataProfile:
+def _profile_mtx(path: str, member: Optional[Dict[str, Any]] = None) -> DataProfile:
     """Matrix Market: dimensions + stored entries from the size line (the data is not read)."""
     p = DataProfile(quality="watch")
     banner = ""
@@ -1052,9 +1147,15 @@ def _profile_mtx(path: str) -> DataProfile:
     else:
         emit(p, "signal", "mtx_dense", f"{rows:,} × {cols:,} dense {field_ or 'matrix'} matrix ({obj or 'matrix'}).",
              rows=rows, cols=cols, field=field_)
-    emit(p, "note", "mtx_orientation",
-         "Matrix Market files carry no row/column names: pair this matrix with its features/barcodes files "
-         "(10x: rows are features, columns are cells).")
+    if member and member.get("role") == "matrix" and member.get("features") and member.get("barcodes"):
+        emit(p, "note", "mtx_tenx_set",
+             f"10x matrix: rows are the features in {member['features']}, columns the cells in "
+             f"{member['barcodes']} (same folder).",
+             features=member["features"], barcodes=member["barcodes"])
+    else:
+        emit(p, "note", "mtx_orientation",
+             "Matrix Market files carry no row/column names: pair this matrix with its features/barcodes files "
+             "(10x: rows are features, columns are cells).")
     emit(p, "note", "format_metadata_only",
          "Matrix Market header read; the values were not analysed.", "watch", format="Matrix Market")
     return p
@@ -1304,7 +1405,7 @@ def _profile_fasta(path: str) -> DataProfile:
 # ---------------------------------------------------------------------------
 # FASTQ
 # ---------------------------------------------------------------------------
-def _profile_fastq(path: str, sample_reads: int = 4000) -> DataProfile:
+def _profile_fastq(path: str, sample_reads: int = 4000, layout: Optional[Dict[str, Any]] = None) -> DataProfile:
     """Profile a FASTQ file: reads (sampled), mean length, mean quality.
 
     Read-counting mirrors DatasetValidator._count_fastq_reads (sampled,
@@ -1350,11 +1451,10 @@ def _profile_fastq(path: str, sample_reads: int = 4000) -> DataProfile:
          reads=n_reads, at_least=truncated, mean_len=int(round(mean_len)))
     emit(p, "signal", "fastq_mean_quality", f"Mean base quality Phred {mean_q:.1f} (sampled).",
          q=round(mean_q, 1))
-    # Single-end vs paired-end can't be known from one file — state honestly.
-    emit(p, "note", "fastq_single_file",
-         "Single FASTQ file profiled — single-end unless a mate file is present.")
-    emit(p, "plan", "fastq_single_end", "single FASTQ observed",
-         effect_text="suggested single-end pipeline (override if paired mate exists)")
+    # Single- vs paired-end is a fact about the FOLDER (is the mate there?), not about this
+    # file's bytes: decided from the folder context with Galaxy's pairing when the caller has
+    # it, else stated as unknown.
+    _fastq_layout_findings(p, layout)
 
     if mean_q and mean_q < 20:
         p.quality = "watch"
@@ -1370,6 +1470,38 @@ def _profile_fastq(path: str, sample_reads: int = 4000) -> DataProfile:
 # ---------------------------------------------------------------------------
 # VCF
 # ---------------------------------------------------------------------------
+def _fastq_layout_findings(p: DataProfile, layout: Optional[Dict[str, Any]]) -> None:
+    if not layout:
+        emit(p, "note", "fastq_single_file",
+             "Single FASTQ file profiled — single-end unless a mate file is present.")
+        emit(p, "plan", "fastq_single_end", "single FASTQ observed",
+             effect_text="suggested single-end pipeline (override if paired mate exists)")
+        return
+    read = "2" if layout.get("role") == "reverse" else "1"
+    sample = layout.get("sample") or ""
+    if layout["status"] == "paired":
+        emit(p, "note", "fastq_paired_mate",
+             f"Paired-end: read {read} of sample {sample}; its mate {layout['mate']} is in the same folder.",
+             read=read, sample=sample, mate=layout["mate"])
+        emit(p, "plan", "fastq_paired_end", "mate file in the same folder",
+             effect_text=f"paired-end pipeline (sample {sample})", sample=sample)
+    elif layout["status"] == "orphan":
+        missing = "1" if read == "2" else "2"
+        if p.quality == "good":
+            p.quality = "watch"
+        emit(p, "note", "fastq_mate_missing",
+             f"Read {read} of sample {sample}, but no read-{missing} mate is in this folder — it runs "
+             f"single-end unless the mate is added.",
+             "watch", read=read, missing=missing, sample=sample)
+        emit(p, "plan", "fastq_orphan_single_end", "mate file missing from the folder",
+             effect_text="single-end for this sample until the mate is added", sample=sample)
+    else:
+        emit(p, "note", "fastq_single_end_named",
+             "No read-1/read-2 naming and no mate in this folder: a single-end sample.")
+        emit(p, "plan", "fastq_single_end", "single FASTQ observed",
+             effect_text="suggested single-end pipeline (override if paired mate exists)")
+
+
 def _profile_vcf(path: str) -> DataProfile:
     """Profile a VCF: variant count (rows) and sample count (cols)."""
     p = DataProfile()
@@ -1780,6 +1912,7 @@ def read_rows(
     limit: int = 200,
     *,
     known: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """One page of a table-like file's FULL rows, parsed exactly as the profiler parses it.
 
@@ -1791,7 +1924,7 @@ def read_rows(
     which ``known`` already carries). Non-tabular kinds return ``tabular: False``.
     """
     try:
-        return _read_rows(path, offset, limit, known=known)
+        return _read_rows(path, offset, limit, known=known, context=context)
     except BinaryContent:
         return {"kind": "unknown", "tabular": False, "reason": "binary"}
 
@@ -1802,12 +1935,16 @@ def _read_rows(
     limit: int = 200,
     *,
     known: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     kind = _sniff_kind(path)
     if kind not in ("table", "jsonl"):
         return {"kind": kind, "tabular": False}
     layout: Optional[TableLayout] = None
-    if kind == "table":
+    member = _context_tenx(context) if kind == "table" else None
+    if member and member["role"] in _tenx_columns():
+        layout = _tenx_layout(path, member["role"])
+    elif kind == "table":
         try:
             layout = _table_layout(path)
         except BinaryContent:
