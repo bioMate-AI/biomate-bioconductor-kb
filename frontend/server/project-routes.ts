@@ -28,13 +28,15 @@ import { emailService } from "./email-service";
 import {
   projectInputPath, projectInputKey, decodeMultipartFilename,
   planFileRename, planFolderRename, objectKeyCandidates, pickFreeObjectKey,
+  decideIngest, ancestorNames,
 } from "./project-file-paths";
+import { downloadName } from "./content-disposition";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
 import { applyCellEdits, parseDelimited, pickDelimiter, type CellEdit } from "./delimited-text";
 import path from "path";
 import fs from "fs";
-import { loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
+import { likePrefix, loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
 
 async function ensureProjectMembersTable(): Promise<void> {
   await pool.query(`
@@ -186,146 +188,57 @@ async function ensureProjectFilesTable(): Promise<void> {
     )
   `).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS project_file_versions_file_idx ON project_file_versions(file_id, version_no)`).catch(() => {});
+  // When/by whom each version was WRITTEN (2026-11-12). project_files carries it for the current
+  // version; an archived row copies it, so the Versions tab shows each version's own time and
+  // author (archived rows' created_at/author are the archive event — when the NEXT version was
+  // written — which is what the tab used to show, one version off).
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_created_at TIMESTAMPTZ`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS version_author TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE project_file_versions ADD COLUMN IF NOT EXISTS version_created_at TIMESTAMPTZ`).catch(() => {});
+  await pool.query(`ALTER TABLE project_file_versions ADD COLUMN IF NOT EXISTS version_author TEXT`).catch(() => {});
+  // S3 keys handed to an in-flight write (upload/import/generated file) before its bytes are put
+  // and its row inserted — so key allocation under the project lock sees keys whose rows do not
+  // exist yet (see _storeProjectInput). Rows are deleted when the key becomes a file's s3_key.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_object_key_reservations (
+      s3_key      TEXT PRIMARY KEY,
+      project_id  TEXT NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
 
-/** Content-hash dedup lookup (§4.5.1): the existing project file with these exact
- *  bytes, or null. Returns the same column shape the ingest endpoints respond with. */
-async function _findProjectFileByHash(projectId: string, hash: string): Promise<any | null> {
-  try {
-    const r = await pool.query(
-      `SELECT id, name, s3_key, size, content_type, source, run_id, content_hash, created_at
-       FROM project_files WHERE project_id = $1 AND content_hash = $2 LIMIT 1`,
-      [projectId, hash]
-    );
-    return r.rows[0] || null;
-  } catch { return null; }  // never let a dedup lookup break ingest
+/** Anything with pg's query() — the pool, or a transaction client holding the project lock. */
+type Querier = { query: (text: string, params?: any[]) => Promise<any> };
+
+const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function _isUuid(v: unknown): boolean {
+  return typeof v === "string" && _UUID_RE.test(v);
 }
 
-/** The current user-ingested file with this name in the project (upload/url only —
- *  run outputs are immutable results, never versioned by a re-upload). */
-async function _findProjectFileByName(projectId: string, name: string, sources: string[] = ['upload', 'url']): Promise<any | null> {
-  try {
-    const r = await pool.query(
-      `SELECT id, name, s3_key, size, content_type, content_hash, version_no
-       FROM project_files
-       WHERE project_id = $1 AND name = $2 AND source = ANY($3::text[]) LIMIT 1`,
-      [projectId, name, sources]
-    );
-    return r.rows[0] || null;
-  } catch { return null; }
+/** Project file routes: project and file ids are UUIDs. Anything else names nothing → 404 (it
+ *  used to reach a uuid-typed comparison and come back as a 500/502 cast error). */
+function _projectFileIds(req: Request, res: Response, next: () => void): void {
+  const { id, fileId } = req.params as Record<string, string | undefined>;
+  if (!_isUuid(id)) { res.status(404).json({ error: "Project not found" }); return; }
+  if (fileId !== undefined && !_isUuid(fileId)) { res.status(404).json({ error: "File not found" }); return; }
+  next();
 }
 
 /**
- * The S3 key a NEW object (upload, URL import, generated file, or a new version) is written
- * to: the name-derived key when no project file or archived version references it, else the
- * same key with a numeric suffix. Keys are derived from names, and a rename never moves the
- * object, so after "a.csv" is renamed to "b.csv" its bytes still live at …/a.csv — without
- * this, uploading a new "a.csv" would overwrite them (and trip the (project_id, s3_key) index).
+ * Run `fn` in one transaction holding the project's file lock — the advisory lock every
+ * read-modify-write of a project's files takes (renames, folder moves, uploads, URL imports,
+ * generated files, edits, restores, deletes), so two writers can never both pass a check that
+ * only one of them may pass. Commits on return, rolls back on throw.
  */
-async function _allocateObjectKey(projectId: string, desired: string): Promise<string> {
-  const candidates = objectKeyCandidates(desired);
-  const r = await pool.query(
-    `SELECT s3_key FROM project_files WHERE project_id::text = $1 AND s3_key = ANY($2::text[])
-     UNION SELECT s3_key FROM project_file_versions WHERE project_id::text = $1 AND s3_key = ANY($2::text[])`,
-    [projectId, candidates]
-  );
-  const taken = new Set<string>(r.rows.map((x: any) => String(x.s3_key)));
-  return pickFreeObjectKey(candidates, taken) ?? `${desired}.${randomBytes(4).toString("hex")}`;
-}
-
-/** Append-only: archive a project file's CURRENT content as a project_file_versions
- *  row (design §4.4 — nothing a finished run read can change underneath it). The
- *  current bytes stay at their existing s3_key; this just records them as a past
- *  version so the new content can take over the project_files row. */
-/** Parse tabular text into headers + rows (capped). Delimiter from the extension,
- *  else sniffed. Used by the version Compare/diff (design §4.4). */
-function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
-  // Quote-aware, same rules as the rows reader and the edit route (delimited-text.ts).
-  const rows = parseDelimited(text, pickDelimiter(text, ext), 501);
-  return { headers: rows[0] || [], rows: rows.slice(1) };
-}
-
-async function _archiveCurrentAsVersion(cur: any, projectId: string, note: string, author: string): Promise<void> {
-  await pool.query(
-    `INSERT INTO project_file_versions
-       (file_id, project_id, version_no, s3_key, size, content_type, content_hash, note, author)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [cur.id, projectId, cur.version_no, cur.s3_key, cur.size,
-     cur.content_type, cur.content_hash ?? null, note, author]
-  );
-}
-
-/**
- * Store a project input file (browser upload or URL import): the same name with
- * different bytes becomes a new version (append-only, §4.4) — never an overwrite of
- * bytes a completed run used; otherwise a new file row. Caller has already done
- * content-hash dedup and resolved `key` through projectInputPath.
- */
-async function _storeProjectInput(o: {
-  id: string; uid: string; name: string; key: string; buf: Buffer;
-  contentType: string; contentHash: string; source: "upload" | "url" | "run_code";
-}): Promise<{ file: any; versioned: boolean }> {
-  // A regenerated analysis file versions the earlier generated one; an upload versions an upload.
-  const prior = await _findProjectFileByName(o.id, o.name, o.source === "run_code" ? ["run_code"] : ["upload", "url"]);
-  if (prior && prior.content_hash && prior.content_hash !== o.contentHash) {
-    const vkey = await _allocateObjectKey(o.id, `${o.key}.v${prior.version_no + 1}`);
-    await s3Service.putObject(vkey, o.buf, o.contentType, o.uid);
-    await _archiveCurrentAsVersion(prior, o.id, `v${prior.version_no}`, o.uid);
-    const upd = await pool.query(
-      `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
-         version_no = version_no + 1 WHERE id = $5
-       RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
-      [vkey, o.buf.length, o.contentType, o.contentHash, prior.id]
-    );
-    await recordProjectActivity(o.id, o.uid, "file_versioned", { fileId: prior.id, name: o.name, version: prior.version_no + 1 });
-    return { file: upd.rows[0], versioned: true };
-  }
-  const key = await _allocateObjectKey(o.id, o.key);
-  await s3Service.putObject(key, o.buf, o.contentType, o.uid);
-  const ins = await pool.query(
-    `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
-    [o.id, o.uid, o.name, key, o.buf.length, o.contentType, o.source, o.contentHash]
-  );
-  await recordProjectActivity(o.id, o.uid, "file_added", { fileId: ins.rows[0].id, name: o.name, source: o.source });
-  return { file: ins.rows[0], versioned: false };
-}
-
-const _FILE_COLUMNS =
-  "id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, content_hash, version_no, created_at";
-
-/**
- * Apply a rename plan atomically. Serialized per project (advisory xact lock) so two
- * concurrent renames can't both pass the collision check; the plan is computed from the rows
- * read INSIDE the lock, then every move is one UPDATE — all files move or none do.
- */
-async function _applyRenamePlan(
-  projectId: string,
-  plan: (rows: Array<{ id: string; name: string; source: string }>) => ReturnType<typeof planFileRename>,
-): Promise<ReturnType<typeof planFileRename>> {
+async function _withProjectLock<T>(projectId: string, fn: (c: Querier) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`project_files:${projectId}`]);
-    const rows = await client.query(
-      `SELECT id::text AS id, name, source FROM project_files WHERE project_id::text = $1`,
-      [projectId]
-    );
-    const out = plan(rows.rows);
-    if (!out.ok || out.moves.length === 0) { await client.query("ROLLBACK"); return out; }
-    const upd = await client.query(
-      `UPDATE project_files f SET name = v.new_name
-       FROM unnest($1::text[], $2::text[]) AS v(id, new_name)
-       WHERE f.id::text = v.id AND f.project_id::text = $3`,
-      [out.moves.map((m) => m.id), out.moves.map((m) => m.to), projectId]
-    );
-    if ((upd.rowCount ?? 0) !== out.moves.length) {
-      await client.query("ROLLBACK");
-      throw new Error(`rename updated ${upd.rowCount} of ${out.moves.length} rows`);
-    }
+    const out = await fn(client);
     await client.query("COMMIT");
     return out;
   } catch (e) {
@@ -334,6 +247,243 @@ async function _applyRenamePlan(
   } finally {
     client.release();
   }
+}
+
+/** Every column of a project_files row the write paths need (internal; never sent as-is). */
+const _ROW_COLUMNS =
+  "id::text AS id, project_id::text AS project_id, user_id, name, s3_key, size, content_type, source, run_id, " +
+  "content_hash, version_no, created_at, version_created_at, version_author";
+
+const _FILE_COLUMNS =
+  "id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, content_hash, version_no, created_at";
+const _FILE_KEYS = _FILE_COLUMNS.split(", ");
+
+/** The client-facing shape of a file row (the columns every ingest endpoint responds with). */
+function _publicFile(row: any): any {
+  if (!row) return row;
+  const out: Record<string, unknown> = {};
+  for (const k of _FILE_KEYS) if (k in row) out[k] = row[k];
+  return out;
+}
+
+/** Key reservations live 24 h: long enough for any upload's put, short enough that a crashed
+ *  request's reservation (whose object, if any, nothing references) is eventually reused. */
+const _RESERVATION_TTL = "24 hours";
+
+/**
+ * The S3 key a NEW object (upload, URL import, generated file, or a new version) is written
+ * to: the name-derived key when no project file, archived version or in-flight reservation
+ * references it, else the same key with a numeric suffix. Keys are derived from names, and a
+ * rename never moves the object, so after "a.csv" is renamed to "b.csv" its bytes still live at
+ * …/a.csv — without this, uploading a new "a.csv" would overwrite them. Call it with the
+ * project lock held (`q` = the locked client) and reserve/occupy the key before releasing it:
+ * a check-then-put without the lock let two uploads of one new name write the same key.
+ */
+async function _allocateObjectKey(q: Querier, projectId: string, desired: string): Promise<string> {
+  const candidates = objectKeyCandidates(desired);
+  const r = await q.query(
+    `SELECT s3_key FROM project_files WHERE project_id::text = $1 AND s3_key = ANY($2::text[])
+     UNION SELECT s3_key FROM project_file_versions WHERE project_id::text = $1 AND s3_key = ANY($2::text[])
+     UNION SELECT s3_key FROM project_object_key_reservations
+       WHERE project_id = $1 AND s3_key = ANY($2::text[]) AND created_at > now() - interval '${_RESERVATION_TTL}'`,
+    [projectId, candidates]
+  );
+  const taken = new Set<string>(r.rows.map((x: any) => String(x.s3_key)));
+  return pickFreeObjectKey(candidates, taken) ?? `${desired}.${randomBytes(4).toString("hex")}`;
+}
+
+async function _reserveObjectKey(q: Querier, projectId: string, key: string): Promise<void> {
+  await q.query(
+    `INSERT INTO project_object_key_reservations (s3_key, project_id) VALUES ($1, $2)
+     ON CONFLICT (s3_key) DO UPDATE SET project_id = EXCLUDED.project_id, created_at = now()`,
+    [key, projectId]
+  );
+}
+
+async function _releaseObjectKey(key: string): Promise<void> {
+  await pool.query(`DELETE FROM project_object_key_reservations WHERE s3_key = $1`, [key]);
+}
+
+/** Parse tabular text into headers + rows (capped). Delimiter from the extension,
+ *  else sniffed. Used by the version Compare/diff (design §4.4). */
+function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
+  // Quote-aware, same rules as the rows reader and the edit route (delimited-text.ts).
+  const rows = parseDelimited(text, pickDelimiter(text, ext), 501);
+  return { headers: rows[0] || [], rows: rows.slice(1) };
+}
+
+/**
+ * When and by whom a file's CURRENT version was written. Rows written since 2026-11-12 carry it
+ * (version_created_at / version_author). Older rows did not, and their archived versions were
+ * stamped with the ARCHIVE event (created_at/author = when/who wrote the NEXT version) — so for
+ * those, version n was written when version n-1 was archived, and v1 when the file was created.
+ */
+async function _currentVersionOrigin(q: Querier, cur: any): Promise<{ at: any; by: string | null }> {
+  if (cur.version_created_at) return { at: cur.version_created_at, by: cur.version_author ?? null };
+  if (Number(cur.version_no) > 1) {
+    const prev = await q.query(
+      `SELECT created_at, author FROM project_file_versions WHERE file_id::text = $1 AND version_no = $2
+       ORDER BY created_at ASC LIMIT 1`,
+      [String(cur.id), Number(cur.version_no) - 1]
+    );
+    if (prev.rows[0]) return { at: prev.rows[0].created_at, by: prev.rows[0].author ?? null };
+  }
+  return { at: cur.created_at, by: cur.user_id ?? null };
+}
+
+/** Append-only: archive a project file's CURRENT content as a project_file_versions row
+ *  (design §4.4 — nothing a finished run read can change underneath it). The current bytes stay
+ *  at their s3_key; the row records them as a past version — with the time and author of THAT
+ *  version (version_created_at / version_author) — so the new content can take over the
+ *  project_files row. `created_at` / `author` record the archive event itself. */
+async function _archiveCurrentAsVersion(q: Querier, cur: any, projectId: string, archivedBy: string): Promise<void> {
+  const origin = await _currentVersionOrigin(q, cur);
+  await q.query(
+    `INSERT INTO project_file_versions
+       (file_id, project_id, version_no, s3_key, size, content_type, content_hash, note, author, version_created_at, version_author)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [String(cur.id), projectId, Number(cur.version_no), cur.s3_key, cur.size, cur.content_type,
+     cur.content_hash ?? null, `v${cur.version_no}`, archivedBy, origin.at, origin.by]
+  );
+}
+
+/** The project rows an ingest of `name` (bytes hashing to `hash`) must consider: the same
+ *  bytes (dedup), the same name (version / clash), a file under `name/` (a folder of that name)
+ *  or a FILE named like one of `name`'s folders. */
+async function _ingestRows(q: Querier, projectId: string, name: string, hash: string): Promise<any[]> {
+  const r = await q.query(
+    `SELECT ${_ROW_COLUMNS} FROM project_files
+     WHERE project_id::text = $1
+       AND (content_hash = $2 OR name = $3 OR name LIKE $4 ESCAPE '\\' OR name = ANY($5::text[]))`,
+    [projectId, hash, name, `${likePrefix(name)}/%`, ancestorNames(name)]
+  );
+  return r.rows;
+}
+
+type StoreResult =
+  | { status: 201; file: any; versioned: false }
+  | { status: 200; file: any; versioned: true }
+  | { status: 200; file: any; deduplicated: true }
+  | { status: 409; code: "name_conflict"; error: string; conflicts: Array<{ name: string; existing: string }> };
+
+/** The HTTP body for a StoreResult (upload / URL import). */
+function _storeResponse(r: StoreResult): any {
+  if (r.status === 409) return { error: r.error, code: r.code, conflicts: r.conflicts };
+  if ("deduplicated" in r) return { file: r.file, deduplicated: true };
+  return r.versioned ? { file: r.file, versioned: true } : { file: r.file };
+}
+
+/**
+ * Store a project file from bytes (browser upload, URL import, generated file). One decision
+ * (decideIngest — the shared name rule) made twice under the project lock:
+ *   1. before the put: dedup / 409 return at once (nothing written); otherwise allocate the key
+ *      and RESERVE it, so no concurrent writer can be handed the same key;
+ *   2. the put runs without the lock (a 500 MB upload must not hold a DB connection + the
+ *      project's lock);
+ *   3. after the put: decide again on the rows as they are NOW. A concurrent upload of the same
+ *      name that landed first turns this one into its next version (or a dedup / 409, after
+ *      which this request's object is deleted). The version UPDATE carries the version_no it was
+ *      decided on, so the row and the bytes always describe the same object.
+ */
+async function _storeProjectInput(o: {
+  id: string; uid: string; name: string; key: string; buf: Buffer;
+  contentType: string; contentHash: string; source: "upload" | "url" | "run_code";
+}): Promise<StoreResult> {
+  const plan = await _withProjectLock(o.id, async (c) => {
+    const d = decideIngest(await _ingestRows(c, o.id, o.name, o.contentHash), o.name, o.source, o.contentHash);
+    if (d.kind === "dedup" || d.kind === "conflict") return { d, key: null as string | null };
+    const desired = d.kind === "version" ? `${o.key}.v${Number(d.row.version_no) + 1}` : o.key;
+    const key = await _allocateObjectKey(c, o.id, desired);
+    await _reserveObjectKey(c, o.id, key);
+    return { d, key };
+  });
+  if (plan.d.kind === "dedup") return { status: 200, file: _publicFile(plan.d.row), deduplicated: true };
+  if (plan.d.kind === "conflict") return { status: 409, code: "name_conflict", error: plan.d.error, conflicts: plan.d.conflicts };
+  const key = plan.key as string;
+
+  // The object is deleted BEFORE its reservation is released, so a key is never handed to a new
+  // writer while bytes this request wrote may still land on it.
+  const discard = async () => {
+    await s3Service.deleteFile(key);
+    await _releaseObjectKey(key).catch(() => {});
+  };
+  try {
+    await s3Service.putObject(key, o.buf, o.contentType, o.uid);
+  } catch (e) {
+    await discard().catch(() => {});
+    throw e;
+  }
+
+  let out: StoreResult & { orphan?: boolean; activity?: () => Promise<void> };
+  try {
+    out = await _withProjectLock(o.id, async (c) => {
+      const d = decideIngest(await _ingestRows(c, o.id, o.name, o.contentHash), o.name, o.source, o.contentHash);
+      if (d.kind === "dedup") return { status: 200 as const, file: _publicFile(d.row), deduplicated: true as const, orphan: true };
+      if (d.kind === "conflict") return { status: 409 as const, code: "name_conflict" as const, error: d.error, conflicts: d.conflicts, orphan: true };
+      if (d.kind === "version") {
+        await _archiveCurrentAsVersion(c, d.row, o.id, o.uid);
+        const upd = await c.query(
+          `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
+             version_no = version_no + 1, version_created_at = now(), version_author = $5
+           WHERE id::text = $6 AND version_no = $7
+           RETURNING ${_FILE_COLUMNS}`,
+          [key, o.buf.length, o.contentType, o.contentHash, o.uid, d.row.id, Number(d.row.version_no)]
+        );
+        if (!upd.rows[0]) throw new Error(`version precondition failed for file ${d.row.id} under the project lock`);
+        await c.query(`DELETE FROM project_object_key_reservations WHERE s3_key = $1`, [key]);
+        const file = upd.rows[0];
+        return { status: 200 as const, file, versioned: true as const,
+          activity: () => recordProjectActivity(o.id, o.uid, "file_versioned", { fileId: d.row.id, name: o.name, version: file.version_no }) };
+      }
+      const ins = await c.query(
+        `INSERT INTO project_files
+           (project_id, user_id, name, s3_key, size, content_type, source, content_hash, version_created_at, version_author)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), $2)
+         RETURNING ${_FILE_COLUMNS}`,
+        [o.id, o.uid, o.name, key, o.buf.length, o.contentType, o.source, o.contentHash]
+      );
+      await c.query(`DELETE FROM project_object_key_reservations WHERE s3_key = $1`, [key]);
+      const file = ins.rows[0];
+      return { status: 201 as const, file, versioned: false as const,
+        activity: () => recordProjectActivity(o.id, o.uid, "file_added", { fileId: file.id, name: o.name, source: o.source }) };
+    });
+  } catch (e) {
+    await discard().catch(() => {});
+    throw e;
+  }
+  if (out.orphan) await discard();
+  if (out.activity) await out.activity();
+  const { orphan: _o, activity: _a, ...result } = out as any;
+  return result as StoreResult;
+}
+
+/**
+ * Apply a rename plan atomically under the project lock: the plan is computed from the rows
+ * read INSIDE the lock (so two concurrent renames can't both pass the collision check), then
+ * every move is one UPDATE — all files move or none do.
+ */
+async function _applyRenamePlan(
+  projectId: string,
+  plan: (rows: Array<{ id: string; name: string; source: string }>) => ReturnType<typeof planFileRename>,
+): Promise<ReturnType<typeof planFileRename>> {
+  return _withProjectLock(projectId, async (c) => {
+    const rows = await c.query(
+      `SELECT id::text AS id, name, source FROM project_files WHERE project_id::text = $1`,
+      [projectId]
+    );
+    const out = plan(rows.rows);
+    if (!out.ok || out.moves.length === 0) return out;
+    const upd = await c.query(
+      `UPDATE project_files f SET name = v.new_name
+       FROM unnest($1::text[], $2::text[]) AS v(id, new_name)
+       WHERE f.id::text = v.id AND f.project_id::text = $3`,
+      [out.moves.map((m) => m.id), out.moves.map((m) => m.to), projectId]
+    );
+    if ((upd.rowCount ?? 0) !== out.moves.length) {
+      throw new Error(`rename updated ${upd.rowCount} of ${out.moves.length} rows`);
+    }
+    return out;
+  });
 }
 
 function userId(req: Request): string | null {
@@ -649,7 +799,7 @@ export function registerProjectRoutes(app: Express): void {
 
   // ─── GET /api/projects/:id/files ──────────────────────────────────────
   // List all files for a project (from DB metadata + optional S3 live scan for outputs).
-  app.get("/api/projects/:id/files", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/projects/:id/files", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
@@ -659,8 +809,7 @@ export function registerProjectRoutes(app: Express): void {
         return res.status(404).json({ error: "Project not found" });
       }
       const result = await pool.query(
-        `SELECT id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, content_hash, created_at
-         FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
+        `SELECT ${_FILE_COLUMNS} FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
         [id]
       );
       res.json({ files: result.rows });
@@ -676,7 +825,7 @@ export function registerProjectRoutes(app: Express): void {
   // compatibility plus a suggested typed column mapping when names differ —
   // "comparisons validate compatibility and request a typed mapping only when
   // needed". No compute is launched.
-  app.post("/api/projects/:id/files/compatibility", authenticateToken, async (req: Request, res: Response) => {
+  app.post("/api/projects/:id/files/compatibility", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
@@ -822,6 +971,7 @@ export function registerProjectRoutes(app: Express): void {
   app.post(
     "/api/projects/:id/files/upload",
     authenticateToken,
+    _projectFileIds,
     projectUpload.single("file"),
     async (req: Request, res: Response) => {
       const uid = userId(req);
@@ -845,14 +995,12 @@ export function registerProjectRoutes(app: Express): void {
         const key = `projects/${id}/inputs/${keyPath}`;
         const buf = fs.readFileSync(req.file.path);
         fs.unlink(req.file.path, () => {});
-        // Content-hash dedup (§4.5.1): the same bytes already in this project link
-        // to the one entry rather than creating two.
+        // Content-hash dedup (§4.5.1), same-name versioning and the name rule are decided under
+        // the project lock by _storeProjectInput: 201 new, 200 versioned / deduplicated, 409 clash.
         const contentHash = createHash("sha256").update(buf).digest("hex");
-        const dup = await _findProjectFileByHash(id, contentHash);
-        if (dup) return res.status(200).json({ file: dup, deduplicated: true });
         const ctype = uploadContentType(originalName, req.file.mimetype);
         const stored = await _storeProjectInput({ id, uid, name: originalName, key, buf, contentType: ctype, contentHash, source: "upload" });
-        res.status(stored.versioned ? 200 : 201).json(stored.versioned ? { file: stored.file, versioned: true } : { file: stored.file });
+        res.status(stored.status).json(_storeResponse(stored));
       } catch (e: any) {
         if (req.file?.path) fs.unlink(req.file.path, () => {});
         console.error("[project_files] upload failed:", e?.message ?? e);
@@ -869,7 +1017,7 @@ export function registerProjectRoutes(app: Express): void {
   // (512 MiB); larger files should use upload or a storage connector (a
   // streaming multipart import is a documented follow-up). SSRF-safe via
   // validateRemoteFileUrl (blocks credentials, private hosts, bad protocols).
-  app.post("/api/projects/:id/files/import-url", authenticateToken, async (req: Request, res: Response) => {
+  app.post("/api/projects/:id/files/import-url", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
@@ -907,8 +1055,6 @@ export function registerProjectRoutes(app: Express): void {
       }
       const buf = Buffer.concat(chunks);
       const contentHash = createHash("sha256").update(buf).digest("hex");
-      const dup = await _findProjectFileByHash(id, contentHash);
-      if (dup) return res.status(200).json({ file: dup, deduplicated: true });
       // Same name/key rules as a browser upload: the original name is kept for display
       // and the S3 key is collision-safe (a lossy basename let "数据.csv" and "样本.csv"
       // share one object), and the same name with new bytes becomes a new version
@@ -918,7 +1064,7 @@ export function registerProjectRoutes(app: Express): void {
       const key = `projects/${id}/inputs/${keyPath}`;
       const contentType = (resp.headers.get("content-type") || "").split(";")[0].trim() || "application/octet-stream";
       const stored = await _storeProjectInput({ id, uid, name: filename, key, buf, contentType, contentHash, source: "url" });
-      res.status(stored.versioned ? 200 : 201).json(stored.versioned ? { file: stored.file, versioned: true } : { file: stored.file });
+      res.status(stored.status).json(_storeResponse(stored));
     } catch (e: any) {
       const msg = e?.name === "TimeoutError" ? "The URL took too long to fetch (120s limit)." : (e?.message ?? "Import failed");
       console.error("[project_files] url import failed:", msg);
@@ -931,31 +1077,65 @@ export function registerProjectRoutes(app: Express): void {
   // archived project_file_versions, newest first. Each is a real byte-version at
   // its own S3 key (no bucket versioning). The dataset object renders these for a
   // project file in place of the Galaxy note-log.
-  app.get("/api/projects/:id/files/:fileId/versions", authenticateToken, async (req: Request, res: Response) => {
+  // Each entry: {version, label, current, size, createdAt, authorName?, author, authorId, note} —
+  // createdAt and the author are when / by whom THAT version was written (not when it was
+  // superseded); authorName is the display name (full name, else email), omitted when unknown
+  // (author is then null), authorId the user id.
+  app.get("/api/projects/:id/files/:fileId/versions", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
     try {
       if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
       const cur = await pool.query(
-        `SELECT version_no, size, created_at FROM project_files WHERE id = $1 AND project_id = $2`,
+        `SELECT ${_ROW_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
       if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
       const past = await pool.query(
-        `SELECT version_no, size, note, author, created_at FROM project_file_versions
-         WHERE file_id = $1 ORDER BY version_no DESC`,
+        `SELECT version_no, size, note, author, created_at, version_created_at, version_author
+         FROM project_file_versions WHERE file_id::text = $1 ORDER BY version_no DESC, created_at ASC`,
         [fileId]
       );
       const current = cur.rows[0];
-      const versions = [
-        { version: String(current.version_no), label: `v${current.version_no}`, current: true,
-          size: Number(current.size), createdAt: current.created_at, note: null, author: null },
-        ...past.rows.map((r: any) => ({
-          version: String(r.version_no), label: `v${r.version_no}`, current: false,
-          size: Number(r.size), createdAt: r.created_at, note: r.note, author: r.author,
+      const rows = past.rows as any[];
+      // The archive event of version k-1 (its created_at/author) is when/by whom version k was
+      // written: the origin of rows archived before version_created_at/version_author existed.
+      const archiveOf = new Map<number, any>();
+      for (const r of rows) if (!archiveOf.has(Number(r.version_no))) archiveOf.set(Number(r.version_no), r);
+      const originOf = (k: number, explicitAt: any, explicitBy: any): { at: any; by: string | null } => {
+        if (explicitAt) return { at: explicitAt, by: explicitBy ?? null };
+        const prev = k > 1 ? archiveOf.get(k - 1) : undefined;
+        if (prev) return { at: prev.created_at, by: prev.author ?? null };
+        return { at: current.created_at, by: current.user_id ?? null };
+      };
+      const entries = [
+        { k: Number(current.version_no), current: true, size: current.size, note: null,
+          ...originOf(Number(current.version_no), current.version_created_at, current.version_author) },
+        ...[...archiveOf.values()].map((r) => ({
+          k: Number(r.version_no), current: false, size: r.size, note: r.note ?? null,
+          ...originOf(Number(r.version_no), r.version_created_at, r.version_author),
         })),
       ];
+      const ids = [...new Set(entries.map((e) => e.by).filter((x): x is string => Boolean(x)))];
+      const names = new Map<string, string>();
+      if (ids.length) {
+        const users = await pool.query(
+          `SELECT id::text AS id, full_name, email FROM users WHERE id::text = ANY($1::text[])`,
+          [ids]
+        );
+        for (const u of users.rows) {
+          const display = String(u.full_name || "").trim() || String(u.email || "").trim();
+          if (display) names.set(String(u.id), display);
+        }
+      }
+      const versions = entries.map((e) => ({
+        version: String(e.k), label: `v${e.k}`, current: e.current,
+        size: Number(e.size), createdAt: e.at, note: e.note,
+        // authorName only when the user is known (never an id in its place); author = same, or null.
+        ...(e.by && names.has(e.by) ? { authorName: names.get(e.by) } : {}),
+        author: e.by ? (names.get(e.by) ?? null) : null, authorId: e.by,
+      }));
       res.json({ versions });
     } catch (e: any) {
       console.error("[project_files] versions failed:", e?.message ?? e);
@@ -963,36 +1143,66 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  /** Body `baseVersion`: the file version_no the client last saw. Edits require it (400 when
+   *  missing); restore honours it when sent. */
+  const parseBaseVersion = (raw: unknown): number | null => {
+    const n = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : raw;
+    return typeof n === "number" && Number.isInteger(n) && n >= 1 ? n : null;
+  };
+  const versionConflict = (currentVersion: number) => ({
+    error: "version_conflict",
+    message: "The file has a newer version than the one you edited; nothing was saved. Reload and edit again.",
+    currentVersion,
+  });
+
   // ─── POST /api/projects/:id/files/:fileId/versions/:versionNo/restore ──
   // Append-only restore (design §4.4 — "restoring writes a new version; history
   // never rewinds"). Archives the current content as a version, then points the
-  // file at the chosen version's (retained) bytes as a new current version.
-  app.post("/api/projects/:id/files/:fileId/versions/:versionNo/restore", authenticateToken, async (req: Request, res: Response) => {
+  // file at the chosen version's (retained) bytes as a new current version. Runs under the
+  // project lock; body {baseVersion} (optional): 409 version_conflict when the file moved on.
+  app.post("/api/projects/:id/files/:fileId/versions/:versionNo/restore", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId, versionNo } = req.params;
+    const target = Number(versionNo);
+    if (!Number.isInteger(target) || target < 1) return res.status(404).json({ error: "Version not found" });
+    const baseRaw = req.body?.baseVersion;
+    const base = baseRaw === undefined || baseRaw === null ? null : parseBaseVersion(baseRaw);
+    if (baseRaw !== undefined && baseRaw !== null && base === null) {
+      return res.status(400).json({ error: "baseVersion must be a positive integer (the file version you saw)." });
+    }
     try {
       if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
-      const cur = await pool.query(
-        `SELECT id, name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
-        [fileId, id]
-      );
-      if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
-      const target = await pool.query(
-        `SELECT s3_key, size, content_type, content_hash FROM project_file_versions WHERE file_id = $1 AND version_no = $2`,
-        [fileId, Number(versionNo)]
-      );
-      if (!target.rows[0]) return res.status(404).json({ error: "Version not found" });
-      await _archiveCurrentAsVersion(cur.rows[0], id, `v${cur.rows[0].version_no}`, uid);
-      const t = target.rows[0];
-      const upd = await pool.query(
-        `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
-           version_no = version_no + 1 WHERE id = $5
-         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
-        [t.s3_key, t.size, t.content_type, t.content_hash, fileId]
-      );
-      await recordProjectActivity(id, uid, "file_restored", { fileId, restoredFrom: Number(versionNo), newVersion: upd.rows[0].version_no });
-      res.json({ file: upd.rows[0], restoredFrom: Number(versionNo) });
+      const out = await _withProjectLock(id, async (c) => {
+        const cur = await c.query(
+          `SELECT ${_ROW_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2 FOR UPDATE`,
+          [fileId, id]
+        );
+        const f = cur.rows[0];
+        if (!f) return { status: 404, body: { error: "File not found" } };
+        if (base !== null && Number(f.version_no) !== base) return { status: 409, body: versionConflict(Number(f.version_no)) };
+        const t = await c.query(
+          `SELECT s3_key, size, content_type, content_hash FROM project_file_versions
+           WHERE file_id::text = $1 AND version_no = $2 ORDER BY created_at ASC LIMIT 1`,
+          [fileId, target]
+        );
+        if (!t.rows[0]) return { status: 404, body: { error: "Version not found" } };
+        await _archiveCurrentAsVersion(c, f, id, uid);
+        const v = t.rows[0];
+        const upd = await c.query(
+          `UPDATE project_files SET s3_key = $1, size = $2, content_type = $3, content_hash = $4,
+             version_no = version_no + 1, version_created_at = now(), version_author = $5
+           WHERE id::text = $6 AND version_no = $7
+           RETURNING ${_FILE_COLUMNS}`,
+          [v.s3_key, v.size, v.content_type, v.content_hash, uid, fileId, Number(f.version_no)]
+        );
+        if (!upd.rows[0]) throw new Error("restore: version precondition failed under the project lock");
+        return { status: 200, body: { file: upd.rows[0], restoredFrom: target } };
+      });
+      if (out.status === 200) {
+        await recordProjectActivity(id, uid, "file_restored", { fileId, restoredFrom: target, newVersion: (out.body as any).file.version_no });
+      }
+      res.status(out.status).json(out.body);
     } catch (e: any) {
       console.error("[project_files] restore failed:", e?.message ?? e);
       res.status(500).json({ error: "Restore failed" });
@@ -1004,20 +1214,22 @@ export function registerProjectRoutes(app: Express): void {
   // column-level diff against the current version, side by side"). Reads both
   // versions' bytes (readTextPrefix, capped), parses tabular, and returns the
   // column set diff + position-aligned changed cells (capped). Non-tabular files
-  // report a metadata-only diff (size/hash differ) honestly.
-  app.get("/api/projects/:id/files/:fileId/versions/:versionNo/diff", authenticateToken, async (req: Request, res: Response) => {
+  // report a metadata-only diff (size/hash differ) honestly. changedCells[].row is the 0-based
+  // data-row index, rowNumber the 1-based number shown to users (first row after the header = 1).
+  app.get("/api/projects/:id/files/:fileId/versions/:versionNo/diff", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId, versionNo } = req.params;
     try {
       if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
       const cur = await pool.query(
-        `SELECT name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        `SELECT name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
       if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
       const tgt = await pool.query(
-        `SELECT s3_key, size, content_hash FROM project_file_versions WHERE file_id = $1 AND version_no = $2`,
+        `SELECT s3_key, size, content_hash FROM project_file_versions WHERE file_id::text = $1 AND version_no = $2
+         ORDER BY created_at ASC LIMIT 1`,
         [fileId, Number(versionNo)]
       );
       if (!tgt.rows[0]) return res.status(404).json({ error: "Version not found" });
@@ -1041,13 +1253,13 @@ export function registerProjectRoutes(app: Express): void {
       const B = _parseTabular(tgtText, ext);  // target (older)
       const added = A.headers.filter((h) => !B.headers.includes(h));
       const removed = B.headers.filter((h) => !A.headers.includes(h));
-      const changedCells: Array<{ row: number; col: string; from: string; to: string }> = [];
+      const changedCells: Array<{ row: number; rowNumber: number; col: string; from: string; to: string }> = [];
       const nRows = Math.min(A.rows.length, B.rows.length);
       const nCols = Math.min(A.headers.length, B.headers.length);
       for (let i = 0; i < nRows && changedCells.length < 100; i++) {
         for (let j = 0; j < nCols; j++) {
           const av = A.rows[i]?.[j] ?? "", bv = B.rows[i]?.[j] ?? "";
-          if (av !== bv) changedCells.push({ row: i, col: A.headers[j] ?? String(j), from: bv, to: av });
+          if (av !== bv) changedCells.push({ row: i, rowNumber: i + 1, col: A.headers[j] ?? String(j), from: bv, to: av });
         }
       }
       res.json({
@@ -1066,15 +1278,29 @@ export function registerProjectRoutes(app: Express): void {
   // ─── POST /api/projects/:id/files/:fileId/edit ────────────────────────
   // Edit-in-place → write a new version (design §4.3/§4.4 — "saving an edit writes
   // a new version; it never overwrites"). The preview is only a SAMPLE, so the
-  // client sends cell EDITS {row,col,value} (row = index among the first rows the
-  // user saw); we apply them to the FULL file server-side and version it. Tabular
+  // client sends cell EDITS {row, col, from, value[, rowFrom]} (row = data-row index as the rows
+  // reader numbers them); we apply them to the FULL file server-side and version it. Tabular
   // only, size-capped (10 MiB) — larger files edit in Jupyter/RStudio.
-  app.post("/api/projects/:id/files/:fileId/edit", authenticateToken, async (req: Request, res: Response) => {
+  //
+  // Body: {edits, baseVersion, headerRows?}. baseVersion (REQUIRED) is the version_no the client
+  // read (rows route `version`). Outcomes:
+  //   200 {file, versioned, editedCells}  — a new version was written;
+  //   400 — malformed body / missing baseVersion;
+  //   409 {error:"version_conflict", currentVersion} — the file has moved on (nothing written);
+  //   409 {error:"cell_conflict", conflicts}       — a cell no longer holds `from` (nothing written);
+  //   413 — over 10 MiB; 422 — the bytes are not valid UTF-8 (rewriting would change them).
+  // The version check and the write run under the project lock and the UPDATE carries
+  // `version_no = baseVersion`, so two edits of one version can never both land.
+  app.post("/api/projects/:id/files/:fileId/edit", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
     const edits = Array.isArray(req.body?.edits) ? req.body.edits : null;
     if (!edits || edits.length === 0) return res.status(400).json({ error: "No edits provided" });
+    const baseVersion = parseBaseVersion(req.body?.baseVersion);
+    if (baseVersion === null) {
+      return res.status(400).json({ error: "baseVersion is required: the file version the edits were made on (the rows response `version`)." });
+    }
     // Header records before the data rows, as the rows reader reported (headerRow): 1 (default)
     // or 0 for a header-less file. A wrong value is caught by the `from` check below (409).
     const headerRowsRaw = req.body?.headerRows;
@@ -1082,10 +1308,25 @@ export function registerProjectRoutes(app: Express): void {
       return res.status(400).json({ error: "headerRows must be 0 or 1." });
     }
     const headerRows: 0 | 1 = headerRowsRaw === 0 ? 0 : 1;
+    // Each edit names the cell by data-row index + column index (as the Preview's rows reader
+    // numbers them) and carries the value the user saw (`from`) and optionally the whole row
+    // (`rowFrom`), so a mis-numbered edit cannot land on a different row that happens to hold
+    // the same value.
+    const parsed: CellEdit[] = [];
+    for (const e of edits) {
+      const r = Number(e?.row), c = Number(e?.col);
+      if (!Number.isInteger(r) || r < 0 || !Number.isInteger(c) || c < 0 || typeof e?.from !== "string") {
+        return res.status(400).json({ error: "Each edit needs row, col (column index) and from (the value shown)." });
+      }
+      if (e?.rowFrom !== undefined && !(Array.isArray(e.rowFrom) && e.rowFrom.every((v: unknown) => typeof v === "string"))) {
+        return res.status(400).json({ error: "rowFrom must be the row's values as strings." });
+      }
+      parsed.push({ row: r, col: c, from: e.from, value: String(e?.value ?? ""), ...(e?.rowFrom ? { rowFrom: e.rowFrom } : {}) });
+    }
     try {
       if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
       const row = await pool.query(
-        `SELECT name, s3_key, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        `SELECT ${_ROW_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
       if (!row.rows[0]) return res.status(404).json({ error: "File not found" });
@@ -1094,52 +1335,73 @@ export function registerProjectRoutes(app: Express): void {
       if (!["csv", "tsv", "tab", "txt"].includes(ext)) {
         return res.status(400).json({ error: "Only tabular files (csv/tsv) can be edited in place. Open it in Jupyter/RStudio for other formats." });
       }
+      // Stale before any read: nothing is read, written or archived.
+      if (Number(cur.version_no) !== baseVersion) return res.status(409).json(versionConflict(Number(cur.version_no)));
       const CAP = 10 * 1024 * 1024;
-      const size = await s3Service.getFileSize(cur.s3_key).catch(() => 0);
+      const size = await s3Service.getFileSize(cur.s3_key);
       if (size > CAP) return res.status(413).json({ error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
-      const text = await s3Service.readTextPrefix(cur.s3_key, CAP);
-      // The file is rewritten from decoded text: refuse unless decoding was lossless (valid UTF-8,
-      // whole file read) — otherwise saving would replace every invalid byte with U+FFFD.
-      if (!size || Buffer.byteLength(text, "utf-8") !== size || text.includes("\uFFFD")) {
+      // The WHOLE file (≤ 10 MiB). An object key is never rewritten (new bytes always get a new
+      // key), so these are exactly the bytes of baseVersion as long as s3_key is unchanged below.
+      const bytes = size > 0 ? await s3Service.readBuffer(cur.s3_key, size) : Buffer.alloc(0);
+      if (bytes.length !== size) throw new Error(`edit: read ${bytes.length} of ${size} bytes`);
+      // The file is rewritten from decoded text: refuse unless decoding is lossless (strict UTF-8,
+      // BOM kept) — otherwise saving would replace every invalid byte with U+FFFD.
+      let text: string;
+      try {
+        text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+      } catch {
         return res.status(422).json({ error: "This file is not plain UTF-8 text, so it cannot be edited in place without changing other bytes. Open it in Jupyter/RStudio to edit it." });
       }
       const delim = pickDelimiter(text, ext);
-      // Each edit names the cell by data-row index + column index (as the Preview's rows reader
-      // numbers them) and carries the value the user saw. Only the edited fields are rewritten
-      // (quoting, line endings and every other byte kept); if any cell no longer holds the value
-      // the user saw, nothing is written (409).
-      const parsed: CellEdit[] = [];
-      for (const e of edits) {
-        const r = Number(e?.row), c = Number(e?.col);
-        if (!Number.isInteger(r) || r < 0 || !Number.isInteger(c) || c < 0 || typeof e?.from !== "string") {
-          return res.status(400).json({ error: "Each edit needs row, col (column index) and from (the value shown)." });
-        }
-        parsed.push({ row: r, col: c, from: e.from, value: String(e?.value ?? "") });
-      }
+      // Only the edited fields are rewritten (quoting, line endings and every other byte kept);
+      // if any cell no longer holds the value the user saw, nothing is written (409).
       const result = applyCellEdits(text, delim, parsed, { headerRows });
       if (result.conflicts.length) {
         return res.status(409).json({
-          error: "The file changed or a cell no longer holds the value shown; nothing was saved. Reload and edit again.",
+          error: "cell_conflict",
+          message: "A cell no longer holds the value shown; nothing was saved. Reload and edit again.",
           conflicts: result.conflicts.slice(0, 20),
         });
       }
       const applied = result.applied;
       if (applied === 0) return res.status(400).json({ error: "None of the edits matched a cell." });
-      const newText = result.text;
-      const buf = Buffer.from(newText, "utf-8");
+      const buf = Buffer.from(result.text, "utf-8");
       const contentHash = createHash("sha256").update(buf).digest("hex");
-      // Keyed by the CURRENT name (after a rename, new versions live under the new name);
-      // never onto a key another file/version still references.
-      const vkey = await _allocateObjectKey(id, `${projectInputKey(id, String(cur.name), String(cur.name))}.v${cur.version_no + 1}`);
-      await s3Service.putObject(vkey, buf, cur.content_type, uid);
-      await _archiveCurrentAsVersion({ ...cur, id: fileId, size }, id, `v${cur.version_no}`, uid);
-      const upd = await pool.query(
-        `UPDATE project_files SET s3_key = $1, size = $2, content_hash = $3, version_no = version_no + 1 WHERE id = $4
-         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, version_no, created_at`,
-        [vkey, buf.length, contentHash, fileId]
-      );
-      await recordProjectActivity(id, uid, "file_versioned", { fileId, name: cur.name, version: cur.version_no + 1, editedCells: applied });
-      res.json({ file: upd.rows[0], versioned: true, editedCells: applied });
+      const out = await _withProjectLock(id, async (c) => {
+        const now = await c.query(
+          `SELECT ${_ROW_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2 FOR UPDATE`,
+          [fileId, id]
+        );
+        const f = now.rows[0];
+        if (!f) return { status: 404, body: { error: "File not found" } as any };
+        // Another edit / restore / upload landed since the read: nothing is put or archived.
+        if (Number(f.version_no) !== baseVersion || f.s3_key !== cur.s3_key) {
+          return { status: 409, body: versionConflict(Number(f.version_no)) };
+        }
+        // Keyed by the CURRENT name (after a rename, new versions live under the new name);
+        // never onto a key another file/version/in-flight upload references.
+        const vkey = await _allocateObjectKey(c, id, `${projectInputKey(id, String(f.name), String(f.name))}.v${baseVersion + 1}`);
+        await s3Service.putObject(vkey, buf, f.content_type, uid);
+        try {
+          await _archiveCurrentAsVersion(c, { ...f, size }, id, uid);
+          const upd = await c.query(
+            `UPDATE project_files SET s3_key = $1, size = $2, content_hash = $3,
+               version_no = version_no + 1, version_created_at = now(), version_author = $4
+             WHERE id::text = $5 AND version_no = $6
+             RETURNING ${_FILE_COLUMNS}`,
+            [vkey, buf.length, contentHash, uid, fileId, baseVersion]
+          );
+          if (!upd.rows[0]) throw new Error("edit: version precondition failed under the project lock");
+          return { status: 200, body: { file: upd.rows[0], versioned: true, editedCells: applied } };
+        } catch (e) {
+          await s3Service.deleteFile(vkey).catch(() => {});
+          throw e;
+        }
+      });
+      if (out.status === 200) {
+        await recordProjectActivity(id, uid, "file_versioned", { fileId, name: cur.name, version: baseVersion + 1, editedCells: applied });
+      }
+      res.status(out.status).json(out.body);
     } catch (e: any) {
       console.error("[project_files] edit failed:", e?.message ?? e);
       res.status(500).json({ error: "Edit failed" });
@@ -1153,14 +1415,14 @@ export function registerProjectRoutes(app: Express): void {
   // file id, never the name). New versions after a rename are keyed by the new name
   // (projectInputKey(cur.name)) via _allocateObjectKey. Owner/editor only (404 otherwise);
   // 400 on an invalid name or a run output; 409 when another file/folder already has the name.
-  app.patch("/api/projects/:id/files/:fileId", authenticateToken, async (req: Request, res: Response) => {
+  app.patch("/api/projects/:id/files/:fileId", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
     try {
       if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
       const out = await _applyRenamePlan(id, (rows) => planFileRename(rows, fileId, req.body?.name));
-      if (!out.ok) return res.status(out.status).json({ error: out.error, conflicts: out.conflicts });
+      if (!out.ok) return res.status(out.status).json({ error: out.error, ...(out.code ? { code: out.code } : {}), conflicts: out.conflicts });
       const m = out.moves[0];
       if (m) await recordProjectActivity(id, uid, "file_renamed", { fileId: m.id, from: m.from, to: m.to });
       const row = await pool.query(
@@ -1178,14 +1440,14 @@ export function registerProjectRoutes(app: Express): void {
   // Rename/move a folder: body {from, to} (folder paths as they appear in file names, e.g.
   // "run1/fastq" → "archive/run1"). Every user-managed file under `from/` is renamed in ONE
   // transaction; any clash refuses the whole move (409, nothing changed). Same rules as PATCH.
-  app.post("/api/projects/:id/files/rename-folder", authenticateToken, async (req: Request, res: Response) => {
+  app.post("/api/projects/:id/files/rename-folder", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id } = req.params;
     try {
       if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
       const out = await _applyRenamePlan(id, (rows) => planFolderRename(rows, req.body?.from, req.body?.to));
-      if (!out.ok) return res.status(out.status).json({ error: out.error, conflicts: out.conflicts });
+      if (!out.ok) return res.status(out.status).json({ error: out.error, ...(out.code ? { code: out.code } : {}), conflicts: out.conflicts });
       const ids = out.moves.map((m) => m.id);
       const from = out.from ?? String(req.body.from), to = out.to ?? String(req.body.to);
       await recordProjectActivity(id, uid, "folder_renamed", { from, to, count: ids.length, fileIds: ids.slice(0, 200) });
@@ -1201,7 +1463,12 @@ export function registerProjectRoutes(app: Express): void {
   });
 
   // ─── DELETE /api/projects/:id/files/:fileId ───────────────────────────
-  app.delete("/api/projects/:id/files/:fileId", authenticateToken, async (req: Request, res: Response) => {
+  // Removes the file, ALL its archived versions (rows and their S3 objects) under the project
+  // lock. Objects are deleted after the rows commit, and only those no remaining row references
+  // (a restore points the current row at an archived version's key; a run output's key may be
+  // shared by another registration). A failed object delete leaves an unreferenced object, never
+  // a row pointing at missing bytes.
+  app.delete("/api/projects/:id/files/:fileId", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
@@ -1212,54 +1479,105 @@ export function registerProjectRoutes(app: Express): void {
       if (!existing || !(await _isOwnerOrEditor(id, uid))) {
         return res.status(404).json({ error: "Project not found" });
       }
-      const fileRow = await pool.query(
-        `SELECT s3_key FROM project_files WHERE id = $1 AND project_id = $2`,
-        [fileId, id]
-      );
-      if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
-      await s3Service.deleteFile(fileRow.rows[0].s3_key);
-      await pool.query(`DELETE FROM project_files WHERE id = $1`, [fileId]);
+      const out = await _withProjectLock(id, async (c) => {
+        const f = await c.query(
+          `SELECT s3_key, name FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
+          [fileId, id]
+        );
+        if (!f.rows.length) return null;
+        const v = await c.query(
+          `DELETE FROM project_file_versions WHERE file_id::text = $1 AND project_id::text = $2 RETURNING s3_key`,
+          [fileId, id]
+        );
+        await c.query(`DELETE FROM project_files WHERE id::text = $1 AND project_id::text = $2`, [fileId, id]);
+        const keys = [...new Set<string>([f.rows[0].s3_key, ...v.rows.map((r: any) => r.s3_key)].map(String))];
+        const still = await c.query(
+          `SELECT s3_key FROM project_files WHERE s3_key = ANY($1::text[])
+           UNION SELECT s3_key FROM project_file_versions WHERE s3_key = ANY($1::text[])`,
+          [keys]
+        );
+        const kept = new Set<string>(still.rows.map((r: any) => String(r.s3_key)));
+        return { keys: keys.filter((k) => !kept.has(k)), versions: v.rows.length, name: f.rows[0].name };
+      });
+      if (!out) return res.status(404).json({ error: "File not found" });
+      const results = await Promise.all(out.keys.map((k) => s3Service.deleteFile(k)));
+      const failed = out.keys.filter((_, i) => !results[i]);
+      if (failed.length) console.error(`[project_files] delete ${fileId}: ${failed.length} object(s) not removed:`, failed);
       await recordProjectActivity(id, uid, "file_removed", { fileId });
-      res.json({ ok: true });
+      res.json({ ok: true, versionsRemoved: out.versions });
     } catch (e: any) {
       console.error("[project_files] delete failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to delete file" });
     }
   });
 
+  /** A download URL for one stored object, named by the file's DISPLAY name (its basename), never
+   *  the S3 key: presigned with Content-Disposition attachment (cloud), or the on-prem proxy with
+   *  the name (MinIO). Used by the file URL and the version URL routes. */
+  const downloadUrlFor = async (key: string, displayName: string): Promise<string> => {
+    const name = downloadName(displayName);
+    if (process.env.S3_ENDPOINT_URL) {
+      // On-prem (MinIO): presigned URLs embed the internal minio:9000 host the browser cannot reach.
+      return `/api/s3/proxy-download?key=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}`;
+    }
+    return s3Service.generatePresignedDownloadUrl(key, 900, name);
+  };
+
   // ─── GET /api/projects/:id/files/:fileId/url ─────────────────────────
-  // Returns a short-lived presigned download URL for a project file.
-  app.get("/api/projects/:id/files/:fileId/url", authenticateToken, async (req: Request, res: Response) => {
+  // A short-lived download URL for a project file: JSON {url, name}, or ?redirect=1 for a plain
+  // <a href> download (chat file chips) — same authorization. Both carry Content-Disposition:
+  // attachment with the display name, so the browser saves "counts.csv" (not the object key
+  // "counts-2.csv.v2") and a text/image file is downloaded instead of opened in the tab.
+  app.get("/api/projects/:id/files/:fileId/url", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
     try {
-      const allowed = await _isOwnerOrMember(id, uid);
-      if (!allowed) {
-        return res.status(404).json({ error: "Project not found" });
-      }
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
       const fileRow = await pool.query(
-        `SELECT s3_key, name FROM project_files WHERE id = $1 AND project_id = $2`,
+        `SELECT s3_key, name FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
-      // On-prem (MinIO): presigned URLs embed internal minio:9000 hostname
-      // unreachable from the browser — return a Node.js proxy URL instead.
-      // ?redirect=1: a plain <a href> download (chat file chips) — same authorization as the JSON form.
-      // The presigned URL then carries Content-Disposition: attachment, so S3 makes the browser save
-      // the file (cross-origin, the <a download> attribute is ignored).
-      const asDownload = req.query.redirect === "1";
-      let url: string;
-      if (process.env.S3_ENDPOINT_URL) {
-        url = `/api/s3/proxy-download?key=${encodeURIComponent(fileRow.rows[0].s3_key)}`;
-      } else {
-        url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900,
-          asDownload ? String(fileRow.rows[0].name) : undefined);
-      }
-      if (asDownload) return res.redirect(302, url);
+      const url = await downloadUrlFor(fileRow.rows[0].s3_key, String(fileRow.rows[0].name));
+      if (req.query.redirect === "1") return res.redirect(302, url);
       res.json({ url, name: fileRow.rows[0].name });
     } catch (e: any) {
       console.error("[project_files] url failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to generate download URL" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/versions/:versionNo/url ─────
+  // Download an archived version (same contract as /url). Named like the file ("counts.csv") —
+  // the version is in the Versions tab, not in a ".vN" suffix the user's tools don't recognise.
+  app.get("/api/projects/:id/files/:fileId/versions/:versionNo/url", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId, versionNo } = req.params;
+    const k = Number(versionNo);
+    if (!Number.isInteger(k) || k < 1) return res.status(404).json({ error: "Version not found" });
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const f = await pool.query(
+        `SELECT s3_key, name, version_no FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
+        [fileId, id]
+      );
+      if (!f.rows.length) return res.status(404).json({ error: "File not found" });
+      let key: string | null = Number(f.rows[0].version_no) === k ? f.rows[0].s3_key : null;
+      if (!key) {
+        const v = await pool.query(
+          `SELECT s3_key FROM project_file_versions WHERE file_id::text = $1 AND version_no = $2 ORDER BY created_at ASC LIMIT 1`,
+          [fileId, k]
+        );
+        key = v.rows[0]?.s3_key ?? null;
+      }
+      if (!key) return res.status(404).json({ error: "Version not found" });
+      const url = await downloadUrlFor(key, String(f.rows[0].name));
+      if (req.query.redirect === "1") return res.redirect(302, url);
+      res.json({ url, name: downloadName(String(f.rows[0].name)), version: k });
+    } catch (e: any) {
+      console.error("[project_files] version url failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to generate download URL" });
     }
   });
@@ -1271,7 +1589,7 @@ export function registerProjectRoutes(app: Express): void {
   // grid and the QC card describe the same rows (JSONL → one row per record,
   // top-level keys as columns, nested values as compact JSON). Owner/member scoped
   // exactly like /url; the S3 key never leaves the server.
-  app.get("/api/projects/:id/files/:fileId/rows", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/projects/:id/files/:fileId/rows", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
@@ -1283,7 +1601,7 @@ export function registerProjectRoutes(app: Express): void {
     try {
       if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
       const fileRow = await pool.query(
-        `SELECT s3_key, name, source FROM project_files WHERE id = $1 AND project_id = $2`,
+        `SELECT s3_key, name, source, version_no FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
@@ -1311,6 +1629,10 @@ export function registerProjectRoutes(app: Express): void {
       if (body.error) return res.status(422).json({ error: "parse_failed" });
       if (body.tabular === false) return res.status(415).json({ error: "not_tabular", kind: body.kind ?? null });
       res.json({
+        // The file version these rows were read from — the client sends it back as the edit's
+        // `baseVersion`, so an edit made on a stale page is refused (409) instead of landing on
+        // whichever row now has that index.
+        version: Number(fileRow.rows[0].version_no),
         kind: body.kind,
         columns: Array.isArray(body.columns) ? body.columns : [],
         rows: Array.isArray(body.rows) ? body.rows : [],
@@ -1338,7 +1660,7 @@ export function registerProjectRoutes(app: Express): void {
   // go to the backend only — the response carries project paths, never keys.
   // ?download=samplesheet returns the samplesheet CSV as an attachment.
   const MAX_FOLDER_FILES = 10_000;
-  app.get("/api/projects/:id/folders/profile", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/projects/:id/folders/profile", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id } = req.params;
@@ -1921,10 +2243,12 @@ export async function storeGeneratedFileInProject(o: {
   const key = `projects/${o.projectId}/generated/${keyPath}`;
   const buf = fs.readFileSync(o.hostPath);
   const contentHash = createHash("sha256").update(buf).digest("hex");
-  const dup = await _findProjectFileByHash(o.projectId, contentHash);
-  if (dup) return { file: dup, versioned: false, deduplicated: true };
-  return _storeProjectInput({ id: o.projectId, uid: o.uid, name, key, buf,
+  const stored = await _storeProjectInput({ id: o.projectId, uid: o.uid, name, key, buf,
     contentType: uploadContentType(name), contentHash, source: "run_code" });
+  // Same name rule as uploads and renames; the run_code caller logs the failure (never fails the run).
+  if (stored.status === 409) throw new Error(stored.error);
+  if ("deduplicated" in stored) return { file: stored.file, versioned: false, deduplicated: true };
+  return { file: stored.file, versioned: stored.versioned };
 }
 
 export async function registerRunOutputsInProject(opts: {

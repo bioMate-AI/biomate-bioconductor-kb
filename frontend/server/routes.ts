@@ -10,6 +10,8 @@ import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
 import { planModelFold } from "./model-fold";
 import { authorizeDatasetReference, projectDatasetKey } from "./dataset-reference-access";
+import { perceptionProxyGate } from "./perception-proxy-gate";
+import { attachmentDisposition } from "./content-disposition";
 import { loadFolderContext } from "./project-folders";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
@@ -3594,8 +3596,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
       const obj = await minioClient.send(new GetObjectCommand({ Bucket: minioBucket, Key: key }));
-      const filename = key.split('/').pop() || 'download';
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // ?name= is the file's display name (project file routes pass it): the saved file is named
+      // like the file, not like its object key ("counts-2.csv.v2"). Header-safe via attachmentDisposition.
+      const requested = typeof req.query.name === 'string' ? req.query.name.trim() : '';
+      res.setHeader('Content-Disposition', attachmentDisposition(requested || key));
       res.setHeader('Content-Type', (obj as any).ContentType || 'application/octet-stream');
       ((obj as any).Body as NodeJS.ReadableStream).pipe(res);
     } catch (error: any) {
@@ -5987,8 +5991,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
-  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
-  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
+  // perceptionProxyGate first: only profile/rows with an allowlisted body are forwarded, so no
+  // client-supplied ref other than the checked datasetRef (files[], dataset_ref) reaches the
+  // backend; folder_profile is reachable only via /api/projects/:id/folders/profile.
+  app.post("/api/perception/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
+  app.all("/api/perception/*", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
   //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
