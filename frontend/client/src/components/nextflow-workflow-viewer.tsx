@@ -3973,8 +3973,8 @@ export function NextflowWorkflowViewer({
                       // title uses cleanParamValueForDisplay, which strips s3://gs://
                       // URIs + bare UUIDs + id= patterns (basename alone would leak
                       // those in the no-dataset-name edge case — audit finding).
-                      <span title={r.dataset?.name || cleanParamValueForDisplay(r.value)}>
-                        {r.dataset?.name || basename(r.value)}
+                      <span title={r.dataset?.name || cleanParamValueForDisplay(r.value) || tOr('panel.staged_file', 'staged file')}>
+                        {r.dataset?.name || cleanParamValueForDisplay(r.value) || tOr('panel.staged_file', 'staged file')}
                       </span>
                     )}
                   </span>
