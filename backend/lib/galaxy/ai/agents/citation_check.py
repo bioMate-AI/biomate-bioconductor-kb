@@ -227,8 +227,18 @@ DB_GROUNDED_NOTICE = ("**No literature citations could be grounded for this ques
                       "biological databases (e.g. UniProt, PDBe, AlphaFold, ChEMBL, ClinVar, STRING, "
                       "Ensembl) — verifiable records with stable identifiers, not unreferenced claims.")
 
-_REF_HEAD = re.compile(r"^\s*(#{1,6}\s*|\*\*)?(references?|bibliography|citations?|sources)\b.*$", re.I)
-_ID_LINE = re.compile(r"(10\.\d{4,9}/\S+|\bpmid\b|\bdoi\b)", re.I)
+# A REAL bibliography heading is the keyword ALONE (optionally #/** markup, a colon, or a
+# count) — NOT a body heading that merely starts with the word ("Sources of bias",
+# "Reference ranges"). The trailing class allows only punctuation/digits, so any following
+# WORD breaks the match. (committee review round 2, 2026-11-11)
+_REF_HEAD = re.compile(
+    r"^\s*(#{1,6}\s*|\*{1,2}\s*)?(references?|bibliography|citations?|sources)\b[\s:*#()\d.,\-]*$",
+    re.I)
+# An identifier LINE carries an actual id — a bare DOI url, PMID + its number, or "doi"
+# followed by a real DOI token (10.…) — NOT prose that merely mentions the word ("the DOI
+# framework matters", "A DOI is a persistent identifier").
+_ID_LINE = re.compile(
+    r"(10\.\d{4,9}/\S+|\bpmid\b\s*[:#]?\s*\d+|\bdoi\b\s*[:#]?\s*10\.)", re.I)
 
 
 def refuse_without_evidence(answer: str, db_grounded: bool = False) -> str:

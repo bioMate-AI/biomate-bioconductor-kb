@@ -1919,16 +1919,23 @@ class ResearchAgent:
                         # char-pattern detector.
                         return _federated_query(str(_n)[:80], sources=s, entity_type=_t)
 
-                    # Per-entity fan-outs run in PARALLEL under ONE overall budget so the hot
-                    # path can't add N× the per-call timeout sequentially (committee review,
-                    # 2026-11-11). return_exceptions so one failure doesn't sink the others.
+                    # Per-entity fan-outs run in PARALLEL, each with its OWN timeout. A single
+                    # overall wait_for(gather, 20) cancelled the WHOLE gather when one entity ran
+                    # slow — discarding the evidence of entities that had already returned, so
+                    # synthesis saw zero DB evidence (committee review round 2, 2026-11-11). Now a
+                    # slow entity times out alone (→ None) and the fast ones survive.
                     _loop = asyncio.get_event_loop()
-                    _fed_results = await asyncio.wait_for(
-                        asyncio.gather(
-                            *[_loop.run_in_executor(None, _fed_one, _nt) for _nt in _fed_typed],
-                            return_exceptions=True,
-                        ),
-                        timeout=20,
+
+                    async def _fed_one_budgeted(nt):
+                        try:
+                            return await asyncio.wait_for(
+                                _loop.run_in_executor(None, _fed_one, nt), timeout=15)
+                        except asyncio.TimeoutError:
+                            return None
+
+                    _fed_results = await asyncio.gather(
+                        *[_fed_one_budgeted(_nt) for _nt in _fed_typed],
+                        return_exceptions=True,
                     )
                     _fed_out: Dict[str, Any] = {}
                     for (_n, _t), _r in zip(_fed_typed, _fed_results):
@@ -2565,6 +2572,13 @@ class ResearchAgent:
                         answer_text, _cites, n_numbered=_n_lit, db_grounded=_has_db_grounding))
                 citations = [c for c, r in zip(citations, ev_rows)
                              if r['status'] not in ('not_found', 'title_mismatch')]
+                # `retrieval_stats` was computed BEFORE verification; recompute its `kept`
+                # counts from the literature pool items that actually SURVIVED the existence
+                # check, so the transparency panel never reports a citation that was dropped
+                # from the answer (committee review round 2, 2026-11-11).
+                _kept_lit = [lit_pool[i] for i in range(min(_n_lit, len(ev_rows)))
+                             if ev_rows[i]['status'] not in ('not_found', 'title_mismatch')]
+                retrieval_stats = self._compute_retrieval_stats(pool, _kept_lit)
             except Exception as _e:
                 log.warning(f"citation existence check skipped: {_e}")
             # Evidence-boundary guarantee (Spec 01 §1.2): every answer states what
@@ -2786,7 +2800,11 @@ class ResearchAgent:
                 tok = tok.strip()
                 if tok.isdigit() and int(tok) in remap:
                     out.append(str(remap[int(tok)]))
-            return '[' + ', '.join(out) + ']' if out else m.group(0)
+            # Drop a marker whose tokens are ALL out-of-pool (a hallucinated [99]/[0]) rather
+            # than keep it verbatim — a dangling marker pointing at no citation must not ship.
+            # Matches stage-2 `_renumber`, which already strips unknown tokens (committee
+            # review round 2, 2026-11-11).
+            return '[' + ', '.join(out) + ']' if out else ''
 
         new_answer = marker_re.sub(_repl, answer)
         grounded = [pool[old - 1] for old in ordered]
@@ -3491,24 +3509,49 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
 
     @staticmethod
     def _parse_json_array(text: str) -> Optional[list]:
-        """Pull the first JSON array out of an LLM response (fenced or bare prose),
-        decoding incrementally so trailing commentary after the ']' doesn't break it."""
+        """Pull the entity JSON array out of an LLM response (fenced or bare prose).
+
+        Scans EVERY balanced `[...]` (honoring nesting + strings) and prefers the
+        array-of-objects (the `[{"name","type"},...]` entity shape) — anchoring on the
+        FIRST '[' let a stray citation marker ("see [1]") shadow the real JSON and defeat
+        the whole LLM-extraction path (committee review round 2, 2026-11-11)."""
         if not text:
             return None
-        start = text.find("[")
-        if start == -1:
+        candidates: List[list] = []
+        for start in (i for i, ch in enumerate(text) if ch == "["):
+            depth = 0
+            in_str = False
+            esc = False
+            for j in range(start, len(text)):
+                ch = text[j]
+                if in_str:
+                    if esc:
+                        esc = False
+                    elif ch == "\\":
+                        esc = True
+                    elif ch == '"':
+                        in_str = False
+                    continue
+                if ch == '"':
+                    in_str = True
+                elif ch == "[":
+                    depth += 1
+                elif ch == "]":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            val = json.loads(text[start:j + 1])
+                            if isinstance(val, list):
+                                candidates.append(val)
+                        except Exception:
+                            pass
+                        break
+        if not candidates:
             return None
-        raw = text[start:]
-        for end in range(len(raw), 0, -1):
-            cand = raw[:end]
-            if not cand.rstrip().endswith("]"):
-                continue
-            try:
-                val = json.loads(cand)
-                return val if isinstance(val, list) else None
-            except Exception:
-                continue
-        return None
+        # Prefer a non-empty array whose elements are all objects (the entity shape); else
+        # the longest array (so an empty [] still returns [] → caller falls back).
+        dict_arrays = [c for c in candidates if c and all(isinstance(x, dict) for x in c)]
+        return max(dict_arrays, key=len) if dict_arrays else max(candidates, key=len)
 
     async def _extract_entities_llm(self, question: str) -> Optional[List[Dict[str, str]]]:
         """Identify the biological entities a question is ABOUT, with their types, using

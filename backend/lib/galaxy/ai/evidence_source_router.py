@@ -61,7 +61,9 @@ LITERATURE_SOURCES: List[str] = ["pubmed", "europepmc", "semantic_scholar", "cor
 
 # ── Facet keyword cues (lowercased, word-boundary matched) ──────────────────
 _FACET_CUES: Dict[str, Sequence[str]] = {
-    "structure":   ["structure", "crystal", "fold", "domain", "conformation", "binding site",
+    # "fold" is word-bounded: unbounded it matched "scaffold" (genomics assembly term,
+    # "scaffold N50") and mis-fired the structure facet (committee review round 2, 2026-11-11).
+    "structure":   ["structure", "crystal", "\\bfold\\b", "domain", "conformation", "binding site",
                     "pocket", "3d", "apo", "holo", "dfg", "allosteric", "cryo-em", "cryoem"],
     # NB: bare "sar"/"scaffold" are word-bounded — unbounded they matched "SARS-CoV-2"
     # and genome-assembly "scaffold N50" and mis-fired the bioactivity facet
@@ -84,14 +86,18 @@ _FACET_CUES: Dict[str, Sequence[str]] = {
 }
 
 
-def _federation_serveable_ids() -> set:
+def _federation_serveable_ids() -> Optional[set]:
     """Ids the FEDERATED fan-out can actually serve — registry sources that are live AND
     reachable via the federation surface. Gating on live-status alone advertised sources
-    (bindingdb/pharos/opentargets/pdbe) that federated_query silently drops because they
-    have no federation fetcher — overstating coverage (committee review, 2026-11-11).
-    Open Targets / Pharos reach the answer via the target_id path, not this fan-out."""
+    that federated_query silently drops because they have no federation fetcher — overstating
+    coverage (committee review, 2026-11-11).
+
+    Returns None when the registry is UNAVAILABLE (import failed) so the caller passes the
+    candidate list through unfiltered (graceful degrade); returns a set — possibly EMPTY —
+    when the registry is present, so a misconfigured registry filters to nothing rather than
+    silently advertising unserveable ids (committee review round 2, 2026-11-11)."""
     if _registry is None:
-        return set()
+        return None
     _fed = getattr(_registry, "SURFACE_FEDERATION", "federation")
     ids = set()
     for s in getattr(_registry, "SOURCES", []):
@@ -181,6 +187,6 @@ def select_sources(
                 ordered.append(sid)
 
     known = _federation_serveable_ids()
-    if known:
+    if known is not None:   # None = registry unavailable → pass through; set() = filter to nothing
         ordered = [sid for sid in ordered if sid in known]
     return ordered[:max_sources]
