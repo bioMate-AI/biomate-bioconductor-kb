@@ -1,4 +1,5 @@
 import { localOnly, localCompletion } from './local-llm.js';
+import { requireCnRoute, cnCompletion } from './llm-region-policy';
 /**
  * llmGenerate — the ONLY way the frontend should call an LLM.
  *
@@ -80,6 +81,15 @@ export async function llmGenerate(
       throw new Error('Local generation did not produce a complete text answer');
     }
     return { text: choice.message.content, modelUsed: result.model || process.env.BIOMATE_LOCAL_LLM_MODEL!, fallbackDepth: 0 };
+  }
+  // China-region users: the Chinese model, not the backend's Gemini/Claude/GPT chain (llm-region-policy.ts).
+  const cnRoute = requireCnRoute();
+  if (cnRoute) {
+    const text = await cnCompletion(cnRoute, {
+      messages: [{ role: 'user', content: opts.prompt }], system: opts.system,
+      maxTokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0.7, jsonMode: opts.jsonMode,
+    });
+    return { text, modelUsed: cnRoute.model, fallbackDepth: 0 };
   }
   const body = {
     prompt: opts.prompt,

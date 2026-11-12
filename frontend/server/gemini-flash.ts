@@ -1,4 +1,5 @@
 import { localOnly, localCompletion } from './local-llm.js';
+import { requireCnRoute, cnCompletion } from './llm-region-policy';
 /**
  * Gemini 3 Flash — thin wrapper replacing Claude Haiku for lightweight inference tasks.
  *
@@ -72,6 +73,12 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
     const choice = result.choices[0];
     if (choice.finish_reason !== 'stop' || typeof choice.message.content !== 'string') throw new Error('Incomplete local completion');
     return choice.message.content;
+  }
+  // China-region users run every LLM call on a Chinese model (llm-region-policy.ts), never Gemini.
+  const cnRoute = requireCnRoute();
+  if (cnRoute) {
+    if (!opts.messages.length) return '';
+    return cnCompletion(cnRoute, opts);
   }
   const genAI = getClient();
 

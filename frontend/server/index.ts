@@ -4,6 +4,7 @@ import session from "express-session";
 import cookieParser from "cookie-parser";
 import passport from "passport";
 import { registerRoutes } from "./routes";
+import { llmRegionMiddleware } from "./llm-region-policy";
 import { applyPendingMigrations } from "./migrate";
 import { setupVite, serveStatic, log } from "./vite";
 import { oauthService } from "./oauth-service";
@@ -140,6 +141,11 @@ app.use((req, res, next) => {
 
   // Initialize session store (Redis or Memory fallback)
   await initializeSession();
+
+  // Chinese-LLM region policy: every request runs inside its region decision, so any LLM call made
+  // while serving it (notes, evidence, findings… not only chat) obeys it. After body/session/auth
+  // parsing (llm-region-policy.ts).
+  app.use(llmRegionMiddleware);
 
   const server = await registerRoutes(app);
 
