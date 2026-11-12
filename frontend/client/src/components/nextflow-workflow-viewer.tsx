@@ -2367,22 +2367,6 @@ export function NextflowWorkflowViewer({
     }
   }, [status]);
 
-  // Auto-expand workflow settings when required params are still empty
-  useEffect(() => {
-    if (hasUnfilledRequired) setGlobalParamsOpen(true);
-  }, [hasUnfilledRequired]);
-
-  // Auto-expand when the LLM extracted inline params for the user — they should
-  // see what was prefilled before clicking Run (and so the form is actually in
-  // the DOM for E2E assertions to read).
-  useEffect(() => {
-    const inline = (workflowDefinition as any)?.inline_parameters;
-    if (inline && typeof inline === 'object' && Object.keys(inline).length > 0) {
-      setGlobalParamsOpen(true);
-    }
-  }, [workflowDefinition]);
-
-
   // D4: Auto-fetch error explanation when workflow fails
   useEffect(() => {
     let abandoned = false;
