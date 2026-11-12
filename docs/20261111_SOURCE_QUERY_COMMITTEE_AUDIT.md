@@ -164,3 +164,20 @@ surfaces the gnomAD/Open Targets/BindingDB numbers confidently. Verify by drivin
 LOEUF 1.144 + score 0.856 without hedging. Do NOT change the literature-citation guard
 (`groundedResearchReply` line 37) — it correctly gates only `status === 'ok'` literature
 answers.
+
+### Chat-path follow-up — RESOLVED (empirically verified on dev, 2026-11-12)
+
+Drove `/api/chat/stream` on dev with a DB-framed PCSK9 question ("What does gnomAD record
+for PCSK9 loss-of-function constraint — the exact pLI and LOEUF values?"). Result:
+`tool_events: ['research_query']` and the FINAL chat message presents the values
+**confidently, no hedging**: *"pLI: 2.77 × 10⁻¹⁸ … LOEUF: 1.14 … Observed/Expected LoF ratio:
+0.92"* with correct biology. So the `'uncited'`-status framing does NOT cause the chat LLM to
+hedge a database-backed answer — the earlier concern was a false alarm. The user-facing chat
+path surfaces the grounded-answer work correctly. **No chat-guard change needed.**
+
+Secondary observation (OUT OF SCOPE — separate subsystem): a question phrased with "disease
+association" + target framing routes the chat agent to the target-ranking tool
+(`identify_targets` → target_id engine), which returned "AI-generated reasoning only, external
+evidence not verified; Open Targets-primary ordering was not established." That is the
+target_id/fuse_channels engine not contributing its Open Targets channel — unrelated to the
+federated_query/research_agent source-query work; noted for whoever owns target ranking.
