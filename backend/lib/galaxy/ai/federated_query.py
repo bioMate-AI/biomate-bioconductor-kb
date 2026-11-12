@@ -144,14 +144,14 @@ _CACHE_TTL_DURABLE = 30 * 86400  # 30d — "last-known-good" for outage fallback
 
 ENTITY_SOURCES: Dict[str, List[str]] = {
     "gene":       ["ncbi_gene", "ensembl", "uniprot", "string", "kegg",
-                   "go", "gnomad", "pubmed", "semantic_scholar"],
+                   "go", "gnomad", "opentargets", "pubmed", "semantic_scholar"],
     "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
                    "go", "chembl", "pubmed", "semantic_scholar"],
     "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "pdbe", "alphafold", "interpro"],
-    "disease":    ["hpo", "clinvar", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
+    "disease":    ["hpo", "clinvar", "opentargets", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
     "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "biorxiv", "semantic_scholar", "openalex", "crossref"],
 }
 
@@ -566,11 +566,27 @@ def _fetch_chembl(query: str) -> Dict:
         tq = urllib.parse.quote(query)
         tdata = _get(f"https://www.ebi.ac.uk/chembl/api/data/target/search"
                      f"?q={tq}&format=json&limit=3")
+        _human_tid = None
         for t in (tdata or {}).get("targets", [])[:3]:
             results.append({"chembl_target_id": t.get("target_chembl_id"),
                             "name": t.get("pref_name"),
                             "target_type": t.get("target_type"),
                             "organism": t.get("organism")})
+            if t.get("organism") == "Homo sapiens" and not _human_tid:
+                _human_tid = t.get("target_chembl_id")
+        # The SAR answer is the ACTIVITY table: pull the most potent IC50s against the
+        # human target (pChEMBL desc) so the answer can cite real nM potencies, not just
+        # the target record (dev finding 2026-11-11: fetcher stopped at the target name).
+        if _human_tid:
+            adata = _get(f"https://www.ebi.ac.uk/chembl/api/data/activity"
+                         f"?target_chembl_id={_human_tid}&standard_type=IC50"
+                         f"&pchembl_value__isnull=false&order_by=-pchembl_value&limit=5&format=json")
+            for a in (adata or {}).get("activities", [])[:5]:
+                results.append({"chembl_id": a.get("molecule_chembl_id"),
+                                "activity_type": a.get("standard_type"),
+                                "value": a.get("standard_value"),
+                                "units": a.get("standard_units"),
+                                "pchembl_value": a.get("pchembl_value")})
     return {"source": "chembl", "results": results}
 
 def _fetch_pubchem(query: str) -> Dict:
@@ -605,13 +621,45 @@ def _fetch_interpro(query: str) -> Dict:
     return {"source": "interpro", "results": results}
 
 def _fetch_gnomad(query: str) -> Dict:
-    gql = """query($term:String!){search(query:$term){
-        ...on GeneSearchResult{gene{gene_id gene_name}}
-        ...on VariantSearchResult{variant{variant_id}}}}"""
-    data = _post_json("https://gnomad.broadinstitute.org/api",
-                      {"query": gql, "variables": {"term": query}})
-    results = (data or {}).get("data", {}).get("search", [])[:5]
-    return {"source": "gnomad", "results": results}
+    # gnomAD is keyed by Ensembl gene id. Resolve a symbol, then pull the gene CONSTRAINT
+    # (LoF intolerance: pLI, LOEUF, missense-z) — the compact, high-value gnomAD gene fact.
+    # The old generic `search` returned only an id, no frequency or constraint (dev finding
+    # 2026-11-12: _fetch_gnomad gave no allele-frequency / no usable signal).
+    q = query.strip()
+    ensg = q if re.match(r'^ENSG\d+$', q, re.I) else resolve_gene(q).get("ensembl")
+    if not ensg:
+        return {"source": "gnomad", "results": []}
+    gql = ('{gene(gene_id:"%s",reference_genome:GRCh38){gene_id symbol '
+           'gnomad_constraint{pli oe_lof oe_lof_upper mis_z}}}' % ensg)
+    data = _post_json("https://gnomad.broadinstitute.org/api", {"query": gql})
+    g = (((data or {}).get("data") or {}).get("gene")) or {}
+    c = g.get("gnomad_constraint") or {}
+    if not c:
+        return {"source": "gnomad", "results": []}
+    return {"source": "gnomad", "results": [{
+        "gene_id": g.get("gene_id"), "symbol": g.get("symbol"),
+        "pLI": c.get("pli"), "LOEUF": c.get("oe_lof_upper"),
+        "oe_lof": c.get("oe_lof"), "missense_z": c.get("mis_z")}]}
+
+
+def _fetch_opentargets(query: str) -> Dict:
+    # Open Targets GraphQL: target → disease associations (genetic/druggability evidence,
+    # scored 0-1). Keyed by Ensembl gene id; resolve a symbol first. The registry listed
+    # opentargets but it had NO fan-out fetcher (dev finding 2026-11-12).
+    q = query.strip()
+    ensg = q if re.match(r'^ENSG\d+$', q, re.I) else resolve_gene(q).get("ensembl")
+    if not ensg:
+        return {"source": "opentargets", "results": []}
+    gql = ('{target(ensemblId:"%s"){approvedSymbol '
+           'associatedDiseases(page:{index:0,size:5}){rows{disease{name} score}}}}' % ensg)
+    data = _post_json("https://api.platform.opentargets.org/api/v4/graphql", {"query": gql})
+    t = (((data or {}).get("data") or {}).get("target")) or {}
+    rows = ((t.get("associatedDiseases") or {}).get("rows")) or []
+    results = [{"target": t.get("approvedSymbol"),
+                "disease": (r.get("disease") or {}).get("name"),
+                "association_score": round(r.get("score") or 0, 3)}
+               for r in rows[:5] if r.get("disease")]
+    return {"source": "opentargets", "results": results}
 
 def _fetch_ncbi_entrez(query: str, db: str) -> Dict:
     q = urllib.parse.quote(query)
@@ -888,6 +936,7 @@ _FETCHERS = {
     "pubchem":          _fetch_pubchem,
     "interpro":         _fetch_interpro,
     "gnomad":           _fetch_gnomad,
+    "opentargets":      _fetch_opentargets,
     "dbsnp":            lambda q: _fetch_ncbi_entrez(q, "snp"),
     "clinvar":          lambda q: _fetch_ncbi_entrez(q, "clinvar"),
     "pubmed":           lambda q: _fetch_ncbi_entrez(q, "pubmed"),
