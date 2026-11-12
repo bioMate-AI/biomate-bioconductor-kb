@@ -16,7 +16,7 @@
  * backend answers with a labelled stub when unreachable.
  */
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -69,9 +69,12 @@ function pickModelId(domain: Domain, catalog: ModelSummary[] | undefined): strin
 interface RunPretrainedProps {
   onOpenModel?: (modelId: string) => void
   className?: string
+  /** A model id to preselect (from the detail view's "Use in a run"). Its domain
+   *  is selected so the user lands on the right run surface. */
+  initialModelId?: string
 }
 
-export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
+export function RunPretrained({ onOpenModel, className, initialModelId }: RunPretrainedProps) {
   const [domainId, setDomainId] = useState<EvidenceClass>("structure")
   const [inputText, setInputText] = useState("")
   const [runId, setRunId] = useState<string | null>(null)
@@ -91,6 +94,15 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
 
   const domain = useMemo(() => DOMAINS.find((d) => d.id === domainId)!, [domainId])
   const modelId = useMemo(() => pickModelId(domain, catalog), [domain, catalog])
+
+  // "Use in a run" from the model detail view: switch to the domain whose family
+  // matches the chosen model, so the user lands on the right run surface.
+  useEffect(() => {
+    if (!initialModelId || !catalog) return
+    const chosen = catalog.find((m) => m.id === initialModelId)
+    const dom = chosen ? DOMAINS.find((d) => d.families.includes(chosen.family)) : undefined
+    if (dom) setDomainId(dom.id as EvidenceClass)
+  }, [initialModelId, catalog])
 
   const canRun = inputText.trim().length > 0 && (isStructure
     ? !foldBusy && !(foldRunId && !foldDone)

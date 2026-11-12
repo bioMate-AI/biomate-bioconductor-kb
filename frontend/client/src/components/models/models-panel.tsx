@@ -98,7 +98,7 @@ function CatalogTable({ rows, onOpenModel }: { rows: ModelSummary[]; onOpenModel
   )
 }
 
-function LibraryTrack({ project, onOpenModel }: { project?: string; onOpenModel: (id: string) => void }) {
+function LibraryTrack({ project, onOpenModel, preselectModelId }: { project?: string; onOpenModel: (id: string) => void; preselectModelId?: string | null }) {
   const { data: models, isLoading, isError } = useModels()
   return (
     <div className="space-y-3" data-testid="track-library">
@@ -131,7 +131,7 @@ function LibraryTrack({ project, onOpenModel }: { project?: string; onOpenModel:
       <OwnedTrainingRegistry project={project} />
 
       {/* Run a model — merged here so the catalog and inference are one place. */}
-      <RunPretrained onOpenModel={onOpenModel} />
+      <RunPretrained onOpenModel={onOpenModel} initialModelId={preselectModelId ?? undefined} />
     </div>
   )
 }
@@ -432,6 +432,9 @@ export function ModelsPanel({
 
   const { data: models } = useModels()
   const [openModelId, setOpenModelId] = useState<string | null>(null)
+  // A model the user chose to "use in a run" — lands on the Library tab with
+  // RunPretrained preselected to it, so the detail view is no longer a dead end.
+  const [runPreselect, setRunPreselect] = useState<string | null>(null)
 
   const projectArg = project === "Project" ? undefined : project
   const trainQuery = useTrainTrack(projectArg)
@@ -446,6 +449,10 @@ export function ModelsPanel({
           modelId={openModelId}
           onBack={() => setOpenModelId(null)}
           onOpenModel={(ref) => setOpenModelId(ref)}
+          // Wire the detail actions so the model page is no longer a dead end:
+          onUseInRun={(id) => { setRunPreselect(id); setOpenModelId(null); setTab(1) }}
+          onSupersede={() => { setOpenModelId(null); setTab(0) }}
+          onOpenRun={() => openRunManager()}
         />
       </div>
     )
@@ -468,7 +475,7 @@ export function ModelsPanel({
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs key={tab ?? "uncontrolled"} defaultValue={String(activeTab)} onValueChange={(v) => setTab(Number(v))}>
+          <Tabs value={String(activeTab)} onValueChange={(v) => setTab(Number(v))}>
             <TabsList className="mb-3 h-auto flex-wrap" data-testid="models-tabs">
               {MODELS_TRACKS.map((track, i) => {
                 const Icon = TRACK_ICONS[i]
@@ -489,7 +496,7 @@ export function ModelsPanel({
             </TabsContent>
 
             <TabsContent value="1">
-              <LibraryTrack project={projectArg} onOpenModel={setOpenModelId} />
+              <LibraryTrack project={projectArg} onOpenModel={setOpenModelId} preselectModelId={runPreselect} />
             </TabsContent>
 
             <TabsContent value="2" className="space-y-3">
