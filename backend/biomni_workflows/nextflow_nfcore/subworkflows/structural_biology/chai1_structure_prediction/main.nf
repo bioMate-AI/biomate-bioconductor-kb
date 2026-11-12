@@ -32,22 +32,9 @@ params.publish_dir_mode          = 'copy'
 
 def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
 
-// -- Write raw sequence to FASTA (used when params.sequence is provided) -------
-
-process WRITE_FASTA {
-    label 'process_low'
-
-    output:
-    path "input_sequence.fasta"
-
-    script:
-    def seq = params.sequence.trim()
-    """
-    printf '>protein|name=query\\n${seq}\\n' > input_sequence.fasta
-    """
-}
-
 // -- Chai-1 structure prediction -----------------------------------------------
+// Handles both input modes inside the process script so no intermediate channel
+// or local temp file is needed (collectFile breaks with S3 work directories).
 
 process CHAI1_PREDICT {
     tag "chai1"
@@ -56,22 +43,68 @@ process CHAI1_PREDICT {
 
     container ECR
 
-    input:
-    path(fasta)
-
     output:
     path("chai_output/"), emit: results_dir
     path("chai_output/*.cif"), emit: structures, optional: true
     path("chai_output/scores.json"), emit: scores, optional: true
 
     script:
+    // Guard against Groovy coercing missing/boolean params to the string "true"/"false"
+    def raw_fasta  = params.input_fasta?.toString()?.trim() ?: ''
+    def fasta_path = (raw_fasta && raw_fasta != 'true' && raw_fasta != 'false' && !raw_fasta.startsWith('null')) ? raw_fasta : ''
+    def seq        = params.sequence?.toString()?.trim()    ?: ''
+    def clean_seq  = (seq && seq != 'true' && seq != 'false') ? seq : ''
+    if (!fasta_path && !clean_seq) error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
+    def use_fasta  = fasta_path ? 'True' : 'False'
     """
-    python -m chai_lab.main predict \\
-        --fasta ${fasta} \\
-        --output chai_output/ \\
-        --num-trunk-recycles ${params.num_trunk_recycles} \\
-        --num-diffusion-timesteps ${params.num_diffusion_timesteps} \\
-        --seed ${params.seed}
+    python3 - <<'PYEOF'
+import json, sys
+from pathlib import Path
+
+try:
+    from chai_lab.chai1 import run_inference
+except ImportError as e:
+    print(f"[chai1] Import error: {e}", file=sys.stderr)
+    sys.exit(1)
+
+# Resolve FASTA input (values below are substituted by Groovy before bash runs this)
+use_provided_fasta = ${use_fasta}
+fasta_path_str = "${fasta_path}"
+
+if use_provided_fasta and fasta_path_str and Path(fasta_path_str).exists():
+    fasta_file = Path(fasta_path_str)
+else:
+    fasta_file = Path("input_sequence.fasta")
+    seq_str = "${clean_seq}"
+    if not seq_str:
+        print("[chai1] ERROR: no valid fasta_path or sequence provided", file=sys.stderr)
+        sys.exit(1)
+    fasta_file.write_text(">protein|name=query\\n" + seq_str + "\\n")
+
+output_dir = Path("chai_output")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+candidates = run_inference(
+    fasta_file=fasta_file,
+    output_dir=output_dir,
+    num_trunk_recycles=${params.num_trunk_recycles},
+    num_diffn_timesteps=${params.num_diffusion_timesteps},
+    seed=${params.seed},
+    device="cuda",
+    use_esm_embeddings=True,
+)
+
+print(f"[chai1] Predicted {len(candidates)} candidate(s)")
+
+def to_float(v):
+    return float(v.item() if hasattr(v, 'item') else v)
+
+scores = [{"aggregate_score": to_float(c.aggregate_score)} for c in candidates]
+with open(output_dir / "scores.json", "w") as fh:
+    json.dump(scores, fh, indent=2)
+if candidates:
+    print(f"[chai1] Best aggregate_score: {to_float(candidates[0].aggregate_score):.4f}")
+PYEOF
     """
 }
 
@@ -116,22 +149,6 @@ EOF
 }
 
 workflow {
-    // Guard against boolean params (LLM occasionally emits input_fasta:true).
-    // Channel.fromPath(boolean) throws java.lang.Boolean.getFileSystem().
-    def _fasta_raw = (params.input_fasta instanceof Boolean) ? '' : params.input_fasta.toString()
-    def _seq_raw   = (params.sequence    instanceof Boolean) ? '' : params.sequence.toString()
-    def has_file = _fasta_raw && _fasta_raw.trim()
-    def has_seq  = _seq_raw   && _seq_raw.trim()
-
-    if (has_file) {
-        fasta_ch = Channel.fromPath(_fasta_raw, checkIfExists: true)
-    } else if (has_seq) {
-        WRITE_FASTA()
-        fasta_ch = WRITE_FASTA.out
-    } else {
-        error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
-    }
-
-    CHAI1_PREDICT(fasta_ch)
+    CHAI1_PREDICT()
     SUMMARISE_RESULTS(CHAI1_PREDICT.out.results_dir)
 }

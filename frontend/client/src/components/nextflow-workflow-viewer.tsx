@@ -2815,6 +2815,7 @@ export function NextflowWorkflowViewer({
       }
     });
 
+
     es.addEventListener("container_pull_progress", (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data as string);
@@ -3355,6 +3356,7 @@ export function NextflowWorkflowViewer({
               </button>
             </div>
           )}
+
 
           {/* AI diagnosis card — merges real-time SSE (aiDiagnosis) with API-backed failure (survives refresh) */}
           {(() => {
