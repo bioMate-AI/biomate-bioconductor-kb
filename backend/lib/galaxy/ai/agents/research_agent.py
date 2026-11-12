@@ -640,24 +640,26 @@ def lookup_mygene(identifiers: List[str], fields: str = "symbol,name,summary,OMI
     """
     if not identifiers:
         return []
-    results = []
-    for ident in identifiers[:10]:
-        # ENSG IDs and numeric IDs → direct lookup via POST
-        if re.match(r"^ENSG\d+$", ident) or re.match(r"^\d+$", ident):
-            r = _http_post(
-                "https://mygene.info/v3/gene",
-                {"ids": [ident], "fields": fields, "species": "human"},
-                timeout=10,
-            )
-            if isinstance(r, list):
-                results.extend(r)
-        else:
-            # Gene symbol → query endpoint
-            url = (f"https://mygene.info/v3/query?q=symbol:{urllib.parse.quote(ident)}"
-                   f"&fields={urllib.parse.quote(fields)}&species=human&size=1")
-            r = _http_get(url, timeout=10)
-            if r and r.get("hits"):
-                results.extend(r["hits"])
+    ids = list(identifiers)[:10]
+    direct = [i for i in ids if re.match(r"^ENSG\d+$", i) or re.match(r"^\d+$", i)]
+    symbols = [i for i in ids if i not in direct]
+    results: List[dict] = []
+    # ENSG / Entrez IDs → direct batch lookup
+    if direct:
+        r = _http_post("https://mygene.info/v3/gene",
+                       {"ids": direct, "fields": fields, "species": "human"}, timeout=10)
+        if isinstance(r, list):
+            results.extend(r)
+    # Symbols → ONE batched query across symbol+alias+retired scopes. `q=symbol:` alone
+    # missed every alias/legacy name — p53, BCR-ABL, HER2, CD20 returned ZERO; the scoped
+    # batch resolves them (p53→TP53, BCR-ABL→ABL1, HER2→ERBB2) in a single request
+    # (dev finding, 2026-11-11).
+    if symbols:
+        r = _http_post("https://mygene.info/v3/query",
+                       {"q": symbols, "scopes": "symbol,alias,retired",
+                        "fields": fields, "species": "human"}, timeout=10)
+        if isinstance(r, list):
+            results.extend(h for h in r if isinstance(h, dict) and not h.get("notfound"))
     return results
 
 
