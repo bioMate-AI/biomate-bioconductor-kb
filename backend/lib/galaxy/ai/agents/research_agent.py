@@ -2938,8 +2938,16 @@ class ResearchAgent:
 
         # Add live DB facts — these are real query results, not LLM guesses
         if evidence.get('db_facts'):
-            db_section = ["## Live Database Facts (retrieved from GWAS Catalog / Open Targets / Ensembl / Monarch / MyGene / ClinVar)"]
-            db_section.append("Use these EXACT values in your answer — do not substitute from memory.\n")
+            db_section = ["## Live Database Facts (VERIFIED records retrieved live from authoritative databases: UniProt, PDB, PDBe, AlphaFold, InterPro, ChEMBL, STRING, Ensembl, ClinVar, gnomAD, Open Targets, KEGG/Reactome, MyGene, Monarch)"]
+            db_section.append(
+                "These are REAL, confirmed-to-exist records — NOT literature and NOT memory. "
+                "They are authoritative evidence in their own right. When the question asks for "
+                "structures, identifiers, accessions, resolutions, interaction partners, "
+                "activities or any specific value, ANSWER FROM THESE RECORDS and cite their "
+                "EXACT identifiers (e.g. PDB IDs like 1OPL with their resolution, UniProt "
+                "accessions, ChEMBL IDs). The 'never invent an identifier' rule for literature "
+                "does NOT apply here — these identifiers are verified, so name them directly. "
+                "Do not substitute general knowledge for a value present below.\n")
             df = evidence['db_facts']
 
             # ── Intent-selected federated multi-source evidence ──────────────────
@@ -3227,13 +3235,15 @@ class ResearchAgent:
             lit = ["## Retrieved Literature (your ONLY citation list)",
                    "Cite these with [N] using the numbers below. Use ONLY papers from "
                    "this list for [N] citations — never cite a paper that is not listed "
-                   "here, and never invent a DOI, PMID, or PDB ID. Cite only papers whose "
+                   "here, and never invent a DOI or PMID (the exact identifiers in the Live "
+                   "Database Facts above ARE verified — name those directly). Cite only papers whose "
                    "content actually supports the sentence; do not pad with irrelevant [N]. "
                    "End your answer with a one-line '**Evidence boundary:**' stating what "
                    "the evidence does and does not establish and any scope limits.",
                    "Begin your reply with exactly one line, before anything else: "
-                   "'EVIDENCE: addresses' if the papers below directly support an answer to the "
-                   "question, or 'EVIDENCE: insufficient' if they do not (off-topic or silent on it)."]
+                   "'EVIDENCE: addresses' if the papers below OR the Live Database Facts above "
+                   "directly support an answer to the question, or 'EVIDENCE: insufficient' if "
+                   "neither does (off-topic or silent on it)."]
             for i, c in enumerate(cites, 1):
                 authors = ", ".join((getattr(c, 'authors', None) or [])[:6])
                 meta = []
