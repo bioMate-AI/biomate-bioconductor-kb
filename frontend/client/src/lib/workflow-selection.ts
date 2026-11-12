@@ -53,3 +53,12 @@ export function takeWorkflowSelection(content: string): WorkflowSelection | unde
     return undefined;
   }
 }
+
+/** The pending library selection (not consumed) — the chat shows an input reminder while it waits. */
+export function peekWorkflowSelection(): WorkflowSelection | undefined {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const s = raw ? (JSON.parse(raw) as WorkflowSelection) : undefined;
+    return s?.name ? s : undefined;
+  } catch { return undefined; }
+}

@@ -20,10 +20,10 @@ import * as path from 'path';
 import { randomUUID, createHash } from 'crypto';
 
 /** run_code sandbox image. RUN_CODE_IMAGE wins; otherwise the CJK-font layer
- *  `biomate-runcode:2` (frontend/Dockerfile.runcode — plot labels in Chinese rendered as tofu
+ *  `biomate-runcode:3` (frontend/Dockerfile.runcode — plot labels in Chinese rendered as tofu
  *  boxes on biotools:1, founder 2026-11-12) when the host has it, else `biomate-biotools:1`.
  *  Checked once per process. */
-export const RUN_CODE_PREFERRED_IMAGE = 'biomate-runcode:2';
+export const RUN_CODE_PREFERRED_IMAGE = 'biomate-runcode:3';
 export const RUN_CODE_BASE_IMAGE = 'biomate-biotools:1';
 let _sandboxImage: Promise<string> | null = null;
 export function resolveSandboxImage(

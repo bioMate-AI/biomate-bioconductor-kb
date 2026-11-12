@@ -64,11 +64,15 @@ describe('WorkflowsLibraryDialog — Browse (ranked search)', () => {
       )).toBe(true);
     });
 
-    // Results render with the engine's name, domain and score (not invented).
+    // Results render with the engine's name and domain (not invented). The raw ranking score and
+    // the internal catalog source tag are NOT shown (founder 2026-11-12: "评分 52.1" /
+    // "biomni_nextflow" mean nothing to a user).
     expect(await screen.findByText('nf-core/rnaseq')).toBeInTheDocument();
     expect(screen.getByText('DESeq2 differential expression')).toBeInTheDocument();
-    expect(screen.getAllByText('transcriptomics').length).toBeGreaterThan(0);
-    expect(screen.getByText(/14\.3/)).toBeInTheDocument();
+    expect(screen.getAllByTestId('browse-result-domain').map((e) => e.textContent)).toContain('transcriptomics');
+    expect(screen.queryByText(/14\.3/)).toBeNull();
+    expect(screen.queryByText('nfcore')).toBeNull();
+    expect(screen.queryByText('bioconductor')).toBeNull();
 
     // The request body carried the typed query.
     const call = fetchMock.mock.calls.find((c: any[]) => typeof c[0] === 'string' && c[0].includes('search_ranked'));

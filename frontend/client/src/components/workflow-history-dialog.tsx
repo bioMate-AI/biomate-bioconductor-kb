@@ -18,6 +18,7 @@ import { Loader2, Search, Upload, Play, CheckCircle2, Info, Trash2, Sparkles } f
 import { analytics } from '@/lib/analytics';
 import { parseNfParams } from '@/lib/parse-nf-params';
 import { tOr } from '@/lib/i18n';
+import { useLocalizedLabels } from '@/lib/use-localized-labels';
 import { HintTip } from '@/components/ui/hint-tip';
 import type { WorkflowSelection } from '@/lib/workflow-selection';
 
@@ -631,13 +632,10 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                           <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{r.description}</div>
                         )}
                         <div className="text-fs-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
-                          {r.domain && <span className="px-1 py-0.5 rounded bg-muted">{r.domain}</span>}
-                          {r.source && <span>{r.source}</span>}
-                          {typeof r.score === 'number' && (
-                            <span title={tOr('workflows_library.score_title', 'Relevance score from the ranking engine')}>
-                              {tOr('workflows_library.score', 'score')} {r.score}
-                            </span>
-                          )}
+                          {/* Domain as words (localized); the internal catalog source tag and the raw
+                              ranking score are not shown (founder 2026-11-12: "biomni_nextflow …
+                              untolerable", "评分 52.1" means nothing to a user). */}
+                          {r.domain && <DomainChip domain={r.domain} />}
                         </div>
                       </div>
                       <Button
@@ -806,4 +804,11 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       </DialogContent>
     </Dialog>
   );
+}
+
+/** A catalog domain slug as words ("drug_discovery" → "drug discovery"), translated in the zh UI. */
+function DomainChip({ domain }: { domain: string }) {
+  const words = domain.replace(/[_-]+/g, ' ').trim();
+  const tl = useLocalizedLabels([words]);
+  return <span className="px-1 py-0.5 rounded bg-muted" data-testid="browse-result-domain">{tl(words)}</span>;
 }

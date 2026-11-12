@@ -2699,7 +2699,18 @@ Respond with a single JSON object — no other text:
         section_re = _re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
         param_re = _re.compile(r'^\s*params\.(\w+)\s*=\s*(.+)$')
         current_group: Optional[str] = None
+        # A default the workflow's own comment calls test/example/demo data is an EXAMPLE input
+        # (shown as 示例, never as a recommendation, and never as something the user supplied).
+        _example_re = _re.compile(r'\b(test|example|demo|sample)\s+(data|input|inputs|compounds?|molecules?|sequences?|smiles|values?)\b', _re.I)
+        prev_comment = ''  # the whole comment block directly above the current line
         for line in text.splitlines():
+            _stripped = line.strip()
+            if _stripped.startswith('//'):
+                prev_comment = (prev_comment + ' ' + _stripped).strip()
+            elif _stripped.startswith('params.'):
+                pass  # the block applies to this param; reset after it (below)
+            else:
+                prev_comment = ''
             # Detect section header: // [Phase A] ... or // [Global] ...
             sec_m = section_re.search(line)
             if sec_m and line.strip().startswith('//'):
@@ -2744,6 +2755,9 @@ Respond with a single JSON object — no other text:
                 "type": param_type,
                 "default": default_str,
             }
+            if default_str not in (None, '', True, False) and (_example_re.search(inline_desc) or _example_re.search(prev_comment)):
+                entry["example"] = True
+            prev_comment = ''
             if current_group:
                 entry["group"] = current_group
             seen_names.add(name)
@@ -6506,6 +6520,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     # Extract scalar value — recommended_value may be a dict like
                     # {'default': 'MPNN'} when stored from Nextflow param definitions.
                     rv = rec.recommended_value
+                    # {'default': X} is the workflow's OWN .nf default copied into the knowledge
+                    # table, not a recommendation: surfacing it as one marked test-data examples
+                    # (e.g. aspirin SMILES) as "推荐" and told the chat model the user supplied them
+                    # (founder 2026-11-12). Only real recommendations become hints.
+                    if isinstance(rv, dict) and set(rv.keys()) <= {"default"}:
+                        continue
                     if isinstance(rv, dict):
                         rv = rv.get("default", rv.get("value", next(iter(rv.values()), "")))
                     recommended_str = str(rv) if rv is not None else ""

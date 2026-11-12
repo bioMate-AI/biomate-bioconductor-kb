@@ -178,7 +178,8 @@
     "open_output_folder": "打开文件夹",
     "open_in_data": "在数据中打开",
     "open_file_panel": "在对话旁打开",
-    "file_panel_error": "无法打开此文件，它可能已被删除。"
+    "file_panel_error": "无法打开此文件，它可能已被删除。",
+    "library_input_reminder": "{{name}} 将使用你的数据运行：发送前请附加文件（📎）或在消息中粘贴输入（如 SMILES、序列）；否则将使用工作流自带的示例输入。"
   },
   "composer": {
     "data": "数据",
@@ -1425,7 +1426,22 @@
     },
     "view_sample_data": "查看示例数据",
     "rows_count": "{{n}} 行",
-    "rows_truncated": "显示前 50 行，共 {{n}} 行"
+    "rows_truncated": "显示前 50 行，共 {{n}} 行",
+    "param_origin": {
+      "default": "默认",
+      "example": "示例",
+      "inherited": "继承",
+      "confirmed": "已确认",
+      "edited": "已修改"
+    },
+    "param_origin_tip": {
+      "default": "工作流的默认值，未作修改。",
+      "example": "工作流测试数据中的示例输入，请替换为你自己的数据。",
+      "inherited": "来自项目指令或上下文。",
+      "recommended": "根据工具知识推荐的值，运行前请检查。",
+      "confirmed": "你已接受推荐值。",
+      "edited": "你修改了推荐值或默认值。"
+    }
   },
   "preview": {
     "loading": "正在加载预览…",
