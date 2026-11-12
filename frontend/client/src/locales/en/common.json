@@ -189,7 +189,12 @@
     "count_on": "{{n}} on",
     "experts_header": "Expert packs applied to this request — the answer records which were on.",
     "loading_expert_packs": "Loading expert packs…",
-    "no_expert_packs": "No expert packs available yet."
+    "no_expert_packs": "No expert packs available yet.",
+    "group_default": "Default",
+    "group_experts": "BioMate experts",
+    "group_user": "Your skills",
+    "default_skill_locked": "Always on — BioMate's capability context is applied to every request.",
+    "clear_all": "Clear all"
   },
   "cold_start": {
     "describe_goal_placeholder": "Describe the goal — e.g. screen these molecules for hERG, then rank by developability",
