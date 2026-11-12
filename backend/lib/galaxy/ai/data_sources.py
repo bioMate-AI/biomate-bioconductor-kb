@@ -127,10 +127,10 @@ _REST: List[DataSource] = [
                note="Preprints (not peer reviewed), keyword-searched through Europe PMC with a publisher filter; "
                     "the bioRxiv API itself has no keyword search. Rows carry peer_reviewed=false."),
     DataSource("opentargets", "Open Targets", "gene", ["gene", "disease"],
-               [SURFACE_DEDICATED],
-               note="Live, but not a federated fetcher: the GraphQL platform API is the primary channel of the target-ID engine "
-                    "(identify_targets, target_id/data_channels.py OpenTargetsGeneticsChannel) and supplies gene-disease association and "
-                    "locus-to-gene scores to the research agent."),
+               [SURFACE_FEDERATION, SURFACE_DEDICATED],
+               note="GraphQL platform API. Primary channel of the target-ID engine (identify_targets, "
+                    "target_id/data_channels.py OpenTargetsGeneticsChannel); ALSO wired into the fan-out "
+                    "2026-11-12 via resolve_gene→ENSG→associatedDiseases for grounded target-disease answers."),
     DataSource("geo", "NCBI GEO", "dataset", ["dataset"],
                [SURFACE_DEDICATED],
                note="Accession retrieval is live: resolve_accession (GSE/GSM/GDS -> Geo Data Connector workflow with pre-filled params) and the "
