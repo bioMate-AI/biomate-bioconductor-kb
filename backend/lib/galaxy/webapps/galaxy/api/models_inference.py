@@ -83,6 +83,11 @@ _BIONEMO_META: Dict[str, Dict[str, Any]] = {
         "evidence_class": STRUCTURE,
         "version": "2.0",
         "interface": "rest",
+        # Boltz-2 structure folding runs on BioMate's OWN AWS Batch
+        # (boltz_structure_prediction via /api/workflows/execute), NOT NVIDIA's
+        # hosted API — so its origin is honest regardless of the BioNeMo client
+        # mode. OpenFold2 / Evo2 remain NVIDIA-hosted (no BioMate-owned path yet).
+        "origin_override": "aws_batch",
     },
     # NOTE: AlphaFold2 was removed from the hosted catalogue (2026-11-10) — NVIDIA's
     # hosted endpoint reached end of life on 2026-09-24 (410 Gone). Re-add for a
@@ -259,7 +264,9 @@ def _bionemo_catalog() -> List[Dict[str, Any]]:
                 "name": meta["name"],
                 "family": meta["family"],
                 "version": meta["version"],
-                "origin": origin,
+                # A model BioMate runs itself reports its real execution backend,
+                # not the shared BioNeMo-client mode (honest origin).
+                "origin": meta.get("origin_override", origin),
                 "usedByCount": 0,
             }
         )

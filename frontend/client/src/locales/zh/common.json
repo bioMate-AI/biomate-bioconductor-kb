@@ -2019,6 +2019,7 @@
     "run_status_interrupted": "已中断",
     "run_status_unknown": "状态未知",
     "origin_self_host": "自建部署",
+    "origin_aws_batch": "BioMate 自有算力",
     "origin_hosted_nvidia": "NVIDIA 托管",
     "origin_unconfigured": "未配置",
     "origin_custom": "自定义（您的）",

@@ -1511,6 +1511,7 @@
     "run_status_interrupted": "Interrupted",
     "run_status_unknown": "Unknown status",
     "origin_self_host": "Self-hosted",
+    "origin_aws_batch": "BioMate compute",
     "origin_hosted_nvidia": "NVIDIA hosted",
     "origin_unconfigured": "Not configured",
     "origin_custom": "Custom (yours)",

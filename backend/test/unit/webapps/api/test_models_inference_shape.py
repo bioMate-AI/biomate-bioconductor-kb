@@ -79,15 +79,20 @@ def test_catalog_row_shape(mod):
 
 
 def test_bionemo_catalog_present(mod):
-    ids = {r["id"] for r in mod._bionemo_catalog()}
+    rows = {r["id"]: r for r in mod._bionemo_catalog()}
     # Structure + genomic evidence classes are both represented.
-    assert "bionemo:boltz2" in ids
-    assert "bionemo:evo2_7b" in ids
-    # Origin reflects the REAL backend (self_host when a NIM URL is set, else
-    # hosted_nvidia with a key, else unconfigured) — never a hard-coded "self-host"
-    # that hid the NVIDIA fallback (2026-11-11).
+    assert "bionemo:boltz2" in rows
+    assert "bionemo:evo2_7b" in rows
+    # Origin reflects the REAL backend. Boltz-2 structure folding runs on BioMate's
+    # OWN AWS Batch, so it reports "aws_batch" regardless of the BioNeMo client mode
+    # — never "NVIDIA-hosted" for a model we run ourselves (2026-11-12).
+    assert rows["bionemo:boltz2"]["origin"] == "aws_batch"
+    # Models genuinely served through the BioNeMo client report the real mode
+    # (self_host with a NIM URL, else hosted_nvidia with a key, else unconfigured) —
+    # never a hard-coded "self-host" that hid the NVIDIA fallback (2026-11-11).
     for r in mod._bionemo_catalog():
-        assert r["origin"] in {"self_host", "hosted_nvidia", "unconfigured"}, r["origin"]
+        assert r["origin"] in {"self_host", "hosted_nvidia", "unconfigured", "aws_batch"}, r["origin"]
+    assert rows["bionemo:evo2_7b"]["origin"] in {"self_host", "hosted_nvidia", "unconfigured"}
 
 
 # ── evidence class routing ───────────────────────────────────────────────────
