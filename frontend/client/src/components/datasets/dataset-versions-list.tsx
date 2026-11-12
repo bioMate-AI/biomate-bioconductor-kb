@@ -30,6 +30,24 @@ export interface VersionDiff {
   columns?: { added?: string[]; removed?: string[] }
   /** `row` is the 0-based data row (header excluded); `rowNumber`, when sent, is already 1-based. */
   changedCells?: Array<{ row: number; rowNumber?: number; col: string; from: unknown; to: unknown }>
+  /** Every changed cell in the compared window (may exceed `changedCells`, which is a list cap). */
+  changedCellCount?: number
+  /** false → the count is a lower bound ("at least N"). */
+  changedCellCountExact?: boolean
+  /** `changedCells` lists only some of the changed cells. */
+  changedCellsTruncated?: boolean
+}
+
+/** Cells shown under a compare. */
+const SHOWN_CELLS = 5
+
+/** "Changed cells: N" / "at least N" — count-safe wording (never "1 changed cells"). */
+export function changedCellsText(d: VersionDiff): string {
+  const n = typeof d.changedCellCount === "number" ? d.changedCellCount : (d.changedCells?.length ?? 0)
+  const shown = n.toLocaleString(INTL_LOCALE)
+  return d.changedCellCountExact === false
+    ? t("dataset_obj.diff_changed_cells_at_least", { n: shown })
+    : t("dataset_obj.diff_changed_cells", { n: shown })
 }
 
 export interface DatasetVersionsListProps {
@@ -174,10 +192,12 @@ export function DatasetVersionsList({
                       </p>
                     ) : null}
                     <p className="text-muted-foreground" data-testid="dataset-diff-cellcount">
-                      {t("dataset_obj.diff_changed_cells", { n: diffData.changedCells?.length ?? 0 })}
+                      {changedCellsText(diffData)}
                       {diffData.truncated ? ` ${t("dataset_obj.diff_sampled")}` : ""}
+                      {(diffData.changedCellsTruncated || (diffData.changedCells?.length ?? 0) > SHOWN_CELLS)
+                        ? ` ${t("dataset_obj.diff_first_shown", { n: Math.min(SHOWN_CELLS, diffData.changedCells?.length ?? 0) })}` : ""}
                     </p>
-                    {(diffData.changedCells ?? []).slice(0, 5).map((c, ci) => (
+                    {(diffData.changedCells ?? []).slice(0, SHOWN_CELLS).map((c, ci) => (
                       <p key={ci} className="font-mono text-fs-xs" data-testid="dataset-diff-cell">
                         <span className="text-muted-foreground" data-testid="dataset-diff-cell-where">
                           {t("dataset_versions.diff_row", { n: diffRowNumber(c) })} · {c.col}:{" "}

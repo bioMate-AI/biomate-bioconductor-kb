@@ -588,7 +588,8 @@
     "rename_err_server": "服务器未能完成重命名（{{status}}），未做任何更改，请重试。",
     "rename_err_network": "无法连接服务器，未做任何重命名。请检查网络后重试。",
     "inputs_root": "输入",
-    "rename_hint_short": "Enter 保存 · Esc 取消 · “/”表示文件夹"
+    "rename_hint_short": "Enter 保存 · Esc 取消 · “/”表示文件夹",
+    "quality_open_to_check": "导入质量：尚未检查——打开文件即可检查"
   },
   "dataset_obj": {
     "quality_good": "良好",
@@ -687,7 +688,7 @@
     "compare_failed": "无法对比版本",
     "diff_identical": "内容相同（字节一致）。",
     "diff_nontabular": "非表格文件——当前 {{b}} 字节，此版本 {{a}} 字节。",
-    "diff_changed_cells": "变化的单元格：{{n}} 个",
+    "diff_changed_cells": "已更改单元格：{{n}}",
     "diff_sampled": "（前 500 行）",
     "view_edit": "编辑",
     "edit_hint": "编辑前 {{n}} 行样本；保存时会将修改应用到完整文件并生成新版本。",
@@ -830,7 +831,9 @@
     "image_fit": "适应窗口",
     "image_actual": "原始尺寸",
     "preview_text_under_name": "文件名标为 {{format}}，但内容是文本——按文本显示：",
-    "scroll_more_columns": "还有更多列 → 可横向滚动"
+    "scroll_more_columns": "还有更多列 → 可横向滚动",
+    "diff_changed_cells_at_least": "已更改单元格：至少 {{n}}",
+    "diff_first_shown": "仅显示前 {{n}} 处。"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

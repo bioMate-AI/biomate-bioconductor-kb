@@ -582,7 +582,8 @@
     "rename_err_server": "The server couldn’t rename it ({{status}}). Nothing was changed — try again.",
     "rename_err_network": "Couldn’t reach the server, so nothing was renamed. Check your connection and try again.",
     "inputs_root": "inputs",
-    "rename_hint_short": "Enter saves · Esc cancels · “/” = folder"
+    "rename_hint_short": "Enter saves · Esc cancels · “/” = folder",
+    "quality_open_to_check": "Ingest quality: not checked yet — open the file to check it"
   },
   "dataset_obj": {
     "quality_good": "Good",
@@ -824,7 +825,9 @@
     "image_fit": "Fit to frame",
     "image_actual": "Actual size",
     "preview_text_under_name": "Its name says {{format}}, but it holds text — shown as text:",
-    "scroll_more_columns": "More columns → scroll sideways"
+    "scroll_more_columns": "More columns → scroll sideways",
+    "diff_changed_cells_at_least": "Changed cells: at least {{n}}",
+    "diff_first_shown": "First {{n}} shown."
   },
   "data_hub": {
     "choose_project": "Choose a project",
