@@ -9778,6 +9778,9 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
             bound: _bindings.map((b) => ({ param: b.param, file: b.files.map((f) => f.name).join(', ') })),
             unbound: _dataAttached.filter((f) => !_boundNames.has(f.name)).map((f) => f.name),
           };
+          // The panel reads this (not the login-session upload list) to say "files attached here are
+          // not used by this workflow" — only when this chat really attached some.
+          if (_wfGaA && typeof _wfGaA === 'object') (_wfGaA as any).attachment_binding = (response as any)._attachmentBinding;
           if (_bindings.length === 0) {
             console.log(
               `[GalaxyAssistant] AttachmentBind: none of ${_attached.length} attached file(s) fits "${_wfGaA?.name || 'workflow'}" inputs`,
@@ -9990,13 +9993,22 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         ...(_wfGa.required_params || (generatedWorkflow as any)?.required_params || []),
         ...(_wfGa.optional_params || (generatedWorkflow as any)?.optional_params || []),
       ];
+      // An EXAMPLE value (the workflow's test data) is not something the user supplied: it must
+      // never be declared pre-satisfied (live dev 2026-11-12: the model then called the example
+      // SMILES "可选；默认值为阿司匹林" and never asked for the user's compounds).
+      const exampleEntries: [string, string][] = [];
       for (const p of allParams) {
+        const v = p?.value ?? p?.default;
+        if (p?.example && v !== null && v !== undefined && v !== '') { exampleEntries.push([p.name, String(v)]); continue; }
         if (p?.autoFilled && (p.value !== null && p.value !== undefined && p.value !== '')) {
           autoFilledEntries.push([p.name, String(p.value)]);
         }
       }
+      const exampleBlock = exampleEntries.length
+        ? `\n<example_parameter_values>\nThese parameters are pre-filled with the workflow's EXAMPLE inputs (its test data). They are NOT defaults the user chose, NOT recommendations, and NOT the user's data:\n${exampleEntries.map(([k, v]) => `  ${k}: ${v}`).join('\n')}\nSay plainly that the card is pre-filled with example inputs (name what they are), and ask the user for their own inputs (paste them or attach a file). Never call these values a default or recommended.\n</example_parameter_values>\n`
+        : '';
       const allEntries = [...entries, ...autoFilledEntries];
-      if (allEntries.length === 0) return '';
+      if (allEntries.length === 0) return exampleBlock;
       const lines = allEntries.map(([k, v]) => `  ${k}: ${v}`);
       // When a genome build is present, add an explicit note that reference genome files
       // are auto-resolved via igenomes — the LLM must not ask for FASTA paths or known-sites VCFs.
@@ -10004,7 +10016,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       const genomeSuffix = genomeBuild
         ? `\n  Note: reference genome FASTA, genome index, and known-variant VCF files for ${genomeBuild} are auto-resolved from the igenomes reference data registry. Do NOT ask the user to provide these files.`
         : '';
-      return `\n<pre_satisfied_parameters>\nThe following parameters are already present in the user's message and must NOT be requested again:\n${lines.join('\n')}${genomeSuffix}\n</pre_satisfied_parameters>\n`;
+      return `\n<pre_satisfied_parameters>\nThe following parameters are already present in the user's message and must NOT be requested again:\n${lines.join('\n')}${genomeSuffix}\n</pre_satisfied_parameters>\n` + exampleBlock;
     })();
 
     // ── Session datasets block ─────────────────────────────────────────────

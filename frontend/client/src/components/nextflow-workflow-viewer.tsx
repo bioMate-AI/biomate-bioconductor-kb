@@ -131,6 +131,7 @@ type ViewerParameter = {
   maximum?: number;
   /** Whether this value was pre-filled by the AI (shows KnowledgeBadge + Override button) */
   autoFilled?: boolean;
+  example?: boolean;
   /** Scientific rationale for the AI-recommended value */
   rationale?: string;
 };
@@ -601,6 +602,9 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
           minimum: p.minimum != null ? Number(p.minimum) : undefined,
           maximum: p.maximum != null ? Number(p.maximum) : undefined,
           autoFilled: p.autoFilled === true,
+          // The workflow's own test/demo value (the .nf comment says so) — shown as 示例, kept
+          // only while the user has not replaced it.
+          example: p.example === true && userValue === undefined,
           rationale: p.rationale || undefined,
         };
       });
@@ -3981,7 +3985,10 @@ export function NextflowWorkflowViewer({
                       say so here instead of leaving them to infer it from an
                       empty Inputs card (founder report: 5 files attached, panel
                       said "parameters only"). */}
-                  {sessionDatasets.length > 0 && (
+                  {/* Only files attached in THIS chat that the workflow does not read — the login-session
+                      upload list covered every chat since login, so the line showed with nothing
+                      uploaded here (founder 2026-11-12). */}
+                  {((workflowDefinition as any)?.attachment_binding?.unbound?.length ?? 0) > 0 && (
                     <div
                       data-testid="prerun-attachments-unused"
                       style={{ fontSize: 'var(--fs-micro)', color: 'var(--warn, #b45309)', marginTop: 6 }}
