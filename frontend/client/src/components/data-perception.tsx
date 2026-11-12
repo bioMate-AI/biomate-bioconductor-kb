@@ -240,6 +240,9 @@ const FORMAT_NAME_PARAMS = new Set(["named", "detected", "format"]);
 export const LABEL_PARAMS = ["format", "named", "detected", "field", "root", "order_words", "method", "layout", "path_base", "dir"] as const;
 const STRUCTURE_METHOD_KEYS = new Set(["xray", "em", "nmr", "neutron", "fiber", "electron_crystallography"]);
 
+const isNamedCount = (x: unknown): x is { name: unknown; n: unknown } =>
+  typeof x === "object" && x !== null && "name" in x && "n" in x;
+
 /** Turn a finding's params into i18n vars: numbers grouped, lists joined with the
  *  locale's separator, `at_least` → the qualified count reads "at least N" (backend
  *  _AT_LEAST_PARAMS), structural roots translated. */
@@ -247,6 +250,12 @@ function findingVars(f: PerceptionFinding): Record<string, string | number> {
   const vars: Record<string, string | number> = {};
   for (const [k, v] of Object.entries(f.params ?? {})) {
     if (k === "at_least") continue;
+    // A list of named counts ([{name, n}] — sample groups by name): "ctrl (2) · treat (2)",
+    // zh "ctrl（2）· treat（2）". Never String(object) → "[object Object]".
+    else if (Array.isArray(v) && v.length > 0 && v.every(isNamedCount)) {
+      vars[k] = v.map((g) => t("perception.group_count", { name: String(g.name), n: typeof g.n === "number" ? fmtInt(g.n) : String(g.n) }))
+        .join(t("perception.group_sep"));
+    }
     else if (Array.isArray(v)) vars[k] = v.map(String).join(t("perception.list_sep"));
     else if (typeof v === "number") vars[k] = Number.isInteger(v) ? fmtInt(v) : String(v);
     else if (k === "root" && typeof v === "string") vars[k] = tOr(`perception.root_${v}`, v);

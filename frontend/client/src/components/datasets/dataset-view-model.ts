@@ -236,15 +236,14 @@ export function profileStats(profile: DataProfile, kind: ViewKind): StatItem[] {
 
 /**
  * Findings whose whole content is the kind's headline numbers ("Variant records: 30; samples: 1.",
- * "Cells (obs): 1 × genes (var): 1.", "Rows: 6 · columns: 5."): each param and the stat code(s) that
+ * "Rows: 6 · columns: 5.", "Reads scanned: 10,000; mean read length 151 bp."): each param and the stat code(s) that
  * show the same number. A finding with any other param says something more and is never listed here.
  */
 const NUMBERS_ONLY_FINDINGS: Record<string, Record<string, readonly string[]>> = {
   vcf_records: { variants: ["variants"], samples: ["samples"] },
   vcf_summary: { variants: ["variants"], samples: ["samples"] },
   vcf_sized: { variants: ["variants"], samples: ["samples"] },
-  anndata_shape: { cells: ["cells"], genes: ["genes"] },
-  loom_shape: { cells: ["cells"], genes: ["genes"] },
+  // (anndata_shape / loom_shape state the matrix ORIENTATION since round 5, not the numbers: kept.)
   table_summary: { rows: ["rows", "records"], cols: ["columns"] },
   molecules_count: { molecules: ["molecules"] },
   fastq_reads: { reads: ["reads"], mean_len: ["read_length"] },

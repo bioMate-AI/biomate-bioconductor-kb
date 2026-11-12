@@ -1825,7 +1825,7 @@
       "file_not_found": "The file could not be found.",
       "no_path": "No dataset path was provided.",
       "empty_file": "The file is empty (0 bytes).",
-      "unprofilable": "This file type cannot be profiled ({{name}}); only its shape is reported, no leakage or balance checks.",
+      "unprofilable": "This file type cannot be read here ({{name}}); only its size is reported.",
       "parse_failed": "The file could not be parsed; it may be malformed or in a different format than its name suggests.",
       "no_ref": "No dataset reference was provided.",
       "unresolvable_ref": "The dataset reference could not be resolved to a readable file.",
@@ -1886,12 +1886,12 @@
       "format_header_unreadable": "The {{format}} header could not be read; the file may be truncated or malformed.",
       "fasta_sequences": "Sequences: {{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}} (half of all bases lie in sequences at least this long).",
       "fasta_no_sequences": "No “>” sequence headers found.",
-      "anndata_shape": "Cells (obs): {{cells}} × genes or features (var): {{genes}}.",
+      "anndata_shape": "Rows of the matrix X are cells (obs); its columns are genes or features (var).",
       "anndata_obs": "Cell annotation columns ({{count}}): {{columns}}.",
       "anndata_var": "Gene annotation columns ({{count}}): {{columns}}.",
       "anndata_embeddings": "Stored embeddings: {{embeddings}}.",
       "hdf5_groups": "Stored groups: {{groups}}.",
-      "loom_shape": "Genes (rows): {{genes}} × cells (columns): {{cells}}.",
+      "loom_shape": "Rows of the matrix are genes; its columns are cells (the loom layout, transposed relative to AnnData).",
       "loom_row_attrs": "Gene attributes: {{columns}}.",
       "loom_col_attrs": "Cell attributes: {{columns}}.",
       "loom_layers": "Layers: {{layers}}.",
@@ -1958,7 +1958,10 @@
       "table_clean_label_unchecked": "Rows: {{rows}} · columns: {{cols}}; no constant columns or missing-value problems.",
       "duplicate_rows": "Exact duplicate rows: {{count}}.",
       "spreadsheet_preview": "Preview of sheet “{{sheet}}”: its first rows (rows shown: {{rows}}).",
-      "folder_samplesheet_single_end": "Unpaired files are left out of the paired samplesheet and go to a separate single-end samplesheet ({{filename}}, rows: {{rows}}): {{names}}."
+      "folder_samplesheet_single_end": "Unpaired files go to a separate single-end samplesheet ({{filename}}, rows: {{rows}}).",
+      "group_nested": "Each value of “{{column}}” occurs in only one group of “{{label}}”, so {{column}} and {{label}} effects cannot be separated — a confounded design; dropping the column does not fix it.",
+      "sample_groups_from_names": "Sample columns form groups by name: {{groups}}.",
+      "spreadsheet_preview_sheets": "Sheets ({{count}}): {{sheets}}; the preview shows the first rows of “{{sheet}}” (rows shown: {{rows}})."
     },
     "quality_unassessed": "Not checked",
     "gloss_effective_n": "Effective N: how many independent samples the data is really worth once duplicate rows and class imbalance are accounted for — usually fewer than the row count.",
@@ -2013,7 +2016,9 @@
     "list_and": " and ",
     "folder_path": "{{path}}",
     "near_constant_expected_few_rows": "Expected with this few rows — not flagged.",
-    "near_constant_expected_record_metadata": "The same value in every record is per-record metadata — not flagged."
+    "near_constant_expected_record_metadata": "The same value in every record is per-record metadata — not flagged.",
+    "group_count": "{{name}} ({{n}})",
+    "group_sep": " · "
   },
   "failure": {
     "no_error": {

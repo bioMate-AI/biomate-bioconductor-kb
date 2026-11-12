@@ -95,21 +95,23 @@ describe("1 + 2 — a VCF page: no plan section, each number once", () => {
 })
 
 describe("2 — AnnData cells × genes and a single-sheet workbook's sheet name, once", () => {
-  it("h5ad: anndata_shape is not repeated beside the CELLS / GENES cards", async () => {
+  it("h5ad: the numbers only in the CELLS / GENES cards; the card states the matrix orientation", async () => {
     const a = ds("pbmc3k_tiny.h5ad")
     profiles[a.ref!] = {
       shape: { rows: 0, cols: 0 }, quality: "unassessed", notes: [], viewKind: "anndata",
       format: { ext: "h5ad", label: "AnnData (h5ad)", source: "galaxy" },
-      stats: [{ code: "cells", value: 1 }, { code: "genes", value: 1 }],
+      stats: [{ code: "cells", value: 2638 }, { code: "genes", value: 1838 }],
       findings: [
-        { section: "signal", code: "anndata_shape", level: "info", params: { cells: 1, genes: 1 } },
+        { section: "signal", code: "anndata_shape", level: "info", params: { cells: 2638, genes: 1838 } },
         { section: "note", code: "format_metadata_only", level: "info", params: { format: "AnnData (h5ad)" } },
       ],
     }
     renderObj(a)
     const card = await screen.findByTestId("data-perception")
-    await waitFor(() => expect(cardCodes(card)).toContain("format_metadata_only"))
-    expect(cardCodes(card)).not.toContain("anndata_shape")
+    await waitFor(() => expect(cardCodes(card)).toContain("anndata_shape"))
+    expect(card).toHaveTextContent("Rows of the matrix X are cells (obs); its columns are genes or features (var).")
+    expect(card.textContent).not.toContain("2,638")
+    expect(screen.getByTestId("dataset-stat-grid")).toHaveTextContent("2,638")
   })
 
   it("xlsx: 'Sheets (1): X' is dropped when X is the previewed sheet; a 2-sheet workbook keeps its list", async () => {

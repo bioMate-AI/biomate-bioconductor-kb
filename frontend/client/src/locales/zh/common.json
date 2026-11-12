@@ -2305,7 +2305,7 @@
       "file_not_found": "找不到该文件。",
       "no_path": "未提供数据集路径。",
       "empty_file": "文件为空（0 字节）。",
-      "unprofilable": "无法分析此文件类型（{{name}}）；仅报告形状，未做泄漏或类别分布检查。",
+      "unprofilable": "此处无法读取这种文件类型（{{name}}）；仅报告其大小。",
       "parse_failed": "无法解析该文件；文件可能已损坏，或实际格式与文件名不符。",
       "no_ref": "未提供数据集引用。",
       "unresolvable_ref": "无法将该数据集引用解析为可读取的文件。",
@@ -2366,12 +2366,12 @@
       "format_header_unreadable": "无法读取{{format}}文件头；文件可能不完整或已损坏。",
       "fasta_sequences": "序列数：{{sequences}}，总长 {{total}} {{unit}}；长度均值 {{mean}}，最短 {{min}}，最长 {{max}}，N50 为 {{n50}}（一半碱基位于不短于该长度的序列中）。",
       "fasta_no_sequences": "未找到以“>”开头的序列标题行。",
-      "anndata_shape": "{{cells}} 个细胞（obs）× {{genes}} 个基因或特征（var）。",
+      "anndata_shape": "矩阵 X 的行是细胞（obs），列是基因或特征（var）。",
       "anndata_obs": "细胞注释列（{{count}} 个）：{{columns}}。",
       "anndata_var": "基因注释列（{{count}} 个）：{{columns}}。",
       "anndata_embeddings": "已存储的降维嵌入：{{embeddings}}。",
       "hdf5_groups": "已存储的数据组：{{groups}}。",
-      "loom_shape": "{{genes}} 个基因（行）× {{cells}} 个细胞（列）。",
+      "loom_shape": "矩阵的行是基因，列是细胞（loom 布局，与 AnnData 的方向相反）。",
       "loom_row_attrs": "基因属性：{{columns}}。",
       "loom_col_attrs": "细胞属性：{{columns}}。",
       "loom_layers": "数据层：{{layers}}。",
@@ -2438,7 +2438,10 @@
       "table_clean_label_unchecked": "{{rows}} 行 × {{cols}} 列；没有常量列或缺失值问题。",
       "duplicate_rows": "完全重复的行：{{count}} 行。",
       "spreadsheet_preview": "工作表“{{sheet}}”的预览：前 {{rows}} 行。",
-      "folder_samplesheet_single_end": "未配对的文件不放入双端样本表，而是单独生成单端样本表（{{filename}}，共 {{rows}} 行）：{{names}}。"
+      "folder_samplesheet_single_end": "未配对的文件单独生成单端样本表（{{filename}}，共 {{rows}} 行）。",
+      "group_nested": "“{{column}}”的每个取值只出现在“{{label}}”的一个组中，因此无法区分 {{column}} 与 {{label}} 的效应——这是混杂设计；删除该列并不能解决这个问题。",
+      "sample_groups_from_names": "样本列按名称分组：{{groups}}。",
+      "spreadsheet_preview_sheets": "共 {{count}} 个工作表：{{sheets}}；预览显示工作表“{{sheet}}”的前 {{rows}} 行。"
     },
     "quality_unassessed": "未检查",
     "gloss_effective_n": "有效样本量：去除重复行并考虑类别不平衡后，数据实际相当于多少个独立样本——通常少于行数。",
@@ -2493,7 +2496,9 @@
     "list_and": " 和 ",
     "folder_path": "“{{path}}”",
     "near_constant_expected_few_rows": "行数这么少时属于正常情况，不作标记。",
-    "near_constant_expected_record_metadata": "每条记录中相同的值是逐条记录的元数据，不作标记。"
+    "near_constant_expected_record_metadata": "每条记录中相同的值是逐条记录的元数据，不作标记。",
+    "group_count": "{{name}}（{{n}}）",
+    "group_sep": "· "
   },
   "failure": {
     "no_error": {

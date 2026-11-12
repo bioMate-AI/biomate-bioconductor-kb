@@ -202,7 +202,7 @@ describe("folder profile (round 3)", () => {
     const f = (code: string) => findingText(MIXED_FOLDER.findings.find((x) => x.code === code) as any)
     expect(f("folder_fastq_pairs")).toContain("from the _R1/_R2 and _1/_2 file naming")
     expect(f("folder_samplesheet")).toContain("(paired-end; sample, fastq_1, fastq_2); rows: 2. Paths are relative to the project's input files.")
-    expect(f("folder_samplesheet_single_end")).toContain("separate single-end samplesheet (samplesheet_single_end.csv, rows: 1): S3_R1.fastq.gz")
+    expect(f("folder_samplesheet_single_end")).toBe("Unpaired files go to a separate single-end samplesheet (samplesheet_single_end.csv, rows: 1).")
     expect(screen.getByTestId("folder-tenx-set-.")).toHaveTextContent("this folder")
 
     const single = screen.getByTestId("folder-samplesheet-single-download")

@@ -137,7 +137,9 @@ describe("AnnData (U5)", () => {
     const card = screen.getByTestId("data-perception")
     expect(within(card).queryByTestId("perception-stat-cells")).toBeNull()
     expect(screen.getByTestId("dataset-stat-grid").querySelector('[data-stat="cells"]')).toHaveTextContent("2,700")
-    expect(card).not.toHaveTextContent(/Rows/)
+    // No "rows / columns" count (the round-5 anndata_shape sentence says which axis is which, in words).
+    expect(within(card).queryByTestId("perception-stat-rows")).toBeNull()
+    expect(card).not.toHaveTextContent(/Rows:?\s*\d/i)
     expect(rowCalls).toBe(0)
   })
 })
