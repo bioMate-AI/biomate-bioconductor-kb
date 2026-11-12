@@ -536,7 +536,9 @@
       "transfer": "转让所有权",
       "transfer_body": "这将使 {{name}} 成为此项目的所有者。您将降为编辑者并失去所有者专属权限，且您无法自行撤销。",
       "message_count": "{{n}} 条消息",
-      "add_tag": "标签"
+      "add_tag": "标签",
+      "files_footer": "上传数据文件，BioMate 会为您选择并运行合适的工作流。",
+      "analyze_with_biomate": "用 BioMate 分析"
     }
   },
   "file_tree": {
@@ -618,8 +620,8 @@
     "quality_noref": "无法解析存储引用 — 该数据集暂时无法生成数据概况。",
     "quality_error": "概况不可用 — 分析器无法读取该数据集。",
     "run_qc": "运行完整质量检查",
-    "run_qc_tip": "通过 BioMate 对该数据集运行完整的 QC 工作流（例如 FastQC + MultiQC）并打开报告",
-    "qc_request": "对该数据集运行质量控制（QC），并生成 QC 报告。",
+    "run_qc_tip": "打开一个附带此文件的对话，请 BioMate 生成质量控制报告。由 BioMate 决定如何检查——分析文件内容，或在合适时运行 QC 工作流。",
+    "qc_request": "{{name}}：对此文件运行质量控制（QC），并生成 QC 报告。",
     "produced_by": "作为工作流输出",
     "open_run": "打开产生它的运行 →",
     "status": "状态",
@@ -675,7 +677,7 @@
     "produced": "产出",
     "open_as_dataset_title": "在「文件」中打开该数据集对象（预览、版本与血缘）",
     "used_by_runs": "{{n}} 个运行使用",
-    "content_hash": "内容哈希",
+    "content_hash": "文件指纹",
     "dedup_note": "再次添加相同的文件会复用这一条目",
     "open_in": "在 {{tool}} 中打开",
     "open_in_title": "将该文件复制到分析工作区并在 {{tool}} 中打开",
@@ -797,11 +799,11 @@
     "summary_layers": "数据层（layers）",
     "summary_anndata_note": "以上信息读取自文件元数据，表达值本身未在此加载。可在 Jupyter 中打开，或在对话中提问以进行分析。",
     "summary_anndata_unread": "未能在此读取该文件的结构。可在 Jupyter 中打开，或在对话中提问以查看。",
-    "summary_intro": "从该文件读取到的信息：",
-    "summary_intro_alignment": "比对文件为二进制格式，以下为从文件头读取的信息：",
-    "summary_intro_matrix": "Matrix Market 文件只包含数值，以下为读取到的信息：",
-    "summary_intro_table": "此电子表格不在此逐格显示，以下为读取到的信息：",
-    "summary_intro_records": "这些记录不在此以表格显示，以下为读取到的信息：",
+    "summary_intro": "此文件不在此处显示。其数量见下方，读取到的信息见“数据质检”。",
+    "summary_intro_alignment": "比对文件为二进制格式，不在此处显示。从文件头读取的信息见“数据质检”，计数见下方。",
+    "summary_intro_matrix": "Matrix Market 文件只包含数值，不逐格显示。读取到的信息见“数据质检”，矩阵大小见下方。",
+    "summary_intro_table": "此电子表格不在此逐格显示。读取到的信息见“数据质检”，计数见下方。",
+    "summary_intro_records": "这些记录不在此以表格显示。读取到的信息见“数据质检”，计数见下方。",
     "download_state": "该文件无法在浏览器中显示。请下载后用相应的软件打开。",
     "download_state_archive": "压缩包不会在此解压。请下载，或将其中的文件单独上传以预览。",
     "download_state_unknown": "未能识别该文件的格式，因此不在此显示。请下载后打开。",
@@ -844,8 +846,8 @@
     "source_url": "从链接导入",
     "source_run_code": "由对话中的分析生成",
     "export_heading": "导出",
-    "export_body": "将此文件连同其来源信息打包为 RO-Crate，用于提交到数据仓库。",
-    "summary_groups": "文件中存储的组成部分（HDF5 数据组）",
+    "export_body": "将此文件连同其来源信息打包为 RO-Crate——一种研究对象数据包，是向数据仓库提交数据的标准格式。",
+    "summary_groups": "文件中存储的部分",
     "stat_top_keys": "顶层键数",
     "stat_top_items": "顶层条目数",
     "stat_top_keys_tip": "仅统计最外层对象的键；数据质检卡片统计所有层级的键和值。",
@@ -873,7 +875,12 @@
     "col_header_range": "范围（均值）",
     "col_range": "{{min}} – {{max}}（均值 {{mean}}）",
     "columns_profiled_note": "由数据分析器基于全部 {{total}} 行计算。",
-    "columns_profiled_subset_note": "由数据分析器基于前 {{n}} 行（共 {{total}} 行）计算。"
+    "columns_profiled_subset_note": "由数据分析器基于前 {{n}} 行（共 {{total}} 行）计算。",
+    "fingerprint_tip": "由文件全部字节计算出的指纹（{{hash}}）。内容有任何改动，指纹都会不同；指纹相同即文件完全相同。",
+    "fingerprint_copy": "复制",
+    "fingerprint_copied": "已复制",
+    "plot_partial_caveat": "列“{{col}}”的分布 · 基于已加载的 {{n}} 行（共 {{total}} 行）",
+    "plot_load_all": "加载全部行以绘制全部数据"
   },
   "data_hub": {
     "choose_project": "选择一个项目",
@@ -2480,7 +2487,9 @@
     },
     "this_folder": "本文件夹",
     "list_and": " 和 ",
-    "folder_path": "“{{path}}”"
+    "folder_path": "“{{path}}”",
+    "near_constant_expected_few_rows": "行数这么少时属于正常情况，不作标记。",
+    "near_constant_expected_record_metadata": "每条记录中相同的值是逐条记录的元数据，不作标记。"
   },
   "failure": {
     "no_error": {
@@ -2592,7 +2601,7 @@
     "col_read2": "读段 2（R2）",
     "col_status": "测序方式",
     "status_paired": "已配对",
-    "status_orphan": "缺少配对",
+    "status_orphan": "缺少配对——按单端",
     "status_single": "单端",
     "orphan_tip": "本文件夹中没有第 {{missing}} 端配对文件",
     "tenx_heading": "10x Genomics 矩阵",
@@ -2614,7 +2623,9 @@
     "patterns": "配对命名规则：{{patterns}}",
     "pattern_Rs": "_R1/_R2",
     "pattern_illumina": "_1/_2",
-    "pattern_dot12s": ".1.fastq/.2.fastq"
+    "pattern_dot12s": ".1.fastq/.2.fastq",
+    "kind_single_format": "{{label}} 文件",
+    "kind_unrecognised": "未识别的文件"
   },
   "dataset_versions": {
     "by": "作者：{{name}}",

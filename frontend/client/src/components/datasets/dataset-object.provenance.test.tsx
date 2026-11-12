@@ -160,7 +160,9 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
     const hash = await screen.findByTestId("dataset-content-hash", {}, { timeout: 4000 })
     expect(hash.textContent).toContain("abcdef012345")       // abbreviated
-    expect(hash).toHaveAttribute("title", "sha256:abcdef0123456789deadbeef")
+    // N12 (round 4): called a fingerprint, explained on hover with the full value, and copyable.
+    expect(screen.getByTestId("dataset-fingerprint").getAttribute("title")).toContain("sha256:abcdef0123456789deadbeef")
+    expect(screen.getByTestId("dataset-fingerprint-copy")).toBeInTheDocument()
   })
 
   it("Versions tab shows 'used by N runs' on the current version (from consumers)", async () => {

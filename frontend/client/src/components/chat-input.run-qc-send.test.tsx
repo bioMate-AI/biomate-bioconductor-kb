@@ -26,10 +26,11 @@ describe('Run full QC — the request is sent, after the file is linked', () => 
   afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
 
   it('the data panel builds a chat link that asks for sending (send=1) with the file attached', () => {
-    const url = new URL(runQcChatUrl('project-a', 'file-a'), 'http://x');
+    const url = new URL(runQcChatUrl('project-a', 'file-a', 'pairs/featurecounts.txt'), 'http://x');
     expect(url.searchParams.get('project')).toBe('project-a');
     expect(url.searchParams.getAll('attachFile')).toEqual(['file-a']);
-    expect(url.searchParams.get('draft')).toBeTruthy();
+    // N9 (round 4): the request — and so the chat title cut from it — starts with the file name.
+    expect(url.searchParams.get('draft')).toMatch(/^featurecounts\.txt\b/);
     expect(url.searchParams.get('send')).toBe('1');
   });
 

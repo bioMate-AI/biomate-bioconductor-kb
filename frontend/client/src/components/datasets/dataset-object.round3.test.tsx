@@ -178,7 +178,7 @@ describe("W7 — labelled-table measures only for a labelled table, in plain wor
 })
 
 describe("W11 — a JSON document's counts say what they count", () => {
-  it("top-level keys in the stat grid; keys / values at all levels in the QC card, with tooltips", async () => {
+  it("top-level keys in the stat grid; keys at all levels in the QC card, with tooltips", async () => {
     const a = ds("qc_metrics.json")
     profiles[a.ref!] = { shape: { rows: 0, cols: 0 }, quality: "unassessed", notes: [], viewKind: "json",
       structured: { format: "JSON", root: "object", nodes: 10, keys: 7, nulls: 0, depth: 3 },
@@ -188,7 +188,8 @@ describe("W11 — a JSON document's counts say what they count", () => {
     await waitFor(() => expect(grid.querySelector('[data-stat="entries"]')).toHaveTextContent("Top-level keys"))
     expect(grid.querySelector('[data-stat="entries"] [title]')!.getAttribute("title")).toMatch(/outermost object/)
     expect(screen.getByTestId("perception-structured-keys")).toHaveTextContent("Keys (all levels)")
-    expect(screen.getByTestId("perception-structured-values")).toHaveTextContent("Values (all levels)")
+    // N12 (round 4): `nodes` counts containers and the root, not values — no "values" stat.
+    expect(screen.queryByTestId("perception-structured-values")).toBeNull()
     expect(within(screen.getByTestId("perception-structured-keys")).getByTestId("perception-stat-gloss").getAttribute("title")).toMatch(/every depth/)
   })
 })

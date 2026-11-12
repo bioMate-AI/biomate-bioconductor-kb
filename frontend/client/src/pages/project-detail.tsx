@@ -783,8 +783,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 />
               </div>
               <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground">
-                  Upload data files, then let BioMate select and run the right workflow for you.
+                <p className="text-xs text-muted-foreground" data-testid="project-files-footer">
+                  {t('projects.page.files_footer')}
                 </p>
                 <Button
                   size="sm"
@@ -793,7 +793,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   data-testid="button-analyze-files"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
-                  Analyze with BioMate
+                  {t('projects.page.analyze_with_biomate')}
                 </Button>
               </div>
             </TabsContent>

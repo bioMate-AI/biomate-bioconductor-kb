@@ -34,10 +34,20 @@ import {
   Copy,
   Check,
   Plus,
-  Image,
-  Database,
   Code2,
   FileArchive,
+  FileImage,
+  FileJson,
+  FileSpreadsheet,
+  FileType2,
+  Dna,
+  Grid3x3,
+  Atom,
+  Hexagon,
+  Table2,
+  AlignLeft,
+  Binary,
+  type LucideIcon,
   Eye,
   EyeOff,
   FolderUp,
@@ -45,6 +55,7 @@ import {
   Pencil,
   X,
 } from "lucide-react";
+import { fileExt, kindFromName, type ViewKind } from "@/components/datasets/dataset-view-model";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -350,14 +361,25 @@ const ACTIONS_STYLE: CSSProperties = { position: "absolute" };
 
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)
 
-function fileIcon(name: string, contentType: string) {
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) return Image;
-  if (["csv", "tsv", "xlsx", "parquet"].includes(ext)) return Database;
-  if (["nf", "py", "r", "sh", "ts", "js", "json", "yaml", "yml"].includes(ext)) return Code2;
-  if (["gz", "zip", "tar", "bz2", "zst"].includes(ext)) return FileArchive;
-  if (["txt", "md", "log", "fastq", "fasta", "vcf", "bed", "gtf", "gff"].includes(ext)) return FileText;
-  return File;
+/**
+ * The tree icon for a file: its data kind (the same name → kind table the dataset object uses,
+ * looking through .gz — `S1_R1.fastq.gz` is reads, not an archive), so a PDF, TIFF, h5ad, BAM or
+ * PDB is told apart at a glance instead of all being a blank page.
+ */
+const KIND_ICON: Partial<Record<ViewKind, LucideIcon>> = {
+  table: Table2, records: Table2, json: FileJson, sequences: Dna, reads: Dna, variants: Dna,
+  intervals: AlignLeft, annotation: AlignLeft, alignment: AlignLeft, anndata: Grid3x3, loom: Grid3x3,
+  matrix: Grid3x3, molecules: Hexagon, structure: Atom, image: FileImage, archive: FileArchive, binary: Binary,
+};
+const CODE_EXT = new Set(["nf", "py", "r", "sh", "ts", "js", "config", "toml", "ini"]);
+export function fileIcon(name: string, _contentType?: string | null): LucideIcon {
+  const ext = fileExt(name);
+  if (ext === "pdf") return FileType2;
+  if (["xlsx", "xls"].includes(ext)) return FileSpreadsheet;
+  if (CODE_EXT.has(ext)) return Code2;
+  const kind = kindFromName(name);
+  if (kind === "document") return FileText;
+  return KIND_ICON[kind] ?? (ext === "txt" || ext === "md" || ext === "log" ? FileText : File);
 }
 
 function formatBytes(n: number): string {

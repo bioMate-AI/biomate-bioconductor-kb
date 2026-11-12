@@ -36,9 +36,11 @@ import {
   BarChart3,
   SquareTerminal,
   Pencil,
+  Copy,
+  Check,
 } from "lucide-react"
 import { DataPerception, formatStatValue, type PerceptionQuality, type StructureEvidence } from "@/components/data-perception"
-import { datasetKind, datasetViewModel, effectiveQuality, profileEmptyCode, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
+import { datasetKind, datasetViewModel, effectiveQuality, findingsShownAsContent, profileEmptyCode, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
 import { AnnDataSummary, KindSummary, DownloadState } from "./dataset-kind-views"
 import { DatasetFilePreview, type FilePreviewStatus } from "./dataset-file-preview"
 import { t, tOr, locale } from "@/lib/i18n"
@@ -480,6 +482,9 @@ export function DatasetObject({
     columnsPending: rowsInFlight || (isLoading && !hasColumns),
     versionable,
     projectFile: Boolean(projectId),
+    // A header-only table (the rows reader's true total is 0, or the profile read 0 rows under a
+    // header) has no rows to edit or to QC.
+    noDataRows: hasColumns && (hasFullRows ? rowsQ.total === 0 : !rowsInFlight && profileRows === 0),
   })
   const editable = vm.canEdit
   const canOpenIn = vm.canOpenIn
@@ -498,8 +503,8 @@ export function DatasetObject({
   const onFileStatus = useCallback((status: FilePreviewStatus) => setFileStatus({ id: dataset.id, status }), [dataset.id])
   const isFilePreview = isValidElement(preview) && preview.type === DatasetFilePreview
   const kindPreview = isFilePreview
-    ? cloneElement(preview as React.ReactElement<{ kind?: string; format?: string; structure?: StructureEvidence | null; onStatus?: (s: FilePreviewStatus) => void }>,
-        { kind, format: profile?.format?.ext, structure: profile?.structure ?? null, onStatus: onFileStatus })
+    ? cloneElement(preview as React.ReactElement<{ kind?: string; format?: string; structure?: StructureEvidence | null; onStatus?: (s: FilePreviewStatus) => void; profilePending?: boolean }>,
+        { kind, format: profile?.format?.ext, structure: profile?.structure ?? null, onStatus: onFileStatus, profilePending: isLoading })
     : preview
   // Another preview element reports nothing: it is taken as drawn.
   const filePreviewStatus: FilePreviewStatus = !isFilePreview ? "ready"
@@ -697,7 +702,9 @@ export function DatasetObject({
       <CardContent>
         {/* Segmented pill tabs (design i05-2 / t10-1): a gray track with the
             selected tab as a raised white box, not an underline. */}
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
+        {/* One line at every width: a narrow panel scrolls the tab list sideways rather than
+            wrapping a tab onto a second row. */}
+        <div className="flex w-full min-w-0 flex-nowrap items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-0.5 mb-3 [scrollbar-width:none]" role="tablist" data-testid="dataset-tablist">
           {([
             ["preview", Eye, t('file_tree.preview')],
             ["versions", History, t('dataset_obj.versions')],
@@ -715,7 +722,7 @@ export function DatasetObject({
                 else if (key === "versions") setVersionsOpened(true)
               }}
               className={
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors " +
+                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors " +
                 (tab === key
                   ? "bg-background border border-border shadow-sm text-foreground font-medium"
                   : "border border-transparent text-muted-foreground hover:text-foreground")
@@ -802,10 +809,10 @@ export function DatasetObject({
               kindPreview ?? <DownloadState kind={kind} onDownload={onDownload} />
             )}
             {previewView === "content" && vm.content === "anndata" && (
-              isLoading ? <Skeleton className="h-16 w-full" /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} canOpenIn={canOpenIn} />
+              isLoading ? <Skeleton className="h-16 w-full" /> : <AnnDataSummary profile={profile} kind={kind} canOpenIn={canOpenIn} />
             )}
             {previewView === "content" && vm.content === "summary" && (
-              isLoading ? <Skeleton className="h-16 w-full" /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
+              isLoading ? <Skeleton className="h-16 w-full" /> : <KindSummary profile={profile} kind={kind} />
             )}
             {previewView === "content" && vm.content === "empty" && emptyCode && (
               // The file has no content: say so (0 bytes / only blank lines) — not an error, not a
@@ -854,7 +861,12 @@ export function DatasetObject({
               // Histogram of a numeric column over the loaded rows. Nothing numeric (or no data
               // rows) → say so and offer chat, rather than an empty axis (spec §4.3).
               plotable ? (
-                <DatasetSamplePlot columns={statCols!} sampleRows={statRows} decimal={decimal} t={t} />
+                <DatasetSamplePlot columns={statCols!} sampleRows={statRows} decimal={decimal} t={t}
+                  columnStats={profile?.columnStats ?? null}
+                  // A partially loaded table says the plot uses the loaded rows, and offers them all.
+                  total={hasFullRows ? rowsQ.total : null}
+                  onLoadAll={hasFullRows && rowsQ.total != null && rowsQ.total <= LOAD_ALL_CAP ? rowsQ.loadAll : undefined}
+                  loading={rowsQ.loading} />
               ) : (
                 <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
                   <p>{t(hasColumns && !statRows.length ? 'dataset_obj.plot_no_rows' : canOpenIn ? 'dataset_obj.plot_future' : 'dataset_obj.plot_future_chat')}</p>
@@ -947,6 +959,9 @@ export function DatasetObject({
                   // The kind's measures (rows × columns, reads, cells…) are in the stat grid below:
                   // shown once, not in both places.
                   hideStats
+                  // …and what the Preview shows as content (AnnData parts, a sheet's values) is not
+                  // listed again among the notes.
+                  hideFindings={previewView === "content" ? findingsShownAsContent(vm.content, profile) : undefined}
                 />
               )}
             </div>
@@ -1063,17 +1078,13 @@ export function DatasetObject({
                 k={t('dataset_obj.added')}
                 v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString(INTL_LOCALE) : "—"}
               />
-              {/* Content hash (design §4.5.1) — the dedup identity. Same bytes added
-                  twice link to one entry. Shown abbreviated; full value on hover. */}
+              {/* The file's fingerprint (sha256 of its bytes, design §4.5.1) — the dedup identity:
+                  the same bytes added twice link to one entry. Called a fingerprint, explained on
+                  hover; abbreviated, with Copy for the full value. */}
               {dataset.contentHash && (
                 <Row
                   k={t('dataset_obj.content_hash')}
-                  v={
-                    <span title={`sha256:${dataset.contentHash}`} data-testid="dataset-content-hash">
-                      <span className="font-mono">{dataset.contentHash.slice(0, 12)}…</span>
-                      <span className="text-muted-foreground"> · {t('dataset_obj.dedup_note')}</span>
-                    </span>
-                  }
+                  v={<Fingerprint hash={dataset.contentHash} />}
                   last
                 />
               )}
@@ -1174,6 +1185,26 @@ export function DatasetObject({
   )
 }
 
+/** The file's sha256 fingerprint: short form, explained on hover, full value copied on click. */
+function Fingerprint({ hash }: { hash: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try { await navigator.clipboard?.writeText(`sha256:${hash}`); setCopied(true); setTimeout(() => setCopied(false), 1500) }
+    catch { /* clipboard refused: the full value is still in the tooltip */ }
+  }
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5" data-testid="dataset-content-hash">
+      <span className="font-mono cursor-help underline decoration-dotted underline-offset-2"
+        title={t('dataset_obj.fingerprint_tip', { hash: `sha256:${hash}` })} data-testid="dataset-fingerprint">{hash.slice(0, 12)}…</span>
+      <button type="button" className="inline-flex items-center gap-0.5 rounded border px-1 text-xs text-muted-foreground hover:text-foreground"
+        onClick={copy} data-testid="dataset-fingerprint-copy" aria-label={t('dataset_obj.fingerprint_copy')}>
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copied ? t('dataset_obj.fingerprint_copied') : t('dataset_obj.fingerprint_copy')}
+      </button>
+      <span className="text-muted-foreground">{t('dataset_obj.dedup_note')}</span>
+    </span>
+  )
+}
+
 /** One stat card: `data-testid="dataset-stat"` + `data-stat=<code>` (rows, columns, reads,
  *  cells, …, size, type) — what e2e reads, never the label text. */
 function StatCard({ k, v, stat, hint }: { k: string; v: string; stat: string; hint?: string }) {
@@ -1213,7 +1244,8 @@ function Row({
           {v}
         </button>
       ) : (
-        <span className={mono ? "font-mono truncate" : "truncate"}>{v}</span>
+        // Plain text truncates; a composed value (the fingerprint + Copy) lays itself out.
+        <span className={typeof v === "string" ? (mono ? "font-mono truncate" : "truncate") : "min-w-0"}>{v}</span>
       )}
     </div>
   )
