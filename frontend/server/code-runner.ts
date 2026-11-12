@@ -17,7 +17,7 @@ import { execFile, spawn } from 'child_process';
 import * as fs from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import * as path from 'path';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +39,15 @@ export interface CodeRunRequest {
   /** Python only: code of this turn's earlier successful calls, re-run silently before `code` so its
    *  variables, imports and loaded data exist (notebook-cell semantics; see pythonReplay). */
   prior_code?: string[];
+  /** Chat session key: calls with the same key share ONE workspace (/work), so a file written to
+   *  $OUTPUT_DIR in one call is still there in the next call and the next turn — the pattern every
+   *  reference harness uses (Biomni process cwd, ScienceBuddy per-episode container). Without a key
+   *  the run gets a throwaway workspace, removed after the call (previous behaviour). */
+  workspaceKey?: string;
+  /** Called for each output file this call created or changed, BEFORE any cleanup, so the caller
+   *  can copy it to durable storage (download link, later turns, survives restarts). Its result is
+   *  merged into that file's OutputFile entry. Failures are logged, never fail the run. */
+  persistOutputFile?: (file: { hostPath: string; name: string; size: number }) => Promise<Partial<OutputFile> | undefined>;
 }
 
 export interface OutputFile {
@@ -50,6 +59,13 @@ export interface OutputFile {
    *  so the chat UI can render the generated figure inline. The sandbox output dir
    *  is deleted right after the run, so the bytes must be captured here or lost. */
   image_data_uri?: string;
+  /** Set when the file was saved to durable storage (see CodeRunRequest.persistOutputFile). */
+  dataset_id?: string;
+  galaxy_dataset_id?: string;
+  /** Set when saved into the chat's project (project chats save there automatically). */
+  project_file_id?: string;
+  project_id?: string;
+  download_url?: string;
 }
 
 /** Where run_code stages input datasets inside the sandbox: SANDBOX_INPUT_DIR/<dataset id>/<filename>.
@@ -124,6 +140,8 @@ const IMAGE_MEDIA: Record<string, string> = {
 // Cap the per-image base64 we push through the SSE stream. A 300-dpi matplotlib
 // figure is ~0.1–0.5 MB; 4 MB covers large plots while keeping the event sane.
 const IMAGE_MAX_BYTES = 4_000_000;
+// Total preview bytes per run: the SSE event and the persisted message carry these.
+const IMAGE_TOTAL_MAX_BYTES = 8_000_000;
 
 function imageMediaType(name: string): string | undefined {
   return IMAGE_MEDIA[name.split('.').pop()?.toLowerCase() ?? ''];
@@ -163,6 +181,7 @@ async function previewFile(filePath: string): Promise<string> {
 
 export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
   const results: OutputFile[] = [];
+  let imageBytes = 0;
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -172,10 +191,11 @@ export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
       if (!stat.isFile()) continue;
       const mediaType = imageMediaType(entry.name);
       const preview = isTextFile(entry.name) ? await previewFile(filePath) : '(binary)';
-      const image_data_uri = mediaType && stat.size <= IMAGE_MAX_BYTES
+      const image_data_uri = mediaType && stat.size <= IMAGE_MAX_BYTES && imageBytes + stat.size <= IMAGE_TOTAL_MAX_BYTES
         ? await imageDataUri(filePath, mediaType)
         : undefined;
-      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri });
+      if (image_data_uri) imageBytes += stat.size;
+      results.push({ name: entry.name, path: filePath, size: stat.size, preview, image_data_uri, _mtimeMs: stat.mtimeMs } as OutputFile);
     }
   } catch { /* dir may not exist */ }
   return results;
@@ -233,17 +253,75 @@ export async function prepareSandboxOutputDir(
   }
 }
 
+// ─── Session workspaces ───────────────────────────────────────────────────────
+
+const CODE_ROOT = path.join('/tmp', 'biomate_code');
+/** A session workspace idle this long is removed (its outputs were persisted after each call). */
+export const WORKSPACE_IDLE_MS = Number(process.env.RUN_CODE_WORKSPACE_IDLE_HOURS || 24) * 3600_000;
+/** Per call: at most this many output files are persisted, each at most this size. */
+export const PERSIST_MAX_FILES = 50;
+export const PERSIST_MAX_BYTES = 200 * 1024 * 1024;
+
+/** Stable, path-safe workspace dir for a chat session key. */
+export function workspaceDirFor(key: string): string {
+  return path.join(CODE_ROOT, `ws-${createHash('sha256').update(key).digest('hex').slice(0, 32)}`);
+}
+
+let _lastSweep = 0;
+/** Remove session workspaces idle longer than WORKSPACE_IDLE_MS (at most once per 10 min). */
+export async function sweepIdleWorkspaces(now = Date.now(), force = false): Promise<string[]> {
+  if (!force && now - _lastSweep < 600_000) return [];
+  _lastSweep = now;
+  const removed: string[] = [];
+  let entries: string[] = [];
+  try { entries = await fs.readdir(CODE_ROOT); } catch { return removed; }
+  for (const name of entries) {
+    if (!name.startsWith('ws-')) continue;
+    const dir = path.join(CODE_ROOT, name);
+    try {
+      const st = await fs.stat(dir);
+      if (now - st.mtimeMs > WORKSPACE_IDLE_MS) { await fs.rm(dir, { recursive: true, force: true }); removed.push(dir); }
+    } catch { /* raced with another sweep */ }
+  }
+  return removed;
+}
+
+type DirSnapshot = Map<string, { size: number; mtimeMs: number }>;
+async function snapshotDir(dir: string): Promise<DirSnapshot> {
+  const snap: DirSnapshot = new Map();
+  try {
+    for (const e of await fs.readdir(dir, { withFileTypes: true })) {
+      if (!e.isFile()) continue;
+      const st = await fs.stat(path.join(dir, e.name));
+      snap.set(e.name, { size: st.size, mtimeMs: st.mtimeMs });
+    }
+  } catch { /* new workspace */ }
+  return snap;
+}
+
 // ─── Main executor ────────────────────────────────────────────────────────────
 
 export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
-  const sessionId = randomUUID();
+  const persistent = !!req.workspaceKey;
   // Allow up to 300s for complex analysis (e.g. parsing large ZIP files, running R stats)
   const timeoutMs = Math.min((req.timeout_seconds ?? 30), 300) * 1000;
-  const baseDir = path.join('/tmp', 'biomate_code', sessionId);
+  const baseDir = persistent ? workspaceDirFor(req.workspaceKey!) : path.join(CODE_ROOT, randomUUID());
   const inputDir = path.join(baseDir, 'input');
   const outputDir = path.join(baseDir, 'output');
 
+  if (persistent) {
+    sweepIdleWorkspaces().catch(() => {});
+    // A reused workspace must be the real directories this server created — never a planted
+    // symlink (prepareSandboxOutputDir's no-pre-existing-path rule, applied to reuse).
+    for (const d of [baseDir, outputDir]) {
+      const st = await fs.lstat(d).catch(() => null);
+      if (st && (st.isSymbolicLink() || !st.isDirectory())) throw new Error(`[CodeRunner] refusing workspace path ${d}: not a plain directory`);
+    }
+  }
   await fs.mkdir(inputDir, { recursive: true });
+  // Files already in the session workspace before this call: only NEW or CHANGED files are this
+  // call's outputs (the workspace keeps earlier calls' files).
+  const before = await snapshotDir(outputDir);
 
   const start = Date.now();
 
@@ -251,9 +329,12 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
   const stagedFiles: { id: string; filename: string; dir: string }[] = [];
 
   const { uid, gid } = resolveSandboxIdentity();
+  let scriptPathForCleanup: string | undefined;
 
   try {
-    await prepareSandboxOutputDir(outputDir, { uid, gid });
+    // A reused session workspace already has its output dir (created + handed over on first use).
+    const reusedOutput = persistent && !!(await fs.lstat(outputDir).catch(() => null));
+    if (!reusedOutput) await prepareSandboxOutputDir(outputDir, { uid, gid });
 
     // Stage input datasets — preserve original filename so code can reference by name
     if (req.input_datasets?.length && req.downloadDataset) {
@@ -362,6 +443,8 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       interpreter = 'bash';
       args = [`/work/${scriptName}`];
     }
+
+    scriptPathForCleanup = scriptPath;
 
     // Sandbox backend selection:
     //   - RUN_CODE_BACKEND_URL set → POST script+baseDir to a sidecar HTTP service
@@ -490,7 +573,25 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
 
     const result = sidecarUrl ? await runViaSidecar(sidecarUrl) : await runViaDocker();
 
-    const output_files = await scanOutputDir(outputDir);
+    const all = await scanOutputDir(outputDir);
+    const output_files = all.filter(f => {
+      const b = before.get(f.name);
+      return !b || b.size !== f.size || b.mtimeMs !== (f as any)._mtimeMs;
+    });
+    for (const f of all) delete (f as any)._mtimeMs;
+    if (req.persistOutputFile) {
+      let n = 0;
+      for (const f of output_files) {
+        if (n >= PERSIST_MAX_FILES || f.size > PERSIST_MAX_BYTES) continue;
+        n++;
+        try {
+          const saved = await req.persistOutputFile({ hostPath: f.path, name: f.name, size: f.size });
+          if (saved) Object.assign(f, saved);
+        } catch (err: any) {
+          console.warn(`[CodeRunner] could not persist output ${f.name}: ${err?.message || err}`);
+        }
+      }
+    }
     const duration_ms = Date.now() - start;
 
     return {
@@ -502,7 +603,15 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       staged_inputs: Object.fromEntries(stagedFiles.map(f => [f.filename, stagedInputPath(f.id, f.filename)])),
     };
   } finally {
-    // Async cleanup — don't block the response
-    fs.rm(baseDir, { recursive: true, force: true }).catch(() => {});
+    // Throwaway workspace: remove it. Session workspace: keep it (later calls/turns read its files;
+    // sweepIdleWorkspaces removes it once idle) — drop only this call's script, and touch the dir so
+    // the idle clock restarts.
+    if (!persistent) {
+      fs.rm(baseDir, { recursive: true, force: true }).catch(() => {});
+    } else {
+      if (scriptPathForCleanup) await fs.rm(scriptPathForCleanup, { force: true }).catch(() => {});
+      const now = new Date();
+      await fs.utimes(baseDir, now, now).catch(() => {});
+    }
   }
 }

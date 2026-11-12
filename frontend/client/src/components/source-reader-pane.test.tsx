@@ -25,7 +25,7 @@ function fulltext(over: Partial<ReaderFulltext> = {}): ReaderFulltext {
   return {
     found: true, title: null, journal: null, year: null, authors: null, abstract: null,
     openAccess: false, license: null, fullTextStatus: "not_open_access", sections: [], truncated: false,
-    links: { publisher: "https://doi.org/10.1000/abc", europepmc: null },
+    links: { publisher: "https://doi.org/10.1000/abc", pubmed: null, pmc: null, europepmc: null },
     ...over,
   }
 }

@@ -340,7 +340,12 @@ export function scoreBinding(
   // A parameter the schema itself types as a file ("omics", type: file, no
   // descriptive text) is a declared data input: any real data file may go
   // there. A plain string that merely looks path-ish needs the kind match.
-  const typedAsFile = param.type === 'file' || param.data_input === true || param.format === 'file-path';
+  // Base type with any list suffix removed, so a multi-file input declared as
+  // "file[]" (SNF/MOFA2 `omics`) scores as a typed file too — matching the
+  // isFilePathParam baseType fix (8edfc2); otherwise an OPTIONAL file[] input
+  // lost the +1 and could fall below the bind threshold.
+  const baseType = String(param.type || '').toLowerCase().replace(/\[\]$/, '');
+  const typedAsFile = baseType === 'file' || param.data_input === true || param.format === 'file-path';
   let score = asksForAKind ? 4 : typedAsFile ? 3 : 2;
   const reasons: string[] = asksForAKind ? [`kind ${matched.join('/')}`] : ['declared file input'];
 

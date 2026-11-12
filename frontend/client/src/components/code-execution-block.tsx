@@ -9,7 +9,14 @@
  */
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check, Download } from 'lucide-react';
+
+/** 23 → "23 B", 2048 → "2.0 KB", 3e6 → "2.9 MB" (a small report read "0.0 KB"). */
+export function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n < 1024) return `${Math.max(0, Math.round(n || 0))} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -112,10 +119,14 @@ export function CodeExecutionBlock({ block }: Props) {
   const isError = !!result?.error || (result?.output as any)?.exit_code > 0;
   const exitCode = (result?.output as any)?.exit_code as number | undefined;
   const stdout = (result?.output as any)?.stdout as string | undefined;
-  const outputFiles = (result?.output as any)?.output_files as Array<{ name: string; size: number; preview: string; image_data_uri?: string }> | undefined;
+  const outputFiles = (result?.output as any)?.output_files as Array<{ name: string; size: number; preview: string; image_data_uri?: string; download_url?: string }> | undefined;
   // Generated figures (plots) — surfaced inline so they are visible without
   // expanding the tool card (founder feedback 2026-11-10: "where is the plot?").
   const imageFiles = outputFiles?.filter(f => f.image_data_uri) ?? [];
+  // Every output file gets a download: the saved dataset when persisted; for a figure, its inline
+  // bytes as a fallback (older messages predate persistence).
+  const hrefFor = (f: { download_url?: string; image_data_uri?: string }) => f.download_url || f.image_data_uri;
+  const otherFiles = outputFiles?.filter(f => !f.image_data_uri) ?? [];
 
   // For read_file / query_domain_knowledge: show a compact result
   const isCodeTool = name === 'run_code';
@@ -159,8 +170,39 @@ export function CodeExecutionBlock({ block }: Props) {
                 data-testid="run-code-figure"
                 className="max-w-full h-auto rounded border border-border bg-white"
               />
-              <figcaption className="mt-1 text-xs text-muted-foreground">{f.name}</figcaption>
+              <figcaption className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{f.name}</span>
+                {hrefFor(f) && (
+                  <a href={hrefFor(f)} download={f.name} data-testid="run-code-file-download"
+                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-primary hover:bg-muted"
+                    onClick={(e) => e.stopPropagation()}>
+                    <Download size={12} /> Download
+                  </a>
+                )}
+              </figcaption>
             </figure>
+          ))}
+        </div>
+      )}
+
+      {/* ── Generated files (reports, tables…) — always visible, downloadable ── */}
+      {otherFiles.length > 0 && (
+        <div className="px-3 py-2 border-t border-border flex flex-wrap gap-2" data-testid="run-code-files">
+          {otherFiles.map(f => (
+            hrefFor(f) ? (
+              <a key={f.name} href={hrefFor(f)} download={f.name} data-testid="run-code-file-download"
+                className="inline-flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-muted"
+                onClick={(e) => e.stopPropagation()}>
+                <FileText size={12} className="text-primary" />
+                <span className="font-semibold">{f.name}</span>
+                <span className="text-muted-foreground">{formatBytes(f.size)}</span>
+                <Download size={12} className="text-primary" />
+              </a>
+            ) : (
+              <span key={f.name} className="inline-flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-muted-foreground">
+                <FileText size={12} /> {f.name}
+              </span>
+            )
           ))}
         </div>
       )}
@@ -241,7 +283,7 @@ export function CodeExecutionBlock({ block }: Props) {
                         <FileText size={12} className="text-primary mt-0.5 flex-shrink-0" />
                         <div>
                           <div className="text-xs font-semibold text-accent-foreground">{f.name}</div>
-                          <div className="text-xs text-primary">{(f.size / 1024).toFixed(1)} KB</div>
+                          <div className="text-xs text-primary">{formatBytes(f.size)}</div>
                           {/* Image files are rendered as figures above — don't repeat
                               their useless "(binary)" text preview here. */}
                           {f.preview && !f.image_data_uri && (

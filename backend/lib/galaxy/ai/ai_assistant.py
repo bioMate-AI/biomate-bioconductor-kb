@@ -3712,6 +3712,68 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.warning("[run_via_pipeline] pipeline invocation failed: %s — falling back", exc)
             return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
 
+    # ── Example-data detection ──────────────────────────────────────────────
+    # A workflow "runs on its own example data" when it can execute with NO user
+    # input because its data inputs resolve to bundled/built-in example data. This
+    # is a REAL property of the workflow DEFINITION (never a hard-coded list of
+    # names), derived from the executed .nf:
+    #   (B) a built-in example/demo DATA fallback keyed on the absence of a data
+    #       param — the author's documented "merfish/voyager" pattern: a
+    #       `def demo = ( !params.x )` guard, a demo_mode / input_is_demo /
+    #       demo_used flag, a "built-in demo default" block, or a "param-less"
+    #       quick run. These paths download/use REAL public data (chipseq CTCF,
+    #       atac nf-core BAMs, chemoproteomics LFQ-Analyst, wsi OpenSlide,
+    #       metaboanalystr human_cachexia); and/or
+    #   (A) a data-input param whose default is itself bundled example data — a
+    #       sample_data / test-data FILE PATH (flow cytometry's Accuri FCS) or an
+    #       inline example-values literal (EBV's ELISA OD JSON).
+    # It is NOT a synthetic/random generator (those draw values at runtime and are
+    # blocked elsewhere); every path above is real, fixed, clearly-labelled data.
+    _EXAMPLE_DATA_FALLBACK_RE = re.compile(
+        r'\bdef\s+demo\s*=|\bdemo_mode\b|\binput_is_demo\b|\bdemo_used\b'
+        r'|built-in demo default|param-?less',
+        re.IGNORECASE,
+    )
+    _EXAMPLE_DATA_BUNDLED_PATH_RE = re.compile(
+        r'params\.\w+\s*=\s*["\'][^"\']*'
+        r'(?:sample_data|/test[-_/]|/testdata|example_data|openslide-testdata)'
+        r'[^"\']*\.\w{2,6}["\']',
+        re.IGNORECASE,
+    )
+    _EXAMPLE_DATA_INLINE_RE = re.compile(
+        r'params\.\w*(?:data|od|elisa|readings|counts|matrix|titer)\w*'
+        r'\s*=\s*[\'"]\s*[\[{]',
+        re.IGNORECASE,
+    )
+
+    def _detect_example_data(self, filename: str) -> Optional[Dict[str, Any]]:
+        """Return an example-data descriptor when the workflow runs on its own
+        bundled example data with no user input, else None. Derived from the .nf
+        definition (see the signal notes above) — never from the workflow name."""
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return None
+        try:
+            text = nf_path.read_text(encoding='utf-8', errors='ignore')
+        except Exception:
+            return None
+        has_fallback = bool(self._EXAMPLE_DATA_FALLBACK_RE.search(text))
+        has_bundled = bool(self._EXAMPLE_DATA_BUNDLED_PATH_RE.search(text))
+        has_inline = bool(self._EXAMPLE_DATA_INLINE_RE.search(text))
+        if not (has_fallback or has_bundled or has_inline):
+            return None
+        return {
+            'present': True,
+            # One honest, storage-path-free sentence the reply can surface.
+            'note': ("Runs on the workflow's built-in example dataset when no files "
+                     "are attached — attach your own files to replace it."),
+            'signals': {
+                'fallback': has_fallback,
+                'bundled_default': has_bundled,
+                'inline_default': has_inline,
+            },
+        }
+
     def _return_nextflow_match(
         self,
         match: Any,
@@ -3741,7 +3803,21 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _bound_value = _data_match.group(0) if _data_match and not _data_match.group(0).startswith('[') else None
         data_inputs = [{**d, 'bound': bool(_data_match), 'bound_value': _bound_value}
                        for d in nf_params.get('data_inputs', [])]
-        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
+        # Example-data capability: does THIS workflow run on its own bundled example
+        # data with no user input? A real property of the .nf definition (see
+        # _detect_example_data). When present, the chat reply presents the card as
+        # runnable on the example dataset instead of asking for an upload; the
+        # frontend decides to surface it only when the request carries no user data.
+        # When no run data was provided, mark any executor-owned data input as
+        # satisfied-by-example so the panel shows it bound (not "required, not set").
+        _example_data = self._detect_example_data(match.filename)
+        if _example_data and not _data_match and not uploaded_datasets:
+            data_inputs = [
+                d if d.get('bound') else {**d, 'bound': True, 'bound_value': 'example dataset'}
+                for d in data_inputs
+            ]
+        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} "
+                 f"opt_names={[p['name'] for p in opt]} example_data={bool(_example_data)}")
         sra = self._extract_sra_accession(user_intent)
         if sra:
             req, opt = self._inject_sra_into_params(req, opt, sra)
@@ -3877,6 +3953,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'required_params': req,
                 'optional_params': opt,
                 **({'data_inputs': data_inputs} if data_inputs else {}),
+                **({'example_data': _example_data} if _example_data else {}),
                 **({'parameters': _exec_params} if _exec_params else {}),
                 **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             },
@@ -3884,6 +3961,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'required_params': req,
             'optional_params': opt,
             **({'data_inputs': data_inputs} if data_inputs else {}),
+            **({'example_data': _example_data} if _example_data else {}),
             'generated_parameters': req + opt,
             **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             'validation': {'is_valid': True, 'issues': [], 'warnings': warnings, 'suggestions': []},
