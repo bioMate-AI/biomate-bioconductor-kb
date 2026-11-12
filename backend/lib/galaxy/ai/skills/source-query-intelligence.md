@@ -1,3 +1,10 @@
+---
+name: source-query-intelligence
+title: Source Query Intelligence
+triggers: [database, data source, which source, retrieve, look up, lookup, query, chembl, uniprot, clinvar, gnomad, interpro, surechembl, open targets, sar, structure-activity, potency, affinity, ic50, ki, binding, inhibitor, ligand, target, druggable, pathway, signalling, signaling, interaction, interaction partner, network, variant, mutation, allele, allele frequency, phenotype, protein domain, structure, ortholog, accession, identifier, patent, mechanism, activity]
+domains: [drug_discovery, pharmacology, biochemistry, genomics, systems_biology, structural_biology, clinical_genomics]
+---
+
 # Source Query Intelligence
 
 **Companion to `evidence-source-selection.md`.** That skill picks *which* sources a
