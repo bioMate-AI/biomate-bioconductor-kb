@@ -805,7 +805,13 @@
     "edit_err_too_large": "Not saved: the file is larger than the 10 MiB limit for editing here. Open it in Jupyter or RStudio to edit it.",
     "edit_err_not_utf8": "Not saved: this file is not plain UTF-8 text, so editing it here would change other bytes. Open it in Jupyter or RStudio to edit it.",
     "edit_err_not_editable": "Not saved: only tables (CSV / TSV) can be edited here. Open this file in Jupyter or RStudio to edit it.",
-    "edit_err_bad_request": "Not saved: the server could not apply these edits to the file. Reload it and edit again."
+    "edit_err_bad_request": "Not saved: the server could not apply these edits to the file. Reload it and edit again.",
+    "rows_loading": "Reading the file…",
+    "quality_loading": "Analyzing data quality…",
+    "versions_loading": "Loading versions…",
+    "lineage_loading": "Tracing where it came from…",
+    "consumers_loading": "Finding where it is used…",
+    "columns_loading": "Reading the columns…"
   },
   "data_hub": {
     "choose_project": "Choose a project",

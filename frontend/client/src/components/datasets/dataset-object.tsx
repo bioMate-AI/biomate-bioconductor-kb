@@ -21,7 +21,6 @@ import { useState, useEffect, useCallback, cloneElement, isValidElement, type Re
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   ChevronLeft,
   Eye,
@@ -36,6 +35,7 @@ import {
   BarChart3,
   SquareTerminal,
   Pencil,
+  Loader2,
 } from "lucide-react"
 import { DataPerception, formatStatValue, type PerceptionQuality, type StructureEvidence } from "@/components/data-perception"
 import { datasetKind, datasetViewModel, effectiveQuality, profileEmptyCode, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
@@ -136,6 +136,18 @@ const HEADER_QUALITY: Record<PerceptionQuality, { dot: string }> = {
   blocked: { dot: "bg-red-500" },
   // Identified but not analysed: neutral, never a warning colour.
   unassessed: { dot: "bg-muted-foreground/50" },
+}
+
+
+/** Loading state that says what is happening (founder: blank grey skeletons read as "nothing
+ *  here"). Keeps the testids the e2e/unit tests read. */
+function LoadingState({ label, testId }: { label: string; testId?: string }) {
+  return (
+    <div role="status" aria-busy="true" className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground" data-testid={testId}>
+      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+      <span>{label}</span>
+    </div>
+  )
 }
 
 export function DatasetObject({
@@ -438,7 +450,10 @@ export function DatasetObject({
   const rowsBranch: "rows" | "error" | "loading" | "file" | "sample" | "none" =
     hasFullRows ? "rows"
     : rowsQ.enabled && !rowsQ.unsupported && rowsQ.error != null ? "error"
-    : (rowsQ.enabled && !rowsQ.unsupported) || (!hasFullRows && isLoading) ? "loading"
+    // Loading only while the read is in flight (or not started). A finished read with no columns
+    // falls through to the file/sample/none views — it used to stay "loading" forever.
+    : (rowsQ.enabled && !rowsQ.unsupported && (rowsQ.loading || (rowsQ.total == null && rowsQ.columns.length === 0 && rowsQ.error == null)))
+      || (!hasFullRows && isLoading) ? "loading"
     : !vm.tableShape && kindPreview ? "file"
     : profile?.columns?.length && profile.sampleRows?.length ? "sample"
     : kindPreview ? "file"
@@ -683,9 +698,7 @@ export function DatasetObject({
                   <button type="button" className="underline" onClick={rowsQ.retry}>{t('dataset_obj.rows_retry')}</button>
                 </p>
               ) : rowsBranch === "loading" ? (
-                <div className="space-y-2" data-testid="dataset-preview-loading">
-                  <Skeleton className="h-16 w-full" />
-                </div>
+                <LoadingState testId="dataset-preview-loading" label={t('dataset_obj.rows_loading')} />
               ) : rowsBranch === "file" && !vm.tableShape ? (
                 // Intervals / annotation the rows reader declined: the file's own viewer.
                 kindPreview
@@ -712,10 +725,10 @@ export function DatasetObject({
               kindPreview ?? <DownloadState kind={kind} onDownload={onDownload} />
             )}
             {previewView === "content" && vm.content === "anndata" && (
-              isLoading ? <Skeleton className="h-16 w-full" /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} />
+              isLoading ? <LoadingState label={t('dataset_obj.preview_loading')} /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} />
             )}
             {previewView === "content" && vm.content === "summary" && (
-              isLoading ? <Skeleton className="h-16 w-full" /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
+              isLoading ? <LoadingState label={t('dataset_obj.preview_loading')} /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
             )}
             {previewView === "content" && vm.content === "empty" && emptyCode && (
               // The file has no content: say so (0 bytes / only blank lines) — not an error, not a
@@ -748,9 +761,7 @@ export function DatasetObject({
                   )}
                 </div>
               ) : (
-                <div className="space-y-2" data-testid="dataset-preview-columns-loading">
-                  <Skeleton className="h-16 w-full" />
-                </div>
+                <LoadingState testId="dataset-preview-columns-loading" label={t('dataset_obj.columns_loading')} />
               )
             )}
 
@@ -834,10 +845,7 @@ export function DatasetObject({
                   {t('dataset_obj.quality_noref')}
                 </p>
               ) : isLoading ? (
-                <div className="space-y-2" data-testid="dataset-quality-loading">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
+                <LoadingState testId="dataset-quality-loading" label={t('dataset_obj.quality_loading')} />
               ) : isError || !profile ? (
                 <p className="text-sm text-muted-foreground" data-testid="dataset-quality-error">
                   {t('dataset_obj.quality_error')}
@@ -868,9 +876,7 @@ export function DatasetObject({
           {/* ── Versions ── */}
           {tab === "versions" && (<div className="space-y-2" data-testid="dataset-versions">
             {versionsQ.isLoading ? (
-              <div className="space-y-2" data-testid="dataset-versions-loading">
-                <Skeleton className="h-8 w-full" />
-              </div>
+              <LoadingState testId="dataset-versions-loading" label={t('dataset_obj.versions_loading')} />
             ) : effectiveVersions.length ? (
               <DatasetVersionsList
                 versions={effectiveVersions}
@@ -925,7 +931,7 @@ export function DatasetObject({
               />
               {isRunOutput ? (
                 lineageQ.isLoading ? (
-                  <Skeleton className="h-4 w-40" />
+                  <LoadingState label={t('dataset_obj.lineage_loading')} />
                 ) : (() => {
                   // Show the human workflow NAME, never a raw run id. When only
                   // the opaque id is known, show the action ("Open the run that
@@ -1000,9 +1006,7 @@ export function DatasetObject({
                 <p className="text-xs text-destructive" data-testid="dataset-rocrate-error">{exportError}</p>
               )}
               {consumersQ.isLoading ? (
-                <div className="space-y-2" data-testid="dataset-consumers-loading">
-                  <Skeleton className="h-8 w-full" />
-                </div>
+                <LoadingState testId="dataset-consumers-loading" label={t('dataset_obj.consumers_loading')} />
               ) : consumers.length ? (
                 consumers.map((c) => {
                   const produced = producedByRun[c.runId] ?? []

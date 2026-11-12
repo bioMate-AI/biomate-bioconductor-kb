@@ -811,7 +811,13 @@
     "edit_err_too_large": "未保存：文件超过 10 MiB 的在线编辑上限。请在 Jupyter 或 RStudio 中打开并编辑。",
     "edit_err_not_utf8": "未保存：此文件不是纯 UTF-8 文本，在此编辑会改动其他字节。请在 Jupyter 或 RStudio 中打开并编辑。",
     "edit_err_not_editable": "未保存：此处只能编辑表格（CSV / TSV）。请在 Jupyter 或 RStudio 中打开此文件进行编辑。",
-    "edit_err_bad_request": "未保存：服务器无法将这些修改应用到文件。请重新加载后再编辑。"
+    "edit_err_bad_request": "未保存：服务器无法将这些修改应用到文件。请重新加载后再编辑。",
+    "rows_loading": "正在读取文件…",
+    "quality_loading": "正在分析数据质量…",
+    "versions_loading": "正在加载版本…",
+    "lineage_loading": "正在追溯来源…",
+    "consumers_loading": "正在查找使用位置…",
+    "columns_loading": "正在读取列信息…"
   },
   "data_hub": {
     "choose_project": "选择一个项目",
