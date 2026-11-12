@@ -2225,8 +2225,25 @@ _PREV_COMMIT_FILE="$REPO_ROOT/.last_dev_sync_commit"
 _DB_MD5_FILE="$REPO_ROOT/.last_dev_sync_db_md5"
 # Remote atomic lease also excludes deployments from other workstations.
 REMOTE_SYNC_LEASE="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
-ec2_ssh "umask 077; mkdir /opt/biomate/.dev-deploy.lock && printf '%s\n' '$REMOTE_SYNC_LEASE' > /opt/biomate/.dev-deploy.lock/owner" || { log "Another deployment holds the remote lease; refusing"; exit 1; }
-REMOTE_SYNC_LEASE_ACQUIRED=1
+# Staleness break: a sync killed/stopped before its on_exit trap (e.g. a too-short
+# background timeout, or session teardown) leaves the lock dir with a dead owner and no
+# self-heal — blocking ALL deploys until a human clears it (hit twice 2026-11-11). Break
+# the lease ONLY when it is older than any real sync could run (a full sync is ~14 min),
+# so a LIVE deploy is never touched; then re-acquire. 1800s = 30 min.
+_LEASE_STALE_S=1800
+if ec2_ssh "umask 077; mkdir /opt/biomate/.dev-deploy.lock && printf '%s\n' '$REMOTE_SYNC_LEASE' > /opt/biomate/.dev-deploy.lock/owner"; then
+  REMOTE_SYNC_LEASE_ACQUIRED=1
+else
+  _lease_age=$(ec2_ssh 'echo $(( $(date +%s) - $(stat -c %Y /opt/biomate/.dev-deploy.lock 2>/dev/null || date +%s) ))' 2>/dev/null | tr -cd '0-9')
+  if [[ -n "$_lease_age" && "$_lease_age" -gt "$_LEASE_STALE_S" ]] && \
+     ec2_ssh "rm -f /opt/biomate/.dev-deploy.lock/owner; rmdir /opt/biomate/.dev-deploy.lock 2>/dev/null; umask 077; mkdir /opt/biomate/.dev-deploy.lock && printf '%s\n' '$REMOTE_SYNC_LEASE' > /opt/biomate/.dev-deploy.lock/owner"; then
+    log "Broke a STALE remote lease (orphaned ${_lease_age}s > ${_LEASE_STALE_S}s, no live sync runs that long) and re-acquired"
+    REMOTE_SYNC_LEASE_ACQUIRED=1
+  else
+    log "Another deployment holds the remote lease (age=${_lease_age:-unknown}s); refusing"
+    exit 1
+  fi
+fi
 # Refuse stale/divergent worktrees while holding the deployment lease. This is
 # read-only and does not change existing layer selection or health/rollback.
 _ANCESTRY_ARGS=(--repo "$REPO_ROOT")
