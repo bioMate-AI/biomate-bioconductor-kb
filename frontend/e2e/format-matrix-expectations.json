@@ -1,0 +1,466 @@
+{
+  "$comment": "Expected per-format outcomes for e2e/dataset-format-matrix.e2e.ts. Written for the TARGET behaviour of docs/20261112_DATASET_PANEL_AUDIT.md in the backend profiler's own vocabulary (data_perception.py decide(): profile.viewKind, quality 'unassessed', per-kind stats from _VIEW_STATS), and the panel's per-kind views (no Table/Columns/Plot/Edit on non-tables). The harness computes PASS / PARTIAL / FAIL from these checks and writes the counts to e2e/format-matrix-results.json; nobody grades by hand. Change an expectation only for a benchmark-design error (the expected answer is wrong for the format), never to match current behaviour. 2026-11-12 seams: vocabulary aligned to the profiler (sequence→sequences, density→image for MRC (the profiler classes MRC/MRCS as image, drawn by the density viewer), signal→binary for POD5, xlsx→document, BED/narrowPeak→intervals, GTF/GFF3→annotation, VCF→variants, loom→loom); stats per kind follow _VIEW_STATS.",
+  "contract": {
+    "dataset-object": "[data-testid=dataset-object] carries data-view-kind = profile.viewKind (one of viewKinds)",
+    "dataset-preview": "[data-testid=dataset-preview] carries data-preview-kind = the renderer actually shown (one of viewKinds, or 'none' / 'error'), and aria-busy=true while it loads",
+    "stats": "each stat card is [data-testid=dataset-stat][data-stat=<code>] (the kind's own measures in the profiler's stat codes — rows, columns, reads, read_length, sequences, bases, variants, samples, regions, features, cells, genes, references, molecules, chains, sheets, entries, records, tables — then size, type)",
+    "quality": "[data-testid=data-perception][data-quality] in good | watch | blocked | unassessed; watch/blocked always list >= 1 [data-testid=perception-why-item]",
+    "columns": "rowKinds show the paged rows table: header cells th[data-column-name] (falls back to th innerText); compared case-insensitively",
+    "toggles": "Table/Columns/Plot/Edit controls are [data-testid=dataset-preview-toggle-<key>] and render only for toggleKinds",
+    "loading": "every loading indicator inside dataset-object is [data-testid$=-loading] or [aria-busy=true]",
+    "tree": "folder rows [data-testid=folder-<path>] carry aria-expanded",
+    "findings": "every rendered QC finding is [data-testid=perception-why-item] (a verdict reason) or [data-testid=perception-finding], both with data-code",
+    "previewTestids": "an item's requirePreviewTestids must each appear as a [data-testid] inside the Preview (outside the QC card) — e.g. the server-rendered TIFF plane, the spreadsheet's read-only first-sheet table"
+  },
+  "viewKinds": [
+    "table",
+    "records",
+    "json",
+    "sequences",
+    "reads",
+    "variants",
+    "intervals",
+    "annotation",
+    "alignment",
+    "anndata",
+    "loom",
+    "matrix",
+    "molecules",
+    "structure",
+    "image",
+    "document",
+    "archive",
+    "binary",
+    "unknown"
+  ],
+  "toggleKinds": [
+    "table",
+    "records"
+  ],
+  "rowKinds": [
+    "table",
+    "records",
+    "intervals",
+    "annotation"
+  ],
+  "kindStats": {
+    "table": {
+      "require": [
+        "rows",
+        "columns"
+      ]
+    },
+    "records": {
+      "require": [
+        "records",
+        "columns"
+      ],
+      "forbid": [
+        "rows"
+      ]
+    },
+    "intervals": {
+      "require": [
+        "regions",
+        "columns"
+      ],
+      "forbid": [
+        "rows"
+      ]
+    },
+    "annotation": {
+      "require": [
+        "features",
+        "columns"
+      ],
+      "forbid": [
+        "rows"
+      ]
+    },
+    "sequences": {
+      "require": [
+        "sequences",
+        "bases"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "reads": {
+      "require": [
+        "reads",
+        "read_length"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "variants": {
+      "require": [
+        "variants",
+        "samples"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "alignment": {
+      "require": [
+        "references"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "anndata": {
+      "require": [
+        "cells",
+        "genes"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "loom": {
+      "require": [
+        "cells",
+        "genes"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "matrix": {
+      "require": [
+        "rows",
+        "columns"
+      ]
+    },
+    "molecules": {
+      "require": [
+        "molecules"
+      ],
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "document": {
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    },
+    "*": {
+      "forbid": [
+        "rows",
+        "columns"
+      ]
+    }
+  },
+  "alwaysStats": [
+    "size",
+    "type"
+  ],
+  "nonTableForbiddenToggles": [
+    "table",
+    "columns",
+    "plot",
+    "edit"
+  ],
+  "qualitySets": {
+    "assessed": [
+      "good",
+      "watch"
+    ],
+    "unassessed": [
+      "unassessed"
+    ],
+    "notAnalysed": [
+      "unassessed",
+      "watch"
+    ],
+    "either": [
+      "good",
+      "watch",
+      "unassessed"
+    ]
+  },
+  "items": {
+    "csv": {
+      "viewKind": "table",
+      "previewKind": "table",
+      "quality": "assessed",
+      "columns": [
+        "x",
+        "y",
+        "z"
+      ],
+      "minColumns": 3
+    },
+    "tsv": {
+      "viewKind": "table",
+      "previewKind": "table",
+      "quality": "assessed",
+      "minColumns": 3,
+      "notColumns": [
+        "1",
+        "68",
+        "4.1"
+      ],
+      "note": "header-less numeric table"
+    },
+    "bed": {
+      "viewKind": "intervals",
+      "previewKind": "intervals",
+      "quality": "assessed",
+      "columns": [
+        "chrom",
+        "start",
+        "end",
+        "name",
+        "score",
+        "strand"
+      ],
+      "minColumns": 6
+    },
+    "bed-complete": {
+      "viewKind": "intervals",
+      "previewKind": "intervals",
+      "quality": "assessed",
+      "columns": [
+        "chrom",
+        "start",
+        "end"
+      ],
+      "minColumns": 12
+    },
+    "gtf": {
+      "viewKind": "annotation",
+      "previewKind": "annotation",
+      "quality": "assessed",
+      "columns": [
+        "seqname",
+        "source",
+        "feature",
+        "start",
+        "end"
+      ],
+      "minColumns": 9
+    },
+    "gff3": {
+      "viewKind": "annotation",
+      "previewKind": "annotation",
+      "quality": "assessed",
+      "columns": [
+        "seqid",
+        "source",
+        "type",
+        "start",
+        "end"
+      ],
+      "minColumns": 9
+    },
+    "fasta": {
+      "viewKind": "sequences",
+      "previewKind": "sequences",
+      "quality": "assessed"
+    },
+    "fasta-gz": {
+      "viewKind": "sequences",
+      "previewKind": "sequences",
+      "quality": "assessed"
+    },
+    "fastq": {
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "quality": "assessed"
+    },
+    "fastq-gz": {
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "quality": "assessed"
+    },
+    "vcf": {
+      "viewKind": "variants",
+      "previewKind": "variants",
+      "quality": "assessed",
+      "note": "variant viewer (CHROM/POS/ID/REF/ALT/QUAL/FILTER/INFO), not the generic rows table"
+    },
+    "vcf-gz": {
+      "viewKind": "variants",
+      "previewKind": "variants",
+      "quality": "assessed"
+    },
+    "bam": {
+      "viewKind": "alignment",
+      "previewKind": "alignment",
+      "quality": "notAnalysed",
+      "note": "header metadata only (references, sort order, read groups); watch only for a real header finding"
+    },
+    "cram": {
+      "viewKind": "alignment",
+      "previewKind": "alignment",
+      "quality": "notAnalysed"
+    },
+    "h5ad": {
+      "viewKind": "anndata",
+      "previewKind": "anndata",
+      "quality": "notAnalysed"
+    },
+    "loom": {
+      "viewKind": "loom",
+      "previewKind": "loom",
+      "quality": "notAnalysed"
+    },
+    "xlsx": {
+      "viewKind": "document",
+      "previewKind": "document",
+      "quality": "notAnalysed",
+      "requireStats": [
+        "sheets"
+      ],
+      "requirePreviewTestids": [
+        "dataset-spreadsheet-preview",
+        "dataset-preview-table"
+      ],
+      "note": "spreadsheet (round 3, B5): the profile carries the first sheet's first rows (previewSheet + columns + sampleRows); the Preview shows them read-only as a table captioned 'Sheet <name> · first N rows' (no Edit), plus the sheets stat"
+    },
+    "mtx": {
+      "viewKind": "matrix",
+      "previewKind": "matrix",
+      "quality": "notAnalysed",
+      "requireStats": [
+        "entries"
+      ]
+    },
+    "sdf": {
+      "viewKind": "molecules",
+      "previewKind": "molecules",
+      "quality": "notAnalysed"
+    },
+    "smi": {
+      "viewKind": "table",
+      "previewKind": "table",
+      "quality": "assessed",
+      "columns": [
+        "smiles"
+      ],
+      "minColumns": 1,
+      "requireStats": [
+        "molecules"
+      ],
+      "note": "SMILES spec table (SMILES, TITLE) with a molecules stat"
+    },
+    "pdb": {
+      "viewKind": "structure",
+      "previewKind": "structure",
+      "quality": "notAnalysed",
+      "requireStats": [
+        "chains"
+      ]
+    },
+    "cif": {
+      "viewKind": "structure",
+      "previewKind": "structure",
+      "quality": "notAnalysed",
+      "note": "small-molecule crystal: no chains"
+    },
+    "mrc": {
+      "viewKind": "image",
+      "previewKind": "image",
+      "quality": "unassessed",
+      "note": "cryo-EM map: the profiler's image kind, drawn by the density viewer (slices)"
+    },
+    "tiff": {
+      "viewKind": "image",
+      "previewKind": "image",
+      "quality": "unassessed",
+      "requirePreviewTestids": [
+        "dataset-preview-tiff-image"
+      ],
+      "note": "the image itself is drawn: the server renders a TIFF plane to PNG (preview.png) shown as dataset-preview-tiff-image; the download fallback (dataset-preview-tiff-download only) is a PARTIAL"
+    },
+    "json": {
+      "viewKind": "json",
+      "previewKind": "json",
+      "quality": "notAnalysed"
+    },
+    "pod5": {
+      "viewKind": "binary",
+      "previewKind": "binary",
+      "quality": "unassessed",
+      "note": "nanopore signal container: identified, honest download state"
+    },
+    "gene-list": {
+      "viewKind": "table",
+      "previewKind": "table",
+      "quality": "assessed",
+      "minColumns": 1,
+      "maxColumns": 1,
+      "notColumns": [
+        "TP53"
+      ],
+      "note": "single-column, header-less: TP53 is data, not a header"
+    },
+    "narrowpeak": {
+      "viewKind": "intervals",
+      "previewKind": "intervals",
+      "quality": "assessed",
+      "columns": [
+        "chrom",
+        "start",
+        "end"
+      ],
+      "minColumns": 10
+    },
+    "pairs-S1_R1": {
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "quality": "assessed"
+    },
+    "pairs-S1_R2": {
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "quality": "assessed"
+    },
+    "pairs-S2_R1": {
+      "viewKind": "reads",
+      "previewKind": "reads",
+      "quality": "assessed"
+    },
+    "tenx-matrix": {
+      "viewKind": "matrix",
+      "previewKind": "matrix",
+      "quality": "notAnalysed"
+    },
+    "tenx-barcodes": {
+      "viewKind": "table",
+      "previewKind": "table",
+      "quality": "assessed",
+      "minColumns": 1,
+      "maxColumns": 1,
+      "notColumns": [
+        "AAACATACAACCAC-1"
+      ]
+    },
+    "tenx-features": {
+      "viewKind": "table",
+      "previewKind": "table",
+      "quality": "assessed",
+      "minColumns": 3,
+      "maxColumns": 3,
+      "notColumns": [
+        "ENSG00000243485",
+        "MIR1302-2HG"
+      ],
+      "note": "10x features.tsv is header-less"
+    }
+  }
+}

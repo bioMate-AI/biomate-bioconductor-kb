@@ -1,353 +1,164 @@
 /**
- * DatasetObject (data-hub dataset panel) — COMPREHENSIVE live audit.
- * ==================================================================
- * TEST ARTIFACT — do NOT commit (per task). Drives the real DatasetObject on
- * https://dev-public.biomate.ai against real project files, screenshots every
- * state, and records a pass/fail matrix grounded in rendered DOM/pixels.
+ * E2E (dev, live, no mocks): the dataset object's own surface — header, tabular preview tools,
+ * versions and provenance — asserted, not recorded.
  *
- * Discipline (CLAUDE.md §E2E):
- *   - Single canonical fixture; login ONCE (loginAsFixture caches the JWT→cookie
- *     module-wide, reused across all tests here).
- *   - NO backend-response mocking. The ONLY page.route here strips the
- *     Authorization/X-E2E headers from direct S3 (amazonaws.com) presigned-URL
- *     fetches — S3 400s a presigned GET that also carries Authorization. This is
- *     header hygiene (route.continue with edited headers), NOT a response mock;
- *     it's the same pattern the canonical files-viz-verify.e2e.ts uses so the
- *     type-aware preview exercises the real viewer. No /api/* request is touched.
+ * Replaces the 2026-10-28 record-only audit (hard-coded project / file / run ids, 18 swallowed
+ * `.catch(() => {})`, PASS/FAIL written to a JSON file while the test itself always passed, and
+ * checks for header badges the design has since removed).
  *
- * Data (probed live 2026-10-28):
- *   - UPLOAD project "MG PBMC — sample data demo" (3cd5292d…): counts_matrix.csv
- *     (text/csv, 23382 B → "22.8 KB", numeric columns) + preview_checks.json
- *     (application/json) → exercises header, Preview table/sort/filter/columns/
- *     plot, type-aware JSON, Versions.
- *   - RUN-OUTPUT project (060f8039…): toxicity_report.json etc., all produced by
- *     run c40459b2 / workflow "Predict ADMET Properties (AI)" / step "run" →
- *     exercises the Provenance "Output from workflow" row (workflow·step label,
- *     never a raw run id) + Data QC + consumers.
+ * Coverage map — what this harness does NOT re-verify (it is asserted elsewhere):
+ *   - per-format kinds / stats / toggles / previews (CSV, TSV, JSON, FASTA, VCF, PDB, MRC, images,
+ *     h5ad, BAM …) and folder profiles → e2e/dataset-format-matrix.e2e.ts;
+ *   - cell edits, stale-version / rowFrom refusals, header-less edits → e2e/dataset-edit-safety.e2e.ts;
+ *   - rename keeps versions + diff → e2e/project-file-rename.e2e.ts;
+ *   - sort / filter / record view logic, edit payload, error messages → client vitest
+ *     (dataset-rows.test.tsx, nested-json.test.tsx, dataset-object.*.test.tsx).
+ *
+ * Flow A (one project, deleted loudly in finally): upload panel.csv twice (v1 → v2), open it from
+ *   the tree, then assert header (name, v2 chip, quality pill, CSV format chip, tabs, actions),
+ *   Preview table with real sort (asc then exact reverse) and filter, Columns and Plot views, the
+ *   Versions list (v2 current, v1 comparable → diff shows the changed cell), the upload's
+ *   Provenance (origin, no storage key, no "produced by"), and text hygiene.
+ * Flow B: a RUN OUTPUT's provenance — the fixture's projects are searched (API, bounded) for a
+ *   run-output file; its "produced by" row must name the workflow (· step), never the run id. No
+ *   such file in the fixture → the flow FAILS (the outcome cannot be shown), it is not skipped.
+ *
+ * Rules honoured (CLAUDE.md): fixture account, ONE login (cookie session; every API call goes
+ * through page.request), ONE project, never register, no page.route.
+ *
+ * Run: BIOMATE_URL=https://dev-public.biomate.ai npx playwright test e2e/dataset-panel-full.e2e.ts \
+ *      --project=chromium --retries=0
  */
-import { test, expect, type Page } from "@playwright/test";
-import * as path from "path";
-import * as fs from "fs";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
+import { createProject, deleteProjectLoudly, uploadFile, openProjectFiles, openFile, revealFile } from "./_project-ui";
 
-test.use({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
-test.setTimeout(6 * 60_000);
-
-const OUT =
-  process.env.SHOT_DIR ||
-  "/private/tmp/claude-501/-Users-kky-biomate-review/68177db6-d7aa-4237-b387-f3aab691085b/scratchpad/dataset-panel-shots";
-fs.mkdirSync(OUT, { recursive: true });
-
-// Upload project (CSV + JSON uploads)
-const UP_PROJECT = "3cd5292d-fcc4-4d78-8d41-53d6d3a5e77a";
-const CSV_FILE = "5288f63c-d6e5-4fcb-b192-f35dad49991b"; // counts_matrix.csv (numeric, 22.8KB)
-const JSON_FILE = "da07d4b4-42c6-4b03-a340-45d35b5de6ae"; // preview_checks.json
-
-// Run-output project (Provenance)
-const RO_PROJECT = "060f8039-f0b0-46fb-bd87-3047b4c8e5f8";
-const RO_FILE = "7557a9d2-bbf6-44a3-89e9-234d75879400"; // toxicity_report.json (run_output)
-const RO_RUN_ID = "c40459b2-4dd0-407e-bbbd-e985df4ce0fc";
-const RO_WF = "Predict ADMET Properties (AI)";
+test.setTimeout(8 * 60_000);
 
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-const LONGHEX_RE = /\b[0-9a-f]{16,}\b/i;
+const RAW_KEY_RE = /\b(dataset_obj|file_tree|data_hub|perception|actions|nav)\.[a-z_]+/i;
 
-type Verdict = "PASS" | "FAIL" | "NOT-TESTABLE";
-const results: { id: string; check: string; verdict: Verdict; shot: string; note: string }[] = [];
-function rec(id: string, check: string, verdict: Verdict, shot: string, note: string) {
-  results.push({ id, check, verdict, shot, note });
-  console.log(`RESULT | ${id} | ${check} | ${verdict} | ${shot} | ${note}`);
+const V1 = "gene,count\nTP53,5\nBRCA1,12\nEGFR,3\nMYC,8\n";
+const V2 = "gene,count\nTP53,5\nBRCA1,12\nEGFR,4\nMYC,8\n";   // EGFR 3 → 4
+
+/** The panel shows no raw id, no undefined / NaN and no untranslated i18n key. */
+async function expectCleanText(panel: Locator, extra: string[] = []): Promise<void> {
+  const text = await panel.innerText();
+  expect(text, "no raw uuid in the panel").not.toMatch(UUID_RE);
+  expect(text, "no 'undefined'").not.toMatch(/\bundefined\b/i);
+  expect(text, "no NaN").not.toMatch(/\bNaN\b/);
+  expect(text, "no raw i18n key").not.toMatch(RAW_KEY_RE);
+  for (const s of extra) expect(text, `'${s}' is not shown`).not.toContain(s);
 }
 
-let page: Page;
-
-async function shot(name: string): Promise<string> {
-  const f = `${name}.png`;
-  await page.screenshot({ path: path.join(OUT, f), fullPage: true }).catch(() => {});
-  return f;
-}
-async function vis(testid: string, ms = 15_000): Promise<boolean> {
-  const loc = page.locator(`[data-testid="${testid}"]`).first();
-  await loc.waitFor({ state: "visible", timeout: ms }).catch(() => {});
-  return loc.isVisible().catch(() => false);
-}
-async function txt(testid: string): Promise<string> {
-  return (await page.locator(`[data-testid="${testid}"]`).first().innerText().catch(() => "")) ?? "";
+async function firstColumn(page: Page): Promise<string[]> {
+  return page.locator('[data-testid="dataset-preview-table"] tbody tr[data-testid="dataset-preview-row"] td:first-child').allInnerTexts();
 }
 
-// Open a dataset by deep-link (?file=) with the active project preset, then wait
-// for the DatasetObject to mount (fall back to clicking the file row).
-async function openDataset(projectId: string, fileId: string) {
-  await page.addInitScript((pid) => {
-    try { localStorage.setItem("biomate-active-project-id", pid as string); } catch { /* */ }
-  }, projectId);
-  await page.goto(`${BASE_URL}/files?file=${fileId}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.waitForTimeout(3500);
-  if (!(await page.locator('[data-testid="dataset-object"]').first().isVisible().catch(() => false))) {
-    const row = page.locator(`[data-testid="file-open-${fileId}"]`).first();
-    if (await row.isVisible().catch(() => false)) { await row.click().catch(() => {}); await page.waitForTimeout(3000); }
-  }
-  await page.locator('[data-testid="dataset-object"]').first().waitFor({ state: "visible", timeout: 20_000 }).catch(() => {});
-}
-
-test.beforeAll(async ({ browser }) => {
-  page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
+test("dataset object: header, preview tools, versions and provenance (upload + run output)", async ({ page }) => {
   await loginAsFixture(page);
-  // Header hygiene for direct S3 presigned fetches (NOT an API mock — see header).
-  await page.route(/amazonaws\.com/, async (route) => {
-    const h = { ...route.request().headers() };
-    delete h["authorization"]; delete h["Authorization"];
-    delete h["x-e2e-test-token"]; delete h["X-E2E-Test-Token"];
-    await route.continue({ headers: h });
-  });
-});
+  const api = page.request;
+  const name = `e2e dataset panel ${Date.now()}`;
+  const projectId = await createProject(api, name);
+  try {
+    // ── Flow A ──────────────────────────────────────────────────────────────
+    const v1 = await uploadFile(api, projectId, "panel.csv", Buffer.from(V1), "text/csv");
+    const v2 = await uploadFile(api, projectId, "panel.csv", Buffer.from(V2), "text/csv");
+    expect(v2.id, "same name → a new version of the same file").toBe(v1.id);
 
-test.afterAll(async () => {
-  fs.writeFileSync(path.join(OUT, "_results.json"), JSON.stringify(results, null, 2));
-  const counts = results.reduce((a, r) => ((a[r.verdict] = (a[r.verdict] ?? 0) + 1), a), {} as Record<string, number>);
-  console.log("COUNTS |", JSON.stringify(counts));
-  await page?.close();
-});
+    await openProjectFiles(page, projectId, name);
+    await openFile(page, v1.id, "panel.csv");
+    const obj = page.getByTestId("dataset-object");
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FLOW 1 — Upload CSV: HEADER + PREVIEW (table/sort/filter/columns/plot) + VERSIONS
-// ─────────────────────────────────────────────────────────────────────────────
-test("Flow 1 — CSV upload: header + preview + versions", async () => {
-  await openDataset(UP_PROJECT, CSV_FILE);
-  const mounted = await vis("dataset-object", 20_000);
-  let s = await shot("01_csv_mounted");
-  if (!mounted) {
-    rec("MOUNT", "DatasetObject mounts for CSV", "FAIL", s, "dataset-object never visible on upload project");
-    return;
+    await test.step("header", async () => {
+      await expect(page.getByTestId("dataset-object-name")).toHaveText("panel.csv");
+      await expect(page.getByTestId("dataset-header-version")).toHaveText("v2", { timeout: 30_000 });
+      const pill = page.getByTestId("dataset-header-quality");
+      await expect(pill).toBeVisible({ timeout: 60_000 });
+      expect(["good", "watch", "blocked", "unassessed"]).toContain(await pill.getAttribute("data-quality"));
+      await expect(page.getByTestId("dataset-header-format")).toHaveText(/^CSV/, { timeout: 60_000 });
+      for (const tab of ["preview", "versions", "wherefrom"]) await expect(page.getByTestId(`dataset-tab-${tab}`)).toBeVisible();
+      await expect(page.getByTestId("dataset-tab-preview")).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByTestId("dataset-object-analyze")).toBeVisible();
+      await expect(page.getByTestId("dataset-object-download")).toBeVisible();
+    });
+
+    await test.step("preview: table, sort, filter", async () => {
+      await expect(page.getByTestId("dataset-preview")).toHaveAttribute("data-preview-kind", "table", { timeout: 60_000 });
+      await expect.poll(() => firstColumn(page), { timeout: 30_000 }).toEqual(["TP53", "BRCA1", "EGFR", "MYC"]);
+      await page.getByTestId("dataset-col-sort-0").click();
+      await expect.poll(() => firstColumn(page)).toEqual(["BRCA1", "EGFR", "MYC", "TP53"]);
+      await page.getByTestId("dataset-col-sort-0").click();
+      await expect.poll(() => firstColumn(page)).toEqual(["TP53", "MYC", "EGFR", "BRCA1"]);
+      await page.getByTestId("dataset-preview-filter").fill("EGF");
+      await expect.poll(() => firstColumn(page)).toEqual(["EGFR"]);
+      await page.getByTestId("dataset-preview-filter").fill("");
+      await expect.poll(async () => (await firstColumn(page)).length).toBe(4);
+    });
+
+    await test.step("columns and plot views", async () => {
+      await page.getByTestId("dataset-preview-toggle-columns").click();
+      await expect(page.getByTestId("dataset-preview-columns")).toBeVisible();
+      await expect(page.getByTestId("dataset-column-row")).toHaveCount(2);
+      await page.getByTestId("dataset-preview-toggle-plot").click();
+      await expect(page.getByTestId("dataset-sample-plot"), "a numeric column (count) is plotted").toBeVisible();
+      await expect(page.getByTestId("dataset-preview-plot-future")).toHaveCount(0);
+    });
+
+    await test.step("versions: v2 current, v1 compares to the changed cell", async () => {
+      await page.getByTestId("dataset-tab-versions").click();
+      await expect(page.getByTestId("dataset-versions")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId("dataset-version-2")).toBeVisible();
+      await expect(page.getByTestId("dataset-version-1")).toBeVisible();
+      await expect(page.getByTestId("dataset-version-compare-2"), "the current version has no Compare").toHaveCount(0);
+      await page.getByTestId("dataset-version-compare-1").click();
+      const cell = page.getByTestId("dataset-version-diff-1").getByTestId("dataset-diff-cell");
+      await expect(cell).toHaveCount(1, { timeout: 30_000 });
+      await expect(cell).toContainText("count");
+      await expect(cell).toContainText("3");
+      await expect(cell).toContainText("4");
+    });
+
+    await test.step("provenance of an upload", async () => {
+      await page.getByTestId("dataset-tab-wherefrom").click();
+      const origin = page.getByTestId("dataset-origin");
+      await expect(origin).toBeVisible({ timeout: 30_000 });
+      expect(await origin.innerText(), "the storage key is plumbing, never shown").not.toMatch(/s3:\/\/|projects\/\S+\/inputs\//i);
+      await expect(page.getByTestId("lineage-open-run"), "an upload has no producing run").toHaveCount(0);
+      await expect(page.getByTestId("dataset-consumers").or(page.getByTestId("dataset-no-consumers")).first()).toBeVisible({ timeout: 30_000 });
+      await expectCleanText(obj);
+    });
+
+    // ── Flow B: a run output's provenance ───────────────────────────────────
+    await test.step("provenance of a run output (fixture data)", async () => {
+      const pres = await api.get(`${BASE_URL}/api/projects`);
+      expect(pres.ok(), `list projects ${pres.status()}`).toBeTruthy();
+      const projects = ((await pres.json()).projects ?? []) as Array<{ id: string; name: string }>;
+      let found: { project: { id: string; name: string }; file: any } | null = null;
+      // Bounded search (one GET per project, at most 40) for a run output with a run id.
+      for (const p of projects.filter((x) => x.id !== projectId).slice(0, 40)) {
+        const fres = await api.get(`${BASE_URL}/api/projects/${p.id}/files`);
+        if (!fres.ok()) continue;
+        const f = ((await fres.json()).files ?? []).find((x: any) => x.source === "run_output" && x.run_id);
+        if (f) { found = { project: p, file: f }; break; }
+      }
+      expect(found, "the fixture account has a run-output file to show provenance for").not.toBeNull();
+      const { project, file } = found!;
+      await openProjectFiles(page, project.id, project.name);
+      await revealFile(page, file.id, undefined, `outputs/${file.run_id}`);
+      await page.getByTestId(`file-open-${file.id}`).click();
+      await expect(page.getByTestId("dataset-object-name")).toContainText(String(file.name).split("/").pop()!, { timeout: 30_000 });
+      await page.getByTestId("dataset-tab-wherefrom").click();
+      const produced = page.getByTestId("lineage-open-run");
+      await expect(produced).toBeVisible({ timeout: 30_000 });
+      const label = (await produced.innerText()).trim();
+      expect(label, "produced-by names the workflow, not the run id").not.toContain(file.run_id);
+      expect(label).not.toMatch(UUID_RE);
+      if (file.step_name) expect(label, "pinned to the producing step").toContain(String(file.step_name).trim());
+      expect(await page.getByTestId("dataset-origin").innerText()).not.toMatch(/s3:\/\//i);
+      await expectCleanText(page.getByTestId("dataset-object"), [file.run_id]);
+    });
+  } finally {
+    await deleteProjectLoudly(api, projectId);
   }
-
-  // ── HEADER ──
-  const name = (await txt("dataset-object-name")).trim();
-  rec("H-name", "header name (not undefined/empty)", name.length > 0 && !/undefined/i.test(name) ? "PASS" : "FAIL", s, `name='${name}'`);
-
-  const hasType = await vis("dataset-header-type", 4000);
-  const typeTxt = (await txt("dataset-header-type")).trim();
-  rec("H-type", "content-type badge (dataset-header-type)", hasType && typeTxt.length > 0 ? "PASS" : "FAIL", s, `type badge='${typeTxt}'`);
-
-  const hasSize = await vis("dataset-header-size", 4000);
-  const sizeTxt = (await txt("dataset-header-size")).trim();
-  const sizeOk = hasSize && /\d/.test(sizeTxt) && /(B|KB|MB|GB)\b/.test(sizeTxt);
-  rec("H-size", "SIZE badge present w/ real value (dataset-header-size)", sizeOk ? "PASS" : "FAIL", s, `size badge='${sizeTxt}'`);
-
-  const hasVer = await vis("dataset-header-version", 4000);
-  const verTxt = (await txt("dataset-header-version")).trim();
-  rec("H-version", "version chip (dataset-header-version)", hasVer && /^v/i.test(verTxt) ? "PASS" : "FAIL", s, `version chip='${verTxt}'`);
-
-  // Quality pill is profile-dependent (perception may resolve or not).
-  const hasQual = await vis("dataset-header-quality", 6000);
-  const qualTxt = (await txt("dataset-header-quality")).trim();
-  rec("H-quality", "quality pill (dataset-header-quality)", hasQual ? "PASS" : "NOT-TESTABLE", s,
-    hasQual ? `quality pill='${qualTxt}'` : "perception profile returned no quality verdict → pill absent (honest)");
-
-  // Segmented pill tab group: gray track (bg-muted) with raised white selected box
-  // (bg-background + shadow), NOT an underline.
-  const tablist = page.locator('[role="tablist"]').first();
-  const trackCls = (await tablist.getAttribute("class").catch(() => "")) ?? "";
-  const selTab = page.locator('[data-testid="dataset-tab-preview"]');
-  const selCls = (await selTab.getAttribute("class").catch(() => "")) ?? "";
-  const selAria = await selTab.getAttribute("aria-selected").catch(() => "");
-  const segmented = /bg-muted/.test(trackCls) && /bg-background/.test(selCls) && /shadow/.test(selCls) && selAria === "true";
-  rec("H-tabs", "tabs render as SEGMENTED PILL group (not underline)", segmented ? "PASS" : "FAIL", s,
-    `track has bg-muted=${/bg-muted/.test(trackCls)}; selected has bg-background=${/bg-background/.test(selCls)} shadow=${/shadow/.test(selCls)} aria-selected=${selAria}`);
-
-  const analyze = await vis("dataset-object-analyze", 4000);
-  const download = await vis("dataset-object-download", 4000);
-  rec("H-actions", "actions: Use in chat + Download", analyze && download ? "PASS" : "FAIL", s,
-    `analyze(Use in chat)=${analyze} download=${download}`);
-
-  // ── PREVIEW — Table ──
-  await page.locator('[data-testid="dataset-tab-preview"]').click().catch(() => {});
-  await page.waitForTimeout(3000);
-  const previewWrap = await vis("dataset-preview", 8000);
-  const tableVisible = await vis("dataset-preview-table", 8000);
-  s = await shot("02_csv_preview_table");
-  rec("P-table", "Preview table renders rows/cols for CSV", previewWrap && tableVisible ? "PASS" : "FAIL", s,
-    `dataset-preview=${previewWrap} dataset-preview-table=${tableVisible}`);
-
-  // ── PREVIEW — sort header reorders ──
-  if (tableVisible) {
-    const firstColCells = async () =>
-      page.locator('[data-testid="dataset-preview-table"] tbody tr td:first-child').allInnerTexts().catch(() => [] as string[]);
-    const before = await firstColCells();
-    // Click once → ascending. Click again on the SAME header → descending. The
-    // descending order MUST be the exact reverse of the ascending order — this
-    // proves the sort actually reorders, independent of the data's initial order
-    // (the sample may already be ascending, so a single click can be a no-op).
-    await page.locator('[data-testid="dataset-col-sort-0"]').first().click().catch(() => {});
-    await page.waitForTimeout(600);
-    const asc = await firstColCells();
-    await page.locator('[data-testid="dataset-col-sort-0"]').first().click().catch(() => {});
-    await page.waitForTimeout(600);
-    const desc = await firstColCells();
-    s = await shot("03_csv_sorted");
-    const isAsc = asc.every((v, i) => i === 0 || asc[i - 1].localeCompare(v) <= 0 ||
-      (Number.isFinite(Number(asc[i - 1])) && Number.isFinite(Number(v)) && Number(asc[i - 1]) <= Number(v)));
-    const reversed = JSON.stringify(desc) === JSON.stringify([...asc].reverse());
-    const reorders = reversed && JSON.stringify(asc) !== JSON.stringify(desc);
-    rec("P-sort", "sort header (dataset-col-sort-0) reorders (asc↔desc toggle)",
-      isAsc && reorders && asc.length > 1 ? "PASS" : "FAIL", s,
-      `rows=${asc.length} ascending=${isAsc} desc-is-reverse-of-asc=${reversed} | asc[0..2]=${JSON.stringify(asc.slice(0,3))} desc[0..2]=${JSON.stringify(desc.slice(0,3))}`);
-
-    // ── PREVIEW — filter input filters rows ──
-    const rowsBefore = await page.locator('[data-testid="dataset-preview-table"] tbody tr').count();
-    const sampleCell = (asc[0] ?? before[0] ?? "").trim();
-    const token = sampleCell.slice(0, Math.min(3, sampleCell.length)) || "a";
-    await page.locator('[data-testid="dataset-preview-filter"]').fill(token).catch(() => {});
-    await page.waitForTimeout(700);
-    const rowsAfter = await page.locator('[data-testid="dataset-preview-table"] tbody tr').count();
-    s = await shot("04_csv_filtered");
-    rec("P-filter", "filter input (dataset-preview-filter) filters rows", rowsAfter > 0 && rowsAfter <= rowsBefore ? "PASS" : "FAIL", s,
-      `token='${token}' rowsBefore=${rowsBefore} rowsAfter=${rowsAfter}`);
-    await page.locator('[data-testid="dataset-preview-filter"]').fill("").catch(() => {});
-    await page.waitForTimeout(400);
-  } else {
-    rec("P-sort", "sort header reorders", "NOT-TESTABLE", s, "no preview table (profiler returned no columns/rows)");
-    rec("P-filter", "filter filters rows", "NOT-TESTABLE", s, "no preview table");
-  }
-
-  // ── PREVIEW — Columns toggle ──
-  await page.locator('[data-testid="dataset-preview-toggle-columns"]').click().catch(() => {});
-  await page.waitForTimeout(600);
-  const colsFuture = await vis("dataset-preview-columns-future", 4000);
-  s = await shot("05_csv_columns");
-  rec("P-columns", "Columns view toggle renders", colsFuture ? "PASS" : "FAIL", s,
-    `columns-future fallback=${colsFuture} (profiler has no per-column stats → honest fallback)`);
-
-  // ── PREVIEW — Plot toggle ──
-  await page.locator('[data-testid="dataset-preview-toggle-plot"]').click().catch(() => {});
-  await page.waitForTimeout(800);
-  const plot = await vis("dataset-sample-plot", 5000);
-  const plotFuture = await vis("dataset-preview-plot-future", 2000);
-  s = await shot("06_csv_plot");
-  rec("P-plot", "Plot view toggle renders distribution or honest fallback", plot || plotFuture ? "PASS" : "FAIL", s,
-    plot ? "dataset-sample-plot rendered (numeric distribution)" : plotFuture ? "honest plot-future fallback (no numeric sample)" : "neither plot nor fallback");
-
-  // ── VERSIONS ──
-  await page.locator('[data-testid="dataset-tab-versions"]').click().catch(() => {});
-  await page.waitForTimeout(2500);
-  const versWrap = await vis("dataset-versions", 6000);
-  const noVers = await vis("dataset-no-versions", 2000);
-  const verRows = await page.locator('[data-testid^="dataset-version-"]').count();
-  s = await shot("07_csv_versions");
-  rec("V-log", "Versions tab shows version log", versWrap ? "PASS" : "FAIL", s,
-    `dataset-versions=${versWrap} version-rows=${verRows} no-versions-empty=${noVers} (likely v1-only)`);
-
-  // GLOBAL text-hygiene on the whole open panel (upload file).
-  const panelText = await txt("dataset-object");
-  const uuidHit = panelText.match(UUID_RE);
-  const hexHit = panelText.match(LONGHEX_RE);
-  const undef = /\bundefined\b/i.test(panelText);
-  const nan = /\bNaN\b/.test(panelText);
-  const rawKey = /\b(dataset_obj|file_tree|actions|nav)\.[a-z_]+/i.test(panelText);
-  rec("G-upload", "no raw uuid/hex/undefined/NaN/i18n-key visible (upload panel)",
-    !uuidHit && !undef && !nan && !rawKey ? "PASS" : "FAIL", s,
-    `uuid=${uuidHit?.[0] ?? "none"} longhex=${hexHit?.[0] ?? "none"} undefined=${undef} NaN=${nan} rawKey=${rawKey}`);
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FLOW 2 — Type-awareness: a JSON upload previews structurally, not empty table
-// ─────────────────────────────────────────────────────────────────────────────
-test("Flow 2 — type-aware preview (JSON upload)", async () => {
-  await openDataset(UP_PROJECT, JSON_FILE);
-  const mounted = await vis("dataset-object", 15_000);
-  if (!mounted) { rec("T-json", "JSON type-aware preview", "FAIL", await shot("08_json_mounted"), "dataset-object did not mount"); return; }
-  await page.locator('[data-testid="dataset-tab-preview"]').click().catch(() => {});
-  await page.waitForTimeout(3500);
-  const textPreview = await vis("dataset-text-preview", 8000);
-  const richTable = await vis("dataset-preview-table", 2000);
-  const none = await vis("dataset-preview-none", 2000);
-  const s = await shot("09_json_preview");
-  // A JSON file must preview structurally (FileContentView → table/json view via
-  // dataset-text-preview) OR as the profiler table — NOT a bare "no preview".
-  const pretxt = await txt("dataset-text-preview");
-  const structural = textPreview && (pretxt.includes("{") || pretxt.includes(":") || (await page.locator('[data-testid="dataset-text-preview"] table, [data-testid="dataset-text-preview"] pre').count()) > 0);
-  rec("T-json", "JSON upload previews structurally (not empty table)",
-    structural || richTable ? "PASS" : none ? "FAIL" : "FAIL", s,
-    `dataset-text-preview=${textPreview} rich-table=${richTable} preview-none=${none} structural=${structural}`);
-  rec("T-image", "image → <img>", "NOT-TESTABLE", s, "no png/jpg/gif/webp file in any accessible fixture project (reliably scanned 139/139 projects; only .txt/.csv/.fastq/.json/.yml present)");
-  rec("T-pdf", "PDF → iframe", "NOT-TESTABLE", s, "no .pdf file in any accessible fixture project (reliably scanned 139/139 projects; only .txt/.csv/.fastq/.json/.yml present)");
-  rec("T-fasta-vcf", "FASTA/VCF → structural text", "NOT-TESTABLE", s, "no .fa/.fasta/.vcf file in any accessible fixture project (reliably scanned 139/139 projects; only .txt/.csv/.fastq/.json/.yml present)");
-  rec("T-mrc", "MRC/.map → 3-axis density viewer", "NOT-TESTABLE", s, "no .mrc/.map/.rec density file in any accessible fixture project (reliably scanned 139/139 projects; only .txt/.csv/.fastq/.json/.yml present)");
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FLOW 3 — Provenance (run-output file): the key terminology/behavior checks
-// ─────────────────────────────────────────────────────────────────────────────
-test("Flow 3 — Provenance tab (run-output file)", async () => {
-  await openDataset(RO_PROJECT, RO_FILE);
-  const mounted = await vis("dataset-object", 20_000);
-  let s = await shot("10_ro_mounted");
-  if (!mounted) { rec("PROV-mount", "run-output DatasetObject mounts", "FAIL", s, "dataset-object did not mount on run-output project"); return; }
-
-  // run-output header: size badge must still be present (bug was it missing).
-  const roSize = (await txt("dataset-header-size")).trim();
-  rec("PROV-size", "run-output header SIZE badge present", /\d/.test(roSize) && /(B|KB|MB|GB)\b/.test(roSize) ? "PASS" : "FAIL", s, `size badge='${roSize}'`);
-
-  // Tab label reads "Provenance" (not "Where it came from").
-  const wfTabLabel = (await txt("dataset-tab-wherefrom")).trim();
-  rec("PROV-label", 'tab label reads "Provenance"', /^provenance$/i.test(wfTabLabel) ? "PASS" :
-    /where it came from/i.test(wfTabLabel) ? "FAIL" : "FAIL", s, `tab label='${wfTabLabel}'`);
-
-  await page.locator('[data-testid="dataset-tab-wherefrom"]').click().catch(() => {});
-  await page.waitForTimeout(4000);
-  const wfWrap = await vis("dataset-wherefrom", 8000);
-  const originWrap = await vis("dataset-origin", 6000);
-  s = await shot("11_ro_provenance");
-
-  const originText = await txt("dataset-origin");
-  // Storage ref / S3 key must be ABSENT.
-  const hasStorageRef = /storage\s*ref/i.test(originText) || /s3:\/\//i.test(originText) || /projects\/.+\/.+\.(json|txt|yml)/i.test(originText);
-  rec("PROV-origin", "Origin block present; internal S3 'Storage ref' ABSENT", originWrap && !hasStorageRef ? "PASS" : "FAIL", s,
-    `origin=${originWrap} storage-ref-present=${hasStorageRef}`);
-
-  // "Output from workflow" row: workflow·step label, NEVER a raw run id.
-  const openRunBtn = page.locator('[data-testid="lineage-open-run"]').first();
-  const openRunVisible = await openRunBtn.isVisible().catch(() => false);
-  const openRunLabel = (await openRunBtn.innerText().catch(() => "")) ?? "";
-  const labelIsUuid = UUID_RE.test(openRunLabel);
-  const labelHasWf = openRunLabel.includes(RO_WF);
-  rec("PROV-produced", '"Output from workflow" shows workflow·step, not a raw run id',
-    openRunVisible && labelHasWf && !labelIsUuid ? "PASS" : "FAIL", s,
-    `row-visible=${openRunVisible} label='${openRunLabel.trim()}' isUuid=${labelIsUuid} (expected '${RO_WF} · run')`);
-
-  // Added row present (origin should carry an Added date).
-  const addedOk = /added/i.test(originText);
-  rec("PROV-added", "Origin shows Added date", addedOk ? "PASS" : "FAIL", s, `origin text contains 'Added'=${addedOk}`);
-
-  // Consumers: each shows a workflow name or the Open-run action, NEVER a raw id.
-  const consWrap = await vis("dataset-consumers", 6000);
-  const noCons = await vis("dataset-no-consumers", 3000);
-  const consEls = page.locator('[data-testid^="dataset-consumer-"]');
-  const consN = await consEls.count();
-  let consBad = "";
-  for (let i = 0; i < consN; i++) {
-    const ct = (await consEls.nth(i).innerText().catch(() => "")) ?? "";
-    if (UUID_RE.test(ct) || LONGHEX_RE.test(ct)) consBad += `[${ct.trim()}]`;
-  }
-  rec("PROV-consumers", '"Input to workflow": name or Open-run action, never a raw run id',
-    consWrap && !consBad ? "PASS" : "FAIL", s,
-    noCons ? "honest-empty 'No runs recorded as reading this dataset yet.'" : `${consN} consumer rows; raw-id rows=${consBad || "none"}`);
-
-  // Data-quality card labelled "Data QC".
-  const qcWrap = await vis("dataset-quality", 6000);
-  const qcHeading = (await txt("dataset-quality")).split("\n")[0]?.trim() ?? "";
-  rec("PROV-dataqc", 'Data-quality card labelled "Data QC"', qcWrap && /data qc/i.test(qcHeading) ? "PASS" : "FAIL", s,
-    `card-visible=${qcWrap} heading='${qcHeading}'`);
-
-  // GLOBAL text-hygiene on the whole open provenance panel.
-  const panelText = await txt("dataset-object");
-  const uuidHit = panelText.match(UUID_RE);
-  const hexHit = panelText.match(LONGHEX_RE);
-  const runIdVisible = panelText.includes(RO_RUN_ID);
-  const undef = /\bundefined\b/i.test(panelText);
-  const nan = /\bNaN\b/.test(panelText);
-  const rawKey = /\b(dataset_obj|file_tree|actions|nav)\.[a-z_]+/i.test(panelText);
-  rec("G-prov", "no raw run-id/uuid/hex/undefined/NaN/i18n-key visible (provenance panel)",
-    !uuidHit && !runIdVisible && !undef && !nan && !rawKey ? "PASS" : "FAIL", s,
-    `uuid=${uuidHit?.[0] ?? "none"} runId-visible=${runIdVisible} longhex=${hexHit?.[0] ?? "none"} undefined=${undef} NaN=${nan} rawKey=${rawKey}`);
 });

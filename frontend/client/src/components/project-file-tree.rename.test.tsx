@@ -51,6 +51,16 @@ async function openFolderX() {
 }
 
 describe("ProjectFileTree — rename / move a file", () => {
+  it("the hint gives a concrete move example built from the file's own name, inside its CURRENT folder", async () => {
+    render(<ProjectFileTree projectId="p1" />)
+    fireEvent.click(await openFolderX())
+    const hint = screen.getByTestId("file-rename-f1-hint")
+    // The example keeps the nested file in x/ (a subfolder here) — never moves it out to the top.
+    expect(hint.getAttribute("data-example")).toBe("x/archive/a.csv")
+    expect(hint.textContent).toMatch(/x\/archive\/a\.csv/)
+    expect(hint.textContent).not.toMatch(/(^|[^/])data\//)
+  })
+
   it("Enter saves the new name (with folders) via PATCH and the tree shows the new place", async () => {
     render(<ProjectFileTree projectId="p1" />)
     fireEvent.click(await openFolderX())

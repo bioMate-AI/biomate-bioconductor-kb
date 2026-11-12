@@ -3,13 +3,19 @@ import { stepFileDisposition } from "./step-file-disposition";
 import { waitForInteractiveSession, waitForDatasetReady } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
+import { proxyTarget, rejectProxyPath } from "./proxy-path";
+import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
 import { planModelFold } from "./model-fold";
-import { authorizeDatasetReference } from "./dataset-reference-access";
+import { datasetAccessGate } from "./dataset-reference-access";
+import { recordProfileSummary } from "./project-file-profiles";
+import { perceptionProxyGate } from "./perception-proxy-gate";
+import { attachmentDisposition } from "./content-disposition";
+import { loadFolderContext } from "./project-folders";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
 import { normalizeUiLanguage, isChineseBrowser, zhDefaultModel } from "./response-language";
@@ -195,45 +201,6 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
 
 // fetchGalaxyAsUser (user key, else shared admin key, with mid-session recovery) lives in
 // ./galaxy-user-fetch so project-routes.ts shares the exact same key choice.
-
-/**
- * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
- * same path + query, JSON body for methods other than GET/HEAD/DELETE, and the response relayed
- * back (JSON parsed, otherwise raw bytes; Content-Type and Content-Disposition passed through).
- * The key and its mid-session recovery come from fetchGalaxyAsUser. Shared by the ind-report,
- * regulatory, grounded and DL passthroughs (previously four copies of this body).
- */
-function backendPassthrough(label: string) {
-  return async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      return res.send(Buffer.from(await resp.arrayBuffer()));
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: `${label} proxy error`, detail: err.message });
-    }
-  };
-}
 
 // NOTE: the IND report module is PAUSED (feature-flagged off, IND_REPORT_ENABLED) and
 // its document generator runs in the Galaxy backend, out of this proxy's reach — so it is
@@ -3593,8 +3560,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
       const obj = await minioClient.send(new GetObjectCommand({ Bucket: minioBucket, Key: key }));
-      const filename = key.split('/').pop() || 'download';
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // ?name= is the file's display name (project file routes pass it): the saved file is named
+      // like the file, not like its object key ("counts-2.csv.v2"). Header-safe via attachmentDisposition.
+      const requested = typeof req.query.name === 'string' ? req.query.name.trim() : '';
+      res.setHeader('Content-Disposition', attachmentDisposition(requested || key));
       res.setHeader('Content-Type', (obj as any).ContentType || 'application/octet-stream');
       ((obj as any).Body as NodeJS.ReadableStream).pipe(res);
     } catch (error: any) {
@@ -5543,12 +5512,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.all("/api/drug-discovery/*", optionalAuth, async (req: any, res: any) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const targetPath = req.path; // already /api/drug-discovery/...
+      // Only a path under /api/drug-discovery (proxy-path.ts).
+      const target = proxyTarget(req, '/api/drug-discovery');
+      if (!target.ok) return rejectProxyPath(res, target);
+      const targetPath = target.path; // /api/drug-discovery/...
       const method = req.method.toUpperCase();
-
-      // Build query string
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${targetPath}${queryStr}`;
+      const fullPath = `${targetPath}${target.query}`;
 
       // Forward with user's Galaxy API key if available
       const headers: Record<string, string> = {
@@ -5699,9 +5668,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const _dlProxyHandler = backendPassthrough("DL surface");
   const _modelsOwnerProxy = async (req: any, res: any) => {
     try {
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
       await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
-      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const response = await fetchOwnedModelSurface(req.user?.id, `${req.path}${query}`, {
+      const response = await fetchOwnedModelSurface(req.user?.id, `${target.path}${target.query}`, {
         method: req.method,
         ...(!['GET', 'HEAD'].includes(req.method) ? { body: JSON.stringify(req.body || {}) } : {}),
       });
@@ -5722,9 +5692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let galaxyJson: any = {};
     let galaxyStatus = 200;
     try {
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
       await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
+      const fullPath = `${target.path}${target.query}`;
       const resp = await fetchOwnedModelSurface(req.user?.id, fullPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5942,28 +5913,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
-  const requireDatasetAccess = (refFromPath = false) => async (req: any, res: any, next: any) => {
+  // The current key of a project file the user can read, or one of its archived version keys
+  // (dataset-reference-access.ts) — a panel still holding the key it opened, Compare and the
+  // version views all name version keys after an edit / restore.
+  const requireDatasetAccess = (refFromPath = false) =>
+    datasetAccessGate({ query: (q, p) => pool.query(q, p as any[]), bucket: () => s3Service.getBucketName() }, refFromPath);
+  // Folder facts for one file's profile (a FASTQ's mate, a 10x TSV's role) come from the
+  // project's file list, which only this server has: attach `folderContext` = {name, siblings}
+  // for a project input file, and never forward a client-supplied one (project-folders.ts).
+  const attachFolderContext = async (req: any, _res: any, next: any) => {
     try {
-      const pathname = new URL(req.originalUrl, 'http://internal').pathname;
-      const ref = refFromPath
-        ? decodeURIComponent(pathname.slice('/api/datasets/'.length, pathname.lastIndexOf('/')))
-        : req.body?.datasetRef;
-      const decision = await authorizeDatasetReference(ref, req.user?.id, s3Service.getBucketName(), async (key, uid) => {
-        const rows = await pool.query(`SELECT 1 FROM project_files f JOIN projects p ON p.id = f.project_id
-          WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
-            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
-          )) LIMIT 1`, [key, uid]);
-        return rows.rows.length > 0;
-      });
-      if (!decision.allowed) return res.status(decision.status).json({ error: 'Dataset is not accessible to this user' });
-      next();
+      if (req.body && typeof req.body === 'object') {
+        delete req.body.folderContext;
+        // The file the dataset gate resolved (current or archived-version key): its folder facts.
+        const row = req.datasetFile;
+        if (row) {
+          const ctx = await loadFolderContext((q, p) => pool.query(q, p), String(row.project_id), row);
+          if (ctx) req.body.folderContext = ctx;
+        }
+      }
     } catch (error) {
-      console.error('[dataset access]', error instanceof Error ? error.message : error);
-      res.status(403).json({ error: 'Dataset access could not be verified' });
+      // Context is an enhancement: without it the profile states the layout as unknown.
+      console.warn('[perception] folder context unavailable:', error instanceof Error ? error.message : error);
     }
+    next();
   };
-  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
-  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
+  // perceptionProxyGate first: only profile/rows with an allowlisted body are forwarded, so no
+  // client-supplied ref other than the checked datasetRef (files[], dataset_ref) reaches the
+  // backend; folder_profile is reachable only via /api/projects/:id/folders/profile.
+  // recordProfile: the verdict is stored per object key, so the file tree's dot and the panel
+  // show the same profiler result (project-file-profiles.ts).
+  const recordProfile = recordProfileSummary((q, p) => pool.query(q, p as any[]));
+  app.post("/api/perception/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, recordProfile, _dlProxyHandler);
+  app.all("/api/perception/*", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
   //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
@@ -5992,7 +5974,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
-      const path = req.path;
+      const target = proxyTarget(req);
+      if (!target.ok) return rejectProxyPath(res, target);
+      const path = target.path;
       const method = req.method.toLowerCase();
       let response: any;
       if (method === 'get') {
@@ -7596,6 +7580,9 @@ ${paramLines || '(none recorded)'}`;
         memorySessionId: _ltmSessionUuid ?? undefined,
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
+        // The authenticated user only (never a client-supplied id): scopes per-user server state
+        // such as the run_code session workspace.
+        authUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
         // The user's id as stored (UUID). It was Number(id) — NaN for UUID ids, and NaN is falsy, so
         // every per-user chat feature keyed on context.userId was silently skipped: recent runs and
@@ -18652,7 +18639,9 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   app.all("/api/billing/*", optionalAuth, async (req: any, res) => {
     if (!req.user) return res.status(401).json({ error: "Not authenticated" });
     try {
-      const target = `${GALAXY_URL}${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
+      const confined = proxyTarget(req);
+      if (!confined.ok) return rejectProxyPath(res, confined);
+      const target = `${GALAXY_URL}${confined.path}${confined.query}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       // Prefer re-signed Galaxy JWT from cookie auth (supports httpOnly cookie sessions).
       // Fallback: forward raw Authorization header (for clients that still send Bearer tokens).
@@ -20760,7 +20749,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   const _mcpHost = _mcpUp.hostname;
   const _mcpPort = Number(_mcpUp.port) || (_mcpUp.protocol === "https:" ? 443 : 80);
   function mcpProxy(req: express.Request, res: express.Response) {
-    const url = new URL(req.url, MCP_UPSTREAM);
+    // Only the path of the route that matched (/mcp/…, /oauth/tools/…, the exact discovery paths).
+    const confined = proxyTarget(req);
+    if (!confined.ok) return rejectProxyPath(res, confined);
+    const url = new URL(`${confined.path}${confined.query}`, MCP_UPSTREAM);
     const opts = {
       hostname: _mcpHost,
       port: _mcpPort,

@@ -97,3 +97,50 @@ describe("parseDelimited / pickDelimiter (version Compare)", () => {
     expect(pickDelimiter("a,b\n", "")).toBe(",")
   })
 })
+
+describe("audit 2026-11-12 — EOF quote, mid-field quote, rowFrom", () => {
+  it("splitRecords: a quote in the middle of an unquoted field does not open quoting (the newline still ends the record)", () => {
+    const recs = splitRecords('a,b\n5" disk,ok\n2,x\n', ",")
+    expect(recs).toHaveLength(3)
+    expect(parseDelimited('a,b\n5" disk,ok\n2,x\n', ",")).toEqual([["a", "b"], ['5" disk', "ok"], ["2", "x"]])
+    // after a delimiter the field starts again: a quote there DOES open quoting
+    expect(splitRecords('a,"b\nc",d\n', ",")).toHaveLength(1)
+  })
+
+  it("padding after a field the file ends inside closes the quote (1,\"x at EOF + edit col 2 → 1,\"x\",3)", () => {
+    const text = 'a,b,c\n1,"x'
+    const r = applyCellEdits(text, ",", [{ row: 0, col: 2, from: "", value: "3" }])
+    expect(r.conflicts).toEqual([])
+    expect(r.text).toBe('a,b,c\n1,"x",3')
+    expect(parseDelimited(r.text, ",")).toEqual([["a", "b", "c"], ["1", "x", "3"]])
+    // an earlier field edited, the open field last and untouched: its bytes are kept as-is
+    expect(applyCellEdits(text, ",", [{ row: 0, col: 0, from: "1", value: "9" }]).text).toBe('a,b,c\n9,"x')
+  })
+
+  it("rowFrom: the whole row must match, so a mis-numbered edit cannot land on a twin cell value", () => {
+    const bed = "chr1\t100\t200\t0\nchr2\t300\t400\t0\n"
+    const wrong = applyCellEdits(bed, "\t", [{ row: 0, col: 3, from: "0", value: "9", rowFrom: ["chr1", "100", "200", "0"] }], { headerRows: 1 })
+    expect(wrong.applied).toBe(0)
+    expect(wrong.conflicts[0]).toMatchObject({ row: 0, col: 3, rowMismatch: true })
+    const right = applyCellEdits(bed, "\t", [{ row: 0, col: 3, from: "0", value: "9", rowFrom: ["chr1", "100", "200", "0"] }], { headerRows: 0 })
+    expect(right.text).toBe("chr1\t100\t200\t9\nchr2\t300\t400\t0\n")
+    // trailing empty fields are not significant (the reader pads short rows)
+    expect(applyCellEdits("a,b,c\n1,2\n", ",", [{ row: 0, col: 0, from: "1", value: "7", rowFrom: ["1", "2", ""] }]).applied).toBe(1)
+  })
+})
+
+describe("skipLines (rows reader's leading comment/blank lines)", () => {
+  it("featureCounts-style file: row 0 is the first data line after the comment and header", () => {
+    const fc = "# Program:featureCounts v2.0.1; Command:...\nGeneid\tChr\tS1\nG1\tchr1\t5\nG2\tchr1\t7\n"
+    expect(readCell(fc, "\t", 0, 0, { headerRows: 1, skipLines: 1 })).toBe("G1")
+    const r = applyCellEdits(fc, "\t", [{ row: 1, col: 2, from: "7", value: "8" }], { headerRows: 1, skipLines: 1 })
+    expect(r.conflicts).toEqual([])
+    expect(r.text).toBe("# Program:featureCounts v2.0.1; Command:...\nGeneid\tChr\tS1\nG1\tchr1\t5\nG2\tchr1\t8\n")
+    // without skipLines the comment would be taken as the header and rows shift
+    expect(readCell(fc, "\t", 0, 0, { headerRows: 1 })).toBe("Geneid")
+  })
+  it("counts CRLF and blank lines as physical lines", () => {
+    const t = "#c\r\n\r\nh\r\nv\r\n"
+    expect(readCell(t, ",", 0, 0, { headerRows: 1, skipLines: 2 })).toBe("v")
+  })
+})

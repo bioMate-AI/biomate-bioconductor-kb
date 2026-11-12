@@ -16,6 +16,9 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
+/** Largest text read readTextPrefix serves (64 MiB) — beyond it, read a Buffer and stream. */
+export const READ_TEXT_MAX = 64 * 1024 * 1024;
+
 // URL-encodes S3 object tags so the billing Lambda can identify the owning user
 function buildTagging(userId: string, extra: Record<string, string> = {}): string {
   const tags: Record<string, string> = { user_id: `bm_${userId}`, ...extra };
@@ -403,10 +406,18 @@ export class S3Service {
     return response.ContentLength || 0;
   }
 
-  /** Read a bounded UTF-8 prefix for an already-authorized object. */
+  /**
+   * Read up to `maxBytes` of an already-authorized object as UTF-8 text (a prefix when the object
+   * is larger). The requested size is honoured exactly — it used to be clamped to 1 MiB silently,
+   * so a caller asking for a whole 2.7 MB file got a third of it (the in-place edit then refused
+   * the file as "not UTF-8"). A request above READ_TEXT_MAX is an error, never a quiet clamp.
+   * Callers that must reproduce the bytes exactly (edit-in-place) use readBuffer + a strict decode.
+   */
   async readTextPrefix(key: string, maxBytes: number = 256 * 1024): Promise<string> {
     if (!key) throw new Error('S3 object key is required');
-    const end = Math.max(0, Math.min(Math.floor(maxBytes), 1024 * 1024) - 1);
+    if (!Number.isFinite(maxBytes) || maxBytes < 1) throw new RangeError(`readTextPrefix: invalid maxBytes ${maxBytes}`);
+    if (maxBytes > READ_TEXT_MAX) throw new RangeError(`readTextPrefix: ${maxBytes} bytes exceeds the ${READ_TEXT_MAX}-byte text read limit`);
+    const end = Math.floor(maxBytes) - 1;
     const response = await this.s3Client.send(new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,

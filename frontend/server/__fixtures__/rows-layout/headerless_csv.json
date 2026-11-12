@@ -1,0 +1,38 @@
+{
+ "name": "matrix.csv",
+ "rows": {
+  "columns": [
+   "column_1",
+   "column_2",
+   "column_3"
+  ],
+  "delimiter": ",",
+  "headerRow": false,
+  "kind": "table",
+  "limit": 200,
+  "namesSource": "generated",
+  "offset": 0,
+  "rows": [
+   [
+    "1",
+    "2",
+    "3"
+   ],
+   [
+    "4",
+    "5",
+    "6"
+   ],
+   [
+    "7",
+    "8",
+    "9"
+   ]
+  ],
+  "skipLines": 0,
+  "tabular": true,
+  "totalRows": 3,
+  "viewKind": "table"
+ },
+ "text": "1,2,3\n4,5,6\n7,8,9\n"
+}

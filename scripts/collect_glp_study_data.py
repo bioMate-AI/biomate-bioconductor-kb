@@ -378,9 +378,11 @@ def extract_epar_study_tables(epar_raw_dir: Path, out_dir: Path) -> int:
                                 "drug": drug_name,
                                 "page": i + 1,
                                 "headers": [str(c or "").replace("\n", " ") for c in (t[0] or [])],
+                                # Every body row. Was t[1:8]: 69% of 2,281 tables were cut at
+                                # exactly 7 rows (found by the dataset profiler, 2026-11-11).
                                 "rows": [
                                     [str(c or "").replace("\n", " ") for c in row]
-                                    for row in t[1:8]
+                                    for row in t[1:]
                                 ],
                             })
         except Exception as e:

@@ -25,13 +25,16 @@ export interface CellEdit {
   /** The value the user saw before editing; required to match the file. */
   from: string
   value: string
+  /** Optionally the whole row as the user saw it: the record must hold exactly these values,
+   *  so a mis-numbered edit cannot land on another row that holds the same cell value. */
+  rowFrom?: string[]
 }
 
 export interface EditResult {
   text: string
   applied: number
   /** Edits whose `from` did not match the file (nothing is written when non-empty). */
-  conflicts: Array<{ row: number; col: number; expected: string; actual: string | null }>
+  conflicts: Array<{ row: number; col: number; expected: string; actual: string | null; rowMismatch?: boolean }>
 }
 
 interface Span { start: number; end: number }
@@ -70,18 +73,20 @@ export function splitRecords(text: string, delim: string): Array<Span & { term: 
   return out
 }
 
-/** Field spans inside one record, and their unquoted values. */
-export function parseRecord(raw: string, delim: string): Array<Span & { value: string }> {
-  const fields: Array<Span & { value: string }> = []
+/** Field spans inside one record, and their unquoted values. `open` marks a quoted field the
+ *  text ends inside (no closing quote — Python's csv reads it to the end of the data). */
+export function parseRecord(raw: string, delim: string): Array<Span & { value: string; open?: boolean }> {
+  const fields: Array<Span & { value: string; open?: boolean }> = []
   let i = 0
   const n = raw.length
   for (;;) {
     const start = i
     let value = ""
+    let open = false
     if (raw[i] === '"') {
       i++
       for (;;) {
-        if (i >= n) break
+        if (i >= n) { open = true; break }
         if (raw[i] === '"') {
           if (raw[i + 1] === '"') { value += '"'; i += 2; continue }
           i++
@@ -95,12 +100,20 @@ export function parseRecord(raw: string, delim: string): Array<Span & { value: s
       while (i < n && raw[i] !== delim) value += raw[i++]
     }
     // Python reads text with universal newlines: "\r\n" and "\r" inside a value arrive as "\n".
-    fields.push({ start, end: i, value: value.replace(/\r\n?/g, "\n") })
+    fields.push({ start, end: i, value: value.replace(/\r\n?/g, "\n"), ...(open ? { open } : {}) })
     if (i >= n) break
     i++ // delimiter
     if (i === n) { fields.push({ start: i, end: i, value: "" }); break }
   }
   return fields
+}
+
+/** A record's values equal the row the user saw (trailing empty fields are not significant:
+ *  the reader pads short rows to the header width). */
+function sameRow(actual: string[], seen: string[]): boolean {
+  const trim = (a: string[]) => { let n = a.length; while (n > 0 && a[n - 1] === "") n--; return a.slice(0, n) }
+  const a = trim(actual), b = trim(seen)
+  return a.length === b.length && a.every((v, i) => v === b[i])
 }
 
 /** Minimal quoting (Python csv QUOTE_MINIMAL). */
@@ -115,17 +128,77 @@ function isBlank(raw: string, delim: string): boolean {
   return raw === "" || parseRecord(raw, delim).every((f) => f.value === "")
 }
 
-export function applyCellEdits(text: string, delim: string, edits: CellEdit[], opts: { headerRows?: number } = {}): EditResult {
+/** Character offset just after the first `lines` physical lines (\r\n, \r and \n each end one). */
+function offsetAfterLines(text: string, lines: number): number {
+  let i = 0
+  for (let n = 0; n < lines && i < text.length; n++) {
+    const m = text.slice(i).search(/\r\n|\r|\n/)
+    if (m < 0) return text.length
+    i += m + (text.startsWith("\r\n", i + m) ? 2 : 1)
+  }
+  return i
+}
+
+/** The delimiters the Python rows reader can report for a table (its layout delimiter): tab,
+ *  comma, semicolon, pipe, space. The rows route forwards only these; the edit route accepts
+ *  only these (anything else → 400). */
+export const READER_DELIMITERS: readonly string[] = ["\t", ",", ";", "|", " "]
+export function isReaderDelimiter(v: unknown): v is string {
+  return typeof v === "string" && READER_DELIMITERS.includes(v)
+}
+
+export interface TableLayoutOpts {
+  /** Header records before the data rows (the reader's headerRow: 1, or 0 header-less). */
+  headerRows?: number
+  /** Leading physical lines the reader skipped (its skipLines: comment / blank lines). */
+  skipLines?: number
+}
+
+/** Header record indices and data row → record index, numbered exactly as the rows reader
+ *  numbers rows: skip `skipLines` physical lines, then `headerRows` header records, then every
+ *  non-blank record is a data row. */
+function layoutRecords(
+  text: string, delim: string, records: Array<Span & { term: string }>, opts: TableLayoutOpts,
+): { headerRecord: number[]; dataRecord: number[] } {
   const headerRows = opts.headerRows ?? 1
-  const records = splitRecords(text, delim)
-  // data row index → record index (header records first, then non-blank records)
+  // Leading physical lines the rows reader skips before the header (its `skipLines`: '#' comment
+  // and blank lines, e.g. featureCounts' "# Program:…"); records starting there are not rows.
+  const skipFrom = offsetAfterLines(text, Math.max(0, opts.skipLines ?? 0))
+  const headerRecord: number[] = []
   const dataRecord: number[] = []
-  let seenHeader = 0
   for (let k = 0; k < records.length; k++) {
-    if (seenHeader < headerRows) { seenHeader++; continue }
+    if (records[k].start < skipFrom) continue
+    if (headerRecord.length < headerRows) { headerRecord.push(k); continue }
     const raw = text.slice(records[k].start, records[k].end)
     if (!isBlank(raw, delim)) dataRecord.push(k)
   }
+  return { headerRecord, dataRecord }
+}
+
+/** The header record's values (null when header-less) and the data rows (capped), with the
+ *  reader's numbering — the version diff uses this so its row numbers are the rows the user
+ *  sees in the Preview and edits. */
+export function tableRows(
+  text: string, delim: string, opts: TableLayoutOpts = {}, maxRows = Infinity,
+): { header: string[] | null; rows: string[][] } {
+  const records = splitRecords(text, delim)
+  const { headerRecord, dataRecord } = layoutRecords(text, delim, records, opts)
+  const values = (k: number) => parseRecord(text.slice(records[k].start, records[k].end), delim).map((f) => f.value)
+  const header = (opts.headerRows ?? 1) > 0 && headerRecord.length ? values(headerRecord[headerRecord.length - 1]) : null
+  const rows: string[][] = []
+  for (const k of dataRecord) {
+    if (rows.length >= maxRows) break
+    rows.push(values(k))
+  }
+  return { header, rows }
+}
+
+export function applyCellEdits(
+  text: string, delim: string, edits: CellEdit[],
+  opts: TableLayoutOpts = {},
+): EditResult {
+  const records = splitRecords(text, delim)
+  const { dataRecord } = layoutRecords(text, delim, records, opts)
 
   const byRecord = new Map<number, CellEdit[]>()
   const conflicts: EditResult["conflicts"] = []
@@ -138,6 +211,10 @@ export function applyCellEdits(text: string, delim: string, edits: CellEdit[], o
     const fields = parseRecord(text.slice(records[k].start, records[k].end), delim)
     const actual = e.col < fields.length ? fields[e.col].value : ""
     if (actual !== e.from) { conflicts.push({ row: e.row, col: e.col, expected: e.from, actual }); continue }
+    if (e.rowFrom && !sameRow(fields.map((f) => f.value), e.rowFrom)) {
+      conflicts.push({ row: e.row, col: e.col, expected: e.from, actual, rowMismatch: true })
+      continue
+    }
     const list = byRecord.get(k) || []
     list.push(e)
     byRecord.set(k, list)
@@ -157,11 +234,16 @@ export function applyCellEdits(text: string, delim: string, edits: CellEdit[], o
       vals[e.col] = e.value
       applied++
     }
-    // Rebuild the record: untouched fields keep their raw text, edited ones are re-quoted.
+    // Rebuild the record: untouched fields keep their raw text, edited ones are re-quoted. A
+    // field the file ends inside (`1,"x` at EOF) is closed when anything follows it — otherwise
+    // the delimiter and the fields after it would be read as part of that quoted value.
     const parts: string[] = []
     for (let j = 0; j < vals.length; j++) {
       const v = vals[j]
-      parts.push(v !== null ? quoteField(v, delim) : j < fields.length ? raw.slice(fields[j].start, fields[j].end) : "")
+      if (v !== null) { parts.push(quoteField(v, delim)); continue }
+      if (j >= fields.length) { parts.push(""); continue }
+      const rawField = raw.slice(fields[j].start, fields[j].end)
+      parts.push(fields[j].open && j < vals.length - 1 ? rawField + '"' : rawField)
     }
     out += text.slice(cursor, rec.start) + parts.join(delim)
     cursor = rec.end
@@ -193,7 +275,7 @@ export function parseDelimited(text: string, delim: string, maxRecords = Infinit
 }
 
 /** The value of one cell, located exactly as applyCellEdits locates it (null if absent). */
-export function readCell(text: string, delim: string, row: number, col: number, opts: { headerRows?: number } = {}): string | null {
+export function readCell(text: string, delim: string, row: number, col: number, opts: { headerRows?: number; skipLines?: number } = {}): string | null {
   const probe = applyCellEdits(text, delim, [{ row, col, from: "\u0000__probe__", value: "" }], opts)
   const c = probe.conflicts[0]
   return c ? c.actual : null

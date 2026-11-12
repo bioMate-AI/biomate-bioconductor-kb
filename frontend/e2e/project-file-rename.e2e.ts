@@ -18,6 +18,7 @@
  */
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
+import { createProject, deleteProjectLoudly, revealFile } from "./_project-ui";
 
 const V1 = "id,value\n1,10\n2,20\n";
 const V2 = "id,value\n1,11\n2,20\n";
@@ -44,6 +45,7 @@ async function download(request: APIRequestContext, projectId: string, fileId: s
   const res = await request.get(`${BASE_URL}/api/projects/${projectId}/files/${fileId}/url`);
   expect(res.ok(), `url failed: ${await res.text()}`).toBeTruthy();
   const { url } = await res.json();
+  // Same context, cookie session: the cookie is host-scoped, so a presigned S3 URL gets no app auth.
   const bytes = await request.get(url.startsWith("/") ? `${BASE_URL}${url}` : url);
   expect(bytes.ok(), `download failed (${bytes.status()})`).toBeTruthy();
   return bytes.text();
@@ -55,13 +57,7 @@ test.describe("project file rename / move", () => {
   test("rename + move a file and a folder; bytes, versions and collisions hold", async ({ page }) => {
     await loginAsFixture(page);
     const request = page.request;
-    const created = await request.post(`${BASE_URL}/api/projects`, {
-      data: { name: `E2E rename ${Date.now()}`, description: "file rename/move e2e" },
-    });
-    expect(created.ok(), `create project failed: ${await created.text()}`).toBeTruthy();
-    const cj = await created.json();
-    const projectId: string = cj?.project?.id ?? cj?.id;
-    expect(projectId).toBeTruthy();
+    const projectId = await createProject(request, `E2E rename ${Date.now()}`);
 
     try {
       // 1. x/a.csv, v1 then v2 (same name, new bytes → a new version of the same file)
@@ -74,7 +70,7 @@ test.describe("project file rename / move", () => {
       // 2. UI rename / move x/a.csv → y/b.csv
       await page.goto(`${BASE_URL}/projects?project=${projectId}&tab=files`);
       await expect(page.getByTestId("project-file-tree")).toBeVisible({ timeout: 15_000 });
-      await page.getByTestId("folder-inputs/x").click();
+      await revealFile(page, a1.id, "x");   // expand only the folders that are collapsed
       const row = page.getByTestId(`file-row-${a1.id}`);
       await expect(row).toBeVisible({ timeout: 10_000 });
       await row.hover();
@@ -101,11 +97,12 @@ test.describe("project file rename / move", () => {
       expect(diff.ok(), `diff failed: ${await diff.text()}`).toBeTruthy();
       const dj = await diff.json();
       expect(dj.tabular).toBe(true);
-      expect(dj.changedCells).toEqual([{ row: 0, col: "value", from: "10", to: "11" }]);
+      expect(dj.changedCells).toEqual([{ row: 0, rowNumber: 1, col: "value", from: "10", to: "11" }]);
 
       // 3. an edit after the rename versions under the new name's key
       const edit = await request.post(`${BASE_URL}/api/projects/${projectId}/files/${a1.id}/edit`, {
-        data: { edits: [{ row: 1, col: 1, from: "20", value: "21" }] },
+        // baseVersion: the version the edit was made on (v2, from the second upload above).
+        data: { baseVersion: 2, edits: [{ row: 1, col: 1, from: "20", value: "21" }] },
       });
       expect(edit.ok(), `edit failed: ${await edit.text()}`).toBeTruthy();
       const ej = await edit.json();
@@ -127,14 +124,18 @@ test.describe("project file rename / move", () => {
       expect(await download(request, projectId, a1.id)).toBe(V2);
       // the original v1 object (the renamed file's archived version) is also intact
       const v1diff = await request.get(`${BASE_URL}/api/projects/${projectId}/files/${a1.id}/versions/1/diff`);
-      expect((await v1diff.json()).changedCells).toEqual([{ row: 0, col: "value", from: "10", to: "11" }]);
+      expect((await v1diff.json()).changedCells).toEqual([{ row: 0, rowNumber: 1, col: "value", from: "10", to: "11" }]);
 
       // 5. UI folder rename y → z
       await page.getByTestId("project-files-refresh-btn").click();
       const yFolder = page.getByTestId("folder-inputs/y");
       await expect(yFolder).toBeVisible({ timeout: 10_000 });
-      await yFolder.hover();
-      await page.getByTestId("folder-rename-inputs/y").click();
+      // Reach the hover/focus-only action by keyboard: hovering is racy here (the refresh re-renders
+      // the tree and rows shift under the pointer), and the overlay also opens on focus-within.
+      await yFolder.focus();
+      await page.keyboard.press("Tab");
+      await expect(page.getByTestId("folder-rename-inputs/y")).toBeFocused();
+      await page.keyboard.press("Enter");
       const fin = page.getByTestId("folder-rename-inputs/y-input");
       await expect(fin).toHaveValue("y");
       await fin.fill("z");
@@ -148,7 +149,7 @@ test.describe("project file rename / move", () => {
 
       // 6a. collision via UI: rename the new x/a.csv onto z/b.csv → 409 shown, nothing changes
       const freshRowUi = page.getByTestId(`file-row-${fresh.id}`);
-      if (!(await freshRowUi.isVisible().catch(() => false))) await page.getByTestId("folder-inputs/x").click();
+      await revealFile(page, fresh.id, "x");
       await freshRowUi.hover();
       await page.getByTestId(`file-rename-${fresh.id}`).click();
       const cin = page.getByTestId(`file-rename-${fresh.id}-input`);
@@ -178,7 +179,7 @@ test.describe("project file rename / move", () => {
       expect(fr?.payload).toEqual({ fileId: a1.id, from: "x/a.csv", to: "y/b.csv" });
       expect(events.some((e) => e.event_type === "folder_renamed" && e.payload?.from === "y" && e.payload?.to === "z")).toBe(true);
     } finally {
-      await request.delete(`${BASE_URL}/api/projects/${projectId}`).catch(() => {});
+      await deleteProjectLoudly(request, projectId);
     }
   });
 });

@@ -793,6 +793,8 @@ export interface ChatContext {
   selectedDatasets?: string[];
   userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
+  /** Authenticated user id (set by routes.ts from req.user only). */
+  authUserId?: string;
   /**
    * The active project id (uuid) this chat is scoped to, or undefined when the
    * chat is project-less. Set by routes.ts from the server-resolved project
@@ -3054,10 +3056,17 @@ export function truncatedTurnNeedsFollowUp(content: any[] | undefined, toolsRanT
   return !blocks.some((b: any) => b?.type === 'text' && String(b.text || '').trim());
 }
 
+/** An assistant text block the API accepts: a blank text block is rejected outright
+ *  ("text content blocks must contain non-whitespace text", dev 2026-11-12 — it failed the
+ *  final-answer turn and the user got raw tool stdout as the answer). */
+export function assistantTextBlock(text: string | undefined | null, placeholder = '[reply cut off by the output limit]') {
+  return { type: 'text', text: String(text || '').trim() ? String(text) : placeholder };
+}
+
 export function truncatedTurnFollowUp(content: any[] | undefined): Array<{ role: 'assistant' | 'user'; content: any }> {
   const text = (content || []).filter((b: any) => b?.type === 'text' && b.text).map((b: any) => b.text).join('');
   return [
-    { role: 'assistant', content: [{ type: 'text', text: text || ' ' }] },
+    { role: 'assistant', content: [assistantTextBlock(text)] },
     { role: 'user', content: TRUNCATED_REPLY_INSTRUCTION },
   ];
 }
@@ -10557,6 +10566,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // once per turn; populates context.mcpToolServerMap for dispatch. Skipped
       // entirely when tools are off this turn or there is no user-scoped proxy.
       const userMcpTools = toolsEnabledThisTurn ? await this._fetchUserMcpTools(context) : [];
+      // Tool turns write whole analysis scripts in one call; 4096 cut them off repeatedly (live dev
+      // 2026-11-12: two max_tokens turns in one image-QC chat). Plain replies keep 4096.
+      if (toolsEnabledThisTurn) apiOptions.max_tokens = Math.max(apiOptions.max_tokens || 0, 8192);
       const agentTools = toolsEnabledThisTurn
         ? [
             ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'query_database', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)),
@@ -10885,7 +10897,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
             _codeNudged = true;
             _shownBeforeNudge = stripNarratedToolCalls(rawResponse);
-            agentMessages.push({ role: 'assistant', content: [{ type: 'text', text: rawResponse || ' ' }] as any });
+            agentMessages.push({ role: 'assistant', content: [assistantTextBlock(rawResponse, '[code shown without running it]')] as any });
             agentMessages.push({ role: 'user', content: _unexecutedCodeNudge });
             rawResponse = '';
             continue;
@@ -11341,7 +11353,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   }
 
   private async _toolRunCode(input: any, context?: ChatContext): Promise<unknown> {
-    const { runCode } = await import('./code-runner');
+    const { runCode, sessionWorkspaceKey } = await import('./code-runner');
     const { getUploadedFile } = await import('./routes');
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     const galaxyKey: string = (context?.galaxyAPIOverride as any)?.apiKey || process.env.GALAXY_API_KEY || '';
@@ -11438,8 +11450,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       downloadDataset,
       prior_code: prior.length ? [...prior] : undefined,
       // One workspace per chat session (reference harnesses: Biomni cwd, ScienceBuddy per-episode
-      // container): files in $OUTPUT_DIR survive into later calls and turns.
-      workspaceKey: context?.sessionId ? `chat:${context.sessionId}` : undefined,
+      // container): files in $OUTPUT_DIR survive into later calls and turns. Bound to the
+      // AUTHENTICATED user (authUserId is set by routes.ts from req.user only; context.userId falls
+      // back to a client value on anonymous requests), since the session id is client-supplied.
+      workspaceKey: sessionWorkspaceKey(context?.authUserId, context?.sessionId),
       persistOutputFile: context?.persistGeneratedFile
         ? (f) => context.persistGeneratedFile!(f.hostPath, f.name) : undefined,
     }), { label: 'run_code tool' });
@@ -11546,7 +11560,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
               source: { type: 'base64', media_type: _VISION_MEDIA_TYPES[_imgExt], data: buf.toString('base64') },
             }],
             format_hint: 'image',
-            message: `Image "${localFile.name || fileId}" is shown below — analyze it directly.`,
+            message: `Image "${localFile.name || fileId}" loaded.`,
+            // Model-facing instruction; `__` keys are hidden from the chat card (userFacingToolOutput).
+            __note: 'The image is attached below — analyze it directly.',
           };
         }
         const nodeFs = await import('fs/promises');

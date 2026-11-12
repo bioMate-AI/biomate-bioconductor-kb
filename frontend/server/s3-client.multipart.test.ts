@@ -283,11 +283,36 @@ describe('S3Service.readTextPrefix', () => {
     expect(cmd.input.Key).toBe('projects/p/inputs/counts.csv');
     expect(cmd.input.Range).toBe('bytes=0-63');
   });
+});
 
-  it('caps a caller-supplied range at one MiB', async () => {
-    sendMock.mockResolvedValueOnce({ Body: { transformToString: async () => 'ok' } });
+describe('S3Service.readTextPrefix (audit R1: no silent clamp)', () => {
+  it('requests exactly the bytes asked for — 3 MiB is not clamped to 1 MiB', async () => {
+    sendMock.mockResolvedValueOnce({ Body: { transformToString: async () => 'id,v\n' } });
     const s3 = new S3Service();
-    await expect(s3.readTextPrefix('projects/p/inputs/a.csv', 99 * 1024 * 1024)).resolves.toBe('ok');
-    expect((sendMock.mock.calls[0][0] as any).input.Range).toBe(`bytes=0-${1024 * 1024 - 1}`);
+    await s3.readTextPrefix('projects/p/inputs/big.csv', 3 * 1024 * 1024);
+    const cmd = sendMock.mock.calls[0][0];
+    expect(cmd.input).toMatchObject({ Key: 'projects/p/inputs/big.csv', Range: `bytes=0-${3 * 1024 * 1024 - 1}` });
+  });
+
+  it('refuses (throws) instead of clamping above the text read limit or for a bad size', async () => {
+    const { READ_TEXT_MAX } = await import('./s3-client');
+    const s3 = new S3Service();
+    await expect(s3.readTextPrefix('k', READ_TEXT_MAX + 1)).rejects.toThrow(RangeError);
+    await expect(s3.readTextPrefix('k', 0)).rejects.toThrow(RangeError);
+    expect(sendMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('S3Service.generatePresignedDownloadUrl (audit R14: download names)', () => {
+  it('signs Content-Disposition attachment with the display basename; RFC 5987-escapes \' ( ) *', async () => {
+    sendMock.mockResolvedValueOnce({ LocationConstraint: 'us-west-2' });
+    getSignedUrlMock.mockResolvedValueOnce('https://signed');
+    const s3 = new S3Service();
+    await s3.generatePresignedDownloadUrl('projects/p/inputs/run1/o-2.csv.v2', 900, "run1/o'brien (1)*.csv");
+    const cmd = getSignedUrlMock.mock.calls[0][1];
+    expect(cmd.input.Key).toBe('projects/p/inputs/run1/o-2.csv.v2');
+    expect(cmd.input.ResponseContentDisposition).toBe(
+      `attachment; filename="o'brien (1)*.csv"; filename*=UTF-8''o%27brien%20%281%29%2A.csv`,
+    );
   });
 });
