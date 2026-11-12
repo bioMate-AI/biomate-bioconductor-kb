@@ -156,6 +156,14 @@ export function uploadErrorReason(status: number): string {
   return t("data_hub.tree_err_server", { status });
 }
 
+/** Localized reason for a failed rename / move response. */
+export function renameErrorReason(status: number): string {
+  if (status === 409) return t("file_tree.rename_conflict");
+  if (status === 400) return t("file_tree.rename_invalid");
+  if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
+  return t("data_hub.tree_err_server", { status });
+}
+
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)
 
 function fileIcon(name: string, contentType: string) {
