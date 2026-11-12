@@ -43,8 +43,32 @@ export function StepAdjustModal({
   workflowDefinition,
   onRerunSubmitted,
 }: StepAdjustModalProps) {
+  // Param values can arrive as structured objects ({value|default|val, type, origin,…}).
+  // Pull out the scalar they carry so the field shows the real value — not "[object
+  // Object]" (string inputs) or an empty box (number inputs coercing an object to NaN).
+  const coerceParamValue = (v: any, depth = 0): any => {
+    if (v != null && typeof v === "object" && !Array.isArray(v) && depth < 5) {
+      // Use `!== undefined` (not `in`) so an explicit `value: undefined` falls
+      // through to default/val instead of erasing the param (code-review #6).
+      // Recurse (bounded) so a nested wrapper {value:{value:"foo"}} still unwraps
+      // to the scalar rather than rendering [object Object] (multi-LLM review).
+      // null / 0 / false / "" are legitimate scalar values and are returned as-is.
+      if (v.value !== undefined) return coerceParamValue(v.value, depth + 1);
+      if (v.default !== undefined) return coerceParamValue(v.default, depth + 1);
+      if (v.val !== undefined) return coerceParamValue(v.val, depth + 1);
+      // Pure wrapper with no scalar: keep the ORIGINAL object. We must NOT JSON-
+      // stringify here — handleRerun submits paramOverrides directly, so a JSON
+      // string would corrupt the re-run payload (multi-LLM review). Such a param
+      // may display as "[object Object]" (rare, and it carries no scalar to show),
+      // but the submit stays correct — same value the field had before this change.
+      return v;
+    }
+    return v;
+  };
   const [paramOverrides, setParamOverrides] = useState<Record<string, any>>(
-    () => ({ ...(step.parameters || {}) })
+    () => Object.fromEntries(
+      Object.entries(step.parameters || {}).map(([k, v]) => [k, coerceParamValue(v)]),
+    )
   );
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

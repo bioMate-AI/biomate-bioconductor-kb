@@ -144,9 +144,9 @@ _CACHE_TTL_DURABLE = 30 * 86400  # 30d — "last-known-good" for outage fallback
 
 ENTITY_SOURCES: Dict[str, List[str]] = {
     "gene":       ["ncbi_gene", "ensembl", "uniprot", "string", "kegg",
-                   "go", "gnomad", "opentargets", "pubmed", "semantic_scholar"],
+                   "go", "gnomad", "opentargets", "pharos", "pubmed", "semantic_scholar"],
     "protein":    ["uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",
-                   "go", "chembl", "pubmed", "semantic_scholar"],
+                   "go", "chembl", "bindingdb", "pharos", "pubmed", "semantic_scholar"],
     "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
@@ -244,11 +244,26 @@ def _post_json(url: str, payload: Dict) -> Optional[Any]:
     )
     try:
         with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
-            return json.loads(resp.read().decode())
+            data = json.loads(resp.read().decode())
     except Exception as e:
         log.debug("[federated_query] POST %s → %s", url, e)
         _note_failure(url, e)
         return None
+    # A GraphQL endpoint (gnomAD, Open Targets) signals failure as HTTP 200 with a
+    # top-level `errors` array and `data: null` — a transport-success body that still
+    # means "no answer." Without this, a field rename or schema break reads as "the
+    # gene just has no data" (empty results, no `_tls.last_error`), dropping evidence
+    # catalog-wide while the fetcher reports "ok, 0 results". Surface it as a failure.
+    # (committee review, 2026-11-11)
+    if isinstance(data, dict) and data.get("errors"):
+        _errs = data.get("errors")
+        _msg = ""
+        if isinstance(_errs, list) and _errs and isinstance(_errs[0], dict):
+            _msg = str(_errs[0].get("message") or "")[:200]
+        log.debug("[federated_query] POST %s → GraphQL errors: %s", url, _msg)
+        _note_failure(url, RuntimeError("graphql error: %s" % (_msg or "unspecified")))
+        return None
+    return data
 
 # ── Shared identifier resolver ──────────────────────────────────────────────────
 
@@ -272,6 +287,17 @@ def resolve_gene(symbol: str) -> Dict[str, Any]:
                    {"q": [sym], "scopes": "symbol,alias,retired",
                     "fields": "symbol,entrezgene,ensembl.gene,uniprot.Swiss-Prot",
                     "species": "human"})
+    # `_post_json` returns None ONLY on a transport/HTTP failure (and has already
+    # called `_note_failure`); a successful call returns a list (with a
+    # `{"notfound": true}` entry when the term is genuinely not a gene). Caching the
+    # empty `{}` from a TRANSIENT failure the same as a real "not a gene" would
+    # poison this shared keystone for the whole TTL — every id-needing fetcher then
+    # reads `{}` with no network call, so `_tls.last_error` is unset and they report
+    # "ok, 0 results" instead of surfacing the error. So only cache when the call
+    # actually completed; on failure, return {} WITHOUT caching so the next call
+    # retries. (committee review, 2026-11-11)
+    if r is None:
+        return {}
     hit = r[0] if isinstance(r, list) and r and not r[0].get("notfound") else {}
     if hit:
         ens = hit.get("ensembl")
@@ -286,13 +312,22 @@ def resolve_gene(symbol: str) -> Dict[str, Any]:
             "ensembl": (ens or {}).get("gene"),
             "uniprot": up,
         }
-    # cache even an empty result briefly so a non-gene term isn't re-queried every call;
-    # a real resolution gets the full stable TTL.
+    # cache even a resolved-empty result briefly so a non-gene term isn't re-queried
+    # every call; a real resolution gets the full stable TTL.
     _cache_set(ck, out, _CACHE_TTL_STABLE if out else 3600)
     return out
 
 
-_UNIPROT_ACC_RE = re.compile(r'^[A-NR-Z0-9][0-9][A-Z0-9]{3}[0-9]$', re.I)
+# Official UniProt accession grammar: the OPQ branch (6-char) OR the [A-NR-Z]
+# branch (6- and 10-char). The earlier collapsed form `[A-NR-Z0-9]...` DROPPED
+# the OPQ branch — silently rejecting P04637 (TP53), P00519 (ABL1), P38398
+# (BRCA1) and every O/P/Q accession, so a by-accession structure query fell
+# back to mygene (which notfound's accessions) and returned nothing. It also
+# wrongly admitted a leading digit. (committee review, 2026-11-11)
+_UNIPROT_ACC_RE = re.compile(
+    r'^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$',
+    re.I,
+)
 
 
 # ── Entity type detection ──────────────────────────────────────────────────────
@@ -375,6 +410,12 @@ def _fetch_uniprot(query: str) -> Dict:
                  for c in e.get("comments", []) if c.get("commentType") == "FUNCTION"),
                 None),
         })
+    # A bare symbol search returns many reviewed ORTHOLOGS and UniProt's relevance order can
+    # surface a non-human one first (e.g. PCSK9 → Plecturocebus/Colobus ahead of human),
+    # polluting the grounded evidence for a human-centric research question. Stable-sort the
+    # human entry to the top; keep the rest so a genuinely non-human query still surfaces its
+    # organisms (end-to-end smoke finding, 2026-11-12).
+    results.sort(key=lambda r: (r.get("organism") != "Homo sapiens"))
     return {"source": "uniprot", "results": results}
 
 def _fetch_pdb(query: str) -> Dict:
@@ -661,6 +702,59 @@ def _fetch_opentargets(query: str) -> Dict:
                for r in rows[:5] if r.get("disease")]
     return {"source": "opentargets", "results": results}
 
+def _fetch_bindingdb(query: str) -> Dict:
+    # BindingDB measured binding affinities (Ki/Kd/IC50/EC50, in nM) for a TARGET, keyed by
+    # UniProt accession — the experimental SAR/affinity answer the bioactivity facet
+    # advertised but never served (no fan-out fetcher; committee review 2026-11-11). Resolve
+    # a symbol → accession, then surface the most POTENT measurements (lowest nM). NB: the
+    # upstream response key is the vendor typo "getLindsByUniprotResponse".
+    q = query.strip()
+    acc = q.upper() if _UNIPROT_ACC_RE.match(q) else (resolve_gene(q).get("uniprot") or "")
+    if not acc:
+        return {"source": "bindingdb", "results": []}
+    data = _get("https://www.bindingdb.org/rest/getLigandsByUniprot"
+                "?uniprot=%s&cutoff=10000&response=application/json" % urllib.parse.quote(acc))
+    resp = (data or {}).get("getLindsByUniprotResponse") or {}
+    affs = resp.get("bdb.affinities") or []
+    if isinstance(affs, dict):      # single hit comes back as an object, not a list
+        affs = [affs]
+
+    def _nm(a):
+        try:
+            return float(str(a.get("bdb.affinity", "")).strip())
+        except Exception:
+            return float("inf")     # unparseable affinity sorts last
+
+    ranked = sorted((a for a in affs if isinstance(a, dict)), key=_nm)[:5]
+    results = [{"target_uniprot": acc,
+                "monomer_id": a.get("bdb.monomerid"),
+                "affinity_type": a.get("bdb.affinity_type"),
+                "affinity_nm": str(a.get("bdb.affinity", "")).strip(),
+                "smiles": a.get("bdb.smile")}
+               for a in ranked]
+    return {"source": "bindingdb", "results": results}
+
+
+def _fetch_pharos(query: str) -> Dict:
+    # Pharos (NCATS) target development level — the druggability/tractability tier
+    # (Tclin > Tchem > Tbio > Tdark) plus protein family + novelty — the 'target' facet's
+    # tractability answer. GraphQL by gene symbol; the facet map advertised pharos but there
+    # was no fan-out fetcher (committee review 2026-11-11).
+    q = query.strip()
+    sym = (resolve_gene(q).get("symbol") or q).replace('"', '')
+    if not sym:
+        return {"source": "pharos", "results": []}
+    gql = '{target(q:{sym:"%s"}){name sym tdl fam novelty}}' % sym
+    data = _post_json("https://pharos-api.ncats.io/graphql", {"query": gql})
+    t = (((data or {}).get("data") or {}).get("target")) or {}
+    if not t:
+        return {"source": "pharos", "results": []}
+    return {"source": "pharos", "results": [{
+        "symbol": t.get("sym"), "name": t.get("name"),
+        "development_level": t.get("tdl"), "family": t.get("fam"),
+        "novelty": t.get("novelty")}]}
+
+
 def _fetch_ncbi_entrez(query: str, db: str) -> Dict:
     q = urllib.parse.quote(query)
     search = _get(f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -937,6 +1031,8 @@ _FETCHERS = {
     "interpro":         _fetch_interpro,
     "gnomad":           _fetch_gnomad,
     "opentargets":      _fetch_opentargets,
+    "bindingdb":        _fetch_bindingdb,
+    "pharos":           _fetch_pharos,
     "dbsnp":            lambda q: _fetch_ncbi_entrez(q, "snp"),
     "clinvar":          lambda q: _fetch_ncbi_entrez(q, "clinvar"),
     "pubmed":           lambda q: _fetch_ncbi_entrez(q, "pubmed"),
@@ -1067,14 +1163,40 @@ def federated_query(
         _cache_set(_durable_key, out, _CACHE_TTL_DURABLE)
         return out
     # Degraded: one or more sources failed (outage / rate limit / maintenance — the exact
-    # pain this session: EBI 500s, NCBI maintenance, S2 429s). Rather than hand back a
-    # thin/empty live result, serve the last-known-good if we have a richer one, flagged
-    # stale so the caller/UI can say so. No mirror data required.
+    # pain this session: EBI 500s, NCBI maintenance, S2 429s). Serve last-known-good
+    # NARROWLY — overlay the durable copy ONLY for the sources that failed THIS run, and
+    # keep every fresh source that succeeded. The earlier heuristic compared total merged
+    # COUNT and, if the 30-day durable copy was merely bigger, discarded the ENTIRE fresh
+    # fan-out — so one minor source blipping (an S2 429) threw away fresh, authoritative
+    # gnomAD/Open Targets evidence in favour of a stale snapshot, and reported the old
+    # run's `sources_failed: []` while flagging `_stale`. (committee review, 2026-11-11)
     _stale = _cache_get(_durable_key)
-    if isinstance(_stale, dict) and len(_stale.get("merged") or []) > len(merged):
-        return {**_stale, "_stale": True,
-                "_stale_reason": "live sources unavailable (%s); served last-known-good"
-                                 % ",".join(failed[:6])}
+    _stale_results = (_stale or {}).get("results") if isinstance(_stale, dict) else None
+    if _stale_results:
+        _merged_results = dict(results)
+        _recovered: List[str] = []
+        for _src in failed:
+            _old = _stale_results.get(_src)
+            if isinstance(_old, dict) and _old.get("results"):
+                _merged_results[_src] = {**_old, "_stale": True}
+                _recovered.append(_src)
+        if _recovered:
+            _still_failed = [s for s in failed if s not in _recovered]
+            return {
+                "query": query,
+                "entity_type": detected,
+                "sources_queried": target_sources,
+                "sources_succeeded": succeeded,       # fresh, live successes only
+                "sources_failed": _still_failed,      # what we could NOT recover
+                "sources_stale": _recovered,          # served from last-known-good
+                "results": _merged_results,
+                "merged": _merge_results(_merged_results, detected),
+                "_stale": True,
+                "_stale_reason": "served last-known-good for %s (live unavailable); %s"
+                                 % (",".join(_recovered[:6]),
+                                    ("%d source(s) still unavailable" % len(_still_failed))
+                                    if _still_failed else "all other sources fresh"),
+            }
     return out
 
 # ── Result merging ─────────────────────────────────────────────────────────────
@@ -1120,13 +1242,36 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
             item = _items[_rank]
             if not isinstance(item, dict):
                 continue
-            # Dedup key: prefer explicit id fields, fall back to name/title
-            dedup_key = (
+            # Two-tier dedup (committee review, 2026-11-11). The earlier single key mixed
+            # true unique IDs with human-readable NAMES and truncated a json fallback to 90
+            # chars — which both over-merged (two distinct rows sharing a long early field,
+            # or two different "Part I/II" papers sharing a 60-char title prefix, collapsed
+            # → silent drop) and mis-collapsed distinct cross-source evidence (two sources'
+            # rows about the same disease/partner keyed on the bare name → one source's
+            # evidence lost).
+            #   Tier 1 — a STABLE globally-unique identifier: same id = same entity across
+            #   sources, so merge globally.
+            _stable_id = (
                 item.get("accession") or item.get("gene_id") or item.get("pdb_id") or
-                item.get("pmid") or item.get("chembl_id") or item.get("paper_id") or item.get("nct_id") or
-                (item.get("title") or item.get("name") or "").lower()[:60]
+                item.get("pmid") or item.get("doi") or item.get("chembl_id") or
+                item.get("chembl_target_id") or item.get("paper_id") or item.get("nct_id") or
+                item.get("variant_id") or item.get("patent_id") or item.get("hpo_id") or
+                item.get("go_id") or item.get("pathway_id")
             )
-            if not dedup_key or dedup_key in seen_names:
+            if _stable_id:
+                dedup_key = "id:%s" % _stable_id
+            else:
+                # Tier 2 — no stable id (Open Targets disease+score, STRING partner+score,
+                # other score-only rows). These are SOURCE-SPECIFIC evidence: two sources'
+                # rows about the same disease are DIFFERENT evidence and must both survive,
+                # so scope the key to the source + the FULL canonical content (no truncation).
+                # This still gives every content-bearing record a stable non-empty key (the
+                # original "Open Targets/STRING dropped, LLM said 'records do not contain'"
+                # fix), while an exact duplicate row within one source still collapses.
+                dedup_key = "%s:%s" % (
+                    src, json.dumps({k: v for k, v in item.items() if k != "_source"},
+                                    sort_keys=True, default=str))
+            if dedup_key in seen_names:
                 continue
             seen_names.add(dedup_key)
             merged.append({"_source": src, **item})

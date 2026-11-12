@@ -135,8 +135,11 @@ describe("3. Interactive-tool affordances are availability-gated at every render
     expect(rowBody).toMatch(/useInteractiveToolsAvailable\(\)/);
     // Row returns null when availability is known and nothing is provisioned.
     expect(rowBody).toMatch(/return null/);
-    // And the row IS actually mounted (dead-affordance guard for the row itself).
-    expect(active).toMatch(/<InteractiveToolsRow\b/);
+    // DISABLED 2026-11-11 (founder): the interactive-tool launch path is not
+    // functioning, so the row mount is intentionally commented out. Guard that it
+    // stays OUT of the active render (not a dead affordance) until re-enabled — then
+    // flip this back to `.toMatch` and restore the <InteractiveToolsRow> mount.
+    expect(active).not.toMatch(/<InteractiveToolsRow\b/);
   });
 
   it("the launcher DISABLES its launch button when the selected tool is known-unavailable", () => {

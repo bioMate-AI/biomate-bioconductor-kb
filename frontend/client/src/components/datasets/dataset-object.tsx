@@ -42,6 +42,7 @@ import { datasetKind, datasetViewModel, effectiveQuality, profileEmptyCode, prof
 import { AnnDataSummary, KindSummary, DownloadState } from "./dataset-kind-views"
 import { DatasetFilePreview, type FilePreviewStatus } from "./dataset-file-preview"
 import { t, tOr, locale } from "@/lib/i18n"
+import { HintTip } from "@/components/ui/hint-tip"
 
 // Dates follow the APP language (not the browser default), so a Chinese UI never shows "Nov 10".
 const INTL_LOCALE = locale === "zh" ? "zh-CN" : "en-US"
@@ -553,8 +554,10 @@ export function DatasetObject({
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
-                project file into the user's Galaxy history and launches the IT. */}
-            {canOpenIn && (
+                project file into the user's Galaxy history and launches the IT.
+                DISABLED 2026-11-11 (founder): not functioning — commented out via
+                `false &&` until the interactive-tool launch path works. */}
+            {false && canOpenIn && (
               <Button
                 variant="outline"
                 size="sm"
@@ -610,8 +613,8 @@ export function DatasetObject({
             ["versions", History, t('dataset_obj.versions')],
             ["wherefrom", GitBranch, t('dataset_obj.where_from')],
           ] as const).map(([key, Icon, label]) => (
+            <HintTip key={key} hint={t(`hint.dataset.${key}`)} side="bottom">
             <button
-              key={key}
               type="button"
               role="tab"
               aria-selected={tab === key}
@@ -630,6 +633,7 @@ export function DatasetObject({
             >
               <Icon className="h-3.5 w-3.5" />{label}
             </button>
+            </HintTip>
           ))}
         </div>
 

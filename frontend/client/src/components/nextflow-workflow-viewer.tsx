@@ -6,6 +6,7 @@ import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
 import { analytics } from '@/lib/analytics';
 import { t, tOr, tStatus } from '@/lib/i18n';
+import { HintTip } from '@/components/ui/hint-tip';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
@@ -25,7 +26,7 @@ import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
-import { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
+import { cleanParamValueForDisplay, userFacingErrorText, userFacingStepName } from '@/lib/user-facing-text';
 import { useLocalizedLabels } from '@/lib/use-localized-labels';
 export { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
 import { AutoLoopPanel } from "./auto-loop-panel";
@@ -729,14 +730,49 @@ function autoloopPhaseMatches(groupKey: string, autoloopPhase: string | undefine
 // row, add/remove) laid out full-width, and serialise back to the wire format
 // the param arrived in (a real array, or a JSON-array string).
 const LIST_NAME_RE = /(_list$|smiles|compounds?|molecules?|sequences?|inchi|accessions?)/i;
-function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
+// Only a flat array of SCALARS is a list the one-item-per-row editor can show.
+// An array of objects (e.g. antigens=[{id,sequence}]) must NOT be stringified
+// into "[object Object]" rows — it falls through to the sample-data table below.
+const isScalarArray = (a: any[]): boolean => a.every(x => x == null || typeof x !== 'object');
+export function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
   const raw = p?.value ?? p?.defaultValue;
-  if (Array.isArray(raw)) return { items: raw.map((x: any) => String(x)), fmt: 'array' };
+  if (Array.isArray(raw)) return isScalarArray(raw) ? { items: raw.map((x: any) => String(x)), fmt: 'array' } : null;
   if (typeof raw === 'string') {
     const t = raw.trim();
     if (t.startsWith('[')) {
-      try { const a = JSON.parse(t); if (Array.isArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
+      try { const a = JSON.parse(t); if (Array.isArray(a) && isScalarArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
     }
+  }
+  return null;
+}
+
+/**
+ * Render a JSON-string param default (the "built-in sample data" an example
+ * runs on) as a readable table instead of a raw blob in the textarea. Returns
+ * null for anything that isn't tabular, so the plain editor still shows.
+ *   • array of objects      → columns = union of keys, one row per element
+ *   • object whose values   → one row per key, columns = union of inner keys
+ *     are all objects          (first column is the outer key, e.g. sample id)
+ *   • object of scalars/     → a two-column key / value table (non-scalar
+ *     arrays                     values are shown as compact JSON)
+ */
+export function sampleDataTable(raw: string): { headers: string[]; rows: string[][] } | null {
+  let data: any;
+  try { data = JSON.parse(raw); } catch { return null; }
+  const cell = (v: any): string => v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+  const isPlainObj = (v: any) => v != null && typeof v === 'object' && !Array.isArray(v);
+  if (Array.isArray(data) && data.length > 0 && data.every(isPlainObj)) {
+    const headers = [...data.reduce((s: Set<string>, o: any) => { Object.keys(o).forEach(k => s.add(k)); return s; }, new Set<string>())];
+    return { headers, rows: data.map((o: any) => headers.map(h => cell(o[h]))) };
+  }
+  if (isPlainObj(data)) {
+    const entries = Object.entries(data);
+    if (entries.length === 0) return null;
+    if (entries.every(([, v]) => isPlainObj(v))) {
+      const inner = [...entries.reduce((s: Set<string>, [, o]: any) => { Object.keys(o).forEach(k => s.add(k)); return s; }, new Set<string>())];
+      return { headers: ['', ...inner], rows: entries.map(([k, o]: any) => [k, ...inner.map(h => cell(o[h]))]) };
+    }
+    return { headers: ['key', 'value'], rows: entries.map(([k, v]) => [k, cell(v)]) };
   }
   return null;
 }
@@ -1038,9 +1074,39 @@ function PhaseGroupSection({
                     const isLong = p.type !== 'number' && p.type !== 'file' && p.type !== 'boolean' && !p.options &&
                       (strVal.length > 40 || strVal.trimStart().startsWith('{'));
                     if (isLong) {
+                      const sample = sampleDataTable(strVal);
                       return (
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="long">
                           {label}
+                          {sample && (
+                            <details data-testid={`param-sample-preview-${p.id}`} style={{ marginTop: 4 }}>
+                              <summary style={{ cursor: 'pointer', fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', userSelect: 'none' }}>
+                                {tOr('panel.view_sample_data', 'View sample data')}
+                                <span style={{ marginLeft: 6, color: 'var(--text-dim)' }}>
+                                  {tOr('panel.rows_count', '{{n}} rows', { n: sample.rows.length })}
+                                </span>
+                              </summary>
+                              <div style={{ overflowX: 'auto', marginTop: 4, border: '1px solid var(--border)', borderRadius: 4 }}>
+                                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 'var(--fs-micro)', fontFamily: 'var(--font-mono)' }}>
+                                  <thead>
+                                    <tr>{sample.headers.map((h, i) => (
+                                      <th key={i} style={{ textAlign: 'left', padding: '3px 8px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface)' }}>{h}</th>
+                                    ))}</tr>
+                                  </thead>
+                                  <tbody>{sample.rows.slice(0, 50).map((r, ri) => (
+                                    <tr key={ri}>{r.map((c, ci) => (
+                                      <td key={ci} style={{ padding: '3px 8px', borderBottom: '1px solid var(--border-subtle, var(--border))', color: 'var(--text)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c}>{c}</td>
+                                    ))}</tr>
+                                  ))}</tbody>
+                                </table>
+                              </div>
+                              {sample.rows.length > 50 && (
+                                <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', padding: '3px 8px' }}>
+                                  {tOr('panel.rows_truncated', 'Showing first 50 of {{n}} rows', { n: sample.rows.length })}
+                                </div>
+                              )}
+                            </details>
+                          )}
                           <textarea
                             className="v"
                             value={strVal}
@@ -1050,6 +1116,22 @@ function PhaseGroupSection({
                             style={{ marginTop: 4, width: '100%', fontSize: 'var(--fs-micro)', padding: '4px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
                             onChange={e => onParamChange(p.id, e.target.value)}
                           />
+                        </div>
+                      );
+                    }
+
+                    // A file/input param holds a storage path or dataset key as
+                    // its value — never show that to the user (incl. in the
+                    // editor or on hover). Render the clean file name read-only;
+                    // files are bound via attach/browse, not hand-typed here.
+                    if (p.type === 'file') {
+                      const shown = strVal ? (strVal.split('/').pop() || '') : '';
+                      return (
+                        <div key={p.id} className="param-row" data-param={p.id} data-param-kind="file" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+                          {label}
+                          <span style={{ fontSize: 'var(--fs-micro)', color: shown ? 'var(--text)' : 'var(--text-dim)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, textAlign: 'right' }}>
+                            {shown || (missing ? tOr('panel.required', 'required') : tOr('panel.not_set', 'not set'))}
+                          </span>
                         </div>
                       );
                     }
@@ -1150,7 +1232,11 @@ function PhaseGroupSection({
                         data-testid={`button-run-step-${step.id}`}
                       >{tOr('panel.step.rerun', 'Rerun')}</button>
                     )}
-                    {!isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
+                    {/* "Params" (adjust-and-rerun) step button DISABLED 2026-11-12
+                        (founder): the StepAdjustModal popup it opens is wrong — it
+                        surfaces in the wrong context with the wrong params. Hidden
+                        via `false &&` until that popup is redesigned. */}
+                    {false && !isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
                       <button
                         className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onAdjustAndRerun(step); }}
@@ -1352,19 +1438,8 @@ function PhaseGroupSection({
 
 function sanitizeErrorText(msg: string): string {
   if (!msg) return msg;
-  // Strip stack-trace lines (e.g. "at nextflow.cli.Launcher.main(Launcher.groovy:675)")
-  const withoutStack = msg
-    .split('\n')
-    .filter(l => !/^\s*at\s+[\w.$]+\(/.test(l))
-    .join('\n')
-    .trim();
-  // Replace internal infrastructure names with neutral wording
-  return withoutStack
-    .replace(/\bnextflow\b/gi, 'the pipeline')
-    .replace(/s3:\/\/[^\s'"]+/gi, 'the storage bucket')
-    .replace(/biomate-nextflow-work/gi, 'storage')
-    .replace(/Launcher\.groovy:\d+/gi, '')
-    .trim();
+  // Shared with the after-run report: no storage paths, upload ids or infrastructure names.
+  return userFacingErrorText(msg).replace(/\bnextflow\b/gi, 'the pipeline');
 }
 
 export function NextflowWorkflowViewer({
@@ -1678,6 +1753,11 @@ export function NextflowWorkflowViewer({
 
   const phases = React.useMemo<ViewerPhase[]>(() => {
     // Saved execution records take precedence over static pipeline/parser placeholders.
+    // NOTE: the "keep the full planned phase list on a stopped run" merge was reverted
+    // 2026-11-12 — three review rounds (subagents, /code-review, GPT-6.1 + Claude 5.5)
+    // found HIGH bugs (dropped failure/error data on failed runs, one-recorded-matches-
+    // many-planned, nf-core name matching). It is being redesigned separately with real
+    // nf-core matching tests; this restores the prior, known behavior.
     const recorded = recordedProcessPhases(nextflowStatus?.processes);
     if (recorded.length) return recorded;
     // Prefer stored steps; fall back to lazily-fetched steps for old sessions
@@ -1692,7 +1772,7 @@ export function NextflowWorkflowViewer({
         return {
           id: String(step.id || stepKey || `step-${index}`),
           name: String(step.name || step.label || step.tool_id || `Step ${index + 1}`),
-          status: "pending",
+          status: "pending" as ViewerPhaseStatus,
           description: String(step.annotation || step.description || ""),
           toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
           parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
@@ -2299,6 +2379,12 @@ export function NextflowWorkflowViewer({
     return withHints.map((p: any) =>
       userOverriddenParams.current.has(p.id || p.name) ? { ...p, overridden: true } : p);
   }, [workflowDefinition, params, toolHintMap]);
+  // Backend-sourced parameter / data-input labels ("Samplesheet", "Matrix") for the
+  // settings-tab input rows, localized for the zh UI (cached label service).
+  const tlParamLabel = useLocalizedLabels([
+    ...renderedParameters.map((p: any) => String(p?.label || p?.name || '')),
+    ...((Array.isArray(workflowDefinition?.data_inputs) ? workflowDefinition.data_inputs : []) as any[]).map((d: any) => String(d?.label || d?.name || '')),
+  ]);
 
   /**
    * Count global params that are required AND still empty.
@@ -2870,6 +2956,7 @@ export function NextflowWorkflowViewer({
       }
     });
 
+
     es.addEventListener("container_pull_progress", (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data as string);
@@ -3264,21 +3351,20 @@ export function NextflowWorkflowViewer({
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
         const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const showAfterRunDot = status === 'completed' || status === 'failed';
-        // Per-tab hover tips so the user can see what each tab contains
-        // without clicking. Native `title` keeps this dependency-free.
+        // Per-tab hover hints so the user can see what each tab contains
+        // without clicking.
         const tabTips: Record<'settings' | 'phases' | 'after-run', string> = {
           settings: t('panel.tab_tips.settings'),
           phases: t('panel.tab_tips.phases'),
           'after-run': t('panel.tab_tips.after_run'),
         };
         const tabBtn = (key: 'settings' | 'phases' | 'after-run', label: string, badge?: React.ReactNode): React.ReactElement => (
+          <HintTip key={key} hint={tabTips[key]} side="bottom">
           <button
-            key={key}
             type="button"
             onClick={() => { setActiveTab(key); setTabAutoDefault(false); }}
             data-testid={`panel-tab-${key}`}
             aria-selected={activeTab === key}
-            title={tabTips[key]}
             style={{
               background: 'transparent',
               border: 'none',
@@ -3296,6 +3382,7 @@ export function NextflowWorkflowViewer({
             {label}
             {badge}
           </button>
+          </HintTip>
         );
         const countBadge = (n: number) =>
           n > 0 ? (
@@ -3410,6 +3497,7 @@ export function NextflowWorkflowViewer({
               </button>
             </div>
           )}
+
 
           {/* AI diagnosis card — merges real-time SSE (aiDiagnosis) with API-backed failure (survives refresh) */}
           {(() => {
@@ -3861,7 +3949,7 @@ export function NextflowWorkflowViewer({
               const p: any = r.param;
               return (
                 <div key={p.id || p.name || i} data-testid={isOverride ? 'prerun-override-row' : 'prerun-input-row'} data-status={r.status} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
-                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{p.label || p.name}</span>
+                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{tlParamLabel(String(p.label || p.name || ''))}</span>
                   <span style={{ color: 'var(--text-dim)' }}>→</span>
                   <span style={{ minWidth: 0, flex: 1 }}>
                     {r.empty ? (
@@ -3869,10 +3957,14 @@ export function NextflowWorkflowViewer({
                         {isOverride ? tOr('panel.not_set_default_used', 'not set — default used') : tOr('panel.not_set', 'not set')}
                       </span>
                     ) : (
-                      // Show the clean basename only; the full value (storage URI
-                      // or dataset id) stays available on hover, never inline.
-                      <span title={r.dataset?.name || cleanParamValueForDisplay(r.value)}>
-                        {r.dataset?.name || basename(r.value)}
+                      // Show the clean name only. Never reveal the storage URI or
+                      // dataset id — not inline and not on hover (founder: no
+                      // internal path/key/id in the UI, including tooltips). The hover
+                      // title uses cleanParamValueForDisplay, which strips s3://gs://
+                      // URIs + bare UUIDs + id= patterns (basename alone would leak
+                      // those in the no-dataset-name edge case — audit finding).
+                      <span title={r.dataset?.name || cleanParamValueForDisplay(r.value) || tOr('panel.staged_file', 'staged file')}>
+                        {r.dataset?.name || cleanParamValueForDisplay(r.value) || tOr('panel.staged_file', 'staged file')}
                       </span>
                     )}
                   </span>
@@ -4557,7 +4649,12 @@ export function NextflowWorkflowViewer({
                     : undefined}
                 />
               )}
-              {adjustStep && activeRunId && (
+              {/* StepAdjustModal ("调整并重新运行" adjust-params-and-rerun popup) DISABLED
+                  2026-11-12 (founder): the popup itself is wrong — it surfaces in the
+                  wrong context with the wrong/confusing params; fixing its content is
+                  beside the point. Gated with `false &&` (every affordance that opened
+                  it is also hidden). Re-enable when the popup is redesigned.
+              {false && adjustStep && activeRunId && (
                 <StepAdjustModal
                   open={!!adjustStep}
                   onOpenChange={(open) => { if (!open) setAdjustStep(null); }}
@@ -4570,7 +4667,7 @@ export function NextflowWorkflowViewer({
                     onAdjustViaChat?.(`Rerunning workflow from step ${adjustStep.name}. New run ID: ${newRunId}`);
                   }}
                 />
-              )}
+              )} */}
 
               {/* ── Full step view (spec-08 step-as-object surface) ─────────────
                   Opened from a step's "Details" button or the inline preview's
@@ -4588,12 +4685,41 @@ export function NextflowWorkflowViewer({
                   role="region"
                   aria-label={tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}
                 >
+                    {(() => {
+                      // Flat ordered step list (across phases) with phase letters —
+                      // drives the .deephd position + .deepfoot prev/next traversal
+                      // (spec 08 §8.2/§8.3).
+                      const flat: Array<{ raw: any; letter: string }> = groupedPhases.flatMap(
+                        (g: any) => (Array.isArray(g.steps) ? g.steps.map((s: any) => ({ raw: s, letter: g.letter })) : []),
+                      );
+                      const idx = flat.findIndex(
+                        (e) => String(e.raw?.id ?? e.raw?.name ?? '') === String(fullViewStep.id),
+                      );
+                      const pos = idx >= 0
+                        ? {
+                            // Only a REAL phase letter (A/B/…); for unphased workflows
+                            // groupStepsIntoPhases returns a numeric step-count "letter",
+                            // which must NOT render as a phase badge (audit finding A2).
+                            phaseLetter: /^[A-Za-z]/.test(flat[idx].letter || "") ? flat[idx].letter : undefined,
+                            stepNumber: idx + 1,
+                            totalSteps: flat.length,
+                          }
+                        : {};
+                      const openAt = (i: number) => { if (flat[i]) setFullViewStep(buildStepDetailStep(flat[i].raw)); };
+                      return (
                     <StepDetail
                       runId={activeRunId || ""}
-                      step={fullViewStep}
+                      step={{ ...fullViewStep, ...pos }}
                       workflowDefinition={workflowDefinition}
                       projectId={projectId}
                       onClose={() => setFullViewStep(null)}
+                      onPrev={idx > 0 ? () => openAt(idx - 1) : undefined}
+                      onNext={idx >= 0 && idx < flat.length - 1 ? () => openAt(idx + 1) : undefined}
+                      // Footer "Re-run from here" is intentionally NOT wired: it would
+                      // open the StepAdjustModal popup, which is disabled (wrong popup,
+                      // founder 2026-11-12). undefined → StepDetail hides the footer
+                      // re-run button entirely. Re-wire when that popup is redesigned.
+                      onAdjustAndRerun={undefined}
                       onApplyAndRerun={(edited) => {
                         // Apply the in-place-edited params to the form and re-run
                         // with the merged set (pass merged directly — setParams is
@@ -4612,6 +4738,8 @@ export function NextflowWorkflowViewer({
                         });
                       }}
                     />
+                      );
+                    })()}
                 </div>
               )}
 

@@ -22,7 +22,11 @@
     "recent_tools": "Recent tools",
     "design_generate": "Molecule design & generate",
     "run_manager": "Run Manager",
-    "beta_tooltip": "Early-access beta — features may change"
+    "beta_tooltip": "Early-access beta — features may change",
+    "shared": "shared",
+    "expand_sidebar": "Expand sidebar",
+    "new_chat": "New chat",
+    "chat_history": "Chat history"
   },
   "actions": {
     "run": "Run",
@@ -383,7 +387,9 @@
       "predict_the_fold_of_this_stapled_peptide_and_where_to_trust_it": "Predict the fold of this stapled peptide and where to trust it.",
       "predict_the_structure_of_this_antibody_antigen_complex_and_repor": "Predict the structure of this antibody–antigen complex and report interface confidence.",
       "model_this_complex_for_a_nanobody_and_its_antigen": "Model this complex for a nanobody and its antigen.",
-      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target."
+      "predict_the_fold_of_this_designed_binder_against_its_target": "Predict the fold of this designed binder against its target.",
+      "map_b_cell_epitopes_on_an_ebv_antigen_and_draft_a_vaccine_immuno": "Map B-cell epitopes on an EBV antigen and draft a vaccine immunogen",
+      "predict_hla_class_i_binding_for_neoantigen_peptides": "Predict HLA class-I binding for neoantigen peptides"
     },
     "sample_title_inline": "Runs on the example included in the goal. Edit the goal to use your own."
   },
@@ -536,7 +542,7 @@
     "open_dataset": "Open dataset",
     "preview": "Preview",
     "hide_preview": "Hide preview",
-    "copy_s3": "Copy S3 path",
+    "copy_s3": "Copy path",
     "confirm_delete": "Delete this file?",
     "err_load": "Failed to load files",
     "err_upload": "Upload failed",
@@ -713,7 +719,7 @@
     "preview_tiff": "TIFF images cannot be displayed in the browser. Download the file to open it in an image viewer (e.g. Fiji/ImageJ).",
     "preview_download": "Download",
     "format_chip_title": "File format: {{label}} ({{source}})",
-    "format_source_galaxy": "identified from its datatype signature",
+    "format_source_galaxy": "identified from the file's format",
     "format_source_biomate": "identified by BioMate",
     "nested_table": "table {{rows}}×{{cols}}",
     "nested_list": "list · {{n}}",
@@ -1019,7 +1025,7 @@
     "tab_tips": {
       "settings": "Workflow-wide datasets and configuration that apply to every phase. Required ones must be set before you run.",
       "phases": "Phases and steps of the workflow — live progress while running, per-step parameters that only affect a single step, QC thresholds with self-correct toggle, and the output files each step produces.",
-      "after_run": "Available after the run completes — outputs, findings, QC report, methods write-up, and citations."
+      "after_run": "Available after the run completes — summary of findings, output files, and the run report."
     },
     "run_kind": {
       "workflow": "Workflow",
@@ -1122,7 +1128,11 @@
       "pull_failed": "Image download failed",
       "auto_resume": "Backend restart detected — resuming automatically in {{n}}s…",
       "cancel": "Cancel"
-    }
+    },
+    "view_sample_data": "View sample data",
+    "rows_count": "{{n}} rows",
+    "rows_truncated": "Showing first 50 of {{n}} rows",
+    "staged_file": "staged file"
   },
   "preview": {
     "loading": "Loading preview…",
@@ -1197,7 +1207,10 @@
     "status_failed": "failed",
     "status_error": "error",
     "status_cancelled": "cancelled",
-    "status_skipped": "skipped"
+    "status_skipped": "skipped",
+    "step_position": "Step {{n}} of {{total}}",
+    "prev_step": "Previous step",
+    "next_step": "Next step"
   },
   "domains": {
     "drug_discovery": "Drug discovery",
@@ -1402,10 +1415,11 @@
     "origin_custom": "Custom (yours)",
     "fold_launch_failed": "Could not start the fold: {{detail}}",
     "fold_run_heading": "Structure prediction",
-    "fold_running_note": "Folding on our AWS Batch GPUs (Boltz-2). This takes a few minutes; the structure and confidence will be in the run outputs.",
+    "fold_running_note": "Folding on our GPUs (Boltz-2). This takes a few minutes; the structure and confidence will be in the run outputs.",
     "fold_done_note": "Fold complete — open the run to view the predicted structure and per-residue confidence (pLDDT / PAE).",
     "fold_failed_note": "The fold did not complete. Open the run to see why.",
-    "fold_open_run": "View in Run Manager"
+    "fold_open_run": "View in Run Manager",
+    "fold_compute_badge": "BioMate GPU · Boltz-2"
   },
   "instructions_formats": {
     "edit_title": "Edit output format",
@@ -1544,7 +1558,12 @@
     "source_unavailable": "The cited output could not be uniquely located in this run: {{file}}",
     "why_failed": "Why it failed",
     "at_fault": "At fault",
-    "next_action": "Next"
+    "next_action": "Next",
+    "tab": {
+      "summary": "Summary",
+      "outputs": "Outputs",
+      "report": "Report"
+    }
   },
   "datasets_dialog": {
     "title": "Select dataset",
@@ -1610,7 +1629,7 @@
     "seed_prompt": "Run the {{name}} workflow.",
     "title_short": "Workflows",
     "tab_import": "Import Workflow",
-    "import_tip": "Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow. Once imported it appears under My workflows and can be launched from any chat. BioMate runs it on AWS Batch with your configured environment.",
+    "import_tip": "Upload your own workflow — Nextflow (.nf), or a .ga / .yml workflow file. Once imported it appears under My workflows and can be launched from any chat.",
     "import_file_label": "Workflow file",
     "import_choose_file": "Choose file",
     "import_no_file": "No file chosen",
@@ -1621,7 +1640,9 @@
     "import_uploading": "Uploading…",
     "import_success": "{{name}} imported successfully",
     "import_another": "Import another",
-    "import_view_mine": "View in My workflows"
+    "import_view_mine": "View in My workflows",
+    "tab_runs": "Run history",
+    "tab_my_imports": "My imports"
   },
   "citations": {
     "boundary_default": "Synthesizes retrieved literature only — not validated against your project's data. Check against your own data before relying on it.",
@@ -2019,5 +2040,111 @@
     "by": "by {{name}}",
     "diff_row": "Row {{n}}",
     "empty_value": "(empty)"
+  },
+  "hint": {
+    "nav": {
+      "data": "Datasets in the current project — files you uploaded or fetched and files your runs produced, each with a quality rating, versions and where it came from.",
+      "workflows": "Search the workflow catalog, open your own workflows, or import a new one.",
+      "models": "Train models on your data, browse and run available models, and follow molecular design loops.",
+      "projects": "Each project keeps its chats, data, runs and standing instructions together. Click to show or hide the list.",
+      "new_project": "Create a project to group related chats, data and runs.",
+      "project_instructions": "Standing instructions the assistant applies to every chat in this project.",
+      "project_files": "Open this project's datasets.",
+      "project_new_chat": "Start a new chat inside this project.",
+      "settings": "Language, API keys, language-model provider, connectors and workflow import.",
+      "admin": "System administration — service health, run and user statistics, and the system language-model setup.",
+      "sign_out": "Sign out of this account on this device.",
+      "collapse": "Collapse the sidebar to a narrow rail to give the chat and panel more room.",
+      "project_row": "Show or hide this project's chats, files and instructions."
+    },
+    "rail": {
+      "expand": "Expand the sidebar.",
+      "new_chat": "Start a new chat.",
+      "history": "Show your chats and projects (expands the sidebar)."
+    },
+    "chat_status": {
+      "running": "A workflow from this chat is running.",
+      "failed": "A workflow run in this chat failed.",
+      "completed": "All workflow runs in this chat have completed.",
+      "idle": "No workflow run in this chat yet.",
+      "cancelled": "A workflow run in this chat was cancelled or paused."
+    },
+    "afterrun": {
+      "summary": "Headline findings from this run, any flagged quality checks, and a link from each finding to the output it was read from.",
+      "outputs": "Every file the run produced — preview or download each one.",
+      "report": "A read-only report of the saved run: what was run, its outputs, methods and quality checks."
+    },
+    "models": {
+      "train": "Train a model on your own dataset and follow its training runs.",
+      "library": "Pre-trained models and the models you registered — run one, or open it to see its evidence, lineage and versions.",
+      "molecular": "Train molecular (SMILES) models and follow design–make–test–analyse loops: their rounds, surrogate models and proposals."
+    },
+    "model_obj": {
+      "evidence": "The model's held-out test result against its acceptance threshold, and the verdict — shown as not evaluated until a test has been run.",
+      "lineage": "Where this model came from: its training dataset, training run and prior versions, when they are recorded.",
+      "used": "Where this model is used in your account, such as the campaigns that registered it.",
+      "iface": "How the model is called: the inputs it takes and the outputs it returns.",
+      "versions": "Every version of this model and the verdict each one received."
+    },
+    "settings": {
+      "api_keys": "Personal keys for connecting chat apps and MCP clients to BioMate, and the language-model provider used in chat.",
+      "connectors": "Public data sources, your private databases, MCP servers and instrument connections.",
+      "import": "Add your own workflow file (Nextflow .nf, or .ga / .yml) so it can be run from any chat."
+    },
+    "workflows_library": {
+      "browse": "Search the curated workflow catalog by task, method or data type.",
+      "my": "Workflows you imported — launch any of them from a chat.",
+      "import": "Upload your own workflow file — Nextflow (.nf), or .ga / .yml."
+    },
+    "dataset": {
+      "preview": "Look inside the file — a table, image or text view of its contents.",
+      "versions": "Every saved version of this dataset.",
+      "wherefrom": "Where this dataset came from: the upload, public source or run that produced it."
+    },
+    "project": {
+      "chat": "Conversations that belong to this project.",
+      "files": "Files in this project — your uploads and the outputs of its runs."
+    },
+    "connectors": {
+      "databases": "Public protein, genomics, omics, chemical, pathway, disease, literature and imaging sources BioMate can query from chat.",
+      "ai": "Language-model providers and the messaging / IDE apps BioMate works with — for reference; not configured here.",
+      "skills": "Available expert packs; pick packs for a request in the chat composer.",
+      "mcp": "Manage your MCP server connections."
+    }
+  },
+  "model_obj": {
+    "tab": {
+      "evidence": "Evidence",
+      "lineage": "Built from",
+      "used": "Used by",
+      "iface": "Interface",
+      "versions": "Versions"
+    }
+  },
+  "tool_card": {
+    "tool": {
+      "run_code": "Run code",
+      "read_file": "Read file",
+      "query_domain_knowledge": "Domain knowledge",
+      "search_literature": "Search literature",
+      "query_database": "Query database",
+      "search_my_data": "Search my data",
+      "search_chat_history": "Search chat history",
+      "list_history": "List my datasets",
+      "list_run_outputs": "List run outputs",
+      "edit_report": "Edit report",
+      "list_data_sources": "List data sources",
+      "search_workflows": "Search workflows"
+    },
+    "download": "Download",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copy_code": "Copy code",
+    "input": "Input",
+    "result": "Result",
+    "console_output": "Console output",
+    "output_files": "Output files",
+    "exit_code": "Exit code: {{code}}",
+    "more_lines": "+{{n}} more lines"
   }
 }

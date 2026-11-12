@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n";
+import { HintTip, HintScope } from "@/components/ui/hint-tip";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -471,9 +472,9 @@ function PlatformLayout({
                 background: 'var(--bm-surface, hsl(var(--sidebar)))',
                 borderColor: 'var(--bm-border, hsl(var(--border)))',
               }}
-              title="Sidebar collapsed — panel is open"
             >
               {/* Brand mark */}
+              <HintTip hint={t('hint.rail.expand')}>
               <button
                 onClick={toggleSidebar}
                 className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
@@ -484,18 +485,23 @@ function PlatformLayout({
                   letterSpacing: '-0.03em',
                 }}
                 data-testid="button-sidebar-expand"
-                title="Expand sidebar"
+                aria-label={t('nav.expand_sidebar')}
               >
                 B
               </button>
+              </HintTip>
               {/* Icon buttons */}
-              <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
+              <HintTip hint={t('hint.rail.new_chat')}>
+              <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" aria-label={t('nav.new_chat')}>
                 <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
+              </HintTip>
               {/* Import workflow is available under Settings in the expanded sidebar. */}
-              <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history — expand sidebar">
+              <HintTip hint={t('hint.rail.history')}>
+              <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" aria-label={t('nav.chat_history')}>
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
+              </HintTip>
               <div className="flex-1" />
               {/* <ThemeToggle /> — light only for now */}
             </div>
@@ -855,27 +861,34 @@ function App() {
     setChatSessions(sessions)
   }, [user?.id])
 
+  // Tracks the latest session ID the user has intentionally selected/created,
+  // used to guard against stale async callbacks overwriting the active session.
+  const activeSessionIdRef = useRef<string | null>(null)
+
   const handleNewChat = () => {
     console.log('Creating new chat session')
     const newSession = chatHistoryService.createNewSession()
+    activeSessionIdRef.current = newSession.id
     setCurrentChatSession(newSession)
-    
+
     // Update sessions list
     const updatedSessions = chatHistoryService.getAllSessions()
     setChatSessions(updatedSessions)
-    
+
     // Navigate to home page for new chat
     setLocation('/')
   }
 
   const handleChatSelect = async (chatId: string) => {
     console.log('Loading chat session:', chatId)
+    activeSessionIdRef.current = chatId
     const local = chatHistoryService.getSession(chatId)
     // If session has no messages (e.g. synced from backend on another machine), fetch full detail
     const session = (!local || local.messages.length === 0)
       ? await chatHistoryService.fetchSessionDetail(chatId)
       : local
-    if (session) {
+    // Guard: user may have clicked "New Chat" or a different session while the fetch was in flight
+    if (session && activeSessionIdRef.current === chatId) {
       setCurrentChatSession(session)
       // Navigate to the chat page; the URL-sync effect below adds ?session=.
       setLocation('/')
@@ -905,10 +918,16 @@ function App() {
   }, [location, currentChatSession?.id, currentChatSession?.messages.length])
 
   const handleChatUpdated = (session: ChatSession) => {
-    console.log('App: Updating chat session:', session.id, 'workflows:', session.workflows)
-    // Save the updated session to chat history service
+    // Save the updated session to chat history service regardless of which session is active
     chatHistoryService.updateSession(session.id, session)
-    setCurrentChatSession(session)
+    // Only promote to currentChatSession if this is still the active session.
+    // Streaming callbacks from a previous session fire onChatUpdated after the
+    // user has already switched — without this guard they would revert the UI
+    // back to the old session.
+    // Accept if: no active session (initial state / first message auto-creates one)
+    // OR the incoming session matches the currently active session.
+    // Reject if a different session ID arrives (stale streaming from a previous chat).
+    setCurrentChatSession(prev => (!prev || prev.id === session.id) ? session : prev)
     setChatSessions(chatHistoryService.getAllSessions())
   }
 
@@ -957,6 +976,7 @@ function App() {
 
   return (
     <TooltipProvider>
+      <HintScope>
       <Router
         currentChatSession={currentChatSession}
         onChatUpdated={handleChatUpdated}
@@ -985,6 +1005,7 @@ function App() {
         onProjectCreated={handleProjectCreated}
       />
       <Toaster />
+      </HintScope>
     </TooltipProvider>
   );
 }

@@ -27,8 +27,10 @@ def test_sar_question_selects_bioactivity_sources():
     q = "Known SAR for imatinib-like phenylaminopyrimidines — what drives ABL1 potency?"
     assert "bioactivity" in detect_facets(q)
     srcs = select_sources(q, entities=["ABL1"])
-    # the sources the entity-type ('gene') router would have skipped:
-    for needed in ("chembl", "bindingdb", "pdb", "pharos"):
+    # The bioactivity/structure sources the entity-type ('gene') router would have skipped
+    # are now reached — including bindingdb (measured affinities) + pharos (tractability),
+    # which gained federation fetchers 2026-11-11:
+    for needed in ("chembl", "bindingdb", "pharos", "pubchem", "chebi", "pdb"):
         assert needed in srcs, f"{needed} missing for a SAR/potency question: {srcs}"
 
 
@@ -68,3 +70,31 @@ def test_deduped_and_capped():
     )
     assert len(srcs) == len(set(srcs))  # no duplicates
     assert len(srcs) <= 14
+
+
+def test_fold_cue_is_word_bounded_not_scaffold():
+    # "fold" word-bounded: a genomics assembly question ("scaffold N50") must NOT trip the
+    # structure facet (committee review round 2, 2026-11-11).
+    assert "structure" not in detect_facets("What is the scaffold N50 of this genome assembly?")
+    assert "structure" in detect_facets("What is the protein fold of this domain?")
+
+
+def test_prioriti_cue_scoped_to_target_ranking():
+    # bare "prioriti" used to fire the costly target_id orchestrator on generic text.
+    assert not is_target_ranking_question("Prioritize the samples by read depth")
+    assert not is_target_ranking_question("What's the priority here?")
+    assert is_target_ranking_question("Prioritize targets for pancreatic cancer")
+
+
+def test_registry_unavailable_passes_through_but_present_filters():
+    # None (registry import failed) → pass through unfiltered; a present registry filters to
+    # only serveable ids — a misconfigured/empty registry must NOT advertise everything
+    # (committee review round 2, 2026-11-11).
+    import galaxy.ai.evidence_source_router as esr
+    _real = esr._registry
+    try:
+        esr._registry = None            # simulate registry unavailable
+        srcs = esr.select_sources("SAR potency of ABL1", entities=["ABL1"])
+        assert "chembl" in srcs         # not filtered away when registry is unavailable
+    finally:
+        esr._registry = _real

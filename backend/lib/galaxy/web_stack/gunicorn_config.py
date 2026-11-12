@@ -85,6 +85,17 @@ def post_fork(server, worker):
 
         GunicornApplicationStack.late_postfork_event.set()
 
+    # Dispose any SQLAlchemy engines inherited from the master process before fork.
+    # With --preload, module-level engines are created in the master and each worker
+    # inherits the same connection pool. After fork, those inherited connections are
+    # invalid in the child process. engine.dispose() closes them so the worker gets
+    # fresh connections from its own pool (fork-safety fix, 2026-11-10).
+    try:
+        from galaxy.ai.memory.agentic_memory import engine as _ltm_engine
+        _ltm_engine.dispose()
+    except Exception:
+        pass
+
     # Start the workflow-search embedding warmup HERE — per-worker, AFTER fork —
     # not at module-import time. Under --preload the import runs in the master;
     # starting the warmup thread there held the embedding init lock at fork, so

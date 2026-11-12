@@ -743,7 +743,7 @@ export default function BillingPage() {
 
                   {/* Storage */}
                   <TableRow className="border-none">
-                    <TableCell className="pl-6 font-medium">Storage (S3)</TableCell>
+                    <TableCell className="pl-6 font-medium">Storage</TableCell>
                     <TableCell className="text-muted-foreground">
                       {storage && storage.puts > 0
                         ? `${storage.puts} object${storage.puts !== 1 ? "s" : ""}`
@@ -873,7 +873,7 @@ export default function BillingPage() {
                   {storage && storage.total_usd > 0 && (
                     <TableRow>
                       <TableCell className="pl-6 font-medium">Storage</TableCell>
-                      <TableCell className="text-muted-foreground">S3 objects</TableCell>
+                      <TableCell className="text-muted-foreground">Stored objects</TableCell>
                       {/* committee Sonnet-3: the API has no GB figure (only puts/gets + $), so the
                           "$0.15 / GB" rate can't reconcile with the PUT quantity — blank the rate. */}
                       <TableCell className="text-muted-foreground">—</TableCell>

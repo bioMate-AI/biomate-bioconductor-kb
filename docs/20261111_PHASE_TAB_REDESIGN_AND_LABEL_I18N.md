@@ -76,3 +76,97 @@ build-info's. Never kill a running sync (orphans the remote lease).
 - Translation cache is per-process; a persistent cache (DB/Redis) would avoid
   re-translating after each deploy.
 - Workflow name (`nf-core/differentialabundance`) intentionally stays an identifier.
+
+## Round 2 — other panel surfaces (deployed `d6213398`, live-verified)
+
+Live zh capture of the chat card, settings tab and full step view found:
+
+| Surface | Before (live) | After (live) |
+|---|---|---|
+| Settings tab inputs | "无必需的数据输入 · 无需上传数据" although samplesheet + matrix were bound — schema declares `required: []`, classifier dropped them | **已映射 3 个**: 样本表 / 矩阵 / 对比组 → filenames (`isBoundUserDataParam`: bound canonical-named or stored-file params count; unbound ones are not invented) |
+| Settings row tooltip | raw storage URI | dataset name / filename |
+| Run-button references | reply "点击Run按钮", hint “确认并运行工作流” — no such button | `server/ui-labels.ts runButtonLabel()` reads the label from the client locale bundles; prompt, Step 6r message and hint use it |
+| Full step view | "Download samplesheet and count matrix from S3" · PENDING | 获取样本表与计数矩阵 · 待运行 (human name, process id as tooltip) |
+| Label cache | in-memory only | migration `0023_label_translations` (keyed by prompt_version); confirmed rows on dev via read-only query |
+
+Automated live check (`frontend/_e2e_surfaces.mjs`, scratch): settings summary, no
+"no inputs" claim, no wrong button name, step-detail status localized, and a leak
+scan over visible text **and tooltips** on every surface — all clean. Full vitest
+3152 passed / 0 failed.
+
+Dev deploy note: dev runs whichever branch synced last (ancestry-gated). This
+round's sync merged `63ecd58f` (deploy/datasets-20261111) as the gate required.
+
+## Round 3 — hover hints + chat tool cards (2026-11-12)
+
+### Hover hints (`6078147d50`)
+
+Founder: "add hint text hover for each element in the side bar, each tab in each panel".
+`client/src/components/ui/hint-tip.tsx`: `HintTip` (plain elements) and `HintTabsTrigger`
+(Radix tabs), one provider at the app root (`HintScope`, 400 ms delay, instant on the next
+item). Strings under `hint.*` (zh + en). Covered: every sidebar item and the collapsed rail,
+workflow-panel / after-run / Models / model-object / Settings / Workflows-library / dataset /
+project / Connectors tabs.
+
+Committee review (3 reviewers: Radix/a11y, copy accuracy vs code, coverage/tests):
+
+| Finding | Fix |
+|---|---|
+| TabsTrigger inside TooltipTrigger: tooltip's `data-state="closed"` overwrote `active` — selected tab lost its styling (Settings, Models, model tabs) | `HintTabsTrigger` composes tabs-outside / tooltip-inside; test asserts `data-state` |
+| 9 hints promised things the code does not do (model "compare any two" versions — single version, no compare button; "Used by" = registering campaigns; evidence always not-evaluated today; chat dot = roll-up, not last run; after-run summary has links, not previews; …) | rewritten against the code, zh terms aligned (项目指令, 候选提案) |
+| e2e SB-12 read the dot's `title` | dot carries `data-status`; hint moved to the row (full title + status) |
+| hard-coded 系统管理 / "shared" / "Run History" / "My Imports"; rail English titles | localized; rail gets short aria-labels |
+
+Not hinted (judged self-explanatory or low reach): empty-chat track tabs (examples visible),
+trajectory filter, step-detail raw/rendered toggle, chat-composer buttons (still native
+localized titles).
+
+### Chat tool cards + truncated tool turn (`86fedca8f9`)
+
+Three founder screenshots of an image-QC chat:
+
+1. `Read File {"galaxy_dataset_id":"<uuid>"}` — raw tool input shown. Server now attaches a
+   user-facing `display` to each `tool_call` (`shared/tool-call-display.ts`: dataset id → its
+   name, other ids dropped, storage path → file name); the card renders it, never the JSON.
+   Card labels localized.
+2. Collapsed code preview cut its second line in half — `max-h-12` clip + leading blank line.
+   Now two whole lines + "+N more lines".
+3. Answer was only "现在让我生成可视化的 QC 报告：". **Dev logs** (05:10–05:25 UTC,
+   z-ai/glm-5.2 via OpenRouter): tool turn 5 ended `stop_reason: 'max_tokens'`; the loop took
+   the fragment as the final answer and the plotting script never ran. Fix: a `max_tokens` turn
+   keeps its text, drops the unrun tool_use, instructs the model to continue with a shorter
+   script; at the tool budget the final-answer turn fires after `max_tokens` too.
+   **Root cause of the truncation itself** — reasoning tokens counted against `max_tokens:
+   4096` on OpenRouter reasoning models — is §2 above (fix deferred by the founder; the
+   OpenRouter-vision lane owns `local-llm.ts`).
+
+Verification: tsc clean; full vitest 3239 passed / 1 failed (`pdf-canvas-viewer`, unchanged
+file, passes in isolation — load flake; the previous run's single flake was a different
+file). Live verification on dev pending the deploy lane.
+
+## Round 4 — "no galaxy in output", committee review, leak sweep (2026-11-12, overnight loop)
+
+Founder: "there should not have galaxy in output!!!!"; then "keep audit, fix, sync, test loops".
+
+| Commit | What |
+|---|---|
+| `69488bd245` | Response model sees one neutral `dataset_id` per file (`modelFacingUploads`, incl. legacy `[Galaxy dataset: …]` history lines); tool schemas `dataset_id`; system prompt without the backend name; final-reply guard; tool card result/error sanitized; UI copy |
+| `553cb8d449` | Committee correctness review (6 verified defects): prose answers keep their text on `max_tokens` (only mid-work turns are continued, text carried); OpenRouter length stops become `max_tokens` turns (`lengthStopMessage`) instead of throwing; backend-name guard narrowed (prose only — fenced/inline/indented code untouched; Galaxy-platform answers unchanged); upload entries with spaces / ':'; Gemini fallback history; run_code earlier-turn mapping |
+| `ae19b4cbed` | Leak sweep of every user-reachable surface: shared `userFacingErrorText` for panel + after-run report; 12-h stuck-run message; methods-report prompts/params/filename; step view job id + work dir hidden; failure classifier file names; response prompts ("BioMate cloud compute" + never-name-infrastructure rule); chain reply; IT launch error; ai_assistant.py composer note; tour / Models / public pages / billing copy |
+| `303d4fdfeb` | Merge of dev build `6474f200` (08's sync; its `redactInternalRefs` combined with the tool-card sanitizer) |
+
+Reasoning-budget fix (OpenRouter reasoning tokens counted against `max_tokens`) was already
+committed (`9a5f98c58e`) and live on dev; the "uncommitted" copy in `/Users/kky/biomate-review`
+is a stale duplicate.
+
+**Incident — branches reset by another account.** GitHub user `zheganjue519` force-pushed the
+`integration/next-phase` tip over `fix/coldstart-search-examples-dev` (06:43 UTC, 13b0206c6f →
+5a1abf0990) and over `fix/hints-toolcards-no-backend-20261112` (07:04 UTC, 553cb8d449 →
+d1f7477c75), which auto-closed PRs #388 and #389. Integration does NOT contain these changes.
+Not a GitHub workflow (auto-merge-on-approval only enables auto-merge). The work is preserved
+under tag `keep/f9-hints-toolcards-20261112` and re-pushed before each sync; no force-push war.
+**Needs the founder:** ask who/what runs as `zheganjue519` and whether PR head branches of the
+dev line should be left alone.
+
+Verification: tsc clean; server+shared 1953/1953; client 1348 + 1 known load flake
+(`pdf-canvas-viewer`, passes alone).

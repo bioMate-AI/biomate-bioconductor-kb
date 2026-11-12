@@ -1,3 +1,4 @@
+import { redactInternalBackend, redactUserFacingReply } from '../shared/tool-call-display';
 /**
  * Structural fabrication guard (docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md §5).
  *
@@ -100,6 +101,7 @@ export const SYNTHETIC_DATA_REFUSAL = 'NOT EXECUTED: this code generates its own
  *  text). Prompt rules are not enforcement — the model still echoed a staged prefix from an
  *  example's notes (cryo-EM, dev 2026-11-11). A file URI becomes its file name; a folder prefix
  *  becomes "the staged dataset" / "已准备好的数据集". Code blocks are left alone (tool code, not prose). */
+export { redactInternalBackend, redactUserFacingReply };
 export function redactStoragePaths(text: string, zh = false): string {
   const parts = String(text || '').split(/(```[\s\S]*?```)/g);
   return parts.map((part, i) => i % 2 === 1 ? part : part.replace(/`?s3:\/\/[^\s`)\]>"']+`?/gi, (m) => {

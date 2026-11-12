@@ -21,12 +21,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, ArrowRight, RotateCcw, FileText, Loader2, Download, ExternalLink,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { StepOutputPreview } from "@/components/step-output-preview";
 import { t, tOr } from "@/lib/i18n";
-import { userFacingStepName } from "@/lib/user-facing-text";
+import { userFacingStepName, userFacingErrorText } from "@/lib/user-facing-text";
 import { useLocalizedLabels } from "@/lib/use-localized-labels";
 
 // ---------------------------------------------------------------------------
@@ -78,6 +79,11 @@ export interface StepDetailStep {
   parameters?: Record<string, unknown>;
   /** Structured output files. */
   outputs?: StepDetailOutput[];
+  /** Position in the run (spec 08 §8.2 .deephd — "a step is a place in a run").
+   *  phaseLetter = the phase badge; stepNumber/totalSteps = "step N of M". */
+  phaseLetter?: string;
+  stepNumber?: number;
+  totalSteps?: number;
 }
 
 export interface StepDetailProps {
@@ -99,6 +105,10 @@ export interface StepDetailProps {
    *  (spec 08: "parameters editable in place" + "Apply & re-run from here").
    *  Receives the edited {name: value} map. */
   onApplyAndRerun?: (params: Record<string, unknown>) => void;
+  /** Spec 08 §8.3 .deepfoot — step traversal ("auditing a run means reading
+   *  several steps in sequence"). Omitted ⇒ that control is hidden. */
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -260,6 +270,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
 
 export function StepDetail({
   runId, step, workflowDefinition, projectId, onClose, onOpenOutput, onAdjustAndRerun, onApplyAndRerun,
+  onPrev, onNext,
 }: StepDetailProps) {
   const outputs = useMemo<StepDetailOutput[]>(
     () => (step.outputs || []).map(o => ({ ...o, id: o.id ?? o.path })),
@@ -322,19 +333,29 @@ export function StepDetail({
     >
       {/* Header + provenance row */}
       <div className="border-b px-4 py-3 space-y-2 shrink-0">
+        {/* .deephd — phase letter + "step N of M" + name. A step is a place in a
+            run, not a free-floating record (spec 08 §8.2). */}
         <div className="flex items-center gap-2">
+          {step.phaseLetter && (
+            <div
+              data-testid="step-phase-letter"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold"
+              aria-hidden
+            >
+              {step.phaseLetter}
+            </div>
+          )}
           <div className="min-w-0">
-            <p className="text-fs-xs uppercase tracking-wide text-muted-foreground">{t('step_view.title')}{statusLabel ? ` · ${statusLabel}` : ""}</p>
+            <p className="text-fs-xs uppercase tracking-wide text-muted-foreground" data-testid="step-position">
+              {step.stepNumber && step.totalSteps
+                ? tOr('step_view.step_position', 'Step {{n}} of {{total}}', { n: step.stepNumber, total: step.totalSteps })
+                : t('step_view.title')}{statusLabel ? ` · ${statusLabel}` : ""}
+            </p>
             <p className="font-semibold break-words" title={step.processName || step.name}>
               {tl(stepTitleSrc)}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-1 shrink-0">
-            {onAdjustAndRerun && (
-              <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={onAdjustAndRerun}>
-                <RotateCcw className="h-3.5 w-3.5" /> {t('step_view.rerun_from_here')}
-              </Button>
-            )}
             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose} aria-label={t('step_view.close')}>
               <X className="h-4 w-4" />
             </Button>
@@ -371,10 +392,9 @@ export function StepDetail({
 
       {/* Body */}
       <div className="min-h-0 overflow-auto px-4 py-3 space-y-4">
-        {(step.errorMessage || step.workDir || step.jobId) && <section data-testid="step-recorded-details" className="space-y-2 text-xs">
-          {step.errorMessage && <pre className="whitespace-pre-wrap break-words rounded border border-destructive/30 p-3 text-destructive">{stripAnsi(step.errorMessage)}</pre>}
-          {step.jobId && <p className="break-all">{tOr('step_view.job_id', 'Job ID')}: {step.jobId}</p>}
-          {step.workDir && <p className="break-all">{tOr('step_view.work_directory', 'Work directory')}: {step.workDir}</p>}
+        {/* Job id and work directory are infrastructure (a storage path on cloud runs) — not shown. */}
+        {step.errorMessage && <section data-testid="step-recorded-details" className="space-y-2 text-xs">
+          <pre className="whitespace-pre-wrap break-words rounded border border-destructive/30 p-3 text-destructive">{userFacingErrorText(stripAnsi(step.errorMessage))}</pre>
         </section>}
         {/* Outputs — tabs + rendered/raw switch */}
         <div>
@@ -534,9 +554,33 @@ export function StepDetail({
         </div>
       </div>
 
-      {/* Footer */}
+      {/* .deepfoot — traversal first ("auditing a run means reading several
+          steps in sequence"), then re-run from here. Spec 08 §8.3. */}
+      <div className="border-t px-4 py-2 flex items-center gap-2 flex-wrap shrink-0">
+        <Button
+          variant="ghost" size="sm" className="h-7 gap-1 text-xs"
+          data-testid="step-prev" disabled={!onPrev} onClick={onPrev}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> {tOr('step_view.prev_step', 'Previous step')}
+        </Button>
+        <Button
+          variant="ghost" size="sm" className="h-7 gap-1 text-xs"
+          data-testid="step-next" disabled={!onNext} onClick={onNext}
+        >
+          {tOr('step_view.next_step', 'Next step')} <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+        {onAdjustAndRerun && (
+          <Button
+            variant="outline" size="sm" className="ml-auto h-7 gap-1.5 text-xs"
+            data-testid="step-rerun-footer" onClick={onAdjustAndRerun}
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> {t('step_view.rerun_from_here')}
+          </Button>
+        )}
+      </div>
+      {/* Selected-output download row — the honest "binary artifact" exception. */}
       {selected && (
-        <div className="border-t px-4 py-2 flex items-center gap-2">
+        <div className="border-t px-4 py-2 flex items-center gap-2 shrink-0">
           <a
             href={`/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(selected.path)}&download=1`}
             download={selected.name}

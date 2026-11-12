@@ -26,3 +26,5 @@ export function userFacingStepName(name: unknown): string {
     .replace(/\s*\((?:S3|AWS(?:\s+Batch)?)\)/gi, '')
     .trim();
 }
+
+export { userFacingErrorText } from '@shared/user-facing-error';

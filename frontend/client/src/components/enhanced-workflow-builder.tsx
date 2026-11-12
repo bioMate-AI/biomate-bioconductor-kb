@@ -314,7 +314,7 @@ export function EnhancedWorkflowBuilder({
 
       if (!createResponse.ok) {
         const error = await createResponse.json()
-        throw new Error(error.message || 'Failed to create workflow in Galaxy')
+        throw new Error(error.message || 'Failed to create the workflow')
       }
 
       const createdWorkflow = await createResponse.json()

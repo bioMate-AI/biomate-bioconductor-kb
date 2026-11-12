@@ -90,3 +90,25 @@ def test_check_answer_renumbers_and_refuses():
     assert st == "insufficient" and kept == [] and "Insufficient retrievable evidence" in ans
     ans, kept, st, _ = cc.check_answer_citations("Hello", [], fake, offline=False)
     assert st == "insufficient"
+
+
+def test_refusal_preserves_body_prose_and_headings():
+    """refuse_without_evidence strips a FABRICATED bibliography but must NOT delete body
+    prose that merely starts with references/sources/citations or mentions doi/pmid as a
+    word (committee review round 2, 2026-11-11)."""
+    ans = (
+        "EVIDENCE: insufficient\n"
+        "## Sources of bias in this estimate\n"
+        "Selection bias is the main concern.\n"
+        "Background: the DOI framework matters for provenance.\n"
+        "The PMID system assigns stable identifiers.\n"
+        "## References\n"
+        "1. Fake et al. doi:10.1234/fake PMID 999\n"
+    )
+    out = cc.refuse_without_evidence(ans)
+    # Kept: the body heading and the prose mentioning doi/pmid as words.
+    assert "Sources of bias in this estimate" in out
+    assert "the DOI framework matters" in out
+    assert "The PMID system assigns stable identifiers" in out
+    # Stripped: the real reference section and its identifier line.
+    assert "Fake et al" not in out and "10.1234/fake" not in out

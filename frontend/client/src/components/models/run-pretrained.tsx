@@ -245,7 +245,7 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
                 {!foldDone && <Loader2 className="h-3 w-3 animate-spin" />}
                 {foldState ? runStatusLabel(foldState) : t("models.run_status_running")}
               </Badge>
-              <span className="text-fs-xs text-muted-foreground ml-auto">AWS Batch · Boltz-2</span>
+              <span className="text-fs-xs text-muted-foreground ml-auto">{t("models.fold_compute_badge")}</span>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
