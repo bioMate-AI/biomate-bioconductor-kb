@@ -55,6 +55,9 @@ import { DatasetRowsTable } from "./dataset-rows-table"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
+
+/** Viewer kinds that show a file better than a generic sample table. */
+const HAS_RICH_VIEWER = ["structure", "sequence", "vcf", "annotation"]
 import { datasetContentType, datasetShape, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
@@ -572,6 +575,10 @@ export function DatasetObject({
                 <div className="space-y-2" data-testid="dataset-preview-loading">
                   <Skeleton className="h-16 w-full" />
                 </div>
+              ) : preview && HAS_RICH_VIEWER.includes(resolveViewer(fileExt)) ? (
+                // The file's own viewer (3D structure, sequence, VCF, annotation) beats the
+                // profiler's sample table — a PDB was shown as whitespace-split rows.
+                preview
               ) : profile?.columns?.length && profile.sampleRows?.length ? (
                 // Not a project file (no rows endpoint) — the profiler's sample, labelled as such.
                 <DatasetRowsTable

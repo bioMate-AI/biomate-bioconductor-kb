@@ -101,3 +101,15 @@ describe("format chip", () => {
     expect(screen.queryByTestId("dataset-header-format")).toBeNull()
   })
 })
+
+describe("a file with its own viewer is shown in it, not as the profiler's sample table", () => {
+  it("PDB → structure preview even when the profile carries columns/sampleRows", async () => {
+    profileBody = {
+      shape: { rows: 3, cols: 2 }, quality: "watch", notes: [],
+      columns: ["HEADER", "x"], sampleRows: [["ATOM", "1"], ["ATOM", "2"]],
+    }
+    renderObj("5e5z.pdb")
+    expect(await screen.findByTestId("text-preview-fallback")).toBeInTheDocument()
+    expect(screen.queryByTestId("dataset-preview-table")).toBeNull()
+  })
+})

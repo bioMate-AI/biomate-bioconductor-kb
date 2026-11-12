@@ -235,6 +235,14 @@ export function InlineStructureViewer({ text, ext }: { text: string; ext: string
           container.innerHTML = '';
           const viewer = $3Dmol.createViewer(container, { backgroundColor: 'white', antialias: true });
           viewer.addModel(text, format);
+          // Cartoon draws only protein / nucleic-acid backbones (CA / P atoms); a small molecule or
+          // a crystal (e.g. Si.cif) would render an empty canvas — show atoms instead.
+          const hasBackbone = (viewer.selectedAtoms?.({ atom: ['CA', 'P'] }) ?? [1]).length > 0;
+          if (style === 'cartoon' && !hasBackbone) {
+            viewer.removeAllModels?.();
+            if (!cancelled) setStyle('sphere');
+            return;
+          }
           const styleObj: Record<string, object> = {
             cartoon: { cartoon: { color: 'spectrum' } },
             stick: { stick: { radius: 0.15 } },
