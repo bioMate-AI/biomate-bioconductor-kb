@@ -52,6 +52,7 @@ import {
   Layers
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { DraftOptions } from "@/lib/one-shot-url-param"
 
 interface WorkflowProgress {
   id: string
@@ -101,7 +102,7 @@ interface ChatInterfaceProps {
    *  workflow cards (viewer, pipeline, chain) are suppressed in chat messages
    *  so workflow UI lives exclusively in the panel. */
   isPanelOpen?: boolean
-  onRegisterSetDraft?: (setter: (draft: string) => void) => void
+  onRegisterSetDraft?: (setter: (draft: string, opts?: DraftOptions) => void) => void
   /**
    * Registers a parent-triggered send. Useful for the
    * IntentClarificationCard re-submit flow: when the user picks a
@@ -498,7 +499,7 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const followChatTailRef = useRef(true)
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
-  const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
+  const localSetDraftRef = useRef<((draft: string, opts?: DraftOptions) => void) | null>(null)
   const [preparingExample, setPreparingExample] = useState(false)
   const preparingExampleRef = useRef(false)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
@@ -1689,7 +1690,15 @@ export function ChatInterface({
     }
 
     // Add user message to chat session (create one if it doesn't exist)
-    const sessionId = chatSession?.id || chatHistoryService.createNewSession().id
+    // The chat is created in (or, still empty, filed into) the active project from its first
+    // message — the same project the stream context carries — so it never sits under "Other chats".
+    const sendProjectId = (() => {
+      if (activeProjectId) return activeProjectId
+      try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null } catch { return null }
+    })()
+    const sessionId = chatSession?.id
+      ? (chatHistoryService.fileEmptySessionInProject(chatSession.id, sendProjectId), chatSession.id)
+      : chatHistoryService.createNewSession(sendProjectId).id
     const updatedSession = chatHistoryService.addMessage(sessionId, userMessage)
     if (updatedSession && onChatUpdated) {
       onChatUpdated(updatedSession)

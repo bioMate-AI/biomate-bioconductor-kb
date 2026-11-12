@@ -367,6 +367,87 @@ export function recordedProcessPhases(processes: unknown): ViewerPhase[] {
   });
 }
 
+/**
+ * Normalize a process / step identifier so a planned step and its runtime
+ * process match despite nf-core's fully-qualified naming.
+ *
+ * Nextflow reports a process as `NFCORE_RNASEQ:RNASEQ:FASTQC`, while the planned
+ * step carries a short name / tool id (`fastqc`). Reduce both to the LAST
+ * `:`-delimited segment, lowercased, with non-alphanumerics stripped, so
+ * `NFCORE_RNASEQ:RNASEQ:FASTQC` and `fastqc` both collapse to `fastqc`, and
+ * `STAR_ALIGN` / `star_align` both collapse to `staralign`. Strict equality on
+ * this key avoids the over-matching that sank the earlier attempt (a loose
+ * substring match let one record fill several planned steps).
+ */
+export function nfcoreProcessKey(name: string | undefined | null): string {
+  if (!name || typeof name !== 'string') return '';
+  const tail = name.split(':').pop() || name;
+  return tail.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function plannedMatchKeys(step: ViewerPhase): string[] {
+  const keys = [step.processName, step.toolId, step.name, step.id].map(nfcoreProcessKey).filter(Boolean);
+  return Array.from(new Set(keys));
+}
+
+/**
+ * Merge the planned phase list with the runtime-recorded processes.
+ *
+ * Why this exists: a stopped / paused run records only the processes that
+ * actually started, so returning the recorded list alone made every
+ * not-yet-started phase vanish from the panel (founder: "I stopped the first
+ * phase and the rest all disappeared"). This merge keeps the full planned list
+ * visible while reflecting real runtime status on the phases that ran.
+ *
+ * Rules (each addresses a HIGH bug the first attempt hit):
+ *  - A recorded process is consumed AT MOST ONCE, so one record cannot fill
+ *    several identically-named planned steps.
+ *  - A matched planned step adopts the runtime status AND evidence
+ *    (error/workDir/jobId/duration/tool/outputs), so a FAILED run keeps its
+ *    failure detail instead of dropping it.
+ *  - An unmatched planned step stays `pending` (the fix — it is no longer
+ *    dropped).
+ *  - A recorded process that matches no planned step is appended, so a
+ *    dynamically-spawned process is never hidden.
+ */
+export function mergePlannedWithRecorded(planned: ViewerPhase[], recorded: ViewerPhase[]): ViewerPhase[] {
+  if (!recorded.length) return planned;   // pre-run / idle: show the plan
+  if (!planned.length) return recorded;   // old sessions without planned steps
+
+  const consumed = new Set<number>();
+  const merged: ViewerPhase[] = planned.map((step) => {
+    const keys = plannedMatchKeys(step);
+    const idx = recorded.findIndex(
+      (rec, i) => !consumed.has(i) && keys.includes(nfcoreProcessKey(rec.processName || rec.name)),
+    );
+    if (idx === -1) return step; // keep pending — do NOT drop the planned step
+    consumed.add(idx);
+    const rec = recorded[idx];
+    const hasOutputs = Array.isArray(rec.outputFiles) && rec.outputFiles.length > 0;
+    const hasParams = rec.parameters && Object.keys(rec.parameters).length > 0;
+    return {
+      ...step,
+      status: rec.status,
+      processName: rec.processName ?? step.processName,
+      tool: rec.tool ?? step.tool,
+      toolVersion: rec.toolVersion ?? step.toolVersion,
+      duration: rec.duration ?? step.duration,
+      workDir: rec.workDir ?? step.workDir,
+      jobId: rec.jobId ?? step.jobId,
+      errorMessage: rec.errorMessage ?? step.errorMessage,
+      outputFiles: hasOutputs ? rec.outputFiles : step.outputFiles,
+      parameters: hasParams ? rec.parameters : step.parameters,
+    };
+  });
+  // If NOT ONE planned step matched a recorded process, the plan does not
+  // correspond to this run — it is a generic placeholder (e.g. a single
+  // "Step 1" stub) or a stale plan for a different pipeline. Show the real
+  // recorded processes instead of phantom pending steps beside them.
+  if (consumed.size === 0) return recorded;
+  const extras = recorded.filter((_, i) => !consumed.has(i));
+  return [...merged, ...extras];
+}
+
 export function qcWorkflowDomain(definition: any, profile?: { domain_hint?: string } | null): string {
   if (profile?.domain_hint) return profile.domain_hint.toLowerCase();
   const explicit = String(definition?.domain || '').toLowerCase();
@@ -1757,40 +1838,37 @@ export function NextflowWorkflowViewer({
   }, []);
 
   const phases = React.useMemo<ViewerPhase[]>(() => {
-    // Saved execution records take precedence over static pipeline/parser placeholders.
-    // NOTE: the "keep the full planned phase list on a stopped run" merge was reverted
-    // 2026-11-12 — three review rounds (subagents, /code-review, GPT-6.1 + Claude 5.5)
-    // found HIGH bugs (dropped failure/error data on failed runs, one-recorded-matches-
-    // many-planned, nf-core name matching). It is being redesigned separately with real
-    // nf-core matching tests; this restores the prior, known behavior.
     const recorded = recordedProcessPhases(nextflowStatus?.processes);
-    if (recorded.length) return recorded;
     // Prefer stored steps; fall back to lazily-fetched steps for old sessions
     const stepsSource = (
       workflowDefinition?.steps && typeof workflowDefinition.steps === "object" && Object.keys(workflowDefinition.steps).length > 0
         ? workflowDefinition.steps
         : lazySteps ?? {}
     );
-    if (Object.keys(stepsSource).length > 0) {
-      return Object.entries(stepsSource).map(([stepKey, rawStep], index) => {
-        const step = (rawStep || {}) as Record<string, unknown>;
-        return {
-          id: String(step.id || stepKey || `step-${index}`),
-          name: String(step.name || step.label || step.tool_id || `Step ${index + 1}`),
-          status: "pending" as ViewerPhaseStatus,
-          description: String(step.annotation || step.description || ""),
-          toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
-          parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
-          inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
-          summary: typeof step.summary === "string" ? step.summary : undefined,
-          autoloop: typeof step.autoloop === "boolean" ? step.autoloop : undefined,
-          phase_group: typeof step.phase_group === "string" && step.phase_group ? step.phase_group : undefined,
-          phase_label: typeof step.phase_label === "string" && step.phase_label ? step.phase_label : undefined,
-        };
-      });
-    }
-    // No step data from backend — return empty so the viewer shows a clean idle state
-    return [];
+    const planned: ViewerPhase[] = Object.keys(stepsSource).length > 0
+      ? Object.entries(stepsSource).map(([stepKey, rawStep], index) => {
+          const step = (rawStep || {}) as Record<string, unknown>;
+          return {
+            id: String(step.id || stepKey || `step-${index}`),
+            name: String(step.name || step.label || step.tool_id || `Step ${index + 1}`),
+            status: "pending" as ViewerPhaseStatus,
+            description: String(step.annotation || step.description || ""),
+            toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
+            parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
+            inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
+            summary: typeof step.summary === "string" ? step.summary : undefined,
+            autoloop: typeof step.autoloop === "boolean" ? step.autoloop : undefined,
+            phase_group: typeof step.phase_group === "string" && step.phase_group ? step.phase_group : undefined,
+            phase_label: typeof step.phase_label === "string" && step.phase_label ? step.phase_label : undefined,
+          };
+        })
+      : [];
+    // Keep the full planned phase list visible while reflecting real runtime status
+    // on the phases that ran — so a stopped/paused run no longer drops its
+    // not-yet-started phases (founder: "I stopped the first phase and the rest all
+    // disappeared"). Redesigned 2026-11-12 with real nf-core matching tests;
+    // supersedes the 2026-11-12 revert. See mergePlannedWithRecorded.
+    return mergePlannedWithRecorded(planned, recorded);
   }, [workflowDefinition, lazySteps, nextflowStatus?.processes]);
 
   useEffect(() => {
@@ -3595,7 +3673,7 @@ export function NextflowWorkflowViewer({
               : undefined
             }
             errorMessage={errorMessage}
-            failedSteps={wasCancelled ? undefined : updatedPhases.filter(phase => phase.status === 'failed').map(phase => phase.name)}
+            failedSteps={wasCancelled ? undefined : updatedPhases.filter(phase => phase.status === 'failed').map(phase => phase.processName || phase.name)}
             logTail={Array.isArray(nextflowStatus?.log_tail) ? nextflowStatus.log_tail.filter((line: unknown) => typeof line === 'string') : undefined}
             autofix={wasCancelled ? undefined : autofix}
             // P0 fix (2026-06-16 after-run audit): the viewer never forwarded

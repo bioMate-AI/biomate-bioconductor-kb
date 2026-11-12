@@ -23,7 +23,7 @@ import "./data-hub.css"
  */
 
 import { DatasetFilePreview } from "@/components/datasets/dataset-file-preview"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSearch } from "wouter"
 import {
   Database,
@@ -45,6 +45,24 @@ import { downloadProjectFile } from "@/components/datasets/datasets-api"
 import { PaneResizeHandle, useTreeWidth } from "@/components/datasets/pane-resize-handle"
 import { t, tOr, locale } from "@/lib/i18n"
 import { toDatasetRef } from "@/components/datasets/to-dataset-ref"
+
+/** The detail pane sits under the file list (stacked panes), not beside it. */
+export function isStackedBelow(list: HTMLElement, detail: HTMLElement): boolean {
+  const l = list.getBoundingClientRect(), d = detail.getBoundingClientRect()
+  return l.height > 0 && d.top >= l.bottom - 1
+}
+
+/** The chat entry for "Run full QC": this project, this file attached, the QC request sent. The
+ *  request's first sentence ("QC report: <file>") is the chat's title — a whole phrase naming what
+ *  it checks (fallbackTitle titles a chat by its first sentence). */
+export function runQcChatUrl(projectId: string | null, fileId: string, fileName: string): string {
+  const q = new URLSearchParams()
+  if (projectId) q.set("project", projectId)
+  q.set("attachFile", fileId)
+  q.set("draft", t("dataset_obj.qc_request", { name: fileName.split("/").pop() || fileName }))
+  q.set("send", "1")
+  return `/?${q.toString()}`
+}
 
 // Map a project lifecycle status to a dot colour. Purely presentational —
 // the status itself comes from the real project record.
@@ -159,9 +177,23 @@ export default function DataHubPage() {
   const [selected, setSelected] = useState<ProjectFile | null>(null)
   // File-tree width in the two-pane layout: user-resizable, remembered (pane-resize-handle).
   const [treeWidth, setTreeWidth] = useTreeWidth()
+  // The opened file / folder: when the panes are stacked (a narrow workspace), the object opens
+  // BELOW the whole file list — bring it into view, or a tap on a file seems to do nothing.
+  const listRef = useRef<HTMLDivElement>(null)
+  const detailRef = useRef<HTMLDivElement>(null)
   // Or an input folder, opened as one object (pairs, 10x matrix, format roll-up). One of the
   // two is shown; picking either replaces the other.
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+  const openedKey = selected ? `file:${selected.id}` : selectedFolder !== null ? `folder:${selectedFolder}` : null
+  useEffect(() => {
+    if (!openedKey) return
+    const list = listRef.current, detail = detailRef.current
+    if (!list || !detail) return
+    if (isStackedBelow(list, detail)) detail.scrollIntoView?.({ block: "start", behavior: "smooth" })
+  }, [openedKey])
+  // Bumped when the open file is saved / restored as a new version, so the tree re-reads the list
+  // (sizes, keys) and the selected row is the current one.
+  const [treeReload, setTreeReload] = useState(0)
 
   // Deep-link: `/files?file=<datasetId>` opens that dataset as an object. This
   // is how a live reference chip elsewhere (composer, outputs, report) resolves
@@ -228,7 +260,7 @@ export default function DataHubPage() {
         // Stack by available workspace width, including sidebar/panel resizing.
         // The reference two-pane layout remains when both panes fit.
         <div className="data-hub-panes" data-testid="data-hub-panes" style={{ ["--data-hub-tree-w" as any]: `${treeWidth}px` }}>
-          <div className="data-hub-file-list min-w-0">
+          <div className="data-hub-file-list min-w-0" ref={listRef}>
             <PaneResizeHandle width={treeWidth} onWidth={setTreeWidth} />
             <ProjectFileTree
               projectId={activeProjectId}
@@ -237,18 +269,26 @@ export default function DataHubPage() {
               selectedFolder={selectedFolder}
               selectFileId={deepLinkFileId}
               revealFolder={deepLinkFolder}
+              reloadKey={treeReload}
               canEdit
             />
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0" ref={detailRef} data-testid="data-hub-detail">
             {selectedFolder !== null && !selected ? (
               <FolderProfileView projectId={activeProjectId} path={selectedFolder} />
             ) : selected ? (
               <DatasetObject
                 dataset={toDatasetRef(selected)}
                 projectId={activeProjectId ?? undefined}
-                preview={<DatasetFilePreview projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
+                // Keyed by the storage key: a new version (save / restore) re-reads the content.
+                preview={<DatasetFilePreview key={`${selected.id}:${selected.s3_key ?? ""}`} projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
+                onFileChanged={(file) => {
+                  // The server's row for the new version: its storage key replaces the archived one,
+                  // so the profile / rows / links of the open file read the CURRENT version.
+                  setSelected((prev) => (prev && prev.id === file.id ? ({ ...prev, ...(file as Partial<ProjectFile>) }) : prev))
+                  setTreeReload((n) => n + 1)
+                }}
                 onBack={() => setSelected(null)}
                 onDownload={() => handleDownload(selected)}
                 onOpenRun={(runId) =>
@@ -262,17 +302,12 @@ export default function DataHubPage() {
                   window.location.assign(`/?${q.toString()}`)
                 }}
                 onRunQC={() => {
-                  // Run REAL QC through BioMate's engine: attach the dataset and
-                  // pre-fill a QC request (?draft= — review before the billable
-                  // run, and avoids the attach/auto-send race). The chat pipeline
-                  // then selects the QC workflow (FastQC/MultiQC/domain QC), feeds
-                  // this file as input, runs it and shows the report — unlike the
-                  // lightweight ingest profiler in the Data profile section.
-                  const q = new URLSearchParams()
-                  if (activeProjectId) q.set("project", activeProjectId)
-                  q.set("attachFile", selected.id)
-                  q.set("draft", t("dataset_obj.qc_request"))
-                  window.location.assign(`/?${q.toString()}`)
+                  // "Run full QC": open a chat in this project with the dataset attached and the QC
+                  // request SENT (`send=1`). The composer sends it only after the file is linked (no
+                  // attach/send race); the chat then decides how to check the file — an analysis of
+                  // its contents, or a QC workflow where one fits — and writes a QC report. The
+                  // button's tooltip (dataset_obj.run_qc_tip) says exactly this, nothing more.
+                  window.location.assign(runQcChatUrl(activeProjectId, selected.id, selected.name))
                 }}
               />
             ) : (

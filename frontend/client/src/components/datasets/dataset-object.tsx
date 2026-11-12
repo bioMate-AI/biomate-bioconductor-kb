@@ -17,12 +17,15 @@
  * scoped to that action and never replace the preview/provenance content.
  */
 
-import { useState, useEffect, useCallback, cloneElement, isValidElement, type ReactNode } from "react"
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, cloneElement, isValidElement, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ProfileErrorState } from "./profile-error"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   ChevronLeft,
+  ChevronRight,
   Eye,
   GitBranch,
   History,
@@ -36,9 +39,11 @@ import {
   SquareTerminal,
   Pencil,
   Loader2,
+  Copy,
+  Check,
 } from "lucide-react"
 import { DataPerception, formatStatValue, type PerceptionQuality, type StructureEvidence } from "@/components/data-perception"
-import { datasetKind, datasetViewModel, effectiveQuality, profileEmptyCode, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
+import { datasetKind, datasetViewModel, effectiveQuality, findingsShownAsContent, profileEmptyCode, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
 import { AnnDataSummary, KindSummary, DownloadState } from "./dataset-kind-views"
 import { DatasetFilePreview, type FilePreviewStatus } from "./dataset-file-preview"
 import { t, tOr, locale } from "@/lib/i18n"
@@ -60,7 +65,8 @@ import { DatasetVersionsList } from "./dataset-versions-list"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
-import { datasetShape, editErrorMessage, kindLabel, localizedFormatLabel, openInErrorMessage } from "./dataset-presentation"
+import { datasetShape, editErrorMessage, kindLabel, localizedFormatLabel, openInErrorMessage, sourceLabel } from "./dataset-presentation"
+import { breakAtSeparators, splitPath } from "./name-breaks"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -125,6 +131,10 @@ interface DatasetObjectProps {
   onAnalyze?: () => void
   /** Run a full QC workflow ON this dataset through BioMate's engine. */
   onRunQC?: () => void
+  /** A save or restore wrote a new version: the server's updated file row (new storage key, size,
+   *  hash, version_no). The owner replaces its copy of the row and refreshes its file list, so
+   *  what it passes back as `dataset` is the current version — never the archived key. */
+  onFileChanged?: (file: Record<string, unknown>) => void
   className?: string
   preview?: ReactNode
 }
@@ -151,7 +161,7 @@ function LoadingState({ label, testId }: { label: string; testId?: string }) {
 }
 
 export function DatasetObject({
-  dataset,
+  dataset: datasetProp,
   onBack,
   onDownload,
   onOpenRun,
@@ -160,7 +170,20 @@ export function DatasetObject({
   className,
   preview,
   projectId,
+  onFileChanged,
 }: DatasetObjectProps) {
+  // A save / restore moves the file to a NEW storage key (the old one becomes an archived version
+  // the profile gate refuses). Until the owner passes the updated row back, the panel uses the key
+  // the server returned — so the profile, rows and links never ask for the pre-edit key. Applies
+  // only while the owner still passes the ref it replaced; the owner's newer row then wins.
+  const [fileUpdate, setFileUpdate] = useState<{ id: string; fromRef: string | null; ref: string; size: number | null; contentHash: string | null } | null>(null)
+  const dataset: DatasetRef = fileUpdate && fileUpdate.id === datasetProp.id && fileUpdate.fromRef === datasetProp.ref
+    ? { ...datasetProp, ref: fileUpdate.ref, size: fileUpdate.size ?? datasetProp.size, contentHash: fileUpdate.contentHash ?? datasetProp.contentHash }
+    : datasetProp
+  // The file currently shown — async results (compare, version list) for another file are dropped.
+  const fileIdRef = useRef(dataset.id)
+  fileIdRef.current = dataset.id
+  const { folders: folderParts, base: baseName } = splitPath(dataset.name)
   // "Where it came from" + Versions lazily fetch their backing data on first open.
   const [wherefromOpened, setWherefromOpened] = useState(false)
   const [versionsOpened, setVersionsOpened] = useState(false)
@@ -170,11 +193,32 @@ export function DatasetObject({
   const [tabSel, setTabSel] = useState<{ id: string; tab: "preview" | "versions" | "wherefrom" } | null>(null)
   const tab = tabSel?.id === dataset.id ? tabSel.tab : "preview"
   const setTab = (next: "preview" | "versions" | "wherefrom") => setTabSel({ id: dataset.id, tab: next })
+  // Tab list overflow (narrow panels): which sides hold tabs scrolled out of view.
+  const tablistRef = useRef<HTMLDivElement>(null)
+  const [tabOverflow, setTabOverflow] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
+  const measureTabOverflow = useCallback(() => {
+    const el = tablistRef.current
+    if (!el) return
+    const left = el.scrollLeft > 1
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setTabOverflow((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+  }, [])
+  useLayoutEffect(() => {
+    measureTabOverflow()
+    const el = tablistRef.current
+    if (!el || typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measureTabOverflow)
+      return () => window.removeEventListener("resize", measureTabOverflow)
+    }
+    const ro = new ResizeObserver(measureTabOverflow)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [measureTabOverflow])
   const setPreviewView = (view: PreviewView) => setViewSel({ id: dataset.id, view })
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
-  const { data: profile, isLoading, isError, refetch: refetchProfile } = usePerceptionProfile(
+  const { data: profile, isLoading, isError, error: profileError, isFetching: profileFetching, refetch: refetchProfile } = usePerceptionProfile(
     dataset.ref,
     dataset.name,
   )
@@ -264,25 +308,63 @@ export function DatasetObject({
   const [versionError, setVersionError] = useState<string | null>(null)
   const loadProjectVersions = async () => {
     if (!projectId) return
+    const forId = dataset.id
     try {
-      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions`, { credentials: "include" })
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(forId)}/versions`, { credentials: "include" })
       if (!r.ok) return
       const j = await r.json()
+      if (fileIdRef.current !== forId) return
       setProjectVersions((j?.versions ?? []) as typeof versions)
     } catch { /* best-effort — falls back to the note-log list */ }
   }
+  // Load the version list when the file opens, not only when the Versions tab is opened: the
+  // header chip shows the CURRENT version and read "v1" for an edited/re-uploaded file until the
+  // tab was visited. Cleared per file so one file's label never shows on another.
   useEffect(() => {
-    if (!versionsOpened || !versionable) return
+    setProjectVersions(null)
+    if (!versionable) return
     let cancelled = false
     ;(async () => { if (!cancelled) await loadProjectVersions() })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versionsOpened, projectId, dataset.id, versionable])
+  }, [projectId, dataset.id, versionable])
+  // Compare a past version against current (design §4.4 — column + cell diff).
+  const [diffFor, setDiffFor] = useState<string | null>(null)
+  const [diffData, setDiffData] = useState<any | null>(null)
+  const [diffLoading, setDiffLoading] = useState(false)
+  // "Restored v1 as v3" after a restore (cleared by the next save / restore / file).
+  const [restored, setRestored] = useState<{ from: string; to: number | null } | null>(null)
+  // Versions state belongs to the file it was made on: opening another file never shows this
+  // file's open diff, error, restore-in-progress or restore message.
+  useEffect(() => {
+    setDiffFor(null); setDiffData(null); setDiffLoading(false)
+    setVersionError(null); setRestoringVersion(null); setRestored(null)
+  }, [dataset.id])
+
+  // A save / restore answered with the file's new row: use its storage key from now on (the
+  // profile re-reads the NEW key — the old key is an archived version), and tell the owner.
+  const applyFileRow = (file: any) => {
+    const ref = file && typeof file === "object" && typeof file.s3_key === "string" && file.s3_key ? file.s3_key : null
+    if (ref && ref !== dataset.ref) {
+      setFileUpdate({
+        id: datasetProp.id, fromRef: datasetProp.ref, ref,
+        size: file.size == null ? null : Number(file.size),
+        contentHash: typeof file.content_hash === "string" ? file.content_hash : null,
+      })
+    } else {
+      // Same key (or an older server that sends no row): re-profile what is there.
+      refetchProfile?.()
+    }
+    if (file && typeof file === "object") onFileChanged?.(file)
+  }
+
   const handleRestore = async (versionNo: string) => {
     if (!projectId) return
-    setRestoringVersion(versionNo); setVersionError(null)
+    const forId = dataset.id
+    setRestoringVersion(versionNo); setVersionError(null); setRestored(null)
     // The version the user is looking at: the server refuses (409) a restore made from a stale list.
     const seen = Number(projectVersions?.find((v) => v.current)?.version)
+    const fromLabel = projectVersions?.find((v) => v.version === versionNo)?.label || `v${versionNo}`
     try {
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/restore`, {
         method: "POST", credentials: "include",
@@ -294,36 +376,42 @@ export function DatasetObject({
         throw new EditError(t('dataset_obj.restore_conflict_version'))
       }
       if (!r.ok) throw new EditError(t('dataset_obj.with_status', { message: t('dataset_obj.restore_failed'), status: r.status }))
+      const j = await r.json().catch(() => ({}))
+      if (fileIdRef.current !== forId) return
+      // The restored content is now current: a diff opened against the previous current version
+      // and the previous "Saved as vN" no longer describe the file.
+      setDiffFor(null); setDiffData(null); setEditSaved(null)
+      const to = Number((j as any)?.file?.version_no)
+      setRestored({ from: fromLabel, to: Number.isInteger(to) && to >= 1 ? to : null })
       await loadProjectVersions()
-      // The file's content changed: re-profile it and re-read its rows, so what is shown — and the
-      // `version` the next edit sends as baseVersion — is the restored version, not the one before.
+      // The file's content changed: re-profile it (at its new key) and re-read its rows, so what is
+      // shown — and the `version` the next edit sends as baseVersion — is the restored version.
       setCellEdits({})
-      refetchProfile?.()
+      applyFileRow((j as any)?.file)
       rowsQ.reload()
     } catch (e: any) {
-      setVersionError(e instanceof EditError ? e.message : t('dataset_obj.restore_failed'))
+      if (fileIdRef.current === forId) setVersionError(e instanceof EditError ? e.message : t('dataset_obj.restore_failed'))
     } finally {
-      setRestoringVersion(null)
+      if (fileIdRef.current === forId) setRestoringVersion(null)
     }
   }
   const effectiveVersions = versionable ? (projectVersions ?? []) : versions
 
-  // Compare a past version against current (design §4.4 — column + cell diff).
-  const [diffFor, setDiffFor] = useState<string | null>(null)
-  const [diffData, setDiffData] = useState<any | null>(null)
-  const [diffLoading, setDiffLoading] = useState(false)
   const handleCompare = async (versionNo: string) => {
     if (!projectId) return
     if (diffFor === versionNo) { setDiffFor(null); setDiffData(null); return }  // toggle off
-    setDiffFor(versionNo); setDiffData(null); setDiffLoading(true); setVersionError(null)
+    const forId = dataset.id
+    setDiffFor(versionNo); setDiffData(null); setDiffLoading(true); setVersionError(null); setRestored(null)
     try {
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/diff`, { credentials: "include" })
       if (!r.ok) throw new Error(t('dataset_obj.with_status', { message: t('dataset_obj.compare_failed'), status: r.status }))
-      setDiffData(await r.json())
+      const body = await r.json()
+      if (fileIdRef.current === forId) setDiffData(body)
     } catch (e: any) {
+      if (fileIdRef.current !== forId) return
       setVersionError(e instanceof Error && e.message.startsWith(t('dataset_obj.compare_failed')) ? e.message : t('dataset_obj.compare_failed')); setDiffFor(null)
     } finally {
-      setDiffLoading(false)
+      if (fileIdRef.current === forId) setDiffLoading(false)
     }
   }
 
@@ -376,8 +464,11 @@ export function DatasetObject({
       const j = await r.json().catch(() => ({}))
       if (!r.ok) throw new EditError(editErrorMessage(r.status, j))
       setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
+      // An open diff compared against the version this save replaced; a restore message is stale.
+      setDiffFor(null); setDiffData(null); setRestored(null)
       await loadProjectVersions()
-      refetchProfile?.()
+      // The saved version lives at a NEW storage key: profile it there (never the archived key).
+      applyFileRow((j as any)?.file)
       // Re-read the rows from the first page: the next edit must be based on the saved version.
       rowsQ.reload()
     } catch (e: any) {
@@ -427,11 +518,20 @@ export function DatasetObject({
     columnsPending: rowsInFlight || (isLoading && !hasColumns),
     versionable,
     projectFile: Boolean(projectId),
+    // A header-only table (the rows reader's true total is 0, or the profile read 0 rows under a
+    // header) has no rows to edit or to QC.
+    noDataRows: hasColumns && (hasFullRows ? rowsQ.total === 0 : !rowsInFlight && profileRows === 0),
   })
   const editable = vm.canEdit
   const canOpenIn = vm.canOpenIn
+  // Plot only where something can be plotted: a column of numbers in the loaded rows (a header-only
+  // table, a gene list, barcodes or an all-text sheet has none). A table whose decimal mark is a
+  // comma ("1,5") counts once the reader reports `decimal: ","`.
+  const decimal = rowsQ.decimal ?? (typeof profile?.decimal === "string" ? profile.decimal : null)
+  const plotable = hasColumns && statRows.length > 0 && hasNumericColumns(statCols!, statRows, decimal)
+  const views = vm.views.filter((v) => v !== "plot" || plotable)
   const previewView: PreviewView =
-    viewSel?.id === dataset.id && vm.views.includes(viewSel.view) ? viewSel.view : vm.views[0]
+    viewSel?.id === dataset.id && views.includes(viewSel.view) ? viewSel.view : views[0]
   const quality = profile ? effectiveQuality(profile) : undefined
   // The file's own viewer, told the content kind (a FASTQ named .txt shows as reads) and asked
   // to report what it shows (loading / ready / error / none) for `data-preview-kind`.
@@ -439,8 +539,8 @@ export function DatasetObject({
   const onFileStatus = useCallback((status: FilePreviewStatus) => setFileStatus({ id: dataset.id, status }), [dataset.id])
   const isFilePreview = isValidElement(preview) && preview.type === DatasetFilePreview
   const kindPreview = isFilePreview
-    ? cloneElement(preview as React.ReactElement<{ kind?: string; format?: string; structure?: StructureEvidence | null; onStatus?: (s: FilePreviewStatus) => void }>,
-        { kind, format: profile?.format?.ext, structure: profile?.structure ?? null, onStatus: onFileStatus })
+    ? cloneElement(preview as React.ReactElement<{ kind?: string; format?: string; structure?: StructureEvidence | null; onStatus?: (s: FilePreviewStatus) => void; profilePending?: boolean }>,
+        { kind, format: profile?.format?.ext, structure: profile?.structure ?? null, onStatus: onFileStatus, profilePending: isLoading })
     : preview
   // Another preview element reports nothing: it is taken as drawn.
   const filePreviewStatus: FilePreviewStatus = !isFilePreview ? "ready"
@@ -495,8 +595,16 @@ export function DatasetObject({
       : s.code === "columns" ? { code: s.code, value: rowsQ.columns.length }
       : s)
   }
+  // A JSON / YAML document's "entries" are its top-level keys (object) or items (array) — said so,
+  // since the QC card also counts keys and values at every level.
+  const structuredRoot = profile?.structured?.root
   const statLabel = (code: string) =>
-    code === "rows" ? t('dataset_obj.stat_rows') : code === "columns" ? t('dataset_obj.stat_columns') : tOr(`perception.stat.${code}`, code)
+    code === "rows" ? t('dataset_obj.stat_rows') : code === "columns" ? t('dataset_obj.stat_columns')
+    : code === "entries" && structuredRoot === "object" ? t('dataset_obj.stat_top_keys')
+    : code === "entries" && structuredRoot === "array" ? t('dataset_obj.stat_top_items')
+    : tOr(`perception.stat.${code}`, code)
+  const statHint = (code: string) =>
+    code === "entries" && (structuredRoot === "object" || structuredRoot === "array") ? t(`dataset_obj.stat_top_${structuredRoot === "object" ? "keys" : "items"}_tip`) : undefined
   const viewToggles: Array<[PreviewView, typeof TableIcon, string]> = [
     ["table", TableIcon, t('dataset_obj.view_table')],
     ["columns", Columns3, t('dataset_obj.view_columns')],
@@ -523,16 +631,26 @@ export function DatasetObject({
           <span className="shrink-0">/</span>
           {/* The tree root the file lives under: run outputs, files generated in chat (分析结果), or inputs. */}
           <span className="shrink-0">{isRunOutput ? t('dataset_obj.outputs') : dataset.source === "run_code" ? t('file_tree.analysis_outputs') : t('dataset_obj.inputs')}</span>
+          {/* Each folder of the file's path is its own crumb ("pairs / S1_R1.fastq.gz"), so the
+              title can be the bare file name. */}
+          {folderParts.map((part, i) => (
+            <span key={i} className="contents">
+              <span className="shrink-0">/</span>
+              <span className="min-w-0 max-w-[10rem] truncate" data-testid="dataset-object-crumb-folder" title={folderParts.slice(0, i + 1).join("/")}>{part}</span>
+            </span>
+          ))}
           <span className="shrink-0">/</span>
           <span className="min-w-0 flex-1 truncate" data-testid="dataset-object-id" title={dataset.name}>
-            {dataset.name}
+            {baseName}
           </span>
         </div>
 
         {/* Identity row: name · v{N} · quality pill · actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          <CardTitle className="text-lg font-mono font-semibold min-w-0 max-w-full [overflow-wrap:anywhere]" title={dataset.name} data-testid="dataset-object-name">
-            {dataset.name}
+          {/* The bare file name (its folders are in the breadcrumb, the full path on hover). Breaks
+              only at name separators (_ . -), never inside a word. */}
+          <CardTitle className="text-lg font-mono font-semibold min-w-0 max-w-full break-normal" title={dataset.name} data-testid="dataset-object-name">
+            {breakAtSeparators(baseName)}
           </CardTitle>
           {/* Type + size badges removed from the header (item 6 H6): they
               duplicated the stat grid below. The header keeps only identity —
@@ -548,6 +666,7 @@ export function DatasetObject({
               className="text-xs font-mono"
               data-testid="dataset-header-format"
               data-format-source={profile.format.source}
+              data-format-layout={profile.format.layout || undefined}
               title={t('dataset_obj.format_chip_title', {
                 label: localizedFormatLabel(profile.format),
                 source: t(profile.format.source === "galaxy" ? 'dataset_obj.format_source_galaxy' : 'dataset_obj.format_source_biomate'),
@@ -570,10 +689,10 @@ export function DatasetObject({
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
-                project file into the user's Galaxy history and launches the IT.
-                DISABLED 2026-11-11 (founder): not functioning — commented out via
-                `false &&` until the interactive-tool launch path works. */}
-            {false && canOpenIn && (
+                project file into the user's Galaxy history and launches the IT. Offered only
+                when OPEN_IN_AVAILABLE (dataset-view-model.ts; off since 2026-11-11 until the
+                interactive-tool launch path works) — the notes that mention it follow the same switch. */}
+            {canOpenIn && (
               <Button
                 variant="outline"
                 size="sm"
@@ -623,7 +742,12 @@ export function DatasetObject({
       <CardContent>
         {/* Segmented pill tabs (design i05-2 / t10-1): a gray track with the
             selected tab as a raised white box, not an underline. */}
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
+        {/* One line at every width: a narrow panel scrolls the tab list sideways rather than
+            wrapping a tab onto a second row. */}
+        {/* When the tabs do not fit (a 390 px phone: "Provenance" cut mid-word), the hidden side
+            fades out and a chevron scrolls to it — a cut tab never reads as the whole label. */}
+        <div className="relative mb-3" data-testid="dataset-tablist-wrap" data-overflow-right={tabOverflow.right ? "true" : undefined} data-overflow-left={tabOverflow.left ? "true" : undefined}>
+        <div ref={tablistRef} onScroll={measureTabOverflow} className="flex w-full min-w-0 flex-nowrap items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-0.5 [scrollbar-width:none]" role="tablist" data-testid="dataset-tablist">
           {([
             ["preview", Eye, t('file_tree.preview')],
             ["versions", History, t('dataset_obj.versions')],
@@ -635,13 +759,15 @@ export function DatasetObject({
               role="tab"
               aria-selected={tab === key}
               data-testid={`dataset-tab-${key}`}
-              onClick={() => {
+              onClick={(e) => {
                 setTab(key)
+                // A tab chosen while partly scrolled out of a narrow list comes fully into view.
+                e.currentTarget.scrollIntoView?.({ block: "nearest", inline: "nearest" })
                 if (key === "wherefrom") setWherefromOpened(true)
                 else if (key === "versions") setVersionsOpened(true)
               }}
               className={
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors " +
+                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors " +
                 (tab === key
                   ? "bg-background border border-border shadow-sm text-foreground font-medium"
                   : "border border-transparent text-muted-foreground hover:text-foreground")
@@ -652,15 +778,34 @@ export function DatasetObject({
             </HintTip>
           ))}
         </div>
+        {tabOverflow.left && (
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-lg bg-gradient-to-r from-muted to-transparent" data-testid="dataset-tablist-fade-left" />
+        )}
+        {tabOverflow.right && (
+          <>
+            <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-12 rounded-r-lg bg-gradient-to-l from-muted via-muted/80 to-transparent" data-testid="dataset-tablist-fade" />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 flex w-7 items-center justify-center rounded-r-lg text-muted-foreground hover:text-foreground"
+              onClick={() => tablistRef.current?.scrollBy?.({ left: tablistRef.current.clientWidth * 0.6, behavior: "smooth" })}
+              aria-label={t('dataset_obj.tabs_more')}
+              title={t('dataset_obj.tabs_more')}
+              data-testid="dataset-tablist-more"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
+        </div>
 
           {/* ── Preview: Table / Columns / Plot + stat grid ── */}
           {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview" data-kind={kind}
             data-preview-kind={previewShown.shown} aria-busy={previewBusy ? true : undefined}>
             {/* View toggles only where a file has more than one meaningful view (tables and
                 records: Table / Columns / Plot / Edit). Every other kind has one view — its own. */}
-            {vm.views.length > 1 && (
+            {views.length > 1 && (
               <div className="flex flex-wrap items-center gap-1.5" data-testid="dataset-preview-toggles">
-                {viewToggles.filter(([key]) => vm.views.includes(key)).map(([key, Icon, label]) => (
+                {viewToggles.filter(([key]) => views.includes(key)).map(([key, Icon, label]) => (
                   <button
                     key={key}
                     type="button"
@@ -726,10 +871,10 @@ export function DatasetObject({
               kindPreview ?? <DownloadState kind={kind} onDownload={onDownload} />
             )}
             {previewView === "content" && vm.content === "anndata" && (
-              isLoading ? <LoadingState label={t('dataset_obj.preview_loading')} /> : <AnnDataSummary profile={profile} kind={kind} onAnalyze={onAnalyze} />
+              isLoading ? <LoadingState label={t('dataset_obj.preview_loading')} /> : <AnnDataSummary profile={profile} kind={kind} canOpenIn={canOpenIn} />
             )}
             {previewView === "content" && vm.content === "summary" && (
-              isLoading ? <LoadingState label={t('dataset_obj.preview_loading')} /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
+              isLoading ? <LoadingState label={t('dataset_obj.preview_loading')} /> : <KindSummary profile={profile} kind={kind} />
             )}
             {previewView === "content" && vm.content === "empty" && emptyCode && (
               // The file has no content: say so (0 bytes / only blank lines) — not an error, not a
@@ -752,9 +897,15 @@ export function DatasetObject({
                     sampleRows={statRows}
                     findings={profile?.findings ?? []}
                     totalRows={shapeRows ?? undefined}
+                    profileStats={profile?.columnStats ?? null}
+                    profiledRows={profile?.profiledRows ?? null}
+                    decimal={decimal}
                     t={t}
                   />
-                  {hasFullRows && rowsQ.total != null && rowsQ.rows.length < rowsQ.total && rowsQ.total <= LOAD_ALL_CAP && (
+                  {/* Whole-file statistics need every row loaded — unless the profiler's columnStats
+                      already describe every column. */}
+                  {hasFullRows && rowsQ.total != null && rowsQ.rows.length < rowsQ.total && rowsQ.total <= LOAD_ALL_CAP
+                    && !statCols!.every((c) => profile?.columnStats?.some((cs) => cs.name === c)) && (
                     <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={rowsQ.loading}
                       onClick={rowsQ.loadAll} data-testid="dataset-columns-load-all">
                       {t('dataset_obj.load_all')}
@@ -769,11 +920,16 @@ export function DatasetObject({
             {previewView === "plot" && (
               // Histogram of a numeric column over the loaded rows. Nothing numeric (or no data
               // rows) → say so and offer chat, rather than an empty axis (spec §4.3).
-              hasColumns && statRows.length && hasNumericColumns(statCols!, statRows) ? (
-                <DatasetSamplePlot columns={statCols!} sampleRows={statRows} t={t} />
+              plotable ? (
+                <DatasetSamplePlot columns={statCols!} sampleRows={statRows} decimal={decimal} t={t}
+                  columnStats={profile?.columnStats ?? null}
+                  // A partially loaded table says the plot uses the loaded rows, and offers them all.
+                  total={hasFullRows ? rowsQ.total : null}
+                  onLoadAll={hasFullRows && rowsQ.total != null && rowsQ.total <= LOAD_ALL_CAP ? rowsQ.loadAll : undefined}
+                  loading={rowsQ.loading} />
               ) : (
                 <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
-                  <p>{t(hasColumns && !statRows.length ? 'dataset_obj.plot_no_rows' : 'dataset_obj.plot_future')}</p>
+                  <p>{t(hasColumns && !statRows.length ? 'dataset_obj.plot_no_rows' : canOpenIn ? 'dataset_obj.plot_future' : 'dataset_obj.plot_future_chat')}</p>
                   {onAnalyze && (
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
                       <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
@@ -848,15 +1004,27 @@ export function DatasetObject({
               ) : isLoading ? (
                 <LoadingState testId="dataset-quality-loading" label={t('dataset_obj.quality_loading')} />
               ) : isError || !profile ? (
-                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-error">
-                  {t('dataset_obj.quality_error')}
-                </p>
+                <ProfileErrorState
+                  error={profileError}
+                  onRetry={() => { void refetchProfile() }}
+                  retrying={profileFetching}
+                  testId="dataset-quality-error"
+                />
               ) : (
                 <DataPerception
                   profile={profile}
                   planImpact={profile.planImpact}
                   datasetName={dataset.name}
                   kind={kind}
+                  // The kind's measures (rows × columns, reads, cells…) are in the stat grid below:
+                  // shown once, not in both places.
+                  hideStats
+                  // …and what the Preview shows as content (AnnData parts, a sheet's values) is not
+                  // listed again among the notes.
+                  hideFindings={previewView === "content" ? findingsShownAsContent(vm.content, profile) : undefined}
+                  // …nor a finding that only restates the stat grid's numbers (variants · samples,
+                  // cells × genes, rows · columns), matched by code + params.
+                  shownStats={gridStats}
                 />
               )}
             </div>
@@ -865,7 +1033,7 @@ export function DatasetObject({
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
               {/* Rows / columns only for tables: for reads, sequences, alignments or matrices the
                   shape is not rows × columns; the QC card above shows those kinds' own measures. */}
-              {gridStats.map((s) => <StatCard key={s.code} stat={s.code} k={statLabel(s.code)} v={formatStatValue(s)} />)}
+              {gridStats.map((s) => <StatCard key={s.code} stat={s.code} k={statLabel(s.code)} hint={statHint(s.code)} v={formatStatValue(s)} />)}
               <StatCard stat="size" k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
               <StatCard stat="type" k={t('dataset_obj.stat_type')} v={kindLabel(kind)} />
             </div>
@@ -876,10 +1044,18 @@ export function DatasetObject({
 
           {/* ── Versions ── */}
           {tab === "versions" && (<div className="space-y-2" data-testid="dataset-versions">
+            {restored && (
+              <p role="status" className="text-xs text-emerald-600 dark:text-emerald-400" data-testid="dataset-version-restored">
+                {restored.to != null
+                  ? t('dataset_obj.restored_as', { from: restored.from, to: `v${restored.to}` })
+                  : t('dataset_obj.restored', { from: restored.from })}
+              </p>
+            )}
             {versionsQ.isLoading ? (
               <LoadingState testId="dataset-versions-loading" label={t('dataset_obj.versions_loading')} />
             ) : effectiveVersions.length ? (
               <DatasetVersionsList
+                key={dataset.id}
                 versions={effectiveVersions}
                 usedByCount={consumers.length}
                 versionable={versionable}
@@ -927,7 +1103,7 @@ export function DatasetObject({
                   origin — show the id plainly. Otherwise the source type. */}
               <Row
                 k={dataset.accession ? t('dataset_obj.accession') : t('dataset_obj.source')}
-                v={dataset.accession ? dataset.accession : fmt(dataset.source)}
+                v={dataset.accession ? dataset.accession : sourceLabel(dataset.source)}
                 mono={Boolean(dataset.accession)}
               />
               {isRunOutput ? (
@@ -963,17 +1139,13 @@ export function DatasetObject({
                 k={t('dataset_obj.added')}
                 v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString(INTL_LOCALE) : "—"}
               />
-              {/* Content hash (design §4.5.1) — the dedup identity. Same bytes added
-                  twice link to one entry. Shown abbreviated; full value on hover. */}
+              {/* The file's fingerprint (sha256 of its bytes, design §4.5.1) — the dedup identity:
+                  the same bytes added twice link to one entry. Called a fingerprint, explained on
+                  hover; abbreviated, with Copy for the full value. */}
               {dataset.contentHash && (
                 <Row
                   k={t('dataset_obj.content_hash')}
-                  v={
-                    <span title={`sha256:${dataset.contentHash}`} data-testid="dataset-content-hash">
-                      <span className="font-mono">{dataset.contentHash.slice(0, 12)}…</span>
-                      <span className="text-muted-foreground"> · {t('dataset_obj.dedup_note')}</span>
-                    </span>
-                  }
+                  v={<Fingerprint hash={dataset.contentHash} />}
                   last
                 />
               )}
@@ -984,28 +1156,9 @@ export function DatasetObject({
 
             {/* What used it, and what came out (design §4.5.3) */}
             <div className="rounded border p-2.5 space-y-1" data-testid="dataset-consumers">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
-                  {t('dataset_obj.what_used_it')}
-                </p>
-                {dataset.ref && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-sm gap-1"
-                    onClick={handleExportRoCrate}
-                    disabled={exporting}
-                    title={t('file_tree.export_crate')}
-                    data-testid="dataset-object-rocrate"
-                  >
-                    <FileArchive className="h-3 w-3" />
-                    {exporting ? t('dataset_obj.exporting') : t('dataset_obj.export_for_deposit')}
-                  </Button>
-                )}
-              </div>
-              {exportError && (
-                <p className="text-xs text-destructive" data-testid="dataset-rocrate-error">{exportError}</p>
-              )}
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('dataset_obj.what_used_it')}
+              </p>
               {consumersQ.isLoading ? (
                 <LoadingState testId="dataset-consumers-loading" label={t('dataset_obj.consumers_loading')} />
               ) : consumers.length ? (
@@ -1059,18 +1212,64 @@ export function DatasetObject({
                 </p>
               )}
             </div>
+
+            {/* Export — packaging the file with its provenance is its own action, not part of
+                "Input to workflow". */}
+            {dataset.ref && (
+              <div className="rounded border p-2.5 space-y-1.5" data-testid="dataset-export">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t('dataset_obj.export_heading')}
+                </p>
+                <p className="text-sm text-muted-foreground">{t('dataset_obj.export_body')}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-sm gap-1"
+                  onClick={handleExportRoCrate}
+                  disabled={exporting}
+                  title={t('file_tree.export_crate')}
+                  data-testid="dataset-object-rocrate"
+                >
+                  <FileArchive className="h-3 w-3" />
+                  {exporting ? t('dataset_obj.exporting') : t('dataset_obj.export_for_deposit')}
+                </Button>
+                {exportError && (
+                  <p className="text-xs text-destructive" data-testid="dataset-rocrate-error">{exportError}</p>
+                )}
+              </div>
+            )}
           </div>)}
       </CardContent>
     </Card>
   )
 }
 
+/** The file's sha256 fingerprint: short form, explained on hover, full value copied on click. */
+function Fingerprint({ hash }: { hash: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try { await navigator.clipboard?.writeText(`sha256:${hash}`); setCopied(true); setTimeout(() => setCopied(false), 1500) }
+    catch { /* clipboard refused: the full value is still in the tooltip */ }
+  }
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5" data-testid="dataset-content-hash">
+      <span className="font-mono cursor-help underline decoration-dotted underline-offset-2"
+        title={t('dataset_obj.fingerprint_tip', { hash: `sha256:${hash}` })} data-testid="dataset-fingerprint">{hash.slice(0, 12)}…</span>
+      <button type="button" className="inline-flex items-center gap-0.5 rounded border px-1 text-xs text-muted-foreground hover:text-foreground"
+        onClick={copy} data-testid="dataset-fingerprint-copy" aria-label={t('dataset_obj.fingerprint_copy')}>
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copied ? t('dataset_obj.fingerprint_copied') : t('dataset_obj.fingerprint_copy')}
+      </button>
+      <span className="text-muted-foreground">{t('dataset_obj.dedup_note')}</span>
+    </span>
+  )
+}
+
 /** One stat card: `data-testid="dataset-stat"` + `data-stat=<code>` (rows, columns, reads,
  *  cells, …, size, type) — what e2e reads, never the label text. */
-function StatCard({ k, v, stat }: { k: string; v: string; stat: string }) {
+function StatCard({ k, v, stat, hint }: { k: string; v: string; stat: string; hint?: string }) {
   return (
     <div className="min-w-0 rounded border px-2.5 py-2" data-testid="dataset-stat" data-stat={stat}>
-      <div className="text-fs-xs uppercase tracking-wide text-muted-foreground">{k}</div>
+      <div className={`text-fs-xs uppercase tracking-wide text-muted-foreground${hint ? " cursor-help underline decoration-dotted underline-offset-2" : ""}`} title={hint}>{k}</div>
       <div className="text-sm font-mono font-semibold text-foreground [overflow-wrap:anywhere]" title={v}>{v}</div>
     </div>
   )
@@ -1104,7 +1303,8 @@ function Row({
           {v}
         </button>
       ) : (
-        <span className={mono ? "font-mono truncate" : "truncate"}>{v}</span>
+        // Plain text truncates; a composed value (the fingerprint + Copy) lays itself out.
+        <span className={typeof v === "string" ? (mono ? "font-mono truncate" : "truncate") : "min-w-0"}>{v}</span>
       )}
     </div>
   )

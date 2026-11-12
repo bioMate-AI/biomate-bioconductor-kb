@@ -8,7 +8,9 @@
  *   POST /api/perception/profile  {datasetRef, name}
  *   POST /api/perception/rows     {datasetRef, name, offset, limit}
  * folder_profile is NOT exposed here: GET /api/projects/:id/folders/profile calls it after the
- * membership check, with files resolved from project_files. `folderContext` is dropped (the
+ * membership check, with files resolved from project_files; preview_image (TIFF → PNG) is NOT
+ * exposed either: GET /api/projects/:id/files/:fileId/preview.png calls it with the file's own
+ * project_files key. `folderContext` is dropped (the
  * server attaches its own, attachFolderContext). Any other field → 400; any other path → 404.
  */
 const ALLOWED: Record<string, ReadonlySet<string>> = {

@@ -43,6 +43,15 @@ describe("perception proxy gate", () => {
     expect(forwarded).not.toHaveBeenCalled();
   });
 
+  it("preview_image is not reachable through the generic proxy (a client-named ref / project)", async () => {
+    // Only GET /api/projects/:id/files/:fileId/preview.png calls it, with the project_files key.
+    const r = await post("/api/perception/preview_image", { projectId: "p", datasetRef: "projects/p/inputs/a.tif" });
+    expect(r.status).toBe(404);
+    const t = await post("/api/perception/preview_image/", { datasetRef: "/etc/passwd" });
+    expect(t.status).toBe(404);
+    expect(forwarded).not.toHaveBeenCalled();
+  });
+
   it("refuses extra ref-carrying fields on profile/rows (files[], dataset_ref) — 400, not forwarded", async () => {
     const a = await post("/api/perception/profile", { datasetRef: "projects/p/inputs/a.csv", files: [{ name: "x", datasetRef: "/etc/passwd" }] });
     expect(a.status).toBe(400);
@@ -71,7 +80,7 @@ describe("perception proxy gate", () => {
 describe("routes.ts wiring", () => {
   const src = fs.readFileSync(path.join(HERE, "routes.ts"), "utf8");
   it("both perception routes run the gate before the dataset access check and the proxy", () => {
-    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
+    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, recordProfile, _dlProxyHandler\)/);
     expect(src).toMatch(/app\.all\("\/api\/perception\/\*", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
     // no other route proxies /api/perception
     expect((src.match(/"\/api\/perception/g) ?? []).length).toBe(2);

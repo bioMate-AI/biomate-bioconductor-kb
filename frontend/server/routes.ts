@@ -11,7 +11,8 @@ import { hasPendingWorkflowClarification } from "../shared/workflow-response-sta
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
 import { planModelFold } from "./model-fold";
-import { authorizeDatasetReference, projectDatasetKey } from "./dataset-reference-access";
+import { datasetAccessGate } from "./dataset-reference-access";
+import { recordProfileSummary } from "./project-file-profiles";
 import { perceptionProxyGate } from "./perception-proxy-gate";
 import { attachmentDisposition } from "./content-disposition";
 import { loadFolderContext } from "./project-folders";
@@ -5913,26 +5914,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
-  const requireDatasetAccess = (refFromPath = false) => async (req: any, res: any, next: any) => {
-    try {
-      const pathname = new URL(req.originalUrl, 'http://internal').pathname;
-      const ref = refFromPath
-        ? decodeURIComponent(pathname.slice('/api/datasets/'.length, pathname.lastIndexOf('/')))
-        : req.body?.datasetRef;
-      const decision = await authorizeDatasetReference(ref, req.user?.id, s3Service.getBucketName(), async (key, uid) => {
-        const rows = await pool.query(`SELECT 1 FROM project_files f JOIN projects p ON p.id = f.project_id
-          WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
-            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
-          )) LIMIT 1`, [key, uid]);
-        return rows.rows.length > 0;
-      });
-      if (!decision.allowed) return res.status(decision.status).json({ error: 'Dataset is not accessible to this user' });
-      next();
-    } catch (error) {
-      console.error('[dataset access]', error instanceof Error ? error.message : error);
-      res.status(403).json({ error: 'Dataset access could not be verified' });
-    }
-  };
+  // The current key of a project file the user can read, or one of its archived version keys
+  // (dataset-reference-access.ts) — a panel still holding the key it opened, Compare and the
+  // version views all name version keys after an edit / restore.
+  const requireDatasetAccess = (refFromPath = false) =>
+    datasetAccessGate({ query: (q, p) => pool.query(q, p as any[]), bucket: () => s3Service.getBucketName() }, refFromPath);
   // Folder facts for one file's profile (a FASTQ's mate, a 10x TSV's role) come from the
   // project's file list, which only this server has: attach `folderContext` = {name, siblings}
   // for a project input file, and never forward a client-supplied one (project-folders.ts).
@@ -5940,14 +5926,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (req.body && typeof req.body === 'object') {
         delete req.body.folderContext;
-        const key = projectDatasetKey(req.body.datasetRef, s3Service.getBucketName());
-        if (key && req.user?.id) {
-          const rows = await pool.query(`SELECT f.project_id, f.name, f.source FROM project_files f JOIN projects p ON p.id = f.project_id
-            WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
-              SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
-            )) LIMIT 1`, [key, String(req.user.id)]);
-          const row = rows.rows[0];
-          const ctx = row ? await loadFolderContext((q, p) => pool.query(q, p), String(row.project_id), row) : null;
+        // The file the dataset gate resolved (current or archived-version key): its folder facts.
+        const row = req.datasetFile;
+        if (row) {
+          const ctx = await loadFolderContext((q, p) => pool.query(q, p), String(row.project_id), row);
           if (ctx) req.body.folderContext = ctx;
         }
       }
@@ -5960,7 +5942,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // perceptionProxyGate first: only profile/rows with an allowlisted body are forwarded, so no
   // client-supplied ref other than the checked datasetRef (files[], dataset_ref) reaches the
   // backend; folder_profile is reachable only via /api/projects/:id/folders/profile.
-  app.post("/api/perception/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
+  // recordProfile: the verdict is stored per object key, so the file tree's dot and the panel
+  // show the same profiler result (project-file-profiles.ts).
+  const recordProfile = recordProfileSummary((q, p) => pool.query(q, p as any[]));
+  app.post("/api/perception/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, recordProfile, _dlProxyHandler);
   app.all("/api/perception/*", authenticateToken, perceptionProxyGate, requireDatasetAccess(), attachFolderContext, _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step

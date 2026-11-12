@@ -462,18 +462,135 @@ def alignment_header(path: str) -> Dict[str, Any]:
     }
 
 
-def xlsx_sheets(path: str) -> Optional[List[Dict[str, Any]]]:
-    """Sheet names + dimensions via openpyxl (read-only); None when openpyxl is missing."""
+def anndata_layers(path: str) -> Optional[List[str]]:
+    """The AnnData layers of an h5ad (keys of its ``layers`` group; [] when it has none), via h5py
+    (present in the Galaxy image). None when h5py is missing or the file cannot be opened."""
     try:
-        import openpyxl
+        import h5py
     except Exception:  # noqa: BLE001
         return None
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
-        out = []
+        try:
+            f = h5py.File(path, "r", locking=False)  # h5py ≥ 3.5 (as Galaxy's own set_meta opens it)
+        except TypeError:
+            f = h5py.File(path, "r")  # older h5py: no ``locking`` argument
+        with f:
+            grp = f.get("layers")
+            if grp is None or not hasattr(grp, "keys"):
+                return []
+            return [str(k) for k in list(grp.keys())[:MAX_META_LIST]]
+    except Exception as exc:  # noqa: BLE001
+        log.info("[galaxy_formats] h5ad layers unreadable for %s: %s", path, exc)
+        return None
+
+
+# The first sheet's preview: at most this many rows (header + data) × columns, read with a
+# BOUNDED streaming scan (openpyxl read-only mode stops after the last requested row) — opening a
+# workbook never parses whole sheets.
+XLSX_PREVIEW_ROWS = 101
+XLSX_PREVIEW_COLS = 50
+
+
+def _xlsx_cell(v: Any) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return "TRUE" if v else "FALSE"
+    if isinstance(v, float) and v.is_integer() and abs(v) < 2 ** 53:
+        return str(int(v))
+    iso = getattr(v, "isoformat", None)
+    if iso is not None:
+        out = iso()
+        return out[:-9] if out.endswith("T00:00:00") else out
+    return str(v)
+
+
+def _bounded_workbook(path: str) -> Any:
+    """The workbook in openpyxl's read-only mode WITHOUT a full parse of every sheet at open.
+
+    openpyxl's read-only ``load_workbook`` sizes each sheet in ``ReadOnlyWorksheet.__init__``
+    through ``WorkSheetParser.parse_dimensions``, which iterparses END events: when a sheet stores
+    no ``<dimension>`` element (openpyxl's own write-only mode and several other writers omit it)
+    the ``<sheetData>`` end event comes only after the WHOLE sheet, so opening a 4 MB workbook
+    parsed all of its cells (≈ 5 s on a laptop, every sheet, before a single row was read). Here
+    each sheet is sized from START events and the scan stops at ``<sheetData>``; rows are then read
+    lazily (and only as many as asked for) by openpyxl's own row parser.
+    """
+    from xml.etree.ElementTree import iterparse
+
+    from openpyxl.reader.excel import ExcelReader
+    from openpyxl.utils.cell import range_boundaries
+    from openpyxl.worksheet._read_only import ReadOnlyWorksheet
+    from openpyxl.xml.constants import SHEET_MAIN_NS
+
+    dim_tag, data_tag = f"{{{SHEET_MAIN_NS}}}dimension", f"{{{SHEET_MAIN_NS}}}sheetData"
+
+    class _BoundedSheet(ReadOnlyWorksheet):
+        def _get_size(self) -> None:  # noqa: D401 — openpyxl hook
+            src = self._get_source()
+            try:
+                for _event, el in iterparse(src, events=("start",)):
+                    if el.tag == dim_tag:
+                        ref = el.get("ref") or ""
+                        try:
+                            bounds = range_boundaries(ref if ":" in ref else f"{ref}:{ref}")
+                        except (ValueError, TypeError):
+                            bounds = None
+                        if bounds and None not in bounds:
+                            self._min_column, self._min_row, self._max_column, self._max_row = bounds
+                        return
+                    if el.tag == data_tag:
+                        return  # no stored dimension: unsized (max_row / max_column stay None)
+            finally:
+                src.close()
+
+    class _Reader(ExcelReader):
+        def read_worksheets(self) -> None:
+            for sheet, rel in self.parser.find_sheets():
+                if rel.target not in self.valid_files or "chartsheet" in (rel.Type or ""):
+                    continue
+                ws = _BoundedSheet(self.wb, sheet.name, rel.target, self.shared_strings)
+                ws.sheet_state = sheet.state
+                self.wb._sheets.append(ws)
+
+    reader = _Reader(path, read_only=True, data_only=True, keep_links=False)
+    reader.read()
+    return reader.wb
+
+
+def xlsx_summary(path: str) -> Optional[Dict[str, Any]]:
+    """{"sheets": [{name, rows, cols}], "preview": {"sheet", "rows": [[str]]}} via openpyxl in
+    read-only mode (see _bounded_workbook); None when openpyxl is missing. ``rows`` / ``cols`` come
+    from the sheet's stored dimension (None when the writer stored none, or one the preview
+    contradicts); the preview holds the first sheet's first non-empty rows (≤ XLSX_PREVIEW_ROWS ×
+    XLSX_PREVIEW_COLS). Cost: the shared-string table + the preview rows, whatever the sheet size."""
+    try:
+        import openpyxl  # noqa: F401
+    except Exception:  # noqa: BLE001
+        return None
+    wb = _bounded_workbook(path)
+    try:
+        sheets: List[Dict[str, Any]] = []
         for ws in wb.worksheets[:MAX_META_LIST]:
-            out.append({"name": str(ws.title), "rows": int(ws.max_row or 0), "cols": int(ws.max_column or 0)})
-        return out
+            sheets.append({"name": str(ws.title), "rows": ws.max_row, "cols": ws.max_column})
+        preview: Optional[Dict[str, Any]] = None
+        if wb.worksheets:
+            ws = wb.worksheets[0]
+            rows: List[List[str]] = []
+            for raw in ws.iter_rows(min_row=1, max_row=XLSX_PREVIEW_ROWS, max_col=XLSX_PREVIEW_COLS,
+                                    values_only=True):
+                cells = [_xlsx_cell(v) for v in raw]
+                while cells and cells[-1] == "":
+                    cells.pop()
+                if cells:
+                    rows.append(cells)
+            preview = {"sheet": str(ws.title), "rows": rows}
+            first = sheets[0]
+            width = max((len(r) for r in rows), default=0)
+            if (first["rows"] is not None and first["rows"] < len(rows)) or \
+                    (first["cols"] is not None and first["cols"] < width):
+                first["rows"] = first["cols"] = None  # a stale stored dimension ("A1"): unknown
+        return {"sheets": sheets, "preview": preview}
     finally:
         wb.close()
 
@@ -491,8 +608,8 @@ def metadata(path: str, ext: Optional[str]) -> Dict[str, Any]:
                 return {"skipped": "pysam_missing"}
             return alignment_header(path)
         if ext == "xlsx":
-            sheets = xlsx_sheets(path)
-            return {"sheets": sheets} if sheets is not None else {"skipped": "openpyxl_missing"}
+            summary = xlsx_summary(path)
+            return summary if summary is not None else {"skipped": "openpyxl_missing"}
         kind = _SET_META_ALLOW.get(ext)
         if kind is None:
             return {}
@@ -510,6 +627,12 @@ def metadata(path: str, ext: Optional[str]) -> Dict[str, Any]:
         ds = _StubDataset(path, dt, ext)
         dt.set_meta(ds, overwrite=True)
         out = {k: _plain(v) for k, v in ds.metadata.items()}
+        if ext == "h5ad":
+            # Galaxy's "layers_names" are the file's TOP-LEVEL groups (X, obs, var, obsm, …), not
+            # AnnData layers; the layers are the keys of the ``layers`` group.
+            layers = anndata_layers(path)
+            if layers is not None:
+                out["anndata_layers"] = layers
         return {k: v for k, v in out.items() if v is not None}
     except Exception as exc:  # noqa: BLE001 — metadata is best-effort
         log.info("[galaxy_formats] metadata(%s) failed for %s: %s", ext, path, exc)

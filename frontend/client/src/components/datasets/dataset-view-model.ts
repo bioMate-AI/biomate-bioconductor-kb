@@ -52,8 +52,18 @@ export interface DatasetViewModel {
   tableShape: boolean
   canEdit: boolean
   canRunQC: boolean
+  /** The kind can be opened in Jupyter / RStudio (a project file of a kind those tools read). */
+  openInSupported: boolean
+  /** Open-in is OFFERED: supported AND the launch path is available (OPEN_IN_AVAILABLE). Every
+   *  panel element that points to Open-in (the button, notes that say "open it in Jupyter")
+   *  follows this — never the kind alone. */
   canOpenIn: boolean
 }
+
+/** Whether the Open-in (Jupyter / RStudio) launch from the dataset panel is available. Off since
+ *  2026-11-11 (founder): the interactive-tool launch path is not working yet. One switch, so the
+ *  button and the copy that mentions it can never disagree. */
+export const OPEN_IN_AVAILABLE = false
 
 // ── kind from the file extension (older profiles without viewKind) ───────────
 const EXT_KIND: Record<string, ViewKind> = {}
@@ -145,7 +155,9 @@ const CONTENT: Record<ViewKind, ContentRenderer> = {
  */
 export function datasetViewModel(
   kind: ViewKind,
-  opts: { name: string; hasColumns?: boolean; columnsPending?: boolean; versionable?: boolean; projectFile?: boolean; empty?: boolean } = { name: "" },
+  opts: { name: string; hasColumns?: boolean; columnsPending?: boolean; versionable?: boolean; projectFile?: boolean; empty?: boolean
+    /** A table with a header and no data rows: nothing to edit, nothing for a QC workflow to check. */
+    noDataRows?: boolean } = { name: "" },
 ): DatasetViewModel {
   const ext = fileExt(opts.name)
   // No content at all: one honest "empty" view whatever the kind — no table tools, no edit, no
@@ -153,7 +165,7 @@ export function datasetViewModel(
   if (opts.empty) {
     return {
       kind, views: ["content"], content: "empty", useRows: CONTENT[kind] === "rows", tableShape: false,
-      canEdit: false, canRunQC: false, canOpenIn: false,
+      canEdit: false, canRunQC: false, openInSupported: false, canOpenIn: false,
     }
   }
   const tabular = kind === "table" || kind === "records"
@@ -161,13 +173,14 @@ export function datasetViewModel(
   // Columns / Plot / Edit to offer — its single view is the profile summary.
   const tableAvailable = tabular && (Boolean(opts.hasColumns) || Boolean(opts.columnsPending))
   const canEdit = kind === "table" && Boolean(opts.versionable) && Boolean(opts.hasColumns) && EDITABLE_EXT.has(ext)
-    && !COMPRESSION.test(opts.name)
+    && !COMPRESSION.test(opts.name) && !opts.noDataRows
   const views: PreviewView[] = tableAvailable
     ? ["table", "columns", "plot", ...(canEdit ? (["edit"] as const) : [])]
     : ["content"]
   const content: ContentRenderer = tabular && !tableAvailable ? "summary"
     : kind === "document" && SUMMARY_DOCUMENT_EXT.has(ext) ? "summary"
     : CONTENT[kind]
+  const openInSupported = Boolean(opts.projectFile) && (OPEN_IN_KINDS.has(kind) || R_OBJECT_EXT.has(ext))
   return {
     kind,
     views,
@@ -175,8 +188,9 @@ export function datasetViewModel(
     useRows: CONTENT[kind] === "rows",
     tableShape: tabular,
     canEdit,
-    canRunQC: QC_KINDS.has(kind),
-    canOpenIn: Boolean(opts.projectFile) && (OPEN_IN_KINDS.has(kind) || R_OBJECT_EXT.has(ext)),
+    canRunQC: QC_KINDS.has(kind) && !(tabular && opts.noDataRows),
+    openInSupported,
+    canOpenIn: OPEN_IN_AVAILABLE && openInSupported,
   }
 }
 
@@ -220,6 +234,40 @@ export function profileStats(profile: DataProfile, kind: ViewKind): StatItem[] {
   return statsFromFindings(profile.findings)
 }
 
+/**
+ * Findings whose whole content is the kind's headline numbers ("Variant records: 30; samples: 1.",
+ * "Rows: 6 · columns: 5.", "Reads scanned: 10,000; mean read length 151 bp."): each param and the stat code(s) that
+ * show the same number. A finding with any other param says something more and is never listed here.
+ */
+const NUMBERS_ONLY_FINDINGS: Record<string, Record<string, readonly string[]>> = {
+  vcf_records: { variants: ["variants"], samples: ["samples"] },
+  vcf_summary: { variants: ["variants"], samples: ["samples"] },
+  vcf_sized: { variants: ["variants"], samples: ["samples"] },
+  // (anndata_shape / loom_shape state the matrix ORIENTATION since round 5, not the numbers: kept.)
+  table_summary: { rows: ["rows", "records"], cols: ["columns"] },
+  molecules_count: { molecules: ["molecules"] },
+  fastq_reads: { reads: ["reads"], mean_len: ["read_length"] },
+}
+
+const sameNumber = (a: unknown, b: unknown) =>
+  a != null && b != null && (a === b || (Number.isFinite(Number(a)) && Number(a) === Number(b)))
+
+/**
+ * True when `f` only restates numbers the host's stat grid shows with the same values — decided by
+ * the finding's code and params (NUMBERS_ONLY_FINDINGS), never by matching its text. A finding with
+ * an `at_least` qualifier is a lower bound and repeats an "at least" stat only.
+ */
+export function findingRepeatsStats(f: PerceptionFinding, stats: ReadonlyArray<Pick<StatItem, "code" | "value">>): boolean {
+  const spec = NUMBERS_ONLY_FINDINGS[f.code]
+  if (!spec || !f.params) return false
+  const params = Object.entries(f.params).filter(([k]) => k !== "at_least")
+  if (params.length === 0) return false
+  return params.every(([k, v]) => {
+    const codes = spec[k]
+    return Boolean(codes) && stats.some((s) => codes.includes(s.code) && sameNumber(s.value, v))
+  })
+}
+
 /** The count a finding's `at_least` param qualifies (backend _AT_LEAST_PARAMS). */
 export const AT_LEAST_STAT: Record<string, string> = { fastq_reads: "reads", fasta_sequences: "sequences" }
 
@@ -261,6 +309,7 @@ export function effectiveQuality(profile: Pick<DataProfile, "quality" | "finding
 /** Finding codes that name a column as a problem, and the param(s) holding the column name(s). */
 const COLUMN_PROBLEM_PARAMS: Record<string, string> = {
   near_constant: "columns",
+  constant_columns: "columns",
   high_missing: "columns",
   label_free_text: "column",
   leaked_id: "column",
@@ -275,10 +324,51 @@ export function columnProblems(findings: PerceptionFinding[] | undefined): Map<s
   const out = new Map<string, PerceptionFinding[]>()
   for (const f of findings ?? []) {
     const param = COLUMN_PROBLEM_PARAMS[f.code]
-    if (!param || f.section === "plan") continue
+    // Only a finding at watch / blocked level flags a column: an info-level statement (a
+    // near-constant column that is expected with few rows, or per-record metadata) is a note.
+    if (!param || f.section === "plan" || f.level === "info") continue
     const v = f.params?.[param]
     const names = Array.isArray(v) ? v.map(String) : typeof v === "string" ? [v] : []
     for (const n of names) out.set(n, [...(out.get(n) ?? []), f])
   }
   return out
+}
+
+// ── facts shown once ─────────────────────────────────────────────────────────
+
+/** AnnData / Loom findings that the summary view draws as content (obs / var columns, embeddings,
+ *  layers, the file's stored parts). */
+const ANNDATA_CONTENT_CODES = [
+  "anndata_obs", "anndata_var", "anndata_embeddings", "anndata_layers", "anndata_no_layers",
+  "anndata_components", "hdf5_groups", "loom_col_attrs", "loom_row_attrs", "loom_layers",
+]
+
+/** The spreadsheet sheet the profiler read (its first rows), when the profile carries one. */
+export function previewedSheet(profile?: Pick<DataProfile, "previewSheet" | "columns" | "sampleRows"> | null):
+  { name: string; columns: string[]; rows: string[][] } | null {
+  return profile && typeof profile.previewSheet === "string" && profile.columns?.length && profile.sampleRows?.length
+    ? { name: profile.previewSheet, columns: profile.columns, rows: profile.sampleRows } : null
+}
+
+/**
+ * Finding codes the Preview already shows as content, so the QC card does not list them again:
+ * each fact once — the stat grid for numbers, the QC card for findings, the preview for content.
+ *  - the AnnData / Loom summary draws the obs / var columns, embeddings, layers and stored parts;
+ *  - a spreadsheet whose first rows are previewed: "preview of sheet X" repeats the caption, and
+ *    "Sheets (1): X" repeats the caption + the SHEETS stat when X is the only sheet.
+ */
+export function findingsShownAsContent(content: ContentRenderer, profile?: DataProfile | null): ReadonlySet<string> {
+  if (!profile) return new Set()
+  if (content === "anndata") return new Set(ANNDATA_CONTENT_CODES)
+  // ("metadata was read; values not analysed" is not emitted by the profiler when it read the
+  // preview rows — round-4 backend — so only the caption's twin is left to drop here.)
+  const sheet = previewedSheet(profile)
+  if (content === "summary" && sheet) {
+    // "Sheets (1): Data." when "Data" is the ONLY sheet: the caption names it and the stat grid counts
+    // it. Decided by the finding's params, never its text; a workbook with more sheets keeps the list.
+    const sheets = (profile.findings ?? []).find((f) => f.code === "spreadsheet_sheets")?.params?.sheets
+    const onlyPreviewed = Array.isArray(sheets) && sheets.length === 1 && String(sheets[0]) === sheet.name
+    return new Set(onlyPreviewed ? ["spreadsheet_preview", "spreadsheet_sheets"] : ["spreadsheet_preview"])
+  }
+  return new Set()
 }

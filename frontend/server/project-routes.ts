@@ -37,6 +37,10 @@ import { applyCellEdits, isReaderDelimiter, pickDelimiter, tableRows, READER_DEL
 import path from "path";
 import fs from "fs";
 import { likePrefix, loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
+import { PROFILE_TABLE_DDL, withProfileSummaries } from "./project-file-profiles";
+
+/** pool.query as the plain query function the helper modules take (resolved at call time). */
+const _q = (text: string, params?: unknown[]) => pool.query(text, params as any[]);
 
 async function ensureProjectMembersTable(): Promise<void> {
   await pool.query(`
@@ -210,6 +214,12 @@ async function ensureProjectFilesTable(): Promise<void> {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `).catch(_ddlFailed);
+  // The dataset gate resolves a profile / rows / datasets ref by its object key — the current key
+  // or an archived version's (dataset-reference-access.ts) — on every panel request.
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_files_s3_key_idx ON project_files(s3_key)`).catch(_ddlFailed);
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_file_versions_s3_key_idx ON project_file_versions(s3_key)`).catch(_ddlFailed);
+  // The profiler's verdict per object key (project-file-profiles.ts): the tree's quality dot.
+  await pool.query(PROFILE_TABLE_DDL).catch(_ddlFailed);
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
@@ -230,6 +240,25 @@ export function _isUuid(v: unknown): boolean {
 
 /** Project file routes: project and file ids are UUIDs. Anything else names nothing → 404 (it
  *  used to reach a uuid-typed comparison and come back as a 500/502 cast error). */
+/** Stored bytes a TIFF preview may send to the renderer (the backend checks it again). */
+export const MAX_PREVIEW_INPUT_BYTES = 256 * 1024 * 1024;
+/** Bumped when the renderer's picture for the same bytes changes (invalidates ETags). */
+const PREVIEW_RENDER_VERSION = 1;
+/** Renderer statuses forwarded as-is (with its code + reason). 403 (a refused ref) is not one:
+ *  the route only sends this project's keys, so a refusal there is a server fault (502). */
+const PREVIEW_PASSTHROUGH = new Set([400, 404, 413, 415, 422, 503]);
+
+/** ?series=&page= of a preview: non-negative integers (default 0), else null. */
+export function parsePreviewSelection(q: Record<string, unknown>): { series: number; page: number } | null {
+  const one = (v: unknown): number | null => {
+    if (v === undefined || v === "") return 0;
+    if (typeof v !== "string" || !/^\d{1,6}$/.test(v)) return null;
+    return Number(v);
+  };
+  const series = one(q.series), page = one(q.page);
+  return series === null || page === null ? null : { series, page };
+}
+
 export function _projectFileIds(req: Request, res: Response, next: () => void): void {
   const { id, fileId } = req.params as Record<string, string | undefined>;
   if (!_isUuid(id)) { res.status(404).json({ error: "Project not found" }); return; }
@@ -871,7 +900,8 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT ${_FILE_COLUMNS} FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
         [id]
       );
-      res.json({ files: result.rows });
+      // profileSummary: the profiler's stored verdict for each file's CURRENT version (or null).
+      res.json({ files: await withProfileSummaries(_q, result.rows) });
     } catch (e: any) {
       console.error("[project_files] list failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to list files" });
@@ -1258,6 +1288,9 @@ export function registerProjectRoutes(app: Express): void {
         if (!upd.rows[0]) throw new Error("restore: version precondition failed under the project lock");
         return { status: 200, body: { file: upd.rows[0], restoredFrom: target } };
       });
+      // The restored row in the files-list shape: its new current s3_key (the ref to profile) and
+      // the profile summary that version already has, if any.
+      if (out.status === 200) (out.body as any).file = (await withProfileSummaries(_q, [(out.body as any).file]))[0];
       if (out.status === 200) {
         await recordProjectActivity(id, uid, "file_restored", { fileId, restoredFrom: target, newVersion: (out.body as any).file.version_no });
       }
@@ -1333,21 +1366,32 @@ export function registerProjectRoutes(app: Express): void {
       const B = _layoutRows(tgtText, ext, tgtLay, 500);  // target (older), with ITS layout
       const added = A.headers.filter((h) => !B.headers.includes(h));
       const removed = B.headers.filter((h) => !A.headers.includes(h));
+      // changedCells lists at most 100 cells; changedCellCount counts EVERY changed cell in the rows
+      // compared (the count to show — never changedCells.length), exact unless the compared window
+      // was truncated (changedCellCountExact false: "at least N").
+      const CELL_CAP = 100;
       const changedCells: Array<{ row: number; rowNumber: number; col: string; from: string; to: string }> = [];
+      let changedCellCount = 0;
       const nRows = Math.min(A.rows.length, B.rows.length);
       const nCols = Math.min(A.headers.length, B.headers.length);
-      for (let i = 0; i < nRows && changedCells.length < 100; i++) {
+      for (let i = 0; i < nRows; i++) {
         for (let j = 0; j < nCols; j++) {
           const av = A.rows[i]?.[j] ?? "", bv = B.rows[i]?.[j] ?? "";
-          if (av !== bv) changedCells.push({ row: i, rowNumber: i + 1, col: A.headers[j] ?? String(j), from: bv, to: av });
+          if (av === bv) continue;
+          changedCellCount++;
+          if (changedCells.length < CELL_CAP) changedCells.push({ row: i, rowNumber: i + 1, col: A.headers[j] ?? String(j), from: bv, to: av });
         }
       }
+      const truncated = (A.rows.length >= 500 || B.rows.length >= 500);
       res.json({
         ...base,
         columns: { added, removed },
         rowsCompared: nRows,
         changedCells,
-        truncated: (A.rows.length >= 500 || B.rows.length >= 500),
+        changedCellCount,
+        changedCellCountExact: !truncated,
+        changedCellsTruncated: changedCellCount > changedCells.length,
+        truncated,
       });
     } catch (e: any) {
       console.error("[project_files] diff failed:", e?.message ?? e);
@@ -1496,6 +1540,8 @@ export function registerProjectRoutes(app: Express): void {
         }
       });
       if (out.status === 200) {
+        // The new version in the files-list shape: its new s3_key is the ref to profile next.
+        (out.body as any).file = (await withProfileSummaries(_q, [(out.body as any).file]))[0];
         await recordProjectActivity(id, uid, "file_versioned", { fileId, name: cur.name, version: baseVersion + 1, editedCells: applied });
       }
       res.status(out.status).json(out.body);
@@ -1526,7 +1572,7 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT ${_FILE_COLUMNS} FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
         [fileId, id]
       );
-      res.json({ file: row.rows[0], renamed: Boolean(m) });
+      res.json({ file: row.rows[0] ? (await withProfileSummaries(_q, [row.rows[0]]))[0] : row.rows[0], renamed: Boolean(m) });
     } catch (e: any) {
       console.error("[project_files] rename failed:", e?.message ?? e);
       res.status(500).json({ error: "Rename failed" });
@@ -1552,7 +1598,7 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT ${_FILE_COLUMNS} FROM project_files WHERE project_id::text = $1 AND id::text = ANY($2::text[])`,
         [id, ids]
       );
-      res.json({ files: rows.rows, renamed: ids.length });
+      res.json({ files: await withProfileSummaries(_q, rows.rows), renamed: ids.length });
     } catch (e: any) {
       console.error("[project_files] folder rename failed:", e?.message ?? e);
       res.status(500).json({ error: "Folder rename failed" });
@@ -1748,6 +1794,78 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);
       res.status(502).json({ error: "rows_unavailable" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/preview.png?series=&page= ──
+  // A TIFF / OME-TIFF drawn as PNG (browsers cannot decode TIFF): one plane, ≤1024 px, rendered
+  // by the Python backend (galaxy/ai/tiff_preview.py via POST /api/perception/preview_image).
+  // Owner/member scoped like /rows; the object is the project_files row's s3_key — a client names
+  // only a file id of a project it may read, never a path or key — and the backend reads it only
+  // inside projects/<id>/ (audit S5). `X-Preview-Info` (JSON) says what was drawn.
+  app.get("/api/projects/:id/files/:fileId/preview.png", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId } = req.params;
+    const sel = parsePreviewSelection(req.query);
+    if (!sel) return res.status(400).json({ error: "invalid_selection" });
+    const refuse = (status: number, error: string, reason?: string) => {
+      res.removeHeader("ETag");
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(status).json({ error, ...(reason ? { reason } : {}) });
+    };
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return refuse(404, "Project not found");
+      const fileRow = await pool.query(
+        `SELECT s3_key, size, content_hash FROM project_files WHERE id::text = $1 AND project_id::text = $2`,
+        [fileId, id]
+      );
+      if (!fileRow.rows.length) return refuse(404, "File not found");
+      const { s3_key, size, content_hash } = fileRow.rows[0];
+      // The backend reads only objects inside projects/<id>/ (S5); a run output registered under
+      // another prefix is said to be not previewable instead of being sent to be refused.
+      if (typeof s3_key !== "string" || !s3_key.startsWith(`projects/${id}/`)) {
+        return refuse(422, "not_previewable", "this file is stored outside the project's storage");
+      }
+      if (Number(size) > MAX_PREVIEW_INPUT_BYTES) {
+        return refuse(413, "too_large", `previews read files of at most ${MAX_PREVIEW_INPUT_BYTES / 2 ** 20} MiB`);
+      }
+      // The picture is a function of the bytes (content_hash) and the selection: revalidated every
+      // time (a new version keeps the file id), 304 while the bytes are the same.
+      const etag = content_hash ? `"tiffprev-${PREVIEW_RENDER_VERSION}-${content_hash}-${sel.series}-${sel.page}"` : null;
+      if (etag && String(req.headers["if-none-match"] ?? "").split(/\s*,\s*/).includes(etag)) {
+        res.setHeader("ETag", etag);
+        res.setHeader("Cache-Control", "private, no-cache");
+        return res.status(304).end();
+      }
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await _galaxyUserFetch();
+      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/preview_image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: id, datasetRef: s3_key, series: sel.series, page: sel.page }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (resp.ok && (resp.headers.get("content-type") || "").startsWith("image/png")) {
+        const png = Buffer.from(await resp.arrayBuffer());
+        const info = resp.headers.get("x-preview-info");
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("Cache-Control", etag ? "private, no-cache" : "private, no-store");
+        if (etag) res.setHeader("ETag", etag);
+        if (info) res.setHeader("X-Preview-Info", info);
+        return res.send(png);
+      }
+      const body: any = await resp.json().catch(() => null);
+      // The renderer's refusals (not a TIFF, too large, empty, out-of-range page, renderer not
+      // installed) carry a code + reason the panel shows; anything else is a 502.
+      if (PREVIEW_PASSTHROUGH.has(resp.status) && body && typeof body.error === "string") {
+        return refuse(resp.status, body.error, typeof body.reason === "string" ? body.reason : undefined);
+      }
+      console.error(`[project_files] preview backend ${resp.status} (${body?.error ?? "?"}) for file ${fileId}`);
+      return refuse(502, "preview_unavailable");
+    } catch (e: any) {
+      console.error("[project_files] preview failed:", e?.message ?? e);
+      if (!res.headersSent) refuse(502, "preview_unavailable");
     }
   });
 

@@ -121,3 +121,49 @@ it2('derives a new chat title from the user words, never from the [BioMate datas
   });
   expect2(updated?.title).toBe('epar.jsonl');
 });
+
+/**
+ * Round 5 (2026-11-12): "Run full QC" opened a chat that was not filed in the project it was started
+ * from. The first send files a still-empty, unfiled chat in the active project, and the session row
+ * pushed to the server carries that `project_id`.
+ */
+describe('chatHistoryService.fileEmptySessionInProject — the chat belongs to the project from its first message', () => {
+  beforeEach(() => {
+    installLocalStorageShim();
+    localStorage.clear();
+  });
+
+  it('files an empty unfiled chat; the synced session payload carries project_id', async () => {
+    const bodies: any[] = [];
+    (globalThis as any).fetch = async (url: string, init?: RequestInit) => {
+      if (init?.body) bodies.push({ url, method: init.method, body: JSON.parse(String(init.body)) });
+      return { ok: init?.method ? true : false, status: init?.method ? 200 : 404, json: async () => ({}) } as Response;
+    };
+    chatHistoryService.setUserId('round5-' + Date.now());
+    const session = chatHistoryService.createNewSession(null);
+    expect((session as any).projectId).toBeUndefined();
+    chatHistoryService.setBackendSyncActive(true);
+    try {
+      chatHistoryService.fileEmptySessionInProject(session.id, 'proj-1');
+      chatHistoryService.addMessage(session.id, { id: 'u1', role: 'user', content: 'samples.csv: run QC', timestamp: new Date() } as any);
+      expect((chatHistoryService.getSession(session.id) as any).projectId).toBe('proj-1');
+      await new Promise((r) => setTimeout(r, 2300));
+      const push = bodies.filter((b) => b.body?.session_id === session.id).pop();
+      expect(push?.body.project_id).toBe('proj-1');
+      expect(push?.body.message_count).toBe(1);
+    } finally {
+      chatHistoryService.setBackendSyncActive(false);
+    }
+  }, 10_000);
+
+  it('never moves a chat that already has messages or a project', () => {
+    chatHistoryService.setUserId('round5b-' + Date.now());
+    const used = chatHistoryService.createNewSession(null);
+    chatHistoryService.updateSession(used.id, { title: 'Earlier', messages: [{ id: 'm', role: 'user', content: 'x', timestamp: new Date() } as any] });
+    chatHistoryService.fileEmptySessionInProject(used.id, 'proj-1');
+    expect((chatHistoryService.getSession(used.id) as any).projectId).toBeUndefined();
+    const filed = chatHistoryService.createNewSession('proj-2');
+    chatHistoryService.fileEmptySessionInProject(filed.id, 'proj-1');
+    expect((chatHistoryService.getSession(filed.id) as any).projectId).toBe('proj-2');
+  });
+});

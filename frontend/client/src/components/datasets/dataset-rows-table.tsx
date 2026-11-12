@@ -9,7 +9,7 @@
  *   ("sorting and filtering apply to the loaded rows only") until every row is
  *   loaded; "Load all rows" makes them whole-file operations.
  */
-import { lazy, Suspense, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog"
@@ -37,6 +37,9 @@ export interface DatasetRowsTableProps {
   editable?: boolean
   edits?: Record<string, { from: string; value: string }>
   onEdit?: (row: number, col: number, from: string, value: string) => void
+  /** What these rows are, when they are a fixed preview rather than a paged read of the file
+   *  ("Sheet “Data” · first 20 rows"): replaces the loaded-of-total count and the sort/filter scope. */
+  scope?: string
 }
 
 /** Short structural label for a nested cell (a JSONL list/object), instead of truncated JSON text. */
@@ -219,9 +222,38 @@ function showBreaks(v: string): string {
   return /\r|\n/.test(v) ? v.replace(/\r\n|\r|\n/g, " ↵ ") : v
 }
 
+/**
+ * A multi-line cell value in the editor. At rest it takes one row's height (the table never jumps);
+ * while focused it opens over the rows below with every line visible, so the user edits what they
+ * see — a one-row textarea showed only the line the caret was on.
+ */
+function MultilineCellEditor({ value, className, onChange, ...aria }: {
+  value: string; className: string; onChange: (v: string) => void; "aria-label": string; "data-testid": string
+}) {
+  const [focused, setFocused] = useState(false)
+  const lines = value.split(/\r\n|\r|\n/).length
+  return (
+    <div className="relative" style={{ height: ROW_H - 4 }}>
+      <div className={focused ? "absolute left-0 top-0 z-20 w-full min-w-[14rem] rounded bg-background shadow-md" : undefined}>
+        <textarea
+          {...aria}
+          value={value}
+          rows={focused ? Math.min(Math.max(lines, 2), 12) : 1}
+          data-expanded={focused ? "true" : "false"}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className={`${className} block resize-none whitespace-pre ${focused ? "overflow-auto" : "overflow-hidden"}`}
+          style={focused ? undefined : { height: ROW_H - 4 }}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function DatasetRowsTable({
   columns, rows, total, loading, error, onNeedMore, onLoadAll, onRetry, loadAllCap = Infinity,
-  editable = false, edits = {}, onEdit,
+  editable = false, edits = {}, onEdit, scope,
 }: DatasetRowsTableProps) {
   const [sortCol, setSortCol] = useState<number | null>(null)
   const [sortAsc, setSortAsc] = useState(true)
@@ -230,6 +262,22 @@ export function DatasetRowsTable({
   const [openRow, setOpenRow] = useState<{ row: string[]; index: number; field: string | null } | null>(null)
   const boxRef = useRef<HTMLDivElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
+  // Columns hidden to the right (a narrow panel): say so and fade the edge, so the cut-off table
+  // reads as "scroll sideways", not as the whole table.
+  const [moreRight, setMoreRight] = useState(false)
+  const measureX = useCallback(() => {
+    const el = boxRef.current
+    if (!el) return
+    setMoreRight(el.scrollWidth - el.clientWidth > 1 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+  useEffect(() => {
+    measureX()
+    const el = boxRef.current
+    if (!el || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(measureX)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [measureX, columns.length, rows.length])
 
   const allLoaded = total != null && rows.length >= total
   const view = useMemo(() => {
@@ -263,28 +311,34 @@ export function DatasetRowsTable({
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget
     setScrollTop(el.scrollTop)
+    measureX()
     if (!allLoaded && !loading && error == null && el.scrollTop + el.clientHeight >= el.scrollHeight - ROW_H * 10) {
       onNeedMore()
     }
   }
 
   const fmt = (n: number) => n.toLocaleString()
+  // A header-only file: nothing to filter, sort or count — the table says "no data rows yet", not
+  // "All 0 rows loaded · sorting and filtering apply to all rows".
+  const noDataRows = total === 0 && rows.length === 0 && !loading && error == null
   return (
-    <div className="space-y-1" data-testid="dataset-preview-table">
-      <input
+    <div className="space-y-1" data-testid="dataset-preview-table" data-no-rows={noDataRows ? "true" : undefined}>
+      {!noDataRows && <input
         value={filterText}
         onChange={(e) => setFilterText(e.target.value)}
         placeholder={t("dataset_obj.filter_placeholder")}
         aria-label={t("dataset_obj.filter_placeholder")}
         data-testid="dataset-preview-filter"
         className="w-full rounded border bg-background px-2 py-1 text-xs mb-1"
-      />
+      />}
+      <div className="relative">
       <div
         ref={boxRef}
         onScroll={onScroll}
         className="overflow-auto rounded border"
         style={{ maxHeight: "60vh" }}
         data-testid="dataset-preview-scroll"
+        data-more-right={moreRight ? "true" : "false"}
       >
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -331,13 +385,12 @@ export function DatasetRowsTable({
                       <td key={ci} className="px-0.5 py-0 border-b">
                         {/\r|\n/.test(value) ? (
                           // An <input> strips line breaks: editing a multi-line value in one would
-                          // silently save it without them. A one-row textarea keeps them.
-                          <textarea
+                          // silently save it without them. A textarea keeps them, and opens to show
+                          // every line while it is being edited.
+                          <MultilineCellEditor
                             {...common}
-                            rows={1}
-                            className={`${cls} resize-none overflow-hidden whitespace-pre align-middle`}
-                            style={{ height: ROW_H - 4 }}
-                            onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)}
+                            className={cls}
+                            onChange={(v) => onEdit?.(ri, ci, shown, v)}
                           />
                         ) : (
                           <input {...common} className={cls} onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)} />
@@ -376,7 +429,7 @@ export function DatasetRowsTable({
               </tr>
             ))}
             {end < view.length && <tr aria-hidden style={{ height: (view.length - end) * ROW_H }} />}
-            {total === 0 && rows.length === 0 && !loading && (
+            {noDataRows && (
               // A header-only file: its columns are real, it just has no data rows yet.
               <tr data-testid="dataset-preview-no-rows">
                 <td colSpan={Math.max(1, columns.length)} className="px-2 py-2 text-muted-foreground">{t("dataset_obj.no_data_rows")}</td>
@@ -385,18 +438,25 @@ export function DatasetRowsTable({
           </tbody>
         </table>
       </div>
+      {moreRight && (
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r bg-gradient-to-l from-background to-transparent" />
+      )}
+      </div>
       <RecordDialog columns={columns} open={openRow} onClose={() => setOpenRow(null)} returnFocusTo={openerRef} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="dataset-preview-rowcount">
         {hasNested && !openRow && !editable && <span>{t("dataset_obj.record_hint")}</span>}
-        <span>
-          {allLoaded
-            ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
-            : t("dataset_obj.rows_loaded", { loaded: fmt(rows.length), total: total != null ? fmt(total) : "?" })}
-        </span>
+        {moreRight && <span data-testid="dataset-preview-more-columns">{t("dataset_obj.scroll_more_columns")}</span>}
+        {scope == null && !noDataRows && (
+          <span>
+            {allLoaded
+              ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
+              : t("dataset_obj.rows_loaded", { loaded: fmt(rows.length), total: total != null ? fmt(total) : "?" })}
+          </span>
+        )}
         {filterText.trim() && <span>{t("dataset_obj.rows_matching", { n: fmt(view.length) })}</span>}
-        <span data-testid="dataset-preview-scope">
-          {allLoaded ? t("dataset_obj.rows_scope_full") : t("dataset_obj.rows_scope_partial")}
-        </span>
+        {!noDataRows && <span data-testid="dataset-preview-scope">
+          {scope ?? (allLoaded ? t("dataset_obj.rows_scope_full") : t("dataset_obj.rows_scope_partial"))}
+        </span>}
         {loading && <span role="status">{t("dataset_obj.loading_more")}</span>}
         {error != null && (
           <span role="alert" className="text-destructive">

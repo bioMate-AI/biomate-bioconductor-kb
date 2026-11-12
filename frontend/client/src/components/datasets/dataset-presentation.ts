@@ -75,3 +75,11 @@ export function editErrorMessage(status: number, body?: { code?: unknown; error?
   if (status === 400) return t("dataset_obj.edit_err_bad_request")
   return t("dataset_obj.with_status", { message: t("dataset_obj.edit_failed"), status })
 }
+
+/** Where a file came from, in words: `upload` → "Uploaded", `run_output` → "Workflow output"… An
+ *  unknown source value keeps its raw text (never an i18n key). */
+const SOURCE_KEYS = new Set(["upload", "run_output", "url", "run_code"])
+export function sourceLabel(source: string | null | undefined): string {
+  if (source == null || source === "") return "—"
+  return SOURCE_KEYS.has(source) ? t(`dataset_obj.source_${source}`) : source
+}

@@ -316,7 +316,14 @@ def test_read_rows_returns_the_delimiter(tmp):
 # Copy — ONE English template table, equal to the en locale
 # ---------------------------------------------------------------------------
 # Codes whose en wording the backend changed this round (the client's locale adopts it).
-_BACKEND_AHEAD_OF_LOCALE = frozenset({"alignment_not_coordinate_sorted"})
+# Backend English and the en locale are one wording (2026-11-12 round 3b). Round 4 (N5) changed
+# these so a finding never repeats the profile's stats; the client's locale adopts them.
+# Backend English and the en locale are one wording: no exemptions.
+_BACKEND_AHEAD_OF_LOCALE = frozenset({
+    # Round 5 (2026-11-12): orientation-only shape sentences (the counts are the stats) and the
+    # plain-language unprofilable note; the en locale is synced separately.
+    "anndata_shape", "loom_shape", "unprofilable",
+})
 
 
 def _en_locale():

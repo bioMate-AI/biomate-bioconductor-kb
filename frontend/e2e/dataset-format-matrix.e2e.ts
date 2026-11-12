@@ -23,7 +23,7 @@
  * docs/20261112_DATASET_PANEL_AUDIT.md, so the matrix is expected to fail until those fixes deploy.
  *
  * Folders: the tree's folder rows + each folder opened as an object (folder view) with asserted
- * facts: pairs/ → S1 paired, S2_R1 orphan, a 2-row samplesheet downloaded from the UI; tenx/ →
+ * facts: pairs/ → S1 paired, S2_R1 orphan, a paired samplesheet (S1) + a single-end sheet (S2) downloaded from the UI; tenx/ →
  * a recognised 10x matrix with its cells × genes; per-file consequences (S1_R1's QC names its mate,
  * S2_R1's has fastq_mate_missing, features.tsv is header-less).
  *
@@ -261,6 +261,11 @@ function judge(key: string, snap: Awaited<ReturnType<typeof snapshot>>, settled:
     add("no-table-controls", false, bad.length === 0, `non-table kind shows toggles: ${bad.join(", ")}`);
   }
 
+  const needIds: string[] = (ex.requirePreviewTestids ?? []).filter((id: string) => !snap.previewTestids.includes(id));
+  if ((ex.requirePreviewTestids ?? []).length) {
+    add("preview-testids", false, needIds.length === 0, `Preview lacks ${needIds.join(", ")}; has [${snap.previewTestids.slice(0, 20).join(", ")}]`);
+  }
+
   const allowed: string[] = EXPECTATIONS.qualitySets[ex.quality] ?? [];
   add("quality-class", false, snap.qc.quality !== null && allowed.includes(snap.qc.quality),
     `data-quality=${snap.qc.quality ?? `(none; qc ${snap.qc.state})`} want ${ex.quality} [${allowed.join("|")}]`);
@@ -383,6 +388,13 @@ test("dataset format matrix: upload → open → per-format outcome vs committed
           ]);
           const p = await dl.path();
           rec.samplesheet = { filename: dl.suggestedFilename(), csv: p ? fs.readFileSync(p, "utf8") : null };
+          // Orphans/singles go to their own single-end sheet (a paired sheet holds pairs only).
+          const single = page.getByTestId("folder-samplesheet-single-download");
+          if (await single.count()) {
+            const [dl2] = await Promise.all([page.waitForEvent("download", { timeout: 30_000 }), single.click()]);
+            const p2 = await dl2.path();
+            rec.samplesheetSingle = { filename: dl2.suggestedFilename(), csv: p2 ? fs.readFileSync(p2, "utf8") : null };
+          }
         }
       }
       out.folders[folder] = rec;
@@ -402,7 +414,9 @@ test("dataset format matrix: upload → open → per-format outcome vs committed
     expect.soft(pv?.orphans ?? [], "S2_R1 flagged as orphan").toContain("folder-orphan-S2_R1.fastq.gz");
     const sheet = String(out.folders.pairs?.samplesheet?.csv ?? "").trim().split("\n");
     expect.soft(sheet[0], "samplesheet header").toBe("sample,fastq_1,fastq_2");
-    expect.soft(sheet.length - 1, "samplesheet has 2 rows (S1 pair + S2 orphan)").toBe(2);
+    expect.soft(sheet.length - 1, "paired samplesheet holds pairs only (S1)").toBe(1);
+    const single = String(out.folders.pairs?.samplesheetSingle?.csv ?? "").trim().split("\n");
+    expect.soft(single.slice(1).some((l) => l.startsWith("S2,pairs/S2_R1.fastq.gz")), "orphan S2 is in the single-end samplesheet").toBe(true);
     expect.soft(sheet[1]).toBe("S1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz");
     const tv = out.folders.tenx?.view;
     expect.soft(tv?.kind, "tenx/ is a 10x matrix").toBe("tenx_matrix");

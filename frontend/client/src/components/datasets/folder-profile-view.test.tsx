@@ -33,27 +33,35 @@ const PAIRS = {
     { code: "folder_fastq_pairs", level: "info", params: { pairs: 1, pattern: "_R1/_R2" } },
     { code: "folder_fastq_orphan", level: "watch", params: { name: "S2_R1.fastq.gz", sample: "S2", missing: "R2" } },
     { code: "folder_fastq_mixed_layout", level: "watch", params: { pairs: 1, unpaired: 1 } },
-    { code: "folder_samplesheet", level: "info", params: { rows: 2 } },
+    { code: "folder_samplesheet", level: "info", params: { rows: 1, layout: "paired", path_base: "project inputs" } },
+    { code: "folder_samplesheet_single_end", level: "info", params: { rows: 1, filename: "samplesheet_single_end.csv", names: ["S2_R1.fastq.gz"] } },
   ],
   fastq: {
-    verdict: "mixed", pattern: "Rs", engine: "galaxy", pairs: 1,
+    verdict: "mixed", pattern: "Rs", patterns: ["Rs"], engine: "galaxy", pairs: 1,
     samples: [
       { sample: "S1", forward: "pairs/S1_R1.fastq.gz", reverse: "pairs/S1_R2.fastq.gz", status: "paired", dir: "pairs" },
       { sample: "S2", forward: "pairs/S2_R1.fastq.gz", reverse: null, status: "orphan", role: "forward", dir: "pairs" },
     ],
     orphans: ["pairs/S2_R1.fastq.gz"], singles: [],
   },
+  // Round 3: a run takes one layout — the paired sheet holds S1 only; the orphan S2 goes to the
+  // single-end sheet (folder_profile.samplesheet).
   samplesheet: {
-    columns: ["sample", "fastq_1", "fastq_2"], filename: "samplesheet.csv",
-    rows: [["S1", "pairs/S1_R1.fastq.gz", "pairs/S1_R2.fastq.gz"], ["S2", "pairs/S2_R1.fastq.gz", ""]],
-    csv: "sample,fastq_1,fastq_2\nS1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz\nS2,pairs/S2_R1.fastq.gz,\n",
+    columns: ["sample", "fastq_1", "fastq_2"], filename: "samplesheet.csv", layout: "paired", pathBase: "project inputs",
+    rows: [["S1", "pairs/S1_R1.fastq.gz", "pairs/S1_R2.fastq.gz"]],
+    csv: "sample,fastq_1,fastq_2\nS1,pairs/S1_R1.fastq.gz,pairs/S1_R2.fastq.gz\n",
+    single: {
+      columns: ["sample", "fastq_1", "fastq_2"], filename: "samplesheet_single_end.csv", layout: "single_end", pathBase: "project inputs",
+      rows: [["S2", "pairs/S2_R1.fastq.gz", ""]], csv: "sample,fastq_1,fastq_2\nS2,pairs/S2_R1.fastq.gz,\n",
+    },
+    excluded: ["pairs/S2_R1.fastq.gz"],
   },
 }
 const TENX = {
   path: "tenx", kind: "tenx_matrix", fileCount: 3,
   rollup: [{ format: "mtx", label: "Matrix Market", count: 1 }, { format: "tsv", label: "TSV", count: 2 }],
   findings: [
-    { code: "folder_tenx_recognised", level: "info", params: { cells: 5, genes: 5, nnz: 8, version: "v3", dir: "." } },
+    { code: "folder_tenx_recognised", level: "info", params: { cells: 5, genes: 5, nnz: 8, version: "v3", dir: null } },
     { code: "folder_tenx_headerless", level: "info", params: {} },
   ],
   tenx: { sets: [{ dir: "", prefix: "", matrix: "tenx/matrix.mtx", barcodes: "tenx/barcodes.tsv", features: "tenx/features.tsv",
@@ -105,14 +113,19 @@ describe("Folder view", () => {
     expect(calls.some((u) => u === "/api/projects/proj-1/folders/profile?path=pairs")).toBe(true)
     expect(screen.getByTestId("folder-sample-row-S1").getAttribute("data-status")).toBe("paired")
     expect(screen.getByTestId("folder-sample-row-S2").getAttribute("data-status")).toBe("orphan")
-    expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Orphan")
+    expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Missing mate — single-end")
     const dl = screen.getByTestId("folder-samplesheet-download")
     expect(dl.getAttribute("href")).toBe("/api/projects/proj-1/folders/profile?path=pairs&download=samplesheet")
     expect(screen.getByTestId("folder-rollup")).toHaveTextContent("Files: 3 — 3 FASTQ · pairs: 1")
     expect(screen.getByTestId("folder-profile-verdict")).toHaveTextContent("Paired + unpaired")
-    const orphan = screen.getAllByTestId("folder-finding").find((e) => e.getAttribute("data-code") === "folder_fastq_orphan")!
-    expect(orphan).toHaveTextContent("S2_R1.fastq.gz has no R2 mate in this folder — sample S2 would run single-end.")
-    expect(orphan.getAttribute("data-level")).toBe("watch")
+    // Round 5 — S2's missing mate is said ONCE in the samples section: the row's badge and the
+    // excluded note. The orphan / mixed-layout / single-end / pairs / samplesheet findings repeated it
+    // (five times in all on dev) and are not listed again.
+    expect(screen.queryAllByTestId("folder-finding")).toHaveLength(0)
+    expect(screen.getByTestId("folder-samplesheet-excluded")).toHaveTextContent("Not in the paired samplesheet (no mate in this folder): S2_R1.fastq.gz")
+    const fp2 = screen.getByTestId("folder-profile")
+    expect((fp2.textContent ?? "").split("S2_R1.fastq.gz").length - 1).toBe(2) // the table cell + the excluded note
+    expect(fp2.textContent).not.toContain("would run single-end")
     // The tree row shows it is the open folder; opening a file replaces the folder view.
     expect(screen.getByTestId("folder-inputs/pairs").getAttribute("aria-current")).toBe("true")
   }, 30_000)
@@ -136,9 +149,10 @@ describe("Folder view", () => {
     const text = fp.textContent ?? ""
     expect(text).toContain("共 3 个文件：3 个 FASTQ（1 对）")
     expect(text).toContain("下载样本表")
-    expect(text).toContain("S2_R1.fastq.gz 在本文件夹中没有对应的 R2 文件 — 样本 S2 将按单端处理。")
+    expect(text).toContain("未放入双端样本表（本文件夹中没有配对文件）：S2_R1.fastq.gz")
+    expect(text).not.toContain("将按单端处理")
     const ALLOWED = ["S1_R1.fastq.gz", "S1_R2.fastq.gz", "S2_R1.fastq.gz", "pairs", "S1", "S2", "R2", "FASTQ",
-      "_R1/_R2", "nf-core", "sample", "fastq_1", "fastq_2"]
+      "_R1/_R2", "nf-core", "sample", "fastq_1", "fastq_2", "samplesheet_single_end.csv"]
     let rest = text
     for (const tok of [...ALLOWED].sort((a, b) => b.length - a.length)) rest = rest.split(tok).join(" ")
     expect(Array.from(new Set(rest.match(/[A-Za-z]{2,}/g) ?? []))).toEqual([])

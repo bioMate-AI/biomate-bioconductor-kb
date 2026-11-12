@@ -112,23 +112,34 @@ describe("AnnData (U5)", () => {
         { section: "note", code: "anndata_obs", level: "info", params: { count: 3, columns: ["n_genes", "louvain", "batch"] } },
         { section: "note", code: "anndata_var", level: "info", params: { count: 1, columns: ["gene_ids"] } },
         { section: "note", code: "anndata_embeddings", level: "info", params: { count: 2, embeddings: ["X_pca", "X_umap"] } },
-        { section: "note", code: "hdf5_groups", level: "info", params: { count: 1, groups: ["counts"] } },
+        { section: "note", code: "hdf5_groups", level: "info", params: { count: 5, groups: ["X", "obs", "obsm", "var", "varm"] } },
         { section: "note", code: "format_metadata_only", level: "watch", params: { format: "AnnData" } },
       ],
+      layers: ["counts"],
     }
     renderObj("pbmc3k.h5ad")
     const sum = await screen.findByTestId("dataset-anndata-summary")
-    expect(within(sum).getByTestId("dataset-anndata-shape")).toHaveTextContent("2,700")
-    expect(within(sum).getByTestId("dataset-anndata-shape")).toHaveTextContent("32,738")
+    // N5 (round 4): cells × genes are the stat grid's numbers, shown once — not again in the summary.
+    expect(within(sum).queryByTestId("dataset-anndata-shape")).toBeNull()
+    const grid = screen.getByTestId("dataset-stat-grid")
+    expect(grid.querySelector('[data-stat="cells"]')).toHaveTextContent("2,700")
+    expect(grid.querySelector('[data-stat="genes"]')).toHaveTextContent("32,738")
     expect(within(sum).getByTestId("dataset-anndata-obs")).toHaveTextContent("louvain")
     expect(within(sum).getByTestId("dataset-anndata-var")).toHaveTextContent("gene_ids")
     expect(within(sum).getByTestId("dataset-anndata-embeddings")).toHaveTextContent("X_umap")
+    // Real layers (adata.layers) apart from the file's stored HDF5 groups (W5).
+    expect(within(sum).getByTestId("dataset-anndata-layers")).toHaveTextContent("Layers · 1")
     expect(within(sum).getByTestId("dataset-anndata-layers")).toHaveTextContent("counts")
+    expect(within(sum).getByTestId("dataset-anndata-layers")).not.toHaveTextContent("obsm")
+    expect(within(sum).getByTestId("dataset-anndata-groups")).toHaveTextContent("Stored parts of the file · 5")
     expect(screen.queryByTestId("dataset-preview-toggle-table")).toBeNull()
-    // QC card: cells × genes, not "rows 1 / columns 1".
+    // cells × genes, not "rows 1 / columns 1" — shown once, in the stat grid (P3), not again in the QC card.
     const card = screen.getByTestId("data-perception")
-    expect(within(card).getByTestId("perception-stat-cells")).toHaveTextContent("2,700")
-    expect(card).not.toHaveTextContent(/Rows/)
+    expect(within(card).queryByTestId("perception-stat-cells")).toBeNull()
+    expect(screen.getByTestId("dataset-stat-grid").querySelector('[data-stat="cells"]')).toHaveTextContent("2,700")
+    // No "rows / columns" count (the round-5 anndata_shape sentence says which axis is which, in words).
+    expect(within(card).queryByTestId("perception-stat-rows")).toBeNull()
+    expect(card).not.toHaveTextContent(/Rows:?\s*\d/i)
     expect(rowCalls).toBe(0)
   })
 })
@@ -251,6 +262,8 @@ describe("restore re-reads the rows (the next edit is based on the restored vers
     expect(rowCalls).toBe(1)
     fireEvent.click(screen.getByTestId("dataset-tab-versions"))
     fireEvent.click(await screen.findByTestId("dataset-version-restore-6"))
+    // Restore asks first (W1); confirming sends it.
+    fireEvent.click(await screen.findByTestId("dataset-version-restore-yes-6"))
     // The restore is made against the version the list showed as current.
     await waitFor(() => expect(restoreBodies).toEqual([{ baseVersion: 7 }]))
     await waitFor(() => expect(rowCalls).toBe(2))
@@ -309,5 +322,19 @@ describe("e2e contract attributes (format-matrix harness)", () => {
     expect(screen.getByTestId("dataset-preview")).toHaveAttribute("aria-busy", "true")
     await waitFor(() => expect(screen.getByTestId("dataset-preview")).toHaveAttribute("data-preview-kind", "error"))
     expect(screen.getByTestId("dataset-preview")).not.toHaveAttribute("aria-busy")
+  })
+})
+
+describe("header version chip", () => {
+  it("shows the CURRENT version as soon as the file opens (was v1 until the Versions tab was visited)", async () => {
+    versionsBody = { versions: [
+      { version: "2", label: "v2", current: true, createdAt: "2026-11-12T09:06:21Z", authorName: "A" },
+      { version: "1", label: "v1", current: false, createdAt: "2026-11-12T09:06:20Z", authorName: "A" },
+    ] }
+    // Self-contained: a plain table profile and rows, independent of earlier tests' state.
+    profileBody = { shape: { rows: 1, cols: 2 }, quality: "good", notes: [], viewKind: "table", columns: ["a", "b"], sampleRows: [["1", "3"]] }
+    rowsBody = { status: 200, body: { tabular: true, viewKind: "table", columns: ["a", "b"], rows: [["1", "3"]], totalRows: 1, version: 2, headerRow: true } }
+    renderObj("v.csv")
+    await waitFor(() => expect(screen.getByTestId("dataset-header-version")).toHaveTextContent("v2"))
   })
 })

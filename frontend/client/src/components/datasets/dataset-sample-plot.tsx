@@ -15,12 +15,78 @@ import {
 export interface DatasetSamplePlotProps {
   columns: string[];
   sampleRows: string[][];
+  /** The table's decimal mark when the reader reports one ("," → "1,5" is 1.5). */
+  decimal?: string | null;
   /** i18n passthrough; (key, vars) — matches the app's narrowed t signature. */
   t?: (key: string, vars?: any) => string;
+  /** The profiler's per-column stats: their `role` says which columns are not measurements. */
+  columnStats?: Array<{ name: string; role?: string | null }> | null;
+  /** The table's true row count, when more rows exist than are loaded. */
+  total?: number | null;
+  /** Load every row (offered when `total` exceeds the loaded rows). */
+  onLoadAll?: () => void;
+  loading?: boolean;
+}
+
+/** Roles of columns that are not measurements: identifiers, a layout's annotation columns
+ *  (featureCounts Chr / Start / End / Strand / Length), the class label, a single-valued column. */
+const NON_MEASUREMENT_ROLES = new Set(["identifier", "annotation", "label", "constant"]);
+/** Coordinate / bookkeeping column names, for profiles that carry no roles (a page / line number
+ *  of extracted records is bookkeeping too: the JSONL plot opened on "page"). */
+const COORDINATE_NAME = /^(chr(om(osome)?)?|chrom_?(start|end)|(tx|cds|gene)?_?(start|end)|start|end|stop|begin|pos(ition)?|strand|length|len|width|bin|index|idx|row|rank|id|page|page_?(no|num(ber)?)|line|line_?(no|num(ber)?))$/i;
+
+/**
+ * Is this numeric column a MEASUREMENT (counts, values) — the kind of column a distribution is
+ * about? The profiler's role decides (round 4: `measurement`, or identifier / annotation / label /
+ * constant); a column without a role (an older profile, or a column it did not describe) falls back
+ * to its name — coordinate / bookkeeping names are not measurements.
+ */
+export function isMeasurementColumn(name: string, role: string | null | undefined): boolean {
+  if (role === "measurement") return true;
+  if (role && NON_MEASUREMENT_ROLES.has(role)) return false;
+  return !COORDINATE_NAME.test((name ?? "").trim());
+}
+
+/** The numeric columns split into measurements (listed first) and the others (identifiers,
+ *  coordinates, annotations — offered under "Other columns", never opened on by default). */
+export function plotColumnGroups(
+  columns: string[], numCols: number[], columnStats?: Array<{ name: string; role?: string | null }> | null,
+): { measured: number[]; other: number[] } {
+  const roleOf = new Map((columnStats ?? []).map((c) => [c.name, c.role ?? null]));
+  const measured: number[] = [], other: number[] = [];
+  for (const ci of numCols) (isMeasurementColumn(columns[ci] ?? "", roleOf.get(columns[ci] ?? "")) ? measured : other).push(ci);
+  return { measured, other };
+}
+
+/**
+ * The column a plot opens on: the first MEASUREMENT — never an identifier, an annotation /
+ * coordinate column (a featureCounts table opened on "Start"; a JSONL of extracted tables on its
+ * "page" number), the label or a constant. -1 when no numeric column is a measurement: the plot
+ * then asks which column to draw instead of drawing a bookkeeping column.
+ */
+export function defaultPlotColumn(
+  columns: string[], numCols: number[], columnStats?: Array<{ name: string; role?: string | null }> | null,
+): number {
+  return plotColumnGroups(columns, numCols, columnStats).measured[0] ?? -1;
+}
+
+/**
+ * A cell as a number, or NaN. With a decimal comma ("1,5", "1.234,5") the comma is the decimal
+ * mark and a dot only groups thousands; otherwise the usual "1.5".
+ */
+export function parseCellNumber(raw: string | null | undefined, decimal?: string | null): number {
+  let v = (raw ?? "").trim();
+  if (v === "") return NaN;
+  if (decimal === ",") {
+    if (!/^[+-]?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?([eE][+-]?\d+)?$/.test(v)) return NaN;
+    v = v.replace(/\./g, "").replace(",", ".");
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
 }
 
 /** Indices of columns whose sample cells are >=60% finite numbers (>=2 non-empty). */
-export function numericColumnIndices(columns: string[], rows: string[][]): number[] {
+export function numericColumnIndices(columns: string[], rows: string[][], decimal?: string | null): number[] {
   const out: number[] = [];
   columns.forEach((_, ci) => {
     let num = 0, tot = 0;
@@ -28,15 +94,15 @@ export function numericColumnIndices(columns: string[], rows: string[][]): numbe
       const v = (r?.[ci] ?? "").trim();
       if (v === "") continue;
       tot++;
-      if (Number.isFinite(Number(v))) num++;
+      if (Number.isFinite(parseCellNumber(v, decimal))) num++;
     }
     if (tot >= 2 && num / tot >= 0.6) out.push(ci);
   });
   return out;
 }
 
-export function hasNumericColumns(columns: string[], rows: string[][]): boolean {
-  return numericColumnIndices(columns, rows).length > 0;
+export function hasNumericColumns(columns: string[], rows: string[][], decimal?: string | null): boolean {
+  return numericColumnIndices(columns, rows, decimal).length > 0;
 }
 
 export interface HistogramBin {
@@ -93,35 +159,62 @@ export function histogramBins(values: number[], targetBins = 12, tag?: string): 
   });
 }
 
-export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotProps) {
-  const tr = t || ((_k: string, v?: any) =>
-    `Distribution of ${v?.col} across the ${v?.n}-row sample — open in Jupyter/RStudio for the full dataset.`);
-  const numCols = useMemo(() => numericColumnIndices(columns, sampleRows), [columns, sampleRows]);
-  const [sel, setSel] = useState<number>(numCols[0] ?? -1);
-  const colIdx = numCols.includes(sel) ? sel : (numCols[0] ?? -1);
+export function DatasetSamplePlot({ columns, sampleRows, decimal, t, columnStats, total, onLoadAll, loading }: DatasetSamplePlotProps) {
+  const tr = t || ((_k: string, v?: any) => `Distribution of column “${v?.col}” · rows loaded: ${v?.n}`);
+  const numCols = useMemo(() => numericColumnIndices(columns, sampleRows, decimal), [columns, sampleRows, decimal]);
+  const groups = useMemo(() => plotColumnGroups(columns, numCols, columnStats), [columns, numCols, columnStats]);
+  const fallback = groups.measured[0] ?? -1;
+  const [sel, setSel] = useState<number | null>(null);
+  const colIdx = sel != null && numCols.includes(sel) ? sel : fallback;
+  const label = (key: string, en: string) => (t ? t(key) : en);
+  const partial = typeof total === "number" && total > sampleRows.length;
+  const numFmt = (n: number) => n.toLocaleString(locale === "zh" ? "zh-CN" : "en-US");
 
   const data = useMemo(() => {
     if (colIdx < 0) return [];
     const vals = sampleRows
-      .map((r) => Number((r?.[colIdx] ?? "").trim()))
+      .map((r) => parseCellNumber(r?.[colIdx], decimal))
       .filter((v) => Number.isFinite(v));
     return histogramBins(vals);
-  }, [colIdx, sampleRows]);
+  }, [colIdx, sampleRows, decimal]);
 
-  if (colIdx < 0 || data.length === 0) return null; // caller renders the fallback
+  if (numCols.length === 0) return null; // caller renders the fallback
+
+  // Measurements first; identifiers / coordinates / annotations under "Other columns".
+  const selector = (numCols.length > 1 || colIdx < 0) && (
+    <select
+      value={colIdx < 0 ? "" : colIdx}
+      onChange={(e) => setSel(Number(e.target.value))}
+      data-testid="dataset-sample-plot-col"
+      className="rounded border bg-background px-2 py-1 text-xs"
+    >
+      {colIdx < 0 && <option value="" disabled>{label("dataset_obj.plot_choose_column", "Choose a column to plot")}</option>}
+      {groups.measured.map((ci) => <option key={ci} value={ci} data-group="measurement">{columns[ci]}</option>)}
+      {groups.other.length > 0 && (
+        <optgroup label={label("dataset_obj.plot_other_columns", "Other columns")} data-testid="dataset-sample-plot-other">
+          {groups.other.map((ci) => <option key={ci} value={ci} data-group="other">{columns[ci]}</option>)}
+        </optgroup>
+      )}
+    </select>
+  );
+
+  if (colIdx < 0) {
+    // Every numeric column is an identifier / coordinate / annotation: say so and let the user pick
+    // one — never a histogram of page numbers or gene start positions by default.
+    return (
+      <div data-testid="dataset-sample-plot" data-no-measurement="true" className="space-y-2">
+        {selector}
+        <p className="text-xs text-muted-foreground" data-testid="dataset-sample-plot-no-measurement">
+          {label("dataset_obj.plot_no_measurement", "No measurement column: the numeric columns here are identifiers, positions or annotations. Choose one to plot it anyway.")}
+        </p>
+      </div>
+    );
+  }
+  if (data.length === 0) return null;
 
   return (
     <div data-testid="dataset-sample-plot" className="space-y-2">
-      {numCols.length > 1 && (
-        <select
-          value={colIdx}
-          onChange={(e) => setSel(Number(e.target.value))}
-          data-testid="dataset-sample-plot-col"
-          className="rounded border bg-background px-2 py-1 text-xs"
-        >
-          {numCols.map((ci) => <option key={ci} value={ci}>{columns[ci]}</option>)}
-        </select>
-      )}
+      {selector}
       <div style={{ width: "100%", height: 200 }}>
         <ResponsiveContainer>
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
@@ -136,9 +229,17 @@ export function DatasetSamplePlot({ columns, sampleRows, t }: DatasetSamplePlotP
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {tr("dataset_obj.plot_sample_caveat", { col: columns[colIdx], n: sampleRows.length })}
+      <p className="text-xs text-muted-foreground" data-testid="dataset-sample-plot-caption" data-partial={partial ? "true" : undefined}>
+        {partial
+          ? tr("dataset_obj.plot_partial_caveat", { col: columns[colIdx], n: numFmt(sampleRows.length), total: numFmt(total!) })
+          : tr("dataset_obj.plot_sample_caveat", { col: columns[colIdx], n: numFmt(sampleRows.length) })}
       </p>
+      {partial && onLoadAll && (
+        <button type="button" className="rounded border px-2 py-0.5 text-xs hover:bg-muted disabled:opacity-50"
+          disabled={loading} onClick={onLoadAll} data-testid="dataset-sample-plot-load-all">
+          {tr("dataset_obj.plot_load_all")}
+        </button>
+      )}
     </div>
   );
 }

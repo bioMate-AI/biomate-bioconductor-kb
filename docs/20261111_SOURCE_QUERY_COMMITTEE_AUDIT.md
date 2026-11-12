@@ -99,3 +99,144 @@ whole words); the right fix is an **LLM intent gate** in front of `detect_facets
 keyword tweaks — aligns with the standing "infer solution-type, not keywords" direction.
 Also deferred: `run_in_executor` cannot cancel the blocking thread on timeout (inherent;
 per-entity budget bounds it); non-English questions get no facet routing (rule-based design).
+
+---
+
+## Dev-deployed + live-verified (2026-11-12, HEAD b88dda44e3)
+
+Synced to dev via `scripts/sync_to_dev.sh` (result=healthy; workflow-gen + intent-driven
+DB-search-routing smokes passed; ledger recorded b88dda44). Live `POST /api/ai_assistant/
+research_query` on https://dev-public.biomate.ai:
+
+- **PCSK9** (gene-constraint + disease-association) → the grounded answer QUOTES the exact
+  values: *"gnomAD… PCSK9… pLI 2.765e-18 and a LOEUF of 1.1441346736692857"* and *"Open
+  Targets identifies familial hypercholesterolemia… association score of 0.856."* The
+  DB_GROUNDED_NOTICE fires; evidence boundary stated. This confirms the whole chain live:
+  gnomAD facet selected (c680707650), OT+gnomAD rows survived the two-tier dedup, the
+  grounding gate fired on substantive facts, and the directive made the model QUOTE the
+  values instead of reverting to parametric hedging — the "famous entity → general
+  knowledge" caveat is RESOLVED.
+- **ABL1** (SAR/tractability/structure) → Pharos **Tclin** (new fetcher), UniProt **P00519**
+  + PDB **1AB2** + AlphaFold (the F1 O/P/Q accession fix — P00519 structures now reachable),
+  Open Targets CML association. A focused affinity query cites **BindingDB Kd 0.016 nM** for
+  ABL1/P00519 with SMILES (new fetcher, live). The **anti-fabrication guard (#2) works**:
+  when ChEMBL values were absent (EBI transiently flaky), the answer said so plainly instead
+  of inventing IC50/Ki numbers.
+
+### Minor follow-ups (not blockers)
+- In a BROAD multi-source ABL1 query, BindingDB's affinity rows can be crowded out of the
+  top-8 merged records fed to synthesis (round-robin + `merged[:8]` cap); a focused query
+  surfaces them. Consider weighting bindingdb/chembl higher within the bioactivity facet
+  merge, or raising the synthesis cap for bioactivity questions.
+- ChEMBL/EBI intermittent 5xx (seen locally + on dev) — external reliability, not our code;
+  the fetcher is correct and the failure is surfaced (not "ok, 0 results").
+
+---
+
+## Chat-path follow-up (read-only audit, 2026-11-12 — NOT yet fixed/verified)
+
+The direct `/api/ai_assistant/research_query` endpoint is dev-verified (above). The
+USER-FACING chat path wraps it via the `write_review` agentic tool
+(`galaxy-assistant.ts:_toolWriteReview` → same endpoint → `scientificToolResult`). Traced
+the DB-grounded (empty-citations) case:
+
+- `scientificToolResult` (scientific-chat-tools.ts:90) tags an empty-citations answer
+  `status: 'uncited'` with note *"No literature citations were returned. This is not a
+  literature-backed review; disclose the source/fallback…"*.
+- `galaxy-assistant.ts:5765` only adopts `citedResearch` (→ `groundedResearchReply`) when
+  `status === 'ok'`, so a DB-grounded answer is NOT routed through the literature guard
+  (good — it is not wrongly rejected). It is passed to the chat LLM as the tool result, and
+  the LLM composes the final reply.
+
+**Open question (needs empirical chat test, not yet run):** does the `'uncited'` status +
+"this is not a literature-backed review" note cause the chat LLM to HEDGE a *database*-backed
+answer (re-introducing, at the chat-composition layer, the "famous entity reverts to general
+knowledge" behavior the research_agent fixes removed)? The answer text itself carries the
+strong DB_GROUNDED_NOTICE, so net effect is unclear. Also: for a "what is PCSK9's LOEUF"
+question the agent may route to `query_database` rather than `write_review`, in which case
+this note never applies.
+
+**Proposed (deferred, do carefully — sensitive replay-tuned guard):** give a DB-grounded
+answer its own status (e.g. `'db_grounded'`) distinct from `'uncited'`, with a note that says
+it IS a database-backed answer to be presented with its exact values — so the chat LLM
+surfaces the gnomAD/Open Targets/BindingDB numbers confidently. Verify by driving
+`/api/chat/stream` on dev with a PCSK9 question and checking the FINAL chat message quotes
+LOEUF 1.144 + score 0.856 without hedging. Do NOT change the literature-citation guard
+(`groundedResearchReply` line 37) — it correctly gates only `status === 'ok'` literature
+answers.
+
+### Chat-path follow-up — RESOLVED (empirically verified on dev, 2026-11-12)
+
+Drove `/api/chat/stream` on dev with a DB-framed PCSK9 question ("What does gnomAD record
+for PCSK9 loss-of-function constraint — the exact pLI and LOEUF values?"). Result:
+`tool_events: ['research_query']` and the FINAL chat message presents the values
+**confidently, no hedging**: *"pLI: 2.77 × 10⁻¹⁸ … LOEUF: 1.14 … Observed/Expected LoF ratio:
+0.92"* with correct biology. So the `'uncited'`-status framing does NOT cause the chat LLM to
+hedge a database-backed answer — the earlier concern was a false alarm. The user-facing chat
+path surfaces the grounded-answer work correctly. **No chat-guard change needed.**
+
+Secondary observation (OUT OF SCOPE — separate subsystem): a question phrased with "disease
+association" + target framing routes the chat agent to the target-ranking tool
+(`identify_targets` → target_id engine), which returned "AI-generated reasoning only, external
+evidence not verified; Open Targets-primary ordering was not established." That is the
+target_id/fuse_channels engine not contributing its Open Targets channel — unrelated to the
+federated_query/research_agent source-query work; noted for whoever owns target ranking.
+
+---
+
+## Regression found post-deploy + fixed (2026-11-12, commit a90b240743)
+
+After deploying the merge-priority fix (74f790b8), a BROAD ABL1 SAR query on dev returned
+literature-only answers twice in a row — NO BindingDB/Pharos/PDB DB evidence at all (the
+focused query still surfaced BindingDB Kd 0.016 nM). Root cause = a self-inflicted regression
+from round-2:
+
+- Round-2 replaced `wait_for(gather(all-entities), 20s)` with a per-entity
+  `wait_for(federated_query, 15s)`. But `federated_query`'s OWN internal fan-out timeout is
+  also **15s** (and on expiry it returns PARTIAL results — the sources that finished). The two
+  15s timeouts TIE; when the asyncio wrapper won the race it cancelled `federated_query`
+  before it could hand back its partials → `None` → the entity's entire DB evidence was lost.
+  Intermittent (race-dependent), and worse for broad protein queries (~10 sources, a slow EBI/
+  ChEMBL/BindingDB pushes the fan-out to the 15s edge).
+- Fix: raise the per-entity wrapper to **25s** so `federated_query`'s internal 15s always
+  fires first and returns its partials; the wrapper is now only a last-resort guard against a
+  genuinely hung call. Entities run in parallel, so the larger budget adds no cross-entity
+  wall-clock. (Also note: for the common SINGLE-entity query, round-2 had silently cut the
+  budget 20s→15s; this restores comfortable headroom.)
+
+Queued for the sync window after 74's. Verify post-sync: a broad ABL1 SAR query should
+surface BindingDB/Pharos/PDB in the DB-grounded answer (not fall back to literature-only).
+
+---
+
+## Budget fix deployed + remaining broad-query nuance (precisely diagnosed, 2026-11-12 ~08:25)
+
+The budget fix (a90b240743: per-entity wrapper 15s→25s) is DEPLOYED at b9d0ca2a (healthy).
+NOTE: backend-only syncs do NOT move build-info.json (a frontend artifact) — the ledger +
+"Sync OK at <commit>" are authoritative; the ancestry gate checks the ledger. Caused a brief
+cross-session confusion (a peer read build-info and thought the sync hadn't landed).
+
+Dev verification after the budget fix:
+- FOCUSED BindingDB query → WORKS (cites Kd 0.016 nM + SMILES). External APIs healthy.
+- BROAD ABL1 SAR query → STILL literature-only (no BindingDB/Pharos/PDB tables), ~66s.
+
+So the budget fix was necessary (real timeout-race bug) but NOT sufficient for broad queries.
+Precise remaining diagnosis (reasoned from code, needs dev-log confirmation):
+1. A broad ABL1 (protein) query selects **14 sources**; `_fed_out` caps `merged[:8]`, and the
+   merge-priority fix placed bindingdb/pharos at **positions 9–10** of the protein priority
+   (after uniprot/pdb/pdbe/alphafold/interpro/string/go/chembl) — so even when they return,
+   their rows are CUT by the top-8 cap.
+2. Deeper design mismatch: the facet router (`evidence_source_router`) orders sources by
+   QUERY INTENT (bioactivity → chembl/bindingdb/pharos first), but `_merge_results` RE-ORDERS
+   by a generic ENTITY-TYPE priority (protein → structure-first), burying the intent-selected
+   bioactivity sources. The merge should respect the facet-selected order (or the cap should
+   scale with how many sources were intent-selected).
+3. Per-run source variance (the broad answer also lacked PDB #2 → some sources return
+   empty/slow per run under the 14-wide fan-out + 12-thread pool + 15s internal timeout).
+
+DELIBERATELY NOT deploy-iterating a cap/priority tweak against inconsistent external timing
+(CLAUDE.md "No Speculative Deploys"). Correct next step (with dev logs): instrument the broad
+fan-out to log which sources return vs fail/timeout, then either (a) make `_merge_results`
+preserve the facet-selected order for the chosen sources, or (b) raise `_fed_out` merged cap /
+make it intent-aware, or (c) widen `_POOL_SIZE` ≥ max facet source count (14). The CORE
+capability is unaffected — PCSK9 and focused ABL1/BindingDB queries are verified working.

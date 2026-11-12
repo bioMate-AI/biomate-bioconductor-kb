@@ -44,6 +44,48 @@ export interface PerceptionResponse extends DataProfile {
  * a ref is supplied. Errors surface via `isError` so the caller can render an
  * honest "quality not available" state.
  */
+/** A profile request the server answered with an error status (a network failure has none).
+ *  `causeCode` is the proxy's transport cause (ECONNRESET, TIMEOUT …) when it reported one. */
+export class ProfileRequestError extends Error {
+  readonly status: number
+  readonly causeCode?: string
+  constructor(status: number, message: string, causeCode?: string) {
+    super(`${status}: ${message}`)
+    this.status = status
+    this.causeCode = causeCode
+  }
+}
+
+/** Why a profile request failed — a statement about the REQUEST, never about the file:
+ *  "forbidden" (403), "unreachable" (no response, or the backend/proxy is down: 502/503/504),
+ *  otherwise "failed". */
+export type ProfileFailure = "forbidden" | "unreachable" | "failed"
+export function profileFailure(err: unknown): ProfileFailure {
+  // fetch() rejects with a TypeError when no response arrived (network down, connection reset).
+  if (err instanceof TypeError) return "unreachable"
+  const status = err instanceof ProfileRequestError ? err.status : undefined
+  if (status === 403) return "forbidden"
+  if (status === 502 || status === 503 || status === 504) return "unreachable"
+  return "failed"
+}
+
+/** Profiling is read-only, so a request that did not reach the profiler is retried (twice); an
+ *  answer from the server (4xx, other 5xx) is not. Nor is a backend timeout (504, or the proxy's
+ *  TIMEOUT cause): the backend did receive it and spent the full timeout on it. */
+export function retryTransientProfile(failureCount: number, err: unknown): boolean {
+  if (failureCount >= 2 || profileFailure(err) !== "unreachable") return false
+  if (err instanceof ProfileRequestError && (err.status === 504 || err.causeCode === "TIMEOUT")) return false
+  return true
+}
+
+/** The error a failed profile response stands for, with the proxy's transport cause if given. */
+async function profileResponseError(res: Response, message: string): Promise<ProfileRequestError> {
+  const body = await res.json().catch(() => null)
+  const code = body && typeof body.cause?.code === "string" ? body.cause.code : undefined
+  return new ProfileRequestError(res.status, message, code)
+}
+export const profileRetryDelay = (attempt: number) => Math.min(400 * 2 ** attempt, 2000)
+
 export function usePerceptionProfile(
   datasetRef: string | null,
   name?: string,
@@ -53,7 +95,8 @@ export function usePerceptionProfile(
     enabled: !!datasetRef,
     // Profiling is deterministic; don't refetch aggressively.
     staleTime: 5 * 60 * 1000,
-    retry: false,
+    retry: retryTransientProfile,
+    retryDelay: profileRetryDelay,
     queryFn: async () => {
       const res = await fetch("/api/perception/profile", {
         method: "POST",
@@ -61,7 +104,7 @@ export function usePerceptionProfile(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ datasetRef, name }),
       })
-      if (!res.ok) throw new Error(`${res.status}: failed to profile dataset`)
+      if (!res.ok) throw await profileResponseError(res, "failed to profile dataset")
       return (await res.json()) as PerceptionResponse
     },
   })
@@ -289,6 +332,11 @@ export interface DatasetRowsState {
    */
   delimiter: string | null
   /**
+   * The decimal mark of the table's numbers when the rows reader reports it (`decimal`, e.g. ","
+   * for a European semicolon CSV holding "1,5"); null when not reported (then ".").
+   */
+  decimal: string | null
+  /**
    * The rows reader found no content: `empty_file` (0 bytes) or `blank_content` (only blank
    * lines) — its `{tabular: false, reason: "empty", code}` answer. An empty state, not an error and
    * not "still loading". null otherwise.
@@ -304,7 +352,7 @@ function emptyCode(body: any): EmptyCode | null {
   return body.reason === "empty" ? "empty_file" : null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null, delimiter: null, empty: null }
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null, delimiter: null, decimal: null, empty: null }
 
 /**
  * Same-origin download link for a project file. The server answers with a redirect to a signed
@@ -313,6 +361,11 @@ const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loadi
  */
 export function fileDownloadUrl(projectId: string, fileId: string): string {
   return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url?redirect=1`
+}
+
+/** A TIFF project file's first plane rendered as PNG by the server (owner/member scoped, like Download). */
+export function filePreviewPngUrl(projectId: string, fileId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/preview.png`
 }
 
 /** Start a download of a project file through the same-origin redirect (see fileDownloadUrl). */
@@ -381,9 +434,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const version = prevVersion == null ? pageVersion : pageVersion == null ? prevVersion : Math.min(prevVersion, pageVersion)
       const skipLines: number | null = Number.isInteger(body?.skipLines) && body.skipLines >= 0 ? body.skipLines : ref.current.skipLines
       const delimiter: string | null = typeof body?.delimiter === "string" && body.delimiter.length > 0 ? body.delimiter : ref.current.delimiter
+      const decimal: string | null = body?.decimal === "," || body?.decimal === "." ? body.decimal : ref.current.decimal
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines, delimiter, empty: null })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines, delimiter, decimal, empty: null })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })
@@ -453,21 +507,39 @@ export interface TenxSet {
 
 export interface FolderProfile {
   path: string
-  kind: "fastq_set" | "tenx_matrix" | "mixed" | "empty"
+  kind: "fastq_set" | "tenx_matrix" | "single_format" | "unrecognised" | "mixed" | "empty"
+  /** `single_format`: the one format every file is (the roll-up's only entry). */
+  kindFormat?: { format: string; label: string; viewKind?: string }
   fileCount: number
-  rollup: { format: string; label: string; count: number; pairs?: number }[]
+  /** Grouped by (format, label): each file labelled by the SAME content decision as its own profile
+   *  (featureCounts counts vs TSV), with that decision's view kind. */
+  rollup: { format: string; label: string; count: number; pairs?: number; viewKind?: string }[]
   findings: FolderFinding[]
   fastq?: {
     verdict: "paired" | "single_end" | "mixed"
     pattern: string | null
+    /** Every read-token style in use ("Rs" = _R1/_R2, "illumina" = _1/_2, "dot12s" = .1/.2). */
+    patterns?: string[]
     engine: "galaxy" | "fallback"
     pairs: number
     samples: FolderSample[]
     orphans: string[]
     singles: string[]
   }
-  samplesheet?: { columns: string[]; rows: string[][]; csv: string; filename: string }
+  /** The nf-core samplesheet. A run takes ONE layout: with any pair it holds the pairs only
+   *  (`layout` "paired") and the unpaired files go to `single` (a single-end sheet), named in
+   *  `excluded`; without a pair it IS the single-end sheet. Paths are relative to `pathBase`. */
+  samplesheet?: FolderSamplesheet & { single?: FolderSamplesheet; excluded?: string[] }
   tenx?: { sets: TenxSet[] }
+}
+
+export interface FolderSamplesheet {
+  columns: string[]
+  rows: string[][]
+  csv: string
+  filename: string
+  layout?: "paired" | "single_end"
+  pathBase?: string
 }
 
 export function folderProfileUrl(projectId: string, path: string, download = false): string {
@@ -481,10 +553,11 @@ export function useFolderProfile(projectId: string | null | undefined, path: str
     queryKey: ["/api/projects/folders/profile", projectId, path],
     enabled: !!projectId && path !== null,
     staleTime: 60 * 1000,
-    retry: false,
+    retry: retryTransientProfile,
+    retryDelay: profileRetryDelay,
     queryFn: async () => {
       const res = await fetch(folderProfileUrl(projectId!, path!), { credentials: "include" })
-      if (!res.ok) throw new Error(`${res.status}: failed to profile folder`)
+      if (!res.ok) throw await profileResponseError(res, "failed to profile folder")
       return (await res.json()) as FolderProfile
     },
   })

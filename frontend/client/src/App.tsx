@@ -178,6 +178,9 @@ function RootRoute({
   // draft param is stripped (?project= / ?attachFile= stay for the composer), and the
   // value is consumed once applied — see lib/one-shot-url-param.ts.
   const [initialDraft, consumeInitialDraft] = useOneShotUrlParam('draft')
+  // `?send=1` with a draft: the user already chose to run it (data panel "Run full QC") — the
+  // composer submits the draft once its attached files are linked. Read once, like the draft.
+  const [initialDraftSend] = useOneShotUrlParam('send')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -225,6 +228,7 @@ function RootRoute({
         initialMessage={initialMessage}
         initialDemoFiles={initialDemoFiles}
         initialDraft={initialDraft}
+        initialDraftSend={initialDraftSend === '1'}
         // One-shot URL payloads (?q= auto-send, ?draft= prefill) are consumed
         // HERE, at their source. ChatWithArtifacts is keyed by session id, so the
         // first send (new chat → real session) remounts it; if these props were
@@ -477,17 +481,14 @@ function PlatformLayout({
               <HintTip hint={t('hint.rail.expand')}>
               <button
                 onClick={toggleSidebar}
-                className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
-                style={{
-                  background: 'var(--bm-text, hsl(var(--foreground)))',
-                  color: 'var(--bm-bg-elev, white)',
-                  fontSize: 'var(--fs-base)',
-                  letterSpacing: '-0.03em',
-                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+                style={{ padding: 0, background: 'transparent', border: 'none' }}
                 data-testid="button-sidebar-expand"
                 aria-label={t('nav.expand_sidebar')}
               >
-                B
+                {/* Brand mark = the site's browser icon (favicon), not a plain "B"
+                    (founder: "use the browser icon of biomate website"). */}
+                <img src="/favicon.png" alt="BioMate" className="w-full h-full object-cover rounded-lg" />
               </button>
               </HintTip>
               {/* Icon buttons */}

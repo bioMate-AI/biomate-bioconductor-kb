@@ -90,7 +90,9 @@ def test_leaky_feature(tmp):
     assert prof["quality"] == "watch", prof
     assert "leakage" in prof, prof
     assert "leaky" in prof["leakage"]["detail"], prof
-    assert any("drop" in pi["effect"] for pi in prof["planImpact"]), prof
+    # The plan tells you to keep the group-revealing column out of a model (wording 2026-11-12:
+    # "leave “leaky” out of any model that predicts the group").
+    assert any("leaky" in pi["effect"] and "out of" in pi["effect"] for pi in prof["planImpact"]), prof
     print("PASS test_leaky_feature")
 
 
@@ -152,7 +154,7 @@ def test_constant_and_missing_columns(tmp):
     prof = profile_dataset(path)
     assert prof["quality"] == "watch", prof
     sig = " ".join(prof["signalSummary"]).lower()
-    assert "near-constant" in sig, prof
+    assert "constant columns" in sig, prof
     assert "missing" in sig, prof
     print("PASS test_constant_and_missing_columns")
 
@@ -169,7 +171,9 @@ def test_fastq_profile(tmp):
     prof = profile_dataset(path)
     assert prof["shape"]["rows"] == 10, prof
     assert prof["shape"]["cols"] == 10, prof  # mean read length
-    assert any("single-end" in n.lower() for n in prof["notes"]), prof
+    # The note states the observation (no mate checked), the plan the decision (single-end) —
+    # the decision is not restated in the note (round 6).
+    assert not any("single-end" in n.lower() for n in prof["notes"]) and prof["notes"], prof
     assert any("single-end" in pi["effect"].lower() for pi in prof["planImpact"]), prof
     assert prof["quality"] == "good", prof
     print("PASS test_fastq_profile")
@@ -191,7 +195,9 @@ def test_vcf_profile(tmp):
     prof = profile_dataset(path)
     assert prof["shape"]["rows"] == 3, prof
     assert prof["shape"]["cols"] == 2, prof  # two samples
-    assert any("variant" in n.lower() for n in prof["notes"]), prof
+    # Round 5: the counts are stated once — the vcf_records signal (beside the variants/samples stats).
+    assert [f["code"] for f in prof["findings"]] == ["vcf_records"], prof["findings"]
+    assert any("variant" in n.lower() for n in prof["signalSummary"]), prof
     print("PASS test_vcf_profile")
 
 
@@ -296,7 +302,7 @@ def test_jsonl_records_not_csv(tmp):
         assert p.columns == ["source", "drug", "page", "headers", "rows"], p.columns
         assert p.sample_rows[0][3] == '["A, B",""]', p.sample_rows[0][3]
         # 'source' is constant: flagged, and the note must not also claim "no constant-column issues".
-        assert any("near-constant" in s.lower() for s in (p.signal_summary or [])), p.signal_summary
+        assert any("constant columns" in s.lower() for s in (p.signal_summary or [])), p.signal_summary
         assert not any("constant-column issues detected" in n for n in p.notes), p.notes
     print("PASS test_jsonl_records_not_csv")
 
@@ -307,12 +313,14 @@ def test_jsonl_records_not_csv(tmp):
 # imbalance discounted it" even when the only reduction was duplicate rows.
 # ---------------------------------------------------------------------------
 def test_effective_n_reason_dedup_without_label(tmp):
+    # Round 3 (2026-11-12, W7): effective N is a MODELLING notion, reported only with a confident
+    # label; an unlabelled table reports its duplicate rows instead (duplicateRows + a finding).
     rows = ["a,b"] + [f"{i},{i * 2}" for i in range(40)] + ["1,2"] * 10  # 10 exact duplicates
     path = _write(tmp, "dups.csv", "\n".join(rows) + "\n")
     p = profile_dataset(path)
-    assert p["effectiveN"] == 40, p
-    assert p["effectiveNReason"] == "dedup", p
+    assert "effectiveN" not in p and "label" not in p, p
     assert p["duplicateRows"] == 10, p
+    assert [f["params"] for f in p["findings"] if f["code"] == "duplicate_rows"] == [{"count": 10}], p["findings"]
     print("PASS test_effective_n_reason_dedup_without_label")
 
 
@@ -347,7 +355,7 @@ def test_watch_findings_name_their_columns(tmp):
     assert p["quality"] == "watch", p
     watch = [f for f in p["findings"] if f["level"] == "watch"]
     by = {f["code"]: f["params"] for f in watch}
-    assert by["near_constant"]["columns"] == ["constant"], by
+    assert by["constant_columns"]["columns"] == ["constant"], by
     assert by["high_missing"]["columns"] == ["mostly_empty"], by
     # Every legacy free-text line has a structured twin (so the UI never shows raw English).
     n_text = len(p["notes"]) + len(p.get("signalSummary", [])) + len(p["planImpact"])

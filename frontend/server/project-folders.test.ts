@@ -184,7 +184,7 @@ describe("GET /files/:fileId/rows — folder context", () => {
 describe("routes.ts — /api/perception/* folder context (source contract)", () => {
   const src = fs.readFileSync(path.join(HERE, "routes.ts"), "utf8");
   it("attaches the server-side folderContext after the dataset access check, before the proxy", () => {
-    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
+    expect(src).toMatch(/app\.post\("\/api\/perception\/profile", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, recordProfile, _dlProxyHandler\)/);
     expect(src).toMatch(/app\.all\("\/api\/perception\/\*", authenticateToken, perceptionProxyGate, requireDatasetAccess\(\), attachFolderContext, _dlProxyHandler\)/);
   });
   it("never forwards a client-supplied folderContext", () => {

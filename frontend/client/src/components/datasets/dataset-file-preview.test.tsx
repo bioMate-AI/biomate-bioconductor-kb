@@ -142,13 +142,54 @@ it("renders a bedGraph as chrom/start/end/value, skipping the track line", async
   expect(view).not.toHaveTextContent("track type")
 })
 
-it("TIFF: an honest no-preview state with a Download link, never a broken <img>", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/scan.tif" }) }))
-  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="scan.tif" />)
+// TIFF: rendered by the server (GET …/preview.png → PNG + X-Preview-Info), never fetched raw.
+const TIFF_INFO = { seriesCount: 1, series: 0, planeCount: 3, plane: 0, axes: "QYX", shape: [3, 20, 24], dtype: "uint16",
+  channels: 1, channelsShown: 1, level: 0, levelCount: 1, width: 24, height: 20,
+  stretch: { percentiles: [0.5, 99.5], low: [10], high: [3990] }, constant: false, notes: [] }
+function mockPng(info: unknown = TIFF_INFO) {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true, status: 200,
+    headers: new Headers({ "content-type": "image/png", "x-preview-info": JSON.stringify(info) }),
+    blob: async () => new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" }),
+  })
+  vi.stubGlobal("fetch", fetch)
+  const create = vi.fn(() => "blob:preview-1"), revoke = vi.fn()
+  Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke })
+  return { fetch, create, revoke }
+}
+function mockRefusal(status: number, body: unknown) {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: false, status, headers: new Headers({ "content-type": "application/json" }), json: async () => body,
+  }))
+}
+
+it("TIFF: the server-rendered plane is drawn with a caption saying what it shows (ready)", async () => {
+  const { fetch, revoke } = mockPng()
+  const onStatus = vi.fn()
+  const { unmount } = render(<DatasetFilePreview projectId="p" fileId="f" name="imgs/stack.tif" kind="image" format="tiff" onStatus={onStatus} />)
+  const img = await screen.findByTestId("dataset-preview-image")
+  expect(img).toHaveAttribute("src", "blob:preview-1")
+  expect(img).toHaveAttribute("alt", "Preview of stack.tif")
+  expect(screen.getByTestId("dataset-preview-tiff-caption")).toHaveTextContent("first of 3 pages · 16-bit, contrast stretched · 24 × 20 px")
+  expect(fetch).toHaveBeenCalledOnce()
+  expect(fetch.mock.calls[0][0]).toBe("/api/projects/p/files/f/preview.png")
+  expect(fetch.mock.calls[0][1]).toMatchObject({ credentials: "include" })
+  await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("ready"))
+  expect(screen.queryByTestId("dataset-preview-tiff")).toBeNull()
+  unmount()
+  expect(revoke).toHaveBeenCalledWith("blob:preview-1")
+})
+
+it("TIFF the server refuses: the honest download state with the reason, reported as none, no <img>", async () => {
+  mockRefusal(413, { error: "too_large", reason: "the image plane is 50000 × 50000 px (2 GiB decoded)" })
+  const onStatus = vi.fn()
+  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="scan.tif" onStatus={onStatus} />)
   const state = await screen.findByTestId("dataset-preview-tiff")
-  expect(state).toHaveTextContent("TIFF images cannot be displayed in the browser")
+  expect(state).toHaveTextContent("This TIFF image cannot be drawn here")
+  expect(screen.getByTestId("dataset-preview-tiff-why")).toHaveTextContent("too large to preview: the image plane is 50000 × 50000 px")
   expect(screen.getByTestId("dataset-preview-tiff-download")).toHaveAttribute("href", "/api/projects/p/files/f/url?redirect=1")
   expect(container.querySelector("img")).toBeNull()
+  await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("none"))
 })
 
 it("an image the browser cannot decode says so instead of a broken icon (U6)", async () => {
@@ -215,12 +256,37 @@ it("an MRC map (viewKind image) goes to the density viewer, never <img>", async 
   await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("ready"))
   expect(screen.queryByTestId("dataset-preview-image")).toBeNull()
 })
-it("a TIFF the browser cannot draw is reported as none (no picture shown)", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/x.tiff" }) }))
+it("a TIFF whose rendered PNG fails to decode falls back to the honest state (none)", async () => {
+  mockPng()
   const onStatus = vi.fn()
   render(<DatasetFilePreview projectId="p" fileId="f" name="x.tiff" kind="image" onStatus={onStatus} />)
-  await screen.findByTestId("dataset-preview-tiff")
-  expect(onStatus).toHaveBeenLastCalledWith("none")
+  fireEvent.error(await screen.findByTestId("dataset-preview-image"))
+  expect(await screen.findByTestId("dataset-preview-tiff")).toBeInTheDocument()
+  expect(screen.getByTestId("dataset-preview-tiff-why")).toHaveAttribute("data-code", "decode")
+  expect(screen.queryByTestId("dataset-preview-image")).toBeNull()
+  await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("none"))
+})
+it("the profiler's format decides TIFF: an OME-TIFF without a .tif name is rendered; a .tif that is a PNG is not", async () => {
+  const { fetch } = mockPng()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="upload.bin" kind="image" format="ome.tiff" />)
+  await screen.findByTestId("dataset-preview-tiff-image")
+  expect(fetch.mock.calls[0][0]).toBe("/api/projects/p/files/f/preview.png")
+  cleanup()
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://files.example/a.tif" }) }))
+  render(<DatasetFilePreview projectId="p" fileId="f" name="a.tif" kind="image" format="png" />)
+  expect(await screen.findByTestId("dataset-preview-image")).toHaveAttribute("src", "https://files.example/a.tif")
+})
+it("a renderer that is not installed (503) or a network failure is the honest state, not an error", async () => {
+  mockRefusal(503, { error: "preview_unavailable", reason: "TIFF rendering is not installed on this server" })
+  const onStatus = vi.fn()
+  render(<DatasetFilePreview projectId="p" fileId="f" name="x.tif" onStatus={onStatus} />)
+  expect(await screen.findByTestId("dataset-preview-tiff-why")).toHaveTextContent("not available on this server")
+  await waitFor(() => expect(onStatus).toHaveBeenLastCalledWith("none"))
+  cleanup()
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")))
+  render(<DatasetFilePreview projectId="p" fileId="f" name="x.tif" />)
+  expect(await screen.findByTestId("dataset-preview-tiff")).toBeInTheDocument()
+  expect(screen.queryByTestId("dataset-file-preview-error")).toBeNull()
 })
 it("a PLINK .map (a text table per the profile) is NOT routed to the density viewer by its extension", async () => {
   mockFile("1\trs123\t0\t752566\n1\trs456\t0\t798959\n")

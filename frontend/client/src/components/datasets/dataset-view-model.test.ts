@@ -3,7 +3,7 @@
  * actions a file gets (U1/U2/U11). These cases pin the kind → views table.
  */
 import { describe, it, expect } from "vitest"
-import { datasetKind, datasetViewModel, effectiveQuality, profileStats, columnProblems, kindFromName } from "./dataset-view-model"
+import { datasetKind, datasetViewModel, effectiveQuality, profileStats, columnProblems, kindFromName, OPEN_IN_AVAILABLE } from "./dataset-view-model"
 
 const vm = (name: string, opts: Record<string, unknown> = {}) =>
   datasetViewModel(kindFromName(name), { name, hasColumns: true, versionable: true, projectFile: true, ...opts })
@@ -40,8 +40,12 @@ describe("kind → views", () => {
     expect(vm("plot.png").canRunQC).toBe(false)
     expect(vm("notes.md").canRunQC).toBe(false)
     expect(vm("r1.fastq.gz").canRunQC).toBe(true)
-    expect(vm("plot.png").canOpenIn).toBe(false)
-    expect(vm("model.rds").canOpenIn).toBe(true)
+    expect(vm("plot.png").openInSupported).toBe(false)
+    expect(vm("model.rds").openInSupported).toBe(true)
+  })
+  it("Open-in is offered only while its launch path is available (one switch for button + copy)", () => {
+    expect(vm("model.rds").canOpenIn).toBe(OPEN_IN_AVAILABLE)
+    expect(vm("cells.h5ad").canOpenIn).toBe(OPEN_IN_AVAILABLE)
   })
   it("content-first: the profiler's viewKind beats the extension", () => {
     expect(datasetKind("reads.txt", { viewKind: "reads" })).toBe("reads")
