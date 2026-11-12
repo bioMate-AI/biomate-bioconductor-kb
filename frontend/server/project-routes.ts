@@ -1655,6 +1655,10 @@ export function registerProjectRoutes(app: Express): void {
         // Only when the reader reports them (tables); JSONL pages keep their original shape.
         ...(typeof body.headerRow === "boolean" ? { headerRow: body.headerRow } : {}),
         ...(typeof body.namesSource === "string" ? { namesSource: body.namesSource } : {}),
+        // The reader's leading comment/blank physical lines: the client sends it back with edits
+        // so row numbers match (featureCounts "# Program:" line); and the content-first kind.
+        ...(Number.isInteger(body.skipLines) ? { skipLines: body.skipLines } : {}),
+        ...(typeof body.viewKind === "string" ? { viewKind: body.viewKind } : {}),
       });
     } catch (e: any) {
       console.error("[project_files] rows failed:", e?.message ?? e);

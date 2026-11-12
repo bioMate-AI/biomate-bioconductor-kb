@@ -130,6 +130,19 @@ describe("GET /files/:fileId/rows — contract", () => {
     expect(JSON.stringify(body)).not.toContain("projects/11111111-1111-4111-8111-111111111111/inputs");
   });
 
+  it("forwards the reader's skipLines, headerRow and viewKind (the edit numbering needs skipLines)", async () => {
+    store.addFile({ id: F1, project_id: P, s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/fc.txt", name: "fc.txt" });
+    galaxyFetch.mockResolvedValue(ok({
+      kind: "table", tabular: true, viewKind: "table", offset: 0, limit: 200, totalRows: 2,
+      columns: ["Geneid", "Chr", "S1"], rows: [["G1", "chr1", "5"], ["G2", "chr1", "7"]],
+      headerRow: true, namesSource: "header", skipLines: 1,
+    }));
+    const r = await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/files/${F1}/rows?offset=0&limit=200`);
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body).toMatchObject({ skipLines: 1, headerRow: true, viewKind: "table", version: 1 });
+  });
+
   it("404s for a non-member without touching the backend (no existence leak)", async () => {
     currentUser = { id: "stranger" };
     store.addFile({ id: F1, project_id: P, s3_key: "k", name: "a.csv" });
