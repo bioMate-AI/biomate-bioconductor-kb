@@ -621,7 +621,7 @@
     "quality_error": "概况不可用 — 分析器无法读取该数据集。",
     "run_qc": "运行完整质量检查",
     "run_qc_tip": "打开一个附带此文件的对话，请 BioMate 生成质量控制报告。由 BioMate 决定如何检查——分析文件内容，或在合适时运行 QC 工作流。",
-    "qc_request": "{{name}}：对此文件运行质量控制（QC），并生成 QC 报告。",
+    "qc_request": "QC 报告：{{name}}。请对此文件运行质量控制（QC），并生成 QC 报告。",
     "produced_by": "作为工作流输出",
     "open_run": "打开产生它的运行 →",
     "status": "状态",
