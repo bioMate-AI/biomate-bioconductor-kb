@@ -248,9 +248,9 @@ deploy_frontend() {
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
     fi
     # run_code sandbox = biotools + CJK fonts + matplotlib defaults (thin layer, fast).
-    if ! docker image inspect biomate-runcode:2 >/dev/null 2>&1; then
-      echo "[frontend] run_code sandbox image missing — building biomate-runcode:2..."
-      docker build -t biomate-runcode:2 \
+    if ! docker image inspect biomate-runcode:3 >/dev/null 2>&1; then
+      echo "[frontend] run_code sandbox image missing — building biomate-runcode:3..."
+      docker build -t biomate-runcode:3 \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile.runcode \
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
     fi

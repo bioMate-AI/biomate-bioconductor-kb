@@ -97,6 +97,8 @@ export interface Parameter {
   };
   /** Whether this value was auto-filled by the AI from tool knowledge */
   autoFilled?: boolean;
+  /** The workflow's example (test-data) value, not a recommendation or the user's input. */
+  example?: boolean;
   /** Whether the user manually overrode the value (via inline edit / params panel) */
   overridden?: boolean;
   /** Whether the value came from project-level instructions/context (not schema, not AI) */
@@ -111,13 +113,16 @@ export interface Parameter {
  * when a flavor can't be determined from the flags on the param, we fall back
  * to "default" rather than guessing.
  */
-export type ParamOrigin = 'default' | 'inherited' | 'recommended' | 'confirmed' | 'edited';
+export type ParamOrigin = 'default' | 'example' | 'inherited' | 'recommended' | 'confirmed' | 'edited';
 
 export function deriveParamOrigin(param: Parameter): ParamOrigin {
   // User-authored value always wins — an edit supersedes any prior origin.
   if (param.overridden) return 'edited';
   // A recommendation the user explicitly accepted.
   if (param.confirmed) return 'confirmed';
+  // The workflow's own example input (test data) — never presented as a recommendation
+  // (founder 2026-11-12: example SMILES were labelled 推荐 and called the default).
+  if (param.example) return 'example';
   // AI-filled from tool knowledge / parameter hints.
   if (param.autoFilled) return 'recommended';
   // Value derived from project instructions / context.
@@ -131,6 +136,11 @@ const PARAM_ORIGIN_META: Record<ParamOrigin, { label: string; tooltip: string; c
     label: 'Default',
     tooltip: 'Schema default — this value was not changed.',
     className: 'border-border bg-muted text-muted-foreground',
+  },
+  example: {
+    label: 'Example',
+    tooltip: "Example input from the workflow's test data — replace it with your own data.",
+    className: 'border-amber-300/60 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
   },
   inherited: {
     label: 'Inherited',
@@ -169,11 +179,11 @@ function ParamOriginBadge({ param }: { param: Parameter }) {
               meta.className,
             )}
           >
-            {origin === 'recommended' ? tOr('panel.recommended', meta.label) : meta.label}
+            {origin === 'recommended' ? tOr('panel.recommended', meta.label) : tOr(`panel.param_origin.${origin}`, meta.label)}
           </span>
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[220px] text-xs p-2">
-          {meta.tooltip}
+          {tOr(`panel.param_origin_tip.${origin}`, meta.tooltip)}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

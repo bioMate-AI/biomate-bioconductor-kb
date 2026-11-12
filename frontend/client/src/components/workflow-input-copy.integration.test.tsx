@@ -59,8 +59,9 @@ describe('attached data the workflow cannot read (founder report 20261111)', () 
   }
 
   /** "Antibody Antigen Complex" — inline-content params, no file input at all. */
-  function showParamsOnly() {
+  function showParamsOnly(attachment_binding?: { attached: string[]; bound: any[]; unbound: string[] }) {
     render(<NextflowWorkflowViewer status="idle" onExecute={vi.fn()} workflowDefinition={{
+      ...(attachment_binding ? { attachment_binding } : {}),
       id: 'antibody-antigen-complex', name: 'Antibody Antigen Complex', domain: 'drug_discovery',
       steps: { s1: { name: 'Complex prediction', tool_id: 'af' } },
       required_params: [],
@@ -73,17 +74,17 @@ describe('attached data the workflow cannot read (founder report 20261111)', () 
     return screen.getByTestId('prerun-inputs-mapped');
   }
 
-  it('tells the user their uploads are not used by a parameters-only workflow', async () => {
-    withSessionDatasets([{ id: 'd1', name: '6Z43.pdb' }, { id: 'd2', name: 'nanobody_candidates.fasta' }]);
-    const card = showParamsOnly();
+  it('tells the user files attached in THIS chat are not used by a parameters-only workflow', async () => {
+    const files = ['6Z43.pdb', 'nanobody_candidates.fasta'];
+    const card = showParamsOnly({ attached: files, bound: [], unbound: files });
     expect(card.textContent).toContain('parameters only');
     const warn = await within(card).findByTestId('prerun-attachments-unused');
     expect(warn.textContent).toMatch(/not used by this workflow/i);
     expect(card.textContent).not.toMatch(/s3:\/\//);
   });
 
-  it('says nothing about attachments when the session has no uploads', async () => {
-    withSessionDatasets([]);
+  it('says nothing about attachments when this chat attached none — even if earlier chats uploaded files (founder 2026-11-12)', async () => {
+    withSessionDatasets([{ id: 'd1', name: 'from_another_chat.csv' }]);
     const card = showParamsOnly();
     expect(card.textContent).toContain('parameters only');
     expect(within(card).queryByTestId('prerun-attachments-unused')).toBeNull();

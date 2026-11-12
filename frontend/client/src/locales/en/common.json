@@ -172,7 +172,8 @@
     "open_output_folder": "Open folder",
     "open_in_data": "Open in Data",
     "open_file_panel": "Open beside the chat",
-    "file_panel_error": "This file could not be opened — it may have been removed."
+    "file_panel_error": "This file could not be opened — it may have been removed.",
+    "library_input_reminder": "{{name}} runs on your data: attach a file (📎) or paste your inputs (e.g. SMILES, sequences) in the message before sending — otherwise it runs on the workflow's example inputs."
   },
   "composer": {
     "data": "data",
@@ -1225,7 +1226,22 @@
     "view_sample_data": "View sample data",
     "rows_count": "{{n}} rows",
     "rows_truncated": "Showing first 50 of {{n}} rows",
-    "staged_file": "staged file"
+    "staged_file": "staged file",
+    "param_origin": {
+      "default": "Default",
+      "example": "Example",
+      "inherited": "Inherited",
+      "confirmed": "Confirmed",
+      "edited": "Edited"
+    },
+    "param_origin_tip": {
+      "default": "Schema default — this value was not changed.",
+      "example": "Example input from the workflow's test data — replace it with your own data.",
+      "inherited": "Derived from your project instructions / context.",
+      "recommended": "AI-recommended from tool knowledge. Review before running.",
+      "confirmed": "You accepted the recommended value.",
+      "edited": "You changed this value from the recommended / default."
+    }
   },
   "preview": {
     "loading": "Loading preview…",
