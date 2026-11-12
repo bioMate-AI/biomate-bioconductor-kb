@@ -3584,10 +3584,55 @@ def _column(rows: Sequence[Sequence[str]], idx: int) -> List[str]:
     return out
 
 
+# Chinese column-name words → the English name token they stand for, so every rule that reads
+# name tokens (group / batch / split / identifier / feature-id columns) applies to Chinese headers.
+# Chinese compounds are HEAD-FINAL — 处理时间 is a time, 实验分组 a grouping, 样本编号 an ID — so
+# a Chinese run maps to the word it ENDS with (longest match first), optionally followed by a
+# neutral suffix (分组信息, 样本名, 分组号). A single-character head is deliberately left out where
+# it is ambiguous: 组 would read 参考基因组 (reference genome) as a group.
+_CJK_NAME_WORDS: Dict[str, str] = {
+    # group / label
+    "标签": "label", "类别": "class", "分类": "class", "结局": "outcome", "诊断": "diagnosis",
+    "应答": "response", "响应": "response", "疗效": "response", "表型": "phenotype",
+    "条件": "condition", "基因型": "genotype", "处理": "treatment", "治疗": "treatment",
+    "分组": "group", "组别": "group", "亚组": "group", "状态": "status",
+    # batch / site / subject
+    "批次": "batch", "批号": "batch", "板": "plate", "板号": "plate", "泳道": "lane",
+    "中心": "center", "站点": "site", "队列": "cohort", "研究": "study", "供体": "donor",
+    "受试者": "subject", "患者": "patient", "病人": "patient", "编号": "id", "条码": "barcode",
+    # split
+    "划分": "split", "折": "fold", "子集": "subset",
+    # identifiers / positions / features
+    "样本": "sample", "序号": "index", "行号": "row", "页码": "page", "基因": "gene",
+}
+_CJK_NEUTRAL_SUFFIXES = ("信息", "名称", "名", "号")
+_CJK_RUN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
+_CJK_WORDS_LONGEST_FIRST = sorted(_CJK_NAME_WORDS, key=len, reverse=True)
+
+
+def _cjk_head_token(run: str) -> Optional[str]:
+    """The English token of a Chinese run's head word (see _CJK_NAME_WORDS), or None."""
+    for suffix in ("",) + _CJK_NEUTRAL_SUFFIXES:
+        if suffix and not run.endswith(suffix):
+            continue
+        stem = run[: len(run) - len(suffix)] if suffix else run
+        for word in _CJK_WORDS_LONGEST_FIRST:
+            if stem.endswith(word):
+                return _CJK_NAME_WORDS[word]
+    return None
+
+
 def _name_tokens(name: str) -> List[str]:
     """Whole tokens of a column name: split on non-alphanumerics and camelCase
-    ("patientID" → patient, id; "gene_symbol" → gene, symbol; "weight_kg" → weight, kg)."""
-    return [t.lower() for t in re.findall(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+", str(name))]
+    ("patientID" → patient, id; "gene_symbol" → gene, symbol; "weight_kg" → weight, kg); a
+    Chinese run contributes the token of its head word ("实验分组" → group, "处理时间" → none)."""
+    text = str(name)
+    toks = [t.lower() for t in re.findall(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+", text)]
+    for run in _CJK_RUN.findall(text):
+        head = _cjk_head_token(run)
+        if head:
+            toks.append(head)
+    return toks
 
 
 def _ranked_cols(header: Sequence[str], tokens: Sequence[str], exclude: Sequence[int] = ()) -> List[int]:
