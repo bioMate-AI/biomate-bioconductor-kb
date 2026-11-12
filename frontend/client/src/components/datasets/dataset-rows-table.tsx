@@ -294,6 +294,7 @@ export function DatasetRowsTable({
                   key={i}
                   onClick={() => { if (sortCol === i) setSortAsc((a) => !a); else { setSortCol(i); setSortAsc(true) } }}
                   data-testid={`dataset-col-sort-${i}`}
+                  data-column-name={c}
                   title={t("dataset_obj.sort_title")}
                   className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b cursor-pointer select-none"
                   style={{ color: "var(--bm-accent-ink)", position: "sticky", top: 0, background: "var(--bm-accent-soft)", zIndex: 1 }}

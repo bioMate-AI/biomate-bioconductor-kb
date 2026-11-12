@@ -145,3 +145,41 @@ describe("<DataPerception> — stats per data kind (U2) and copy", () => {
     expect(screen.getByTestId("perception-why")).toHaveTextContent("Named as PNG, but the content is plain text");
   });
 });
+
+describe("<DataPerception> — e2e contract: every rendered finding carries its code", () => {
+  it("signal / note / leakage / plan lines are perception-finding[data-code]; why items keep their own testid", () => {
+    render(<DataPerception datasetName="t.csv" profile={{
+      shape: { rows: 10, cols: 3 }, quality: "watch", notes: [],
+      findings: [
+        { section: "note", code: "ragged_rows", level: "watch", params: { count: 2, expected: 3 } },
+        { section: "signal", code: "table_summary", level: "info", params: { rows: 10, cols: 3 } },
+        { section: "note", code: "comment_lines_skipped", level: "info", params: { count: 4 } },
+        { section: "leakage", code: "leaked_id", level: "info", params: { column: "id" } },
+        { section: "plan", code: "drop_leaky_column", level: "info", params: { column: "id" } },
+      ],
+    }} />);
+    const codes = Array.from(document.querySelectorAll("[data-testid=perception-finding]")).map((e) => e.getAttribute("data-code"));
+    expect(codes.sort()).toEqual(["comment_lines_skipped", "drop_leaky_column", "leaked_id", "table_summary"]);
+    expect(screen.getByTestId("perception-why-item")).toHaveAttribute("data-code", "ragged_rows");
+    expect(screen.getByTestId("perception-why")).toHaveTextContent("Rows whose number of fields differs from the header (3 fields): 2.");
+  });
+
+  it("a backend 'at least' stat reads 'at least N' (QC card)", () => {
+    render(<DataPerception datasetName="x.fa" profile={{
+      shape: { rows: 0, cols: 0 }, quality: "good", notes: [], viewKind: "sequences",
+      stats: [{ code: "sequences", value: 5000, atLeast: true }, { code: "bases", value: 1200000 }],
+    }} />);
+    expect(screen.getByTestId("perception-stat-sequences")).toHaveTextContent("at least 5,000");
+    expect(screen.getByTestId("perception-stat-sequences")).toHaveAttribute("data-stat", "sequences");
+    expect(screen.getByTestId("perception-stat-bases").textContent).not.toContain("at least");
+  });
+
+  it("fasta_sequences with at_least qualifies the sequence count, not a prefix glued to the label", () => {
+    render(<DataPerception datasetName="x.fa" profile={{
+      shape: { rows: 0, cols: 0 }, quality: "good", notes: [],
+      findings: [{ section: "signal", code: "fasta_sequences", level: "info",
+        params: { sequences: 5000, at_least: true, total: 10, unit: "Mb", mean: 2, min: 1, max: 3, n50: 2 } }],
+    }} />);
+    expect(screen.getByTestId("perception-signal")).toHaveTextContent("Sequences: at least 5,000; 10 Mb in total");
+  });
+});

@@ -791,7 +791,8 @@
     "plddt_residue": "residue {{n}}",
     "plddt_click_here": "click to centre the 3D view here",
     "plddt_hover_hint": "Hover a residue for its score; click to centre the 3D view on it.",
-    "plddt_note": "A structure picture with no confidence chart invites a claim its low-confidence loops cannot support. The two are one output, shown together."
+    "plddt_note": "A structure picture with no confidence chart invites a claim its low-confidence loops cannot support. The two are one output, shown together.",
+    "restore_conflict_version": "Not restored: this file has a newer version than the one listed. The list has been refreshed; try again."
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -1724,7 +1725,7 @@
       "unresolvable_ref": "The dataset reference could not be resolved to a readable file.",
       "structured_too_large": "Structural validation is limited to files under 2 million characters; download the file for a complete check.",
       "structured_only": "Valid {{format}} syntax ({{root}} root). Only the structure was checked; scientific quality has not been assessed.",
-      "fastq_reads": "Reads scanned: {{prefix}}{{reads}}; mean read length {{mean_len}} bp.",
+      "fastq_reads": "Reads scanned: {{reads}}; mean read length {{mean_len}} bp.",
       "fastq_mean_quality": "Mean base quality: Phred {{q}} (sampled; Phred 20 = 1 error in 100 bases, 30 = 1 in 1,000).",
       "fastq_single_file": "A single FASTQ file was profiled — treated as single-end unless a mate file is present.",
       "fastq_single_end": "Single FASTQ file",
@@ -1737,7 +1738,7 @@
       "vcf_sized": "variants: {{variants}} · samples: {{samples}}",
       "vcf_sized_effect": "variant annotation and filtering plan sized accordingly",
       "no_columns": "No columns could be parsed from the table.",
-      "header_only": "A header is present but there are no data rows yet.",
+      "header_only": "A header is present but there are no data rows.",
       "near_constant": "Near-constant columns (over {{pct}}% a single value): {{columns}}.",
       "high_missing": "Columns with at least {{pct}}% missing values: {{columns}}.",
       "label_spellings": "Two spellings of the same label: “{{a}}” and “{{b}}”.",
@@ -1764,7 +1765,6 @@
       "columns_generated": "No header row detected (line 1 holds data values); columns are named column_1, column_2, …",
       "columns_spec": "{{format}} files have no header row; column names follow the {{format}} specification: {{columns}}.",
       "columns_comment": "Column names taken from the file's last “#” comment line: {{columns}}.",
-      "spec_mismatch": "Named as {{format}}, but its content does not follow the {{format}} format, so it was not read as one.",
       "intervals_summary": "Genomic intervals: {{regions}}; columns: {{columns}}.",
       "intervals_stranded": "Strand is given (column “{{column}}”).",
       "intervals_unstranded": "No strand column: the intervals are treated as unstranded.",
@@ -1778,7 +1778,7 @@
       "format_identified": "Identified as {{format}} ({{size}}); its contents are not analysed here.",
       "format_metadata_skipped": "{{format}} metadata was not read: the file ({{size}}) is above the {{cap}} limit for reading during upload.",
       "format_header_unreadable": "The {{format}} header could not be read; the file may be truncated or malformed.",
-      "fasta_sequences": "Sequences: {{prefix}}{{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}} (half of all bases lie in sequences at least this long).",
+      "fasta_sequences": "Sequences: {{sequences}}; {{total}} {{unit}} in total; length mean {{mean}}, min {{min}}, max {{max}}, N50 {{n50}} (half of all bases lie in sequences at least this long).",
       "fasta_no_sequences": "No “>” sequence headers found.",
       "anndata_shape": "Cells (obs): {{cells}} × genes or features (var): {{genes}}.",
       "anndata_obs": "{{count}} cell annotation columns: {{columns}}.",
@@ -1824,10 +1824,23 @@
       "folder_tenx_mtx_unreadable": "{{name}} has no readable Matrix Market size line.",
       "folder_tenx_incomplete": "The 10x matrix in {{dir}} is missing its {{missing}} file.",
       "folder_tenx_headerless": "features.tsv / genes.tsv and barcodes.tsv have no header row by the 10x specification — line 1 is data.",
-      "name_content_mismatch": "Named as {{named}}, but the content is {{detected}} — it is shown and checked as {{detected}}."
+      "name_content_mismatch": "Named as {{named}}, but the content is {{detected}} — it is shown and checked as {{detected}}.",
+      "compressed_unreadable": "The compressed file could not be decompressed: it is corrupt or not actually compressed.",
+      "compressed_corrupt": "The compressed data is corrupt partway through, so the file cannot be read reliably.",
+      "compressed_truncated": "The compressed file ends early (truncated): only the readable part was checked.",
+      "nul_bytes": "Lines with NUL bytes, which were ignored: {{lines}}.",
+      "jsonl_skipped_lines": "Lines that are not valid JSON were skipped: {{count}}.",
+      "ragged_rows": "Rows whose number of fields differs from the header ({{expected}} fields): {{count}}.",
+      "table_clean_unlabelled": "Rows: {{rows}} · columns: {{cols}}; no constant-column or missing-value issues detected. No class-label column was found, so leakage and class balance were not checked.",
+      "few_data_rows": "Too few data rows for the column and label checks (rows: {{rows}}).",
+      "blank_content": "The file holds only blank lines.",
+      "comment_lines_skipped": "Comment lines before the table were skipped: {{count}}.",
+      "fastq_malformed_records": "Records that do not follow the four-line FASTQ layout (or whose quality line differs in length from the sequence): {{count}} of {{checked}} checked.",
+      "fastq_index_read": "Index read ({{read}}) of sample {{sample}}: it holds the sample barcodes, not biological reads, and is used only for demultiplexing.",
+      "vcf_malformed_lines": "Data lines with fewer than 8 tab-separated columns: {{count}}.",
+      "folder_fastq_index_reads": "Index-read files set aside ({{n}}): {{names}}. They hold sample barcodes for demultiplexing, so they are not samples of their own."
     },
     "quality_unassessed": "Not checked",
-    "at_least_prefix": "at least ",
     "gloss_effective_n": "Effective N: how many independent samples the data is really worth once duplicate rows and class imbalance are accounted for — usually fewer than the row count.",
     "gloss_leakage": "Leakage: a column carries information about the outcome that would not be available at prediction time, so a model trained on it looks better than it really is.",
     "stat": {
@@ -1861,7 +1874,8 @@
       "mtx": "Matrix Market",
       "h5": "HDF5",
       "loom": "Loom"
-    }
+    },
+    "at_least_value": "at least {{n}}"
   },
   "failure": {
     "no_error": {

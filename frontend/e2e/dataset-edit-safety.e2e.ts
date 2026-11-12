@@ -21,6 +21,9 @@
  *   C. repeated values: v1 (all "control") → a new upload inserts a row (v2) → an edit numbered
  *      against v1 (baseVersion 1, `from` still matches on v2) is refused 409 and v2 is unchanged;
  *      the same edit with baseVersion 2 is accepted (positive control).
+ *   D. repeated values on the current version: an edit mis-numbered onto another row holding the
+ *      same value is refused by its `rowFrom` (the whole row the user saw) — 409, nothing written;
+ *      the correctly numbered edit lands (positive control).
  *
  * Run: BIOMATE_URL=https://dev-public.biomate.ai npx playwright test e2e/dataset-edit-safety.e2e.ts \
  *      --project=chromium --retries=0     (password: E2E_FIXTURE_PASSWORD or ~/.config/biomate/e2e_fixture_password)
@@ -75,9 +78,10 @@ test("cell edit rewrites only that cell; stale edits refused (incl. repeated val
       await page.screenshot({ path: "e2e/screenshots/dataset-edit-2-saved.png", fullPage: true });
       expect(await fileText(api, projectId, csv.id), "new version = original with exactly that field changed").toBe(EXPECTED);
 
-      // A stale edit (the cell no longer holds "control") is refused and writes nothing.
+      // A stale edit (the cell no longer holds "control") is refused and writes nothing — even
+      // against the current version (v2 after the UI save), the `from` check catches it.
       const stale = await api.post(`${BASE_URL}/api/projects/${projectId}/files/${csv.id}/edit`, {
-        data: { edits: [{ row: 2, col: 1, from: "control", value: "x" }] },
+        data: { baseVersion: 2, edits: [{ row: 2, col: 1, from: "control", value: "x" }] },
       });
       expect(stale.status(), "stale edit (from mismatch) → 409").toBe(409);
       expect(await fileText(api, projectId, csv.id)).toBe(EXPECTED);
@@ -121,7 +125,25 @@ test("cell edit rewrites only that cell; stale edits refused (incl. repeated val
         data: { baseVersion: 2, edits: [{ row: 2, col: 1, from: "control", value: "treated" }] },
       });
       expect(ok.status(), `edit against the current version is accepted (${(await ok.text()).slice(0, 200)})`).toBe(200);
-      expect(await fileText(api, projectId, rep.id)).toBe(REP_V2.replace("S2,control", "S2,treated"));
+      const V3 = REP_V2.replace("S2,control", "S2,treated");
+      expect(await fileText(api, projectId, rep.id)).toBe(V3);
+    });
+
+    await test.step("D. repeated values on the CURRENT version: rowFrom pins the edit to the row the user saw", async () => {
+      // v3 rows: S0, S1, S2(treated), S3 — rows 0, 1 and 3 all hold "control". The user saw S3
+      // (row 3) but the edit is mis-numbered as row 1: `from` matches, the version is current,
+      // only the whole-row check (rowFrom) can refuse it.
+      const V3 = REP_V2.replace("S2,control", "S2,treated");
+      const wrong = await api.post(`${BASE_URL}/api/projects/${projectId}/files/${rep.id}/edit`, {
+        data: { baseVersion: 3, edits: [{ row: 1, col: 1, from: "control", value: "x", rowFrom: ["S3", "control"] }] },
+      });
+      expect(wrong.status(), `mis-numbered edit with rowFrom of another row → 409 (got ${wrong.status()}: ${(await wrong.text()).slice(0, 200)})`).toBe(409);
+      expect(await fileText(api, projectId, rep.id), "the refused edit wrote nothing").toBe(V3);
+      const right = await api.post(`${BASE_URL}/api/projects/${projectId}/files/${rep.id}/edit`, {
+        data: { baseVersion: 3, edits: [{ row: 3, col: 1, from: "control", value: "x", rowFrom: ["S3", "control"] }] },
+      });
+      expect(right.status(), `the correctly numbered edit lands (${(await right.text()).slice(0, 200)})`).toBe(200);
+      expect(await fileText(api, projectId, rep.id)).toBe(V3.replace("S3,control", "S3,x"));
     });
   } finally {
     await deleteProjectLoudly(api, projectId);

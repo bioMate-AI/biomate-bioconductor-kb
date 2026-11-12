@@ -101,7 +101,8 @@ test.describe("project file rename / move", () => {
 
       // 3. an edit after the rename versions under the new name's key
       const edit = await request.post(`${BASE_URL}/api/projects/${projectId}/files/${a1.id}/edit`, {
-        data: { edits: [{ row: 1, col: 1, from: "20", value: "21" }] },
+        // baseVersion: the version the edit was made on (v2, from the second upload above).
+        data: { baseVersion: 2, edits: [{ row: 1, col: 1, from: "20", value: "21" }] },
       });
       expect(edit.ok(), `edit failed: ${await edit.text()}`).toBeTruthy();
       const ej = await edit.json();

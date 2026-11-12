@@ -9,16 +9,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { DatasetObject } from "./dataset-object"
+import { DatasetFilePreview } from "./dataset-file-preview"
 
 let profileBody: Record<string, unknown> = {}
 let rowsBody: { status: number; body: unknown } = { status: 200, body: {} }
 let editResponse: { status: number; body: unknown } = { status: 200, body: { file: { version_no: 3 } } }
 let editBodies: any[] = []
 let rowCalls = 0
+let restoreBodies: any[] = []
+let versionsBody: unknown = { versions: [] }
+let urlStatus = 200
+let afterRestoreRows: { status: number; body: unknown } | null = null
 
 beforeEach(() => {
   editBodies = []
   rowCalls = 0
+  restoreBodies = []
+  versionsBody = { versions: [] }
+  urlStatus = 200
+  afterRestoreRows = null
   editResponse = { status: 200, body: { file: { version_no: 3 } } }
   global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://x")
@@ -26,6 +35,13 @@ beforeEach(() => {
       ({ ok: status < 400, status, json: async () => body, text: async () => "" }) as unknown as Response
     if (url.pathname.endsWith("/rows")) { rowCalls += 1; return res(rowsBody.status, rowsBody.body) }
     if (url.pathname.endsWith("/edit")) { editBodies.push(JSON.parse(String(init?.body))); return res(editResponse.status, editResponse.body) }
+    if (url.pathname.endsWith("/restore")) {
+      restoreBodies.push(JSON.parse(String(init?.body ?? "{}")))
+      if (afterRestoreRows) rowsBody = afterRestoreRows   // the server now serves the restored version
+      return res(200, { file: { version_no: 8 } })
+    }
+    if (url.pathname.endsWith("/versions")) return res(200, versionsBody)
+    if (url.pathname.endsWith("/url")) return res(urlStatus, { url: "https://files.example/x" })
     if (url.pathname === "/api/perception/profile") return res(200, profileBody)
     return res(200, {})
   }) as unknown as typeof fetch
@@ -75,7 +91,7 @@ describe("image (U1/U2/U4/U11)", () => {
     expect(pill).toHaveAttribute("data-quality", "unassessed")
     expect(pill.innerHTML).not.toMatch(/amber/)
     expect(screen.getByTestId("dataset-stat-grid")).not.toHaveTextContent(/Rows|Columns/)
-    expect(screen.getByTestId("dataset-stat-type")).toHaveTextContent("Image")
+    expect(screen.getByTestId("dataset-stat-grid").querySelector("[data-testid=dataset-stat][data-stat=type]")).toHaveTextContent("Image")
   })
 
   it("a backend 'unassessed' verdict is grey too", async () => {
@@ -187,5 +203,111 @@ describe("edit contract: baseVersion + distinct 409s", () => {
     editResponse = { status: 409, body: { error: "cell_conflict" } }
     await editOneCell()
     expect(await screen.findByTestId("dataset-edit-error")).toHaveTextContent("no longer holds the value shown")
+  })
+})
+
+describe("edit payload: rowFrom + headerRows + skipLines (server seam 2026-11-12)", () => {
+  it("each edited cell carries the whole row the user saw; headerRows and skipLines come from the rows response", async () => {
+    profileBody = { shape: { rows: 2, cols: 2 }, quality: "good", notes: [], viewKind: "table", columns: ["g", "v"], sampleRows: [["a", "1"], ["b", "1"]] }
+    rowsBody = { status: 200, body: { columns: ["g", "v"], rows: [["a", "1"], ["b", "1"]], totalRows: 2, offset: 0, limit: 200, headerRow: true, version: 7, skipLines: 2 } }
+    renderObj("counts.tsv")
+    await waitFor(() => expect(screen.getByTestId("dataset-preview-toggle-edit")).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId("dataset-preview-toggle-edit"))
+    const cell = await screen.findByTestId("dataset-edit-cell-1-1")
+    fireEvent.change(cell, { target: { value: "5" } })
+    fireEvent.click(screen.getByTestId("dataset-edit-save"))
+    await waitFor(() => expect(editBodies).toHaveLength(1))
+    // Row 0 also holds "1" in column v: rowFrom pins the edit to row 1 ("b").
+    expect(editBodies[0].edits).toEqual([{ row: 1, col: 1, from: "1", value: "5", rowFrom: ["b", "1"] }])
+    expect(editBodies[0]).toMatchObject({ baseVersion: 7, headerRows: 1, skipLines: 2 })
+  })
+})
+
+describe("edit payload for a header-less table", () => {
+  it("headerRows 0 from the reader's headerRow:false; no skipLines when the reader reports none", async () => {
+    profileBody = { shape: { rows: 2, cols: 2 }, quality: "good", notes: [], viewKind: "table", columns: ["column_1", "column_2"], sampleRows: [["TP53", "1"], ["EGFR", "1"]] }
+    rowsBody = { status: 200, body: { columns: ["column_1", "column_2"], rows: [["TP53", "1"], ["EGFR", "1"]], totalRows: 2, offset: 0, limit: 200, headerRow: false, version: 2 } }
+    renderObj("genes.tsv")
+    fireEvent.click(await screen.findByTestId("dataset-preview-toggle-edit"))
+    fireEvent.change(await screen.findByTestId("dataset-edit-cell-0-1"), { target: { value: "9" } })
+    fireEvent.click(screen.getByTestId("dataset-edit-save"))
+    await waitFor(() => expect(editBodies).toHaveLength(1))
+    expect(editBodies[0]).toEqual({ edits: [{ row: 0, col: 1, from: "1", value: "9", rowFrom: ["TP53", "1"] }], headerRows: 0, baseVersion: 2 })
+  })
+})
+
+describe("restore re-reads the rows (the next edit is based on the restored version)", () => {
+  it("after a restore, rows reload and the next edit sends the new version as baseVersion", async () => {
+    profileBody = { shape: { rows: 2, cols: 2 }, quality: "good", notes: [], viewKind: "table", columns: ["g", "v"], sampleRows: [["a", "1"], ["b", "2"]] }
+    rowsBody = { status: 200, body: { columns: ["g", "v"], rows: [["a", "1"], ["b", "2"]], totalRows: 2, offset: 0, limit: 200, headerRow: true, version: 7 } }
+    versionsBody = { versions: [
+      { version: "7", label: "v7", current: true, ref: "r" },
+      { version: "6", label: "v6", current: false, ref: "r" },
+    ] }
+    // The restore writes version 8 (v6's bytes); the rows endpoint then serves it.
+    afterRestoreRows = { status: 200, body: { columns: ["g", "v"], rows: [["a", "1"], ["b", "3"]], totalRows: 2, offset: 0, limit: 200, headerRow: true, version: 8 } }
+    renderObj("tbl.csv")
+    await waitFor(() => expect(screen.getByTestId("dataset-preview-table")).toBeInTheDocument())
+    expect(rowCalls).toBe(1)
+    fireEvent.click(screen.getByTestId("dataset-tab-versions"))
+    fireEvent.click(await screen.findByTestId("dataset-version-restore-6"))
+    // The restore is made against the version the list showed as current.
+    await waitFor(() => expect(restoreBodies).toEqual([{ baseVersion: 7 }]))
+    await waitFor(() => expect(rowCalls).toBe(2))
+    fireEvent.click(screen.getByTestId("dataset-tab-preview"))
+    fireEvent.click(await screen.findByTestId("dataset-preview-toggle-edit"))
+    const cell = await screen.findByTestId("dataset-edit-cell-1-1")
+    await waitFor(() => expect(cell).toHaveValue("3"))
+    fireEvent.change(cell, { target: { value: "4" } })
+    fireEvent.click(screen.getByTestId("dataset-edit-save"))
+    await waitFor(() => expect(editBodies).toHaveLength(1))
+    expect(editBodies[0].baseVersion).toBe(8)
+    expect(editBodies[0].edits[0]).toMatchObject({ from: "3", rowFrom: ["b", "3"] })
+  })
+})
+
+describe("e2e contract attributes (format-matrix harness)", () => {
+  const stats = () => Array.from(document.querySelectorAll("[data-testid=dataset-stat]")).map((e) => e.getAttribute("data-stat"))
+
+  it("a table: data-view-kind / data-preview-kind = table, rows + columns stat cards, th[data-column-name]", async () => {
+    profileBody = { shape: { rows: 2, cols: 2 }, quality: "good", notes: [], viewKind: "table", columns: ["g", "v"], sampleRows: [["a", "1"], ["b", "2"]] }
+    rowsBody = { status: 200, body: { columns: ["g", "v"], rows: [["a", "1"], ["b", "2"]], totalRows: 2, offset: 0, limit: 200, version: 1 } }
+    renderObj("one.csv")
+    await waitFor(() => expect(screen.getByTestId("dataset-preview")).toHaveAttribute("data-preview-kind", "table"))
+    await waitFor(() => expect(screen.getByTestId("dataset-preview")).not.toHaveAttribute("aria-busy"))
+    expect(screen.getByTestId("dataset-object")).toHaveAttribute("data-view-kind", "table")
+    expect(stats()).toEqual(["rows", "columns", "size", "type"])
+    expect(Array.from(document.querySelectorAll("th[data-column-name]")).map((e) => e.getAttribute("data-column-name"))).toEqual(["g", "v"])
+  })
+
+  it("reads: the backend viewKind wins over the name; the kind's own stats with 'at least'; no rows/columns", async () => {
+    profileBody = { shape: { rows: 0, cols: 0 }, quality: "good", notes: [], viewKind: "reads",
+      stats: [{ code: "reads", value: 1000, atLeast: true }, { code: "read_length", value: 151 }], findings: [] }
+    renderObj("reads.txt", { preview: <div data-testid="custom-viewer" /> })
+    await waitFor(() => expect(screen.getByTestId("dataset-object")).toHaveAttribute("data-view-kind", "reads"))
+    await waitFor(() => expect(screen.getByTestId("dataset-preview")).toHaveAttribute("data-preview-kind", "reads"))
+    expect(stats()).toEqual(["reads", "read_length", "size", "type"])
+    const reads = document.querySelector("[data-testid=dataset-stat][data-stat=reads]")!
+    expect(reads).toHaveTextContent("at least 1,000")
+  })
+
+  it("an xlsx (viewKind document) shows the profile summary, not 'preview unsupported'", async () => {
+    profileBody = { shape: { rows: 0, cols: 0 }, quality: "unassessed", notes: [], viewKind: "document",
+      stats: [{ code: "sheets", value: 2 }],
+      findings: [{ section: "note", code: "spreadsheet_sheets", level: "info", params: { count: 2, sheets: ["A", "B"] } }] }
+    renderObj("book.xlsx", { preview: <DatasetFilePreview projectId="p1" fileId="id-book.xlsx" name="book.xlsx" /> })
+    await screen.findByTestId("dataset-kind-summary")
+    expect(screen.getByTestId("dataset-preview")).toHaveAttribute("data-preview-kind", "document")
+    expect(screen.queryByTestId("dataset-file-preview-unsupported")).toBeNull()
+    expect(stats()).toEqual(["sheets", "size", "type"])
+  })
+
+  it("the file viewer's failure is data-preview-kind=error; while it loads the preview is aria-busy", async () => {
+    profileBody = { shape: { rows: 0, cols: 0 }, quality: "good", notes: [], viewKind: "sequences", findings: [] }
+    urlStatus = 403
+    renderObj("seqs.fasta", { preview: <DatasetFilePreview projectId="p1" fileId="id-seqs.fasta" name="seqs.fasta" /> })
+    expect(screen.getByTestId("dataset-preview")).toHaveAttribute("aria-busy", "true")
+    await waitFor(() => expect(screen.getByTestId("dataset-preview")).toHaveAttribute("data-preview-kind", "error"))
+    expect(screen.getByTestId("dataset-preview")).not.toHaveAttribute("aria-busy")
   })
 })
