@@ -28,6 +28,7 @@ import { emailService } from "./email-service";
 import { projectInputPath, projectInputKey, decodeMultipartFilename } from "./project-file-paths";
 import multer from "multer";
 import { randomUUID, randomBytes, createHash } from "crypto";
+import { applyCellEdits, parseDelimited, pickDelimiter, type CellEdit } from "./delimited-text";
 import path from "path";
 import fs from "fs";
 
@@ -219,10 +220,8 @@ async function _findProjectFileByName(projectId: string, name: string, sources: 
 /** Parse tabular text into headers + rows (capped). Delimiter from the extension,
  *  else sniffed. Used by the version Compare/diff (design §4.4). */
 function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
-  const e = (ext || "").toLowerCase();
-  const delim = (e === "tsv" || e === "tab") ? "\t" : (e === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
-  const lines = text.split(/\r?\n/).filter((l) => l.length > 0).slice(0, 500);
-  const rows = lines.map((l) => l.split(delim));
+  // Quote-aware, same rules as the rows reader and the edit route (delimited-text.ts).
+  const rows = parseDelimited(text, pickDelimiter(text, ext), 501);
   return { headers: rows[0] || [], rows: rows.slice(1) };
 }
 
@@ -1025,28 +1024,34 @@ export function registerProjectRoutes(app: Express): void {
       const size = await s3Service.getFileSize(cur.s3_key).catch(() => 0);
       if (size > CAP) return res.status(413).json({ error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
       const text = await s3Service.readTextPrefix(cur.s3_key, CAP);
-      const delim = (ext === "tsv" || ext === "tab") ? "\t" : (ext === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
-      const keepTrailingNL = /\n$/.test(text);
-      const lines = text.replace(/\n$/, "").split(/\r?\n/);
-      const header = (lines[0] || "").split(delim);
-      let applied = 0;
-      for (const e of edits) {
-        const r = Number(e?.row);               // 0-based DATA row (header excluded)
-        const colName = String(e?.col ?? "");
-        const value = String(e?.value ?? "");
-        const lineIdx = r + 1;                   // +1 for the header line
-        if (!Number.isInteger(r) || r < 0 || lineIdx >= lines.length) continue;
-        const cols = lines[lineIdx].split(delim);
-        let j = header.indexOf(colName);
-        if (j < 0) { const n = Number(colName); j = Number.isInteger(n) ? n : -1; }
-        if (j < 0 || j >= Math.max(cols.length, header.length)) continue;
-        while (cols.length <= j) cols.push("");
-        cols[j] = value;
-        lines[lineIdx] = cols.join(delim);
-        applied++;
+      // The file is rewritten from decoded text: refuse unless decoding was lossless (valid UTF-8,
+      // whole file read) — otherwise saving would replace every invalid byte with U+FFFD.
+      if (!size || Buffer.byteLength(text, "utf-8") !== size || text.includes("\uFFFD")) {
+        return res.status(422).json({ error: "This file is not plain UTF-8 text, so it cannot be edited in place without changing other bytes. Open it in Jupyter/RStudio to edit it." });
       }
+      const delim = pickDelimiter(text, ext);
+      // Each edit names the cell by data-row index + column index (as the Preview's rows reader
+      // numbers them) and carries the value the user saw. Only the edited fields are rewritten
+      // (quoting, line endings and every other byte kept); if any cell no longer holds the value
+      // the user saw, nothing is written (409).
+      const parsed: CellEdit[] = [];
+      for (const e of edits) {
+        const r = Number(e?.row), c = Number(e?.col);
+        if (!Number.isInteger(r) || r < 0 || !Number.isInteger(c) || c < 0 || typeof e?.from !== "string") {
+          return res.status(400).json({ error: "Each edit needs row, col (column index) and from (the value shown)." });
+        }
+        parsed.push({ row: r, col: c, from: e.from, value: String(e?.value ?? "") });
+      }
+      const result = applyCellEdits(text, delim, parsed, { headerRows: 1 });
+      if (result.conflicts.length) {
+        return res.status(409).json({
+          error: "The file changed or a cell no longer holds the value shown; nothing was saved. Reload and edit again.",
+          conflicts: result.conflicts.slice(0, 20),
+        });
+      }
+      const applied = result.applied;
       if (applied === 0) return res.status(400).json({ error: "None of the edits matched a cell." });
-      const newText = lines.join("\n") + (keepTrailingNL ? "\n" : "");
+      const newText = result.text;
       const buf = Buffer.from(newText, "utf-8");
       const contentHash = createHash("sha256").update(buf).digest("hex");
       const vkey = `${projectInputKey(id, String(cur.name), String(cur.name))}.v${cur.version_no + 1}`;

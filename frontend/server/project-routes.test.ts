@@ -157,6 +157,11 @@ describe("project-routes — contract", () => {
     expect(SRC.includes("10 * 1024 * 1024")).toBe(true);                              // 10 MiB cap
     expect(/edit[\s\S]{0,1400}readTextPrefix/.test(SRC)).toBe(true);                   // reads the FULL file (not just the sample)
     expect(/edit[\s\S]{0,2600}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true); // append-only new version
+    // Only edited cells change (quote-aware, CRLF kept), stale/mismatched edits refused, lossy decode refused.
+    expect(/edit[\s\S]{0,3000}applyCellEdits\(text, delim, parsed/.test(SRC)).toBe(true);
+    expect(/edit[\s\S]{0,3000}status\(409\)/.test(SRC)).toBe(true);
+    expect(/Buffer\.byteLength\(text, "utf-8"\) !== size/.test(SRC)).toBe(true);
+    expect(SRC.includes("lines[lineIdx].split(delim)")).toBe(false);
   });
 
   it("every endpoint goes through authenticateToken", () => {

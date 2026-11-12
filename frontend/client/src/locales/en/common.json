@@ -692,7 +692,9 @@
     "record_title": "Record {{n}}",
     "record_close": "Close",
     "record_hint": "Click a row to open the record.",
-    "record_search": "Search this record…"
+    "record_search": "Search this record…",
+    "edit_hint_full": "Edit any cell, then save. Saving writes a new version; the previous one stays in Versions. Only the cells you change are rewritten.",
+    "edit_conflict": "Not saved: the file changed, or a cell no longer holds the value shown. Reload and edit again."
   },
   "data_hub": {
     "choose_project": "Choose a project",

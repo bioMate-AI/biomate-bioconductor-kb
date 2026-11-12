@@ -88,3 +88,21 @@ describe("DatasetRowsTable with nested JSONL cells", () => {
     expect(screen.queryByTestId("dataset-record-view")).toBeNull()
   })
 })
+
+describe("DatasetRowsTable edit mode", () => {
+  it("after sorting, an edit is keyed by the row's position in the file, with the value shown", () => {
+    const calls: unknown[][] = []
+    render(
+      <DatasetRowsTable
+        columns={["gene", "n"]} rows={[["TP53", "2"], ["EGFR", "1"]]} total={2}
+        loading={false} error={null} onNeedMore={() => {}}
+        editable edits={{}} onEdit={(...a) => calls.push(a)}
+      />,
+    )
+    fireEvent.click(screen.getByTestId("dataset-col-sort-1"))          // sort by n: EGFR first
+    const firstShown = screen.getAllByTestId("dataset-preview-row")[0].querySelector("input")!
+    expect(firstShown.getAttribute("data-testid")).toBe("dataset-edit-cell-1-0")
+    fireEvent.change(firstShown, { target: { value: "ERBB1" } })
+    expect(calls).toEqual([[1, 0, "EGFR", "ERBB1"]])
+  })
+})

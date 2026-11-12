@@ -698,7 +698,9 @@
     "record_title": "记录 {{n}}",
     "record_close": "关闭",
     "record_hint": "点击一行查看该记录。",
-    "record_search": "在此记录中搜索…"
+    "record_search": "在此记录中搜索…",
+    "edit_hint_full": "可编辑任意单元格后保存。保存会生成新版本，旧版本保留在“版本”中；只会改写你修改过的单元格。",
+    "edit_conflict": "未保存：文件已变化，或某个单元格的内容与显示的不一致。请刷新后重新编辑。"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

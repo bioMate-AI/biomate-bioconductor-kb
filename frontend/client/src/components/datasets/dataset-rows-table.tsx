@@ -30,6 +30,11 @@ export interface DatasetRowsTableProps {
   onRetry?: () => void
   /** Hide "Load all" above this many rows (browser memory). */
   loadAllCap?: number
+  /** Edit mode: cells become inputs. Edits are keyed `${row}:${col}` by the row's position in
+   *  the file (as loaded, before sort/filter) and keep the value the user saw (`from`). */
+  editable?: boolean
+  edits?: Record<string, { from: string; value: string }>
+  onEdit?: (row: number, col: number, from: string, value: string) => void
 }
 
 /** Short structural label for a nested cell (a JSONL list/object), instead of truncated JSON text. */
@@ -140,6 +145,7 @@ function RecordView({ columns, row, index, onClose }: { columns: string[]; row: 
 
 export function DatasetRowsTable({
   columns, rows, total, loading, error, onNeedMore, onLoadAll, onRetry, loadAllCap = Infinity,
+  editable = false, edits = {}, onEdit,
 }: DatasetRowsTableProps) {
   const [sortCol, setSortCol] = useState<number | null>(null)
   const [sortAsc, setSortAsc] = useState(true)
@@ -164,6 +170,8 @@ export function DatasetRowsTable({
     }
     return out
   }, [rows, filterText, sortCol, sortAsc])
+  // Row → its position in the file (rows load in file order); stable under sort / filter.
+  const rowIndex = useMemo(() => new Map(rows.map((r, i) => [r, i] as const)), [rows])
   // Columns holding nested JSON (JSONL lists/objects) — then rows open as structured records.
   const hasNested = useMemo(
     () => rows.slice(0, 50).some((r) => r.some((c) => parseNested(c) !== null)),
@@ -223,12 +231,29 @@ export function DatasetRowsTable({
             {slice.map((r, ri) => (
               <tr
                 key={start + ri}
-                className={`odd:bg-muted/20${hasNested ? " cursor-pointer hover:bg-muted/40" : ""}`}
+                className={`odd:bg-muted/20${hasNested && !editable ? " cursor-pointer hover:bg-muted/40" : ""}`}
                 style={{ height: ROW_H }}
                 data-testid="dataset-preview-row"
-                onClick={hasNested ? () => setOpenRow({ row: r, index: rows.indexOf(r) }) : undefined}
+                onClick={hasNested && !editable ? () => setOpenRow({ row: r, index: rowIndex.get(r) ?? 0 }) : undefined}
               >
                 {columns.map((_, ci) => {
+                  if (editable) {
+                    const ri = rowIndex.get(r) ?? 0
+                    const shown = r[ci] ?? ""
+                    const key = `${ri}:${ci}`
+                    const ed = edits[key]
+                    return (
+                      <td key={ci} className="px-0.5 py-0 border-b">
+                        <input
+                          className={`w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${ed ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`}
+                          value={ed ? ed.value : shown}
+                          aria-label={`${columns[ci]} · ${ri + 1}`}
+                          data-testid={`dataset-edit-cell-${ri}-${ci}`}
+                          onChange={(e) => onEdit?.(ri, ci, shown, e.target.value)}
+                        />
+                      </td>
+                    )
+                  }
                   const n = hasNested ? parseNested(r[ci]) : null
                   return (
                     <td
@@ -255,7 +280,7 @@ export function DatasetRowsTable({
         <RecordView columns={columns} row={openRow.row} index={openRow.index} onClose={() => setOpenRow(null)} />
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="dataset-preview-rowcount">
-        {hasNested && !openRow && <span>{t("dataset_obj.record_hint")}</span>}
+        {hasNested && !openRow && !editable && <span>{t("dataset_obj.record_hint")}</span>}
         <span>
           {allLoaded
             ? t("dataset_obj.rows_all_loaded", { total: fmt(total!) })
