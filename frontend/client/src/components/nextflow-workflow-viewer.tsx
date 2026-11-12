@@ -1831,15 +1831,13 @@ export function NextflowWorkflowViewer({
         outputFiles: (m as any).outputFiles ?? (p as any).outputFiles,
       };
     });
-    // Append any recorded process that neither matched a planned step NOR shares a key
-    // with an already-merged phase (dedup guard — a phase must not render twice when
-    // planned/recorded naming is heterogeneous; audit finding #2).
-    const mergedKeys = new Set<string>(merged.flatMap(keysOf));
-    for (const r of recorded) {
-      if (used.has(r)) continue;
-      if (keysOf(r).some((k) => mergedKeys.has(k))) continue;
-      merged.push(r);
-    }
+    // Append any recorded process that didn't match a planned phase — a dynamic /
+    // unplanned process is a genuinely distinct phase and must render. Dedup ONLY
+    // by object identity (`used`), never by tail-key: two unmatched processes that
+    // share a trailing segment (NFCORE:…:SAMTOOLS_SORT in different subworkflows)
+    // are DIFFERENT processes and both belong. The earlier tail-key dedup guard both
+    // dropped real phases and failed to dedup appended-vs-appended (code-review #1/#5).
+    for (const r of recorded) if (!used.has(r)) merged.push(r);
     return merged;
   }, [workflowDefinition, lazySteps, nextflowStatus?.processes]);
 
@@ -4766,13 +4764,15 @@ export function NextflowWorkflowViewer({
                       onPrev={idx > 0 ? () => openAt(idx - 1) : undefined}
                       onNext={idx >= 0 && idx < flat.length - 1 ? () => openAt(idx + 1) : undefined}
                       // Footer "Re-run from here" → open the adjust-params modal for this
-                      // step (audit finding A1: this prop was never wired, so the footer
-                      // button was dead). Close the full view first so the modal is on top.
-                      onAdjustAndRerun={() => {
+                      // step (audit A1: prop was never wired → dead button). Only offer it
+                      // when there IS a run to re-run from: the modal is gated on activeRunId,
+                      // so without one the button would be a NEW dead affordance (code-review
+                      // #4). undefined → StepDetail hides the footer re-run button entirely.
+                      onAdjustAndRerun={activeRunId ? () => {
                         const s = fullViewStep;
                         setFullViewStep(null);
                         setAdjustStep({ id: s.id, name: s.name, processName: s.processName, parameters: s.parameters });
-                      }}
+                      } : undefined}
                       onApplyAndRerun={(edited) => {
                         // Apply the in-place-edited params to the form and re-run
                         // with the merged set (pass merged directly — setParams is

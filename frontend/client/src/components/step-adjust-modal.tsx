@@ -48,9 +48,12 @@ export function StepAdjustModal({
   // Object]" (string inputs) or an empty box (number inputs coercing an object to NaN).
   const coerceParamValue = (v: any): any => {
     if (v != null && typeof v === "object" && !Array.isArray(v)) {
-      if ("value" in v) return v.value;
-      if ("default" in v) return v.default;
-      if ("val" in v) return v.val;
+      // Use `!== undefined` (not `in`) so an explicit `value: undefined` falls
+      // through to default/val instead of erasing the param (code-review #6).
+      // null / 0 / false / "" are legitimate scalar values and are returned as-is.
+      if (v.value !== undefined) return v.value;
+      if (v.default !== undefined) return v.default;
+      if (v.val !== undefined) return v.val;
       return JSON.stringify(v); // last resort — readable, never "[object Object]"
     }
     return v;
