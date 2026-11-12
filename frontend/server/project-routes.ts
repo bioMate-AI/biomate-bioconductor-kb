@@ -1430,13 +1430,13 @@ export function registerProjectRoutes(app: Express): void {
       const cur = row.rows[0];
       const ext = (String(cur.name).split(".").pop() || "").toLowerCase();
       if (!["csv", "tsv", "tab", "txt"].includes(ext)) {
-        return res.status(400).json({ error: "Only tabular files (csv/tsv) can be edited in place. Open it in Jupyter/RStudio for other formats." });
+        return res.status(400).json({ code: "not_tabular", error: "Only tabular files (csv/tsv) can be edited in place. Open it in Jupyter/RStudio for other formats." });
       }
       // Stale before any read: nothing is read, written or archived.
       if (Number(cur.version_no) !== baseVersion) return res.status(409).json(versionConflict(Number(cur.version_no)));
       const CAP = 10 * 1024 * 1024;
       const size = await s3Service.getFileSize(cur.s3_key);
-      if (size > CAP) return res.status(413).json({ error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
+      if (size > CAP) return res.status(413).json({ code: "too_large", error: "File exceeds the 10 MiB in-place-edit limit. Open it in Jupyter/RStudio to edit larger files." });
       // The WHOLE file (≤ 10 MiB). An object key is never rewritten (new bytes always get a new
       // key), so these are exactly the bytes of baseVersion as long as s3_key is unchanged below.
       const bytes = size > 0 ? await s3Service.readBuffer(cur.s3_key, size) : Buffer.alloc(0);
@@ -1447,7 +1447,7 @@ export function registerProjectRoutes(app: Express): void {
       try {
         text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
       } catch {
-        return res.status(422).json({ error: "This file is not plain UTF-8 text, so it cannot be edited in place without changing other bytes. Open it in Jupyter/RStudio to edit it." });
+        return res.status(422).json({ code: "not_utf8", error: "This file is not plain UTF-8 text, so it cannot be edited in place without changing other bytes. Open it in Jupyter/RStudio to edit it." });
       }
       const delim = delimiterRaw ?? pickDelimiter(text, ext);
       // Only the edited fields are rewritten (quoting, line endings and every other byte kept);
@@ -1713,7 +1713,14 @@ export function registerProjectRoutes(app: Express): void {
       }
       if (body.error === "unresolvable_ref") return res.status(404).json({ error: "file_unreadable" });
       if (body.error) return res.status(422).json({ error: "parse_failed" });
-      if (body.tabular === false) return res.status(415).json({ error: "not_tabular", kind: body.kind ?? null });
+      // Not served as rows: say why (empty/blank file, spec mismatch, unreadable, not a table) so the
+      // panel can show the right state (an empty file is not a rows error).
+      if (body.tabular === false) return res.status(415).json({
+        error: "not_tabular", kind: body.kind ?? null,
+        ...(typeof body.reason === "string" ? { reason: body.reason } : {}),
+        ...(typeof body.code === "string" ? { code: body.code } : {}),
+        ...(typeof body.viewKind === "string" ? { viewKind: body.viewKind } : {}),
+      });
       res.json({
         // The file version these rows were read from — the client sends it back as the edit's
         // `baseVersion`, so an edit made on a stale page is refused (409) instead of landing on

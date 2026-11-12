@@ -143,6 +143,14 @@ describe("GET /files/:fileId/rows — contract", () => {
     expect(body).toMatchObject({ skipLines: 1, headerRow: true, viewKind: "table", version: 1 });
   });
 
+  it("415 for a non-table carries the reader's reason and code (empty file → empty state, not a rows error)", async () => {
+    store.addFile({ id: F1, project_id: P, s3_key: "projects/11111111-1111-4111-8111-111111111111/inputs/empty.csv", name: "empty.csv" });
+    galaxyFetch.mockResolvedValue(ok({ kind: "unknown", viewKind: "unknown", tabular: false, reason: "empty", code: "empty_file" }));
+    const r = await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/files/${F1}/rows?offset=0&limit=200`);
+    expect(r.status).toBe(415);
+    expect(await r.json()).toEqual({ error: "not_tabular", kind: "unknown", reason: "empty", code: "empty_file", viewKind: "unknown" });
+  });
+
   it("404s for a non-member without touching the backend (no existence leak)", async () => {
     currentUser = { id: "stranger" };
     store.addFile({ id: F1, project_id: P, s3_key: "k", name: "a.csv" });

@@ -178,6 +178,7 @@ describe("edit reads the whole file (R1)", () => {
     const latin = store.addFile({ project_id: P, name: "l.csv", s3_key: key("l.csv") }, Buffer.from("name,city\nJos\xe9,Montr\xe9al\n", "latin1"));
     const r = await json(await post(editPath(latin.id), { baseVersion: 1, edits: [{ row: 0, col: 0, from: "Jos�", value: "x" }] }));
     expect(r.status).toBe(422);
+    expect(r.body.code).toBe("not_utf8");
     expect(store.puts).toEqual([]);
     const bom = store.addFile({ project_id: P, name: "b.csv", s3_key: key("b.csv") }, "﻿k,v\nx,�\ny,2\n");
     const ok = await json(await post(editPath(bom.id), { baseVersion: 1, edits: [{ row: 1, col: 1, from: "2", value: "3" }] }));
@@ -187,7 +188,9 @@ describe("edit reads the whole file (R1)", () => {
 
   it("over 10 MiB → 413", async () => {
     const f = store.addFile({ project_id: P, name: "huge.csv", s3_key: key("huge.csv") }, Buffer.alloc(10 * 1024 * 1024 + 1, 0x61));
-    expect((await post(editPath(f.id), { baseVersion: 1, edits: [{ row: 0, col: 0, from: "", value: "x" }] })).status).toBe(413);
+    const r = await json(await post(editPath(f.id), { baseVersion: 1, edits: [{ row: 0, col: 0, from: "", value: "x" }] }));
+    expect(r.status).toBe(413);
+    expect(r.body.code).toBe("too_large");
   });
 });
 
@@ -326,6 +329,7 @@ describe("edit — tabular files only", () => {
       const r = await json(await post(editPath(f.id), { baseVersion: 1, edits: [{ row: 0, col: 0, from: "chr1", value: "chr2" }] }));
       expect(r.status).toBe(400);
       expect(r.body.error).toMatch(/Only tabular files/);
+      expect(r.body.code).toBe("not_tabular");
       expect(store.puts).toEqual([]);
       expect(store.versions).toEqual([]);
       expect(fileById(f.id).version_no).toBe(1);
