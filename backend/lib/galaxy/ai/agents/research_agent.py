@@ -1927,9 +1927,18 @@ class ResearchAgent:
                     _loop = asyncio.get_event_loop()
 
                     async def _fed_one_budgeted(nt):
+                        # The budget MUST exceed federated_query's own internal fan-out timeout
+                        # (15s, which returns PARTIAL results on expiry) — a 15s wrapper tied
+                        # with it and, when the wrapper won the race, cancelled federated_query
+                        # before it could hand back the sources that DID finish, so a broad
+                        # protein query intermittently lost ALL DB evidence (dev finding,
+                        # 2026-11-12). 25s lets federated_query's own timeout always fire first
+                        # and return its partials; this wrapper is only a last-resort guard
+                        # against a genuinely hung call. Entities run in parallel, so the larger
+                        # budget does not add wall-clock across entities.
                         try:
                             return await asyncio.wait_for(
-                                _loop.run_in_executor(None, _fed_one, nt), timeout=15)
+                                _loop.run_in_executor(None, _fed_one, nt), timeout=25)
                         except asyncio.TimeoutError:
                             return None
 
