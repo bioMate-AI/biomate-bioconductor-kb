@@ -49,6 +49,18 @@ from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _qc_events_only(events):
+    """SSE capture for QC-gate assertions.
+
+    Since 7668498b4a (2026-05-14) the QC monitor ALSO emits a friendly
+    ('chat_progress', …) narration line over the same sse_callback for every
+    gate/warning. Narration is covered by
+    lib/galaxy/ai/workflow_ops/tests/test_workflow_chat_narrator.py; these
+    tests count QC events, so narration is excluded here.
+    """
+    return lambda t, d: None if t == "chat_progress" else events.append((t, d))
+
+
 def _make_handler(work_dir=None, sse_callback=None, domain="cryo_em", params=None):
     """Convenience factory for NextflowQCGateHandler."""
     cb = sse_callback or (lambda t, d: None)
@@ -68,7 +80,7 @@ def _collect_events(handler, task_id, process_name, process_hash, status):
     Returns list of (event_type, data) tuples captured.
     """
     events = []
-    handler.sse_callback = lambda t, d: events.append((t, d))
+    handler.sse_callback = _qc_events_only(events)
     handler.handle_process_completion(
         task_id=task_id,
         process_name=process_name,
@@ -129,7 +141,7 @@ class TestDuplicateDeduplication:
             NextflowQCGateHandler, "_calculate_qc_metrics", side_effect=mock_calc
         ):
             events = []
-            handler.sse_callback = lambda t, d: events.append((t, d))
+            handler.sse_callback = _qc_events_only(events)
 
             handler.handle_process_completion("1", "MOTION_CORRECTION", "ab/cd", "COMPLETED")
             handler.handle_process_completion("1", "MOTION_CORRECTION", "ab/cd", "COMPLETED")
@@ -167,7 +179,7 @@ class TestThresholdBoundaryConditions:
             NextflowQCGateHandler, "_calculate_qc_metrics", return_value=metrics
         ):
             events = []
-            handler.sse_callback = lambda t, d: events.append((t, d))
+            handler.sse_callback = _qc_events_only(events)
             handler.handle_process_completion("1", process_name, "ab/cd", "COMPLETED")
         assert events == [], (
             f"Expected NO QC trigger at exact threshold; got events={events}"
@@ -210,7 +222,7 @@ class TestThresholdBoundaryConditions:
             return_value={"total_drift_angstrom": 50.1},
         ):
             events = []
-            handler.sse_callback = lambda t, d: events.append((t, d))
+            handler.sse_callback = _qc_events_only(events)
             handler.handle_process_completion("1", "MOTION_CORRECTION", "ab/cd", "COMPLETED")
         assert len(events) == 1
         assert events[0][0] == "qc_gate_triggered"
@@ -704,7 +716,7 @@ class TestSSECallbackErrors:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
         )
@@ -737,7 +749,7 @@ class TestPositiveCasesNoTrigger:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
         )
@@ -780,7 +792,7 @@ class TestMultipleFailures:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
             current_parameters={"dose_weighting": False, "patch_size": 3, "alignment_frames": 1},
@@ -806,7 +818,7 @@ class TestMultipleFailures:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
             current_parameters={"use_tilt_search": False, "defocus_min": 10000, "defocus_max": 30000},
@@ -837,7 +849,7 @@ class TestStructuredFailureFormat:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
             current_parameters=params or {},
@@ -1112,7 +1124,7 @@ class TestSSEEventDataCompleteness:
         handler = NextflowQCGateHandler(
             invocation_id="inv-007",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
             current_parameters={"dose_weighting": False, "patch_size": 3},
@@ -1133,7 +1145,7 @@ class TestSSEEventDataCompleteness:
         handler = NextflowQCGateHandler(
             invocation_id="unique-inv-12345",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
         )
@@ -1147,7 +1159,7 @@ class TestSSEEventDataCompleteness:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
         )
@@ -1371,7 +1383,7 @@ class TestBugRegressions:
         handler = NextflowQCGateHandler(
             invocation_id="t",
             work_dir=Path(tempfile.mkdtemp()),
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="cryo_em",
             current_parameters={"dose_weighting": False, "patch_size": 3},
@@ -2494,7 +2506,7 @@ class TestEndToEndFileToSSE:
         h = NextflowQCGateHandler(
             invocation_id="e2e-test",
             work_dir=work_dir,
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain=domain,
             current_parameters=params,
@@ -2581,7 +2593,7 @@ class TestEndToEndFileToSSE:
         h = NextflowQCGateHandler(
             invocation_id="e2e-missing",
             work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(),
             workflow_domain="rna_seq",
             current_parameters={},
@@ -2849,7 +2861,7 @@ class TestUncoveredPaths:
         )
         h = NextflowQCGateHandler(
             invocation_id="bug8", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)),
+            sse_callback=_qc_events_only(events),
             app=Mock(), workflow_domain="rnaseq",
         )
         h.handle_process_completion("t1", "STAR_ALIGN", "ab/cd0003", "COMPLETED")
@@ -2928,7 +2940,7 @@ class TestTierOneChanges:
         (subdir / "mic001_ctf.txt").write_text("950.0\t920.0\t45.0\t0.0\t0.85\n")
 
         events = []
-        h = _make_handler(work_dir=tmp_path, sse_callback=lambda t, d: events.append((t, d)),
+        h = _make_handler(work_dir=tmp_path, sse_callback=_qc_events_only(events),
                           domain="cryo_em")
         h.handle_process_completion(
             task_id="t1", process_name="CTF_ESTIMATION",
@@ -2954,7 +2966,7 @@ class TestTierOneChanges:
         (subdir / "mic002_ctf.txt").write_text("150000.0\t149500.0\t10.0\t0.0\t0.92\n")
 
         events = []
-        h = _make_handler(work_dir=tmp_path, sse_callback=lambda t, d: events.append((t, d)),
+        h = _make_handler(work_dir=tmp_path, sse_callback=_qc_events_only(events),
                           domain="cryo_em")
         h.handle_process_completion(
             task_id="t2", process_name="CTF_ESTIMATION",
@@ -2985,7 +2997,7 @@ class TestTierOneChanges:
             "Uniquely mapped reads % |\t8.00%\n"
         )
         events = []
-        h = _make_handler(work_dir=tmp_path, sse_callback=lambda t, d: events.append((t, d)),
+        h = _make_handler(work_dir=tmp_path, sse_callback=_qc_events_only(events),
                           domain="rnaseq")
         h.handle_process_completion(
             task_id="t3", process_name="STAR_ALIGN",
@@ -3012,7 +3024,7 @@ class TestTierOneChanges:
             "Uniquely mapped reads % |\t45.00%\n"
         )
         events = []
-        h = _make_handler(work_dir=tmp_path, sse_callback=lambda t, d: events.append((t, d)),
+        h = _make_handler(work_dir=tmp_path, sse_callback=_qc_events_only(events),
                           domain="rnaseq")
         h.handle_process_completion(
             task_id="t4", process_name="STAR_ALIGN",
@@ -3041,7 +3053,7 @@ class TestTierOneChanges:
             "Uniquely mapped reads % |\t73.00%\n"
         )
         events = []
-        h = _make_handler(work_dir=tmp_path, sse_callback=lambda t, d: events.append((t, d)),
+        h = _make_handler(work_dir=tmp_path, sse_callback=_qc_events_only(events),
                           domain="rnaseq")
         h.handle_process_completion(
             task_id="t5", process_name="STAR_ALIGN",
@@ -3070,7 +3082,7 @@ class TestTierOneChanges:
             "Uniquely mapped reads % |\t90.00%\n"
         )
         events = []
-        h = _make_handler(work_dir=tmp_path, sse_callback=lambda t, d: events.append((t, d)),
+        h = _make_handler(work_dir=tmp_path, sse_callback=_qc_events_only(events),
                           domain="rnaseq")
         h.handle_process_completion(
             task_id="t6", process_name="STAR_ALIGN",
@@ -3427,7 +3439,7 @@ class TestRound2AuditFindings:
         ):
             h = NextflowQCGateHandler(
                 invocation_id="t", work_dir=tmp_path,
-                sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+                sse_callback=_qc_events_only(events), app=Mock(),
                 workflow_domain="chip_seq",
             )
             h.handle_process_completion("1", "MACS2", "ab/cd", "COMPLETED")
@@ -3444,7 +3456,7 @@ class TestRound2AuditFindings:
         ):
             h = NextflowQCGateHandler(
                 invocation_id="t", work_dir=tmp_path,
-                sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+                sse_callback=_qc_events_only(events), app=Mock(),
                 workflow_domain="cryo_em",
             )
             h.handle_process_completion("1", "CTF_ESTIMATION", "ab/cd", "COMPLETED")
@@ -3539,7 +3551,7 @@ class TestRound2AuditFindings:
         ):
             h = NextflowQCGateHandler(
                 invocation_id="t", work_dir=tmp_path,
-                sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+                sse_callback=_qc_events_only(events), app=Mock(),
                 workflow_domain="scrna_seq",
             )
             h.handle_process_completion("1", "CELLRANGER_COUNT", "ab/cd", "COMPLETED")
@@ -3556,7 +3568,7 @@ class TestRound2AuditFindings:
         ):
             h = NextflowQCGateHandler(
                 invocation_id="t", work_dir=tmp_path,
-                sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+                sse_callback=_qc_events_only(events), app=Mock(),
                 workflow_domain="scrna_seq",
             )
             h.handle_process_completion("1", "CELLRANGER_COUNT", "ab/cd", "COMPLETED")
@@ -3873,7 +3885,7 @@ class TestQCOverrides:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="gate-audit", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
             workflow_domain="rnaseq",
             qc_overrides={"alignment_rate": 80.0},  # raise threshold so 75% fails
         )
@@ -3895,7 +3907,7 @@ class TestQCOverrides:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
             workflow_domain="rnaseq",
             qc_overrides={"alignment_rate": 50.0},
         )
@@ -3910,7 +3922,7 @@ class TestQCOverrides:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
         )
         h._emit_qc_gate_event("STAR_ALIGN", {"alignment_rate": 45.0}, [])
         _, data = events[0]
@@ -3922,7 +3934,7 @@ class TestQCOverrides:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
             qc_overrides={"reads_surviving_pct": 65.0},
         )
         h._emit_qc_warning_event("FASTP", {}, [])
@@ -4103,7 +4115,7 @@ class TestNamedProfiles:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
             qc_profile="rnaseq_ribodepleted",
         )
         h._emit_qc_gate_event("STAR_ALIGN", {}, [])
@@ -4115,7 +4127,7 @@ class TestNamedProfiles:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
         )
         h._emit_qc_gate_event("STAR_ALIGN", {}, [])
         _, data = events[0]
@@ -4126,7 +4138,7 @@ class TestNamedProfiles:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
             qc_profile="metagenomics_soil",
         )
         h._emit_qc_warning_event("KRAKEN2", {}, [])
@@ -4163,7 +4175,7 @@ class TestNamedProfiles:
         events = []
         h = NextflowQCGateHandler(
             invocation_id="t", work_dir=tmp_path,
-            sse_callback=lambda t, d: events.append((t, d)), app=Mock(),
+            sse_callback=_qc_events_only(events), app=Mock(),
             workflow_domain="rnaseq",
             qc_profile="rnaseq_ribodepleted",
         )

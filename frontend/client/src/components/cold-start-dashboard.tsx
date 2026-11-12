@@ -45,10 +45,23 @@
  */
 
 import { useState } from "react";
-import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES, HOSPITAL_EXAMPLES } from "./cold-start-examples";
+import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from "./cold-start-examples";
 import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 import { t } from "@/lib/i18n";
+
+/**
+ * Display copy for the card catalogue below. The catalogue stays canonical
+ * English (it is the router self-test surface and the prepared-example lookup
+ * key); what the user SEES goes through i18n, keyed by a slug of the English
+ * text: cold_start.copy.<slug> in both locale bundles.
+ */
+export function coldCopyKey(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64);
+}
+export function coldCopy(text: string): string {
+  return t(`cold_start.copy.${coldCopyKey(text)}`);
+}
 
 // ── A validated-workflow SHAPE. Title + what it needs + how long. No pipeline
 //    name, no count — a shape a scientist recognises, not a catalogue row.
@@ -65,7 +78,7 @@ export interface ColdShape {
   /**
    * An optional real, staged sample dataset attached to this example so a
    * first-time user can run it directly — or edit the seed to swap in their own.
-   * `ref` is a public accession or S3 path that BioMate can fetch/stage; the
+   * `ref` is a public accession (or a path BioMate has already staged); the
    * same accession is embedded in `seed`, so clicking pre-loads a runnable goal.
    * Only set when the dataset genuinely exists (no fabricated demo data).
    */
@@ -91,7 +104,7 @@ export const COLD_DOMAINS: ColdDomain[] = [
     shapes: [
       { t: "Screen a compound set for ADMET liabilities", needs: "sample provided — or your own SMILES/SDF", time: "~15 min", seed: "Screen these SMILES for ADMET liabilities and rank them by developability: CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1", sampleDataset: { label: "example SMILES", ref: "inline" } },
       { t: "Dock a series against a target and rank poses", needs: "sample provided — ligands + target structure", time: "~1 h", seed: "Dock this series against my target and rank the poses." },
-      { t: "Explain why a hit series is failing on one property", needs: "sample provided — compounds and assay context", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence." },
+      { t: "Explain why a hit series is failing on one property", needs: "sample provided — a series with measured target and hERG IC50s", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence.", sampleDataset: { label: "MCHR1 chromone series", ref: "ChEMBL CHEMBL1137327" } },
     ],
   },
   {
@@ -111,17 +124,17 @@ export const COLD_DOMAINS: ColdDomain[] = [
     name: "Genomics",
     shapes: [
       { t: "Call variants and flag the clinically relevant ones", needs: "sample provided — reads + reference build", time: "~2 h", seed: "Call variants on these samples and flag the clinically relevant ones. Human GRCh38." },
-      { t: "Compare variant burden between two cohorts", needs: "sample provided — two variant sets", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts." },
-      { t: "Check contamination and relatedness before analysis", needs: "sample provided — reads", time: "~25 min", seed: "Check these samples for contamination and relatedness before I analyse them." },
+      { t: "Compare variant burden between two cohorts", needs: "sample provided — cohort mutation calls + response labels", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts.", sampleDataset: { label: "NSCLC anti-PD-1 cohort", ref: "Rizvi 2015, Science (PMID 25765070)" } },
+      { t: "Check contamination and relatedness before analysis", needs: "sample provided — multi-sample genotypes + a pedigree", time: "~25 min", seed: "Check these genotypes for contamination and relatedness before I analyse them.", sampleDataset: { label: "CEPH 1463 pedigree", ref: "Illumina Platinum Genomes" } },
     ],
   },
   {
     id: "fgen",
     name: "Functional genomics",
     shapes: [
-      { t: "Call hits from a pooled CRISPR screen", needs: "sample provided — screen read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes." },
-      { t: "Compare screen hits across two conditions", needs: "sample provided — two screen count tables", time: "~35 min", seed: "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies." },
-      { t: "QC a screen before hit-calling", needs: "sample provided — screen read counts", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling." },
+      { t: "Call hits from a pooled CRISPR screen", needs: "sample provided — plasmid + replicate read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes.", sampleDataset: { label: "HT-29 MiniLibCas9 screen", ref: "CRISPRcleanR example" } },
+      { t: "Compare screen hits across two cell lines", needs: "sample provided — initial/final counts for two lines", time: "~35 min", seed: "Compare my CRISPR screen hits between the two cell lines and flag line-specific dependencies.", sampleDataset: { label: "HL60 / KBM7 screen", ref: "MAGeCK demo" } },
+      { t: "QC a screen before hit-calling", needs: "sample provided — replicate counts + control gene sets", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling.", sampleDataset: { label: "HT-29 Brunello screen", ref: "CRISPRcleanR example" } },
     ],
   },
   {
@@ -139,14 +152,14 @@ export const COLD_DOMAINS: ColdDomain[] = [
     shapes: [
       { t: "Quantify differential protein abundance between groups", needs: "sample provided — search output + design", time: "~45 min", seed: "Quantify differential protein abundance between my two groups." },
       { t: "Reconcile a proteomic signal with a transcriptomic one", needs: "sample provided — two result tables", time: "~35 min", seed: "Reconcile my proteomic signal with the transcriptomic result." },
-      { t: "Assess run-to-run quality across a batch", needs: "sample provided — raw or search output", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch." },
+      { t: "Assess run-to-run quality across a batch", needs: "sample provided — a 12-run search output + design", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch.", sampleDataset: { label: "LFQ-Analyst example batch", ref: "J Proteome Res 2020" } },
     ],
   },
   {
     id: "clin",
     name: "Clinical",
     shapes: [
-      { t: "Stratify a cohort by response and test the endpoint", needs: "sample provided — a cohort table", time: "~20 min", seed: "Stratify this cohort by response and test the primary endpoint." },
+      { t: "Compare trial arms and test the primary endpoint", needs: "sample provided — a randomised trial cohort", time: "~20 min", seed: "Compare the treatment arms in this trial cohort and test the primary endpoint.", sampleDataset: { label: "Mayo PBC trial cohort", ref: "survival::pbc" } },
       { t: "Discover a biomarker panel and build a risk model", needs: "sample provided — a cohort table + labels", time: "~30 min", seed: "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate." },
       { t: "Assemble the analysis section of a submission", needs: "sample provided — inputs for a first run", time: "~1 h", seed: "Assemble the analysis section of my submission from these runs." },
     ],
@@ -234,23 +247,23 @@ export const COLD_MODULES: ColdModule[] = [
       {
         k: "Literature",
         ex: [
-          "What is the evidence linking this target to disease?",
-          "Known SAR for this chemotype — what drives potency?",
-          "Why do inhibitors of this target usually fail on selectivity?",
+          "What is the evidence linking LRRK2 to Parkinson's disease?",
+          "Known SAR for imatinib-like phenylaminopyrimidines — what drives ABL1 potency?",
+          "Why do JAK2 inhibitors usually fail on selectivity?",
         ],
       },
       {
         k: "Databases",
         ex: [
-          "Pull every reported structure for this target.",
-          "Known off-targets for this chemotype?",
-          "Which trials targeted this pathway, and what were their endpoints?",
+          "Pull every reported structure for KRAS G12C.",
+          "Known off-targets for the celecoxib diarylpyrazole sulfonamide chemotype?",
+          "Which trials targeted PD-1/PD-L1 in non-small-cell lung cancer, and what were their endpoints?",
         ],
       },
       {
         k: "Patents",
         ex: [
-          "Who holds composition-of-matter claims on this scaffold?",
+          "Who holds composition-of-matter claims on the sotorasib scaffold?",
           "Freedom-to-operate picture for this series.",
           "Are my generated candidates inside anyone's claims?",
         ],
@@ -313,9 +326,39 @@ export const COLD_MODULES: ColdModule[] = [
             "Generate macrocycle candidates with good permeability.",
           ],
           bio: [
-            "Design nanobody candidates against this epitope.",
+            "Design scFv antibody sequences from this antibody structure.",
             "Graft these CDRs onto a stable human framework.",
             "Propose enzyme variants with a redesigned active-site pocket.",
+          ],
+        },
+      },
+      {
+        // Fold the candidate (or its complex with the target) and read where to
+        // trust it — Boltz-2 cofold on Cloud GPU. Separate from "Predict & filter"
+        // (affinity/dock): this produces the 3D structure + confidence, the input
+        // the downstream pose/affinity steps read. Routes to the Structure
+        // prediction domain (DOMAIN_RULES).
+        k: "Fold & complex",
+        ex: [
+          "Predict the structure of this protein\u2013ligand complex and show me the pose.",
+          "Model this complex and tell me where the model is unsure.",
+          "Predict the fold of this candidate and flag the low-pLDDT regions.",
+        ],
+        exBy: {
+          sm: [
+            "Predict the structure of this protein\u2013ligand complex and show me the pose.",
+            "Model this complex and tell me where the model is unsure.",
+            "Predict the fold of this candidate and flag the low-pLDDT regions.",
+          ],
+          pep: [
+            "Predict the structure of this cyclic peptide bound to my target.",
+            "Model this complex for a macrocycle against my target, with interface confidence.",
+            "Predict the fold of this stapled peptide and where to trust it.",
+          ],
+          bio: [
+            "Predict the structure of this antibody\u2013antigen complex and report interface confidence.",
+            "Model this complex for a nanobody and its antigen.",
+            "Predict the fold of this designed binder against its target.",
           ],
         },
       },
@@ -556,7 +599,7 @@ function ExampleRow({ text, onSeed }: ExampleRowProps) {
         color: "var(--bm-text, oklch(0.22 0.01 260))",
       }}
     >
-      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{text === HOSPITAL_EXAMPLES[0].label ? t('cold_start.hospital_integration') : text === HOSPITAL_EXAMPLES[1].label ? t('cold_start.hospital_prediction') : text}”</span>
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{coldCopy(text)}”</span>
       <span style={{ flex: 1 }} />
       <ChevronRight size={12} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
     </button>
@@ -588,16 +631,16 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
       }}
     >
       <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-        <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{shape.t}</span>
+        <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{coldCopy(shape.t)}</span>
         <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
-          {shape.needs} · {shape.time}
+          {coldCopy(shape.needs)} · {coldCopy(shape.time)}
         </span>
       </span>
       <span style={{ flex: 1 }} />
       {shape.sampleDataset && (
         <span
           data-testid="cold-shape-sample"
-          title={`Runs on a provided sample dataset (${shape.sampleDataset.ref}). Edit the goal to use your own.`}
+          title={shape.sampleDataset.ref === 'inline' ? t('cold_start.sample_title_inline') : t('cold_start.sample_title', { ref: shape.sampleDataset.ref })}
           style={{
             flexShrink: 0,
             fontSize: 'var(--fs-xs)',
@@ -608,7 +651,7 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
             color: "var(--bm-accent, oklch(0.5 0.14 245))",
           }}
         >
-          ▶ sample: {shape.sampleDataset.label}
+          ▶ {t('cold_start.sample_chip', { label: coldCopy(shape.sampleDataset.label) })}
         </span>
       )}
       <ChevronRight size={13} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
@@ -711,7 +754,14 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
           <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{t('cold_start.mod_' + m.id + '_name')}</span>
-          <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
+          {/* Reserve exactly 2 lines so 1- and 2-line descriptions give every
+              collapsed card the same height — fixes the broken grid row where the
+              design card overflowed its border (founder 2026-11-11). */}
+          <span style={{
+            fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            lineHeight: 1.5, minHeight: open ? undefined : '3em',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
         </span>
         <span
           aria-hidden
@@ -736,8 +786,12 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
             padding: "0 16px 16px",
           }}
         >
-          {/* .trackbar — the module's tracks as tabs. */}
-          <div role="tablist" aria-label={t('cold_start.mod_' + m.id + '_name')} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {/* .trackbar — the module's tracks as UNDERLINE TABS (one idiom per
+              hierarchy level — tabs switch the task track; the modality below is a
+              segmented filter). Reworked 2026-11-11 (founder "two-layers weird" +
+              Gemini review): two stacked pill rows read as a confusing 2D matrix. */}
+          <div role="tablist" aria-label={t('cold_start.mod_' + m.id + '_name')}
+            style={{ display: "flex", flexWrap: "wrap", gap: 2, borderBottom: "1px solid var(--bm-border, oklch(0.90 0.005 260))" }}>
             {m.tracks.map((tr, i) => {
               const on = i === ti;
               return (
@@ -752,64 +806,67 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                     setDomId(null);
                   }}
                   style={{
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
-                    background: on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "transparent",
-                    color: on ? "white" : "var(--bm-text, oklch(0.22 0.01 260))",
+                    padding: "6px 10px",
+                    marginBottom: -1,
+                    border: "none",
+                    borderBottom: `2px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "transparent"}`,
+                    background: "transparent",
+                    color: on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-text-dim, oklch(0.50 0.01 260))",
                     fontSize: 'var(--fs-sm)',
-                    fontWeight: 500,
+                    fontWeight: on ? 600 : 500,
                     cursor: "pointer",
                   }}
                 >
-                  {tr.k}
+                  {coldCopy(tr.k)}
                 </button>
               );
             })}
           </div>
 
-          {(
-            <p className="text-xs text-muted-foreground">
-              {track.k === "Internal"
-                ? t('cold_start.caption_internal')
-                : track.k === "Try sample data"
-                  ? t('cold_start.caption_sample_data')
-                  : t('cold_start.caption_default')}
-            </p>
-          )}
-
-          {/* Modality chip row — only on a modality-flagged module (Design &
-              generate). Selecting a modality swaps the track's examples and is
-              threaded into the seeded goal. (reference MODALITIES / tr.exBy) */}
+          {/* Modality row as a SEGMENTED CONTROL — only on a modality-flagged
+              module (Design & generate). A single mutually-exclusive filter, visually
+              distinct from the task tabs above (founder "two-layers weird" + Gemini). */}
           {m.modalities && (
-            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 'var(--fs-sm)', color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.modality')}</span>
-              {COLD_MODALITIES.map(([k]) => {
-                const on = mod === k;
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    data-testid={`cold-modality-${k}`}
-                    aria-pressed={on}
-                    onClick={() => setMod(k)}
-                    style={{
-                      padding: "3px 10px",
-                      borderRadius: 999,
-                      border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
-                      background: on ? "var(--bm-chip, oklch(0.95 0.01 260))" : "transparent",
-                      color: "var(--bm-text, oklch(0.22 0.01 260))",
-                      fontSize: 'var(--fs-sm)',
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t('cold_start.modality_' + k)}
-                  </button>
-                );
-              })}
+              <div role="group" style={{ display: "inline-flex", background: "var(--bm-chip, oklch(0.96 0.005 260))", borderRadius: 8, padding: 2, gap: 2 }}>
+                {COLD_MODALITIES.map(([k]) => {
+                  const on = mod === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      data-testid={`cold-modality-${k}`}
+                      aria-pressed={on}
+                      onClick={() => setMod(k)}
+                      style={{
+                        padding: "3px 12px",
+                        borderRadius: 6,
+                        border: "none",
+                        background: on ? "var(--bm-surface, oklch(1 0 0))" : "transparent",
+                        boxShadow: on ? "0 1px 2px oklch(0 0 0 / 0.08)" : "none",
+                        color: on ? "var(--bm-text, oklch(0.22 0.01 260))" : "var(--bm-text-dim, oklch(0.50 0.01 260))",
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: on ? 600 : 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {t('cold_start.modality_' + k)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
+
+          {/* Helper caption sits directly above the examples it describes. */}
+          <p className="text-xs text-muted-foreground" style={{ margin: 0 }}>
+            {track.k === "Internal"
+              ? t('cold_start.caption_internal')
+              : track.k === "Try sample data"
+                ? t('cold_start.caption_sample_data')
+                : t('cold_start.caption_default')}
+          </p>
 
           {/* .schip — domain chips, only inside a domains-track. Selecting one
               swaps the example list for that domain's shapes. */}
@@ -835,7 +892,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                       cursor: "pointer",
                     }}
                   >
-                    {d.name}
+                    {coldCopy(d.name)}
                   </button>
                 );
               })}
@@ -863,9 +920,16 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
   );
 }
 
+/** The cards shown on the landing — every function module, molecule design included. */
+export function landingModules(): ColdModule[] {
+  return COLD_MODULES;
+}
+
 export interface ColdStartDashboardProps {
   /** Seed the composer with a goal / example intent. Does not send. */
   onSeed: (text: string) => void;
+  /** Cards to show; defaults to the landing set. */
+  modules?: ColdModule[];
 }
 
 /**
@@ -873,7 +937,7 @@ export interface ColdStartDashboardProps {
  * four function-module cards below. Cards expand/collapse with single-open
  * logic; all the dashboard does is seed the composer.
  */
-export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
+export function ColdStartDashboard({ onSeed, modules = landingModules() }: ColdStartDashboardProps) {
   // Single-open: at most one module card open at a time (spec 00 §0.4.2).
   const [openId, setOpenId] = useState<string | null>(null);
   return (
@@ -907,10 +971,10 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: 12,
-          alignItems: "start",
+          alignItems: "stretch",
         }}
       >
-        {COLD_MODULES.map((m) => (
+        {modules.map((m) => (
           <ModuleCard
             key={m.id}
             m={m}

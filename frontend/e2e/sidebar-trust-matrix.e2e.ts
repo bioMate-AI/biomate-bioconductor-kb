@@ -28,11 +28,14 @@ async function shot(page: Page, name: string) {
 }
 
 test.describe("Sidebar trust matrix — live JSX (C2)", () => {
-  test("C2.01 New Chat: visible + click stays on /", async ({ page }) => {
+  test("C2.01 New Chat (collapsed rail): visible + click stays on /", async ({ page }) => {
     await bootApp(page);
+    // New Chat was removed from the expanded sidebar (founder request); it now lives
+    // on the collapsed icon rail. Collapse, then assert the rail entry is usable.
+    await page.locator('[data-testid="button-sidebar-toggle"]').first().click();
+    await page.waitForTimeout(300);
     const btn = page.locator('[data-testid="button-new-chat"]');
     await expect(btn).toBeVisible();
-    await expect(btn).toContainText(/new chat/i);
     await btn.click();
     await expect(btn).toBeVisible();
     await shot(page, "01_new_chat");
@@ -60,18 +63,19 @@ test.describe("Sidebar trust matrix — live JSX (C2)", () => {
   }) => {
     await bootApp(page);
     const toggle = page.locator('[data-testid="button-sidebar-toggle"]');
-    const newChat = page.locator('[data-testid="button-new-chat"]');
-    await expect(newChat).toBeVisible();
     await toggle.click();
     await page.waitForTimeout(300);
-    // After collapse, the sidebar switches to a 52px icon rail that still
-    // shows button-new-chat as a compact icon — it does NOT become hidden.
-    // Verify the expand affordance appeared (confirming collapsed state).
+    // After collapse, the sidebar switches to a 52px icon rail that shows
+    // button-new-chat as a compact icon. New Chat lives only on the rail now
+    // (removed from the expanded sidebar per founder request).
+    const newChat = page.locator('[data-testid="button-new-chat"]');
+    await expect(newChat).toBeVisible();
     const expand = page.locator('[data-testid="button-sidebar-expand"]');
     await expect(expand).toBeVisible();
     await shot(page, "04_collapsed");
     await expand.click();
-    await expect(newChat).toBeVisible({ timeout: 3_000 });
+    // Re-expanded: the collapse affordance (expand button) is gone again.
+    await expect(expand).toBeHidden({ timeout: 3_000 });
   });
 
   test("C2.05 Sign out: visible + click returns to /login", async ({ page }) => {

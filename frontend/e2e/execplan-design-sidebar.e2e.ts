@@ -385,12 +385,15 @@ test.describe("Exec-plan: Design & Generate / Sidebar (live dev)", () => {
         .catch(() => false);
     }
 
-    // UC-C01 New Chat — present + clickable (handler is app-level; we assert presence + no crash)
+    // UC-C01 New Chat — moved to the collapsed icon rail (founder request). Collapse
+    // first, then assert the rail entry is present + clickable (handler is app-level).
     {
+      await page.getByTestId("button-sidebar-toggle").first().click().catch(() => {});
+      await page.waitForTimeout(300);
       const ok = await present("button-new-chat");
       if (ok) await page.getByTestId("button-new-chat").first().click().catch(() => {});
       const s = await shot(page, "C01-new-chat");
-      record("C01", "New Chat entry present + clickable", ok ? "PASS" : "FAIL", s);
+      record("C01", "New Chat entry present + clickable (collapsed rail)", ok ? "PASS" : "FAIL", s);
     }
 
     // UC-C02 Workflows → WorkflowHistoryDialog

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from _ci_markers import requires_workflow_db
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "lib" / "galaxy" / "ai"))
 
@@ -191,6 +193,7 @@ def test_choose_surfacing_mode_thresholds():
 
 # ---------- composer end-to-end ----------
 
+@requires_workflow_db
 def test_compose_canonical_rnaseq_query_hits_curated_upfront():
     """Bulk RNA-seq DE+enrichment is the most curated query we have.
     Must surface upfront from the curated catalog."""
@@ -319,6 +322,7 @@ def test_retrieval_bm25_prefers_relevant_pattern():
     assert names[0] == "multi_omics_integration"
 
 
+@requires_workflow_db
 def test_retrieve_workflows_returns_real_catalog_names():
     """Smoke: workflow retrieval against the live catalog returns real names."""
     from chain_composer.retrieval import retrieve_workflows
@@ -332,6 +336,7 @@ def test_retrieve_workflows_returns_real_catalog_names():
         f"unexpected top domain: {ws[0].domain}"
 
 
+@requires_workflow_db
 def test_retrieve_workflows_cache_invalidates_on_mtime():
     """The index cache should not silently serve stale data after a DB change."""
     from chain_composer.retrieval import _WF_INDEX_CACHE, retrieve_workflows
@@ -498,6 +503,7 @@ def test_stub_emits_empty_when_curated_score_below_threshold():
                 or "llm composition required" in msg)
 
 
+@requires_workflow_db
 def test_stub_passthrough_when_curated_score_high():
     r = compose_chain(
         "bulk RNA-seq differential expression analysis on human samples",
@@ -522,6 +528,7 @@ def test_stub_threshold_overridable_via_env(monkeypatch):
 
 # ---------- LLM revision loop ----------
 
+@requires_workflow_db
 def test_llm_revision_loop_fixes_unknown_workflow(monkeypatch):
     """First LLM emits a bogus workflow; revision pass fixes it after seeing
     the verifier feedback."""
@@ -557,6 +564,7 @@ def test_llm_revision_loop_fixes_unknown_workflow(monkeypatch):
 
 # ---------- short-circuit + zero-entity floor (calibration findings) ----------
 
+@requires_workflow_db
 def test_short_circuit_skips_llm_for_perfect_curated_match():
     """When normalized_chain_score >= 0.95, the LLM must NOT be called.
     Curated_passthrough is deterministic and free; LLM is wasted compute."""

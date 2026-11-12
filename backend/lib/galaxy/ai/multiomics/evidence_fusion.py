@@ -7,7 +7,7 @@ layer contributes a channel of ``{feature: score}``, and the engine calibrates e
 against its own null, then gates/aggregates — so features that are consistently strong
 *across* layers surface as corroborated.
 
-Serves the SYSUCC/faculty stratification spearhead's biomarker step: after multi-omics
+Serves the the clinical stratification spearhead's biomarker step: after multi-omics
 integration subtypes patients, "which genes/proteins drive the subtypes across RNA,
 protein and methylation?" is exactly a multi-source evidence-fusion question.
 

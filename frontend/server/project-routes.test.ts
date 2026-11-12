@@ -111,7 +111,10 @@ describe("project-routes — contract", () => {
     expect(SRC.includes("validateRemoteFileUrl")).toBe(true);            // SSRF-safe URL check
     expect(/import-url[\s\S]{0,1200}_isOwnerOrEditor/.test(SRC)).toBe(true); // owner/editor gate
     expect(SRC.includes("512 * 1024 * 1024")).toBe(true);               // 512 MiB cap
-    expect(/VALUES\s*\([^)]*'url'[^)]*\)/.test(SRC)).toBe(true);         // inserts source='url'
+    // Same storage path as an upload: collision-safe key from the original name, and
+    // same-name/new-bytes becomes a version (never an overwrite), source='url'.
+    expect(/files\/import-url[\s\S]{0,3000}projectInputPath\(rawName\)/.test(SRC)).toBe(true);
+    expect(/files\/import-url[\s\S]{0,3500}_storeProjectInput\(\{[^}]*source: "url"/.test(SRC)).toBe(true);
   });
 
   it("content-hash dedup (§4.5.1) — column added idempotently, computed + checked at ingest", () => {
@@ -163,7 +166,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(32); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit)
+    expect(authed.length).toBe(33); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST + diff, edit, rows)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

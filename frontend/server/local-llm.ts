@@ -72,14 +72,38 @@ function textBlocks(content: any): string {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) throw new Error('Unsupported local message content');
   return content.map(b => {
+    // Text-only rendering: an image block (an attached image read by read_file, a run_code plot)
+    // becomes a short note instead of throwing and aborting the whole agent turn.
+    if (b.type === 'image') return `[image (${b.source?.media_type || 'image'}) — not visible to this model]`;
     if (b.type !== 'text') throw new Error(`Local text trial does not support ${b.type} content`);
     return b.text;
   }).join('\n');
 }
 
-/** Translate the Messages API subset used by GalaxyAssistant, retaining tool IDs. */
-export function localMessages(params: any): any[] {
+/** Anthropic base64 image block → OpenAI `image_url` content part (data URI). */
+function imagePart(b: any): any {
+  if (b?.source?.type !== 'base64' || !b.source.media_type || !b.source.data) return null;
+  return { type: 'image_url', image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` } };
+}
+
+function hasImages(params: any): boolean {
+  const walk = (c: any): boolean => Array.isArray(c) && c.some((b: any) => b?.type === 'image'
+    || (b?.type === 'tool_result' && walk(b.content)));
+  return (params.messages || []).some((m: any) => walk(m.content));
+}
+
+/** Translate the Messages API subset used by GalaxyAssistant, retaining tool IDs.
+ *  With `vision`, images reach the model as OpenAI `image_url` parts. The OpenAI `tool` role
+ *  carries text only, so a tool result's images follow the turn's tool messages as one user
+ *  message (tool messages must stay contiguous after the assistant's tool_calls). Without it,
+ *  each image becomes a text note. */
+export function localMessages(params: any, opts: { vision?: boolean } = {}): any[] {
   const messages: any[] = [];
+  const split = (content: any) => {
+    if (!opts.vision || !Array.isArray(content)) return { text: textBlocks(content), images: [] as any[] };
+    const images = content.filter((b: any) => b.type === 'image').map(imagePart).filter(Boolean);
+    return { text: textBlocks(content.filter((b: any) => b.type !== 'image' || !imagePart(b))), images };
+  };
   if (params.system) messages.push({ role: 'system', content: textBlocks(params.system) });
   for (const message of params.messages) {
     if (typeof message.content === 'string') { messages.push(message); continue; }
@@ -92,13 +116,40 @@ export function localMessages(params: any): any[] {
           function: { name: b.name, arguments: JSON.stringify(b.input) } })) } : {}) });
     } else {
       const results = content.filter((b: any) => b.type === 'tool_result');
-      for (const b of results) messages.push({ role: 'tool', tool_call_id: b.tool_use_id,
-        content: textBlocks(b.content) });
+      const toolImages: any[] = [];
+      for (const b of results) {
+        const { text, images } = split(b.content);
+        messages.push({ role: 'tool', tool_call_id: b.tool_use_id, content: text });
+        if (images.length) toolImages.push({ type: 'text', text: `Image output of tool call ${b.tool_use_id}:` }, ...images);
+      }
       const other = content.filter((b: any) => b.type !== 'tool_result');
-      if (other.length) messages.push({ role: 'user', content: textBlocks(other) });
+      const { text, images } = split(other.length ? other : []);
+      const parts = [...toolImages, ...(other.length ? [{ type: 'text', text }, ...images] : [])];
+      if (!parts.length) continue;
+      messages.push({ role: 'user', content: toolImages.length || images.length ? parts : text });
     }
   }
   return messages;
+}
+
+const _imageInputCache = new Map<string, boolean>();
+/** Whether an OpenAI-compatible model accepts image input, from the provider's model listing
+ *  (OpenRouter: `architecture.input_modalities`). Unknown or unreachable → false (text note). */
+export async function modelAcceptsImages(cfg: { url: string; model: string; key?: string }): Promise<boolean> {
+  const cacheKey = `${cfg.url}|${cfg.model}`;
+  const hit = _imageInputCache.get(cacheKey);
+  if (hit !== undefined) return hit;
+  let ok = false;
+  try {
+    const r = await fetch(`${cfg.url.replace(/\/$/, '')}/models`, { redirect: 'error', signal: AbortSignal.timeout(10000),
+      headers: cfg.key ? { Authorization: `Bearer ${cfg.key}` } : {} });
+    if (r.ok) {
+      const m = ((await r.json())?.data || []).find((x: any) => x?.id === cfg.model);
+      ok = Array.isArray(m?.architecture?.input_modalities) && m.architecture.input_modalities.includes('image');
+      _imageInputCache.set(cacheKey, ok);
+    }
+  } catch { /* not cached: retried on the next image-bearing turn */ }
+  return ok;
 }
 
 /** Validate the object/string/number/array schemas used by BioMate's agent tools. */
@@ -125,6 +176,12 @@ export function validateToolInput(value: any, schema: any, path = 'arguments'): 
   } else if (schema.type) throw new Error(`Unsupported local tool schema type: ${schema.type}`);
 }
 
+/** Anthropic tool_choice → OpenAI tool_choice. {type:'none'} must reach the provider: the agentic
+ *  loop's final-answer turn keeps the tools declared (the transcript has tool calls) but disabled. */
+export function openaiToolChoice(choice: any): 'auto' | 'none' {
+  return choice?.type === 'none' || choice === 'none' ? 'none' : 'auto';
+}
+
 async function* events(message: any) {
   yield { type: 'message_start', message: { ...message, content: [] } };
   for (const [index, block] of message.content.entries()) {
@@ -148,7 +205,7 @@ export function localMessagesClient() {
     const result = await localCompletion({ messages: localMessages(params),
       max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
-      ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) });
+      ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
     const choice = result.choices[0];
     const calls = choice.message.tool_calls || [];
     if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete local tool call');
@@ -205,6 +262,29 @@ export async function openaiCompatCompletion(
   }
 }
 
+/** OpenRouter counts hidden reasoning tokens against `max_tokens`. A reasoning model given the
+ *  caller's answer budget (e.g. analyzeIntent's 4096) could spend all of it thinking and return
+ *  `finish_reason: "length"` with empty content (glm-5.3-prime: reasoning_tokens 4094 / 4096,
+ *  docs/20261111_OPENROUTER_VISION_AND_REASONING_BUDGET.md §2). Cap reasoning separately and add the
+ *  cap on top, so the caller's budget stays an ANSWER budget. OpenRouter-only: `reasoning` is its
+ *  parameter (ignored by models without reasoning); other OpenAI-compatible servers are untouched. */
+export function reasoningBudgetBody(url: string, answerTokens: number): Record<string, any> {
+  if (!/(^|\/\/)([^/]*\.)?openrouter\.ai(\/|$)/.test(url)) return { max_tokens: answerTokens };
+  const r = Number(process.env.BIOMATE_OPENROUTER_REASONING_TOKENS || 2048);
+  const reasoning = Number.isFinite(r) && r > 0 ? Math.floor(r) : 2048;
+  return { max_tokens: answerTokens + reasoning, reasoning: { max_tokens: reasoning } };
+}
+
+/** No silent skip: a length-stopped reply with no content and no tool call means the budget went to
+ *  reasoning — fail loudly (callers fall back and log) instead of passing on an empty answer. */
+export function assertNotReasoningExhausted(result: any): void {
+  const c = result?.choices?.[0];
+  if (c?.finish_reason === 'length' && !String(c?.message?.content || '').trim() && !(c?.message?.tool_calls || []).length) {
+    const rt = result?.usage?.completion_tokens_details?.reasoning_tokens;
+    throw new Error(`Model spent its output budget on reasoning${rt != null ? ` (${rt} reasoning tokens)` : ''} and returned no answer`);
+  }
+}
+
 /** Config-parameterized Anthropic-Messages shim over any OpenAI-compatible endpoint.
  *  Generalizes localMessagesClient so OpenRouter (and any OpenAI-compatible provider)
  *  gets the SAME agentic tool loop as on-prem: BIOMATE_TOOLS → OpenAI functions,
@@ -215,10 +295,12 @@ export function openaiCompatMessagesClient(cfg: { url: string; model: string; ke
       if (!t.input_schema || !t.name) throw new Error('Unsupported tool definition');
       return { type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } };
     });
-    const result = await openaiCompatCompletion(cfg, { messages: localMessages(params),
-      max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
+    const vision = hasImages(params) && await modelAcceptsImages(cfg);
+    const result = await openaiCompatCompletion(cfg, { messages: localMessages(params, { vision }),
+      ...reasoningBudgetBody(cfg.url, params.max_tokens ?? 4096), temperature: params.temperature ?? 0,
       ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
-      ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) });
+      ...(tools?.length ? { tools, tool_choice: openaiToolChoice(params.tool_choice) } : {}) });
+    assertNotReasoningExhausted(result);
     const choice = result.choices[0];
     const calls = choice.message.tool_calls || [];
     if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete tool call');

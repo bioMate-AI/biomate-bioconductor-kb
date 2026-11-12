@@ -25,9 +25,11 @@ describe('simple sequence property execution', () => {
   ])('does not hijack a different task: %s', request => {
     expect(isSimpleSequencePropertyRequest(request)).toBe(false);
   });
-  it('wires the same predicate to routing and actual execution instructions', () => {
+  it('routing is the classifier\'s (sequence computation = direct_compute example); the predicate only shapes execution instructions', () => {
     const source = readFileSync('server/galaxy-assistant.ts', 'utf8');
-    expect(source).toContain('|| isSimpleSequencePropertyRequest(message)');
+    // 2026-11-10: no post-classifier regex override (docs/20261110_ROUTING_CLASSIFIER_AUTHORITY.md).
+    expect(source).not.toContain('|| isSimpleSequencePropertyRequest(message)');
+    expect(readFileSync('server/routing-examples.ts', 'utf8')).toMatch(/dc\('"Translate this ORF/);
     expect(source).toContain('if (isSimpleSequencePropertyRequest(message))');
     expect(source).toContain('molecular_weight and isoelectric_point');
     expect(source).toContain('below 40 predicted stable and above 40 potentially unstable');

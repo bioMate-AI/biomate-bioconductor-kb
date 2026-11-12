@@ -1,0 +1,38 @@
+{
+  "kind": "synthetic_validation_inputs",
+  "seed": 20261105,
+  "historical_snf_run": "RID=ab67ad23-cbd7-4b70-b45f-51087f606df3",
+  "description": "Synthetic research demonstration. No hospital patient records. Preserved historical input bytes, not a newly executed run or a claim of real-cohort accuracy.",
+  "files": {
+    "rna.csv": {
+      "sha256": "4fe021d12d43cd028a93f0e996ce9ba3394b28370272fd910c1357c343069b03",
+      "rows_excluding_header": 1500,
+      "columns": 151
+    },
+    "protein.csv": {
+      "sha256": "bd457b732e7348264ba22b4b8b7541ff26b7651606fa9276773757a5e457755c",
+      "rows_excluding_header": 400,
+      "columns": 145
+    },
+    "methyl.csv": {
+      "sha256": "75938643c0d87e1642c5b17eaa867d6cf28860ce17cb0defc70f528a0902db6b",
+      "rows_excluding_header": 600,
+      "columns": 146
+    },
+    "mo_feature_matrix.csv": {
+      "sha256": "f1c2968c5c17af3e3fbe12c93e1efcd3732db5794e734d5f88950588e519f70d",
+      "rows_excluding_header": 139,
+      "columns": 2502
+    },
+    "ground_truth.csv": {
+      "sha256": "1bef46897875f4b1b0f9cecd71dd11e03913c9d812ec31b3269e119639a118f5",
+      "rows_excluding_header": 150,
+      "columns": 2
+    },
+    "true_drivers.csv": {
+      "sha256": "edccb7e3efb6a45ddf6ca03bb16ff580a6fce9b521e0e7b434aeff5d99c0aecd",
+      "rows_excluding_header": 24,
+      "columns": 2
+    }
+  }
+}

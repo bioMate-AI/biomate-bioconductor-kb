@@ -4,9 +4,9 @@
  *
  * LICENSE-FREE B-cell (humoral) epitope mapping + multi-epitope immunogen /
  * mRNA construct drafting. Fills a gap flagged in
- * docs/20261109_SYSUCC_MODALITY_CAPABILITY_AND_ANTIBODY_COMPLEX.md: BioMate had
+ * internal project notes: BioMate had
  * no real B-cell-epitope / immunogen-design path, the thinnest area vs a stated
- * SYSUCC strength (EBV / nasopharyngeal-carcinoma vaccines, antibodies, mRNA).
+ * clinical strength (EBV / nasopharyngeal-carcinoma vaccines, antibodies, mRNA).
  *
  * Per antigen it scores every residue with the STANDARD published propensity
  * scales used by the classic IEDB B-cell tools (all deterministic, open, no

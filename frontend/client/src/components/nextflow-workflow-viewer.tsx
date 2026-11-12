@@ -1,5 +1,6 @@
 import type { WorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { canControlExecutionFromQc } from "@shared/qc-assessment";
+import { classifyRunFailure } from "@shared/run-failure-classifier";
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
@@ -8,7 +9,7 @@ import { t, tOr, tStatus } from '@/lib/i18n';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
-import { deriveInputMappingRows, blockingInputRows } from "./input-mapping-status";
+import { derivePrerunInputs, blockingInputRows, type InputMappingRow } from "./input-mapping-status";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { StepDetail, type StepDetailStep } from "./steps/step-detail";
@@ -130,28 +131,90 @@ type ViewerParameter = {
   rationale?: string;
 };
 
-/** Backend labels may already include their phase prefix. Render it once. */
-export function phaseGroupLabel(key: string, semantic: string): string {
-  const prefix = `Phase ${key.toUpperCase()}`;
-  if (!semantic.trim()) return prefix;
-  if (semantic.trim().toLowerCase() === prefix.toLowerCase()
-      || semantic.trim().toLowerCase().startsWith(`${prefix.toLowerCase()} —`)) return semantic.trim();
-  return `${prefix} — ${semantic.trim()}`;
+/** Matches a "Phase X" / "Phase X — Name" prefix a backend label may carry. */
+const PHASE_PREFIX_RE = /^phase\s+[a-z0-9]+\s*(?:[—–:-]\s*|$)/i;
+
+/** Backend labels may already include their own phase prefix (possibly with a
+ *  different letter — e.g. a `// [Phase B]` source annotation on a
+ *  single-phase workflow). Strip it and render the display letter once. */
+export function phaseGroupLabel(letter: string, semantic: string): string {
+  const prefix = `Phase ${letter.toUpperCase()}`;
+  const name = semantic.trim().replace(PHASE_PREFIX_RE, '').trim();
+  return name ? `${prefix} — ${name}` : prefix;
+}
+
+/** Display letter for the Nth (0-based) lettered phase actually shown:
+ *  A, B, C … Z, then 27, 28 … Phase letters are positional, never taken from
+ *  the backend group key, so they always start at A and never skip. */
+export function phaseDisplayLetter(index: number): string {
+  return index < 26 ? String.fromCharCode(65 + index) : String(index + 1);
+}
+
+type PhaseGroupStep = { phase_group?: unknown; phase_label?: unknown; parameters?: Record<string, unknown> | null };
+
+/** Group steps by their backend `phase_group` id, in first-seen order. The
+ *  backend id stays the group `key` (autoloop gate matching, skip analysis,
+ *  test ids); the user-visible `letter`/`label` are assigned by position among
+ *  the lettered phases displayed. Ungrouped steps ('other') get no letter. */
+export function groupStepsIntoPhases<T extends PhaseGroupStep>(
+  steps: T[],
+  allStepsLabel: string,
+): Array<{ key: string; letter: string; label: string; steps: T[]; phaseParams: string[] }> {
+  if (steps.length === 0) return [];
+  if (!steps.some(p => p.phase_group)) {
+    const uniqueParams = Array.from(new Set(steps.flatMap(p => Object.keys(p.parameters || {}))));
+    return [{ key: 'all', letter: String(Math.min(steps.length, 9)), label: allStepsLabel, steps, phaseParams: uniqueParams }];
+  }
+  const groupMap = new Map<string, { steps: T[]; semantic: string; phaseParams: string[] }>();
+  for (const step of steps) {
+    const key = (step.phase_group as string) || 'other';
+    if (!groupMap.has(key)) groupMap.set(key, { steps: [], semantic: '', phaseParams: [] });
+    const group = groupMap.get(key)!;
+    if (!group.semantic && typeof step.phase_label === 'string') group.semantic = step.phase_label;
+    group.steps.push(step);
+    for (const pName of Object.keys(step.parameters || {})) {
+      if (!group.phaseParams.includes(pName)) group.phaseParams.push(pName);
+    }
+  }
+  let lettered = 0;
+  return Array.from(groupMap.entries()).map(([key, g]) => {
+    // Render convention (per #23):
+    //   - "Other Steps"                 when no annotation matched (key === 'other')
+    //   - "Phase A — Motion Correction" when the backend supplied a semantic label
+    //   - "Phase A"                     when only the group id is present
+    if (key === 'other') {
+      return { key, letter: '·', label: 'Other Steps', steps: g.steps, phaseParams: g.phaseParams };
+    }
+    const letter = phaseDisplayLetter(lettered++);
+    return { key, letter, label: phaseGroupLabel(letter, g.semantic), steps: g.steps, phaseParams: g.phaseParams };
+  });
 }
 
 /** Recovery advice must describe the same action the footer can actually perform. */
 export function failureRecoveryAdvice(action: string | undefined, canResume: boolean): string | null {
   if (action === 'resume' || action === 'resume_more_resources') {
-    return canResume ? 'Resume from last step to reuse completed work.'
-      : 'No completed step is available to resume. Review the error and restart after correcting the cause.';
+    return canResume ? tOr('panel.diag.advice_resume', 'Resume from last step to reuse completed work.')
+      : tOr('panel.diag.advice_no_resume', 'No completed step is available to resume. Review the error and restart after correcting the cause.');
   }
-  if (action === 'fix_and_resume') return 'Adjust your parameters or input files, then run again with edits.';
-  if (action === 'check_input') return 'Check your input files for format issues, then retry.';
+  if (action === 'fix_and_resume') return tOr('panel.diag.advice_fix', 'Adjust your parameters or input files, then run again with edits.');
+  if (action === 'check_input') return tOr('panel.diag.advice_check_input', 'Check your input data and parameters against the error, then run again.');
   return null;
 }
 
+/** Galaxy failure categories with a locale sentence (panel.diag.cat_*). The
+ *  sentences make no resume promise — the advice line below says whether a
+ *  resume is possible. arch_compat keeps the server's bilingual message. */
+const LOCALIZED_FAILURE_CATEGORIES = new Set([
+  'infra_transient', 'resource_memory', 'resource_time', 'config_param',
+  'input_data', 'tool_error', 'workflow_code', 'unknown',
+]);
+
 /** Server diagnosis cannot promise a checkpoint the recorded run does not have. */
-export function failureDiagnosisMessage(message: string, canResume: boolean): string {
+export function failureDiagnosisMessage(message: string, canResume: boolean, category?: string, detail?: string): string {
+  if (category && LOCALIZED_FAILURE_CATEGORIES.has(category)) {
+    const key = category === 'tool_error' && detail ? 'panel.diag.cat_tool_error_detail' : `panel.diag.cat_${category}`;
+    return tOr(key, message, { detail: detail || '' });
+  }
   if (canResume) return message;
   return message.replace(/\s*(?:You|It|The run) (?:can|may) resume[^.!?]*(?:[.!?]|$)/gi, '').trim()
     || tOr('panel.run_stopped', 'The run stopped before completing.');
@@ -635,7 +698,10 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
 // Reference design (PhaseCard.jsx + Step): uses .phase / .phase-head / .phase-body / .step CSS classes
 
 interface PhaseGroup {
+  /** Backend phase_group id ('A'…, 'other', or 'all') — identity only. */
   key: string;
+  /** Positional display letter (A, B, C…); see groupStepsIntoPhases. */
+  letter: string;
   label: string;
   steps: any[];
   phaseParams: string[];
@@ -659,14 +725,49 @@ function autoloopPhaseMatches(groupKey: string, autoloopPhase: string | undefine
 // row, add/remove) laid out full-width, and serialise back to the wire format
 // the param arrived in (a real array, or a JSON-array string).
 const LIST_NAME_RE = /(_list$|smiles|compounds?|molecules?|sequences?|inchi|accessions?)/i;
-function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
+// Only a flat array of SCALARS is a list the one-item-per-row editor can show.
+// An array of objects (e.g. antigens=[{id,sequence}]) must NOT be stringified
+// into "[object Object]" rows — it falls through to the sample-data table below.
+const isScalarArray = (a: any[]): boolean => a.every(x => x == null || typeof x !== 'object');
+export function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
   const raw = p?.value ?? p?.defaultValue;
-  if (Array.isArray(raw)) return { items: raw.map((x: any) => String(x)), fmt: 'array' };
+  if (Array.isArray(raw)) return isScalarArray(raw) ? { items: raw.map((x: any) => String(x)), fmt: 'array' } : null;
   if (typeof raw === 'string') {
     const t = raw.trim();
     if (t.startsWith('[')) {
-      try { const a = JSON.parse(t); if (Array.isArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
+      try { const a = JSON.parse(t); if (Array.isArray(a) && isScalarArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
     }
+  }
+  return null;
+}
+
+/**
+ * Render a JSON-string param default (the "built-in sample data" an example
+ * runs on) as a readable table instead of a raw blob in the textarea. Returns
+ * null for anything that isn't tabular, so the plain editor still shows.
+ *   • array of objects      → columns = union of keys, one row per element
+ *   • object whose values   → one row per key, columns = union of inner keys
+ *     are all objects          (first column is the outer key, e.g. sample id)
+ *   • object of scalars/     → a two-column key / value table (non-scalar
+ *     arrays                     values are shown as compact JSON)
+ */
+export function sampleDataTable(raw: string): { headers: string[]; rows: string[][] } | null {
+  let data: any;
+  try { data = JSON.parse(raw); } catch { return null; }
+  const cell = (v: any): string => v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+  const isPlainObj = (v: any) => v != null && typeof v === 'object' && !Array.isArray(v);
+  if (Array.isArray(data) && data.length > 0 && data.every(isPlainObj)) {
+    const headers = [...data.reduce((s: Set<string>, o: any) => { Object.keys(o).forEach(k => s.add(k)); return s; }, new Set<string>())];
+    return { headers, rows: data.map((o: any) => headers.map(h => cell(o[h]))) };
+  }
+  if (isPlainObj(data)) {
+    const entries = Object.entries(data);
+    if (entries.length === 0) return null;
+    if (entries.every(([, v]) => isPlainObj(v))) {
+      const inner = [...entries.reduce((s: Set<string>, [, o]: any) => { Object.keys(o).forEach(k => s.add(k)); return s; }, new Set<string>())];
+      return { headers: ['', ...inner], rows: entries.map(([k, o]: any) => [k, ...inner.map(h => cell(o[h]))]) };
+    }
+    return { headers: ['key', 'value'], rows: entries.map(([k, v]) => [k, cell(v)]) };
   }
   return null;
 }
@@ -780,7 +881,7 @@ function PhaseGroupSection({
 
   // Phase status and letter badge
   const phaseStatus = anyFailed ? 'failed' : anyRunning ? 'running' : allDone ? 'completed' : 'pending';
-  const letter = group.key === 'all' ? String(Math.min(steps.length, 9)) : group.key.toUpperCase().charAt(0);
+  const letter = group.letter;
   const dashIdx = label.indexOf('—');
   const phaseTitle = dashIdx > -1 ? label.slice(0, dashIdx).trim() : label;
   const phaseSub   = dashIdx > -1 ? label.slice(dashIdx + 1).trim() : '';
@@ -922,9 +1023,39 @@ function PhaseGroupSection({
                     const isLong = p.type !== 'number' && p.type !== 'file' && p.type !== 'boolean' && !p.options &&
                       (strVal.length > 40 || strVal.trimStart().startsWith('{'));
                     if (isLong) {
+                      const sample = sampleDataTable(strVal);
                       return (
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="long">
                           {label}
+                          {sample && (
+                            <details data-testid={`param-sample-preview-${p.id}`} style={{ marginTop: 4 }}>
+                              <summary style={{ cursor: 'pointer', fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', userSelect: 'none' }}>
+                                {tOr('panel.view_sample_data', 'View sample data')}
+                                <span style={{ marginLeft: 6, color: 'var(--text-dim)' }}>
+                                  {tOr('panel.rows_count', '{{n}} rows', { n: sample.rows.length })}
+                                </span>
+                              </summary>
+                              <div style={{ overflowX: 'auto', marginTop: 4, border: '1px solid var(--border)', borderRadius: 4 }}>
+                                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 'var(--fs-micro)', fontFamily: 'var(--font-mono)' }}>
+                                  <thead>
+                                    <tr>{sample.headers.map((h, i) => (
+                                      <th key={i} style={{ textAlign: 'left', padding: '3px 8px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface)' }}>{h}</th>
+                                    ))}</tr>
+                                  </thead>
+                                  <tbody>{sample.rows.slice(0, 50).map((r, ri) => (
+                                    <tr key={ri}>{r.map((c, ci) => (
+                                      <td key={ci} style={{ padding: '3px 8px', borderBottom: '1px solid var(--border-subtle, var(--border))', color: 'var(--text)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c}>{c}</td>
+                                    ))}</tr>
+                                  ))}</tbody>
+                                </table>
+                              </div>
+                              {sample.rows.length > 50 && (
+                                <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)', padding: '3px 8px' }}>
+                                  {tOr('panel.rows_truncated', 'Showing first 50 of {{n}} rows', { n: sample.rows.length })}
+                                </div>
+                              )}
+                            </details>
+                          )}
                           <textarea
                             className="v"
                             value={strVal}
@@ -934,6 +1065,22 @@ function PhaseGroupSection({
                             style={{ marginTop: 4, width: '100%', fontSize: 'var(--fs-micro)', padding: '4px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
                             onChange={e => onParamChange(p.id, e.target.value)}
                           />
+                        </div>
+                      );
+                    }
+
+                    // A file/input param holds a storage path or dataset key as
+                    // its value — never show that to the user (incl. in the
+                    // editor or on hover). Render the clean file name read-only;
+                    // files are bound via attach/browse, not hand-typed here.
+                    if (p.type === 'file') {
+                      const shown = strVal ? (strVal.split('/').pop() || '') : '';
+                      return (
+                        <div key={p.id} className="param-row" data-param={p.id} data-param-kind="file" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+                          {label}
+                          <span style={{ fontSize: 'var(--fs-micro)', color: shown ? 'var(--text)' : 'var(--text-dim)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, textAlign: 'right' }}>
+                            {shown || (missing ? tOr('panel.required', 'required') : tOr('panel.not_set', 'not set'))}
+                          </span>
                         </div>
                       );
                     }
@@ -1883,39 +2030,12 @@ export function NextflowWorkflowViewer({
   });
 
   // Group updatedPhases by their phase_group field (A/B/C/D/E for cryo-EM, etc.)
-  const groupedPhases = React.useMemo<PhaseGroup[]>(() => {
-    // No steps loaded yet — return empty so the empty-state message renders
-    // instead of a phantom phase card with "0 steps".
-    if (updatedPhases.length === 0) return [];
-    const hasGroups = updatedPhases.some((p: any) => p.phase_group);
-    if (!hasGroups) {
-      const allParams = updatedPhases.flatMap((p: any) => Object.keys(p.parameters || {}));
-      const uniqueParams = Array.from(new Set(allParams)) as string[];
-      return [{ key: 'all', label: tOr('panel.phase.all_steps', 'Steps'), steps: updatedPhases, phaseParams: uniqueParams }];
-    }
-    const groupMap = new Map<string, { steps: any[]; label: string; phaseParams: string[] }>();
-    for (const phase of updatedPhases) {
-      const key = (phase.phase_group as string) || 'other';
-      // Render convention (per #23):
-      //   - "Other Steps"               when no annotation matched (key === 'other')
-      //   - "Phase A — Motion Correction" when backend supplied group letter + semantic label
-      //   - "Phase A"                    when only the group letter is present
-      const semantic = (phase.phase_label as string) || '';
-      let label: string;
-      if (key === 'other') {
-        label = 'Other Steps';
-      } else {
-        label = phaseGroupLabel(key, semantic);
-      }
-      if (!groupMap.has(key)) groupMap.set(key, { steps: [], label, phaseParams: [] });
-      const group = groupMap.get(key)!;
-      group.steps.push(phase);
-      for (const pName of Object.keys(phase.parameters || {})) {
-        if (!group.phaseParams.includes(pName)) group.phaseParams.push(pName);
-      }
-    }
-    return Array.from(groupMap.entries()).map(([key, g]) => ({ key, ...g }));
-  }, [updatedPhases]);
+  const groupedPhases = React.useMemo<PhaseGroup[]>(
+    // No steps loaded yet → [] so the empty-state message renders instead of a
+    // phantom phase card with "0 steps".
+    () => groupStepsIntoPhases(updatedPhases as any[], tOr('panel.phase.all_steps', 'Steps')),
+    [updatedPhases],
+  );
 
   // QC: derive display thresholds from defaults + auto-detected profile + user edits
   const activeQcProfile = React.useMemo(
@@ -2031,6 +2151,10 @@ export function NextflowWorkflowViewer({
   const canResumeFailed = status === 'failed' && !wasCancelled && !!activeRunId && !!_failure
     && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '')
     && anyStepCompleted;
+  // The diagnosis card below is the ONE place a failed run's cause is stated; the
+  // embedded AfterRunReport then shows only the failed steps + log tail.
+  const showsFailureDiagnosis = status === 'failed' && !wasCancelled
+    && !!(aiDiagnosis?.user_message || _failure?.user_message);
   const handleResumeFromFailed = async () => {
     if (!activeRunId || rerunInProgress) return;
     setRerunInProgress(true);
@@ -3268,8 +3392,8 @@ export function NextflowWorkflowViewer({
               )}
               <div>
                 <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)' }}>
-                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
-                   containerPullStatus.status === 'ready' ? '环境就绪' : '镜像下载失败'}
+                  {containerPullStatus.status === 'pulling' ? tOr('panel.env.preparing', 'Preparing the run environment (first run)') :
+                   containerPullStatus.status === 'ready' ? tOr('panel.env.ready', 'Environment ready') : tOr('panel.env.pull_failed', 'Image download failed')}
                 </div>
                 <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                   {containerPullStatus.message}
@@ -3294,7 +3418,7 @@ export function NextflowWorkflowViewer({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 'var(--fs-body)' }}>⚡</span>
                 <span style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.35 0.03 230)', fontWeight: 500 }}>
-                  检测到后台重启，{autoResumeCountdown}秒后自动恢复运行…
+                  {tOr('panel.env.auto_resume', 'Backend restart detected — resuming automatically in {{n}}s…', { n: autoResumeCountdown ?? 0 })}
                 </span>
               </div>
               <button
@@ -3309,7 +3433,7 @@ export function NextflowWorkflowViewer({
                   color: 'oklch(0.42 0.04 230)', whiteSpace: 'nowrap', flexShrink: 0,
                 }}
               >
-                取消
+                {tOr('panel.env.cancel', 'Cancel')}
               </button>
             </div>
           )}
@@ -3336,42 +3460,59 @@ export function NextflowWorkflowViewer({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 'var(--fs-body)' }}>{isArchCompat ? '⚙️' : '🔍'}</span>
                   <span style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
-                    AI Diagnosis
+                    {tOr('panel.diag.title', 'AI diagnosis')}
                   </span>
                 </div>
-                <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
-                  {failureDiagnosisMessage(diag.user_message, canResumeFailed)}
-                </p>
+                {(() => {
+                  // The rule classifier names specific causes (too few rows, missing
+                  // column, bad contrast, OOM …) from the task's own error text; when it
+                  // recognises one, it leads. Otherwise the server's category sentence.
+                  const ts = classifyRunFailure([snippet, errorMessage].filter(Boolean).join('\n'));
+                  if (ts.known && ts.i18n.cause) {
+                    const culprit = ts.culprit ? (ts.i18n.culprit ? tOr(ts.i18n.culprit, ts.culprit, ts.i18n.vars) : ts.culprit) : '';
+                    return (
+                      <div data-testid="failure-diagnosis-cause" data-failure-class={ts.klass} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                          {tOr(ts.i18n.cause, ts.cause, ts.i18n.vars)}
+                        </p>
+                        {culprit && !ts.cause.includes(ts.culprit!) && (
+                          <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', margin: 0 }}>
+                            <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {culprit}
+                          </p>
+                        )}
+                        <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', margin: 0 }}>
+                          <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {tOr(ts.i18n.next, ts.nextAction, ts.i18n.vars)}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                      {failureDiagnosisMessage(diag.user_message, canResumeFailed, (diag as any).category, (diag as any).error_detail)}
+                    </p>
+                  );
+                })()}
                 {failureRecoveryAdvice(diag.suggested_action, canResumeFailed) && (
                   <p data-testid="failure-recovery-advice" style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
                     {failureRecoveryAdvice(diag.suggested_action, canResumeFailed)}
                   </p>
                 )}
-                {snippet ? (
-                  <details open style={{ marginTop: 4 }}>
-                    <summary style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
-                      Error details
-                    </summary>
-                    <pre style={{
-                      marginTop: 6, padding: '8px 10px',
-                      background: 'oklch(0.13 0.01 260)', color: 'oklch(0.85 0.01 260)',
-                      borderRadius: 6, fontSize: 'var(--fs-micro)', lineHeight: 1.5,
-                      overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                      maxHeight: 200, overflowY: 'auto',
-                    }}>
-                      {snippet}
-                    </pre>
-                  </details>
-                ) : (diag.suggested_action === 'resume') ? (
+                {/* Raw engine log/snippet intentionally NOT shown (founder 2026-11-11:
+                    internal Nextflow DEBUG/CacheDB/plugin plumbing must never surface
+                    to the user). The plain-language diagnosis above and the real error
+                    message in the report below are what the user reads; full engine
+                    logs stay in the dedicated job-log viewer for support. */}
+                {(!snippet && diag.suggested_action === 'resume') && (
                   <p style={{ fontSize: 'var(--fs-meta)', color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    ℹ️ No error log captured — the process was killed before it could write output. If Resume keeps failing, check server logs: <code>docker logs biomate-galaxy --tail 100</code>
+                    ℹ️ {tOr('panel.diag.no_log', 'No error log was captured for this run. If resuming keeps failing, report the run to BioMate.')}
                   </p>
-                ) : null}
+                )}
               </div>
             );
           })()}
           <AfterRunReport
             embedded
+            hideFailureDiagnosis={showsFailureDiagnosis}
             runId={runId || invocationId || ''}
             invocationId={invocationId}
             // C2: Stream 2 adds `targetTab?` to AfterRunReportProps; cast-spread
@@ -3520,8 +3661,8 @@ export function NextflowWorkflowViewer({
               )}
               <div>
                 <div style={{ fontSize: 'var(--fs-meta)', fontWeight: 600, color: 'var(--text)' }}>
-                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
-                   containerPullStatus.status === 'ready' ? '环境就绪，正在启动…' : '镜像下载失败'}
+                  {containerPullStatus.status === 'pulling' ? tOr('panel.env.preparing', 'Preparing the run environment (first run)') :
+                   containerPullStatus.status === 'ready' ? tOr('panel.env.ready_starting', 'Environment ready, starting…') : tOr('panel.env.pull_failed', 'Image download failed')}
                 </div>
                 <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                   {containerPullStatus.message}
@@ -3656,39 +3797,71 @@ export function NextflowWorkflowViewer({
           {/* which dataset is bound to each input and flags anything that isn't    */}
           {/* safely resolved, so the user confirms the mapping — not a raw form.   */}
           {(() => {
-            const fileParams = renderedParameters.filter(p => p.type === 'file');
+            const paramDefs: any[] = [
+              ...(workflowDefinition?.required_params || []),
+              ...(workflowDefinition?.optional_params || []),
+            ];
+            // Pure derivation (input-mapping-status.ts, unit-tested): the user's
+            // DATA inputs — required ones first, even when the schema types them as
+            // plain strings (nf-core/rnaseq `input` samplesheet) — versus optional
+            // file overrides still on their genome/pipeline default. Overrides are
+            // not "mapped inputs", so they render collapsed and never inflate the
+            // header count. Same classifier as the chat reply state.
+            // Executor-owned required data inputs (nf-core `input`): described by the backend,
+            // never editable params — the executor builds them from attached files or an accession.
+            const executorInputs: any[] = (Array.isArray(workflowDefinition?.data_inputs) ? workflowDefinition.data_inputs : [])
+              .filter((d: any) => d?.name && d?.required)
+              .map((d: any) => ({
+                id: `__data_input__${d.name}`, name: d.name, label: d.label || d.name, type: 'file', required: true,
+                data_input: true, executor_bound: true,
+                value: d.bound ? (d.bound_value || tOr('panel.provided_in_chat', 'provided in chat')) : '',
+              }));
+            const model = derivePrerunInputs([...executorInputs, ...renderedParameters] as any, sessionDatasets as any, [...executorInputs, ...paramDefs]);
+            if (model.primary.length === 0 && model.overrides.length === 0) {
             // Style-A workflows declare their input via a `// Input:` code header,
-            // which surfaces as ordinary STRING params ("Input Csv", "Dataset Id",
-            // "S3 Uri", "File Name", …) rather than type:'file' — so the file-only
-            // logic below misses them and the panel wrongly says "no data inputs to
-            // bind". Detect them so the user knows the workflow DOES take data and
+            // which surfaces as ordinary OPTIONAL STRING params ("Input Csv", "Dataset Id",
+            // "S3 Uri", "File Name", …) rather than type:'file' — so the schema
+            // classifier finds no data input and the panel would wrongly say "no data
+            // inputs to bind". Detect them so the user knows the workflow DOES take data and
             // how to supply it: attach via the composer (📎) — the uploaded file's
             // s3 URI is wired into the param, which the executor reads. (We do NOT
             // re-type them as 'file' — that would change the working bind path.)
             const INPUT_LIKE_RE = /(^|[_\s])(input|csv|tsv|dataset|data.?id|s3.?uri|file.?name|samplesheet|matrix|contrasts|counts|clinical|expression)([_\s]|$)/i;
-            const styleAInputs = fileParams.length === 0
-              ? renderedParameters.filter((p: any) =>
+            const styleAInputs = renderedParameters.filter((p: any) =>
                   (p.type === 'string' || p.type === 'text' || p.type === undefined)
                   && INPUT_LIKE_RE.test(`${p.name || ''} ${p.label || ''}`)
-                  && !/output|outdir|out_dir|publish/i.test(String(p.name || '')))
-              : [];
-            if (fileParams.length === 0 && styleAInputs.length === 0) {
+                  && !/output|outdir|out_dir|publish/i.test(String(p.name || '')));
+            if (styleAInputs.length === 0) {
               return (
                 <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600 }}>
-                    <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
+                    <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_title', 'Inputs')}
                   </div>
                   <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)', marginTop: 4 }}>
                     {tOr('panel.params_only_no_inputs', 'This workflow takes parameters only — no data inputs to bind.')}
                   </div>
+                  {/* The user uploaded data but this workflow reads none of it —
+                      say so here instead of leaving them to infer it from an
+                      empty Inputs card (founder report: 5 files attached, panel
+                      said "parameters only"). */}
+                  {sessionDatasets.length > 0 && (
+                    <div
+                      data-testid="prerun-attachments-unused"
+                      style={{ fontSize: 'var(--fs-micro)', color: 'var(--warn, #b45309)', marginTop: 6 }}
+                    >
+                      {tOr(
+                        'panel.attachments_not_used',
+                        'Files you uploaded in this session are not used by this workflow. Ask in the chat for a workflow that reads them.',
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             }
-            if (fileParams.length === 0 && styleAInputs.length > 0) {
               return (
                 <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600 }}>
-                    <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
+                    <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_title', 'Inputs')}
                   </div>
                   <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)', marginTop: 4 }}>
                     {!styleAInputs.some((p: any) => p.value != null && String(p.value).trim() !== '')
@@ -3712,72 +3885,124 @@ export function NextflowWorkflowViewer({
                 </div>
               );
             }
-            const paramDefs: any[] = [
-              ...(workflowDefinition?.required_params || []),
-              ...(workflowDefinition?.optional_params || []),
-            ];
-            // Pure derivation extracted to input-mapping-status.ts (unit-tested).
-            const derived = deriveInputMappingRows(fileParams as any, sessionDatasets as any, paramDefs);
-            const rows = derived.map(r => ({ p: r.param as any, val: r.value, empty: r.empty, ds: r.dataset, mismatch: r.mismatch, status: r.status }));
-            const blocking = blockingInputRows(derived);
+            const blocking = blockingInputRows([...model.primary, ...model.overrides]);
             const basename = (v: any) => String(v).split('/').pop() || String(v);
+            // Public-accession guidance only where an accession can actually supply
+            // the data (sequencing / omics domains), never for e.g. a compound CSV.
+            const acceptsAccession = /rnaseq|scrna|wgs|transcript|genom|epigen|single.?cell|variant|metagen|chip|atac|proteom/.test(
+              `${qcWorkflowDomain(workflowDefinition)} ${String(workflowDefinition?.domain || '')}`.toLowerCase());
+            const renderRow = (r: InputMappingRow, isOverride: boolean, i: number) => {
+              const p: any = r.param;
+              return (
+                <div key={p.id || p.name || i} data-testid={isOverride ? 'prerun-override-row' : 'prerun-input-row'} data-status={r.status} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
+                  <span style={{ minWidth: 0, fontWeight: isOverride ? 400 : 500 }}>{p.label || p.name}</span>
+                  <span style={{ color: 'var(--text-dim)' }}>→</span>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    {r.empty ? (
+                      <span style={{ color: 'var(--text-dim)' }}>
+                        {isOverride ? tOr('panel.not_set_default_used', 'not set — default used') : tOr('panel.not_set', 'not set')}
+                      </span>
+                    ) : (
+                      // Show the clean name only. Never reveal the storage URI or
+                      // dataset id — not inline and not on hover (founder: no
+                      // internal path/key/id in the UI, including tooltips).
+                      <span title={r.dataset?.name || basename(r.value)}>
+                        {r.dataset?.name || basename(r.value)}
+                      </span>
+                    )}
+                  </span>
+                  {isOverride && r.status === 'resolved' && (
+                    <span className="chip" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.uses_default', 'default')}</span>
+                  )}
+                  {!isOverride && r.status === 'resolved' && (
+                    <span className="chip ok" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }} title={tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}>
+                      {tOr('panel.resolved_format_unchecked', 'resolved · format not checked')}
+                    </span>
+                  )}
+                  {r.status === 'unresolved' && (
+                    <span className="chip err" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.required_not_set', 'required — not set')}</span>
+                  )}
+                  {r.status === 'needs-mapping' && (
+                    <span className="chip err" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.needs_mapping', 'needs mapping')}</span>
+                  )}
+                  {!isOverride && r.status === 'optional-empty' && (
+                    <span className="chip" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
+                  )}
+                  {(r.status === 'unresolved' || r.status === 'needs-mapping') && !p.executor_bound && (
+                    <button
+                      type="button"
+                      className="btn sm ghost"
+                      style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px' }}
+                      onClick={() => setBrowsingForParam({ id: p.id, label: p.label || p.name || p.id })}
+                    >
+                      {tOr('panel.choose_file', 'Choose file')}
+                    </button>
+                  )}
+                  {r.mismatch && (
+                    <div className="hint" style={{ flexBasis: '100%', color: 'var(--warn, #b45309)', fontSize: 'var(--fs-micro)' }}>⚠️ {r.mismatch}</div>
+                  )}
+                </div>
+              );
+            };
             return (
               <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600 }}>
-                  <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
-                  <span className="hint" style={{ fontWeight: 400, fontSize: 'var(--fs-micro)' }}>({tOr('panel.inputs_count', '{{n}} input{{s}}', { n: rows.length, s: rows.length !== 1 ? 's' : '' })})</span>
+                <div data-testid="prerun-inputs-header" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-meta)', fontWeight: 600, flexWrap: 'wrap' }}>
+                  <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_title', 'Inputs')}
+                  <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>·</span>
+                  {model.requiredUnset > 0 ? (
+                    <span className="chip err" data-testid="prerun-inputs-summary" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px', fontWeight: 500 }}>
+                      {tOr('panel.inputs_required_unset', '{{n}} required, not set', { n: model.requiredUnset })}
+                    </span>
+                  ) : model.boundCount > 0 ? (
+                    <span className="hint" data-testid="prerun-inputs-summary" style={{ fontWeight: 400, fontSize: 'var(--fs-micro)' }}>
+                      {tOr('panel.inputs_mapped_count', '{{n}} mapped', { n: model.boundCount })}
+                    </span>
+                  ) : (
+                    <span className="hint" data-testid="prerun-inputs-summary" style={{ fontWeight: 400, fontSize: 'var(--fs-micro)' }}>
+                      {tOr('panel.inputs_none_required', 'no required data inputs')}
+                    </span>
+                  )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {rows.map((r, i) => (
-                    <div key={r.p.id || r.p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-meta)', flexWrap: 'wrap' }}>
-                      <span style={{ minWidth: 0, fontWeight: 500 }}>{r.p.label || r.p.name}</span>
-                      <span style={{ color: 'var(--text-dim)' }}>→</span>
-                      <span style={{ minWidth: 0, flex: 1 }}>
-                        {r.empty ? (
-                          <span style={{ color: 'var(--text-dim)' }}>{tOr('panel.not_set', 'not set')}</span>
-                        ) : (
-                          // Show the clean basename only; the full value (S3 URI
-                          // or dataset id) stays available on hover, never inline.
-                          <span title={r.ds?.id ? String(r.ds.id) : String(r.val)}>
-                            {r.ds?.name || basename(r.val)}
-                          </span>
-                        )}
+                {model.primary.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {model.primary.map((r, i) => renderRow(r, false, i))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-dim)' }}>
+                    {tOr('panel.only_optional_overrides', 'No data upload needed — the files below are optional overrides.')}
+                  </div>
+                )}
+                {model.requiredUnset > 0 && (
+                  <div data-testid="prerun-inputs-how-to-provide" style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-2)' }}>
+                    {acceptsAccession
+                      ? tOr('panel.inputs_attach_or_accession', 'Attach your files with the paperclip (📎) in the message box below, or reply in the chat with a public accession (e.g. SRR…, GSE…).')
+                      : tOr('panel.inputs_attach_hint', 'Attach your file with the paperclip (📎) in the message box below — BioMate wires it into the workflow.')}
+                  </div>
+                )}
+                {model.overrides.length > 0 && (
+                  <details data-testid="prerun-input-overrides" style={{ fontSize: 'var(--fs-meta)' }}>
+                    <summary style={{ cursor: 'pointer', color: 'var(--text-2)' }}>
+                      {tOr('panel.reference_overrides', 'Reference overrides')} ({model.overrides.length})
+                      <span className="hint" style={{ marginLeft: 6, fontSize: 'var(--fs-micro)' }}>
+                        {tOr('panel.reference_overrides_hint', 'optional — defaults come from the selected genome or pipeline')}
                       </span>
-                      {r.status === 'resolved' && (
-                        <span className="chip ok" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }} title={tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}>
-                          {tOr('panel.resolved_format_unchecked', 'resolved · format not checked')}
-                        </span>
-                      )}
-                      {r.status === 'unresolved' && (
-                        <span className="chip err" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.required_not_set', 'required — not set')}</span>
-                      )}
-                      {r.status === 'needs-mapping' && (
-                        <span className="chip err" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.needs_mapping', 'needs mapping')}</span>
-                      )}
-                      {r.status === 'optional-empty' && (
-                        <span className="chip" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
-                      )}
-                      {(r.status === 'unresolved' || r.status === 'needs-mapping') && (
-                        <button
-                          type="button"
-                          className="btn sm ghost"
-                          style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px' }}
-                          onClick={() => setBrowsingForParam({ id: r.p.id, label: r.p.label || r.p.name || r.p.id })}
-                        >
-                          {tOr('panel.choose_file', 'Choose file')}
-                        </button>
-                      )}
-                      {r.mismatch && (
-                        <div className="hint" style={{ flexBasis: '100%', color: 'var(--warn, #b45309)', fontSize: 'var(--fs-micro)' }}>⚠️ {r.mismatch}</div>
-                      )}
+                    </summary>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                      {model.overrides.map((r, i) => renderRow(r, true, i))}
                     </div>
-                  ))}
-                </div>
-                <div style={{ fontSize: 'var(--fs-micro)', color: blocking.length > 0 ? 'var(--warn, #b45309)' : 'var(--text-dim)' }}>
-                  {blocking.length > 0
-                    ? tOr('panel.inputs_blocking', 'Nothing will run until {{n}} input{{verb}} resolved — pick the file or fix the mapping above.', { n: blocking.length, verb: blocking.length !== 1 ? 's are' : ' is' })
-                    : tOr('panel.inputs_all_bound', 'These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.')}
-                </div>
+                  </details>
+                )}
+                {/* The how-to line above already covers "required, not set"; the
+                    blocking line is only needed when a bound input needs re-mapping. */}
+                {blocking.some(r => r.status === 'needs-mapping') ? (
+                  <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--warn, #b45309)' }}>
+                    {tOr('panel.inputs_blocking', 'Nothing will run until {{n}} input{{verb}} resolved — pick the file or fix the mapping above.', { n: blocking.length, verb: blocking.length !== 1 ? 's are' : ' is' })}
+                  </div>
+                ) : model.boundCount > 0 ? (
+                  <div style={{ fontSize: 'var(--fs-micro)', color: 'var(--text-dim)' }}>
+                    {tOr('panel.inputs_all_bound', 'These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.')}
+                  </div>
+                ) : null}
               </div>
             );
           })()}
@@ -4396,12 +4621,29 @@ export function NextflowWorkflowViewer({
                   role="region"
                   aria-label={tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}
                 >
+                    {(() => {
+                      // Flat ordered step list (across phases) with phase letters —
+                      // drives the .deephd position + .deepfoot prev/next traversal
+                      // (spec 08 §8.2/§8.3).
+                      const flat: Array<{ raw: any; letter: string }> = groupedPhases.flatMap(
+                        (g: any) => (Array.isArray(g.steps) ? g.steps.map((s: any) => ({ raw: s, letter: g.letter })) : []),
+                      );
+                      const idx = flat.findIndex(
+                        (e) => String(e.raw?.id ?? e.raw?.name ?? '') === String(fullViewStep.id),
+                      );
+                      const pos = idx >= 0
+                        ? { phaseLetter: flat[idx].letter, stepNumber: idx + 1, totalSteps: flat.length }
+                        : {};
+                      const openAt = (i: number) => { if (flat[i]) setFullViewStep(buildStepDetailStep(flat[i].raw)); };
+                      return (
                     <StepDetail
                       runId={activeRunId || ""}
-                      step={fullViewStep}
+                      step={{ ...fullViewStep, ...pos }}
                       workflowDefinition={workflowDefinition}
                       projectId={projectId}
                       onClose={() => setFullViewStep(null)}
+                      onPrev={idx > 0 ? () => openAt(idx - 1) : undefined}
+                      onNext={idx >= 0 && idx < flat.length - 1 ? () => openAt(idx + 1) : undefined}
                       onApplyAndRerun={(edited) => {
                         // Apply the in-place-edited params to the form and re-run
                         // with the merged set (pass merged directly — setParams is
@@ -4420,6 +4662,8 @@ export function NextflowWorkflowViewer({
                         });
                       }}
                     />
+                      );
+                    })()}
                 </div>
               )}
 
@@ -4726,7 +4970,7 @@ export function NextflowWorkflowViewer({
                 <span>
                   {tOr('panel.footer.input_files_required_prefix', 'Input files required:')}{' '}
                   <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
-                  {' '}{tOr('panel.footer.input_files_required_suffix', '— upload via the file button in chat or paste an S3 path in the parameter field above')}
+                  {' '}{tOr('panel.footer.input_files_required_suffix', '— attach them with the file button in chat')}
                 </span>
               </div>
             ) : (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ? (

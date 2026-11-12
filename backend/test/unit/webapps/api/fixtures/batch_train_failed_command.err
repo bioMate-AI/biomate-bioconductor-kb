@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/local/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/app/ml_training/cli.py", line 233, in <module>
+    sys.exit(main())
+  File "/app/ml_training/cli.py", line 224, in main
+    result = run_training_job(cfg, artifact_dir=str(out / "artifact"))
+  File "/app/ml_training/training_job.py", line 189, in run_training_job
+    return _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker)
+  File "/app/ml_training/training_job.py", line 230, in _run
+    result = train_fn(cfg, dataset, artifact_dir)
+  File "/app/ml_training/chemprop_trainer.py", line 76, in train
+    result = _train_tabular(cfg, artifact_dir)
+  File "/app/ml_training/tabular_trainer.py", line 114, in train
+    folds = kfold_split(len(ds), k, seed, labels=labels)
+  File "/app/ml_training/splits.py", line 168, in kfold_split
+    raise ValueError(f"cannot make {k} folds from {n} rows")
+ValueError: cannot make 5 folds from 1 rows

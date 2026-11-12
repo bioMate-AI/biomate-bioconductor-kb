@@ -294,6 +294,147 @@ def test_jsonl_records_not_csv(tmp):
     print("PASS test_jsonl_records_not_csv")
 
 
+# ---------------------------------------------------------------------------
+# Effective-N reason + structured (localizable) findings — Data panel fixes
+# 2026-11-10 (docs/20261110_DATA_PANEL_FIXES.md). The card said "correlation /
+# imbalance discounted it" even when the only reduction was duplicate rows.
+# ---------------------------------------------------------------------------
+def test_effective_n_reason_dedup_without_label(tmp):
+    rows = ["a,b"] + [f"{i},{i * 2}" for i in range(40)] + ["1,2"] * 10  # 10 exact duplicates
+    path = _write(tmp, "dups.csv", "\n".join(rows) + "\n")
+    p = profile_dataset(path)
+    assert p["effectiveN"] == 40, p
+    assert p["effectiveNReason"] == "dedup", p
+    assert p["duplicateRows"] == 10, p
+    print("PASS test_effective_n_reason_dedup_without_label")
+
+
+def test_effective_n_reason_imbalance(tmp):
+    rows = ["f1,label"] + [f"{i},neg" for i in range(279)] + [f"{1000 + i},pos" for i in range(21)]
+    path = _write(tmp, "imb.csv", "\n".join(rows) + "\n")
+    p = profile_dataset(path)
+    assert p["effectiveNReason"] == "imbalance", p
+    assert p["effectiveN"] == 42, p
+    codes = {f["code"]: f for f in p["findings"]}
+    assert codes["effective_n_imbalance"]["level"] == "watch", codes
+    assert codes["minority_class"]["params"] == {"label": "pos", "pct": 7}, codes
+    assert p["quality"] == "watch"
+    print("PASS test_effective_n_reason_imbalance")
+
+
+def test_effective_n_reason_dedup_with_label(tmp):
+    # Balanced labels, but most rows are duplicates -> dedup binds, not imbalance.
+    rows = ["f1,label"] + ["1,a", "2,b"] * 50
+    path = _write(tmp, "dup_lbl.csv", "\n".join(rows) + "\n")
+    p = profile_dataset(path)
+    assert p["effectiveN"] == 2 and p["effectiveNReason"] == "dedup", p
+    assert any(f["code"] == "effective_n_dedup" and f["params"]["duplicates"] == 98 for f in p["findings"]), p
+    print("PASS test_effective_n_reason_dedup_with_label")
+
+
+def test_watch_findings_name_their_columns(tmp):
+    # The verdict must be explainable: every watch-level finding carries its code + the columns.
+    rows = ["id,constant,mostly_empty"] + [f"{i},x," for i in range(30)]
+    path = _write(tmp, "w.csv", "\n".join(rows) + "\n")
+    p = profile_dataset(path)
+    assert p["quality"] == "watch", p
+    watch = [f for f in p["findings"] if f["level"] == "watch"]
+    by = {f["code"]: f["params"] for f in watch}
+    assert by["near_constant"]["columns"] == ["constant"], by
+    assert by["high_missing"]["columns"] == ["mostly_empty"], by
+    # Every legacy free-text line has a structured twin (so the UI never shows raw English).
+    n_text = len(p["notes"]) + len(p.get("signalSummary", [])) + len(p["planImpact"])
+    assert len(p["findings"]) == n_text, (p["findings"], p["notes"])
+    print("PASS test_watch_findings_name_their_columns")
+
+
+def test_blocked_profiles_carry_codes(tmp):
+    p = profile_dataset(os.path.join(tmp, "nope.csv"))
+    assert p["quality"] == "blocked" and p["findings"][0]["code"] == "file_not_found", p
+    empty = _write(tmp, "empty.csv", "")
+    assert profile_dataset(empty)["findings"][0]["code"] == "empty_file"
+    print("PASS test_blocked_profiles_carry_codes")
+
+
+def test_profiled_rows_reports_true_total(tmp):
+    # Statistics hold at most max_rows rows, but the reported total is the TRUE count.
+    path = _write(tmp, "big.csv", "a,b\n" + "".join(f"{i},{i}\n" for i in range(50)))
+    header, rows, total = _mod._read_table(path, max_rows=10)
+    assert (len(rows), total) == (10, 50), (len(rows), total)
+    keys, jrows, jtotal = _mod._read_jsonl(
+        _write(tmp, "big.jsonl", "".join('{"k": %d}\n' % i for i in range(50))), max_rows=7)
+    assert (keys, len(jrows), jtotal) == (["k"], 7, 50)
+    print("PASS test_profiled_rows_reports_true_total")
+
+
+def test_read_rows_jsonl_matches_profiler(tmp):
+    import json as _json
+    recs = [{"source": "epar", "drug": f"d{i}", "page": i, "nested": {"x": [1, 2]}} for i in range(25)]
+    recs[20]["late_key"] = True  # a key first seen late still becomes a column
+    path = _write(tmp, "r.jsonl", "\n".join(_json.dumps(r) for r in recs) + "\nnot json\n")
+    page = _mod.read_rows(path, offset=18, limit=5)
+    assert page["kind"] == "jsonl" and page["tabular"] is True, page
+    assert page["totalRows"] == 25, page
+    assert page["columns"] == ["source", "drug", "page", "nested", "late_key"], page["columns"]
+    assert [r[2] for r in page["rows"]] == ["18", "19", "20", "21", "22"], page["rows"]
+    assert page["rows"][0][3] == '{"x":[1,2]}' and page["rows"][2][4] == "True", page["rows"]
+    assert page["skippedLines"] == 1
+    # Same cells as the profiler's reader for the same records.
+    _, prof_rows, _ = _mod._read_jsonl(path)
+    assert page["rows"] == prof_rows[18:23]
+    # With known meta the read stops early but returns the identical page.
+    known = {"columns": page["columns"], "totalRows": page["totalRows"]}
+    assert _mod.read_rows(path, offset=18, limit=5, known=known)["rows"] == page["rows"]
+    print("PASS test_read_rows_jsonl_matches_profiler")
+
+
+def test_read_rows_csv_paging_and_non_tabular(tmp):
+    path = _write(tmp, "c.csv", 'a,b\n1,"x, y"\n\n2,z\n3,w\n')
+    page = _mod.read_rows(path, offset=1, limit=10)
+    assert page["columns"] == ["a", "b"] and page["totalRows"] == 3, page
+    assert page["rows"] == [["2", "z"], ["3", "w"]], page["rows"]
+    assert _mod.read_rows(path, offset=0, limit=1)["rows"] == [["1", "x, y"]]
+    assert _mod.read_rows(path, 0, 10**6)["limit"] == _mod.MAX_ROWS_PAGE
+    fq = _write(tmp, "s.fastq", "@r1\nACGT\n+\nIIII\n")
+    assert _mod.read_rows(fq)["tabular"] is False
+    print("PASS test_read_rows_csv_paging_and_non_tabular")
+
+
+# ---------------------------------------------------------------------------
+# Nested tables in JSON Lines (epar_study_tables.jsonl, 2026-11-11): 69% of 2,281 extracted tables had
+# exactly 7 rows because the extractor kept t[1:8]; the profile said nothing about the tables.
+# ---------------------------------------------------------------------------
+def test_jsonl_nested_tables_row_cap_and_blanks(tmp):
+    import json as _json
+    recs = []
+    for i in range(40):
+        n = 7 if i < 28 else 3 + (i % 4)          # 70% at the cap of 7 rows, the rest 3..6
+        recs.append({"drug": f"d{i}", "headers": ["Study", "Dose", ""],
+                     "rows": [["s%d" % r, "" if r % 2 else "10 mg", ""] for r in range(n)]})
+    p = profile_dataset(_write(tmp, "tables.jsonl", "\n".join(_json.dumps(r) for r in recs) + "\n"))
+    by = {f["code"]: f for f in p["findings"]}
+    assert by["nested_tables"]["params"] == {"column": "rows", "tables": 40, "median_rows": 7,
+                                             "median_cols": 3, "max_rows": 7}, by["nested_tables"]
+    assert by["nested_row_cap"]["level"] == "watch" and by["nested_row_cap"]["params"]["pct"] == 70, by["nested_row_cap"]
+    cells = [c for r in recs for row in r["rows"] for c in row]
+    expect_pct = int(round(100 * sum(1 for c in cells if not c) / len(cells)))
+    assert by["nested_blank_cells"]["params"]["pct"] == expect_pct, (by["nested_blank_cells"], expect_pct)
+    assert p["quality"] == "watch"
+    print("PASS test_jsonl_nested_tables_row_cap_and_blanks")
+
+
+def test_jsonl_nested_tables_no_cap_when_sizes_vary(tmp):
+    import json as _json
+    recs = [{"rows": [["a", "b"]] * (2 + i % 9)} for i in range(40)]   # 2..10 rows, spread evenly
+    p = profile_dataset(_write(tmp, "vary.jsonl", "\n".join(_json.dumps(r) for r in recs) + "\n"))
+    codes = [f["code"] for f in p["findings"]]
+    assert "nested_tables" in codes and "nested_row_cap" not in codes and "nested_blank_cells" not in codes, codes
+    # Lists that are not tables (list of scalars) are not reported as tables.
+    p2 = profile_dataset(_write(tmp, "tags.jsonl", "\n".join(_json.dumps({"tags": ["x", "y"]}) for _ in range(10)) + "\n"))
+    assert not any(f["code"].startswith("nested_") for f in p2["findings"]), p2["findings"]
+    print("PASS test_jsonl_nested_tables_no_cap_when_sizes_vary")
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     with tempfile.TemporaryDirectory() as tmp:

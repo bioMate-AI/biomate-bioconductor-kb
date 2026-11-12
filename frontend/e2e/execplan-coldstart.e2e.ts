@@ -243,7 +243,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     await expect(page.getByTestId("cold-track-databases")).toHaveAttribute("aria-selected", "true");
     await expect(
       page.locator('[data-testid="cold-example"]', {
-        hasText: "Pull every reported structure for this target.",
+        hasText: "Pull every reported structure for KRAS G12C.",
       })
     ).toBeVisible();
     await shot(page, "CS-10-11-tracks");
@@ -342,9 +342,9 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
   }) => {
     await gotoColdStart(page);
     const samples = [
-      "What is the evidence linking this target to disease?",
-      "Pull every reported structure for this target.",
-      "Who holds composition-of-matter claims on this scaffold?",
+      "What is the evidence linking LRRK2 to Parkinson's disease?",
+      "Pull every reported structure for KRAS G12C.",
+      "Who holds composition-of-matter claims on the sotorasib scaffold?",
       "Generate candidates for this target with drug-like properties.",
       "Train a potency predictor on our in-house assay data.",
       "Summarise this assay table and plot potency against logP.",

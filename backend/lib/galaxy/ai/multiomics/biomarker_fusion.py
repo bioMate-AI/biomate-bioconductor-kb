@@ -13,7 +13,7 @@ higher = more discriminative), then hands the per-layer score maps to
 ``fuse_omics_biomarkers`` → ``target_id.arbiter.fuse_channels`` — the SAME engine
 target-ID uses, now exercised on a second, independent problem.
 
-Serves the SYSUCC/faculty stratification spearhead: subtype a cohort by multi-omics,
+Serves the the clinical stratification spearhead: subtype a cohort by multi-omics,
 then name the RNA/protein/methylation drivers that agree across layers.
 
 3.9-safe; numpy only (imported lazily so the module loads without it).

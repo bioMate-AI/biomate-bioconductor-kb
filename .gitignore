@@ -198,3 +198,8 @@ reference/claude_design/tutorials/assets/live/*.png
 
 # Tutorial redesign handoff — derived from tutorials_v2 (24MB assets dup); zip/share directly, reproducible via the handoff build.
 reference/claude_design/tutorials_handoff/
+
+# Live journey harness output (scripts/run_live_journeys.sh)
+frontend/e2e/test-results/live-journeys/
+frontend/e2e/reports/live-journeys*
+frontend/e2e/.live-journeys-state.json

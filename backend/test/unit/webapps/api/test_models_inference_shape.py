@@ -83,8 +83,11 @@ def test_bionemo_catalog_present(mod):
     # Structure + genomic evidence classes are both represented.
     assert "bionemo:boltz2" in ids
     assert "bionemo:evo2_7b" in ids
+    # Origin reflects the REAL backend (self_host when a NIM URL is set, else
+    # hosted_nvidia with a key, else unconfigured) — never a hard-coded "self-host"
+    # that hid the NVIDIA fallback (2026-11-11).
     for r in mod._bionemo_catalog():
-        assert r["origin"] == "self-host"
+        assert r["origin"] in {"self_host", "hosted_nvidia", "unconfigured"}, r["origin"]
 
 
 # ── evidence class routing ───────────────────────────────────────────────────
@@ -456,3 +459,16 @@ def test_active_version_uses_registry_record_not_inferred_version_one(mod, tmp_p
         db.execute("INSERT INTO custom_model_versions VALUES ('own','classifier',7,'active')")
     assert mod._recorded_active_version('own','classifier') == '7'
     assert mod._recorded_active_version('own','missing') == 'Not recorded'
+
+
+def test_plddt_from_cif_wrapped_records_real_boltz2(mod):
+    # Real Boltz-2 response (health.api.nvidia.com, 2026-11-11) for a 33-residue protein.
+    # Most _atom_site records wrap onto a second line (B-factor + model number on the next
+    # line); the old line-by-line parser returned ONE value for this file.
+    path = os.path.join(os.path.dirname(__file__), "fixtures", "boltz2_wrapped_atom_site.cif")
+    with open(path) as f:
+        cif = f.read()
+    plddt = mod._plddt_from_cif(cif)
+    assert len(plddt) == 33
+    assert all(0.0 <= v <= 1.0 for v in plddt)
+    assert abs(plddt[0] - 0.82203287) < 1e-6

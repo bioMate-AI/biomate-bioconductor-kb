@@ -178,7 +178,11 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
         {/* TEMPLATE EXAMPLES — output requirements are hard to define from a blank field, so show
             concrete, editable examples of each kind (design: ProjectSetup.jsx `outputs`). "Use" adds
             one (switched OFF so it never silently takes effect until the user turns it on). */}
-        {canEdit && (
+        {/* Examples are an onboarding aid for the empty/partial state. Once every
+            example kind is already configured in the list above, this block is just a
+            second copy of the same items — hide it so the list isn't duplicated
+            (founder request: keep the list, not a duplicated examples panel). */}
+        {canEdit && appendMissingOutputFormats(formats, examples).length > formats.length && (
           <div style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-md, 8px)', background: 'var(--bg)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="instructions-formats-examples">
             <span style={{ ...S.hint, fontWeight: 600 }}>{t("project_instructions.examples")}</span>
             {examples.map((ex, i) => (

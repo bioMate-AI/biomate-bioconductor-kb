@@ -1,4 +1,7 @@
-import { t, tOr } from "@/lib/i18n"
+import { locale, t, tOr } from "@/lib/i18n"
+
+/** Notes card removed from the project page (see the JSX comment); API kept. */
+const PROJECT_NOTES_VISIBLE = false
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -563,10 +566,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     const diff = Date.now() - new Date(d as any).getTime()
     const h = Math.floor(diff / 3_600_000)
     const days = Math.floor(diff / 86_400_000)
-    if (h < 1) return "just now"
-    if (h < 24) return `${h}h ago`
-    if (days < 7) return `${days}d ago`
-    return new Date(d as any).toLocaleDateString()
+    if (h < 1) return tOr('runs_ui.fresh_just_now', 'just now')
+    if (h < 24) return tOr('runs_ui.fresh_hours', '{{n}}h ago', { n: h })
+    if (days < 7) return tOr('runs_ui.fresh_days', '{{n}}d ago', { n: days })
+    return new Date(d as any).toLocaleDateString(locale === 'zh' ? 'zh-CN' : locale)
   }
 
   const statusIcon = (status: string) => {
@@ -588,8 +591,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Project not found</h2>
-          <Button onClick={onBack}><ArrowLeft className="w-4 h-4 mr-2" />Back to Projects</Button>
+          <h2 className="text-xl font-semibold mb-2">{tOr('projects.page.not_found', "Project not found")}</h2>
+          <Button onClick={onBack}><ArrowLeft className="w-4 h-4 mr-2" />{tOr('projects.page.back_to_projects', "Back to Projects")}</Button>
         </div>
       </div>
     )
@@ -643,7 +646,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                     if (e.key === "Escape") { setAddingTag(false); setTagInput("") }
                   }}
                   onBlur={() => { if (tagInput.trim()) addTag(tagInput); else { setAddingTag(false); setTagInput("") } }}
-                  placeholder="tag name"
+                  placeholder={tOr('projects.page.tag_placeholder', "tag name")}
                   className="h-5 w-24 rounded-full border border-primary/50 bg-background px-2 text-xs outline-none focus:border-primary"
                 />
               ) : (
@@ -653,7 +656,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   aria-label="Add tag"
                   data-testid="button-add-tag"
                 >
-                  <Plus className="w-3 h-3" />tag
+                  <Plus className="w-3 h-3" />{tOr('projects.page.add_tag', 'tag')}
                 </button>
               )}
             </div>
@@ -670,7 +673,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => { setRenameValue(project.name); setRenameOpen(true) }}>
-                  <Pencil className="w-4 h-4 mr-2" />Rename
+                  <Pencil className="w-4 h-4 mr-2" />{tOr('projects.page.rename', "Rename")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleToggleStatus}>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -678,10 +681,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setArchiveOpen(true)} className="text-muted-foreground">
-                  <Archive className="w-4 h-4 mr-2" />Archive
+                  <Archive className="w-4 h-4 mr-2" />{tOr('projects.page.archive', "Archive")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
-                  <Trash2 className="w-4 h-4 mr-2" />Delete
+                  <Trash2 className="w-4 h-4 mr-2" />{tOr('projects.page.delete', "Delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -696,13 +699,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
               <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
-                <MessageCircle className="w-3.5 h-3.5" />Chat
+                <MessageCircle className="w-3.5 h-3.5" />{tOr('projects.page.tab_chat', "Chat")}
                 {sessions.length > 0 && (
                   <span className="text-xs bg-muted rounded px-1">{sessions.length}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="files" className="flex items-center gap-1.5" data-testid="tab-project-files">
-                <FileText className="w-3.5 h-3.5" />Files
+                <FileText className="w-3.5 h-3.5" />{tOr('projects.page.tab_files', "Files")}
               </TabsTrigger>
               {/* Project Runs tab hidden to avoid duplicating chat execution history. */}
             </TabsList>
@@ -756,7 +759,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{s.title || "Untitled chat"}</p>
                               <p className="text-xs text-muted-foreground">
-                                {s.message_count ?? 0} messages · {relTime(s.last_activity ?? s.created_at)}
+                                {tOr('projects.page.message_count', '{{n}} messages', { n: s.message_count ?? 0 })} · {relTime(s.last_activity ?? s.created_at)}
                               </p>
                             </div>
                             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
@@ -799,8 +802,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           </Tabs>
         </div>
 
-        {/* Right sidebar */}
-        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
+        {/* Project instructions live in the 项目指令 (Instructions) tab only.
+            The former chat/files right sidebar was fully redundant with that tab
+            (standing instructions + members + details all render there), so it is
+            hidden outside the Instructions tab — removed per founder request. */}
+        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "hidden"}>
           {activeTab === "instructions" && <ProjectInstructionsPage projectId={projectId} projectName={project.name} canEdit={canEdit} instructions={project.instructions || ""} onInstructionsSaved={(t) => { setInstructionsValue(t); setProject(prev => prev ? { ...prev, instructions: t } : prev); }} />}
           {activeTab !== "instructions" && <div className="p-4 flex-1 overflow-y-auto space-y-6">
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
@@ -824,20 +830,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   <Textarea
                     value={instructionsValue}
                     onChange={e => setInstructionsValue(e.target.value)}
-                    placeholder="Add context, guidelines, or background the assistant should follow…"
+                    placeholder={tOr('projects.page.instructions_placeholder', "Add context, guidelines, or background the assistant should follow\u2026")}
                     className="min-h-[140px] resize-none text-sm"
                     data-testid="textarea-edit-instructions"
                   />
                   <div className="flex gap-1.5">
                     <Button size="sm" className="h-7 text-xs" onClick={handleSaveInstructions} data-testid="button-save-instructions">
-                      <Save className="w-3 h-3 mr-1" />Save
+                      <Save className="w-3 h-3 mr-1" />{tOr('projects.page.save', "Save")}
                     </Button>
                     <Button
                       variant="outline" size="sm" className="h-7 text-xs"
                       onClick={() => { setInstructionsValue(project.instructions || ""); setIsEditingInstructions(false) }}
                       data-testid="button-cancel-instructions"
                     >
-                      <X className="w-3 h-3 mr-1" />Cancel
+                      <X className="w-3 h-3 mr-1" />{tOr('projects.page.cancel', "Cancel")}
                     </Button>
                   </div>
                 </div>
@@ -846,8 +852,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               ) : (
                 <div className="text-center py-6 text-muted-foreground">
                   <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
-                  <p className="text-xs">No instructions yet</p>
-                  <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
+                  <p className="text-xs">{tOr('projects.page.no_instructions', "No instructions yet")}</p>
+                  <p className="text-xs opacity-70 mt-0.5">{tOr('projects.page.no_instructions_hint', "Add context to help BioMate")}</p>
                 </div>
               )}
             </div>
@@ -855,8 +861,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             {activeTab === "instructions" && <ProjectGuidanceCards projectId={projectId} canEdit={canEdit} onOpenFiles={() => navigate("/files")} />}
 
             <div className={activeTab === "instructions" ? "grid md:grid-cols-2 gap-4" : undefined}>
-            {/* Notes — human-only free text, NOT read by the assistant. */}
-            <div className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : "border-t border-border pt-4"} data-testid="notes-card">
+            {/* Notes — human-only free text, NOT read by the assistant. Removed from the page
+                (founder review 2026-11-10, removenewchat_remove_sidebar.png): a second
+                free-text box beside 常驻指令 confused what the assistant reads. The
+                notes API and stored notes are kept. */}
+            {PROJECT_NOTES_VISIBLE && <div className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : "border-t border-border pt-4"} data-testid="notes-card">
               <h3 className="font-medium text-sm">Notes</h3>
               <p className="text-fs-xs text-muted-foreground mb-3">
                 Private to you — <span className="font-medium">not read by the assistant</span>. Promote a note to make it a standing instruction.
@@ -922,28 +931,28 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
 
             {activeTab === "instructions" && <ProjectInheritanceCard onOpenFiles={() => navigate("/files")} />}
             </div>
 
             {/* Plan / hypothesis — first-class objects a run can cite (project_plans). */}
             {activeTab !== "instructions" && <div className="border-t border-border pt-4" data-testid="plans-card">
-              <h3 className="font-medium text-sm mb-3">Plan / hypothesis</h3>
+              <h3 className="font-medium text-sm mb-3">{tOr('projects.page.plan_title', "Plan / hypothesis")}</h3>
 
               {canEdit && (
                 <div className="space-y-1.5 mb-3" data-testid="new-plan-form">
                   <Input
                     value={newPlanGoal}
                     onChange={e => setNewPlanGoal(e.target.value)}
-                    placeholder="Goal (required)"
+                    placeholder={tOr('projects.page.plan_goal', "Goal (required)")}
                     className="h-8 text-sm"
                     data-testid="input-plan-goal"
                   />
                   <Textarea
                     value={newPlanHypothesis}
                     onChange={e => setNewPlanHypothesis(e.target.value)}
-                    placeholder="Hypothesis (optional)"
+                    placeholder={tOr('projects.page.plan_hypothesis', "Hypothesis (optional)")}
                     className="min-h-[56px] resize-none text-sm"
                     data-testid="textarea-plan-hypothesis"
                   />
@@ -960,10 +969,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
               {plansLoading ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading plans…
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />{tOr('projects.page.loading_plans', "Loading plans\u2026")}
                 </div>
               ) : plans.length === 0 ? (
-                <p className="text-xs text-muted-foreground" data-testid="plans-empty">No plans yet</p>
+                <p className="text-xs text-muted-foreground" data-testid="plans-empty">{tOr('projects.page.no_plans', "No plans yet")}</p>
               ) : (
                 <div className="space-y-2" data-testid="plans-list">
                   {plans.map((p: any) => (
@@ -1119,24 +1128,24 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           </div>}
 
           {activeTab !== "instructions" && <div className="border-t border-border p-4 shrink-0">
-            <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Details</h4>
+            <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">{tOr('projects.page.details', "Details")}</h4>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />Created
+                  <Clock className="w-3 h-3" />{tOr('projects.page.created', "Created")}
                 </span>
-                <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                <span>{new Date(project.createdAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : locale)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Chats</span>
+                <span className="text-muted-foreground">{tOr('projects.page.chats', "Chats")}</span>
                 <span>{sessions.length > 0 ? sessions.length : "—"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Runs</span>
+                <span className="text-muted-foreground">{tOr('projects.page.runs', "Runs")}</span>
                 <span>{runs.length > 0 ? runs.length : "—"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Updated</span>
+                <span className="text-muted-foreground">{tOr('projects.page.updated', "Updated")}</span>
                 <span>{relTime((project as any).updatedAt ?? project.lastActivity)}</span>
               </div>
             </div>
@@ -1148,19 +1157,19 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Rename project</DialogTitle>
+            <DialogTitle>{tOr('projects.page.rename_title', "Rename project")}</DialogTitle>
           </DialogHeader>
           <Input
             value={renameValue}
             onChange={e => setRenameValue(e.target.value)}
-            placeholder="Project name"
+            placeholder={tOr('projects.page.name_placeholder', "Project name")}
             onKeyDown={e => e.key === "Enter" && handleRename()}
             autoFocus
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>{tOr('projects.page.cancel', "Cancel")}</Button>
             <Button onClick={handleRename} disabled={actionLoading || !renameValue.trim()}>
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : tOr('projects.page.save', "Save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1170,15 +1179,15 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive this project?</AlertDialogTitle>
+            <AlertDialogTitle>{tOr('projects.page.archive_title', "Archive this project?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              The project and its linked chats and runs will be archived. You can restore it later by changing its status.
+              {tOr('projects.page.archive_body', "The project and its linked chats and runs will be archived. You can restore it later by changing its status.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tOr('projects.page.cancel', "Cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleArchive} disabled={actionLoading}>
-              {actionLoading ? "Archiving…" : "Archive"}
+              {actionLoading ? tOr('projects.page.archiving', "Archiving\u2026") : tOr('projects.page.archive', "Archive")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1188,19 +1197,19 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+            <AlertDialogTitle>{tOr('projects.page.delete_title', "Delete this project?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the project and all linked data. This action cannot be undone.
+              {tOr('projects.page.delete_body', "This permanently deletes the project and all linked data. This action cannot be undone.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tOr('projects.page.cancel', "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {actionLoading ? "Deleting…" : "Delete"}
+              {actionLoading ? tOr('projects.page.deleting', "Deleting\u2026") : tOr('projects.page.delete', "Delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1210,22 +1219,21 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <AlertDialog open={!!transferTarget} onOpenChange={(open) => { if (!open) { setTransferTarget(null); setTransferError(null) } }}>
         <AlertDialogContent data-testid="dialog-transfer-owner">
           <AlertDialogHeader>
-            <AlertDialogTitle>Transfer ownership?</AlertDialogTitle>
+            <AlertDialogTitle>{tOr('projects.page.transfer_title', "Transfer ownership?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This makes <span className="font-medium text-foreground">{transferTarget?.fullName || transferTarget?.email}</span> the
-              owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.
+              {tOr('projects.page.transfer_body', "This makes {{name}} the owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.", { name: transferTarget?.fullName || transferTarget?.email || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {transferError && <p className="text-xs text-destructive px-1">{transferError}</p>}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={transferring}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={transferring}>{tOr('projects.page.cancel', "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleTransferOwnership() }}
               disabled={transferring}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-transfer-owner"
             >
-              {transferring ? "Transferring…" : "Transfer ownership"}
+              {transferring ? tOr('projects.page.transferring', "Transferring\u2026") : tOr('projects.page.transfer', "Transfer ownership")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

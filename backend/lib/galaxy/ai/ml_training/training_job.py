@@ -30,7 +30,7 @@ from .mlflow_tracker import MLflowTracker
 log = logging.getLogger(__name__)
 
 # Metrics where a *higher* value is better (else lower is better).
-_HIGHER_IS_BETTER_METRICS = {"auc", "accuracy", "f1", "r2", "prc_auc"}
+_HIGHER_IS_BETTER_METRICS = {"auc", "accuracy", "f1", "macro_f1", "r2", "prc_auc"}
 
 _ARTIFACT_ROOT_ENV = "ML_TRAINING_ARTIFACT_ROOT"
 
@@ -213,7 +213,8 @@ def _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker) -> Jo
         # its trainer (not the molecular smiles/label loader) — pass a placeholder.
         dataset = LoadedDataset([], "features", "none",
                                 source="tabular/csv (loaded in trainer)")
-    elif cfg.model_type == "sklearn_tabular":
+    elif cfg.model_type == "sklearn_tabular" or (
+            cfg.model_type == "ludwig_tabular" and cfg.featurizer == "none"):
         # Generic feature-matrix trainer loads its own CSV (not the SMILES loader).
         dataset = LoadedDataset([], "features", cfg.dataset.target_col,
                                 source="tabular (loaded in trainer)")

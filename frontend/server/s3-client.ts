@@ -1,3 +1,4 @@
+import { attachmentDisposition } from './content-disposition';
 import {
   S3Client,
   PutObjectCommand,
@@ -358,12 +359,16 @@ export class S3Service {
    */
   async generatePresignedDownloadUrl(
     key: string,
-    expiresIn: number = 3600
+    expiresIn: number = 3600,
+    /** Set to make the browser SAVE the file under this name: a presigned URL is cross-origin, so
+     *  an <a download> attribute is ignored and a text file would open in the tab instead. */
+    attachmentName?: string,
   ): Promise<string> {
     await this.ensureBucketRegion();
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
+      ...(attachmentName ? { ResponseContentDisposition: attachmentDisposition(attachmentName) } : {}),
     });
 
     return await getSignedUrl(this.s3Client, command, { expiresIn });

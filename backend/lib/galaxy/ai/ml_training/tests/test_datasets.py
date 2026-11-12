@@ -42,9 +42,18 @@ def test_missing_csv_path_rejected():
         load_dataset(DatasetSpec(path="/no/such/file.csv"))
 
 
-def test_s3_source_is_execution_time_stub():
-    with pytest.raises(NotImplementedError):
-        load_dataset(DatasetSpec(s3_uri="s3://bucket/herg.csv"))
+def test_s3_source_is_staged_then_parsed(tmp_path, monkeypatch):
+    # Root-cause fix (2026-11-10): nothing stages params.dataset before the CLI
+    # runs, so the molecular loader stages s3:// itself instead of raising.
+    from galaxy.ai.ml_training import datasets as _ds
+    monkeypatch.chdir(tmp_path)
+    def fake_run(cmd, **k):
+        Path(cmd[4]).write_text("smiles,y\nCCO,0\nc1ccccc1,1\n")
+        class R: returncode = 0
+        return R()
+    monkeypatch.setattr(_ds.subprocess, "run", fake_run)
+    ds = load_dataset(DatasetSpec(s3_uri="s3://bucket/herg.csv"))
+    assert ds.rows == [("CCO", 0.0), ("c1ccccc1", 1.0)]
 
 
 # ── s3 staging helper (added 2026-11-05 after a Batch smoke found s3:// datasets

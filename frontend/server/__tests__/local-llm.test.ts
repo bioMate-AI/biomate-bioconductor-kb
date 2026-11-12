@@ -68,8 +68,13 @@ describe('local inference boundary and tool protocol', () => {
     expect(events.find(e => e.type === 'content_block_delta').delta.partial_json).toBe('{"id":"GSE1"}');
     await expect(client.messages.create({ ...params, tools: [] })).rejects.toThrow('tool call');
   });
-  it('fails explicitly for unsupported image content', () => {
-    expect(() => localMessages({ messages: [{ role: 'user', content: [{ type: 'image' }] }] })).toThrow('does not support');
+  it('renders image content as a text note on the text-only path (no throw)', () => {
+    // Was: throw. An image block (a run_code plot, an attached image) aborted the whole agent turn.
+    const msgs = localMessages({ messages: [{ role: 'user', content: [{ type: 'image', source: { media_type: 'image/png' } }] }] });
+    expect(msgs[0].content).toContain('not visible to this model');
+  });
+  it('still fails explicitly for other unsupported content', () => {
+    expect(() => localMessages({ messages: [{ role: 'user', content: [{ type: 'document' }] }] })).toThrow('does not support');
   });
 });
 
@@ -129,6 +134,15 @@ describe('OpenAI-compatible agentic shim (OpenRouter / any base_url)', () => {
     expect(fetch.mock.calls[0][0]).toBe('https://openrouter.ai/api/v1/chat/completions');
     // same unknown-tool guard as the local path
     await expect(client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools: [] })).rejects.toThrow('tool call');
+  });
+  it('passes tool_choice none through, so the final-answer turn cannot call tools (dev 2026-11-11 CRISPR QC)', async () => {
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(reply({ content: 'QC summary' }))); vi.stubGlobal('fetch', fetch);
+    const client = openaiCompatMessagesClient({ url: 'https://openrouter.ai/api/v1', model: 'm', key: 'k' });
+    const tools = [{ name: 'run_code', input_schema: { type: 'object', properties: { code: { type: 'string' } } } }];
+    await client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools, tool_choice: { type: 'none' } });
+    expect(JSON.parse(fetch.mock.calls[0][1].body).tool_choice).toBe('none');
+    await client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools });
+    expect(JSON.parse(fetch.mock.calls[1][1].body).tool_choice).toBe('auto');
   });
   it('rejects a tool call whose arguments violate the schema (guardrail parity)', async () => {
     const fetch = vi.fn().mockResolvedValue(reply({ tool_calls: [{ id: 'c', type: 'function',

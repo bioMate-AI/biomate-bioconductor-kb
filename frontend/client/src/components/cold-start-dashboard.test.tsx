@@ -15,7 +15,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ColdStartDashboard, COLD_MODULES, COLD_DOMAINS, COLD_MODALITIES, readIntent, seedWithModality } from "./cold-start-dashboard";
+import { ColdStartDashboard, COLD_MODULES, COLD_DOMAINS, COLD_MODALITIES, readIntent, seedWithModality, landingModules, coldCopyKey } from "./cold-start-dashboard";
+import en from "@/locales/en/common.json";
+import zh from "@/locales/zh/common.json";
 
 /** The card element for a given module id. */
 function cardFor(moduleId: string): HTMLElement {
@@ -31,8 +33,34 @@ function headerFor(moduleId: string): HTMLElement {
 }
 
 describe("<ColdStartDashboard>", () => {
-  it("renders all four function-module cards, collapsed", () => {
+  it("landing default shows every module, molecule design & generate included", () => {
     render(<ColdStartDashboard onSeed={() => {}} />);
+    const ids = screen.getAllByTestId("cold-module-card").map((c) => c.getAttribute("data-module-id"));
+    expect(ids).toEqual(landingModules().map((m) => m.id));
+    expect(ids).toContain("design");
+    expect(screen.getByText("Molecule design & generate")).toBeInTheDocument();
+    expect(screen.getByText("What would you like to work on today?")).toBeInTheDocument();
+  });
+
+  it("every card label, track, example and shape has display copy in BOTH locale bundles", () => {
+    const texts = new Set<string>();
+    for (const m of COLD_MODULES) for (const tr of m.tracks) {
+      texts.add(tr.k); tr.ex.forEach((x) => texts.add(x));
+      if (tr.exBy) Object.values(tr.exBy).flat().forEach((x) => texts.add(x));
+    }
+    for (const d of COLD_DOMAINS) {
+      texts.add(d.name);
+      for (const sh of d.shapes) { texts.add(sh.t); texts.add(sh.needs); texts.add(sh.time); if (sh.sampleDataset) texts.add(sh.sampleDataset.label); }
+    }
+    for (const text of texts) {
+      const key = coldCopyKey(text);
+      expect((en as any).cold_start.copy[key], `en missing ${text}`).toBe(text);
+      expect((zh as any).cold_start.copy[key], `zh missing ${text}`).toMatch(/[\u3400-\u9fff]|^[A-Za-z0-9 ()]+（示例）$|SMILES/);
+    }
+  });
+
+  it("renders all four function-module cards, collapsed", () => {
+    render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
     expect(screen.getByTestId("cold-start-dashboard")).toBeInTheDocument();
     const cards = screen.getAllByTestId("cold-module-card");
     expect(cards).toHaveLength(COLD_MODULES.length);
@@ -51,8 +79,8 @@ describe("<ColdStartDashboard>", () => {
   });
 
   it("shows the cold-start prompt heading but NOT a duplicate goal intent bar", () => {
-    render(<ColdStartDashboard onSeed={() => {}} />);
-    expect(screen.getByText("What are you trying to do?")).toBeInTheDocument();
+    render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
+    expect(screen.getByText("What would you like to work on today?")).toBeInTheDocument();
     // The "describe your goal" intent bar was removed 2026-11-09 — it duplicated the
     // always-present bottom composer (same onSeed→composer path). The cold-start now
     // guides via the module cards/example rows and leaves typing to the one composer.
@@ -61,7 +89,7 @@ describe("<ColdStartDashboard>", () => {
 
   it("expands a card on click (body + tracks + examples visible) and collapses on a second click", async () => {
     const user = userEvent.setup();
-    render(<ColdStartDashboard onSeed={() => {}} />);
+    render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
     const header = headerFor("search");
 
     // Open.
@@ -86,7 +114,7 @@ describe("<ColdStartDashboard>", () => {
 
   it("opening a second card closes the first (single-open)", async () => {
     const user = userEvent.setup();
-    render(<ColdStartDashboard onSeed={() => {}} />);
+    render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
 
     await user.click(headerFor("search"));
     expect(cardFor("search")).toHaveAttribute("data-open", "true");
@@ -101,7 +129,7 @@ describe("<ColdStartDashboard>", () => {
 
   it("switching a track swaps the shown examples", async () => {
     const user = userEvent.setup();
-    render(<ColdStartDashboard onSeed={() => {}} />);
+    render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
     await user.click(headerFor("search"));
     const body = within(cardFor("search")).getByTestId("cold-module-body");
 
@@ -122,7 +150,7 @@ describe("<ColdStartDashboard>", () => {
   it("domain chips (Data analysis → Validated workflows) swap examples for that domain's shapes", async () => {
     const user = userEvent.setup();
     const onSeed = vi.fn();
-    render(<ColdStartDashboard onSeed={onSeed} />);
+    render(<ColdStartDashboard onSeed={onSeed} modules={COLD_MODULES} />);
     await user.click(headerFor("analysis"));
     const body = within(cardFor("analysis")).getByTestId("cold-module-body");
 
@@ -145,14 +173,18 @@ describe("<ColdStartDashboard>", () => {
 
   it("shows a 'sample' badge on examples that carry a provided sample dataset", async () => {
     const user = userEvent.setup();
-    render(<ColdStartDashboard onSeed={() => {}} />);
+    render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
     await user.click(headerFor("analysis"));
     const body = within(cardFor("analysis")).getByTestId("cold-module-body");
     await user.click(within(body).getByTestId("cold-track-validated-workflows"));
 
-    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows.
+    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows;
+    // one badge per shape that names a dataset, in shape order.
     await user.click(within(body).getByTestId("cold-domain-dd"));
-    expect(within(body).getByTestId("cold-shape-sample")).toHaveTextContent(/example SMILES/i);
+    const dd = COLD_DOMAINS.find((d) => d.id === "dd")!;
+    const badges = within(body).getAllByTestId("cold-shape-sample");
+    expect(badges).toHaveLength(dd.shapes.filter((s) => s.sampleDataset).length);
+    expect(badges[0]).toHaveTextContent(/example SMILES/i);
 
     // Data integrity: every attached sample has a real label + ref (no empty
     // "sample provided" that can't run), and the seed asks to run on it.
@@ -170,7 +202,7 @@ describe("<ColdStartDashboard>", () => {
   it("seeds the composer (not send) when an example intent is clicked", async () => {
     const user = userEvent.setup();
     const onSeed = vi.fn();
-    render(<ColdStartDashboard onSeed={onSeed} />);
+    render(<ColdStartDashboard onSeed={onSeed} modules={COLD_MODULES} />);
 
     // Examples live inside the open card.
     await user.click(headerFor("search"));
@@ -202,7 +234,7 @@ describe("<ColdStartDashboard>", () => {
 
   it("no fabricated inventory count appears on any card (no-inventory rule §0.9)", async () => {
     const user = userEvent.setup();
-    const { container } = render(<ColdStartDashboard onSeed={() => {}} />);
+    const { container } = render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
     // Open every card + the domain chips so all copy is in the DOM.
     for (const m of COLD_MODULES) {
       await user.click(headerFor(m.id));
@@ -228,7 +260,7 @@ describe("<ColdStartDashboard>", () => {
 
     it("shows the modality chip row only on the design card", async () => {
       const user = userEvent.setup();
-      render(<ColdStartDashboard onSeed={() => {}} />);
+      render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
       // Not present on a non-modality module.
       await user.click(headerFor("search"));
       expect(within(cardFor("search")).queryByTestId("cold-modality-pep")).toBeNull();
@@ -242,7 +274,7 @@ describe("<ColdStartDashboard>", () => {
 
     it("switching modality swaps the shown examples", async () => {
       const user = userEvent.setup();
-      render(<ColdStartDashboard onSeed={() => {}} />);
+      render(<ColdStartDashboard onSeed={() => {}} modules={COLD_MODULES} />);
       await user.click(headerFor("design"));
       const body = within(cardFor("design")).getByTestId("cold-module-body");
       const design = COLD_MODULES.find((m) => m.id === "design")!;
@@ -258,7 +290,7 @@ describe("<ColdStartDashboard>", () => {
     it("seeds carry the modality: peptide/protein goals name the modality, small-molecule left as-is", async () => {
       const user = userEvent.setup();
       const onSeed = vi.fn();
-      render(<ColdStartDashboard onSeed={onSeed} />);
+      render(<ColdStartDashboard onSeed={onSeed} modules={COLD_MODULES} />);
       await user.click(headerFor("design"));
       const body = within(cardFor("design")).getByTestId("cold-module-body");
       const genTrack = COLD_MODULES.find((m) => m.id === "design")!.tracks[0];
@@ -299,6 +331,18 @@ describe("<ColdStartDashboard>", () => {
       // The peptide/protein design examples read as design (cloud), not instant.
       const pepEx = design.tracks[0].exBy!.pep[0];
       expect(readIntent(pepEx)!.lane).toBe("cloud");
+    });
+
+    it("surfaces the Fold & complex track (Boltz-2 cofold) and every variant reads as Structure prediction", () => {
+      const design = COLD_MODULES.find((m) => m.id === "design")!;
+      const fold = design.tracks.find((t) => t.k === "Fold & complex");
+      expect(fold, "design module is missing the Fold & complex track").toBeTruthy();
+      const variants = [...fold!.ex, ...Object.values(fold!.exBy!).flat()];
+      for (const ex of variants) {
+        const r = readIntent(ex);
+        expect(r?.lane, `fold example not cloud: ${ex}`).toBe("cloud");
+        expect(r?.domain, `fold example not Structure prediction: ${ex}`).toBe("Structure prediction");
+      }
     });
   });
 

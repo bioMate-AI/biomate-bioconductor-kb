@@ -17,6 +17,11 @@
   min-width: 0;
 }
 
+/* The "select a dataset" pane matches the file list's height. */
+.data-hub-detail-empty {
+  min-height: clamp(12rem, 35vh, 20rem);
+}
+
 @container data-hub (min-width: 52rem) {
   .data-hub-panes {
     grid-template-columns: 17.5rem minmax(0, 1fr);
@@ -25,5 +30,9 @@
   .data-hub-file-list {
     height: 72vh;
     min-height: 26.25rem;
+  }
+
+  .data-hub-detail-empty {
+    min-height: max(72vh, 26.25rem);
   }
 }

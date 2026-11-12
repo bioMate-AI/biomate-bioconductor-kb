@@ -118,9 +118,12 @@ def load_structure_set(dataset_pointer: str) -> list[str]:
 
 def _resolve_structure_pointer(cfg: TrainingConfig) -> str:
     ds = cfg.dataset
-    # In the container the executor has staged s3:// to a local path (ds.path);
-    # for local runs the user gives path=; name= is a named fixture pointer.
-    return str(ds.path or ds.s3_uri or ds.name or "")
+    # Nothing stages params.dataset before the CLI runs, so an s3:// structure
+    # file / manifest is staged here; path= is local; name= is a fixture pointer.
+    if ds.s3_uri:
+        from .datasets import resolve_local_dataset_path
+        return resolve_local_dataset_path(ds)
+    return str(ds.path or ds.name or "")
 
 
 def train_diffusion(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> TrainingResult:

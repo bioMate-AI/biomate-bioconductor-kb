@@ -126,6 +126,9 @@ import { InteractiveLauncher } from "@/components/interactive-launcher";
 interface AfterRunReportProps {
   /** Parent workflow tab already names this region. */
   embedded?: boolean;
+  /** The host (workflow panel) already states the failure cause in its diagnosis
+   *  card; show only failed steps, raw error and log tail here (one cause, once). */
+  hideFailureDiagnosis?: boolean;
   runId: string;
   invocationId?: string;       // backend Galaxy/Nextflow invocation id (for /qc-events)
   workflowName?: string;
@@ -199,6 +202,7 @@ export function AfterRunReport({
   projectId,
   targetTab,
   embedded = false,
+  hideFailureDiagnosis = false,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
@@ -496,6 +500,7 @@ export function AfterRunReport({
           invocationId={invocationId}
           runId={runId}
           parameters={parameters}
+          hideDiagnosis={hideFailureDiagnosis}
         />
       )}
       <div role="tablist" style={styles.tabBar} data-visible-tabs={visibleTabs.map(([id]) => id).join(',')}>
@@ -638,12 +643,13 @@ function FailedRunSection({
   status,
   errorMessage,
   failedSteps,
-  logTail,
   autofix,
   invocationId,
   runId,
   parameters,
+  hideDiagnosis = false,
 }: {
+  hideDiagnosis?: boolean;
   status: string;
   errorMessage?: string;
   failedSteps?: string[];
@@ -654,8 +660,6 @@ function FailedRunSection({
   parameters?: Record<string, unknown>;
 }) {
   const cancelled = status === 'cancelled';
-  const tail = (logTail || []).slice(-20);
-  const totalLines = logTail?.length || 0;
 
   // Detailed per-attempt history (lazy-fetched only when user expands).
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -737,7 +741,7 @@ function FailedRunSection({
           </div>
           {autofixExhausted ? (
             <p style={styles.autofixMsg}>
-              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the underlying error and log tail below for the final failure.', { n: autofix?.totalAttempts ?? 0 })}
+              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the error and next step below.', { n: autofix?.totalAttempts ?? 0 })}
             </p>
           ) : autofix?.state === 'succeeded' ? (
             <p style={styles.autofixMsg}>
@@ -785,20 +789,23 @@ function FailedRunSection({
           it is hidden and only the raw error below is shown — we never invent a
           cause. The raw error stays available in the block beneath. */}
       {(() => {
-        const diag = errorMessage ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
+        const diag = errorMessage && !hideDiagnosis ? classifyRunFailure(errorMessage, { process: failedSteps?.[0] }) : null;
         if (!diag || !diag.known || !diag.cause) return null;
+        const { i18n } = diag;
+        const cause = i18n.cause ? tOr(i18n.cause, diag.cause, i18n.vars) : diag.cause;
+        const culprit = diag.culprit ? (i18n.culprit ? tOr(i18n.culprit, diag.culprit, i18n.vars) : diag.culprit) : '';
         return (
           <div style={styles.failureDiagnosis} data-testid="afterrun-failure-diagnosis" data-failure-class={diag.klass}>
             <div style={styles.failureDiagnosisCause}>
-              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {diag.cause}
+              <strong>{tOr('afterrun.why_failed', 'Why it failed')}:</strong> {cause}
             </div>
-            {diag.culprit && !diag.cause.includes(diag.culprit) && (
+            {culprit && !diag.cause.includes(diag.culprit!) && (
               <div style={styles.failureDiagnosisLine}>
-                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {diag.culprit}
+                <strong>{tOr('afterrun.at_fault', 'At fault')}:</strong> {culprit}
               </div>
             )}
             <div style={styles.failureDiagnosisLine}>
-              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {diag.nextAction}
+              <strong>{tOr('afterrun.next_action', 'Next')}:</strong> {tOr(i18n.next, diag.nextAction, i18n.vars)}
             </div>
           </div>
         );
@@ -821,14 +828,11 @@ function FailedRunSection({
         </div>
       )}
 
-      {tail.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div style={styles.failedStepLabel}>
-            {tOr('afterrun.log_tail', 'Log tail')} {totalLines > tail.length ? tOr('afterrun.log_tail_showing', '(showing last {{n}} of {{total}})', { n: tail.length, total: totalLines }) : tOr('afterrun.log_tail_lines', '({{n}} lines)', { n: tail.length })}
-          </div>
-          <pre style={styles.logTailBlock}>{tail.join('\n')}</pre>
-        </div>
-      )}
+      {/* Raw Nextflow log tail intentionally NOT shown here (founder 2026-11-11:
+          internal engine logs — CacheDB teardown, plugin stop, pf4j DEBUG — must
+          never surface to the user). The user-readable diagnosis + the real error
+          message (humanizeNfError) above are what the user needs; full engine logs
+          remain available in the dedicated job-log viewer for support/debugging. */}
     </div>
   );
 }
@@ -1278,40 +1282,59 @@ function OutputsTab({
   useEffect(() => {
     if (outputs.length > 0 || !runId) return;
     let cancelled = false;
-    (async () => {
+    let attempts = 0;
+    // A just-completed run often registers its S3 outputs a few seconds AFTER
+    // status flips to `completed` (the Batch job writes + the backend scans).
+    // A single fetch on mount therefore got an empty list and left the Outputs
+    // tab permanently blank ("completed but no content"). Poll while the run is
+    // terminal and the list is still empty — ~60s covers the registration lag.
+    const MAX_ATTEMPTS = 15;
+    const terminal = () =>
+      ["completed", "succeeded", "ok"].includes(String(executionStatus || "").toLowerCase());
+    const poll = async () => {
       try {
         const r = await fetch(
           `/api/workflows/runs/${encodeURIComponent(runId)}/output_files`,
           { credentials: "include" },
         );
-        if (!r.ok || cancelled) return;
-        const j = await r.json();
-        const arr = (j?.output_files || j?.outputs || []) as any[];
-        if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
-        setFetched(
-          arr.map((f) => {
-            const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
-            const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
-            const ext = String(
-              f?.extension ||
-                (name.includes(".") ? name.split(".").pop() : "") ||
-                "",
-            ).toLowerCase();
-            const parts = filePath.split("/").filter(Boolean);
-            const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
-            // Don't surface an opaque run/history id (76d11493) as the step label.
-            const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
-            const step = isOpaqueId ? "" : rawStep;
-            // Real byte size is in the fetched output_files payload — thread it
-            // so the card shows the actual size (humanSize) instead of nothing.
-            const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
-            return { step, name, path: filePath, ext, size, download_url: f?.download_url };
-          }),
-        );
-      } catch { /* silent — empty state still useful */ }
-    })();
+        if (cancelled) return;
+        if (r.ok) {
+          const j = await r.json();
+          const arr = (j?.output_files || j?.outputs || []) as any[];
+          if (!cancelled && Array.isArray(arr) && arr.length > 0) {
+            setFetched(
+              arr.map((f) => {
+                const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
+                const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
+                const ext = String(
+                  f?.extension ||
+                    (name.includes(".") ? name.split(".").pop() : "") ||
+                    "",
+                ).toLowerCase();
+                const parts = filePath.split("/").filter(Boolean);
+                const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
+                // Don't surface an opaque run/history id (76d11493) as the step label.
+                const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
+                const step = isOpaqueId ? "" : rawStep;
+                // Real byte size is in the fetched output_files payload — thread it
+                // so the card shows the actual size (humanSize) instead of nothing.
+                const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
+                return { step, name, path: filePath, ext, size, download_url: f?.download_url };
+              }),
+            );
+            return; // populated — stop polling
+          }
+        }
+      } catch { /* fall through to retry */ }
+      // Still empty: retry while the run is terminal (outputs still registering).
+      attempts += 1;
+      if (!cancelled && terminal() && attempts < MAX_ATTEMPTS) {
+        setTimeout(poll, 4000);
+      }
+    };
+    poll();
     return () => { cancelled = true; };
-  }, [runId, outputs.length]);
+  }, [runId, outputs.length, executionStatus]);
   const effectiveOutputs = outputs.length > 0 ? outputs : fetched;
   // FIX #9.1 — separate Nextflow run-metadata (pipeline_info/, dag.html,
   // report.html, timeline.html, trace.txt, execution_*, .nextflow.log) from

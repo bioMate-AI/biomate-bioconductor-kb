@@ -109,6 +109,80 @@ _TABULAR_TARGET_ZH = {"亚型": "subtype", "分型": "subtype", "预后": "progn
                       "响应": "response", "分组": "group", "分级": "grade", "分期": "stage"}
 
 
+# Measured LABEL columns a molecular training table carries, in the words a request uses for them.
+# Ordered most-specific first ("pIC50" before "IC50"); the matched token is the column name, so the
+# card shows the user's own column instead of a neutral "y" they would have to correct by hand.
+_TARGET_COL_TOKENS = (
+    "pic50", "pec50", "pki", "pkd", "pxc50",
+    "ic50_nm", "ec50_nm", "ic50", "ec50", "ki", "kd",
+    "logp", "logd", "logs", "solubility", "permeability", "clearance",
+    "potency", "activity", "label",
+)
+# "train on <col>" / "using SMILES and <col>" style mentions are the reliable ones; a bare mention
+# of the assay in prose is not (that is what the public-dataset aliases are for).
+_TARGET_COL_RE = re.compile(
+    r"\b(" + "|".join(_TARGET_COL_TOKENS) + r")\b", re.I)
+
+
+def _infer_target_col(text: str) -> Optional[str]:
+    """The label column a molecular training request names, in the request's own spelling.
+
+    Rules-first (CLAUDE.md): a deterministic scan for known assay/endpoint column tokens, longest
+    match first so "pIC50" never degrades to "IC50". Returns None when the request names none —
+    the caller then falls back to the public-dataset alias column, else "y".
+    """
+    best: Optional[str] = None
+    best_rank = len(_TARGET_COL_TOKENS)
+    for m in _TARGET_COL_RE.finditer(text or ""):
+        tok = m.group(1)
+        rank = _TARGET_COL_TOKENS.index(tok.lower())
+        if rank < best_rank:
+            best, best_rank = tok, rank
+    return best
+
+
+# Extensions whose contents a training job can actually read (a training table / corpus). An
+# attached FASTQ or BAM is NOT training data, so a "train a model" request with only raw reads
+# attached still falls through to the normal workflow search instead of inventing a training job.
+_TRAINING_DATA_EXTS = (
+    ".csv", ".tsv", ".parquet", ".xlsx", ".jsonl", ".json", ".h5ad", ".smi", ".sdf", ".txt",
+)
+
+
+def select_training_dataset(datasets: Optional[Any]) -> Optional[str]:
+    """The URI/path of the attached dataset a training job should train on, or None.
+
+    ``datasets`` is the session-dataset list threaded into generate_workflow (dicts with
+    name/s3_uri/path fields) — the SAME list routing already grounds input kinds in. First
+    attachment with a readable training-data extension wins; ``.txt`` is accepted last so a
+    gene-list sidecar never outranks a real table. NEVER raises: routing must not break on a
+    malformed dataset entry.
+    """
+    best: Optional[str] = None
+    best_rank = len(_TRAINING_DATA_EXTS)
+    for ds in (datasets or []):
+        try:
+            if isinstance(ds, str):
+                name, uri = ds, ds
+            elif isinstance(ds, dict):
+                name = str(ds.get("name") or ds.get("filename") or ds.get("s3_uri")
+                           or ds.get("path") or ds.get("file_path") or "")
+                uri = str(ds.get("s3_uri") or ds.get("s3Uri") or ds.get("uri")
+                          or ds.get("path") or ds.get("file_path") or name)
+            else:
+                continue
+            if not name or not uri:
+                continue
+            low = name.lower()
+            for rank, ext in enumerate(_TRAINING_DATA_EXTS):
+                if low.endswith(ext) and rank < best_rank:
+                    best, best_rank = uri, rank
+                    break
+        except Exception:  # noqa: BLE001 — one bad entry must not drop the rest
+            continue
+    return best
+
+
 def _infer_tabular_target(text: str) -> str:
     m = _TABULAR_TARGET.search(text)
     if m:
@@ -269,7 +343,11 @@ def extract_training_config(
 
     # dataset spec
     if dataset_s3_uri:
-        target = alias[2] if alias else "y"
+        # The user's own attached table wins over a public alias: "train an hERG classifier on
+        # THIS file" must train on their file. The label column is read from the request when it
+        # names one (pIC50 / IC50 / activity / …); the alias column is the fallback for a public
+        # assay; "y" only when nothing says otherwise. The card is editable either way.
+        target = _infer_target_col(text) or (alias[2] if alias else "y")
         dataset = DatasetSpec(s3_uri=dataset_s3_uri, target_col=target)
     elif alias:
         dataset = DatasetSpec(name=f"tdc:{alias[0]}", target_col=alias[2])
@@ -292,33 +370,48 @@ def extract_training_config(
     ).validate()
 
 
+def nextflow_path_for(model_type: str) -> str:
+    """The Nextflow wrapper that runs a model_type.
+
+    Each diffusion family runs in its own wrapper (distinct GPU image); every
+    other model type shares the generic training wrapper (dispatch is by
+    --model-type in the CLI). Single source of truth for chat routing and the
+    Models-panel plan endpoint.
+    """
+    if model_type == "protein_diffusion":
+        return "ml_training/diffusion_train.nf"
+    if model_type == "scrna_diffusion":
+        return "ml_training/scrna_diffusion_train.nf"
+    return "ml_training/chemprop_train.nf"
+
+
 def route_ml_training(
     text: str,
     *,
     dataset_s3_uri: Optional[str] = None,
+    uploaded_datasets: Optional[Any] = None,
     llm_fill: Optional[Callable[[str], dict[str, Any]]] = None,
 ) -> Optional[dict[str, Any]]:
     """Router hook: return a workflow_ga for a training request, else None.
 
     Returning None means "not a training intent — fall through to the normal
     workflow search". This is what the reviewed ai_assistant hook calls.
+
+    ``uploaded_datasets`` is the user's attached session data: when the request says "train a
+    model on THIS data", that attachment IS the dataset, and without it the extraction used to
+    fail to resolve one and fall through to the catalog search — which answered a model-TRAINING
+    request with a molecule-DESIGN workflow (dev 2026-11-11, "Train a potency predictor on our
+    in-house assay data." + bace_assays.csv → a scaffold-hopping card asking for `input_smiles`).
     """
     if not detect_training_intent(text):
         return None
+    if not dataset_s3_uri:
+        dataset_s3_uri = select_training_dataset(uploaded_datasets)
     try:
         cfg = extract_training_config(text, dataset_s3_uri=dataset_s3_uri, llm_fill=llm_fill)
     except ValueError:
         return None  # ambiguous → let the normal router try
-    # Each diffusion family runs in its own Nextflow wrapper (distinct GPU image);
-    # other model types share the molecular wrapper (dispatch is by --model-type
-    # in the CLI).
-    if cfg.model_type == "protein_diffusion":
-        nf_path = "ml_training/diffusion_train.nf"
-    elif cfg.model_type == "scrna_diffusion":
-        nf_path = "ml_training/scrna_diffusion_train.nf"
-    else:
-        nf_path = "ml_training/chemprop_train.nf"
-    ga = cfg.to_workflow_ga(nextflow_path=nf_path)
+    ga = cfg.to_workflow_ga(nextflow_path=nextflow_path_for(cfg.model_type))
     ga["scientific_rationale"] = (
         f"Detected a model-training request; routing to the ml_training pipeline "
         f"({cfg.model_type}, {cfg.task_type}) on dataset "
@@ -332,6 +425,7 @@ def route_ml_training_result(
     *,
     enabled: Optional[bool] = None,
     dataset_s3_uri: Optional[str] = None,
+    uploaded_datasets: Optional[Any] = None,
     llm_fill: Optional[Callable[[str], dict[str, Any]]] = None,
 ) -> Optional[dict[str, Any]]:
     """Feature-flagged router entry used by ai_assistant.generate_workflow_unified.
@@ -346,7 +440,8 @@ def route_ml_training_result(
         enabled = os.environ.get("ML_TRAINING_ROUTING") == "1"
     if not enabled:
         return None
-    ga = route_ml_training(text, dataset_s3_uri=dataset_s3_uri, llm_fill=llm_fill)
+    ga = route_ml_training(text, dataset_s3_uri=dataset_s3_uri,
+                           uploaded_datasets=uploaded_datasets, llm_fill=llm_fill)
     if ga is None:
         return None
     return {
@@ -359,10 +454,20 @@ def route_ml_training_result(
     }
 
 
+# "Train a potency predictor", "build a solubility classifier", "fit a hERG regression model" — the
+# model the user asked for, in their own words. The card title and the chat text both come from this
+# name, so a generic "molecular model" makes the reply unable to say what was built.
+_MODEL_NAME_RE = re.compile(
+    r"\b(?:a|an|the)?\s*([a-z0-9][\w+-]{2,30})\s+(predictor|classifier|regressor|model)\b", re.I)
+
+
 def _derive_name(text: str, alias: Optional[tuple[str, str, str]]) -> str:
     if alias:
         kind = "classifier" if alias[1] == "classification" else "regressor"
         return f"{alias[0]} {kind}"
+    m = _MODEL_NAME_RE.search(text or "")
+    if m and m.group(1).lower() not in ("a", "an", "the", "new", "our", "my", "this", "that"):
+        return f"{m.group(1)} {m.group(2).lower()}"
     return "molecular model"
 
 

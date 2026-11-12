@@ -16,8 +16,8 @@ from typing import Any
 from .config import TrainingConfig
 from .datasets import LoadedDataset
 from .chemprop_trainer import TrainingResult
-from .ludwig_adapter import (to_ludwig_config, featurize_smiles_df, add_split_column,
-                             FEATURE_COLUMNS)
+from .ludwig_adapter import (to_ludwig_config, to_ludwig_tabular_config,
+                             featurize_smiles_df, add_split_column, FEATURE_COLUMNS)
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +32,8 @@ def train_ludwig(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> T
         ) from e
 
     target = cfg.dataset.target_col or "y"
+    if cfg.featurizer == "none":
+        return _train_ludwig_generic(cfg, artifact_dir, LudwigModel, target)
     df = featurize_smiles_df(ds.smiles, ds.labels, target_col=target)
     if len(df) < 4:
         raise ValueError(f"too few valid molecules to train ({len(df)})")
@@ -64,6 +66,49 @@ def train_ludwig(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> T
         framework_version=f"ludwig=={_lud.globals.LUDWIG_VERSION if hasattr(_lud,'globals') else getattr(_lud,'__version__','?')}",
         extra={"model_dir": model_dir, "feature_columns": FEATURE_COLUMNS,
                "target_col": target, "split": split_meta},
+    )
+    _write_manifest(artifact_dir, cfg, result)
+    return result
+
+
+def _train_ludwig_generic(cfg: TrainingConfig, artifact_dir: str, LudwigModel: Any,
+                          target: str) -> TrainingResult:
+    """Ludwig NN over a generic numeric feature matrix — no SMILES, no RDKit.
+
+    Reads the user's table (CSV/TSV/JSONL/parquet) through the same loader the
+    sklearn tabular learner uses, so both general learners see identical
+    features (non-numeric id columns dropped, missing cells mean-imputed).
+    """
+    import pandas as pd
+    from .datasets import load_tabular_dataset, resolve_local_dataset_path
+
+    task = cfg.task_type if cfg.task_type in ("classification", "regression") else "classification"
+    tab = load_tabular_dataset(resolve_local_dataset_path(cfg.dataset), target, task=task)
+    if len(tab) < 4:
+        raise ValueError(f"too few labelled rows to train ({len(tab)})")
+    df = pd.DataFrame(tab.X, columns=tab.feature_names)
+    df[target] = tab.y
+    config = to_ludwig_tabular_config(cfg, tab.feature_names, target)
+    split_meta = add_split_column(df, cfg)
+    log.info("[ludwig] training generic %s: %d rows x %d features, %d epochs, split=%s",
+             cfg.name, len(df), len(tab.feature_names), cfg.hyperparams.epochs,
+             split_meta["method"])
+    model = LudwigModel(config, logging_level=logging.ERROR)
+    train_stats, _, _ = model.train(
+        dataset=df, output_directory=str(Path(artifact_dir) / "ludwig_run"),
+        skip_save_processed_input=True,
+    )
+    metrics = _extract_metrics(cfg, train_stats, target)
+    model_dir = str(Path(artifact_dir) / "ludwig_model")
+    model.save(model_dir)
+    import ludwig as _lud
+    result = TrainingResult(
+        model_type="ludwig_tabular", artifact_dir=artifact_dir, metrics=metrics,
+        n_train=len(df), n_val=0, n_test=0,
+        framework_version=f"ludwig=={getattr(_lud, '__version__', '?')}",
+        extra={"model_dir": model_dir, "feature_columns": tab.feature_names,
+               "featurizer": "none", "target_col": target, "split": split_meta,
+               "dataset_source": tab.source},
     )
     _write_manifest(artifact_dir, cfg, result)
     return result

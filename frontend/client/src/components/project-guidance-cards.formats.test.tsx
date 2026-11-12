@@ -63,7 +63,9 @@ describe('output format editor', () => {
  it('bulk insertion preserves an enabled existing template and prevents repeats', async () => {
   await open(); fireEvent.click(screen.getByRole('button', { name: 'Start from these examples' }));
   await waitFor(() => expect(stored).toHaveLength(4));
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Start from these examples' }).hasAttribute('disabled')).toBe(true));
+  // Once every example kind is present, the onboarding examples block is a duplicate
+  // of the list, so it is hidden — the seed button disappears rather than just disabling.
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Start from these examples' })).toBeNull());
   expect(stored[0]).toEqual(original);
  });
 });

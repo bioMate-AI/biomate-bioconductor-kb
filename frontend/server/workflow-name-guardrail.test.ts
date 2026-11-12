@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alternativeWorkflowNames, textWorkflowName, workflowSlug } from './galaxy-assistant';
+import { alternativeWorkflowNames, relabelWorkflowHeader, textWorkflowName, workflowSlug } from './galaxy-assistant';
 
 // The only alternatives the response may lead with (and Step 6c-2 may follow): the search's
 // other candidates, without the card itself or the catalog's duplicate rows of one workflow.
@@ -65,5 +65,34 @@ describe('workflowSlug — one identity for display names and ids', () => {
     expect(workflowSlug('perform_chipseq_peak_calling_with_macs2')).toBe('perform_chipseq_peak_calling_with_macs2');
     expect(workflowSlug('Predict ADMET Properties (AI)')).toBe('predict_admet_properties_ai');
     expect(workflowSlug('')).toBe('');
+  });
+});
+
+// Dev 2026-11-11 (founder screenshot): "Design nanobody candidates against this epitope." answered
+// "**Nanobody Fusion Design** — …" / "**Nanobody Design Against SARS-CoV-2 Spike RBD** — …" over a
+// `bispecific_antibody_design` card. An invented title is never one of the search candidates, so
+// Step 6c-2 kept the card (correctly) and left the reply naming a workflow that does not exist.
+// CLAUDE.md: the chat name must be the card title exactly, so the header is relabelled in place.
+describe('relabelWorkflowHeader — the reply adopts the card name when its own name is invented', () => {
+  it('rewrites the header and keeps the one-line description', () => {
+    const text = '**Nanobody Design Against SARS-CoV-2 Spike RBD** — Structure-guided epitope mapping.\n\n- **Input:** 6Z43.pdb';
+    expect(relabelWorkflowHeader(text, 'Nanobody Design Against SARS-CoV-2 Spike RBD', 'Bispecific Antibody Design'))
+      .toBe('**Bispecific Antibody Design** — Structure-guided epitope mapping.\n\n- **Input:** 6Z43.pdb');
+  });
+
+  it('leaves the body alone and only touches the first bold span', () => {
+    const text = '**Nanobody Fusion Design** — 针对 SARS-CoV-2 Spike RBD 表位的纳米抗体候选设计\n- **Input:** 6Z43.pdb';
+    expect(relabelWorkflowHeader(text, 'Nanobody Fusion Design', 'Bispecific Antibody Design'))
+      .toBe('**Bispecific Antibody Design** — 针对 SARS-CoV-2 Spike RBD 表位的纳米抗体候选设计\n- **Input:** 6Z43.pdb');
+  });
+
+  it('is a no-op when the header already is the card, when it is some other span, or when inputs are missing', () => {
+    const same = '**Bispecific Antibody Design** — two-arm construct';
+    expect(relabelWorkflowHeader(same, 'bispecific_antibody_design', 'Bispecific Antibody Design')).toBe(same);
+    const moved = '- **Input:** Your FASTA\n**Qsar Rf Model** — train a model';
+    expect(relabelWorkflowHeader(moved, 'Qsar Rf Model', 'Scaffold Hopping')).toBe(moved);
+    expect(relabelWorkflowHeader('no bold here', 'X', 'Y')).toBe('no bold here');
+    expect(relabelWorkflowHeader('**X** — y', '', 'Y')).toBe('**X** — y');
+    expect(relabelWorkflowHeader('**X** — y', 'X', '')).toBe('**X** — y');
   });
 });

@@ -5,10 +5,11 @@
  *
  * Header:  name · v{N} chip · quality pill · [Ask in chat] [Download]
  * Tabs:    Preview · Versions · Where it came from
- *   Preview       — Table / Columns / Plot toggle + a 4-card stat grid.
+ *   Preview       — Table / Columns / Plot toggle over the file's FULL rows (paged
+ *                   from GET /api/projects/:id/files/:fileId/rows), the Data QC card
+ *                   directly under the table, and a 4-card stat grid.
  *   Versions      — the append-only version log + "why versions matter".
- *   Where it came — Origin + Quality-at-ingest (the perception profile) +
- *                   what used it, with Export for deposit (RO-Crate).
+ *   Where it came — Origin + what used it, with Export for deposit (RO-Crate).
  *
  * Project files use permission-checked content previews and append-only byte
  * versions. Column summaries and plots are explicitly sample-derived. Interactive
@@ -37,14 +38,20 @@ import {
   Pencil,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
-import { t } from "@/lib/i18n"
+import { t, locale } from "@/lib/i18n"
+
+// Dates follow the APP language (not the browser default), so a Chinese UI never shows "Nov 10".
+const INTL_LOCALE = locale === "zh" ? "zh-CN" : "en-US"
 import {
   usePerceptionProfile,
   useDatasetLineage,
   useDatasetConsumers,
   useDatasetVersions,
   downloadDatasetRoCrate,
+  useDatasetRows,
+  LOAD_ALL_CAP,
 } from "./datasets-api"
+import { DatasetRowsTable } from "./dataset-rows-table"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
@@ -114,12 +121,11 @@ interface DatasetObjectProps {
   preview?: ReactNode
 }
 
-// Header quality pill — Good / Watch / Blocked, so identity (quality + version)
-// reads at a glance.
-const HEADER_QUALITY: Record<PerceptionQuality, { dot: string; label: string }> = {
-  good: { dot: "bg-emerald-500", label: "Good" },
-  watch: { dot: "bg-amber-500", label: "Watch" },
-  blocked: { dot: "bg-red-500", label: "Blocked" },
+// Header quality pill dot — the label is localized (dataset_obj.quality_*).
+const HEADER_QUALITY: Record<PerceptionQuality, { dot: string }> = {
+  good: { dot: "bg-emerald-500" },
+  watch: { dot: "bg-amber-500" },
+  blocked: { dot: "bg-red-500" },
 }
 
 type PreviewView = "table" | "columns" | "plot" | "edit"
@@ -140,12 +146,6 @@ export function DatasetObject({
   const [versionsOpened, setVersionsOpened] = useState(false)
   const [previewView, setPreviewView] = useState<PreviewView>("table")
   const [tab, setTab] = useState<"preview" | "versions" | "wherefrom">("preview")
-  // Make the preview table manipulable (sort + filter) on the fetched sample — the
-  // feasible client-side slice of "data manipulable wherever feasible". Full-dataset
-  // sort/paging stays the table-viewer path.
-  const [sortCol, setSortCol] = useState<number | null>(null)
-  const [sortAsc, setSortAsc] = useState(true)
-  const [filterText, setFilterText] = useState("")
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
@@ -153,6 +153,10 @@ export function DatasetObject({
     dataset.ref,
     dataset.name,
   )
+  // The FULL rows of a project file (paged), parsed by the profiler's own readers.
+  // Falls back to the profile's sample only when the file is not a project file
+  // or not tabular (415).
+  const rowsQ = useDatasetRows(projectId, dataset.id, dataset.name)
   const lineageQ = useDatasetLineage(wherefromOpened ? dataset.ref : null)
   // Consumers power both the Where-it-came-from lineage AND the Versions tab's
   // "used by N runs" on the current version (spec §4.4), so fetch for either.
@@ -256,10 +260,10 @@ export function DatasetObject({
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/restore`, {
         method: "POST", credentials: "include",
       })
-      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `Restore failed (${r.status})`)
+      if (!r.ok) throw new Error(t('dataset_obj.with_status', { message: t('dataset_obj.restore_failed'), status: r.status }))
       await loadProjectVersions()
     } catch (e: any) {
-      setVersionError(e?.message ?? t('dataset_obj.restore_failed'))
+      setVersionError(e instanceof Error && e.message.startsWith(t('dataset_obj.restore_failed')) ? e.message : t('dataset_obj.restore_failed'))
     } finally {
       setRestoringVersion(null)
     }
@@ -276,10 +280,10 @@ export function DatasetObject({
     setDiffFor(versionNo); setDiffData(null); setDiffLoading(true); setVersionError(null)
     try {
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/diff`, { credentials: "include" })
-      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `Compare failed (${r.status})`)
+      if (!r.ok) throw new Error(t('dataset_obj.with_status', { message: t('dataset_obj.compare_failed'), status: r.status }))
       setDiffData(await r.json())
     } catch (e: any) {
-      setVersionError(e?.message ?? t('dataset_obj.compare_failed')); setDiffFor(null)
+      setVersionError(e instanceof Error && e.message.startsWith(t('dataset_obj.compare_failed')) ? e.message : t('dataset_obj.compare_failed')); setDiffFor(null)
     } finally {
       setDiffLoading(false)
     }
@@ -308,12 +312,13 @@ export function DatasetObject({
         body: JSON.stringify({ edits }),
       })
       const j = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error((j as any)?.error || `Save failed (${r.status})`)
+      if (!r.ok) throw new Error(t('dataset_obj.with_status', { message: t('dataset_obj.edit_failed'), status: r.status }))
       setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
       await loadProjectVersions()
       refetchProfile?.()
+      rowsQ.retry()
     } catch (e: any) {
-      setEditError(e?.message ?? t('dataset_obj.edit_failed'))
+      setEditError(e instanceof Error && e.message.startsWith(t('dataset_obj.edit_failed')) ? e.message : t('dataset_obj.edit_failed'))
     } finally {
       setSavingEdit(false)
     }
@@ -334,23 +339,30 @@ export function DatasetObject({
     try {
       await downloadDatasetRoCrate(dataset.ref, dataset.name)
     } catch (e: any) {
-      setExportError(e?.message || "RO-Crate export failed")
+      setExportError(t("dataset_obj.rocrate_failed"))
     } finally {
       setExporting(false)
     }
   }
 
-  const { rows: shapeRows, cols: shapeCols } = datasetShape(profile)
+  const { rows: profileRows, cols: profileCols } = datasetShape(profile)
+  // The rows endpoint reports the TRUE total and every column; prefer it.
+  const hasFullRows = rowsQ.enabled && !rowsQ.unsupported && rowsQ.columns.length > 0
+  const shapeRows = hasFullRows && rowsQ.total != null ? rowsQ.total : profileRows
+  const shapeCols = hasFullRows ? rowsQ.columns.length : profileCols
+  // Columns + Plot views compute over the loaded full rows when present, else the sample.
+  const statCols = hasFullRows ? rowsQ.columns : profile?.columns
+  const statRows = hasFullRows ? rowsQ.rows : profile?.sampleRows
 
   return (
     <Card className={`min-w-0 max-w-full ${className ?? ""}`} data-testid="dataset-object">
       <CardHeader className="pb-2 space-y-2">
         {/* Breadcrumb — project crumb is shown by the page; here: Files / kind / name */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground" data-testid="dataset-object-crumb">
           {onBack && (
             <button
               type="button"
-              className="inline-flex items-center gap-1 hover:text-foreground"
+              className="inline-flex shrink-0 items-center gap-1 hover:text-foreground"
               onClick={onBack}
               data-testid="dataset-object-back"
             >
@@ -358,10 +370,10 @@ export function DatasetObject({
               {t('nav.data')}
             </button>
           )}
-          <span>/</span>
-          <span>{isRunOutput ? t('dataset_obj.outputs') : t('dataset_obj.inputs')}</span>
-          <span>/</span>
-          <span className="truncate" data-testid="dataset-object-id" title={dataset.id}>
+          <span className="shrink-0">/</span>
+          <span className="shrink-0">{isRunOutput ? t('dataset_obj.outputs') : t('dataset_obj.inputs')}</span>
+          <span className="shrink-0">/</span>
+          <span className="min-w-0 flex-1 truncate" data-testid="dataset-object-id" title={dataset.name}>
             {dataset.name}
           </span>
         </div>
@@ -382,7 +394,7 @@ export function DatasetObject({
               className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
               data-testid="dataset-header-quality"
               data-quality={profile.quality}
-              title={t('file_tree.quality', { quality: profile.quality })}
+              title={t('file_tree.quality', { quality: t('dataset_obj.quality_' + profile.quality) })}
             >
               <span className={`h-2 w-2 rounded-full ${HEADER_QUALITY[profile.quality].dot}`} />
               {t('dataset_obj.quality_' + profile.quality)}
@@ -514,77 +526,37 @@ export function DatasetObject({
             </div>
 
             {previewView === "table" && (
-              profile?.columns?.length && profile.sampleRows?.length ? (
-                (() => {
-                  const cols = profile.columns!
-                  const q = filterText.trim().toLowerCase()
-                  let rows = profile.sampleRows!.filter(
-                    (r) => !q || r.some((c) => String(c ?? "").toLowerCase().includes(q)),
-                  )
-                  if (sortCol !== null) {
-                    rows = rows.slice().sort((a, b) => {
-                      const av = a[sortCol] ?? "", bv = b[sortCol] ?? ""
-                      const an = Number(av), bn = Number(bv)
-                      const cmp =
-                        av !== "" && bv !== "" && Number.isFinite(an) && Number.isFinite(bn)
-                          ? an - bn
-                          : String(av).localeCompare(String(bv))
-                      return sortAsc ? cmp : -cmp
-                    })
-                  }
-                  return (
-                <div className="space-y-1" data-testid="dataset-preview-table">
-                  <input
-                    value={filterText}
-                    onChange={(e) => setFilterText(e.target.value)}
-                    placeholder="Filter rows…"
-                    data-testid="dataset-preview-filter"
-                    className="w-full rounded border bg-background px-2 py-1 text-xs mb-1"
-                  />
-                  <div className="overflow-auto rounded border" style={{ maxHeight: '60vh' }}>
-                    <table className="w-full border-collapse text-sm">
-                      <thead>
-                        <tr style={{ background: 'var(--bm-accent-soft)' }}>
-                          {cols.map((c, i) => (
-                            <th
-                              key={i}
-                              onClick={() => { if (sortCol === i) { setSortAsc((a) => !a) } else { setSortCol(i); setSortAsc(true) } }}
-                              data-testid={`dataset-col-sort-${i}`}
-                              title="Sort by this column"
-                              className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b cursor-pointer select-none"
-                              style={{ color: 'var(--bm-accent-ink)', position: 'sticky', top: 0, background: 'var(--bm-accent-soft)', zIndex: 1 }}
-                            >
-                              {c}{sortCol === i ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((r, ri) => (
-                          <tr key={ri} className="odd:bg-muted/20">
-                            {cols.map((_, ci) => (
-                              <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b overflow-hidden text-ellipsis" style={{ maxWidth: 360 }} title={r[ci] ?? ""}>
-                                {r[ci] ?? ""}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('dataset_obj.preview_rows', {
-                      shown: rows.length,
-                      of: shapeRows ? t('dataset_obj.rows_of', { total: shapeRows.toLocaleString() }) : "",
-                    })}
-                  </p>
-                </div>
-                  )
-                })()
-              ) : isLoading ? (
+              hasFullRows ? (
+                <DatasetRowsTable
+                  columns={rowsQ.columns}
+                  rows={rowsQ.rows}
+                  total={rowsQ.total}
+                  loading={rowsQ.loading}
+                  error={rowsQ.error}
+                  onNeedMore={rowsQ.loadMore}
+                  onLoadAll={rowsQ.loadAll}
+                  onRetry={rowsQ.retry}
+                  loadAllCap={LOAD_ALL_CAP}
+                />
+              ) : rowsQ.enabled && !rowsQ.unsupported && rowsQ.error != null ? (
+                <p role="alert" className="text-sm text-destructive" data-testid="dataset-rows-error">
+                  {t('dataset_obj.rows_error', { status: rowsQ.error || "—" })}{" "}
+                  <button type="button" className="underline" onClick={rowsQ.retry}>{t('dataset_obj.rows_retry')}</button>
+                </p>
+              ) : (rowsQ.enabled && !rowsQ.unsupported) || (!hasFullRows && isLoading) ? (
                 <div className="space-y-2" data-testid="dataset-preview-loading">
                   <Skeleton className="h-16 w-full" />
                 </div>
+              ) : profile?.columns?.length && profile.sampleRows?.length ? (
+                // Not a project file (no rows endpoint) — the profiler's sample, labelled as such.
+                <DatasetRowsTable
+                  columns={profile.columns}
+                  rows={profile.sampleRows}
+                  total={shapeRows ?? null}
+                  loading={false}
+                  error={null}
+                  onNeedMore={() => {}}
+                />
               ) : (
                 preview ?? (
                   <p className="text-sm text-muted-foreground" data-testid="dataset-preview-none">
@@ -599,14 +571,22 @@ export function DatasetObject({
               // derived client-side from the profiler's column headers + sampled rows
               // + quality notes, labelled as sample-derived (we never present a sample
               // stat as whole-file truth). Needs a table-like sample to profile.
-              profile?.columns?.length && profile.sampleRows?.length ? (
-                <DatasetColumnsView
-                  columns={profile.columns}
-                  sampleRows={profile.sampleRows}
-                  notes={profile.notes}
-                  totalRows={shapeRows ?? undefined}
-                  t={t}
-                />
+              statCols?.length && statRows?.length ? (
+                <div className="space-y-1">
+                  <DatasetColumnsView
+                    columns={statCols}
+                    sampleRows={statRows}
+                    notes={profile?.notes ?? []}
+                    totalRows={shapeRows ?? undefined}
+                    t={t}
+                  />
+                  {hasFullRows && rowsQ.total != null && rowsQ.rows.length < rowsQ.total && rowsQ.total <= LOAD_ALL_CAP && (
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={rowsQ.loading}
+                      onClick={rowsQ.loadAll} data-testid="dataset-columns-load-all">
+                      {t('dataset_obj.load_all')}
+                    </Button>
+                  )}
+                </div>
               ) : isLoading ? (
                 <div className="space-y-2" data-testid="dataset-preview-columns-loading">
                   <Skeleton className="h-16 w-full" />
@@ -630,9 +610,9 @@ export function DatasetObject({
               // spec-sanctioned fallback (§4.3): "if nothing numeric is present the
               // view says so and offers Jupyter or chat, rather than an empty axis."
               // Full-dataset distributions/PCA remain a Jupyter/chat path.
-              profile?.columns?.length && profile.sampleRows?.length &&
-              hasNumericColumns(profile.columns, profile.sampleRows) ? (
-                <DatasetSamplePlot columns={profile.columns} sampleRows={profile.sampleRows} t={t} />
+              statCols?.length && statRows?.length &&
+              hasNumericColumns(statCols, statRows) ? (
+                <DatasetSamplePlot columns={statCols} sampleRows={statRows} t={t} />
               ) : (
                 <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
                   <p>{t('dataset_obj.plot_future')}</p>
@@ -708,6 +688,48 @@ export function DatasetObject({
               )
             )}
 
+            {/* Data QC (design §4.5.2) — directly under the table (moved from Provenance: QC
+                describes the rows shown above, so it belongs beside them). */}
+            <div className="rounded border p-2.5 space-y-2" data-testid="dataset-quality">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
+                  {t('dataset_obj.quality_heading')}
+                </p>
+                {onRunQC && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-sm gap-1"
+                    onClick={onRunQC}
+                    data-testid="dataset-object-run-qc"
+                    title={t('dataset_obj.run_qc_tip')}
+                  >
+                    <ShieldCheck className="h-3 w-3" />{t('dataset_obj.run_qc')}
+                  </Button>
+                )}
+              </div>
+              {!dataset.ref ? (
+                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-noref">
+                  {t('dataset_obj.quality_noref')}
+                </p>
+              ) : isLoading ? (
+                <div className="space-y-2" data-testid="dataset-quality-loading">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : isError || !profile ? (
+                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-error">
+                  {t('dataset_obj.quality_error')}
+                </p>
+              ) : (
+                <DataPerception
+                  profile={profile}
+                  planImpact={profile.planImpact}
+                  datasetName={dataset.name}
+                />
+              )}
+            </div>
+
             {/* Stat grid (design §4.3): rows · columns · size · current version. */}
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
               <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
@@ -768,7 +790,7 @@ export function DatasetObject({
                       <span className="ml-auto text-xs text-muted-foreground">
                         {new Date(
                           typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
-                        ).toLocaleString()}
+                        ).toLocaleString(INTL_LOCALE)}
                       </span>
                     )}
                   </div>
@@ -883,7 +905,7 @@ export function DatasetObject({
               ) : null}
               <Row
                 k={t('dataset_obj.added')}
-                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
+                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString(INTL_LOCALE) : "—"}
               />
               {/* Content hash (design §4.5.1) — the dedup identity. Same bytes added
                   twice link to one entry. Shown abbreviated; full value on hover. */}
@@ -902,47 +924,6 @@ export function DatasetObject({
               {/* The internal storage ref (S3 key) is plumbing, not provenance —
                   intentionally not surfaced. The project/account visibility control
                   needs a backend `scope` column (documented follow-up). */}
-            </div>
-
-            {/* Quality, at ingest (design §4.5.2) — the perception profile lives here. */}
-            <div className="rounded border p-2.5 space-y-2" data-testid="dataset-quality">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
-                  {t('dataset_obj.quality_heading')}
-                </p>
-                {onRunQC && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-sm gap-1"
-                    onClick={onRunQC}
-                    data-testid="dataset-object-run-qc"
-                    title={t('dataset_obj.run_qc_tip')}
-                  >
-                    <ShieldCheck className="h-3 w-3" />{t('dataset_obj.run_qc')}
-                  </Button>
-                )}
-              </div>
-              {!dataset.ref ? (
-                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-noref">
-                  {t('dataset_obj.quality_noref')}
-                </p>
-              ) : isLoading ? (
-                <div className="space-y-2" data-testid="dataset-quality-loading">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              ) : isError || !profile ? (
-                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-error">
-                  {t('dataset_obj.quality_error')}
-                </p>
-              ) : (
-                <DataPerception
-                  profile={profile}
-                  planImpact={profile.planImpact}
-                  datasetName={dataset.name}
-                />
-              )}
             </div>
 
             {/* What used it, and what came out (design §4.5.3) */}

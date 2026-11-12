@@ -274,9 +274,109 @@ def _is_catalog_workflow(sa: Any, nextflow_path: str) -> bool:
         return False
 
 
+def _catalog_label(sa: Any, nextflow_path: str) -> str:
+    """Human name of the workflow a step will run: the catalog ``name`` when available, else the
+    workflow directory (``.../reinvent4_finetune_rl/main.nf`` → ``reinvent4_finetune_rl``)."""
+    try:
+        conn = sa.workflow_search._get_connection()
+        try:
+            row = conn.execute("SELECT name FROM workflows WHERE filename = ? LIMIT 1", (nextflow_path,)).fetchone()
+        finally:
+            conn.close()
+        if row and row[0]:
+            return str(row[0])
+    except Exception:  # noqa: BLE001 — label only; fall back to the path
+        pass
+    parts = [p for p in str(nextflow_path or "").replace("\\", "/").split("/") if p]
+    if len(parts) >= 2 and parts[-1] == "main.nf":
+        return parts[-2]
+    return parts[-1].rsplit(".", 1)[0] if parts else ""
+
+
+def _step_inputs(sa: Any, nextflow_path: str, uploaded: Optional[List[Dict[str, Any]]],
+                 is_root: bool) -> tuple:
+    """Bind the user's uploads onto the parameters this step's workflow actually DECLARES, and list
+    the required ones still empty.
+
+    Reuses the single-workflow production path: ``_parse_nextflow_params`` (a param is required only
+    if it defaults to null, is not known-optional, and the workflow does not handle its absence) and
+    ``_bind_uploaded_datasets_to_params`` (binds only on clear filename cues, never invents a param).
+    Only ROOT steps are bound/checked: a dependent step receives its data from earlier steps (wired by
+    connections, or reported as unwired by the caller). Returns ``(bound_params, missing_required)``;
+    on any failure returns ``({}, [])`` so planning is never blocked by input inspection."""
+    if not is_root:
+        return {}, []
+    try:
+        declared = sa._parse_nextflow_params(nextflow_path) or {}
+    except Exception:  # noqa: BLE001
+        return {}, []
+    req = [dict(p) for p in (declared.get("required") or []) if isinstance(p, dict)]
+    opt = [dict(p) for p in (declared.get("optional") or []) if isinstance(p, dict)]
+    if uploaded:
+        try:
+            req, opt = sa._bind_uploaded_datasets_to_params(req, opt, uploaded)
+        except Exception:  # noqa: BLE001 — binding is best-effort
+            pass
+    bound = {p["name"]: p["value"] for p in req + opt
+             if p.get("name") and p.get("autoFilled") and p.get("value") not in (None, "")}
+    missing = [p["name"] for p in req
+               if p.get("name") and p.get("default") in (None, "") and p.get("value") in (None, "")]
+    # A data-file input the workflow declares but that is not bound to the user's files is also
+    # needed. "// Input:" header tokens are surfaced by the parser as OPTIONAL file params because the
+    # executor falls back to built-in SAMPLE data — so an empty list here would mean "this step will
+    # silently analyze sample data, not yours" (seen on dev 2026-11-11: every root step reported
+    # nothing missing). Optional params with a real default are not flagged.
+    missing += [p["name"] for p in opt
+                if p.get("name") and p.get("type") == "file" and p.get("default") in (None, "")
+                and p.get("value") in (None, "") and p["name"] not in missing]
+    return bound, missing
+
+
+def _upload_names(bound: Dict[str, Any]) -> List[str]:
+    """File names (basenames) of the uploads bound to a step, for user-facing explanations."""
+    return sorted({str(v).rsplit("/", 1)[-1] for v in bound.values() if v})
+
+
+def _prefer_bindable(sa: Any, task: Dict[str, Any], current: Optional[Dict[str, Any]],
+                     uploaded: Optional[List[Dict[str, Any]]], limit: int = 8) -> tuple:
+    """Self-correct a ROOT step's workflow against the data the user actually attached.
+
+    When the chosen workflow cannot take any of the uploads (nothing binds to its declared inputs)
+    but another CONFIDENT catalog candidate for the same task can, switch to the highest-ranked such
+    candidate. Seen on dev 2026-11-11: an RNA branch with an uploaded counts matrix was routed to a
+    Salmon-quant workflow (needs quant.sf), so the plan could only report the data as missing.
+    Candidates come from the same search the resolver uses, held to the same confidence bar
+    (``DAG_RESOLVE_MIN_SCORE``) and to executable ``.nf`` workflows. Returns
+    ``(resolution, reroute)`` where ``reroute`` is ``None`` (kept) or
+    ``{"from", "to", "accepts"}``. Keeping the original when nothing binds is the honest fallback:
+    the plan then lists what is still needed."""
+    if not current or not uploaded:
+        return current, None
+    cur_path = current.get("nextflow_path") or ""
+    cur_bound, _ = _step_inputs(sa, cur_path, uploaded, True)
+    if cur_bound:
+        return current, None
+    try:
+        matches = sa.workflow_search.search(task.get("description") or "") or []
+    except Exception:  # noqa: BLE001 — no alternatives available; keep the current choice
+        return current, None
+    for m in list(matches)[:limit]:
+        filename = m.get("filename") if isinstance(m, dict) else getattr(m, "filename", None)
+        score = (m.get("score", 0) if isinstance(m, dict) else getattr(m, "score", 0)) or 0
+        if not filename or filename == cur_path or not str(filename).endswith(".nf") or score < DAG_RESOLVE_MIN_SCORE:
+            continue
+        bound, _ = _step_inputs(sa, filename, uploaded, True)
+        if bound:
+            return ({"nextflow_path": filename, "parameters": {}},
+                    {"from": cur_path, "to": filename, "accepts": _upload_names(bound)})
+    return current, None
+
+
 def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str] = None,
-                        max_parallel: Optional[int] = None) -> Dict[str, Any]:
-    """Pure core of /plan_dag (``sa`` supplies _resolve_task_to_workflow / _workflow_io_types)."""
+                        max_parallel: Optional[int] = None,
+                        uploaded_datasets: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """Pure core of /plan_dag (``sa`` supplies _resolve_task_to_workflow / _workflow_io_types and the
+    single-workflow param parser/binder used by ``_step_inputs``)."""
     tasks = [dict(t) for t in tasks]
     # build_dag_plan reads an EMPTY depends_on as "sequential after the previous step" unless
     # the task is marked parallel_with; here [] means an independent branch (a root).
@@ -292,9 +392,15 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
         given = t.get("nextflow_path")
         r = ({"nextflow_path": given, "parameters": {}} if given and _is_catalog_workflow(sa, given)
              else sa._resolve_task_to_workflow(t))
+        # Self-correct against the user's attached data BEFORE wiring, so connections use the
+        # corrected workflow. Root steps only: dependent steps take their data from earlier steps.
+        reroute = None
+        if r and uploaded_datasets and not t.get("depends_on"):
+            r, reroute = _prefer_bindable(sa, t, r, uploaded_datasets)
         resolved[i] = r
         per_task.append({"task": t.get("id") or f"task_{i + 1}", "description": t.get("description", ""),
-                         "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r)})
+                         "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r),
+                         "reroute": reroute})
     if not all(resolved.values()):
         return {"success": False, "reason": "unresolved_task", "tasks": per_task}
     _key = lambda t: t.get("id") or id(t)  # noqa: E731 — task id, not object identity
@@ -310,6 +416,15 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
         order_only = plan is not None
     if not plan:
         return {"success": False, "reason": "no_type_compatible_handoff", "tasks": per_task}
+    # Inputs at plan time: bind the user's uploads to each root step's declared params and record the
+    # required ones still empty, so the card shows what is set and what is needed (never an empty step).
+    step_inputs = []
+    for st in plan["steps"]:
+        bound, missing = _step_inputs(sa, st["nextflow_path"], uploaded_datasets, not st.get("depends_on"))
+        params = st.setdefault("parameters", {})
+        for k, v in bound.items():
+            params.setdefault(k, v)
+        step_inputs.append((bound, [m for m in missing if params.get(m) in (None, "")]))
     card = to_pipeline_card(plan, name=(name or "Multi-step analysis plan"))
     for step, t in zip(card.get("pipeline_steps", []), per_task):
         step["description"] = t["description"]
@@ -319,6 +434,17 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
     wired = {(c["from_step"], c["to_step"]) for c in plan.get("connections", [])}
     unwired = [{"from_step": d, "to_step": i + 1}
                for i, st in enumerate(plan["steps"]) for d in st.get("depends_on", []) if (d, i + 1) not in wired]
+    unwired_to = {u["to_step"] for u in unwired}
+    for i, (step, (bound, missing)) in enumerate(zip(card.get("pipeline_steps", []), step_inputs)):
+        step["resolution"] = "catalog_workflow"  # every step of an assembled plan resolved to the catalog
+        step["workflow_label"] = _catalog_label(sa, step.get("nextflow_path") or "")
+        rr = per_task[i].get("reroute") if i < len(per_task) else None
+        if rr:
+            step["rerouted_from"] = _catalog_label(sa, rr["from"])
+            step["reroute_reason"] = "accepts your " + ", ".join(rr["accepts"])
+        step["bound_from_uploads"] = sorted(bound)
+        step["missing_inputs"] = missing
+        step["needs_input_mapping"] = (i + 1) in unwired_to
     if unwired:
         card["unwired_dependencies"] = unwired
     if order_only:

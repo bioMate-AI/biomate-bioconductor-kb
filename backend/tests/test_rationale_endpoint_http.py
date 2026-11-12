@@ -34,12 +34,20 @@ import sys
 
 import pytest
 
+from _ci_markers import HAS_WORKFLOW_DB, requires_workflow_db
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "backend", "lib"))
 
 
 def _db_has_table(table: str) -> bool:
     db = os.path.join(ROOT, "backend", "database", "galaxy_ai_tools.db")
+    # Never sqlite3.connect() a missing path: it CREATES a 0-byte DB (and
+    # raises "unable to open database file" at collection when the directory is
+    # absent, which aborted the whole CI session). The untracked catalog is
+    # handled by requires_workflow_db on the tests that need real rows.
+    if not HAS_WORKFLOW_DB:
+        return False
     with sqlite3.connect(db) as conn:
         row = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
@@ -48,8 +56,8 @@ def _db_has_table(table: str) -> bool:
     return bool(row)
 
 
-pytestmark = pytest.mark.skipif(
-    not (_db_has_table("rationale_registry")
+pytestmark = [pytest.mark.skipif(
+    HAS_WORKFLOW_DB and not (_db_has_table("rationale_registry")
          and _db_has_table("workflow_phase_rationale")),
     reason="rationale_registry/workflow_phase_rationale absent from "
     "backend/database/galaxy_ai_tools.db — the canonical DB ships them "
@@ -57,7 +65,7 @@ pytestmark = pytest.mark.skipif(
     "with scripts/populate_rationale_registry.py + "
     "populate_workflow_phase_rationale.py --apply. (Coverage is gated on the "
     "DB shipping the rationale tables — see module docstring.)",
-)
+)]
 
 
 @pytest.fixture(scope="module")
@@ -76,6 +84,7 @@ def client():
     return TestClient(app)
 
 
+@requires_workflow_db
 def test_new_endpoint_returns_bioc_rationale(client):
     r = client.get("/api/rationale/bulk_rnaseq_consensus_de_bioc:B")
     assert r.status_code == 200
@@ -86,6 +95,7 @@ def test_new_endpoint_returns_bioc_rationale(client):
     assert body["qc_gate_name"] == "deseq2_negative_binomial_fit"
 
 
+@requires_workflow_db
 def test_new_endpoint_methylation_dmrcate(client):
     r = client.get("/api/rationale/methylation_450k_array_analysis:D")
     assert r.status_code == 200
@@ -100,6 +110,7 @@ def test_new_endpoint_unknown_returns_empty(client):
     assert r.json() == {}
 
 
+@requires_workflow_db
 def test_legacy_endpoint_still_returns_bioc(client):
     r = client.get(
         "/api/workflows/bulk_rnaseq_consensus_de_bioc/phases/B/rationale"

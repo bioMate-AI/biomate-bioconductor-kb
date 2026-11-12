@@ -18,7 +18,7 @@ export async function filesFromDataTransfer(dt: DataTransfer): Promise<File[]> {
     !!items &&
     items.length > 0 &&
     typeof (items[0] as unknown as { webkitGetAsEntry?: unknown }).webkitGetAsEntry === 'function'
-  if (!canWalk) return Array.from(dt.files)
+  if (!canWalk) return readableFiles(Array.from(dt.files))
 
   // Collect entries synchronously (before any await).
   const entries: FileSystemEntry[] = []
@@ -28,7 +28,7 @@ export async function filesFromDataTransfer(dt: DataTransfer): Promise<File[]> {
     const entry = (it as unknown as { webkitGetAsEntry?: () => FileSystemEntry | null }).webkitGetAsEntry?.()
     if (entry) entries.push(entry)
   }
-  if (entries.length === 0) return Array.from(dt.files)
+  if (entries.length === 0) return readableFiles(Array.from(dt.files))
 
   const out: File[] = []
 
@@ -79,5 +79,29 @@ export async function filesFromDataTransfer(dt: DataTransfer): Promise<File[]> {
   }
 
   await Promise.all(entries.map((e) => walk(e, '')))
-  return out.length ? out : Array.from(dt.files)
+  // Only the files the walk produced. Falling back to dt.files here re-introduced the
+  // dropped folder itself as a "directory pseudo-file" (an empty folder, or a folder
+  // whose reads failed), whose upload Chrome aborts with "TypeError: Failed to fetch".
+  return out
+}
+
+/**
+ * Drop directory pseudo-files from a flat FileList (browsers without the entry API
+ * list a dropped folder as a File with no type and a 0/4096-byte size whose bytes
+ * cannot be read). A real empty or untyped file reads fine and is kept.
+ */
+export async function readableFiles(files: File[]): Promise<File[]> {
+  const keep = await Promise.all(files.map(async (f) => {
+    if (f.type !== '' || (f.size !== 0 && f.size % 4096 !== 0)) return true
+    const blob = f.slice(0, 1) as Blob & { arrayBuffer?: () => Promise<ArrayBuffer> }
+    if (typeof blob.arrayBuffer !== 'function') return true
+    try { await blob.arrayBuffer(); return true } catch { return false }
+  }))
+  return files.filter((_, i) => keep[i])
+}
+
+/** The folder-relative path a picked/dropped file carries ("" for a plain file pick). */
+export function relativePathOf(file: File): string {
+  const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath
+  return typeof rel === 'string' ? rel : ''
 }

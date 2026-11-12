@@ -10,6 +10,7 @@
  *   GET  /api/datasets/:ref/versions    -> version history (honest v1 · current)
  *   POST /api/datasets/:ref/versions    -> append a version-log entry { note }
  *   GET  /api/datasets/:ref/ro-crate    -> RO-Crate metadata (download)
+ *   GET  /api/projects/:id/files/:fileId/rows -> one page of FULL rows (useDatasetRows)
  *
  * Lineage / consumers / versions are derived from run-output provenance and the
  * input params BioMate already tracks (backend datasets_object.py). Each
@@ -26,6 +27,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { DataProfile } from "@/components/data-perception"
 
 /**
@@ -230,4 +232,105 @@ export async function downloadDatasetRoCrate(
   } finally {
     URL.revokeObjectURL(url)
   }
+}
+
+// ── Full rows (paged) ─────────────────────────────────────────────────────────
+// GET /api/projects/:id/files/:fileId/rows?offset=&limit= — one page of the file's
+// FULL rows, parsed by the same backend readers as the profiler (csv/tsv/jsonl).
+
+/** Extensions the rows endpoint can parse (and their gzip variants). */
+const ROWS_EXTS = /\.(csv|tsv|tab|txt|jsonl|ndjson)(\.gz)?$/i
+export function rowsSupported(name: string): boolean {
+  return ROWS_EXTS.test(name)
+}
+
+export const ROWS_PAGE = 200
+/** "Load all rows" pulls bigger pages and stops at this many rows (browser memory). */
+export const LOAD_ALL_CAP = 100_000
+const LOAD_ALL_PAGE = 1000
+
+export interface DatasetRowsState {
+  columns: string[]
+  rows: string[][]
+  /** True total row count from the server (null until the first page arrives). */
+  total: number | null
+  loading: boolean
+  /** HTTP status (or 0 for a network failure) of the last failed page. */
+  error: number | null
+  /** The file is not tabular (415) — the caller falls back to the text preview. */
+  unsupported: boolean
+}
+
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false }
+
+/**
+ * Page in a project file's full rows. `loadMore()` fetches the next page (no-op
+ * while one is in flight or when every row is loaded); `loadAll()` keeps fetching
+ * until the file (or LOAD_ALL_CAP) is exhausted. Disabled when projectId/fileId is
+ * missing or the extension is not tabular.
+ */
+export function useDatasetRows(projectId: string | undefined, fileId: string, name: string) {
+  const enabled = Boolean(projectId) && rowsSupported(name)
+  const [state, setState] = useState<DatasetRowsState>(EMPTY_ROWS)
+  const ref = useRef<DatasetRowsState>(EMPTY_ROWS)
+  const inflight = useRef(false)
+  const gen = useRef(0)
+
+  const commit = useCallback((next: DatasetRowsState) => {
+    ref.current = next
+    setState(next)
+  }, [])
+
+  const fetchPage = useCallback(async (limit: number): Promise<boolean> => {
+    const cur = ref.current
+    if (!enabled || inflight.current || cur.unsupported) return false
+    if (cur.total != null && cur.rows.length >= cur.total) return false
+    inflight.current = true
+    const myGen = gen.current
+    commit({ ...cur, loading: true, error: null })
+    try {
+      const res = await fetch(
+        `/api/projects/${encodeURIComponent(projectId!)}/files/${encodeURIComponent(fileId)}/rows?offset=${cur.rows.length}&limit=${limit}`,
+        { credentials: "include" },
+      )
+      if (myGen !== gen.current) return false
+      if (res.status === 415) { commit({ ...ref.current, loading: false, unsupported: true }); return false }
+      if (!res.ok) { commit({ ...ref.current, loading: false, error: res.status }); return false }
+      const body = await res.json()
+      if (myGen !== gen.current) return false
+      const pageRows: string[][] = Array.isArray(body?.rows) ? body.rows : []
+      const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
+      const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
+      const rows = ref.current.rows.concat(pageRows)
+      // A short page means the end of the file even if no total was reported.
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false })
+      return pageRows.length > 0
+    } catch {
+      if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })
+      return false
+    } finally {
+      if (myGen === gen.current) inflight.current = false
+    }
+  }, [enabled, projectId, fileId, commit])
+
+  useEffect(() => {
+    gen.current += 1
+    inflight.current = false
+    commit(EMPTY_ROWS)
+    if (enabled) void fetchPage(ROWS_PAGE)
+  }, [enabled, projectId, fileId, commit, fetchPage])
+
+  const loadMore = useCallback(() => { void fetchPage(ROWS_PAGE) }, [fetchPage])
+  const loadAll = useCallback(async () => {
+    const myGen = gen.current
+    while (myGen === gen.current && ref.current.rows.length < LOAD_ALL_CAP) {
+      const cur = ref.current
+      if (cur.unsupported || cur.error != null || (cur.total != null && cur.rows.length >= cur.total)) break
+      if (inflight.current) { await new Promise((r) => setTimeout(r, 50)); continue }
+      if (!(await fetchPage(LOAD_ALL_PAGE))) break
+    }
+  }, [fetchPage])
+  const retry = loadMore
+
+  return { enabled, ...state, loadMore, loadAll, retry }
 }

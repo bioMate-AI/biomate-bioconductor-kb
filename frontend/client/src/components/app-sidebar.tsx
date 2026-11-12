@@ -295,12 +295,9 @@ export function AppSidebar({
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
-        <button className="side-link" onClick={() => { setContextProjectId(null); onNewChat(); }} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
-          <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>{t('chat.new_chat')}</span>
-          </span>
-        </button>
+        {/* Top "New Chat" removed per founder request — it was redundant with the
+            per-project New Chat and the collapsed-rail New Chat icon (App.tsx). A
+            standalone new chat is still reachable from the collapsed sidebar rail. */}
         {/* Data — the dataset object is a first-class surface (spec 04). */}
         <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 'var(--fs-meta)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />

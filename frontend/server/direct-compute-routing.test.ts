@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { claimsProducedOutputFile, conversationHasComputableData, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
+import { FINAL_ANSWER_INSTRUCTION, claimsProducedOutputFile, conversationHasComputableData, conversationHasPipelineScaleData, finalAnswerRequest, hasComputableData, parseExecutionMode, presentsUnexecutedCode, wantsCodeItself } from './galaxy-assistant';
+import { reconcileExecutionMode } from './routing-authority';
 
 // External-user replay on dev (2026-11-04): ad-hoc analysis of the user's own data — a Chinese
 // fold-change request on an attached CSV, a cell-viability comparison, DESeq2/clustering on pasted
@@ -100,4 +101,81 @@ describe('claimsProducedOutputFile', () => {
     ['mentions the input file', '这个文件 epar_study_tables.jsonl 包含 2,281 条记录'],
     ['asks for a file', 'Please upload a CSV file with your counts.'],
   ])('%s → false', (_n, t) => expect(claimsProducedOutputFile(t)).toBe(false));
+});
+
+// Dev 2026-11-11: the classifier (GLM) labelled "Run analyze_ebv_antibody_titers on its built-in …
+// sample data" execution=direct_compute in ~2/3 browser turns. With no data in the conversation that
+// flipped off workflow generation → no card, and the model told the user to go search the
+// Workflows panel. direct_compute needs data to compute on (the classifier's own definition).
+describe('direct_compute is honoured only when the conversation has data (reconcileExecutionMode)', () => {
+  const EBV = 'Run analyze_ebv_antibody_titers on its built-in ELISA OD readings and standard-curve data; quantify VCA, EA '
+    + 'and EBNA1 titers (IgG and IgM) across the EBV-positive, EBV-active and EBV-negative groups using the default sample data.';
+  const route = (execution: string, message: string, context: any) => {
+    const intent: any = { execution, actions: { needsWorkflowGeneration: true, needsLLMReasoning: false } };
+    reconcileExecutionMode(intent, conversationHasComputableData(message, context));
+    return intent.actions.needsWorkflowGeneration ? 'workflow card' : 'direct compute';
+  };
+  it('named workflow on its built-in data, nothing attached → workflow card', () => {
+    expect(route('direct_compute', EBV, { previousMessages: [] })).toBe('workflow card');
+  });
+  it('attached data in this turn → direct compute', () => {
+    expect(route('direct_compute', ATTACHED, {})).toBe('direct compute');
+  });
+  it('data attached in an earlier turn (follow-up) → direct compute', () => {
+    expect(route('direct_compute', '先做第一步', { previousMessages: [{ role: 'user', content: ATTACHED }] })).toBe('direct compute');
+  });
+  it('pipeline label → workflow card', () => {
+    expect(route('pipeline', ATTACHED, {})).toBe('workflow card');
+  });
+});
+
+// Dev 2026-11-11: CRISPR QC spent all 5 agentic turns on run_code; the loop ended with no final text,
+// so the user saw only "I'll run a comprehensive QC analysis…" (or a raw "✓ Saved: …png" stdout line).
+describe('finalAnswerRequest (tool budget exhausted)', () => {
+  const api = { model: 'm', max_tokens: 4096, system: [{ type: 'text', text: 's' }], messages: [{ role: 'user', content: 'orig' }] };
+  const tools = [{ name: 'run_code', input_schema: { type: 'object' } }];
+  const transcript = [
+    { role: 'user', content: 'QC my CRISPR screen' },
+    { role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'run_code', input: { code: 'print(1)' } }] },
+    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 't1', content: '1' }] },
+  ];
+  it('keeps the transcript, disables tools and asks for the final answer', () => {
+    const req = finalAnswerRequest(api, transcript, tools);
+    expect(req.tool_choice).toEqual({ type: 'none' });
+    expect(req.tools).toBe(tools);
+    expect(req.model).toBe('m');
+    expect(req.messages).toHaveLength(3);
+    const last = req.messages[2].content;
+    expect(last[0]).toMatchObject({ type: 'tool_result', tool_use_id: 't1' });
+    expect(last[1]).toEqual({ type: 'text', text: FINAL_ANSWER_INSTRUCTION });
+    expect(transcript[2].content).toHaveLength(1); // caller's transcript is not mutated
+  });
+  it('without tools there is no tool_choice', () => {
+    const req = finalAnswerRequest(api, [{ role: 'assistant', content: 'x' }], null);
+    expect(req.tool_choice).toBeUndefined();
+    expect(req.messages.at(-1)).toEqual({ role: 'user', content: FINAL_ANSWER_INSTRUCTION });
+  });
+});
+
+describe('raw instrument data is pipeline-scale: direct_compute is not honoured (call variants, dev 2026-11-11)', () => {
+  const READS = 'Call variants on these samples and flag the clinically relevant ones.\n\n[Attached files: normal_R1.fastq.gz, normal_R2.fastq.gz, reference_grch37.fasta, sequencing_samples.csv]';
+  const route = (message: string, context: any = {}) => {
+    const intent: any = { execution: 'direct_compute', actions: { needsWorkflowGeneration: true, needsLLMReasoning: false } };
+    reconcileExecutionMode(intent, conversationHasComputableData(message, context) && !conversationHasPipelineScaleData(message, context));
+    return intent.actions.needsWorkflowGeneration ? 'workflow card' : 'direct compute';
+  };
+  it('FASTQ attached → workflow card', () => { expect(route(READS)).toBe('workflow card'); });
+  it('FASTQ attached in an earlier turn → workflow card', () => {
+    expect(route('go ahead', { previousMessages: [{ role: 'user', content: READS }] })).toBe('workflow card');
+  });
+  it('a table attached → direct compute stays allowed', () => {
+    expect(route('Summarise this.\n\n[Attached files: bace_assays.csv]\n[Uploaded datasets: bace_assays.csv: dataset_id=x]')).toBe('direct compute');
+  });
+  it('a fresh CSV this turn is not blocked by a stale FASTQ from an earlier turn (correctness review 2026-11-11)', () => {
+    const ctx = { previousMessages: [{ role: 'user', content: READS }] };
+    const freshCsv = "What's the mean of column 3?\n\n[Attached files: counts.csv]\n[Uploaded datasets: counts.csv: dataset_id=y]";
+    expect(route(freshCsv, ctx)).toBe('direct compute');
+    // …but a follow-up with no data of its own still sees the carried-over FASTQ.
+    expect(route('call variants', ctx)).toBe('workflow card');
+  });
 });
