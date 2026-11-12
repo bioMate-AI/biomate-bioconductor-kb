@@ -259,13 +259,17 @@ export function DatasetObject({
       setProjectVersions((j?.versions ?? []) as typeof versions)
     } catch { /* best-effort — falls back to the note-log list */ }
   }
+  // Load the version list when the file opens, not only when the Versions tab is opened: the
+  // header chip shows the CURRENT version and read "v1" for an edited/re-uploaded file until the
+  // tab was visited. Cleared per file so one file's label never shows on another.
   useEffect(() => {
-    if (!versionsOpened || !versionable) return
+    setProjectVersions(null)
+    if (!versionable) return
     let cancelled = false
     ;(async () => { if (!cancelled) await loadProjectVersions() })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versionsOpened, projectId, dataset.id, versionable])
+  }, [projectId, dataset.id, versionable])
   const handleRestore = async (versionNo: string) => {
     if (!projectId) return
     setRestoringVersion(versionNo); setVersionError(null)

@@ -311,3 +311,17 @@ describe("e2e contract attributes (format-matrix harness)", () => {
     expect(screen.getByTestId("dataset-preview")).not.toHaveAttribute("aria-busy")
   })
 })
+
+describe("header version chip", () => {
+  it("shows the CURRENT version as soon as the file opens (was v1 until the Versions tab was visited)", async () => {
+    versionsBody = { versions: [
+      { version: "2", label: "v2", current: true, createdAt: "2026-11-12T09:06:21Z", authorName: "A" },
+      { version: "1", label: "v1", current: false, createdAt: "2026-11-12T09:06:20Z", authorName: "A" },
+    ] }
+    // Self-contained: a plain table profile and rows, independent of earlier tests' state.
+    profileBody = { shape: { rows: 1, cols: 2 }, quality: "good", notes: [], viewKind: "table", columns: ["a", "b"], sampleRows: [["1", "3"]] }
+    rowsBody = { status: 200, body: { tabular: true, viewKind: "table", columns: ["a", "b"], rows: [["1", "3"]], totalRows: 1, version: 2, headerRow: true } }
+    renderObj("v.csv")
+    await waitFor(() => expect(screen.getByTestId("dataset-header-version")).toHaveTextContent("v2"))
+  })
+})
