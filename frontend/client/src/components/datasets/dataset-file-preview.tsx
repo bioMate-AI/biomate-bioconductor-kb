@@ -68,7 +68,7 @@ function isDensity(name: string, kind?: string, format?: string): boolean {
 const TEXT_FORMAT = new RegExp(`^(${TEXT_EXTS})$`, "i")
 /** Named as an image / PDF, but the profiler read text: the name is wrong, the content is text. */
 function textUnderMediaName(name: string, format?: string): boolean {
-  return Boolean(format) && TEXT_FORMAT.test(format!) && (IMAGE.test(name) || TIFF.test(name) || /\.pdf$/i.test(name))
+  return Boolean(format) && TEXT_FORMAT.test(format!) && (IMAGE.test(name) || isTiff(name) || /\.pdf$/i.test(name))
 }
 
 /** How a file is previewed: by its content kind when the profiler read it, else by its name. */
