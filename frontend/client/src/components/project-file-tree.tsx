@@ -113,7 +113,8 @@ function sortFoldersFirst(node: FolderNode): void {
 }
 
 export function buildTree(files: ProjectFile[]): TreeNode[] {
-  const inputs: FolderNode = { type: "folder", name: "inputs", path: "inputs", children: [] };
+  // The root's PATH stays "inputs" (test ids, expand state, rename paths); its NAME is localized.
+  const inputs: FolderNode = { type: "folder", name: t("file_tree.inputs_root"), path: "inputs", children: [] };
   const outputsByRun: Record<string, FileNode[]> = {};
   // Files BioMate generated in this project's chats (run_code reports, tables, plots) are results.
   const analysis: FolderNode = { type: "folder", name: t("file_tree.analysis_outputs"), path: "outputs/analysis", children: [] };
@@ -153,8 +154,20 @@ export function buildTree(files: ProjectFile[]): TreeNode[] {
   return root;
 }
 
-/** Localized reason for a failed upload response. */
-export function uploadErrorReason(status: number): string {
+/** What the server sends back with a refused upload / import (optional stable code; name clashes). */
+export interface UploadErrorBody {
+  error?: string;
+  code?: string;
+  conflicts?: Array<{ name: string; existing: string }>;
+}
+
+/** Localized reason for a failed upload response. A 409 is a name clash with an existing file or
+ *  folder (the server's `name_conflict`): it names the existing entry, never "server error". */
+export function uploadErrorReason(status: number, body?: UploadErrorBody | null): string {
+  if (status === 409 || body?.code === "name_conflict") {
+    const existing = body?.conflicts?.find((c) => typeof c?.existing === "string" && c.existing)?.existing;
+    return existing ? t("data_hub.tree_err_name_conflict_with", { existing }) : t("data_hub.tree_err_name_conflict");
+  }
   if (status === 413) return t("data_hub.tree_err_too_large");
   if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
   return t("data_hub.tree_err_server", { status });
@@ -829,7 +842,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             body: form,
           });
           if (!res.ok) {
-            failures.push({ name: display, reason: uploadErrorReason(res.status) });
+            const body = await res.json().catch(() => null);
+            failures.push({ name: display, reason: uploadErrorReason(res.status, body) });
           } else {
             ok += 1;
             const body = await res.json().catch(() => null);
@@ -875,6 +889,11 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         body: JSON.stringify({ url }),
       });
       if (!res.ok) {
+        // A name clash says which entry holds the name (same reason as an upload's 409).
+        if (res.status === 409) {
+          const body = await res.json().catch(() => null);
+          throw new Error(t("data_hub.tree_err_item", { name: t("file_tree.err_import_url"), reason: uploadErrorReason(409, body) }));
+        }
         throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_import_url"), status: res.status }));
       }
       setUrlVal("");

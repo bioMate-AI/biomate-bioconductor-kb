@@ -282,9 +282,29 @@ export interface DatasetRowsState {
    * data rows exactly as the rows the user saw were numbered.
    */
   skipLines: number | null
+  /**
+   * The field delimiter the rows reader split the table on (the rows response's `delimiter`, e.g.
+   * "," "\t" ";"; null when not reported). An edit sends it back so the server splits the file the
+   * same way — a semicolon CSV is never re-read as one comma column.
+   */
+  delimiter: string | null
+  /**
+   * The rows reader found no content: `empty_file` (0 bytes) or `blank_content` (only blank
+   * lines) — its `{tabular: false, reason: "empty", code}` answer. An empty state, not an error and
+   * not "still loading". null otherwise.
+   */
+  empty: EmptyCode | null
 }
 
-const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null }
+export type EmptyCode = "empty_file" | "blank_content"
+/** The rows reader's "no content" answer (on a 200 or a 415), else null. */
+function emptyCode(body: any): EmptyCode | null {
+  if (!body || typeof body !== "object") return null
+  if (body.code === "empty_file" || body.code === "blank_content") return body.code
+  return body.reason === "empty" ? "empty_file" : null
+}
+
+const EMPTY_ROWS: DatasetRowsState = { columns: [], rows: [], total: null, loading: false, error: null, unsupported: false, headerRow: null, version: null, skipLines: null, delimiter: null, empty: null }
 
 /**
  * Same-origin download link for a project file. The server answers with a redirect to a signed
@@ -326,7 +346,7 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
 
   const fetchPage = useCallback(async (limit: number): Promise<boolean> => {
     const cur = ref.current
-    if (!enabled || inflight.current || cur.unsupported) return false
+    if (!enabled || inflight.current || cur.unsupported || cur.empty) return false
     if (cur.total != null && cur.rows.length >= cur.total) return false
     inflight.current = true
     const myGen = gen.current
@@ -337,10 +357,21 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
         { credentials: "include" },
       )
       if (myGen !== gen.current) return false
-      if (res.status === 415) { commit({ ...ref.current, loading: false, unsupported: true }); return false }
+      if (res.status === 415) {
+        const declined = await Promise.resolve().then(() => res.json()).catch(() => null)
+        if (myGen !== gen.current) return false
+        const empty = emptyCode(declined)
+        commit(empty ? { ...ref.current, loading: false, empty, total: 0 } : { ...ref.current, loading: false, unsupported: true })
+        return false
+      }
       if (!res.ok) { commit({ ...ref.current, loading: false, error: res.status }); return false }
       const body = await res.json()
       if (myGen !== gen.current) return false
+      const empty = emptyCode(body)
+      if (empty || body?.tabular === false) {
+        commit(empty ? { ...ref.current, loading: false, empty, total: 0 } : { ...ref.current, loading: false, unsupported: true })
+        return false
+      }
       const pageRows: string[][] = Array.isArray(body?.rows) ? body.rows : []
       const total: number | null = typeof body?.totalRows === "number" ? body.totalRows : null
       const columns: string[] = Array.isArray(body?.columns) ? body.columns : ref.current.columns
@@ -349,9 +380,10 @@ export function useDatasetRows(projectId: string | undefined, fileId: string, na
       const prevVersion = ref.current.version
       const version = prevVersion == null ? pageVersion : pageVersion == null ? prevVersion : Math.min(prevVersion, pageVersion)
       const skipLines: number | null = Number.isInteger(body?.skipLines) && body.skipLines >= 0 ? body.skipLines : ref.current.skipLines
+      const delimiter: string | null = typeof body?.delimiter === "string" && body.delimiter.length > 0 ? body.delimiter : ref.current.delimiter
       const rows = ref.current.rows.concat(pageRows)
       // A short page means the end of the file even if no total was reported.
-      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines })
+      commit({ columns, rows, total: total ?? (pageRows.length < limit ? rows.length : null), loading: false, error: null, unsupported: false, headerRow, version, skipLines, delimiter, empty: null })
       return pageRows.length > 0
     } catch {
       if (myGen === gen.current) commit({ ...ref.current, loading: false, error: 0 })

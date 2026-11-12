@@ -68,3 +68,35 @@ describe("InlineStructureViewer pLDDT chart", () => {
     expect(v).toHaveTextContent("Cartoon")
   })
 })
+
+// Round 2 (2026-11-12): the profiler reads the WHOLE file and reports `structure: {method,
+// method_key, predicted, predictor, bfactor}`; the preview only sees a prefix. When the profile
+// carries it, it decides — the text heuristic is only for profiles without it.
+const XRAY_EVIDENCE = { method: "X-RAY DIFFRACTION", method_key: "xray", predicted: false, predictor: null, bfactor: "displacement" } as const
+const AF_EVIDENCE = { method: null, method_key: null, predicted: true, predictor: "AlphaFold", bfactor: "confidence" } as const
+const UNDETERMINED = { method: null, method_key: null, predicted: null, predictor: null, bfactor: null } as const
+
+describe("profile structure evidence decides the pLDDT chart", () => {
+  it("structureConfidenceSource follows the evidence; the text only when there is none", () => {
+    expect(structureConfidenceSource(XRAY_ATOMS, AF_EVIDENCE)).toBe("predicted")
+    expect(structureConfidenceSource(XRAY_ATOMS, { bfactor: "confidence" })).toBe("predicted")
+    expect(structureConfidenceSource(ALPHAFOLD, XRAY_EVIDENCE)).toBe("experimental")
+    // an experimental method family wins even if another field disagrees
+    expect(structureConfidenceSource(ALPHAFOLD, { method_key: "em", predicted: true })).toBe("experimental")
+    // present but undetermined → no chart (no fallback to the prefix heuristic)
+    expect(structureConfidenceSource(BARE_PREDICTION, UNDETERMINED)).toBe("unknown")
+    // absent (an older profile / no profile): the file's own text decides, as before
+    expect(structureConfidenceSource(ALPHAFOLD, null)).toBe("predicted")
+    expect(structureConfidenceSource(ALPHAFOLD)).toBe("predicted")
+  })
+  it("predicted per the profile → chart, even when the text alone is inconclusive", async () => {
+    render(<InlineStructureViewer text={XRAY_ATOMS} ext="pdb" structure={AF_EVIDENCE} />)
+    await waitFor(() => expect(screen.getByTestId("plddt-chart")).toBeInTheDocument())
+  })
+  it("an experimental method per the profile → never a chart, even for an AlphaFold-looking header", async () => {
+    render(<InlineStructureViewer text={ALPHAFOLD} ext="pdb" structure={{ ...XRAY_EVIDENCE, method: "ELECTRON MICROSCOPY", method_key: "em" }} />)
+    const v = await screen.findByTestId("inline-structure-viewer")
+    expect(v).toHaveAttribute("data-has-confidence", "false")
+    expect(screen.queryByTestId("plddt-chart")).toBeNull()
+  })
+})

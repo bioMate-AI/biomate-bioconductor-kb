@@ -100,6 +100,24 @@ describe("ProjectFileTree — folder picker", () => {
     const failures = await screen.findByTestId("project-files-upload-failures")
     expect(failures).toHaveTextContent("a.csv: network error — check your connection and try again")
   })
+
+  it("a 409 name_conflict names the existing entry — not 'server error (409)'", async () => {
+    const base = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/files/upload")) {
+        return { ok: false, status: 409, json: async () => ({
+          error: '"run1" conflicts with an existing file or folder in this project.', code: "name_conflict",
+          conflicts: [{ name: "run1", existing: "run1/meta.tsv" }],
+        }) } as Response
+      }
+      return (base as any)(input, init)
+    }) as unknown as typeof fetch
+    render(<ProjectFileTree projectId="p1" />)
+    fireEvent.change(screen.getByTestId("project-files-input"), { target: { files: [new File(["x"], "run1")] } })
+    const failures = await screen.findByTestId("project-files-upload-failures")
+    expect(failures).toHaveTextContent("run1: “run1/meta.tsv” already uses that name in this project")
+    expect(failures).not.toHaveTextContent("server error")
+  })
 })
 
 // ── Drag-drop of a directory entry (FileSystemEntry API) ─────────────────────

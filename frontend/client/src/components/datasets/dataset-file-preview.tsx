@@ -5,6 +5,7 @@ import { FileContentView } from "../file-content-view"
 import { t } from "@/lib/i18n"
 import { fileDownloadUrl } from "./datasets-api"
 import { fileExt, type ViewKind } from "./dataset-view-model"
+import type { StructureEvidence } from "@/components/data-perception"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import { gunzipPrefix, decompressionAvailable, DecompressionUnavailableError } from "./gzip-text"
@@ -42,7 +43,12 @@ const GZ_TEXT = new RegExp(`\\.(${TEXT_EXTS})\\.(gz|bgz)$`, "i")
 // Browsers cannot decode TIFF in <img>; show an honest download state instead.
 const TIFF = /\.tiff?$/i
 const IMAGE = /\.(png|jpe?g|gif|webp|svg)$/i
-const DENSITY = /\.(mrc|mrcs|map|rec)$/i
+/** Formats the density viewer reads (MRC / CCP4 maps). `.map` and `.rec` are NOT decided by name:
+ *  a PLINK `.map` is a text table and an IMOD `.rec` may be anything — only the profiler's format
+ *  (it read the header) says a file is a map. */
+const DENSITY_FORMATS = new Set(["mrc", "mrcs", "mrc2014", "ccp4", "map", "rec"])
+/** Names that are MRC by convention (used only while no profiler format is known). */
+const MRC_NAME = /\.(mrc|mrcs)$/i
 
 const MARKDOWN = /\.(md|markdown)$/i
 /** Kinds whose content is text the in-browser viewers read, whatever the file is named
@@ -50,13 +56,20 @@ const MARKDOWN = /\.(md|markdown)$/i
 const TEXT_KINDS = new Set<string>(["table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation", "molecules", "document"])
 
 type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "none"
+/** A cryo-EM density map: an image / structure kind whose format is the MRC family. The format
+ *  comes from the profiler; without one, only an unambiguous `.mrc` / `.mrcs` name counts. */
+function isDensity(name: string, kind?: string, format?: string): boolean {
+  if (kind !== "image" && kind !== "structure") return false
+  return format ? DENSITY_FORMATS.has(format.toLowerCase()) : MRC_NAME.test(name)
+}
+
 /** How a file is previewed: by its content kind when the profiler read it, else by its name. */
-function previewMode(name: string, kind?: string): Mode {
+function previewMode(name: string, kind?: string, format?: string): Mode {
   if (GZ_TEXT.test(name)) return "gz"
   if (TIFF.test(name)) return "tiff"
   // A cryo-EM map is an image kind (the profiler's vocabulary) drawn by the density viewer —
   // never by <img>, which cannot decode MRC.
-  if (DENSITY.test(name)) return "density"
+  if (isDensity(name, kind, format)) return "density"
   if (IMAGE.test(name) || kind === "image") return "image"
   if (/\.pdf$/i.test(name)) return "pdf"
   if (TEXT.test(name) || (kind && TEXT_KINDS.has(kind))) return "text"
@@ -109,12 +122,12 @@ async function readGzipPrefix(url: string, signal: AbortSignal): Promise<{ text:
 /** Dispatch already-fetched text to the matching rich viewer by file type, with
  *  FileContentView (structured table / inert text) as the fallback. HTML stays
  *  inert (never an iframe) — same security choice this component has always made. */
-function renderTextContent(fileName: string, text: string, maxHClass: string, dataKind?: string) {
+function renderTextContent(fileName: string, text: string, maxHClass: string, dataKind?: string, structure?: StructureEvidence | null) {
   const name = viewerName(fileName)
   const ext = (name.split(".").pop() || "").toLowerCase()
   const byName = resolveViewer(ext)
   // The content kind (what the bytes are) wins over the name (what the file is called).
-  if (dataKind === "structure" || (!dataKind && byName === "structure")) return <InlineStructureViewer text={text} ext={byName === "structure" ? ext : "pdb"} />
+  if (dataKind === "structure" || (!dataKind && byName === "structure")) return <InlineStructureViewer text={text} ext={byName === "structure" ? ext : "pdb"} structure={structure} />
   if (dataKind === "variants" || (!dataKind && byName === "vcf")) return <InlineVcfViewer text={text} />
   if (dataKind === "reads" || dataKind === "sequences" || (!dataKind && byName === "sequence")) return <InlineSequenceViewer text={text} />
   if (dataKind === "intervals" || dataKind === "annotation" || (!dataKind && byName === "annotation"))
@@ -154,15 +167,19 @@ function ImagePreview({ url, name, broken, onBroken }: { url: string; name: stri
 export type FilePreviewStatus = "loading" | "ready" | "error" | "none"
 
 /** Uses the same permission-checked signed URL as Download. HTML stays inert text. */
-export function DatasetFilePreview({ projectId, fileId, name, kind, onStatus }: {
+export function DatasetFilePreview({ projectId, fileId, name, kind, format, structure, onStatus }: {
   projectId: string; fileId: string; name: string
   /** The content kind from the dataset view model (DatasetObject passes it). */
   kind?: ViewKind
+  /** The profiler's format extension (DataProfile.format.ext; DatasetObject passes it). */
+  format?: string
+  /** The profiler's structure evidence (DataProfile.structure; DatasetObject passes it). */
+  structure?: StructureEvidence | null
   /** Told every status change (DatasetObject passes it). */
   onStatus?: (status: FilePreviewStatus) => void
 }) {
   const [state, setState] = useState<{ url?: string; text?: string; truncated?: boolean; compressed?: boolean; error?: string; noDecompress?: boolean; broken?: boolean }>({})
-  const mode = previewMode(name, kind)
+  const mode = previewMode(name, kind, format)
   const status: FilePreviewStatus =
     mode === "none" || state.noDecompress ? "none"
     : state.error || state.broken ? "error"
@@ -226,7 +243,7 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, onStatus }: 
   if (state.error) return <p role="alert" className="text-destructive" data-testid="dataset-file-preview-error">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
     {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
-    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
+    {state.text ? renderTextContent(name, state.text, "max-h-[60vh]", kind, structure) : <p className="text-muted-foreground">{t("dataset_obj.preview_empty")}</p>}
     {state.truncated && <p className="text-muted-foreground">{t(state.compressed ? "dataset_obj.preview_truncated_gz" : "dataset_obj.preview_truncated")}</p>}
   </div>
   if (state.url && mode === "tiff") return (

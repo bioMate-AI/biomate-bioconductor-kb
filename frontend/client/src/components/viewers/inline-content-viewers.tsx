@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { TableGrid } from "../file-content-view";
 import { PlddtChart } from "./plddt-chart";
 import { t } from "@/lib/i18n";
+import type { StructureEvidence } from "@/components/data-perception";
 
 // ---------------------------------------------------------------------------
 // File-extension → viewer registry
@@ -252,7 +253,20 @@ export function parsePlddtFromPdb(text: string): number[] {
  *  - otherwise, with no header at all: predicted only when every residue's atoms share one
  *    B-factor (pLDDT is per residue; real temperature factors vary atom by atom).
  */
-export function structureConfidenceSource(text: string): 'predicted' | 'experimental' | 'unknown' {
+export function structureConfidenceSource(
+  text: string,
+  evidence?: StructureEvidence | null,
+): 'predicted' | 'experimental' | 'unknown' {
+  // The profiler's evidence (it read the whole file, not the preview prefix) decides whenever the
+  // profile carries it: a pLDDT chart only for a predicted model (B-factors = confidence); an
+  // experimental method never; undetermined → no chart. The file's own text is read only when the
+  // profile has no structure evidence at all (an older backend, or no profile).
+  if (evidence) {
+    if (evidence.method_key) return 'experimental';
+    if (evidence.predicted === true || evidence.bfactor === 'confidence') return 'predicted';
+    if (evidence.predicted === false || evidence.bfactor === 'displacement') return 'experimental';
+    return 'unknown';
+  }
   const header: string[] = [];
   for (const line of text.split('\n')) {
     if (line.startsWith('ATOM') || line.startsWith('HETATM')) break;
@@ -292,7 +306,11 @@ export function structureConfidenceSource(text: string): 'predicted' | 'experime
  * the chart centres the 3D view on it: chart selection and structure selection
  * are one selection, not two.
  */
-export function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
+export function InlineStructureViewer({ text, ext, structure }: {
+  text: string; ext: string
+  /** The profiler's structure evidence (DataProfile.structure), when the file was profiled. */
+  structure?: StructureEvidence | null
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   // 3Dmol viewer instance, kept so the pLDDT chart's residue click can drive it.
   const viewerRef = useRef<any>(null);
@@ -302,7 +320,7 @@ export function InlineStructureViewer({ text, ext }: { text: string; ext: string
   const format = ext === 'cif' || ext === 'mmcif' ? 'cif' : 'pdb';
   // pLDDT only lives in the B-factor column of PDB-format PREDICTED structures; an X-ray /
   // NMR / EM structure's B-factors are temperature factors and never shown as confidence.
-  const plddt = format === 'pdb' && structureConfidenceSource(text) === 'predicted' ? parsePlddtFromPdb(text) : [];
+  const plddt = format === 'pdb' && structureConfidenceSource(text, structure) === 'predicted' ? parsePlddtFromPdb(text) : [];
   const hasConfidence = plddt.length > 0;
 
   useEffect(() => {

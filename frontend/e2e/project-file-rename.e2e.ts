@@ -97,7 +97,7 @@ test.describe("project file rename / move", () => {
       expect(diff.ok(), `diff failed: ${await diff.text()}`).toBeTruthy();
       const dj = await diff.json();
       expect(dj.tabular).toBe(true);
-      expect(dj.changedCells).toEqual([{ row: 0, col: "value", from: "10", to: "11" }]);
+      expect(dj.changedCells).toEqual([{ row: 0, rowNumber: 1, col: "value", from: "10", to: "11" }]);
 
       // 3. an edit after the rename versions under the new name's key
       const edit = await request.post(`${BASE_URL}/api/projects/${projectId}/files/${a1.id}/edit`, {
@@ -124,7 +124,7 @@ test.describe("project file rename / move", () => {
       expect(await download(request, projectId, a1.id)).toBe(V2);
       // the original v1 object (the renamed file's archived version) is also intact
       const v1diff = await request.get(`${BASE_URL}/api/projects/${projectId}/files/${a1.id}/versions/1/diff`);
-      expect((await v1diff.json()).changedCells).toEqual([{ row: 0, col: "value", from: "10", to: "11" }]);
+      expect((await v1diff.json()).changedCells).toEqual([{ row: 0, rowNumber: 1, col: "value", from: "10", to: "11" }]);
 
       // 5. UI folder rename y → z
       await page.getByTestId("project-files-refresh-btn").click();

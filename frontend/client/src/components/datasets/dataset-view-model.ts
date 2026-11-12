@@ -27,6 +27,7 @@ export type ContentRenderer =
   | "anndata"     // AnnData / Loom summary built from the profile
   | "summary"     // a stats + findings summary built from the profile (BAM, Matrix Market, spreadsheets)
   | "download"    // honest "cannot be shown here" + Download
+  | "empty"       // the file has no content (0 bytes / only blank lines): say so
 
 /** Stat codes the QC card can show (`perception.stat.<code>`). */
 export type StatCode =
@@ -75,7 +76,9 @@ add("loom", "loom")
 add("matrix", "mtx")
 add("molecules", "sdf mol mol2 inchi")
 add("structure", "pdb cif mmcif ent pqr gro")
-add("image", "png jpg jpeg gif webp svg tif tiff bmp mrc mrcs map rec")
+// `.map` / `.rec` are not images by name (a PLINK .map is a text table): only the profiler, which
+// reads the header, calls such a file an MRC map.
+add("image", "png jpg jpeg gif webp svg tif tiff bmp mrc mrcs")
 add("document", "pdf md markdown log html htm rtf xlsx xls docx pptx")
 add("archive", "zip tar tgz 7z rar")
 add("binary", "h5 hdf5 rds rdata rda pod5 fast5 bigwig bw bigbed bb npy parquet sqlite db cs csg bin")
@@ -95,6 +98,14 @@ export function kindFromName(name: string): ViewKind {
   // A bare archive (`.tar.gz`, `.gz` of nothing we know) is an archive.
   if (/\.(tar\.gz|tgz|gz|bz2|zst|xz)$/i.test(name) && !ext) return "archive"
   return "unknown"
+}
+
+/** Finding codes that mean the file has no content. */
+export const EMPTY_FILE_CODES = new Set(["empty_file", "blank_content"])
+/** The "no content" code from the profile's findings, else null. */
+export function profileEmptyCode(profile?: Pick<DataProfile, "findings"> | null): "empty_file" | "blank_content" | null {
+  const f = profile?.findings?.find((x) => EMPTY_FILE_CODES.has(x.code))
+  return f ? (f.code as "empty_file" | "blank_content") : null
 }
 
 /** Content-first: the profiler's `viewKind`, else the file extension. */
@@ -134,9 +145,17 @@ const CONTENT: Record<ViewKind, ContentRenderer> = {
  */
 export function datasetViewModel(
   kind: ViewKind,
-  opts: { name: string; hasColumns?: boolean; columnsPending?: boolean; versionable?: boolean; projectFile?: boolean } = { name: "" },
+  opts: { name: string; hasColumns?: boolean; columnsPending?: boolean; versionable?: boolean; projectFile?: boolean; empty?: boolean } = { name: "" },
 ): DatasetViewModel {
   const ext = fileExt(opts.name)
+  // No content at all: one honest "empty" view whatever the kind — no table tools, no edit, no
+  // "not shown cell by cell" summary, no "cannot be shown here".
+  if (opts.empty) {
+    return {
+      kind, views: ["content"], content: "empty", useRows: CONTENT[kind] === "rows", tableShape: false,
+      canEdit: false, canRunQC: false, canOpenIn: false,
+    }
+  }
   const tabular = kind === "table" || kind === "records"
   // A table we cannot read here (e.g. a spreadsheet the rows endpoint does not parse) has no
   // Columns / Plot / Edit to offer — its single view is the profile summary.

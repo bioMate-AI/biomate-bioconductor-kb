@@ -37,8 +37,8 @@ import {
   SquareTerminal,
   Pencil,
 } from "lucide-react"
-import { DataPerception, formatStatValue, type PerceptionQuality } from "@/components/data-perception"
-import { datasetKind, datasetViewModel, effectiveQuality, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
+import { DataPerception, formatStatValue, type PerceptionQuality, type StructureEvidence } from "@/components/data-perception"
+import { datasetKind, datasetViewModel, effectiveQuality, profileEmptyCode, profileStats, type PreviewView, type StatItem } from "./dataset-view-model"
 import { AnnDataSummary, KindSummary, DownloadState } from "./dataset-kind-views"
 import { DatasetFilePreview, type FilePreviewStatus } from "./dataset-file-preview"
 import { t, tOr, locale } from "@/lib/i18n"
@@ -59,7 +59,7 @@ import { DatasetVersionsList } from "./dataset-versions-list"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
-import { datasetShape, kindLabel, localizedFormatLabel, openInErrorMessage } from "./dataset-presentation"
+import { datasetShape, editErrorMessage, kindLabel, localizedFormatLabel, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -350,21 +350,18 @@ export function DatasetObject({
         // `baseVersion`: the version the edited rows were read from — the server refuses the save
         // (409 version_conflict) if the file has moved on since, so an edit never lands on a
         // row that someone else's save renumbered. `skipLines`: the leading comment / blank lines
-        // the rows reader skipped, so the server numbers data rows the same way.
+        // the rows reader skipped, so the server numbers data rows the same way. `delimiter`: the
+        // separator the rows reader split on, so the server splits the file the same way.
         body: JSON.stringify({
           edits,
           ...(rowsQ.headerRow === null ? {} : { headerRows: rowsQ.headerRow ? 1 : 0 }),
           ...(rowsQ.version != null ? { baseVersion: rowsQ.version } : {}),
           ...(rowsQ.skipLines != null ? { skipLines: rowsQ.skipLines } : {}),
+          ...(rowsQ.delimiter != null ? { delimiter: rowsQ.delimiter } : {}),
         }),
       })
       const j = await r.json().catch(() => ({}))
-      if (r.status === 409) {
-        const code = (j as any)?.error
-        throw new EditError(t(code === "version_conflict" ? 'dataset_obj.edit_conflict_version'
-          : code === "cell_conflict" ? 'dataset_obj.edit_conflict_cell' : 'dataset_obj.edit_conflict'))
-      }
-      if (!r.ok) throw new EditError(t('dataset_obj.with_status', { message: t('dataset_obj.edit_failed'), status: r.status }))
+      if (!r.ok) throw new EditError(editErrorMessage(r.status, j))
       setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
       await loadProjectVersions()
       refetchProfile?.()
@@ -408,8 +405,11 @@ export function DatasetObject({
   const statRows = (hasFullRows ? rowsQ.rows : profile?.sampleRows) ?? []
   const hasColumns = Boolean(statCols?.length)
   const rowsInFlight = rowsQ.enabled && !rowsQ.unsupported && (rowsQ.error != null || (rowsQ.total == null && rowsQ.columns.length === 0))
+  // No content (the rows reader's empty answer, or the profile's empty_file / blank_content).
+  const emptyCode = rowsQ.empty ?? profileEmptyCode(profile)
   const vm = datasetViewModel(kind, {
     name: dataset.name,
+    empty: Boolean(emptyCode) && !hasFullRows,
     hasColumns,
     columnsPending: rowsInFlight || (isLoading && !hasColumns),
     versionable,
@@ -426,7 +426,8 @@ export function DatasetObject({
   const onFileStatus = useCallback((status: FilePreviewStatus) => setFileStatus({ id: dataset.id, status }), [dataset.id])
   const isFilePreview = isValidElement(preview) && preview.type === DatasetFilePreview
   const kindPreview = isFilePreview
-    ? cloneElement(preview as React.ReactElement<{ kind?: string; onStatus?: (s: FilePreviewStatus) => void }>, { kind, onStatus: onFileStatus })
+    ? cloneElement(preview as React.ReactElement<{ kind?: string; format?: string; structure?: StructureEvidence | null; onStatus?: (s: FilePreviewStatus) => void }>,
+        { kind, format: profile?.format?.ext, structure: profile?.structure ?? null, onStatus: onFileStatus })
     : preview
   // Another preview element reports nothing: it is taken as drawn.
   const filePreviewStatus: FilePreviewStatus = !isFilePreview ? "ready"
@@ -455,6 +456,7 @@ export function DatasetObject({
         : rowsBranch === "file" ? shownFile()
         : { shown: "none", busy: false }
     : previewView === "content" && vm.content === "viewer" ? (kindPreview ? shownFile() : { shown: "none", busy: false })
+    : previewView === "content" && vm.content === "empty" ? { shown: "none", busy: false }
     : previewView === "content" && (vm.content === "anndata" || vm.content === "summary") ? { shown: kind, busy: isLoading }
     : previewView === "content" ? { shown: kind, busy: false }  // download: the honest download state IS this kind's view
     : previewView === "columns" ? { shown: kind, busy: !hasColumns }
@@ -710,6 +712,13 @@ export function DatasetObject({
             )}
             {previewView === "content" && vm.content === "summary" && (
               isLoading ? <Skeleton className="h-16 w-full" /> : <KindSummary profile={profile} kind={kind} onDownload={onDownload} />
+            )}
+            {previewView === "content" && vm.content === "empty" && emptyCode && (
+              // The file has no content: say so (0 bytes / only blank lines) — not an error, not a
+              // table still loading, not "cannot be shown here".
+              <p className="text-sm text-muted-foreground" data-testid="dataset-preview-empty" data-empty-code={emptyCode}>
+                {t(`perception.msg.${emptyCode}`)}
+              </p>
             )}
             {previewView === "content" && vm.content === "download" && (
               <DownloadState kind={kind} onDownload={onDownload} />
