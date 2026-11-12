@@ -217,5 +217,9 @@ round-5 leftovers. Each backend fix landed with a test that fails on the commit 
 4. Plate well positions (`A01`, `sample_B3`, `plate1_H12`) are no longer read as sample groups;
    `KO1`, `WT1`, `C1/T1` and `ctrl_1` still group.
 
-**Noted, not fixed:** `genotype` is not among the recognised group-column names, so a WT/KO
-`genotype` column is not picked up as the group.
+5. A WT/KO `genotype` column (or a `treatment` column) was not recognised as the group, so the
+   table said "no group column was found" (`00377fa3ed`).
+
+**Results on dev `64433d94` (computed by the harnesses):** format matrix **PASS 34 / PARTIAL 0 /
+FAIL 0**; `dataset-edit-safety`, `project-file-rename`, `jsonl-nested-tables`, `run-code-outputs`
+(1 pass, 1 skip by design), `dataset-panel-full`: pass. The round-6 fixes are not yet deployed.
