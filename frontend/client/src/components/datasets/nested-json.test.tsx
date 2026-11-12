@@ -5,7 +5,7 @@
  */
 import React from "react"
 import { describe, it, expect } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { parseNested, recordTables } from "./nested-json"
 import { DatasetRowsTable } from "./dataset-rows-table"
 
@@ -68,6 +68,17 @@ describe("DatasetRowsTable with nested JSONL cells", () => {
 
     fireEvent.click(screen.getByTestId("dataset-record-close"))
     expect(screen.queryByTestId("dataset-record-view")).toBeNull()
+  })
+
+  it("non-table nested values open in the JSON viewer (json-edit-react), searchable", async () => {
+    const cols = ["id", "meta"]
+    const row = ["r1", cell({ assay: "hERG", doses: [1, 3, 10], lab: { site: "A" } })]
+    render(<DatasetRowsTable {...props} columns={cols} rows={[row]} total={1} />)
+    fireEvent.click(screen.getAllByTestId("dataset-preview-row")[0])
+    const tree = await screen.findByTestId("dataset-json-tree")
+    await waitFor(() => expect(tree.textContent).toContain("hERG"))
+    expect(tree.textContent).toContain("meta")
+    expect(screen.getByTestId("dataset-record-search")).toBeTruthy()
   })
 
   it("plain CSV rows are unchanged (no chips, rows not clickable)", () => {

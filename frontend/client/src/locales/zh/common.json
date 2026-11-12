@@ -697,7 +697,8 @@
     "nested_object": "{{n}} 个字段",
     "record_title": "记录 {{n}}",
     "record_close": "关闭",
-    "record_hint": "点击一行查看该记录。"
+    "record_hint": "点击一行查看该记录。",
+    "record_search": "在此记录中搜索…"
   },
   "data_hub": {
     "choose_project": "选择一个项目",
@@ -2129,9 +2130,9 @@
       "split_overlap": "{{count}} 行特征出现在多个数据划分中 — 训练集与测试集重叠。",
       "dedup_splits": "训练集与测试集重叠",
       "dedup_splits_effect": "评估前在各划分间去除重复行",
-      "nested_tables": "{{column}}：{{tables}} 个嵌套表格，中位 {{median_rows}} 行 × {{median_cols}} 列（最多 {{max_rows}} 行）。",
-      "nested_row_cap": "{{column}} 中 {{pct}}% 的表格恰好有 {{max_rows}} 行（即最大值），很可能在抽取时被截断。分析前请先检查抽取过程。",
-      "nested_blank_cells": "{{column}} 表格中 {{pct}}% 的单元格为空——这是抽取表格中合并单元格或多行单元格的典型特征；分析前请先合并续行。"
+      "nested_tables": "列“{{column}}”：{{tables}} 个嵌套表格，中位 {{median_rows}} 行 × {{median_cols}} 列（最多 {{max_rows}} 行）。",
+      "nested_row_cap": "列“{{column}}”中 {{pct}}% 的表格恰好有 {{max_rows}} 行（即最大值），很可能在抽取时被截断。分析前请先检查抽取过程。",
+      "nested_blank_cells": "列“{{column}}”的表格中 {{pct}}% 的单元格为空——这是抽取表格中合并单元格或多行单元格的典型特征；分析前请先合并续行。"
     }
   },
   "failure": {

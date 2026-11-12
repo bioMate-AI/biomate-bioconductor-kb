@@ -691,7 +691,8 @@
     "nested_object": "{{n}} fields",
     "record_title": "Record {{n}}",
     "record_close": "Close",
-    "record_hint": "Click a row to open the record."
+    "record_hint": "Click a row to open the record.",
+    "record_search": "Search this record…"
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -1646,9 +1647,9 @@
       "split_overlap": "{{count}} feature row(s) appear in more than one split — train/test overlap.",
       "dedup_splits": "Train/test overlap",
       "dedup_splits_effect": "de-duplicate rows across splits before evaluation",
-      "nested_tables": "{{column}}: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).",
-      "nested_row_cap": "{{pct}}% of the tables in {{column}} have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.",
-      "nested_blank_cells": "{{pct}}% of the cells in the {{column}} tables are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis."
+      "nested_tables": "Column “{{column}}”: {{tables}} embedded tables, median {{median_rows}} rows × {{median_cols}} columns (largest {{max_rows}} rows).",
+      "nested_row_cap": "{{pct}}% of the tables in column “{{column}}” have exactly {{max_rows}} rows, the maximum: they were probably cut off when extracted. Check the extraction before analysing them.",
+      "nested_blank_cells": "{{pct}}% of the cells in the tables of column “{{column}}” are blank — typical of merged or multi-line cells in extracted tables; join continuation rows before analysis."
     }
   },
   "failure": {

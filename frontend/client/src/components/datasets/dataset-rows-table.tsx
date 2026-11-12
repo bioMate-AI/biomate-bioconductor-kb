@@ -9,7 +9,7 @@
  *   ("sorting and filtering apply to the loaded rows only") until every row is
  *   loaded; "Load all rows" makes them whole-file operations.
  */
-import { useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { t } from "@/lib/i18n"
 import { parseNested, recordTables, type NestedValue } from "./nested-json"
@@ -39,28 +39,48 @@ function nestedLabel(n: NestedValue): string {
   return t("dataset_obj.nested_object", { n: n.rows })
 }
 
-/** Collapsible view of any nested JSON value. */
-function JsonTree({ value, depth = 0 }: { value: unknown; depth?: number }) {
-  if (value === null || typeof value !== "object") {
-    return <span className="font-mono text-xs">{value === null ? "null" : JSON.stringify(value)}</span>
-  }
-  const entries = Array.isArray(value) ? value.map((v, i) => [String(i), v] as const) : Object.entries(value as object)
+// Read-only JSON tree (json-edit-react: MIT, no runtime dependencies), loaded only when a record opens.
+const JsonViewer = lazy(() => import("json-edit-react").then((m) => ({ default: m.JsonViewer })))
+
+/** Theme from the app's tokens, so the tree follows light/dark mode. */
+const JSON_THEME = {
+  container: { backgroundColor: "transparent", color: "var(--foreground, inherit)", fontSize: 12, padding: 0 },
+  property: { color: "var(--bm-accent-ink, inherit)" },
+  bracket: { color: "var(--muted-foreground, inherit)" },
+  itemCount: { color: "var(--muted-foreground, inherit)", fontStyle: "normal" },
+  string: { color: "var(--foreground, inherit)" },
+  number: { color: "var(--bm-accent, inherit)" },
+  boolean: { color: "var(--bm-accent, inherit)" },
+  null: { color: "var(--muted-foreground, inherit)" },
+  iconCollection: "var(--muted-foreground, currentColor)",
+  iconCopy: "var(--muted-foreground, currentColor)",
+}
+
+/** Searchable, collapsible view of any nested JSON value. */
+function JsonTree({ value, name, search }: { value: unknown; name: string; search: string }) {
   return (
-    <details open={depth < 1} className="text-xs">
-      <summary className="cursor-pointer text-muted-foreground">
-        {Array.isArray(value) ? `[${entries.length}]` : `{${entries.length}}`}
-      </summary>
-      <div className="pl-4 space-y-0.5">
-        {entries.map(([k, v]) => (
-          <div key={k}><span className="text-muted-foreground font-mono">{k}: </span><JsonTree value={v} depth={depth + 1} /></div>
-        ))}
+    <Suspense fallback={<span className="font-mono text-xs text-muted-foreground">…</span>}>
+      <div data-testid="dataset-json-tree">
+        <JsonViewer
+          data={value}
+          rootName={name}
+          collapse={1}
+          searchText={search}
+          searchFilter="all"
+          showCollectionCount="when-collapsed"
+          showClipboardButton
+          theme={JSON_THEME}
+          minWidth="100%"
+          maxWidth="100%"
+        />
       </div>
-    </details>
+    </Suspense>
   )
 }
 
 /** One record, structured: scalar fields, embedded tables (with a matching header list), JSON trees. */
 function RecordView({ columns, row, index, onClose }: { columns: string[]; row: string[]; index: number; onClose: () => void }) {
+  const [search, setSearch] = useState("")
   const tables = recordTables(columns, row)
   const inTable = new Set(tables.flatMap((tb) => [tb.field, ...(tb.headerField ? [tb.headerField] : [])]))
   return (
@@ -71,13 +91,23 @@ function RecordView({ columns, row, index, onClose }: { columns: string[]; row: 
           {t("dataset_obj.record_close")}
         </Button>
       </div>
+      {columns.some((c, i) => !inTable.has(c) && parseNested(row[i])) && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("dataset_obj.record_search")}
+          aria-label={t("dataset_obj.record_search")}
+          data-testid="dataset-record-search"
+          className="w-full rounded border bg-background px-2 py-1 text-xs"
+        />
+      )}
       <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
         {columns.map((c, i) => {
           if (inTable.has(c)) return null
           const n = parseNested(row[i])
           return [
             <dt key={`k${i}`} className="text-muted-foreground font-mono">{c}</dt>,
-            <dd key={`v${i}`} className="font-mono break-all">{n ? <JsonTree value={n.value} /> : (row[i] ?? "")}</dd>,
+            <dd key={`v${i}`} className="font-mono break-all">{n ? <JsonTree value={n.value} name={c} search={search} /> : (row[i] ?? "")}</dd>,
           ]
         })}
       </dl>

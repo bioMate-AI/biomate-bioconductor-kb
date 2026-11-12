@@ -917,14 +917,14 @@ def _nested_table_findings(p: "DataProfile", header: Sequence[str], rows: Sequen
         ncols = sorted(max((len(x) for x in m), default=0) for m in mats)
         med = lambda xs: xs[len(xs) // 2]
         emit(p, "note", "nested_tables",
-             f"{name}: {len(mats):,} embedded tables, median {med(nrows)} rows × {med(ncols)} columns "
+             f"Column {name!r}: {len(mats):,} embedded tables, median {med(nrows)} rows × {med(ncols)} columns "
              f"(largest {nrows[-1]} rows).",
              column=str(name), tables=len(mats), median_rows=med(nrows), median_cols=med(ncols), max_rows=nrows[-1])
         at_max = sum(1 for n in nrows if n == nrows[-1])
         if nrows[-1] >= 3 and nrows[0] < nrows[-1] and at_max / len(nrows) >= NESTED_ROW_CAP_FRAC:
             pct = int(round(100 * at_max / len(nrows)))
             emit(p, "signal", "nested_row_cap",
-                 f"{pct}% of the tables in {name} have exactly {nrows[-1]} rows, the maximum: they were "
+                 f"{pct}% of the tables in column {name!r} have exactly {nrows[-1]} rows, the maximum: they were "
                  f"probably cut off when extracted. Check the extraction before analysing them.",
                  "watch", column=str(name), pct=pct, max_rows=nrows[-1], tables=len(mats))
             watch = True
@@ -933,7 +933,7 @@ def _nested_table_findings(p: "DataProfile", header: Sequence[str], rows: Sequen
             blank = sum(1 for x in cells if x is None or not str(x).strip()) / len(cells)
             if blank >= NESTED_BLANK_NOTE_FRAC:
                 emit(p, "note", "nested_blank_cells",
-                     f"{int(round(100 * blank))}% of the cells in the {name} tables are blank — typical of merged "
+                     f"{int(round(100 * blank))}% of the cells in the tables of column {name!r} are blank — typical of merged "
                      f"or multi-line cells in extracted tables; join continuation rows before analysis.",
                      column=str(name), pct=int(round(100 * blank)))
     return watch
