@@ -15,7 +15,7 @@
  *     folder, inline: Enter saves, Esc cancels, a clash (409) is shown on the row. Only the
  *     stored name changes; the bytes, versions and lineage stay with the file.
  */
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { isDesktop, desktopPickAndUpload, desktopSaveFile } from "@/lib/desktop";
 import {
   Search,
@@ -159,12 +159,62 @@ export function uploadErrorReason(status: number): string {
   return t("data_hub.tree_err_server", { status });
 }
 
-/** Localized reason for a failed rename / move response. */
-export function renameErrorReason(status: number): string {
-  if (status === 409) return t("file_tree.rename_conflict");
-  if (status === 400) return t("file_tree.rename_invalid");
-  if (status === 401 || status === 403 || status === 404) return t("data_hub.tree_err_forbidden");
-  return t("data_hub.tree_err_server", { status });
+/** What the server sends back with a refused rename (error text; optional stable code; clashes). */
+export interface RenameErrorBody {
+  error?: string
+  /** Stable reason code, when the server sends one (preferred over matching the text). */
+  code?: string
+  conflicts?: Array<{ name: string; existing: string }>
+}
+
+/**
+ * Stable reason for a refused rename. The server's `code` wins; otherwise the reason is read
+ * from its (English, developer-facing) error text, which names one rule per refusal
+ * (project-file-paths.ts normalizeProjectFileName / planFileRename / planFolderRename).
+ */
+export function renameErrorCode(status: number, body?: RenameErrorBody | null): string {
+  if (body?.code) return body.code
+  if (status === 409) return "conflict"
+  if (status === 401) return "signed_out"
+  if (status === 403 || status === 404) return "gone"
+  if (status !== 400) return "server"
+  const e = String(body?.error ?? "")
+  if (/run output/i.test(e)) return "run_output"
+  if (/already has that name/i.test(e)) return "same_name"
+  if (/into itself/i.test(e)) return "into_itself"
+  if (/control char/i.test(e)) return "control_chars"
+  if (/\.\./.test(e)) return "dot_segment"
+  if (/is empty/i.test(e)) return "empty"
+  if (/limited to \d+ characters/i.test(e)) return "too_long"
+  if (/nested at most/i.test(e)) return "too_deep"
+  if (/depth or name length/i.test(e)) return "limits"
+  return "invalid"
+}
+
+const RENAME_400_KEYS: Record<string, string> = {
+  run_output: "file_tree.rename_err_run_output",
+  same_name: "file_tree.rename_err_same_name",
+  into_itself: "file_tree.rename_err_into_itself",
+  control_chars: "file_tree.rename_err_control_chars",
+  dot_segment: "file_tree.rename_err_dot_segment",
+  empty: "file_tree.rename_err_empty",
+  too_long: "file_tree.rename_err_too_long",
+  too_deep: "file_tree.rename_err_too_deep",
+  limits: "file_tree.rename_err_limits",
+}
+
+/** Localized reason for a failed rename / move response — one message per server reason. */
+export function renameErrorReason(status: number, body?: RenameErrorBody | null): string {
+  const code = renameErrorCode(status, body)
+  if (code === "conflict") {
+    const existing = body?.conflicts?.[0]?.existing
+    return existing ? t("file_tree.rename_conflict_with", { existing }) : t("file_tree.rename_conflict")
+  }
+  if (code === "signed_out") return t("file_tree.rename_err_signed_out")
+  if (code === "gone") return t("file_tree.rename_err_gone")
+  if (code === "server") return t("file_tree.rename_err_server", { status })
+  const key = RENAME_400_KEYS[code]
+  return key ? t(key) : t("file_tree.rename_invalid")
 }
 
 /** "inputs/a/b" → ["inputs", "inputs/a", "inputs/a/b"]: folders to keep open after a move. */
@@ -197,6 +247,10 @@ function InlineRename({
   const base = initial.split("/").filter(Boolean).pop() || initial;
   const hint = t("file_tree.rename_hint", { example: `data/${base}`, folder: "data" });
   const [saving, setSaving] = useState(false);
+  // The editor (and its hint / error below the input) must be fully visible inside the
+  // tree's scroll box — a rename on the last row otherwise leaves the hint cut off.
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { boxRef.current?.scrollIntoView?.({ block: "nearest" }); }, [err]);
   const save = async () => {
     const v = value.trim();
     if (!v || saving) return;
@@ -207,7 +261,7 @@ function InlineRename({
     if (e) setErr(e);
   };
   return (
-    <div className="px-2 py-1 space-y-0.5" style={{ paddingLeft: 16 + depth * 20 }}>
+    <div ref={boxRef} className="pr-2 py-1 space-y-0.5" style={{ paddingLeft: treeIndent(depth) }} data-testid={`${testid}-editor`}>
       <input
         value={value}
         autoFocus
@@ -231,6 +285,28 @@ function InlineRename({
     </div>
   );
 }
+
+/**
+ * Row layout contract (U10). The tree is ~280 px wide, so every pixel of indent and every
+ * hidden control is taken from the name:
+ *   - indent grows 12 px per level and stops growing after INDENT_MAX_DEPTH levels;
+ *   - the name is the only flexible item and never shrinks below NAME_MIN_PX;
+ *   - hover/focus actions are an absolutely positioned overlay, so while hidden they take
+ *     no layout width (they used to reserve ~100 px of invisible buttons on every row).
+ */
+const INDENT_BASE_PX = 8;
+const INDENT_STEP_PX = 12;
+const INDENT_MAX_DEPTH = 8;
+export const NAME_MIN_PX = 72;
+export function treeIndent(depth: number): number {
+  return INDENT_BASE_PX + Math.min(Math.max(depth, 0), INDENT_MAX_DEPTH) * INDENT_STEP_PX;
+}
+const NAME_STYLE: CSSProperties = { flex: "1 1 auto", minWidth: NAME_MIN_PX };
+/** Hidden until the row is hovered or a control inside it has keyboard focus; never takes width. */
+const ACTIONS_CLASS =
+  "absolute inset-y-0 right-1 flex items-center gap-0.5 pl-1 rounded-r bg-muted opacity-0 pointer-events-none " +
+  "group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
+const ACTIONS_STYLE: CSSProperties = { position: "absolute" };
 
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // server multer limit (project-routes.ts)
 
@@ -320,7 +396,17 @@ function QualityDot({ file }: { file: ProjectFile }) {
   );
 }
 
-function FilePreview({ url, name }: { url: string; name: string }) {
+const PREVIEW_LINES = 20;
+const PREVIEW_TABLE_ROWS = 6;
+/** The inline preview is a bounded window, never part of the row flow's width. */
+const PREVIEW_BOX_STYLE: CSSProperties = { maxHeight: 160, overflow: "auto" };
+
+/**
+ * Bounded quick look under a row — only where there is no dataset object view to open
+ * (project page Files tab). Fixed max height, scrolls both ways, never wraps: a file's
+ * text must not reflow down the tree (the data hub opens the full object instead).
+ */
+function FilePreview({ url, name, fileId }: { url: string; name: string; fileId: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   const isImage = ["png","jpg","jpeg","gif","webp","svg"].includes(ext);
   const [content, setContent] = useState<string | null>(null);
@@ -330,32 +416,41 @@ function FilePreview({ url, name }: { url: string; name: string }) {
     fetch(url).then(r => r.text()).then(txt => setContent(txt)).catch(() => setContent(t("data_hub.tree_preview_failed")));
   }, [url, isImage]);
 
+  const boxClass = "mx-2 mt-0.5 mb-1 rounded border bg-muted/30";
+  const testid = `file-preview-${fileId}`;
   if (isImage) {
-    return <img src={url} alt={name} className="max-w-[200px] max-h-40 rounded mt-1 mb-1 ml-9" />;
+    return (
+      <div className={boxClass} style={PREVIEW_BOX_STYLE} data-testid={testid}>
+        <img src={url} alt={name} className="max-w-full max-h-36 m-1 rounded" />
+      </div>
+    );
   }
-  if (content === null) return <div className="ml-9 mt-1 text-xs text-muted-foreground">{t("data_hub.tree_preview_loading")}</div>;
-  const lines = content.split("\n").slice(0, ext === "csv" || ext === "tsv" ? 6 : 20);
-  if ((ext === "csv" || ext === "tsv") && lines.length > 0) {
+  if (content === null) return <div className="mx-2 mt-0.5 mb-1 text-xs text-muted-foreground" data-testid={testid}>{t("data_hub.tree_preview_loading")}</div>;
+  const isTable = ext === "csv" || ext === "tsv";
+  const lines = content.split("\n").slice(0, isTable ? PREVIEW_TABLE_ROWS : PREVIEW_LINES);
+  if (isTable && lines.length > 0) {
     const sep = ext === "tsv" ? "\t" : ",";
     const rows = lines.map(l => l.split(sep));
     return (
-      <div className="ml-9 mt-1 mb-1 overflow-x-auto">
+      <div className={boxClass} style={PREVIEW_BOX_STYLE} data-testid={testid}>
         <table className="text-xs border-collapse">
-          {rows.map((row, i) => (
-            <tr key={i} className={i === 0 ? "font-semibold bg-muted/40" : ""}>
-              {row.map((cell, j) => (
-                <td key={j} className="border border-border px-1.5 py-0.5 max-w-[120px] truncate">{cell}</td>
-              ))}
-            </tr>
-          ))}
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className={i === 0 ? "font-semibold bg-muted/40" : ""}>
+                {row.map((cell, j) => (
+                  <td key={j} className="border border-border px-1.5 py-0.5 whitespace-nowrap">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     );
   }
   return (
-    <pre className="ml-9 mt-1 mb-1 text-xs font-mono bg-muted/40 rounded p-2 overflow-x-auto max-h-40 whitespace-pre-wrap">
-      {lines.join("\n")}
-    </pre>
+    <div className={boxClass} style={PREVIEW_BOX_STYLE} data-testid={testid}>
+      <pre className="m-0 p-2 text-xs font-mono" style={{ whiteSpace: "pre" }}>{lines.join("\n")}</pre>
+    </div>
   );
 }
 
@@ -393,7 +488,9 @@ function FileRow({
   const isCopied = copiedId === file.id;
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const showPreview = canPreview(file);
+  // Where the file opens as a dataset object, that IS the preview — no second, cramped copy
+  // of its contents inside the tree. The quick look stays only where there is no object view.
+  const showPreview = !onOpenDataset && canPreview(file);
   const [renaming, setRenaming] = useState(false);
   // Run outputs keep the name their run gave them (the server refuses those renames too).
   const canRename = Boolean(onRename) && canEdit && file.source !== "run_output";
@@ -424,85 +521,101 @@ function FileRow({
     );
   }
 
+  const nameClass = "truncate text-left text-xs text-foreground";
   return (
     <div>
       <div
-        className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/60 text-sm cursor-default"
-        style={{ paddingLeft: 16 + depth * 20 }}
-        title={file.name}
+        className="group relative flex items-center gap-1.5 pr-2 py-1 rounded hover:bg-muted text-sm cursor-default"
+        style={{ paddingLeft: treeIndent(depth) }}
         data-testid={`file-row-${file.id}`}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <QualityDot file={file} />
+        {/* The full stored name (with its folders) is the name's own tooltip. */}
         {onOpenDataset ? (
           <button
             type="button"
             onClick={() => onOpenDataset(file)}
-            className="flex-1 min-w-0 truncate text-left text-xs text-foreground hover:underline cursor-pointer"
-            title={t('file_tree.open_dataset')}
+            className={cn(nameClass, "hover:underline cursor-pointer")}
+            style={NAME_STYLE}
+            title={file.name}
+            aria-label={`${t("file_tree.open_dataset")}: ${file.name}`}
             data-testid={`file-open-${file.id}`}
           >
             {shown}
           </button>
         ) : (
-          <span className="flex-1 truncate text-xs text-foreground">{shown}</span>
+          <span className={nameClass} style={NAME_STYLE} title={file.name} data-testid={`file-name-${file.id}`}>{shown}</span>
         )}
         {file.step_name && (
-          <span className="text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
+          <span className="min-w-0 max-w-[30%] truncate text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
             {file.step_name}
           </span>
         )}
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
-        {showPreview && (
+        <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`file-actions-${file.id}`}>
+          {showPreview && (
+            <button
+              type="button"
+              title={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
+              aria-label={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
+              aria-expanded={previewOpen}
+              onClick={handleTogglePreview}
+              className="p-0.5 rounded hover:bg-background"
+              data-testid={`file-preview-toggle-${file.id}`}
+            >
+              {previewOpen ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+            </button>
+          )}
           <button
-            title={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
-            onClick={handleTogglePreview}
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
+            type="button"
+            title={t('file_tree.copy_s3')}
+            aria-label={t('file_tree.copy_s3')}
+            onClick={() => onCopy(file.id, file.s3_key)}
+            className="p-0.5 rounded hover:bg-background"
+            data-testid={`file-copy-${file.id}`}
           >
-            {previewOpen ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+            {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
           </button>
-        )}
-        <button
-          title={t('file_tree.copy_s3')}
-          onClick={() => onCopy(file.id, file.s3_key)}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
-          data-testid={`file-copy-${file.id}`}
-        >
-          {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-        </button>
-        <button
-          title={t('actions.download')}
-          onClick={() => onDownload(file.id)}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
-          data-testid={`file-download-${file.id}`}
-        >
-          <Download className="h-3 w-3 text-muted-foreground" />
-        </button>
-        {canRename && (
           <button
-            title={t("file_tree.rename")}
-            aria-label={t("file_tree.rename")}
-            onClick={() => setRenaming(true)}
-            className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
-            data-testid={`file-rename-${file.id}`}
+            type="button"
+            title={t('actions.download')}
+            aria-label={t('actions.download')}
+            onClick={() => onDownload(file.id)}
+            className="p-0.5 rounded hover:bg-background"
+            data-testid={`file-download-${file.id}`}
           >
-            <Pencil className="h-3 w-3 text-muted-foreground" />
+            <Download className="h-3 w-3 text-muted-foreground" />
           </button>
-        )}
-        {file.source === "upload" && canEdit && (
-          <button
-            title={t('actions.delete')}
-            onClick={() => onDelete(file.id)}
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600"
-            data-testid={`file-delete-${file.id}`}
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        )}
+          {canRename && (
+            <button
+              type="button"
+              title={t("file_tree.rename")}
+              aria-label={t("file_tree.rename")}
+              onClick={() => setRenaming(true)}
+              className="p-0.5 rounded hover:bg-background"
+              data-testid={`file-rename-${file.id}`}
+            >
+              <Pencil className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+          {file.source === "upload" && canEdit && (
+            <button
+              type="button"
+              title={t('actions.delete')}
+              aria-label={t('actions.delete')}
+              onClick={() => onDelete(file.id)}
+              className="p-0.5 rounded hover:bg-red-50 hover:text-red-600"
+              data-testid={`file-delete-${file.id}`}
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
-      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} />}
+      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} fileId={file.id} />}
       {previewOpen && file.input_context && (typeof file.input_context.intent === 'string' || Array.isArray(file.input_context.inputFiles)) && (
-        <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5">
+        <div className="mx-2 mt-0.5 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5 [overflow-wrap:anywhere]">
           {typeof file.input_context.intent === 'string' && (
             <div className="italic text-foreground/80">"{file.input_context.intent}"</div>
           )}
@@ -552,31 +665,36 @@ function FolderRow({
       />
     );
   }
+  const n = countFiles(node);
   return (
-    <div className={cn("group flex items-center rounded hover:bg-muted/40", selected && "bg-muted/60")}>
+    <div className={cn("group relative flex items-center rounded hover:bg-muted", selected && "bg-muted/60")}>
       <button
+        type="button"
         onClick={onToggle}
-        className="flex items-center gap-1.5 flex-1 min-w-0 px-2 py-1 text-left"
-        style={{ paddingLeft: 16 + depth * 20 }}
+        className="flex items-center gap-1.5 flex-1 min-w-0 pr-2 py-1 text-left"
+        style={{ paddingLeft: treeIndent(depth) }}
         data-testid={`folder-${node.path}`}
+        aria-expanded={expanded}
         aria-current={selected ? "true" : undefined}
       >
         <CIcon className="h-3 w-3 text-muted-foreground shrink-0" />
         <FIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
-        <span className="min-w-0 truncate text-xs font-medium text-foreground" title={node.name}>{node.name}</span>
-        <span className="ml-auto text-xs text-muted-foreground" title={t("data_hub.tree_folder_count", { n: countFiles(node) })}>{countFiles(node)}</span>
+        <span className="truncate text-xs font-medium text-foreground" style={NAME_STYLE} title={rel ?? node.name} data-testid={`folder-name-${node.path}`}>{node.name}</span>
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums" title={t("data_hub.tree_folder_count", { n })}>{n}</span>
       </button>
       {onRename && rel && (
-        <button
-          type="button"
-          title={t("file_tree.rename_folder")}
-          aria-label={t("file_tree.rename_folder")}
-          onClick={() => setRenaming(true)}
-          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 mr-2 rounded hover:bg-muted"
-          data-testid={`folder-rename-${node.path}`}
-        >
-          <Pencil className="h-3 w-3 text-muted-foreground" />
-        </button>
+        <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`folder-actions-${node.path}`}>
+          <button
+            type="button"
+            title={t("file_tree.rename_folder")}
+            aria-label={t("file_tree.rename_folder")}
+            onClick={() => setRenaming(true)}
+            className="p-0.5 rounded hover:bg-background"
+            data-testid={`folder-rename-${node.path}`}
+          >
+            <Pencil className="h-3 w-3 text-muted-foreground" />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -810,9 +928,12 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) return renameErrorReason(res.status);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as RenameErrorBody | null;
+        return renameErrorReason(res.status, body);
+      }
     } catch {
-      return t("data_hub.tree_err_network");
+      return t("file_tree.rename_err_network");
     }
     setExpandedFolders((prev) => {
       const next = new Set(prev);
@@ -1013,7 +1134,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       </div>
       {/* Paste-a-URL ingest (design §4.6) — fetches into the project and shows in the tree. */}
       {urlOpen && canEdit && (
-        <div className="flex items-center gap-1 px-1 pb-1" data-testid="project-files-url-row">
+        <div className="flex items-center gap-1 px-1 pb-1 shrink-0" data-testid="project-files-url-row">
           <input
             type="url"
             value={urlVal}
@@ -1038,7 +1159,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
 
       {/* Upload progress + per-file outcome (localized). */}
       {(progress || uploadReport) && (
-        <div className="px-3 py-1.5 border-b text-xs space-y-1" data-testid="project-files-upload-status">
+        <div className="px-3 py-1.5 border-b text-xs space-y-1 shrink-0" data-testid="project-files-upload-status">
           {progress ? (
             <p role="status" className="text-muted-foreground" data-testid="project-files-upload-progress">
               {t("data_hub.tree_uploading", { done: progress.done, total: progress.total })}
@@ -1078,7 +1199,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       )}
 
       {/* Scope hint + search (design §4.2.2) */}
-      <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b">
+      <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b shrink-0" data-testid="project-files-header">
         <p className="text-fs-xs text-muted-foreground">{t('file_tree.scope_hint')}</p>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1093,8 +1214,9 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         </div>
       </div>
 
-      {/* Tree body */}
-      <div className="flex-1 overflow-y-auto py-1">
+      {/* Tree body — the only part that scrolls; the toolbar, upload status and search above
+          never shrink (they used to be squeezed and clipped when the status list appeared). */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 pt-1 pb-3" data-testid="project-files-body">
         {error && (
           <div className="text-xs text-red-600 px-3 py-2">{error}</div>
         )}
