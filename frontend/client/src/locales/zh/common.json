@@ -886,7 +886,9 @@
     "show_more": "显示更多",
     "show_less": "收起",
     "copied": "已复制！",
-    "not_available": "不适用"
+    "not_available": "不适用",
+    "cancel": "取消",
+    "unknown_error": "未知错误"
   },
   "dmta": {
     "campaign": "研究活动",
@@ -1080,6 +1082,8 @@
     "download_all": "下载全部",
     "drag_to_resize": "拖动以调整宽度",
     "edit_action": "编辑",
+    "clear": "清除",
+    "staged_file": "已暂存文件",
     "ended": "结束时间",
     "execution_blocked": "执行被阻止",
     "file": {
@@ -1112,7 +1116,7 @@
       "run": "运行",
       "run_all_tip": "运行{{phase}}的所有步骤",
       "run_disabled_tip": "请先启动工作流，以启用按阶段执行",
-      "steps_count": "{{n}} 步",
+      "steps_count": "{{n}} 个步骤",
       "all_steps": "全部步骤",
       "not_started": "尚未开始"
     },
@@ -2215,5 +2219,12 @@
     "inputs_needed": "运行前需要：{{names}}",
     "map_inputs": "需从前面步骤映射输入",
     "filled": "已从您的文件填入：{{names}}"
+  },
+  "step_adjust": {
+    "title": "调整并重新运行：{{name}}",
+    "no_params": "此步骤没有可调整的参数。",
+    "hint": "仅应用已修改的参数，工作流将从此步骤继续运行。",
+    "submitting": "提交中…",
+    "rerun": "从此步骤重新运行"
   }
 }

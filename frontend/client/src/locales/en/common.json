@@ -880,7 +880,9 @@
     "show_more": "Show more",
     "show_less": "Show less",
     "copied": "Copied!",
-    "not_available": "N/A"
+    "not_available": "N/A",
+    "cancel": "Cancel",
+    "unknown_error": "Unknown error"
   },
   "dmta": {
     "campaign": "Campaign",
@@ -1732,5 +1734,12 @@
     "inputs_needed": "Needed before running: {{names}}",
     "map_inputs": "Map inputs from earlier steps",
     "filled": "Filled from your files: {{names}}"
+  },
+  "step_adjust": {
+    "title": "Adjust & rerun: {{name}}",
+    "no_params": "No parameters available for this step.",
+    "hint": "Only changed parameters will be applied. The workflow resumes from this step.",
+    "submitting": "Submitting…",
+    "rerun": "Rerun from this step"
   }
 }
