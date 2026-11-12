@@ -9,7 +9,7 @@ const files = [
   { id: "f3", name: "Other chat · 2026-11-11 09.00/fig1_score.png" },
 ]
 const report = "ADMET QC · 2026-11-12 16.28/ADMET_QC_Report.md"
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks() })
 
 describe("Markdown report figures (founder: md report no figures)", () => {
   it("a bare relative link resolves to the figure in the SAME chat folder", () => {

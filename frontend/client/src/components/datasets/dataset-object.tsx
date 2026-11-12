@@ -521,7 +521,8 @@ export function DatasetObject({
             </button>
           )}
           <span className="shrink-0">/</span>
-          <span className="shrink-0">{isRunOutput ? t('dataset_obj.outputs') : t('dataset_obj.inputs')}</span>
+          {/* The tree root the file lives under: run outputs, files generated in chat (分析结果), or inputs. */}
+          <span className="shrink-0">{isRunOutput ? t('dataset_obj.outputs') : dataset.source === "run_code" ? t('file_tree.analysis_outputs') : t('dataset_obj.inputs')}</span>
           <span className="shrink-0">/</span>
           <span className="min-w-0 flex-1 truncate" data-testid="dataset-object-id" title={dataset.name}>
             {dataset.name}

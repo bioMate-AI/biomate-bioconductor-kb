@@ -24,12 +24,25 @@ it("renders JSON content as a structured key/value view through the project perm
   expect(view).toHaveTextContent("value")
   expect(fetch.mock.calls[0][0]).toBe("/api/projects/p/files/f/url")
 })
-it("keeps YAML and HTML inert, including malformed content", async () => {
-  mockFile('<script>alert(1)</script>')
+it("renders HTML only inside a permission-less sandboxed iframe — never executable (founder: html not visualized)", async () => {
+  mockFile('<h1>QC</h1><script>alert(1)</script><img src="x" onerror="alert(2)">')
   const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="report.html" />)
+  const frame = await screen.findByTestId("dataset-html-frame")
+  expect(frame.getAttribute("sandbox")).toBe("")
+  const doc = frame.getAttribute("srcdoc") || ""
+  expect(doc).toContain("<h1>QC</h1>")
+  expect(doc).not.toMatch(/<script|onerror/i)
+  expect(container.querySelector("script")).toBeNull()
+  // Source view: the raw text, inert, as before.
+  fireEvent.click(screen.getByTestId("html-view-source"))
+  await screen.findByTestId("dataset-text-preview")
+  expect(container.textContent).toContain("<script>")
+})
+it("keeps YAML inert, including malformed content", async () => {
+  mockFile('key: <script>alert(1)</script>')
+  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="config.yml" />)
   await screen.findByTestId("dataset-text-preview")
   expect(container.querySelector("script")).toBeNull()
-  expect(container.textContent).toContain("<script>")
 })
 it("caps large text previews and cancels the response stream", async () => {
   const { cancel } = mockFile("a".repeat(300 * 1024))

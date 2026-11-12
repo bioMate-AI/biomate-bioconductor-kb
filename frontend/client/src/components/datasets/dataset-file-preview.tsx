@@ -3,6 +3,7 @@ import { FileContentView } from "../file-content-view"
 import { t } from "@/lib/i18n"
 import { fileDownloadUrl } from "./datasets-api"
 import { MarkdownReport } from "./markdown-report"
+import { HtmlReport } from "./html-report"
 import { fileExt, type ViewKind } from "./dataset-view-model"
 import type { StructureEvidence } from "@/components/data-perception"
 import { Button } from "@/components/ui/button"
@@ -132,6 +133,7 @@ function renderTextContent(fileName: string, text: string, maxHClass: string, da
   if (dataKind === "intervals" || dataKind === "annotation" || (!dataKind && byName === "annotation"))
     return <InlineAnnotationViewer text={text} ext={byName === "annotation" ? ext : dataKind === "annotation" ? "gff" : "bed"} />
   if (MARKDOWN.test(name)) return <MarkdownReport text={text} projectId={projectId} reportName={fileName} />
+  if (/\.html?$/i.test(name)) return <HtmlReport text={text} projectId={projectId} reportName={fileName} maxHClass={maxHClass} />
   // table (csv/tsv/json/star) → structured grid; html/text/other → inert text.
   return <FileContentView name={name} text={text} maxHClass={maxHClass} />
 }
