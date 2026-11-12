@@ -46,8 +46,9 @@ function readPasswordFile(): string | undefined {
 }
 
 export const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
-export const FIXTURE_PASSWORD =
-  process.env.E2E_FIXTURE_PASSWORD || readPasswordFile() || "WpmFixture!2026";
+// Never a literal in the repo: env var, else ~/.config/biomate/e2e_fixture_password (CLAUDE.md:
+// "do not commit the password"). Missing → a clear failure at login, not a guessed value.
+export const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || readPasswordFile() || "";
 export const E2E_TOKEN =
   process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 export const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
