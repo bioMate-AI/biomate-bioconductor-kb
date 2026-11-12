@@ -3712,9 +3712,9 @@ process {{
 """
         # On-prem container override for ADMET workflows: admet is a private
         # ECR image (not accessible without AWS credentials). BIOMATE_ADMET_CONTAINER
-        # lets operators substitute a pre-pulled image, e.g. workflow-tools which has
+        # lets operators substitute a pre-pulled image, e.g. biomni-tools which has
         # the biomni package with RDKit-based ADMET fallback when admet_ai is absent.
-        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/workflow-tools:latest
+        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest
         admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
         admet_container_override = ""
         if admet_container:
@@ -3748,10 +3748,10 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  // --pull missing: pull from registry only when image is not in local cache.
-  //   Pre-pulled images (e.g. via GHA sync workflow) are used directly; registry is only
-  //   contacted for images not yet cached (e.g. quay.io bioconductor containers on first run).
-  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
+  // --pull never: use locally-loaded images only; skip registry check so Docker registry
+  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
+  //   _ensure_containers_pulled() handles pulling missing images before Nextflow starts.
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
 }}
 {_arm64_env_block}
 
@@ -4435,7 +4435,7 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
 # excluded — they require AWS credentials unavailable on bare metal / China ECS.
 _ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
     # biomate images: pulled from GHCR
-    "biomate/workflow-tools:latest": "ghcr.io/biomate-ai/workflow-tools:latest",
+    "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
     "biomate/drug-discovery-nf:latest": "ghcr.io/biomate-ai/drug-discovery-nf:latest",
     # Standard public images: use DaoCloud mirror (accessible from China Aliyun ECS)
     "condaforge/miniforge3:latest": "docker.m.daocloud.io/condaforge/miniforge3:latest",
