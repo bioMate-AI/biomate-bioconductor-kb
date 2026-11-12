@@ -26,6 +26,7 @@ import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
 import { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
+import { useLocalizedLabels } from '@/lib/use-localized-labels';
 export { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
@@ -855,6 +856,14 @@ function PhaseGroupSection({
   const phaseSub   = dashIdx > -1 ? label.slice(dashIdx + 1).trim() : '';
 
   const canRunPhase = !!activeRunId && !isGlobalExecutionActive && !isAutofixActive && !isPrereqBlocked && !executionBlockedReason;
+  // Backend-sourced English labels (phase / step / parameter names) localized for
+  // the zh UI via the cached label-translation service; identity elsewhere.
+  const phaseTitleSrc = userFacingStepName(phaseSub || phaseTitle);
+  const tl = useLocalizedLabels([
+    phaseTitleSrc,
+    ...steps.map((st: any) => userFacingStepName(st.name)),
+    ...phaseRenderedParams.map((p: any) => String(p.label ?? '')),
+  ]);
 
   return (
     <div className={`phase ${phaseStatus}${open ? ' open' : ''}`} data-testid={`phase-group-${group.key}`} data-status={phaseStatus}>
@@ -866,7 +875,7 @@ function PhaseGroupSection({
             is what a scientist scans for, so it is the title — "Phase A" beside an "A"
             badge was redundant scaffolding (founder phase-view review 2026-11-11). */}
         <div className="titles">
-          <div className="title" title={label}>{userFacingStepName(phaseSub || phaseTitle)}</div>
+          <div className="title" title={label}>{tl(phaseTitleSrc)}</div>
         </div>
         {phaseStatus === 'running' && (
           <span className="chip run">
@@ -940,7 +949,7 @@ function PhaseGroupSection({
                         const isFile = /^[^\s/]+\.[A-Za-z0-9]{1,8}(?:\.gz)?$/.test(shown);
                         return (
                           <div key={p.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(72px, max-content) 1fr', columnGap: 10, alignItems: 'center', minWidth: 0 }}>
-                            <span style={{ color: 'var(--text-dim)' }}>{p.label}</span>
+                            <span style={{ color: 'var(--text-dim)' }}>{tl(String(p.label ?? ''))}</span>
                             {isFile ? (
                               <span className="mono" title={shown} style={{ justifySelf: 'start', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '1px 6px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{shown}</span>
                             ) : (
@@ -960,7 +969,7 @@ function PhaseGroupSection({
                     const missing = p.required && (!p.value || p.value === '');
                     const labelCol = missing ? 'var(--warn)' : 'var(--text-muted)';
                     const borderCol = missing ? 'var(--warn)' : 'var(--border)';
-                    const label = <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>{p.label}{p.required ? ' *' : ''}</span>;
+                    const label = <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>{tl(String(p.label ?? ''))}{p.required ? ' *' : ''}</span>;
 
                     // Multi-value input of the same type (e.g. a multi-compound
                     // smiles_list) → a named-entity list editor, full-width: one
@@ -973,7 +982,7 @@ function PhaseGroupSection({
                       return (
                         <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="list">
                           <span className="k" style={{ fontSize: 'var(--fs-micro)', color: labelCol }}>
-                            {p.label}{p.required ? ' *' : ''}
+                            {tl(String(p.label ?? ''))}{p.required ? ' *' : ''}
                             <span className="hint" style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-dim)' }}>
                               {items.length} {items.length === 1 ? tOr('panel.item', 'item') : tOr('panel.items', 'items')}
                             </span>
@@ -1107,7 +1116,7 @@ function PhaseGroupSection({
                   {/* One indicator per step: the status dot on the rail. The circled
                       ordinal (①) duplicated it (founder phase-view review 2026-11-11). */}
                   <div className={`name${isFailed ? ' dim' : ''}`}>
-                    {userFacingStepName(step.name)}
+                    {tl(userFacingStepName(step.name))}
                   </div>
                   {(() => {
                     const adv = qcAdvisoryByStep?.[String(step.processName || step.name || '')];
