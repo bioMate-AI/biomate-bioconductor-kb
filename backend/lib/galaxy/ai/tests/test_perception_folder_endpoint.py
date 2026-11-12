@@ -52,6 +52,16 @@ def _load():
 
 P = _load()
 
+try:  # under pytest the tests take a temp directory as ``d`` (main() supplies it standalone)
+    import pytest
+
+    @pytest.fixture
+    def d():
+        with tempfile.TemporaryDirectory() as tmp:
+            yield tmp
+except ImportError:
+    pass
+
 
 def _w(d, name, data):
     path = os.path.join(d, name)
