@@ -10,7 +10,9 @@
 import type { PanelModelType } from './training-logic';
 
 export type SpecValues = Record<string, string | boolean>;
-export type SpecFieldKind = 'text' | 'number' | 'bool' | 'select';
+// 'column' renders as a dropdown of the dataset's REAL columns (the launcher
+// passes them), so a role like instruction/output/target is never a free-text box.
+export type SpecFieldKind = 'text' | 'number' | 'bool' | 'select' | 'column';
 export interface SpecField { key: string; kind: SpecFieldKind; options?: string[]; min?: number }
 
 const LLM_COMMON: SpecField[] = [
@@ -20,7 +22,7 @@ const LLM_COMMON: SpecField[] = [
 ];
 
 export const SPEC_FIELDS: Partial<Record<PanelModelType, SpecField[]>> = {
-  ludwig_llm: [...LLM_COMMON, { key: 'instruction_col', kind: 'text' }, { key: 'output_col', kind: 'text' }],
+  ludwig_llm: [...LLM_COMMON, { key: 'instruction_col', kind: 'column' }, { key: 'output_col', kind: 'column' }],
   trl_dpo: [...LLM_COMMON, { key: 'beta', kind: 'number', min: 0 }],
   trl_grpo: [...LLM_COMMON,
     { key: 'num_generations', kind: 'number', min: 2 },
@@ -49,6 +51,19 @@ export const SPEC_FIELDS: Partial<Record<PanelModelType, SpecField[]>> = {
     { key: 'diffusion_steps', kind: 'number', min: 1 },
     { key: 'noise_schedule', kind: 'select', options: ['linear', 'cosine'] },
   ],
+  // Generic tabular-data diffusion (TabDDPM / TabSyn): generate synthetic rows
+  // from any feature matrix. target_column (optional) drives class-conditional
+  // synthesis; empty = unconditional. Mirrors TabularDiffusionSpec.
+  tabular_diffusion: [
+    { key: 'framework', kind: 'select', options: ['tabddpm', 'tabsyn'] },
+    { key: 'finetune', kind: 'bool' },
+    { key: 'base_checkpoint', kind: 'text' },
+    { key: 'target_column', kind: 'column' },
+    { key: 'n_rows_to_generate', kind: 'number', min: 1 },
+    { key: 'guidance_scale', kind: 'number', min: 0 },
+    { key: 'diffusion_steps', kind: 'number', min: 1 },
+    { key: 'noise_schedule', kind: 'select', options: ['cosine', 'linear', 'sqrt'] },
+  ],
 };
 
 const LLM_BASE = { base_model: 'HuggingFaceTB/SmolLM2-135M-Instruct', adapter: 'lora', max_sequence_length: '256' };
@@ -68,12 +83,18 @@ export const SPEC_DEFAULTS: Partial<Record<PanelModelType, SpecValues>> = {
     contig: '', length_min: '60', length_max: '100', num_designs: '8', diffusion_steps: '50',
     noise_schedule: 'linear',
   },
+  // finetune defaults to false so a from-scratch run needs no checkpoint
+  // (TabularDiffusionSpec.validate rejects finetune without base_checkpoint).
+  tabular_diffusion: {
+    framework: 'tabddpm', finetune: false, base_checkpoint: '', target_column: '',
+    n_rows_to_generate: '1000', guidance_scale: '1.0', diffusion_steps: '1000', noise_schedule: 'cosine',
+  },
 };
 
 /** Which plan body key carries each family's spec. */
-const SPEC_KEY: Partial<Record<PanelModelType, 'llm' | 'sc' | 'diffusion'>> = {
+const SPEC_KEY: Partial<Record<PanelModelType, 'llm' | 'sc' | 'diffusion' | 'tabular'>> = {
   ludwig_llm: 'llm', trl_dpo: 'llm', trl_grpo: 'llm',
-  scrna_diffusion: 'sc', protein_diffusion: 'diffusion',
+  scrna_diffusion: 'sc', protein_diffusion: 'diffusion', tabular_diffusion: 'tabular',
 };
 
 /** Spec values → the typed sub-object the plan endpoint expects (numbers as numbers). */

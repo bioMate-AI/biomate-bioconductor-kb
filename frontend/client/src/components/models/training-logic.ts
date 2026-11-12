@@ -13,16 +13,20 @@ export type LauncherFamily = 'general' | 'molecular';
 export type FileKind = 'table' | 'h5ad' | 'structure' | 'other';
 export type TaskType = 'classification' | 'regression';
 
-/** Panel model choices. `ludwig_molecular` = ludwig_tabular + featurizer rdkit_2d. */
+/** Panel model choices. `ludwig_molecular` = ludwig_tabular + featurizer rdkit_2d.
+ *  Mirrors backend MODEL_TYPES (ml_training/config.py) — the panel must surface
+ *  the FULL ML/DL set, not a subset. */
 export type PanelModelType =
   | 'sklearn_tabular' | 'ludwig_tabular'
   | 'ludwig_llm' | 'trl_dpo' | 'trl_grpo'
-  | 'scrna_diffusion' | 'protein_diffusion'
+  | 'scrna_diffusion' | 'protein_diffusion' | 'tabular_diffusion'
   | 'sklearn_gbr' | 'ludwig_molecular';
 
 export const SUPERVISED_GENERAL: PanelModelType[] = ['sklearn_tabular', 'ludwig_tabular'];
 export const MOLECULAR: PanelModelType[] = ['sklearn_gbr', 'ludwig_molecular'];
 export const LLM_TYPES: PanelModelType[] = ['ludwig_llm', 'trl_dpo', 'trl_grpo'];
+/** Generative families — unsupervised (no target/metric gate). */
+export const GENERATIVE: PanelModelType[] = ['scrna_diffusion', 'protein_diffusion', 'tabular_diffusion'];
 
 export function isSupervised(type: PanelModelType): boolean {
   return SUPERVISED_GENERAL.includes(type) || MOLECULAR.includes(type);
@@ -82,16 +86,43 @@ export function columnValues(columns: string[], sampleRows: unknown[][], column:
   return i < 0 ? [] : sampleRows.map(r => r?.[i]);
 }
 
-/** Model types offered for a dataset, filtered by what the file can actually train. */
+/** Columns that read as free-text (natural-language), so text-generation trainers
+ *  (LLM SFT / DPO / GRPO) can be offered by CONTENT rather than by requiring exact
+ *  header names. A value is text when it is non-numeric and either contains
+ *  whitespace or is long (≥20 chars); a column qualifies when ≥60% of its sampled
+ *  values are text. Short categorical labels and numeric columns never qualify. */
+export function detectTextColumns(columns: string[], sampleRows: unknown[][]): string[] {
+  return columns.filter((col, i) => {
+    const values = nonEmpty(sampleRows.map(r => r?.[i]));
+    if (values.length < 2) return false;
+    const textish = values.filter(v => !/^-?\d+(\.\d+)?$/.test(v) && (/\s/.test(v) || v.length >= 20));
+    return textish.length / values.length >= 0.6;
+  });
+}
+
+/** Model types offered for a dataset. Surfaces the FULL backend set, filtered to
+ *  what the file can actually train:
+ *   - molecular family → SMILES-based molecular learners
+ *   - h5ad → single-cell diffusion; structure files → protein diffusion
+ *   - any feature table → supervised tabular learners + generative tabular diffusion
+ *   - a table with free-text columns → LLM SFT / RL (GRPO), and DPO when ≥2 text
+ *     columns exist; the column ROLES are chosen in the spec (dropdowns of real
+ *     columns), not by requiring literal prompt/chosen/rejected headers. */
 export function availableModelTypes(family: LauncherFamily, kind: FileKind, columns: string[],
-  smilesColumns: string[]): PanelModelType[] {
+  smilesColumns: string[], sampleRows: unknown[][] = []): PanelModelType[] {
   if (family === 'molecular') return kind === 'table' && smilesColumns.length ? MOLECULAR : [];
   if (kind === 'h5ad') return ['scrna_diffusion'];
   if (kind === 'structure') return ['protein_diffusion'];
   if (kind !== 'table' || columns.length < 2) return [];
-  const out: PanelModelType[] = [...SUPERVISED_GENERAL, 'ludwig_llm'];
-  if (['prompt', 'chosen', 'rejected'].every(c => columns.includes(c))) out.push('trl_dpo');
+  const out: PanelModelType[] = [...SUPERVISED_GENERAL, 'tabular_diffusion'];
+  // LLM SFT maps its instruction/output columns in the spec (configurable in the
+  // backend LLMSpec), so it is offered whenever the table carries free text.
+  if (detectTextColumns(columns, sampleRows).length >= 1) out.push('ludwig_llm');
+  // DPO/GRPO read literally-named columns (backend datasets.load_prompt_rows /
+  // load_preference_rows require them), so they are offered only when those exist
+  // — never a broken option. (Backend column-mapping is a separate follow-up.)
   if (columns.includes('prompt')) out.push('trl_grpo');
+  if (['prompt', 'chosen', 'rejected'].every(c => columns.includes(c))) out.push('trl_dpo');
   return out;
 }
 

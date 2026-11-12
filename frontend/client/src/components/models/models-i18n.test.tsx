@@ -24,7 +24,7 @@ const LATIN_ALLOWED = new Set([
   "scikit", "learn", "ludwig", "lora", "qlora", "dpo", "grpo", "llm", "scdiffusion", "rfdiffusion",
   "rdkit", "smiles", "roc", "auc", "f1", "r²", "hugging", "face", "pdb", "cif", "h5ad", "csv", "tsv",
   "jsonl", "parquet", "plddt", "pae", "contig", "kl", "beta", "obs", "gpu", "id", "a30", "a33", "ai",
-  "biomate", "nvidia", "boltz",
+  "biomate", "nvidia", "boltz", "tabddpm", "tabsyn",
 ])
 
 function latinWords(text: string): string[] {

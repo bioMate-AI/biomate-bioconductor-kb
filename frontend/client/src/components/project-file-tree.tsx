@@ -871,10 +871,18 @@ export interface ProjectFileTreeProps {
   selectedFolder?: string | null;
   /** Bump to reload the file list (e.g. after the open file was saved as a new version). */
   reloadKey?: number;
+  /** The full, current file list — after every load (incl. after a rename / move) and delete. An
+   *  open object follows it by file id (data hub): a renamed file keeps its id and key. */
+  onFileList?: (files: ProjectFile[]) => void;
+  /** An input folder was renamed / moved (relative paths, as for onOpenFolder). */
+  onFolderRenamed?: (from: string, to: string) => void;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, revealFolder, reloadKey = 0 }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId, onOpenFolder, selectedFolder = null, revealFolder, reloadKey = 0, onFileList, onFolderRenamed }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
+  // Latest onFileList without making `load` depend on the caller's (per-render) callback.
+  const onFileListRef = useRef(onFileList);
+  onFileListRef.current = onFileList;
   // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
   // link (from a composer/output/report chip) opens the same object without
   // re-opening it on every re-render.
@@ -909,6 +917,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       const loaded: ProjectFile[] = data.files ?? [];
       setFiles(loaded);
       onFilesChanged?.(loaded.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
+      onFileListRef.current?.(loaded);
     } catch (e: any) {
       setError(e instanceof Error && e.message.startsWith(t("file_tree.err_load")) ? e.message : t('file_tree.err_load'));
     } finally {
@@ -1064,6 +1073,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         onFilesChanged?.(next.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
         return next;
       });
+      onFileListRef.current?.(files.filter((f) => f.id !== fileId));
     } catch (e: any) {
       setError(e instanceof Error && e.message.startsWith(t("file_tree.err_delete")) ? e.message : t('file_tree.err_delete'));
     }
@@ -1118,8 +1128,11 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   const handleRenameFile = (file: ProjectFile, name: string) =>
     submitRename(`/api/projects/${projectId}/files/${file.id}`, "PATCH", { name }, name, false);
 
-  const handleRenameFolder = (from: string, to: string) =>
-    submitRename(`/api/projects/${projectId}/files/rename-folder`, "POST", { from, to }, to, true);
+  const handleRenameFolder = async (from: string, to: string) => {
+    const err = await submitRename(`/api/projects/${projectId}/files/rename-folder`, "POST", { from, to }, to, true);
+    if (!err) onFolderRenamed?.(from, to);
+    return err;
+  };
 
   const handleCopy = (id: string, key: string) => {
     const file = files.find((f) => f.id === id);

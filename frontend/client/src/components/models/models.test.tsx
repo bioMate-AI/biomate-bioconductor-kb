@@ -157,6 +157,22 @@ describe("ModelsPanel — 训练 (Train) tab", () => {
     fireEvent.click(screen.getByTestId("train-run-open-potency-gp fit"))
     await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
   })
+
+  it("the model detail is not a dead end: 'Use in a run' lands on the run surface", async () => {
+    mockFetchByUrl({ "/api/models/custom:camp1/potency-gp": MODEL_DETAIL, "/api/models": CATALOG })
+    const TRAIN: TrainData = { runs: [
+      { runId: "run-7", name: "potency-gp fit", family: "ml_training", when: "2026-08", status: "completed",
+        gate: "gate passed", metric: "spearman 0.62", dataset: "assay.csv", modelId: "custom:camp1/potency-gp" },
+    ] }
+    // Uncontrolled tab so the handler's setTab actually switches the surface.
+    render(<ModelsPanel project="Test project" trainData={TRAIN} />, { wrapper: wrapper() })
+    fireEvent.click(await screen.findByTestId("train-run-open-potency-gp fit"))
+    const useInRun = await screen.findByTestId("model-object-use-in-run")
+    fireEvent.click(useInRun)
+    // Detail closes and we land on the Library tab, where "Run a model" lives.
+    await waitFor(() => expect(screen.queryByTestId("model-object")).toBeNull())
+    expect(await screen.findByTestId("run-pretrained")).toBeTruthy()
+  })
 })
 
 describe("ModelsPanel — 模型库 (Model library) tab", () => {
