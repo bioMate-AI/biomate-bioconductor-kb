@@ -26,7 +26,8 @@
     "shared": "共享",
     "expand_sidebar": "展开侧边栏",
     "new_chat": "新对话",
-    "chat_history": "对话记录"
+    "chat_history": "对话记录",
+    "project_chats": "对话（{{n}}）"
   },
   "actions": {
     "run": "运行",

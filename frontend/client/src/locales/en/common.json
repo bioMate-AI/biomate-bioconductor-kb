@@ -26,7 +26,8 @@
     "shared": "shared",
     "expand_sidebar": "Expand sidebar",
     "new_chat": "New chat",
-    "chat_history": "Chat history"
+    "chat_history": "Chat history",
+    "project_chats": "Chats ({{n}})"
   },
   "actions": {
     "run": "Run",
