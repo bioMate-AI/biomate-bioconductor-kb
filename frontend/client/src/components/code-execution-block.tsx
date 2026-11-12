@@ -10,6 +10,8 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Terminal, FileText, CheckCircle2, XCircle, Loader2, BookOpen, Search, Copy, Check, Download } from 'lucide-react';
+import { tOr } from '@/lib/i18n';
+import { toolCallDisplay } from '@shared/tool-call-display';
 
 /** 23 → "23 B", 2048 → "2.0 KB", 3e6 → "2.9 MB" (a small report read "0.0 KB"). */
 export function formatBytes(n: number): string {
@@ -25,6 +27,8 @@ export interface ToolCallEvent {
   tool_use_id: string;
   name: string;
   input?: Record<string, unknown>;
+  /** Server-built user-facing summary of `input` (dataset names, queries — no ids / paths). */
+  display?: string;
 }
 
 export interface ToolResultEvent {
@@ -82,10 +86,14 @@ function toolIcon(name: string) {
 }
 
 function toolLabel(name: string): string {
-  if (name === 'run_code') return 'Run Code';
-  if (name === 'read_file') return 'Read File';
-  if (name === 'query_domain_knowledge') return 'Domain Knowledge';
-  return name;
+  const fallback = name.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+  return tOr(`tool_card.tool.${name}`, fallback);
+}
+
+/** Code preview for the collapsed card: leading blank lines dropped, first two lines shown. */
+export function codePreview(code: string, max = 2): { lines: string[]; more: number } {
+  const all = code.replace(/^\s*\n/, '').replace(/\s+$/, '').split('\n');
+  return { lines: all.slice(0, max), more: Math.max(0, all.length - max) };
 }
 
 // ─── CodeExecutionBlock ───────────────────────────────────────────────────────
@@ -112,8 +120,10 @@ export function CodeExecutionBlock({ block }: Props) {
   // Extract code for run_code tool
   const code = call?.input?.code as string | undefined;
   const language = (call?.input?.language as string | undefined) ?? 'python';
-  const codeLines = code?.split('\n') ?? [];
-  const previewLines = codeLines.slice(0, 3);
+  const preview = code ? codePreview(code) : null;
+  // What the tool was asked to do, in the user's terms. Older messages carry no
+  // server `display`; the same sanitizer runs client-side (ids are dropped, not shown).
+  const inputSummary = call ? (call.display ?? toolCallDisplay(call.input)) : '';
 
   const isPending = !result;
   const isError = !!result?.error || (result?.output as any)?.exit_code > 0;
@@ -176,7 +186,7 @@ export function CodeExecutionBlock({ block }: Props) {
                   <a href={hrefFor(f)} download={f.name} data-testid="run-code-file-download"
                     className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-primary hover:bg-muted"
                     onClick={(e) => e.stopPropagation()}>
-                    <Download size={12} /> Download
+                    <Download size={12} /> {tOr('tool_card.download', 'Download')}
                   </a>
                 )}
               </figcaption>
@@ -208,17 +218,21 @@ export function CodeExecutionBlock({ block }: Props) {
       )}
 
       {/* ── Collapsed preview (code or summary) ────────────────────────── */}
-      {!expanded && isCodeTool && code && (
-        <div className="px-3 pb-2 border-t border-border">
-          <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-hidden max-h-12">
-            {previewLines.join('\n')}
-            {codeLines.length > 3 && <span className="text-muted-foreground/70"> …+{codeLines.length - 3} lines</span>}
+      {!expanded && isCodeTool && preview && (
+        <div className="px-3 py-2 border-t border-border" data-testid="tool-code-preview">
+          <pre className="m-0 text-xs leading-5 text-muted-foreground whitespace-pre overflow-hidden text-ellipsis">
+            {preview.lines.join('\n')}
           </pre>
+          {preview.more > 0 && (
+            <div className="text-xs leading-5 text-muted-foreground/70">
+              {tOr('tool_card.more_lines', '+{{n}} more lines', { n: preview.more })}
+            </div>
+          )}
         </div>
       )}
-      {!expanded && !isCodeTool && call?.input && (
-        <div className="px-3 pb-2 border-t border-border text-xs text-muted-foreground">
-          {JSON.stringify(call.input).slice(0, 120)}{JSON.stringify(call.input).length > 120 ? '…' : ''}
+      {!expanded && !isCodeTool && inputSummary && (
+        <div className="px-3 py-2 border-t border-border text-xs text-muted-foreground truncate" data-testid="tool-input-summary">
+          {inputSummary}
         </div>
       )}
 
@@ -236,11 +250,11 @@ export function CodeExecutionBlock({ block }: Props) {
                   type="button"
                   onClick={(e) => { e.stopPropagation(); copyCode(code); }}
                   className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-300 hover:text-white hover:bg-gray-700/60 transition-colors"
-                  aria-label="Copy code"
+                  aria-label={tOr('tool_card.copy_code', 'Copy code')}
                   data-testid="copy-code-button"
                 >
                   {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
-                  {copied ? 'Copied' : 'Copy'}
+                  {copied ? tOr('tool_card.copied', 'Copied') : tOr('tool_card.copy', 'Copy')}
                 </button>
               </div>
               <pre className="text-xs whitespace-pre overflow-auto max-h-96 px-3 py-2">{code}</pre>
@@ -248,12 +262,10 @@ export function CodeExecutionBlock({ block }: Props) {
           )}
 
           {/* Input for non-code tools */}
-          {!isCodeTool && call?.input && (
+          {!isCodeTool && inputSummary && (
             <div className="px-3 py-2 bg-background border-b border-border">
-              <div className="text-xs text-muted-foreground mb-1">Input</div>
-              <pre className="text-xs text-foreground whitespace-pre-wrap">
-                {JSON.stringify(call.input, null, 2)}
-              </pre>
+              <div className="text-xs text-muted-foreground mb-1">{tOr('tool_card.input', 'Input')}</div>
+              <div className="text-xs text-foreground whitespace-pre-wrap">{inputSummary}</div>
             </div>
           )}
 
@@ -264,11 +276,11 @@ export function CodeExecutionBlock({ block }: Props) {
                 <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 dark:text-red-400 px-2 py-1 rounded">{result.error}</div>
               )}
               {exitCode !== undefined && exitCode !== 0 && (
-                <div className="text-xs text-red-600 dark:text-red-400">Exit code: {exitCode}</div>
+                <div className="text-xs text-red-600 dark:text-red-400">{tOr('tool_card.exit_code', 'Exit code: {{code}}', { code: exitCode })}</div>
               )}
               {stdout && (
                 <div>
-                  <div className="text-xs text-muted-foreground mb-0.5">stdout</div>
+                  <div className="text-xs text-muted-foreground mb-0.5">{tOr('tool_card.console_output', 'Console output')}</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
                     {truncate(stdout, 2000)}
                   </pre>
@@ -276,7 +288,7 @@ export function CodeExecutionBlock({ block }: Props) {
               )}
               {outputFiles && outputFiles.length > 0 && (
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Output files</div>
+                  <div className="text-xs text-muted-foreground mb-1">{tOr('tool_card.output_files', 'Output files')}</div>
                   <div className="space-y-1">
                     {outputFiles.map(f => (
                       <div key={f.name} className="flex items-start gap-2 bg-accent rounded px-2 py-1">
@@ -300,7 +312,7 @@ export function CodeExecutionBlock({ block }: Props) {
               {/* Non-code tool output */}
               {!isCodeTool && result.output != null && !result.error && (
                 <div>
-                  <div className="text-xs text-muted-foreground mb-0.5">Result</div>
+                  <div className="text-xs text-muted-foreground mb-0.5">{tOr('tool_card.result', 'Result')}</div>
                   <pre className="text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto bg-muted/50 px-2 py-1 rounded">
                     {truncate(typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2), 2000)}
                   </pre>

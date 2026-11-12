@@ -80,6 +80,7 @@ import type {
 } from '../shared/galaxy-types';
 import { classifyRunFailure, formatRunFailureReply } from '../shared/run-failure-classifier';
 import { attachedNamesFromBlocks, stripSystemBlocks } from '../shared/chat-system-blocks';
+import { toolCallDisplay } from '../shared/tool-call-display';
 import { decideWorkflowReplyState } from '../shared/workflow-response-state';
 import { unboundRequiredDataInputs, messageCarriesRunData, messageWaivesDataAsk, shouldRunOnExampleData, exampleDataNote } from '../shared/workflow-data-inputs';
 import {
@@ -98,6 +99,7 @@ export interface AgentToolEvent {
   tool_use_id: string;
   name: string;
   input?: Record<string, unknown>;  // populated on tool_call
+  display?: string;                 // tool_call: user-facing summary of `input` (no ids / storage paths)
   output?: unknown;                 // populated on tool_result
   error?: string;                   // populated on tool_result when execution failed
   duration_ms?: number;             // populated on tool_result
@@ -105,6 +107,13 @@ export interface AgentToolEvent {
   // (e.g. { stage: 'extracting', confidence: 0.92 }).
   message?: string;
   payload?: Record<string, unknown>;
+}
+
+/** User-facing summary of a tool call: dataset ids become the dataset's name (from this turn's
+ *  session datasets), other ids and storage paths are dropped — the chat card never shows raw input. */
+export function toolCallDisplayFor(input: Record<string, unknown> | undefined, context?: Pick<ChatContext, 'sessionDatasets'>): string {
+  const datasets = context?.sessionDatasets || [];
+  return toolCallDisplay(input, (id) => datasets.find(d => d.id === id || d.projectFileId === id)?.name);
 }
 
 /** Anthropic tool definitions registered with the agent. */
@@ -3020,6 +3029,24 @@ export const FINAL_ANSWER_INSTRUCTION = 'The tool budget for this turn is used u
   + 'Write the final answer for the user now, using only the tool results above: what was computed, the '
   + 'actual numbers and files produced, and any limitation. Do not describe steps you have not run.';
 
+export const TRUNCATED_REPLY_INSTRUCTION = 'Your previous reply was cut off by the output length limit before it finished, '
+  + 'so any tool call in it was NOT run and the user has not seen a result. Continue now: if you were writing code, '
+  + 'call the tool again with a shorter script (split the work into smaller steps if needed); otherwise finish the '
+  + 'answer concisely. Do not announce what you are about to do — do it.';
+
+/** A turn that stopped on the output-length limit is incomplete: its text is a fragment and any
+ *  tool_use in it was cut mid-input and never run (dev 2026-11-12, GLM via OpenRouter: the 5th turn of
+ *  an image-QC chat stopped on max_tokens while writing the plotting script, and "现在让我生成可视化的 QC
+ *  报告：" was shown as the whole answer). Returns the transcript entries that replace that turn: its
+ *  text only (an unrun tool_use would need a tool_result) plus the instruction to continue. */
+export function truncatedTurnFollowUp(content: any[] | undefined): Array<{ role: 'assistant' | 'user'; content: any }> {
+  const text = (content || []).filter((b: any) => b?.type === 'text' && b.text).map((b: any) => b.text).join('');
+  return [
+    { role: 'assistant', content: [{ type: 'text', text: text || ' ' }] },
+    { role: 'user', content: TRUNCATED_REPLY_INSTRUCTION },
+  ];
+}
+
 /** The request for the final, tool-free turn of the agentic loop once its tool budget is spent:
  *  same model/system, the full transcript plus an instruction, tools declared but disabled
  *  (tool_choice none — the transcript contains tool_use blocks, so the tools stay defined). */
@@ -3032,6 +3059,9 @@ export function finalAnswerRequest(
   const last = messages[messages.length - 1];
   if (last?.role === 'user' && Array.isArray(last.content)) {
     messages[messages.length - 1] = { ...last, content: [...last.content, { type: 'text', text: FINAL_ANSWER_INSTRUCTION }] };
+  } else if (last?.role === 'user' && typeof last.content === 'string') {
+    // e.g. the loop ended on a truncated-reply follow-up: one user turn, not two in a row.
+    messages[messages.length - 1] = { ...last, content: [{ type: 'text', text: last.content }, { type: 'text', text: FINAL_ANSWER_INSTRUCTION }] };
   } else {
     messages.push({ role: 'user', content: FINAL_ANSWER_INSTRUCTION });
   }
@@ -4117,7 +4147,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         if (!fnCall) continue;
         const { name, args } = fnCall as { name: string; args: any };
         console.log(`[GeminiLoop] tool_call name=${name} args_keys=${Object.keys(args || {}).join(',')}`);
-        toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args });
+        toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args, display: toolCallDisplayFor(args, toolContext.context) });
         let output: unknown = null;
         let error: string | undefined;
         try {
@@ -10764,6 +10794,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             rawResponse = ''; // Reset — final text comes in a later turn
             continue; // next iteration
           }
+          if (lastStopReason === 'max_tokens') {
+            console.warn('[GalaxyAssistant] streamed turn hit the output-length limit — asking the model to continue');
+            agentMessages.push(...truncatedTurnFollowUp(contentBlocks) as any);
+            rawResponse = '';
+            continue;
+          }
           if (_shouldNudgeUnexecutedCode(rawResponse)) {
             console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
             _codeNudged = true;
@@ -10801,6 +10837,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           continue;
         }
 
+        if (completion.stop_reason === 'max_tokens') {
+          console.warn(`[GalaxyAssistant] tool-turn-${turn} hit the output-length limit — asking the model to continue`);
+          agentMessages.push(...truncatedTurnFollowUp(completion.content as any[]) as any);
+          rawResponse = '';
+          continue;
+        }
+
         // End turn — extract text and emit as a single delta (non-incremental but correct)
         const textContent = completion.content.find((c: any) => c.type === 'text');
         rawResponse = textContent && textContent.type === 'text' ? (textContent as any).text : '';
@@ -10823,7 +10866,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // (dev 2026-11-11: CRISPR QC — 5/5 turns spent on run_code, every time). The Gemini loop
       // already forces a final answer at its budget; this is the same contract for the Claude /
       // OpenRouter-shim loop: one more turn with tools disabled, asked to answer from the results.
-      if (lastStopReason === 'tool_use' && !rawResponse.trim()) {
+      if ((lastStopReason === 'tool_use' || lastStopReason === 'max_tokens') && !rawResponse.trim()) {
         console.warn(`[GalaxyAssistant] tool budget (${MAX_TOOL_TURNS} turns) exhausted with no final answer — requesting one with tools disabled`);
         try {
           const finalTurn: any = await this._withAnthropicRetry(
@@ -11037,7 +11080,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   ): Promise<Anthropic.ToolResultBlockParam[]> {
     return Promise.all(toolUseBlocks.map(async (block) => {
       const start = Date.now();
-      onToolEvent?.({ type: 'tool_call', tool_use_id: block.id, name: block.name, input: block.input });
+      onToolEvent?.({ type: 'tool_call', tool_use_id: block.id, name: block.name, input: block.input, display: toolCallDisplayFor(block.input, context) });
       let output: unknown = null;
       let error: string | undefined;
       try {
