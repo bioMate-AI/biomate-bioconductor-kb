@@ -130,3 +130,37 @@ research_query` on https://dev-public.biomate.ai:
   merge, or raising the synthesis cap for bioactivity questions.
 - ChEMBL/EBI intermittent 5xx (seen locally + on dev) — external reliability, not our code;
   the fetcher is correct and the failure is surfaced (not "ok, 0 results").
+
+---
+
+## Chat-path follow-up (read-only audit, 2026-11-12 — NOT yet fixed/verified)
+
+The direct `/api/ai_assistant/research_query` endpoint is dev-verified (above). The
+USER-FACING chat path wraps it via the `write_review` agentic tool
+(`galaxy-assistant.ts:_toolWriteReview` → same endpoint → `scientificToolResult`). Traced
+the DB-grounded (empty-citations) case:
+
+- `scientificToolResult` (scientific-chat-tools.ts:90) tags an empty-citations answer
+  `status: 'uncited'` with note *"No literature citations were returned. This is not a
+  literature-backed review; disclose the source/fallback…"*.
+- `galaxy-assistant.ts:5765` only adopts `citedResearch` (→ `groundedResearchReply`) when
+  `status === 'ok'`, so a DB-grounded answer is NOT routed through the literature guard
+  (good — it is not wrongly rejected). It is passed to the chat LLM as the tool result, and
+  the LLM composes the final reply.
+
+**Open question (needs empirical chat test, not yet run):** does the `'uncited'` status +
+"this is not a literature-backed review" note cause the chat LLM to HEDGE a *database*-backed
+answer (re-introducing, at the chat-composition layer, the "famous entity reverts to general
+knowledge" behavior the research_agent fixes removed)? The answer text itself carries the
+strong DB_GROUNDED_NOTICE, so net effect is unclear. Also: for a "what is PCSK9's LOEUF"
+question the agent may route to `query_database` rather than `write_review`, in which case
+this note never applies.
+
+**Proposed (deferred, do carefully — sensitive replay-tuned guard):** give a DB-grounded
+answer its own status (e.g. `'db_grounded'`) distinct from `'uncited'`, with a note that says
+it IS a database-backed answer to be presented with its exact values — so the chat LLM
+surfaces the gnomAD/Open Targets/BindingDB numbers confidently. Verify by driving
+`/api/chat/stream` on dev with a PCSK9 question and checking the FINAL chat message quotes
+LOEUF 1.144 + score 0.856 without hedging. Do NOT change the literature-citation guard
+(`groundedResearchReply` line 37) — it correctly gates only `status === 'ok'` literature
+answers.
