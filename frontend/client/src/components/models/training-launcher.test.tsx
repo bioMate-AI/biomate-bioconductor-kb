@@ -183,6 +183,27 @@ describe("TrainingLauncher — general data", () => {
     expect(screen.queryByTestId("launcher-target")).toBeNull()
   })
 
+  it("uploads a local dataset in-panel and selects it (no leaving the panel)", async () => {
+    const UPLOADED = { id: "44444444-4444-4444-8444-444444444444", name: "fresh.csv", s3_key: `projects/${PROJECT}/inputs/fresh.csv` }
+    let fileList: any[] = [TABLE_FILE]
+    const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (url: any) => {
+      const u = String(url)
+      const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => "" } as Response)
+      if (u.includes("/files/upload")) { fileList = [...fileList, UPLOADED]; return ok({ ok: true }) }
+      if (u.includes("/files")) return ok({ files: fileList })
+      if (u.includes("/api/perception/profile")) return ok({ columns: ["a", "b"], sampleRows: [["1", "2"], ["3", "4"]] })
+      return ok({})
+    })
+    render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
+    await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
+    fireEvent.change(screen.getByTestId("launcher-upload"), {
+      target: { files: [new File(["x"], "fresh.csv", { type: "text/csv" })] },
+    })
+    // The uploaded file appears and is auto-selected.
+    await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).value).toBe(UPLOADED.id))
+    expect(fetchSpy.mock.calls.some((c) => String(c[0]).includes("/files/upload"))).toBe(true)
+  })
+
   it("reports an unusable file instead of offering a model that cannot train it", async () => {
     mockApi({ files: [{ id: "55555555-5555-4555-8555-555555555555", name: "notes.pdf", s3_key: "k" }] })
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })

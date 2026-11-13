@@ -78,21 +78,22 @@ def test_catalog_row_shape(mod):
         assert isinstance(row["usedByCount"], int)
 
 
-def test_bionemo_catalog_present(mod):
+def test_bionemo_catalog_only_owned_compute(mod):
     rows = {r["id"]: r for r in mod._bionemo_catalog()}
-    # Structure + genomic evidence classes are both represented.
+    # Boltz-2 runs on BioMate's OWN AWS Batch, so it is advertised with an honest
+    # "aws_batch" origin regardless of the BioNeMo client mode (2026-11-12).
     assert "bionemo:boltz2" in rows
-    assert "bionemo:evo2_7b" in rows
-    # Origin reflects the REAL backend. Boltz-2 structure folding runs on BioMate's
-    # OWN AWS Batch, so it reports "aws_batch" regardless of the BioNeMo client mode
-    # — never "NVIDIA-hosted" for a model we run ourselves (2026-11-12).
     assert rows["bionemo:boltz2"]["origin"] == "aws_batch"
-    # Models genuinely served through the BioNeMo client report the real mode
-    # (self_host with a NIM URL, else hosted_nvidia with a key, else unconfigured) —
-    # never a hard-coded "self-host" that hid the NVIDIA fallback (2026-11-11).
+    # Only models BioMate can run on its own compute are advertised: an owned AWS
+    # Batch path or a configured self-host NIM. Pure NVIDIA-hosted models are hidden
+    # until they have an owned path — never advertise the external hosted endpoint
+    # (founder: "why are there still NVIDIA-hosted models", 2026-11-12).
     for r in mod._bionemo_catalog():
-        assert r["origin"] in {"self_host", "hosted_nvidia", "unconfigured", "aws_batch"}, r["origin"]
-    assert rows["bionemo:evo2_7b"]["origin"] in {"self_host", "hosted_nvidia", "unconfigured"}
+        assert r["origin"] in {"aws_batch", "self_host"}, r["origin"]
+    # Evo2/OpenFold2 have no owned path yet, so with no self-host NIM configured
+    # they are NOT advertised (they would otherwise be hosted_nvidia/unconfigured).
+    assert all(rows.get(i, {}).get("origin") in (None, "self_host")
+               for i in ("bionemo:evo2_7b", "bionemo:openfold2"))
 
 
 # ── evidence class routing ───────────────────────────────────────────────────

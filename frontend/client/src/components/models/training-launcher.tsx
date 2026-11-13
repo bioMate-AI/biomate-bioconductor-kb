@@ -13,7 +13,7 @@
  * protein diffusion); family="molecular" is the 分子学习 tab (SMILES models).
  * Every visible string comes from the models.* i18n namespace.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActiveProjectSafe } from '@/contexts/active-project-context';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const [epochs, setEpochs] = useState('');
   const [spec, setSpec] = useState<SpecValues>({});
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [runId, setRunId] = useState<string | null>(null);
   const [launched, setLaunched] = useState<TrainingPlan | null>(null);
@@ -63,19 +64,63 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const file = files.find(f => f.id === fileId);
   const kind = file ? fileKind(file.name) : 'other';
 
+  // Load the project's files; returns them so callers (e.g. after an upload) can
+  // select the one they just added.
+  const loadFiles = useCallback(async (): Promise<ProjectFile[]> => {
+    if (!project) { setFiles([]); setFilesLoading(false); return []; }
+    setFilesLoading(true);
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(project)}/files`, { credentials: 'include' });
+      if (!r.ok) throw new Error(t('models.setup_files_error'));
+      const body = await r.json();
+      const fs: ProjectFile[] = body.files ?? [];
+      setFiles(fs);
+      return fs;
+    } catch (cause) {
+      setError((cause as Error).message);
+      return [];
+    } finally {
+      setFilesLoading(false);
+    }
+  }, [project]);
+
+  // Sync the active project from context when the launcher has none yet — so a
+  // user who just picked a project in the sidebar doesn't see an empty launcher
+  // (never overrides an explicit choice they made here).
+  useEffect(() => {
+    if (context?.activeProjectId && !project) setProject(context.activeProjectId);
+  }, [context?.activeProjectId]);  // eslint-disable-line react-hooks/exhaustive-deps
+
   // Project files.
   useEffect(() => {
     setFiles([]); setFileId(''); setError('');
-    if (!project) { setFilesLoading(false); return; }
-    const controller = new AbortController();
-    setFilesLoading(true);
-    fetch(`/api/projects/${encodeURIComponent(project)}/files`, { credentials: 'include', signal: controller.signal })
-      .then(async r => { if (!r.ok) throw new Error(t('models.setup_files_error')); return r.json(); })
-      .then(body => { if (!controller.signal.aborted) setFiles(body.files ?? []); })
-      .catch(cause => { if (!controller.signal.aborted) setError(cause.message); })
-      .finally(() => { if (!controller.signal.aborted) setFilesLoading(false); });
-    return () => controller.abort();
-  }, [project]);
+    loadFiles();
+  }, [project, loadFiles]);
+
+  // Upload a local dataset straight into the project and select it — so a user
+  // starting from a file on disk never has to leave the panel to upload first.
+  async function handleUpload(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';  // allow re-selecting the same file later
+    if (!f || !project) return;
+    setUploading(true); setError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', f);
+      fd.append('relativePath', f.name);
+      const r = await fetch(`/api/projects/${encodeURIComponent(project)}/files/upload`, {
+        method: 'POST', credentials: 'include', body: fd,
+      });
+      if (!r.ok) throw new Error(tOr('models.upload_error', 'Upload failed'));
+      const fs = await loadFiles();
+      const added = fs.find(x => x.name === f.name);
+      if (added) setFileId(added.id);
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   // Real columns for the selected file (tables only).
   useEffect(() => {
@@ -198,11 +243,20 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
       </label>
 
       <label className="block text-xs">{t('models.setup_dataset')}
-        <select className={FIELD} value={fileId} disabled={filesLoading || !project}
-          onChange={e => setFileId(e.target.value)} required data-testid="launcher-dataset">
-          <option value="">{filesLoading ? t('models.setup_loading') : t('models.setup_choose_dataset')}</option>
-          {files.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <select className={FIELD} value={fileId} disabled={filesLoading || !project}
+            onChange={e => setFileId(e.target.value)} required data-testid="launcher-dataset">
+            <option value="">{filesLoading ? t('models.setup_loading') : t('models.setup_choose_dataset')}</option>
+            {files.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+          {/* Upload a local dataset into the project without leaving the panel. */}
+          <label className={`shrink-0 cursor-pointer rounded border px-2 py-1 text-xs hover:bg-muted ${(!project || uploading) ? 'pointer-events-none opacity-50' : ''}`}
+            data-testid="launcher-upload-label">
+            {uploading ? tOr('models.uploading', 'Uploading…') : tOr('models.upload_dataset', 'Upload')}
+            <input type="file" className="hidden" data-testid="launcher-upload" disabled={!project || uploading}
+              onChange={handleUpload} />
+          </label>
+        </div>
       </label>
       {project && !filesLoading && !files.length && <p className="text-xs">{t('models.setup_no_files')}</p>}
       {profileState === 'loading' && <p role="status" className="text-xs">{t('models.columns_loading')}</p>}

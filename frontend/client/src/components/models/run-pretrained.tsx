@@ -48,8 +48,11 @@ const DOMAINS: Domain[] = [
     inputKey: "sequence",
   },
   {
+    // Evo2 has no BioMate-owned execution path yet (NVIDIA-hosted only), so it is
+    // not advertised — no default model until it runs on our own Batch. The domain
+    // then honestly shows "no model for this domain" (founder: no NVIDIA-hosted).
     id: "genomic",
-    defaultModelId: "bionemo:evo2_7b",
+    defaultModelId: "",
     families: ["genomic"],
     inputKey: "sequence",
   },

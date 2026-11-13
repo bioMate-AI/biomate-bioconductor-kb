@@ -103,3 +103,27 @@ P2: #3 sequence/image modalities, #8 adaptation flow, #9 Rounds controls, #10 zh
 
 Each lands behind its own tests (component render + the touched logic), gate-green, synced,
 and verified on dev — same loop as the panel fixes.
+
+## Shipped (verified live on dev, build-info 74ecc46ede)
+
+- **Round A — full ML/DL set in the launcher** (`adceabff9f`): added `tabular_diffusion`
+  (TabDDPM/TabSyn), which was in backend `MODEL_TYPES` but missing from the panel; offer
+  `ludwig_llm` by free-text content (not unconditionally); a `'column'` SpecField kind
+  renders instruction/output/target as dropdowns of real columns (closes #7 + the
+  free-text `target_col` chat example); DPO/GRPO kept honest to the backend's literal
+  prompt/chosen/rejected columns.
+- **Round B — model detail no longer a dead end** (`03010f6ec6`): wired `onUseInRun`
+  (→ Library tab + preselect the model's domain in RunPretrained via a new `initialModelId`),
+  `onSupersede` (→ Train tab), `onOpenRun` (→ Run Manager); made the Tabs controlled so
+  programmatic navigation works. (Finding #1.)
+- **Round C — honest Boltz-2 origin** (`e31189251f`): backend `origin_override='aws_batch'`
+  for Boltz-2 (it folds on BioMate's own Batch), so the catalog + run section read
+  "BioMate compute" instead of "NVIDIA-hosted"; run section shows the model name + origin
+  badge + localized domain badge. (Finding #4 / the LLMStillNividia screenshot.)
+
+### Still open (Round D+)
+#6 in-panel upload + active-project sync · #2 inline run-detail (needs a non-chat-overlapping
+deep link) · #5 overlay + URL state for the detail view · #9 DMTA Rounds controls ·
+#10 ModelObject zh localization · #11 fold terminal-state correctness · #12 training-runs
+staleness · the chat-routing fix (training intent → Models flow). Backend column-mapping for
+DPO/GRPO (let any columns map) is the follow-up noted in Round A.

@@ -258,15 +258,26 @@ def _bionemo_catalog() -> List[Dict[str, Any]]:
         if fn_name not in _FUNCTIONS:
             # Client dropped this function — don't advertise it.
             continue
+        # A model BioMate runs itself reports its real execution backend, not the
+        # shared BioNeMo-client mode (honest origin).
+        effective_origin = meta.get("origin_override", origin)
+        # Only advertise models BioMate can actually run on its OWN compute — an
+        # owned AWS Batch path (origin_override) or a configured self-host NIM.
+        # Pure NVIDIA-hosted models are hidden until they have a BioMate-owned
+        # path: the hosted BioNeMo endpoint is an external, unreliable dependency
+        # (Evo2/OpenFold2 500s; AlphaFold2/ESMFold 410-EOL), so advertising it is
+        # worse than honest (founder: "why are there still NVIDIA-hosted models").
+        # Evo2/OpenFold2 are open-source weights — re-enable once they run on our
+        # Batch like Boltz-2 (see docs/20261112_MODELS_OWN_COMPUTE_PLAN.md).
+        if effective_origin not in ("aws_batch", "self_host"):
+            continue
         rows.append(
             {
                 "id": f"{_BIONEMO_PREFIX}{fn_name}",
                 "name": meta["name"],
                 "family": meta["family"],
                 "version": meta["version"],
-                # A model BioMate runs itself reports its real execution backend,
-                # not the shared BioNeMo-client mode (honest origin).
-                "origin": meta.get("origin_override", origin),
+                "origin": effective_origin,
                 "usedByCount": 0,
             }
         )
