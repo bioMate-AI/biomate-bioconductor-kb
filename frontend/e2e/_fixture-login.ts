@@ -51,7 +51,13 @@ export const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@16
 export const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || readPasswordFile() || "";
 export const E2E_TOKEN =
   process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
-export const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
+// Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > localhost (shell BASE_URL must win).
+export const BASE_URL = (
+  process.env.BASE_URL ||
+  process.env.PLAYWRIGHT_BASE_URL ||
+  process.env.BIOMATE_URL ||
+  "http://localhost:5000"
+).replace(/\/+$/, "");
 export const SESSION_COOKIE = "biomate_token";
 
 type Cookie = Awaited<ReturnType<BrowserContext["cookies"]>>[number];

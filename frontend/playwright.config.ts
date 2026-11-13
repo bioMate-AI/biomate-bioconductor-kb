@@ -30,7 +30,13 @@ export default defineConfig({
   timeout: 2_700_000,
 
   use: {
-    baseURL: process.env.BIOMATE_URL || 'https://dev-public.biomate.ai',
+    // Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > live (must match e2e/_fixture-login.ts).
+    baseURL: (
+      process.env.BASE_URL ||
+      process.env.PLAYWRIGHT_BASE_URL ||
+      process.env.BIOMATE_URL ||
+      'https://dev-public.biomate.ai'
+    ).replace(/\/+$/, ''),
     trace: 'retain-on-failure',
     screenshot: 'on', // Capture screenshots for every test — audit trail
     video: {
