@@ -2064,7 +2064,7 @@
     "path_ui_hint": "用表单配置模型——面向临床与非编程用户。在 BioMate 自有算力上运行，带质量门与过程追踪。",
     "path_code_hint": "在 BioMate 自有沙箱中编写 Python、R 或 bash（不是笔记本）。可选的项目文件会挂载为 INPUT_FILES。",
     "code_heading": "运行代码",
-    "code_intro": "在 BioMate 沙箱中做临时机器学习与分析。与对话中的 run_code 同一引擎——不使用 Galaxy 交互式工具。",
+    "code_intro": "在 BioMate 沙箱中运行临时机器学习、深度学习与分析。",
     "code_input_optional": "输入文件（可选）",
     "code_no_input": "不使用输入文件",
     "code_lang_python": "Python",

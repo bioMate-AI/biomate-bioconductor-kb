@@ -1556,7 +1556,7 @@
     "path_ui_hint": "Configure a model with forms — for clinical and non-coding users. Runs on BioMate compute with gates and tracking.",
     "path_code_hint": "Write Python, R or bash in BioMate's owned sandbox (not a notebook). Optional project file is staged as INPUT_FILES.",
     "code_heading": "Run code",
-    "code_intro": "Ad-hoc ML/DL and analysis in the BioMate sandbox. Uses the same run_code engine as chat — Galaxy Interactive Tools are not used.",
+    "code_intro": "Run ad-hoc ML/DL and analysis in the BioMate sandbox.",
     "code_input_optional": "Input file (optional)",
     "code_no_input": "No input file",
     "code_lang_python": "Python",
