@@ -216,6 +216,17 @@ async def generate_with_fallback(
     from .local_inference import local_only, generate_local
     if local_only():
         return await generate_local(prompt, **kwargs)
+    # A China-region request never enters the Gemini → Claude → GPT chain (llm_region).
+    from .llm_region import cn_generate, cn_route
+    _cn = cn_route()
+    if _cn is not None:
+        return await cn_generate(
+            _cn, prompt,
+            system=kwargs.get('system') or kwargs.get('system_prompt'),
+            max_tokens=kwargs.get('max_tokens', 1024),
+            temperature=kwargs.get('temperature', 0.0),
+            json_mode=bool(kwargs.get('json_mode')),
+        )
     if fallback_manager is None:
         fallback_manager = FallbackChainManager()
 

@@ -81,8 +81,19 @@ export function generatesSyntheticData(code: string, stagedInputCount: number): 
   return stagedInputCount === 0 && SYNTHETIC_DATA_RE.test(code || '');
 }
 
-/** The user explicitly asked for a simulation (power analysis, Monte Carlo, bootstrap, simulated
- *  PK/curves, synthetic data …): generating values IS the task, so run_code may do it. */
+/** May run_code generate its own input values this turn? The INTENT decides: the classifier reads
+ *  the request in any language and reports `user_requested_synthetic_data` (the user asked to
+ *  generate / simulate / use example, demo, toy or test data, or the task is a simulation). A
+ *  keyword list cannot do that — it refused a zh request for 示例数据 (audit round 9, 2026-11-12).
+ *  Only when no intent is available (classifier failure / degraded keyword decomposition →
+ *  undefined) does the narrow keyword fallback below decide. */
+export function syntheticDataAllowed(intentRequestedSynthetic: boolean | undefined, userMessage: string): boolean {
+  if (typeof intentRequestedSynthetic === 'boolean') return intentRequestedSynthetic;
+  return requestAsksForSimulation(userMessage);
+}
+
+/** FALLBACK ONLY (see syntheticDataAllowed): the user explicitly asked for a simulation (power
+ *  analysis, Monte Carlo, bootstrap, simulated PK/curves, synthetic data …). */
 const SIMULATION_REQUEST_RE = /simulat|synthetic|monte\s*carlo|bootstrap|permutation|power\s+(?:analysis|calculation)|sample\s+size|random(?:ly)?\s+(?:generat|sampl|draw)|toy\s+(?:data|example)|模拟|仿真|合成数据|蒙特卡[洛罗]|自助法|功效分析|样本量|随机生成/i;
 export function requestAsksForSimulation(userMessage: string): boolean {
   return SIMULATION_REQUEST_RE.test(userMessage || '');

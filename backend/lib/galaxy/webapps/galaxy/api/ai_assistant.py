@@ -6658,11 +6658,18 @@ async def paperqa_synthesize(
             "error": "paper-qa is not installed in this environment. Install with: pip install paper-qa>=5.0.0",
         }
 
+    # ── Chinese-LLM region policy (galaxy.ai.llm_region) ─────────────────
+    # A China-region request synthesises on a Chinese model (OpenRouter or the on-prem
+    # OpenAI-compatible endpoint) with local sparse embeddings — no paper text goes to Anthropic or
+    # OpenAI. No Chinese-model credential → ChineseModelUnavailable → 503 cn_model_unavailable.
+    from galaxy.ai.llm_region import OPENROUTER_URL as _OPENROUTER_URL, cn_route as _cn_route
+    _cn = _cn_route()
+
     # ── API key ───────────────────────────────────────────────────────────
     # 1) Process environment (set by gravity/gunicorn via galaxy.yml)
     # 2) Galaxy config object (ai_llm_api_key or equivalent)
     # 3) Explicit GALAXY_AI_API_KEY env var (legacy)
-    api_key = _os.getenv("ANTHROPIC_API_KEY") or _os.getenv("GALAXY_AI_API_KEY")
+    api_key = _cn.key if _cn is not None else (_os.getenv("ANTHROPIC_API_KEY") or _os.getenv("GALAXY_AI_API_KEY"))
     if not api_key:
         try:
             cfg = getattr(trans, "app", None) and getattr(trans.app, "config", None)
@@ -6693,10 +6700,14 @@ async def paperqa_synthesize(
 
     try:
         llm_name = f"anthropic/{request.llm}"
+        _llm_api_base = None
+        if _cn is not None:
+            llm_name = f"openrouter/{_cn.model}" if _cn.url == _OPENROUTER_URL else f"openai/{_cn.model}"
+            _llm_api_base = None if _cn.url == _OPENROUTER_URL else _cn.url
         # Read OpenAI key for embeddings — PaperQA defaults to text-embedding-3-small.
         # If OPENAI_API_KEY is not in env, try galaxy.yml, else fall back to sparse.
-        openai_key = _os.getenv("OPENAI_API_KEY")
-        if not openai_key:
+        openai_key = None if _cn is not None else _os.getenv("OPENAI_API_KEY")
+        if not openai_key and _cn is None:
             try:
                 import yaml as _yaml2
                 _cfg2 = _os.path.realpath(_os.path.join(
@@ -6755,7 +6766,8 @@ async def paperqa_synthesize(
 
                 model_cfg_t = [{
                     "model_name": llm_name,
-                    "litellm_params": {"model": llm_name, "api_key": _api_key_snap},
+                    "litellm_params": {"model": llm_name, "api_key": _api_key_snap,
+                                       **({"api_base": _llm_api_base} if _llm_api_base else {})},
                 }]
                 settings_t = Settings(
                     llm=llm_name,

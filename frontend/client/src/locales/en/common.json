@@ -1048,7 +1048,10 @@
       "anthropic_key_label": "Anthropic API Key",
       "models_open": "Open-source",
       "models_proprietary": "Proprietary",
-      "model_recommended": "Recommended open default — best routing accuracy at lowest cost in our benchmark"
+      "model_recommended": "Recommended open default — best routing accuracy at lowest cost in our benchmark",
+      "models_chinese": "Chinese models (国产大模型)",
+      "region_cn_note": "Only Chinese models (国产大模型) are available in your region — chosen from your language setting, browser language or location. Every reply runs on the Chinese model shown in the chat.",
+      "region_cn_model_rejected": "Only Chinese models (国产大模型) are available in your region. Choose a model from the list, e.g. deepseek/deepseek-v4.1-flash."
     },
     "appearance": "Appearance",
     "content": "Settings content"

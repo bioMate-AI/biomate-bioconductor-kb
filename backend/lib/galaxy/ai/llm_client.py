@@ -215,6 +215,17 @@ class LLMClient:
         # 1) Explicit local-only mode (air-gapped trial): every call goes to the local model server.
         if local_only():
             return await generate_local(prompt, **kwargs)
+        # 1b) A China-region request (llm_region): a Chinese model only, or cn_model_unavailable.
+        from galaxy.ai.llm_region import cn_generate, cn_route  # noqa: PLC0415
+        _cn = cn_route()
+        if _cn is not None:
+            return await cn_generate(
+                _cn, prompt,
+                system=kwargs.get('system') or kwargs.get('system_prompt'),
+                max_tokens=kwargs.get('max_tokens', 1024),
+                temperature=kwargs.get('temperature', 0.0),
+                json_mode=bool(kwargs.get('json_mode')),
+            )
         # 2) On-prem direct providers (openai_compatible / deepseek / zhipu / local): skip the YAML fallback chain.
         _DIRECT_PROVIDERS = {'openai_compatible', 'deepseek', 'zhipu', 'local'}
         if self.provider in _DIRECT_PROVIDERS:
@@ -295,8 +306,12 @@ class LLMClient:
             def run_async():
                 return asyncio.run(self.generate_async(prompt, **kwargs))
 
+            # The worker thread starts with an empty context: carry this one (the request's LLM
+            # region policy) into it.
+            import contextvars  # noqa: PLC0415
+            _ctx = contextvars.copy_context()
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(run_async)
+                future = executor.submit(_ctx.run, run_async)
                 return future.result(timeout=120)
         except RuntimeError:
             # No running event loop - safe to use asyncio.run()

@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { t, locale } from "@/lib/i18n"
+import { modelLabel, type ResolvedModel } from "@/lib/llm-region"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
@@ -569,12 +570,14 @@ export function ChatInterface({
   const [currentTokenCount, setCurrentTokenCount] = useState(0)
   const [compressionDismissed, setCompressionDismissed] = useState(false)
 
-  // Active LLM model badge (OpenRouter only)
-  const [activeLLMModel, setActiveLLMModel] = useState<string | null>(null)
+  // Model label: the model the server ACTUALLY used for the last reply (its `model` stream event,
+  // resolved under the region policy) — never the stored Settings pick, which the policy may override.
+  const [activeLLMModel, setActiveLLMModel] = useState<ResolvedModel | null>(null)
+  const [hasOwnOpenrouterKey, setHasOwnOpenrouterKey] = useState(false)
   useEffect(() => {
     fetch('/api/user/llm-api-keys', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.openrouter && d.selected_model) setActiveLLMModel(d.selected_model) })
+      .then(d => setHasOwnOpenrouterKey(!!d?.openrouter))
       .catch(() => {})
   }, [])
   const [onboardingDone, setOnboardingDone] = useState(() =>
@@ -957,7 +960,9 @@ export function ChatInterface({
               continue
             }
 
-            if (eventName === 'delta' && typeof payload.text === 'string') {
+            if (eventName === 'model' && typeof payload.model === 'string') {
+              setActiveLLMModel(payload as ResolvedModel)
+            } else if (eventName === 'delta' && typeof payload.text === 'string') {
               accumulatedText += payload.text
               if (accumulatedText.length <= payload.text.length) {
                 console.log('[ChatInterface] First delta received, sessionId:', sessionId, 'placeholderId:', placeholderId, 'text len:', accumulatedText.length)
@@ -2016,14 +2021,22 @@ export function ChatInterface({
       {(currentTokenCount > 0 || activeLLMModel) && (
         <div className="flex items-center justify-between p-2 border-b bg-background/95">
           {activeLLMModel ? (
-            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-fs-xs font-mono text-muted-foreground">
-              {activeLLMModel}
-              <button
-                onClick={() => { setActiveLLMModel(null); fetch('/api/user/llm-api-keys', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'openrouter', key: '' }) }).catch(() => {}); }}
-                className="ml-0.5 hover:text-destructive"
-                title="Clear OpenRouter key — revert to BioMate default"
-                aria-label="Clear OpenRouter model"
-              >×</button>
+            <span
+              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-fs-xs text-muted-foreground"
+              data-testid="chat-model-label"
+              data-model={activeLLMModel.model}
+              data-chinese={activeLLMModel.isChinese ? 'true' : 'false'}
+              title={activeLLMModel.model}
+            >
+              {modelLabel(activeLLMModel, locale)}
+              {hasOwnOpenrouterKey && (
+                <button
+                  onClick={() => { setHasOwnOpenrouterKey(false); fetch('/api/user/llm-api-keys', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'openrouter', key: '' }) }).catch(() => {}); }}
+                  className="ml-0.5 hover:text-destructive"
+                  title="Clear OpenRouter key — revert to BioMate default"
+                  aria-label="Clear OpenRouter model"
+                >×</button>
+              )}
             </span>
           ) : <span />}
           {currentTokenCount > 0 && (

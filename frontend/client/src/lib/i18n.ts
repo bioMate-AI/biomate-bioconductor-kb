@@ -172,6 +172,13 @@ export function detectLocale(): SupportedLocale {
 /** The locale resolved for this page load. Stable for the session. */
 export const locale: SupportedLocale = detectLocale();
 
+// The UI language as a cookie, so the server's Chinese-LLM region policy sees it on every request
+// (signal (a) of server/llm-region-policy.ts), not only on chat requests that carry uiLanguage.
+// A language change reloads the page, so setting it at load keeps it current.
+try {
+  if (typeof document !== 'undefined') document.cookie = `biomate_ui_lang=${locale}; path=/; max-age=31536000; samesite=lax`;
+} catch { /* cookies blocked: chat requests still send uiLanguage */ }
+
 const activeBundle = RESOURCES[locale] ?? enCommon;
 const enBundle = enCommon as Record<string, unknown>;
 
