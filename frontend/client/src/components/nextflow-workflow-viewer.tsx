@@ -4323,7 +4323,8 @@ export function NextflowWorkflowViewer({
             {(() => {
               const licensePath = licenseGatePathForWorkflow(workflowDefinition);
               if (!licensePath) return null;
-              if (status === 'running' || status === 'paused' || status === 'queued') return null;
+              // Panel status has no 'queued' — backend queued maps to 'running' above.
+              if (status === 'running' || status === 'paused') return null;
               return (
                 <div style={{ padding: '8px 18px 12px' }} data-testid="license-gate-settings">
                   <LicenseGate
