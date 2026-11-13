@@ -46,6 +46,7 @@ import {
   Copy,
   Plus,
   Trash2,
+  Mic,
 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
@@ -451,6 +452,10 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                   <Key className="w-4 h-4" />
                   {t('settings.api_keys')}
                 </HintTabsTrigger>
+                <TabsTrigger value="voice" className="justify-start gap-2 p-3" data-testid="tab-voice">
+                  <Mic className="w-4 h-4" />
+                  {tOr('settings.voice', 'Voice')}
+                </TabsTrigger>
                 {/* Appearance (theme) tab hidden — light only for now; dark mode not reviewed.
                 <TabsTrigger value="appearance" className="justify-start gap-2 p-3" data-testid="tab-appearance">
                   <Palette className="w-4 h-4" />
@@ -631,36 +636,8 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                         />
                       </div>
 
-                      <Separator />
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Voice in chat</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Show compact Speak and Live icons in the composer toolbar. Hover each icon for a short tip.
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.voiceEnabled === true}
-                          onCheckedChange={(checked) => updateSetting('voiceEnabled', checked)}
-                          data-testid="switch-voice-enabled"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Hands-free voice</Label>
-                          <p className="text-sm text-muted-foreground">
-                            During a live voice session, send when you pause. Review gene names and sample IDs before relying on auto-send.
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.voiceHandsFree === true}
-                          disabled={settings.voiceEnabled !== true}
-                          onCheckedChange={(checked) => updateSetting('voiceHandsFree', checked)}
-                          data-testid="switch-voice-hands-free"
-                        />
-                      </div>
+                      {/* Voice toggles live on the active Voice tab — not here.
+                          This whole Chat Preferences block is inside {false && …}. */}
                     </CardContent>
                   </Card>
                 </div>
@@ -928,8 +905,47 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
               </TabsContent>
               </>)}{/* end commented-out non-api-keys tabs */}
 
-              {/* Appearance Tab (active) — theme selector; makes Settings a real
-                  tabbed panel alongside API Keys without enabling the stub tabs. */}
+              {/* Voice — must stay outside the {false && …} gate. Sidebar only
+                  exposes api-keys / voice / connectors / imports; Chat was never
+                  a reachable tab, so earlier "Settings → Chat → Voice" was a lie. */}
+              <TabsContent value="voice" className="space-y-6 m-0" data-testid="tab-content-voice">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">{tOr('settings.voice', 'Voice')}</h3>
+                  <Card>
+                    <CardContent className="space-y-6 pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Voice in chat</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Show compact Speak and Live icons in the composer toolbar.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.voiceEnabled === true}
+                          onCheckedChange={(checked) => updateSetting('voiceEnabled', checked)}
+                          data-testid="switch-voice-enabled"
+                        />
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Hands-free</Label>
+                          <p className="text-sm text-muted-foreground">
+                            During a live session, send when you pause. Review gene names and sample IDs before relying on auto-send.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.voiceHandsFree === true}
+                          disabled={settings.voiceEnabled !== true}
+                          onCheckedChange={(checked) => updateSetting('voiceHandsFree', checked)}
+                          data-testid="switch-voice-hands-free"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
               <TabsContent value="connections" className="space-y-4 m-0">
                 <Button data-testid="button-connectors-settings" onClick={() => { onOpenChange(false); setLocation('/settings/connections'); }}>{t('nav.connectors')}</Button>
               </TabsContent>
