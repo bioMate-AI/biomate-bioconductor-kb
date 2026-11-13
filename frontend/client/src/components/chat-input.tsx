@@ -257,26 +257,40 @@ export function ChatInput({
   useEffect(() => {
     const query = new URLSearchParams(window.location.search)
     const fileIds = [...new Set(query.getAll("attachFile"))].filter(Boolean)
-    if (!fileIds.length || !activeProjectId || query.get("project") !== activeProjectId) return
+    const folderPath = query.get("attachFolder")
+    const hasFolder = folderPath !== null
+    if ((!fileIds.length && !hasFolder) || !activeProjectId || query.get("project") !== activeProjectId) return
     let cancelled = false
     const abort = new AbortController()
     setLinkingDataset(true)
     setDatasetLinkError("")
-    Promise.all(fileIds.map(async fileId => {
-      const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
-        credentials: "include", signal: abort.signal,
-      })
-      if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
-      const file = await response.json()
-      if (typeof file.name !== "string") throw new Error("The project file is unavailable.")
-      return { id: fileId, value: fileId, name: file.name }
-    })).then(files => {
+    ;(async () => {
+      const fromFiles = await Promise.all(fileIds.map(async fileId => {
+        const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
+          credentials: "include", signal: abort.signal,
+        })
+        if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
+        const file = await response.json()
+        if (typeof file.name !== "string") throw new Error("The project file is unavailable.")
+        return { id: fileId, value: fileId, name: file.name }
+      }))
+      let fromFolder: Array<{ id: string; value: string; name: string }> = []
+      if (hasFolder) {
+        const { loadFolderFileRefs } = await import("@/lib/folder-as-input")
+        const refs = await loadFolderFileRefs(activeProjectId, folderPath, { signal: abort.signal })
+        if (!refs.length) throw new Error("This folder has no input files to attach.")
+        fromFolder = refs.map(f => ({ id: f.id, value: f.id, name: f.name }))
+      }
       if (cancelled) return
-      setSelectedDatasets(previous => [...previous.filter(d => !fileIds.includes(d.value)), ...files])
+      const linked = [...fromFiles, ...fromFolder]
+      const linkedIds = new Set(linked.map(d => d.value))
+      setSelectedDatasets(previous => [...previous.filter(d => !linkedIds.has(d.value)), ...linked])
       query.delete("attachFile")
-      window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`)
+      query.delete("attachFolder")
+      const next = query.toString()
+      window.history.replaceState(null, "", `${window.location.pathname}${next ? `?${next}` : ""}`)
       textareaRef.current?.focus()
-    }).catch(error => { if (!cancelled) setDatasetLinkError(error.message) })
+    })().catch(error => { if (!cancelled) setDatasetLinkError(error.message) })
       .finally(() => { if (!cancelled) setLinkingDataset(false) })
     return () => { cancelled = true; abort.abort() }
   }, [activeProjectId])
@@ -414,7 +428,8 @@ export function ChatInput({
   useEffect(() => {
     if (pendingSend === null) return
     if (datasetLinkError || message !== pendingSend) { setPendingSend(null); return }
-    const linkPending = typeof window !== "undefined" && new URLSearchParams(window.location.search).getAll("attachFile").some(Boolean)
+    const linkQ = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
+    const linkPending = !!linkQ && (linkQ.getAll("attachFile").some(Boolean) || linkQ.has("attachFolder"))
     if (disabled || linkingDataset || linkPending || projectSettingsLoading || projectSettingsError) return
     setPendingSend(null)
     handleSend()

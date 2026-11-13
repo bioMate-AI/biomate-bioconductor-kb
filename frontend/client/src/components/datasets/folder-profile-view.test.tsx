@@ -80,6 +80,11 @@ function installFetch() {
       const p = new URL(url, "http://x").searchParams.get("path")
       return ok(p === "pairs" ? PAIRS : p === "tenx" ? TENX : { path: p, kind: "empty", fileCount: 0, rollup: [], findings: [] })
     }
+    if (url.includes("/folders/files")) {
+      const p = new URL(url, "http://x").searchParams.get("path")
+      const under = FILES.filter((f) => f.name.startsWith(`${p}/`))
+      return ok({ path: p, files: under.map((f) => ({ id: f.id, name: f.name })) })
+    }
     if (url.endsWith("/api/projects/proj-1/files")) return ok({ files: FILES })
     return ok({})
   }) as unknown as typeof fetch
@@ -116,6 +121,9 @@ describe("Folder view", () => {
     expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Missing mate — single-end")
     const dl = screen.getByTestId("folder-samplesheet-download")
     expect(dl.getAttribute("href")).toBe("/api/projects/proj-1/folders/profile?path=pairs&download=samplesheet")
+    // Ask in chat attaches the folder (all files), not a samplesheet-only stand-in.
+    const analyze = screen.getByTestId("folder-profile-analyze")
+    expect(analyze).toHaveTextContent("Ask in chat")
     expect(screen.getByTestId("folder-rollup")).toHaveTextContent("Files: 3 — 3 FASTQ · pairs: 1")
     expect(screen.getByTestId("folder-profile-verdict")).toHaveTextContent("Paired + unpaired")
     // Round 5 — S2's missing mate is said ONCE in the samples section: the row's badge and the

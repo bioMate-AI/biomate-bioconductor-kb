@@ -57,6 +57,33 @@ describe('ChatInput — request-scoped dataset references', () => {
     expect(onSend.mock.calls[0][2].datasetReferences.map((item: { id: string }) => item.id)).toEqual(['assays', 'candidates']);
   });
 
+  it('expands attachFolder to every file under the folder as the analysis input set', async () => {
+    window.history.replaceState(null, '', '/?project=project-a&attachFolder=pairs');
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.includes('/folders/files')) {
+        return {
+          ok: true,
+          json: async () => ({
+            path: 'pairs',
+            files: [
+              { id: 'f1', name: 'pairs/S1_R1.fastq.gz' },
+              { id: 'f2', name: 'pairs/S1_R2.fastq.gz' },
+              { id: 'f3', name: 'pairs/S2_R1.fastq.gz' },
+            ],
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({ settings: { outputRequirements: '', skillPackIds: [] } }) };
+    }));
+    const onSend = vi.fn();
+    render(<ChatInput activeProjectId="project-a" onSend={onSend} />);
+    await waitFor(() => expect(screen.getAllByTestId('composer-dataset-ref')).toHaveLength(3));
+    expect(window.location.search).not.toContain('attachFolder');
+    fireEvent.input(screen.getByTestId('chat-input'), { target: { value: 'Run QC on this folder.' } });
+    fireEvent.click(screen.getByTestId('chat-send-button'));
+    expect(onSend.mock.calls[0][2].datasetReferences.map((item: { id: string }) => item.id)).toEqual(['f1', 'f2', 'f3']);
+  });
+
   it('carries the exact selected project-file IDs with a multi-file comparison request', () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} isStreaming={false} />);

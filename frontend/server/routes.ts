@@ -5899,6 +5899,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const row = rows.rows[0];
         return row ? { id: String(row.id), name: String(row.name), s3_key: String(row.s3_key) } : null;
       },
+      listFolderFiles: async (projectId, folderPath, uid) => {
+        const allowed = await pool.query(
+          `SELECT 1 FROM projects p WHERE p.id::text = $1 AND (p.user_id::text = $2 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
+          )) LIMIT 1`,
+          [projectId, uid],
+        );
+        if (!allowed.rows.length) return [];
+        const { loadFolderFiles } = await import('./project-folders');
+        const rows = await loadFolderFiles((q, p) => pool.query(q, p), projectId, folderPath);
+        return rows
+          .filter((r) => r.id && r.s3_key)
+          .map((r) => ({ id: String(r.id), name: String(r.name), s3_key: String(r.s3_key) }));
+      },
       stageForBatch: async (file, projectId) => {
         const bucket = process.env.S3_BUCKET_NAME || '';
         if (!bucket) return undefined;
@@ -12412,7 +12426,8 @@ ${paramLines || '(none recorded)'}`;
           // Resolve CryoSPARC license key — priority:
           //   1. Credential store (user-specific, stored via Settings → Credentials)
           //   2. License key in workflow params (user typed it in chat: cryosparc_license=<key>)
-          //   3. CRYOSPARC_LICENSE env var (dev/E2E fallback)
+          //   3. Shared env key ONLY when BIOMATE_ALLOW_SHARED_CRYOSPARC_LICENSE=true (E2E)
+          // Never silently fall back to CRYOSPARC_LICENSE — user_must_provide policy.
           let userLicenseKey: string | null = null;
           try {
             const credResp = await userProxy(req).client.get('/api/users/credentials/cryosparc/value');
@@ -12421,7 +12436,13 @@ ${paramLines || '(none recorded)'}`;
             console.warn('[CryoSPARC Direct] credential store unavailable:', _credErr?.response?.status || _credErr?.message);
           }
           if (!userLicenseKey) {
-            userLicenseKey = (csParams.cryosparc_license as string) || process.env.CRYOSPARC_LICENSE || null;
+            userLicenseKey = (csParams.cryosparc_license as string) || null;
+          }
+          if (
+            !userLicenseKey &&
+            /^(1|true|yes)$/i.test(process.env.BIOMATE_ALLOW_SHARED_CRYOSPARC_LICENSE || '')
+          ) {
+            userLicenseKey = process.env.CRYOSPARC_LICENSE || process.env.CRYOSPARC_LICENSE_ID || null;
           }
           delete csParams.cryosparc_license; // don't pass license key as a pipeline param
 
@@ -12725,6 +12746,38 @@ ${paramLines || '(none recorded)'}`;
             await storage.updateExecutionRun(executionRun.id, { execution: executionRun.execution });
           }
 
+          // CryoSPARC BYOL: forward the user's license into Galaxy so the Nextflow
+          // executor does not fall back to a shared env key (user_must_provide).
+          const _nfPathHint = String(
+            request.workflowDefinition.nextflow_path ||
+            request.workflowDefinition.name ||
+            request.workflowDefinition.workflow_type ||
+            ''
+          ).toLowerCase();
+          const _nfNeedsCryosparc = _nfPathHint.includes('cryosparc');
+          let _nfCredentials: Record<string, unknown> | undefined;
+          if (_nfNeedsCryosparc && req.user) {
+            try {
+              const credResp = await userProxy(req).client.get('/api/users/credentials/cryosparc/value');
+              const licenseKey = credResp.data?.data?.license_key;
+              if (licenseKey) {
+                _nfCredentials = { cryosparc: { license_key: licenseKey } };
+              }
+            } catch (_credErr: any) {
+              console.warn('[Nextflow Direct] cryosparc credential lookup failed:', _credErr?.response?.status || _credErr?.message);
+            }
+            if (
+              !_nfCredentials &&
+              !stagedParamsClean.cryosparc_license &&
+              !/^(1|true|yes)$/i.test(process.env.BIOMATE_ALLOW_SHARED_CRYOSPARC_LICENSE || '')
+            ) {
+              return res.status(402).json({
+                error: 'cryosparc_license_required',
+                message: 'A CryoSPARC license key is required. Add yours at Settings → Credentials → CryoSPARC.',
+              });
+            }
+          }
+
           const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
               // When file_content is provided (personal workflow), the Galaxy backend
@@ -12751,6 +12804,7 @@ ${paramLines || '(none recorded)'}`;
                   ? nextflowComputeConfig
                   : undefined,
               user_id: req.user ? String(req.user.id) : undefined,
+              ...(_nfCredentials ? { credentials: _nfCredentials } : {}),
               is_pilot: (() => {
                 const _pe = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
                 return req.user ? _pe.includes(String((req.user as any).email || '').toLowerCase()) : false;

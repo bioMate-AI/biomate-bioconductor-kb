@@ -16,6 +16,10 @@ describe('dataset-to-chat project context', () => {
     render(<Harness initial="" search="?project=target-project&attachFile=file-a" />);
     await waitFor(() => expect(screen.getByTestId('selected-project')).toHaveTextContent('target-project'));
   });
+  it('activates the linked project for a folder attach', async () => {
+    render(<Harness initial="" search="?project=target-project&attachFolder=pairs" />);
+    await waitFor(() => expect(screen.getByTestId('selected-project')).toHaveTextContent('target-project'));
+  });
   it('replaces a previously selected project, retaining both file parameters', async () => {
     const search = '?project=target-project&attachFile=file-a&attachFile=file-b&draft=Compare%20files';
     const replace = vi.spyOn(window.history, 'replaceState');

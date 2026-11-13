@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat vs inputs file grouping — prototype</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #e2e2de;
+      --warn: #8a5a00;
+      --warn-bg: #fff6e5;
+      --ok: #0d6b3a;
+      --ok-bg: #e8f6ee;
+      --hl: #eef3ff;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      padding: 28px 20px 48px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 8px; font-weight: 650; }
+    .lede { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+    .note {
+      background: #eef5fb;
+      border: 1px solid #cfdceb;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      color: #1e3a55;
+    }
+    .note strong { color: #10263a; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .card-h {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 600;
+    }
+    .pill {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .pill.warn { background: var(--warn-bg); color: var(--warn); }
+    .pill.ok { background: var(--ok-bg); color: var(--ok); }
+    .pill.muted { background: #eee; color: #555; }
+    .card-c { padding: 12px 14px 14px; }
+    .cap { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+    .tree {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #fafaf8;
+      padding: 6px 0;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 4px 10px;
+    }
+    .row.folder { font-weight: 650; }
+    .row.file.hl {
+      background: var(--hl);
+      margin: 0 6px;
+      border-radius: 4px;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+    .meta { color: var(--muted); flex-shrink: 0; white-space: nowrap; }
+    .name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .i1 { padding-left: 24px; }
+    .i2 { padding-left: 38px; }
+    h2 { font-size: 16px; margin: 28px 0 8px; }
+    .code {
+      margin-top: 22px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .code code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #eee;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Where chat grouping actually lives</h1>
+    <p class="lede">
+      Your crowded <strong>inputs</strong> list is path-based uploads.
+      Chat folders exist only for BioMate-generated analysis files under
+      <strong>Analysis outputs</strong>
+      (<code>outputs/analysis/&lt;chat title&gt; · &lt;stamp&gt;/</code>).
+    </p>
+
+    <div class="note">
+      <strong>Why your screenshot has no chat folders:</strong>
+      The panel you opened is the <em>inputs</em> root. Uploads keep their upload
+      path (flat names, or folders like <code>top/</code>). They are never rewritten
+      into chat titles. Expand <strong>Analysis outputs</strong> (or follow
+      “Open output folder” on a Generated files card in chat) to see chat-grouped results.
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-h">
+          <span>Today — inputs</span>
+          <span class="pill warn">What you see</span>
+        </div>
+        <div class="card-c">
+          <p class="cap">User uploads: flat / path folders. No chat titles.</p>
+          <div class="tree" aria-label="Today inputs tree">
+            <div class="row folder"><span class="name">▾ inputs</span><span class="meta">14</span></div>
+            <div class="row folder i1"><span class="name">▸ top</span><span class="meta">4</span></div>
+            <div class="row file hl i1"><span class="name">0.jpeg</span><span class="meta">11-11 23:17 · 54.6 KB</span></div>
+            <div class="row file i1"><span class="name">scvi_perturbation.h5ad</span><span class="meta">11-11 23:08 · 21 B</span></div>
+            <div class="row file i1"><span class="name">TOOL_META.json</span><span class="meta">11-11 23:06 · 19.0 KB</span></div>
+            <div class="row file i1"><span class="name">timeline.html</span><span class="meta">11-11 23:05 · 245.7 KB</span></div>
+            <div class="row file i1"><span class="name">whyStillTaking.png</span><span class="meta">11-11 23:03 · 110.7 KB</span></div>
+            <div class="row file i1"><span class="name">umap_perturbation.csv</span><span class="meta">11-11 22:46 · 20 B</span></div>
+            <div class="row file i1"><span class="name">mock_control_counts.csv</span><span class="meta">11-11 22:38 · 41 B</span></div>
+            <div class="row file i1"><span class="name">epar_study_table.csv</span><span class="meta">11-10 15:35 · 2.3 MB</span></div>
+            <div class="row file i1"><span class="name">target_info.json</span><span class="meta">11-10 15:30 · 1.1 KB</span></div>
+            <div class="row file i1"><span class="name">ground_truth.csv</span><span class="meta">11-10 15:30 · 2.0 KB</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h">
+          <span>Today — analysis outputs</span>
+          <span class="pill ok">What we meant</span>
+        </div>
+        <div class="card-c">
+          <p class="cap">run_code / Generated files: one folder per chat.</p>
+          <div class="tree" aria-label="Today analysis outputs tree">
+            <div class="row folder"><span class="name">▾ Analysis outputs</span><span class="meta">2</span></div>
+            <div class="row folder i1"><span class="name">▾ Perturbation UMAP · 2026-11-11 23.17</span><span class="meta">3</span></div>
+            <div class="row file hl i2"><span class="name">umap_perturbation.png</span><span class="meta">23:17 · 54.6 KB</span></div>
+            <div class="row file i2"><span class="name">scvi_perturbation_summary.csv</span><span class="meta">23:17 · 1.2 KB</span></div>
+            <div class="row file i2"><span class="name">QC_Report.txt</span><span class="meta">23:18 · 4.1 KB</span></div>
+            <div class="row folder i1"><span class="name">▾ ADMET QC · 2026-11-10 15.30</span><span class="meta">2</span></div>
+            <div class="row file i2"><span class="name">admet_results.csv</span><span class="meta">15:31 · 18 KB</span></div>
+            <div class="row file i2"><span class="name">methods_report.md</span><span class="meta">15:32 · 6.4 KB</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <h2>Proposed — inputs also groupable <span class="pill muted">Not built</span></h2>
+    <p class="cap" style="margin-bottom:10px">
+      Optional mock only. Today, inputs stay path-based. Grouping uploads by chat would be a separate product change.
+    </p>
+    <section class="card">
+      <div class="card-h">
+        <span>Proposed mock — inputs by chat (not shipped)</span>
+        <span class="pill muted">Mock</span>
+      </div>
+      <div class="card-c">
+        <div class="tree" aria-label="Proposed inputs by chat">
+          <div class="row folder"><span class="name">▾ inputs</span><span class="meta">14</span></div>
+          <div class="row folder i1"><span class="name">▾ Uploaded in chat · Perturbation UMAP</span><span class="meta">4</span></div>
+          <div class="row file hl i2"><span class="name">0.jpeg</span><span class="meta">11-11 23:17 · 54.6 KB</span></div>
+          <div class="row file i2"><span class="name">scvi_perturbation.h5ad</span><span class="meta">11-11 23:08 · 21 B</span></div>
+          <div class="row file i2"><span class="name">umap_perturbation.csv</span><span class="meta">11-11 22:46 · 20 B</span></div>
+          <div class="row file i2"><span class="name">mock_control_counts.csv</span><span class="meta">11-11 22:38 · 41 B</span></div>
+          <div class="row folder i1"><span class="name">▸ Uploaded in chat · ADMET QC</span><span class="meta">3</span></div>
+          <div class="row folder i1"><span class="name">▸ top</span><span class="meta">4</span></div>
+          <div class="row file i1"><span class="name">epar_study_table.csv</span><span class="meta">11-10 15:35 · 2.3 MB</span></div>
+          <div class="row file i1"><span class="name">target_info.json</span><span class="meta">11-10 15:30 · 1.1 KB</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="code">
+      <div><strong>Code map (verified):</strong></div>
+      <div>· <code>project-file-tree.tsx</code> <code>buildTree</code>: <code>run_code</code> → <code>outputs/analysis/&lt;chat folder&gt;</code>; other non-<code>run_output</code> → <code>inputs/</code></div>
+      <div>· <code>chat-output-folder.ts</code>: folder name = <code>"&lt;chat title&gt; · YYYY-MM-DD HH.mm"</code></div>
+      <div>· <code>generated-files.tsx</code>: “Open output folder” deep-links <code>folder=outputs/analysis/…</code></div>
+    </div>
+  </div>
+</body>
+</html>

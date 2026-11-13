@@ -26,7 +26,7 @@ import { FindingsCard } from "./findings-card";
 import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
-import { LicenseGate } from "./license-gate";
+import { LicenseGate, licenseGatePathForWorkflow } from "./license-gate";
 import { cleanParamValueForDisplay, userFacingErrorText, userFacingStepName } from '@/lib/user-facing-text';
 import { useLocalizedLabels } from '@/lib/use-localized-labels';
 export { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
@@ -2238,6 +2238,12 @@ export function NextflowWorkflowViewer({
     if (prereqChecklist && !prereqChecklist.canRun) {
       return;
     }
+    // Defense in depth — button disabled state can race the license fetch;
+    // never start/restart a BYOL workflow without a resolved credential.
+    if (isLicenseBlocked) {
+      setActiveTab('settings');
+      return;
+    }
     // Seed from structured param rows so display-bound values (required_params[].value
     // shown as "mapped" in the Inputs card) cannot be missing from the execute
     // payload (2026-11-13 DE samplesheet symptom).
@@ -4308,6 +4314,25 @@ export function NextflowWorkflowViewer({
             );
           })()}
           */}
+
+            {/* License gate lives in Workflow settings (footer copy points here).
+                Mount for any status where Confirm / Restart / Run again can fire —
+                not only idle — so a failed CryoSPARC run cannot Restart without a
+                user license. Path also covers workflow_type=cryosparc with no
+                nextflow_path. */}
+            {(() => {
+              const licensePath = licenseGatePathForWorkflow(workflowDefinition);
+              if (!licensePath) return null;
+              if (status === 'running' || status === 'paused' || status === 'queued') return null;
+              return (
+                <div style={{ padding: '8px 18px 12px' }} data-testid="license-gate-settings">
+                  <LicenseGate
+                    nextflowPath={licensePath}
+                    onBlockedChange={setIsLicenseBlocked}
+                  />
+                </div>
+              );
+            })()}
           </div>{/* end settings-tab-only section */}
 
           {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
@@ -4606,14 +4631,6 @@ export function NextflowWorkflowViewer({
                 </div>
               );
             })()}
-
-            {/* ── License gate (informational, stays in body) ─────────────────── */}
-            {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
-              <LicenseGate
-                nextflowPath={workflowDefinition.nextflow_path || workflowDefinition.nextflowPath}
-                onBlockedChange={setIsLicenseBlocked}
-              />
-            )}
 
           </div>{/* end flex-column wrapper */}
 
@@ -5158,14 +5175,15 @@ export function NextflowWorkflowViewer({
             </button>
           )}
           {/* Inline reason why the button is disabled — visible without hovering.
-              Only shown for the pre-run idle state so post-run states aren't cluttered. */}
-          {!executionBlockedReason && (status === 'idle' || status === 'pending_review') && (
-            isLicenseBlocked ? (
-              <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span>⚠</span>
-                <span dangerouslySetInnerHTML={{ __html: tOr('panel.footer.license_required', 'License required — see <strong>Tool Credentials</strong> in Workflow settings') }} />
-              </div>
-            ) : globalRequiredUnfilledCount > 0 ? (
+              License block also shown for failed/completed so Restart can't look "ready". */}
+          {!executionBlockedReason && isLicenseBlocked && (status === 'idle' || status === 'pending_review' || status === 'failed' || status === 'completed') && (
+            <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }} data-testid="license-blocked-hint">
+              <span>⚠</span>
+              <span dangerouslySetInnerHTML={{ __html: tOr('panel.footer.license_required', 'License required — see <strong>Tool Credentials</strong> in Workflow settings') }} />
+            </div>
+          )}
+          {!executionBlockedReason && !isLicenseBlocked && (status === 'idle' || status === 'pending_review') && (
+            globalRequiredUnfilledCount > 0 ? (
               <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
                 {tOr('panel.footer.fill_required_params', 'Fill in {{n}} required parameter{{s}} above before running', { n: globalRequiredUnfilledCount, s: globalRequiredUnfilledCount > 1 ? 's' : '' })}
               </div>
@@ -5189,9 +5207,10 @@ export function NextflowWorkflowViewer({
             <button
               type="button"
               data-testid="button-start-over-failed"
+              disabled={isLicenseBlocked || isAutofixActive}
               onClick={() => { analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
               title={t('panel.footer.start_over_tip')}
-              style={{ marginLeft: 8, fontSize: 'var(--fs-micro)', color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              style={{ marginLeft: 8, fontSize: 'var(--fs-micro)', color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: isLicenseBlocked ? 'not-allowed' : 'pointer', textDecoration: 'underline', opacity: isLicenseBlocked ? 0.5 : 1 }}
             >
               {t('panel.footer.start_over')}
             </button>
