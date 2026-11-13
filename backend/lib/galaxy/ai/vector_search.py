@@ -29,15 +29,13 @@ def last_vector_search_error() -> Optional[str]:
     """Reason the most recent search() on THIS thread errored, or None (reset per call)."""
     return getattr(_vs_tls, "error", None)
 
-# Try to import sentence-transformers, gracefully degrade if not available. Catch any import-time
-# failure (not just ImportError): a binary-broken optional dep — e.g. a scipy/numpy ABI mismatch
-# that raises TypeError/OSError while importing — must degrade like a missing one, never crash init.
+# Try to import sentence-transformers, gracefully degrade if not available
 try:
     from sentence_transformers import SentenceTransformer
     SENTENCE_TRANSFORMERS_AVAILABLE = True
-except Exception as _st_exc:  # noqa: BLE001
+except ImportError:
     SENTENCE_TRANSFORMERS_AVAILABLE = False
-    log.warning("sentence-transformers unavailable (%s). Vector search will be disabled.", _st_exc)
+    log.warning("sentence-transformers not installed. Vector search will be disabled.")
 
 
 # Bump when the embedded-text recipe changes so cached vectors are recomputed

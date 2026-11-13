@@ -91,22 +91,29 @@ test("project instructions change replies and workflow parameters", async ({ pag
     expect(String(genome![1])).toMatch(/GRCh38|hg38/i);
 
     // (c) FDR on a real DE significance param — not soft-skipped on rnaseq.
+    // Name nf-core/differentialabundance explicitly (same pattern as (b)/rnaseq) so
+    // routing does not flake onto a bare biomni DESeq2 stub with empty workflow_ga params.
     const c = await chat(
       req,
-      "Run DESeq2 differential expression on my gene count matrix, treated vs control.",
+      "Set up nf-core/differentialabundance DESeq2 differential expression on my gene count matrix, treated vs control.",
       pid,
     );
     const cParams = allParams(c);
     const cName = workflowName(c);
     console.log("[c] workflow:", cName, "params:", JSON.stringify(cParams).slice(0, 600));
-    expect(cName, "DE request should route to a differential-expression workflow").toMatch(
-      /differential|deseq|edger|limma/i,
+    // Require a workflow that actually exposes qval — bare biomni "deseq2" with
+    // params:{} is a routing miss, not an acceptable soft pass.
+    expect(cName, "DE request must route to nf-core/differentialabundance (has qval slot)").toMatch(
+      /differentialabundance/i,
     );
+    expect(Object.keys(cParams).length, "DE workflow_ga must carry structured params").toBeGreaterThan(0);
     const fdr = Object.entries(cParams).find(([k]) =>
       /fdr|padj|q_?val|p_?adj|max_qval/i.test(k),
     );
     expect(fdr, "DE workflow exposes a significance / FDR / q-value parameter").toBeTruthy();
     expect(Number(fdr![1])).toBeCloseTo(0.01, 5);
+    const fc = Object.entries(cParams).find(([k]) => /fold.?change|min_fc/i.test(k));
+    if (fc) expect(Number(fc[1])).toBeCloseTo(2.0, 5);
   } finally {
     await req.delete(BASE_URL + `/api/projects/${encodeURIComponent(pid)}`).catch(() => {});
   }

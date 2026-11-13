@@ -693,16 +693,7 @@ class AIAssistant:
         # ---------------------------------------------------------------------
         # Use the existing generate_workflow_unified method
         datasets = context.get('datasets', []) if context else []
-        # Ground routing in the SHAPE of the user's attached data (data_perception).
-        # Without this the chat/agent path searched on prose alone, so a SMILES library +
-        # receptor .pdb (→ {molecules, structure}) never reached step 8a or the relevance
-        # floor's input_compatible veto, and a bare "rank …" keyword-matched a CSV-assay
-        # ranker (incident 2026-11-12). The /generate_workflow HTTP endpoint already threads
-        # this via resolve_effective_input_kinds; the chat/agent path did not.
-        user_input_kinds = self._perceive_user_input_kinds(context)
-        result = self.generate_workflow_unified(
-            query, uploaded_datasets=datasets, user_input_kinds=user_input_kinds,
-        )
+        result = self.generate_workflow_unified(query, available_datasets=datasets)
         return {
             "success": result.get('success', False),
             "handler": "agent_orchestrator",
@@ -878,13 +869,8 @@ class AIAssistant:
             if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
                 try:
                     from .decomposed_dag import build_dag_plan, bind_shared_inputs, to_pipeline_card
-                    from functools import partial as _partial
-                    # Bind the user's perceived data shape onto every per-step resolution so the
-                    # chain's sub-searches are data-grounded, not prose-only (incident 2026-11-12).
-                    _user_kinds = self._perceive_user_input_kinds(context)
                     _dag = build_dag_plan(
-                        tasks,
-                        _partial(self._resolve_task_to_workflow, user_input_kinds=_user_kinds),
+                        tasks, self._resolve_task_to_workflow,
                         type_provider=self._workflow_io_types,
                     )
                     if _dag:
@@ -911,22 +897,7 @@ class AIAssistant:
             log.warning(f"[MultiTask] Decomposition failed ({e}), falling back to single-task")
             return await self._handle_workflow_generation(query, context)
 
-    def _perceive_user_input_kinds(self, context):
-        """Closed-vocabulary input kinds the user HAS, grounded in the datasets actually
-        attached to this turn (data_perception.resolve_effective_input_kinds). Returns a
-        list, or None when nothing can be grounded (routing then falls back to prose). NEVER
-        raises — perception must not block routing. Threaded into workflow search so step 8a
-        and the relevance floor's input_compatible veto can demote a workflow that cannot
-        consume the user's data shape (incident 2026-11-12: {molecules, structure} ignored)."""
-        try:
-            from .data_perception import resolve_effective_input_kinds
-            datasets = (context or {}).get('datasets') or []
-            return resolve_effective_input_kinds(None, datasets)
-        except Exception as exc:  # noqa: BLE001 — perception must never block routing
-            log.debug(f"[Perception] input-kind inference failed: {exc}")
-            return None
-
-    def _resolve_task_to_workflow(self, task, user_input_kinds=None):
+    def _resolve_task_to_workflow(self, task):
         """Best-effort per-task resolution for the decomposed DAG (reconciliation #3).
 
         Returns ``{'nextflow_path', 'parameters'}`` or ``None``. Conservative: the
@@ -934,10 +905,6 @@ class AIAssistant:
         ``build_dag_plan`` safely falls back to single-task generation rather than
         emitting an unexecutable DAG. (Richer resolution + input binding is the
         next sub-slice of the logical->executable adapter.)
-
-        ``user_input_kinds`` is the SHAPE of the user's attached data (bound by the caller
-        via functools.partial). Threading it means each per-step search is grounded in the
-        real data shape instead of the step description's prose alone.
         """
         try:
             desc = getattr(task, 'description', None)
@@ -948,7 +915,7 @@ class AIAssistant:
             from .decomposed_dag import pick_workflow_match
             # Confidence-gated: only a medium+ match resolves; weak matches → None
             # → build_dag_plan falls back to single-task (never dispatches a guess).
-            return pick_workflow_match(self.workflow_search.search(desc, user_input_kinds=user_input_kinds))
+            return pick_workflow_match(self.workflow_search.search(desc))
         except Exception as exc:
             log.debug(f"[MultiTask] task resolution failed: {exc}")
         return None
@@ -2587,28 +2554,6 @@ Respond with a single JSON object — no other text:
         without_schema = [c for c in candidates if c.exists() and c not in with_schema]
         for c in (with_schema + without_schema):
             return c
-
-        # Domain alias fallback — same drug_discovery ↔ pharmacology map as
-        # nextflow_executor._resolve_nextflow_path. Without this, a catalog row
-        # whose filename still says drug_discovery/ADMET_pred resolves for
-        # execution (alias) but _find_nf_file returns None → empty required_params
-        # and empty-schema phantom inline_parameters (2026-11-13 Admet Pred).
-        _DOMAIN_ALIASES = {
-            "drug_discovery": "pharmacology",
-            "pharmacology": "drug_discovery",
-        }
-        alias_candidates = []
-        for c in candidates:
-            parts = c.parts
-            for i, part in enumerate(parts):
-                if part in _DOMAIN_ALIASES:
-                    aliased = _Path(*parts[:i]) / _DOMAIN_ALIASES[part] / _Path(*parts[i + 1:])
-                    alias_candidates.append(aliased)
-                    break
-        with_schema_a = [c for c in alias_candidates if c.exists() and (c.parent / "nextflow_schema.json").exists()]
-        without_schema_a = [c for c in alias_candidates if c.exists() and c not in with_schema_a]
-        for c in (with_schema_a + without_schema_a):
-            return c
         return None
 
     # Groups in nextflow_schema.json that are infrastructure / admin — skip them
@@ -4225,9 +4170,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             or _explicit_registry_10813
             or (_explicit_dock_12824 and 'pdb_input' in _q_low)
         )
+        # Deterministic fills (project-rule FDR/FC, PE layout, explicit key=value) outrank
+        # LLM suggestions. Param LLM often re-emits schema defaults (e.g. qval 0.05) when the
+        # standing-rule text is truncated out of its 600-char query window.
+        _deterministic_param_names = {
+            s.get('name') for s in (_rule_suggestions + explicit_suggestions) if s.get('name')
+        }
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
+            if _deterministic_param_names:
+                llm_suggestions = [
+                    s for s in llm_suggestions
+                    if s.get('name') not in _deterministic_param_names
+                ]
             req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        # Re-assert rule fills after LLM/hints so standing project instructions always win.
+        if _rule_suggestions:
+            req, opt = self._apply_llm_suggestions(req, opt, _rule_suggestions)
         # Session uploads are authoritative user inputs.  Bind clearly named
         # files deterministically after best-effort LLM inference so a transient
         # model failure cannot leave a bulk-DE matrix/samplesheet unbound.

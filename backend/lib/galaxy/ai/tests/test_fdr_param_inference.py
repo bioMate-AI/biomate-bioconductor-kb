@@ -337,3 +337,42 @@ def test_rule_suggestions_fill_de_params_from_project_rules(tmp_path):
     assert qval["value"] == 0.01
     assert qval["default"] == 0.01
     assert fc["value"] == 2.0
+
+
+def test_llm_suggestions_do_not_clobber_rule_fills(tmp_path):
+    """Param LLM often re-emits schema default 0.05; deterministic rules must win."""
+    a = _assistant_for_de(tmp_path)
+    parsed = a._get_workflow_params("nfcore/differentialabundance/main.nf")
+    req, opt = parsed["required"], parsed["optional"]
+    intent = (
+        "Run DESeq2 differential expression on my gene count matrix.\n\n"
+        + PROJECT_RULES_BLOCK
+    )
+    param_names = {p.get("name") for p in req + opt}
+    rule_suggestions = [
+        {
+            "name": a._pick_significance_param_name(param_names),
+            "value": a._extract_fdr_threshold(intent),
+            "rationale": "rule-based: significance threshold from query/project rules",
+        },
+        {
+            "name": a._pick_fold_change_param_name(param_names),
+            "value": a._extract_abs_fold_change(intent),
+            "rationale": "rule-based: fold-change threshold from query/project rules",
+        },
+    ]
+    req, opt = a._apply_llm_suggestions(req, opt, rule_suggestions)
+    # Simulate LLM echoing schema defaults after rules already filled 0.01 / 2.0
+    llm_clobber = [
+        {"name": "differential_max_qval", "value": 0.05, "rationale": "schema default"},
+        {"name": "differential_min_fold_change", "value": 2.0, "rationale": "schema default"},
+        {"name": "study_type", "value": "rnaseq", "rationale": "DE on counts"},
+    ]
+    protected = {s["name"] for s in rule_suggestions if s.get("name")}
+    llm_filtered = [s for s in llm_clobber if s.get("name") not in protected]
+    req2, opt2 = a._apply_llm_suggestions(req, opt, llm_filtered)
+    # Re-assert rules (same as _return_nextflow_match post-LLM)
+    req3, opt3 = a._apply_llm_suggestions(req2, opt2, rule_suggestions)
+    qval = next(p for p in req3 + opt3 if p["name"] == "differential_max_qval")
+    assert qval["value"] == 0.01
+    assert "study_type" in {s["name"] for s in llm_filtered}  # non-rule LLM fill still allowed

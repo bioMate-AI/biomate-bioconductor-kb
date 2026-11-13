@@ -2,16 +2,7 @@
  * Never infer permission to execute from the assistant's prose.
  */
 export function awaitsWorkflowInput(workflow: any, metadata: any = {}): boolean {
-  // A multi-step chain / pipeline IS a concrete proposal (its steps are the chain_steps /
-  // pipeline_steps array, not `steps`/`nextflow_path`). Without this, a `workflow_type:'chain'`
-  // turn is classified as "awaiting input" → metadata.type !== 'workflow' → the right-hand panel
-  // never rebinds and silently keeps the previous single workflow (2026-11-12 panel-stale bug).
-  const hasProposal = !!(
-    workflow?.nextflow_path || workflow?.steps || workflow?.workflow_ga?.steps
-    || workflow?.workflow_type === 'chain' || workflow?.workflow_type === 'pipeline'
-    || (Array.isArray(workflow?.chain_steps) && workflow.chain_steps.length > 0)
-    || (Array.isArray(workflow?.pipeline_steps) && workflow.pipeline_steps.length > 0)
-  );
+  const hasProposal = !!(workflow?.nextflow_path || workflow?.steps || workflow?.workflow_ga?.steps);
   return hasPendingWorkflowClarification(workflow, metadata)
     || (!hasProposal && (workflow?.needs_user_feedback === true || metadata?.needsUserFeedback === true));
 }

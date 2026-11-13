@@ -893,42 +893,17 @@ def _wf_insert(cursor, *, name, filename, description, annotation, tags, domain,
                input_types=None, output_types=None):
     inp = json.dumps(input_types) if input_types is not None else "[]"
     out = json.dumps(output_types) if output_types is not None else "[]"
-    # Compute the closed-vocabulary input_kinds label at INSERT time so re-indexing a source
-    # (DELETE FROM workflows WHERE source=? → re-insert) PRESERVES the data-shape gate (step 8a)
-    # instead of reverting the column to NULL. A one-shot UPDATE backfill would silently revert
-    # on the next re-index — that is the workaround we are explicitly avoiding. None → leave NULL
-    # for the LLM refinement pass (input_kinds_classifier.classify/apply).
-    _ensure_input_kinds_column(cursor)
-    try:
-        from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
-        _kinds = rule_classify_kinds({"name": name, "description": description or "",
-                                      "annotation": annotation or "", "input_types": inp,
-                                      "tags": tags or ""})
-    except Exception:
-        _kinds = None
-    input_kinds = json.dumps(_kinds) if _kinds else None
-    input_kinds_method = 'rule' if _kinds else None  # provenance: rule layer owns this label
     cursor.execute("""
         INSERT INTO workflows (
             name, filename, description, annotation, tags, domain,
             workflow_json, step_count, tools_used, source, format,
             executable, docker_image, category, workflow_hash, indexed_at,
-            input_types, output_types, input_kinds, input_kinds_method
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            input_types, output_types
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (name, filename, description[:500], annotation, tags, domain,
           workflow_json, step_count, tools_used, source, format_,
           executable, docker_image[:300] if docker_image else "", category,
-          workflow_hash, indexed_at, inp, out, input_kinds, input_kinds_method))
-
-
-def _ensure_input_kinds_column(cursor) -> None:
-    """Add the input_kinds column if the schema predates it (idempotent). The runtime
-    UnifiedWorkflowSearch migration also adds it, but the indexer may run against a fresh DB."""
-    cols = {r[1] for r in cursor.execute("PRAGMA table_info(workflows)")}
-    if "input_kinds" not in cols:
-        cursor.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
-    if "input_kinds_method" not in cols:
-        cursor.execute("ALTER TABLE workflows ADD COLUMN input_kinds_method TEXT")
+          workflow_hash, indexed_at, inp, out))
 
 
 def _wf_exists(cursor, wf_hash: str) -> bool:
@@ -1089,19 +1064,12 @@ def index_biomni_nextflow(conn: sqlite3.Connection) -> int:
         return 0
     # Folder-name → canonical domain mapping.
     # pharmacology/ is merged into drug_discovery to avoid category overlap.
-    # IMPORTANT: filename must keep the on-disk folder (domain_dir.name), NOT the
-    # remapped domain — otherwise rows point at drug_discovery/<wf> while the file
-    # lives under pharmacology/<wf>, empty required_params until alias resolve, and
-    # orphan "Admet Pred" catalog entries (2026-11-13). Prefer honest path over a
-    # wrong live match.
     _FOLDER_DOMAIN_MAP = {
         "pharmacology": "drug_discovery",
     }
     for domain_dir in sorted(BIOMNI_NF_PATH.iterdir()):
         if not domain_dir.is_dir() or domain_dir.name == "bioconductor":
             continue
-        if domain_dir.name.startswith("_") or domain_dir.name == "_archived":
-            continue  # never index archived / private folders
         domain = _FOLDER_DOMAIN_MAP.get(domain_dir.name, domain_dir.name)
         for wf_dir in sorted(domain_dir.iterdir()):
             if not wf_dir.is_dir():
@@ -1119,7 +1087,7 @@ def index_biomni_nextflow(conn: sqlite3.Connection) -> int:
             try:
                 _wf_insert(cursor,
                     name=wf_name(wf_dir.name),
-                    filename=f"nextflow_nfcore/subworkflows/{domain_dir.name}/{wf_dir.name}/main.nf",
+                    filename=f"nextflow_nfcore/subworkflows/{domain}/{wf_dir.name}/main.nf",
                     description=description, annotation=description,
                     tags=json.dumps([domain, "biomni", "nextflow", wf_dir.name]),
                     domain=domain, workflow_json=content,
