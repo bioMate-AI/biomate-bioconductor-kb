@@ -19,6 +19,12 @@ test('dev voice availability and authenticated UI', async ({ page, playwright })
   const availability = await status.json();
   expect(typeof availability.available).toBe('boolean');
   expect(typeof availability.liveAvailable).toBe('boolean');
+  // Voice chrome is opt-in via Settings → Chat → Voice (compact composer icons).
+  await page.addInitScript(() => {
+    localStorage.setItem('biomate-user-settings', JSON.stringify({
+      id: 'e2e-voice', voiceEnabled: true, voiceHandsFree: false, updatedAt: new Date().toISOString(),
+    }));
+  });
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 45_000 });
   const speak = page.getByRole('button', { name: 'Speak', exact: true });

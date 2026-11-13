@@ -92,7 +92,9 @@ class UserSettingsService {
     return {
       chatSuggestions: settings.chatSuggestions,
       typingIndicator: settings.typingIndicator,
-      messageTimestamps: settings.messageTimestamps
+      messageTimestamps: settings.messageTimestamps,
+      voiceEnabled: settings.voiceEnabled,
+      voiceHandsFree: settings.voiceHandsFree,
     };
   }
   
@@ -168,6 +170,8 @@ class UserSettingsService {
       chatSuggestions: true,
       typingIndicator: true,
       messageTimestamps: true,
+      voiceEnabled: false,
+      voiceHandsFree: false,
       // Data preferences
       defaultStorageType: 'replit_storage',
       autoDeleteTempFiles: true,

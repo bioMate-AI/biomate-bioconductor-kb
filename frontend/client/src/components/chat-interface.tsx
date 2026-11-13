@@ -2331,6 +2331,11 @@ export function ChatInterface({
           input card itself carries the border/elevation. */}
       <div style={{ padding: '14px 24px 18px' }}>
         {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
+        {libraryPick && (
+          <div className="mx-auto mb-1 w-full max-w-3xl rounded-md border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="note" data-testid="library-input-reminder">
+            {t('chat.library_input_reminder', { name: libraryPick })}
+          </div>
+        )}
         <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={turnBusy || preparingExample}
           reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
           onSend={text => handleSendOrQueue(text)} />
@@ -2346,6 +2351,7 @@ export function ChatInterface({
           pendingCount={pendingMessages.length}
           isStreaming={turnBusy}
           onStop={stopStreaming}
+          voiceReply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
           onRegisterSetDraft={(setter) => {
             localSetDraftRef.current = setter
             onRegisterSetDraft?.(setter)
