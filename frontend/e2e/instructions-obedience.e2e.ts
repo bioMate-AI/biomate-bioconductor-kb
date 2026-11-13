@@ -91,9 +91,11 @@ test("project instructions change replies and workflow parameters", async ({ pag
     expect(String(genome![1])).toMatch(/GRCh38|hg38/i);
 
     // (c) FDR on a real DE significance param — not soft-skipped on rnaseq.
+    // Name nf-core/differentialabundance explicitly (same pattern as (b)/rnaseq) so
+    // routing does not flake onto a bare biomni DESeq2 stub with empty workflow_ga params.
     const c = await chat(
       req,
-      "Run DESeq2 differential expression on my gene count matrix, treated vs control.",
+      "Set up nf-core/differentialabundance DESeq2 differential expression on my gene count matrix, treated vs control.",
       pid,
     );
     const cParams = allParams(c);
