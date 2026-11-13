@@ -6622,7 +6622,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
             message: [
               `I've mapped your request to the **${chain.display_name}** pipeline (${chainPipelineSteps.length} steps):`,
               '',
-              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**`)
+              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? '' : ' (workflow not yet resolved)'}`)
                 .join('\n'),
               '',
               `Review the steps below, then click **${runButtonLabel((context as any)?.uiLanguage)}** to execute them in order.`,
@@ -6896,7 +6896,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
     // Build a summary message
     const stepSummaryLines = pipelineSteps.map(
-      (s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (workflow path TBD)'}` +
+      (s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? '' : ' (workflow not yet resolved)'}` +
         (s.uses_description ? `\n     → Input: ${s.uses_description}` : '')
     );
     const summaryMessage = [
@@ -6990,8 +6990,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const lines = steps.map((s, k) => {
       const deps = (s.depends_on || []) as number[];
       const wired = !data.order_only;
-      return `  ${k + 1}. **${s.description || s.workflow_name}** — ` +
-        (s.workflow_label ? `runs **${s.workflow_label}** (\`${s.nextflow_path}\`)` : `\`${s.nextflow_path}\``) +
+      // User-facing name only — never leak the internal engine path (nextflow_path /
+      // nextflow_nfcore/subworkflows/.../main.nf), per the storage-path redaction standard.
+      return `  ${k + 1}. **${s.description || s.workflow_name}**` +
+        (s.workflow_label ? ` — runs **${s.workflow_label}**` : '') +
+        (s.reroute_reason ? ` — switched from ${s.rerouted_from} because it ${s.reroute_reason}` : '') +
         (deps.length
           ? ` (${wired ? 'uses the results of' : 'runs after'} step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})`
           : ' (runs in parallel)');
