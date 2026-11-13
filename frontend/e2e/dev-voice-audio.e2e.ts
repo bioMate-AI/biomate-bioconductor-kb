@@ -38,6 +38,9 @@ test('dev voice: dictation, live review, reply playback and Chinese UI', async (
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'en-US', permissions: ['microphone'] });
   await context.addCookies(await page.context().cookies());
   await context.addInitScript(() => {
+    localStorage.setItem('biomate-user-settings', JSON.stringify({
+      id: 'e2e-voice', voiceEnabled: true, voiceHandsFree: false, updatedAt: new Date().toISOString(),
+    }));
     const capture = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
     (window as any).__voiceStreams = [];
     navigator.mediaDevices.getUserMedia = async constraints => {
@@ -60,7 +63,7 @@ test('dev voice: dictation, live review, reply playback and Chinese UI', async (
     await expect(voice.getByTestId('chat-input')).toBeVisible();
     console.log('Voice test conversation loaded');
     await voice.getByRole('button', { name: 'Speak', exact: true }).click();
-    await expect(voice.getByText('Recording. Press Stop when finished (up to 60 seconds).')).toBeVisible();
+    await expect(voice.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
     await voice.waitForTimeout(7500); // Allow the real synthetic microphone sentence to complete.
     await voice.getByRole('button', { name: 'Stop', exact: true }).click();
     await expect(voice.getByTestId('chat-input')).toHaveValue(/BRCA\s*1.*TP\s*53/i, { timeout: 45_000 });
@@ -68,13 +71,13 @@ test('dev voice: dictation, live review, reply playback and Chinese UI', async (
     console.log('Browser microphone dictation passed');
     await voice.getByTestId('chat-input').fill('');
     await voice.getByRole('button', { name: 'Start voice', exact: true }).click();
-    await expect(voice.getByText('Listening', { exact: true })).toBeVisible({ timeout: 30_000 });
-    await expect(voice.getByLabel('Voice draft', { exact: true })).toHaveValue(/BRCA\s*1.*TP\s*53/i, { timeout: 35_000 });
-    checks.liveDraft = await voice.getByLabel('Voice draft', { exact: true }).inputValue();
-    console.log('Live microphone transcript reached review draft');
+    await expect(voice.getByTestId('composer-voice-live')).toHaveAttribute('data-voice-state', 'listening', { timeout: 30_000 });
+    await expect(voice.getByTestId('chat-input')).toHaveValue(/BRCA\s*1.*TP\s*53/i, { timeout: 35_000 });
+    checks.liveDraft = await voice.getByTestId('chat-input').inputValue();
+    console.log('Live microphone transcript reached composer for review');
     await voice.getByRole('button', { name: 'Mute', exact: true }).click();
-    await expect(voice.getByText('Muted', { exact: true })).toBeVisible();
-    await voice.getByRole('button', { name: 'Send reviewed text', exact: true }).click();
+    await expect(voice.getByRole('button', { name: 'Mute', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await voice.getByTestId('chat-send-button').click();
     await expect.poll(() => voice.evaluate(() => (window as any).__voicePlays), { timeout: 60_000 }).toBeGreaterThan(0);
     checks.replyPlayback = true;
     await voice.getByRole('button', { name: 'End voice', exact: true }).click();

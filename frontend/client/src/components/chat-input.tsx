@@ -1,4 +1,5 @@
 import { VoiceInput } from "./voice-controls"
+import { LiveVoicePanel } from "./live-voice-panel"
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import { useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
@@ -100,6 +101,8 @@ interface ChatInputProps {
   onFilesSelected?: (files: File[]) => void
   isStreaming?: boolean
   onStop?: () => void
+  /** Latest assistant reply — used by compact live-voice read-aloud while a session is open. */
+  voiceReply?: { id: string; content: string }
   /** Register a setter function that can externally pre-fill the draft */
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
   /** Register an adder function that can programmatically attach File objects */
@@ -159,6 +162,7 @@ export function ChatInput({
   onFilesSelected,
   isStreaming = false,
   onStop,
+  voiceReply,
   onRegisterSetDraft,
   onRegisterAddFiles,
   onRegisterExampleFiles,
@@ -762,8 +766,6 @@ export function ChatInput({
         )
       )}
 
-      <VoiceInput key={voiceContextKey} disabled={disabled || isStreaming} onTranscript={text => setMessage(previous => previous.trim() ? `${previous}\n${text}` : text)} />
-
       {/* Reference design: pill input with attachment + textarea + send */}
       <div className="chat-input" style={{
         border: isDraggingOver
@@ -803,6 +805,20 @@ export function ChatInput({
             <Paperclip className="w-4 h-4" />
             <span>{t('composer.data')}</span>
           </button>
+
+          {/* Voice: compact toolbar icons only (Settings → Chat → Voice). No stacked panels. */}
+          <VoiceInput
+            key={`speak-${voiceContextKey}`}
+            disabled={disabled || isStreaming}
+            onTranscript={text => setMessage(previous => previous.trim() ? `${previous}\n${text}` : text)}
+          />
+          <LiveVoicePanel
+            key={`live-${voiceContextKey}`}
+            busy={!!(disabled || isStreaming)}
+            reply={voiceReply}
+            onSend={(text) => onSend(text)}
+            onTranscript={text => setMessage(previous => previous.trim() ? `${previous}\n${text}` : text)}
+          />
 
           {/* Attached-count indicator. Hidden at 0 (no noise pre-attach);
               muted up to 75% of the cap; amber 76–99%; red at cap with a

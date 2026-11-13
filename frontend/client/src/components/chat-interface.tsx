@@ -11,7 +11,7 @@ import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
-import { takeWorkflowSelection } from "@/lib/workflow-selection"
+import { peekWorkflowSelection, takeWorkflowSelection } from "@/lib/workflow-selection"
 import { groupWorkflowResponses, ProgressStreamBox } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
@@ -490,6 +490,8 @@ export function ChatInterface({
   pendingMessagesRef.current = pendingMessages
 
   const abortControllerRef = useRef<AbortController | null>(null)
+  // A workflow picked in the library waits in the composer: remind the user to give it THEIR data.
+  const [libraryPick, setLibraryPick] = useState(() => peekWorkflowSelection()?.label || peekWorkflowSelection()?.name || null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const followChatTailRef = useRef(true)
@@ -1592,6 +1594,7 @@ export function ChatInterface({
     // structured context.selectedWorkflow (the server builds exactly that workflow, no search).
     if (!contextOverride?.selectedWorkflow) {
       const _picked = takeWorkflowSelection(content)
+      setLibraryPick(null)
       if (_picked) contextOverride = { ...(contextOverride || {}), selectedWorkflow: _picked }
     }
     // Handle attached files: upload to backend and include dataset IDs in prompt context.
@@ -2292,6 +2295,11 @@ export function ChatInterface({
           input card itself carries the border/elevation. */}
       <div style={{ padding: '14px 24px 18px' }}>
         {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
+        {libraryPick && (
+          <div className="mx-auto mb-1 w-full max-w-3xl rounded-md border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="note" data-testid="library-input-reminder">
+            {t('chat.library_input_reminder', { name: libraryPick })}
+          </div>
+        )}
         <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={turnBusy || preparingExample}
           reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
           onSend={text => handleSendOrQueue(text)} />
@@ -2302,6 +2310,7 @@ export function ChatInterface({
           pendingCount={pendingMessages.length}
           isStreaming={turnBusy}
           onStop={stopStreaming}
+          voiceReply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
           onRegisterSetDraft={(setter) => {
             localSetDraftRef.current = setter
             onRegisterSetDraft?.(setter)
