@@ -2,10 +2,7 @@ import { responseLanguageDirective } from "./response-language";
 import { runButtonLabel } from "./ui-labels";
 import { PROJECT_CONTEXT_NOTE, intentRulesBlock } from './project-rules';
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
-import {
-  buildLibraryTriageSequentialDecomposition,
-  isLibraryTriageRequest,
-} from './library-triage-sequential';
+import { applyLibraryMoleculeDualPath } from './library-triage-sequential';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
@@ -2129,9 +2126,10 @@ export interface IntentDecomposition {
   /** True when the intents form an ordered pipeline (output of step N feeds step N+1) */
   isSequential?: boolean;
   /**
-   * Skip Tier-1 single-workflow collapse and Tier-2 curated chain lookup in
-   * processSequentialPipeline. Used when a rule-built plan must stay as
-   * discrete single-workflow steps (library triage → task-by-task).
+   * Skip Tier-1 single-workflow collapse in processSequentialPipeline so a
+   * multi-step plan is not reduced to one Admet Pred (etc.). Tier-2 curated
+   * chain lookup still runs when chainHint names a real workflow_chains row
+   * (library/molecule dual path). Step-by-step triage sets chainHint=null.
    */
   skipPipelineCollapse?: boolean;
   /** LLM-inferred domain preferences for workflow search ranking (replaces rule-based _infer_domain_preferences) */
@@ -5549,20 +5547,27 @@ Rules:
     context.turnSyntheticDataRequested = decomposition.degraded ? undefined : decomposition.userRequestedSyntheticData;
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
 
-    // Library triage (synthesise-now / park + chemistry library): force a sequential
-    // plan of ordinary single workflows (docking → ADMET → pharmacophore). Do NOT
-    // bind one Admet Pred card and do NOT escalate to a catalogued workflow_chains row.
+    // Library / molecule-design dual path (both supported — never force only one):
+    //  - catalog mega-chain when a real workflow_chains row matches
+    //  - sequential step-by-step (ordinary single workflows) for synthesise-now/park
+    //    triage and other multi-step asks with no catalog match
+    // Do NOT invent ad-hoc workflow_chains rows; do NOT bind a lone Admet Pred card
+    // for multi-step triage prose.
     {
       const perceivedKinds =
         decomposition.inputKinds ?? decomposition.primaryIntent?.inputKinds;
-      if (isLibraryTriageRequest(message, perceivedKinds)) {
-        decomposition = buildLibraryTriageSequentialDecomposition(
-          message,
-          perceivedKinds,
-        ) as IntentDecomposition;
+      const dual = applyLibraryMoleculeDualPath(
+        message,
+        perceivedKinds,
+        decomposition.chainHint,
+      );
+      if (dual) {
+        decomposition = dual as IntentDecomposition;
         log(
-          `Step 1: library-triage rule → sequential ${decomposition.intents.length}-step plan ` +
-            `(skipPipelineCollapse; no catalog chain)`,
+          `Step 1: library/molecule dual-path → ${dual.libraryMoleculePath}` +
+            (dual.chainHint ? ` chain=${dual.chainHint}` : '') +
+            ` (${dual.intents.length} intents; skipPipelineCollapse=` +
+            `${!!dual.skipPipelineCollapse})`,
         );
       }
     }
@@ -6809,12 +6814,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
 
     // TIER 2: curated chain (see _curatedChainResponse).
-    // Library triage must NOT become a catalogued mega-chain — skip.
-    if (!noCollapse) {
+    // Dual-path: honour a real chainHint even when skipPipelineCollapse
+    // (that flag only blocks Tier-1 single-wf collapse — e.g. Admet Pred).
+    // Step-by-step library triage sets chainHint=null so this no-ops.
+    {
       const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
       if (tier2) return tier2;
-    } else {
-      log('Tier 2: skipped (skipPipelineCollapse — no curated workflow_chains product)');
+      if (noCollapse && !decomposition.chainHint) {
+        log('Tier 2: no catalog chainHint (sequential step-by-step path)');
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -8712,13 +8720,17 @@ For MULTI-HOP workflow queries (user describes a biological goal without naming 
   "chain_hint": null
 }
 
-**Library triage (synthesise-now / park) — hard example.** When the user asks to triage a
-compound/SMILES library into "synthesise-now" vs "park" (with or without a receptor PDB and
-reference actives), this is ALWAYS multi-intent sequential workflow_generation with ≥3 intents:
-(1) AutoDock Vina / molecular docking of the library against the receptor, (2) predict_admet_properties
-ADMET for the library, (3) pharmacophore_filtering using reference actives. Set chain_hint null —
-do NOT collapse to a single Admet Pred / ADMET-only workflow and do NOT name a curated mega-chain.
-Each intent is one ordinary indexed workflow; BioMate runs them task by task.
+**Library / molecule-design — dual path (both supported).**
+(A) Catalog mega-chain: when the request matches a REAL known chain in the list above
+(e.g. drug_discovery_admet_gated_screening, drug_discovery_screening, admet_to_cipa_cardiac,
+target_to_lead_full, andv_inhibitor_track_v1), set chain_hint to that exact name and
+is_sequential true. Do NOT invent new chain names.
+(B) Step-by-step: when the user asks to triage a compound/SMILES library into "synthesise-now"
+vs "park" (or triage+library with no matching catalog chain), this is multi-intent sequential
+workflow_generation with ≥3 intents: (1) AutoDock Vina docking, (2) predict_admet_properties,
+(3) pharmacophore_filtering. Set chain_hint null — do NOT collapse to a single Admet Pred /
+ADMET-only workflow and do NOT invent a curated mega-chain. Each intent is one ordinary
+indexed workflow; BioMate runs them task by task.
 
 For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequential": true and chain dependsOn:
 {
