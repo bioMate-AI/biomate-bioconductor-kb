@@ -149,9 +149,31 @@ _ASSAY_RANKING_TERMS: frozenset = frozenset({
 })
 
 # Version marker for the self-healing rule-based input_kinds backfill (_self_heal_input_kinds).
-# Bumping it re-runs the rule pass over still-NULL rows on the next init (existing non-NULL labels,
-# including LLM refinements, are never touched). Kept in the ai_meta key/value table per DB.
+# Bumping it re-runs the rule pass over still-empty rows on the next init. Existing non-empty
+# labels (LLM/classifier or prior rule) are NEVER overwritten unless
+# BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1. Kept in the ai_meta key/value table per DB.
 _RULE_INPUT_KINDS_VERSION: int = 2
+
+
+def _env_truthy(name: str, default: str = "0") -> bool:
+    return os.environ.get(name, default).strip().lower() in ("1", "true", "on", "yes")
+
+
+def _input_kinds_is_empty(raw) -> bool:
+    """True when input_kinds is missing / blank / JSON empty list — safe to fill."""
+    if raw is None:
+        return True
+    s = str(raw).strip()
+    if not s or s.lower() in ("null", "none"):
+        return True
+    if s == "[]":
+        return True
+    try:
+        parsed = json.loads(s)
+        return isinstance(parsed, list) and len(parsed) == 0
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
+
 
 # Version marker for retiring catalog rows whose primary .nf path is missing / archived
 # (_self_heal_orphan_catalog_paths). Prefer executable=0 over silently aliasing to a sibling
@@ -886,9 +908,9 @@ class UnifiedWorkflowSearch:
         except sqlite3.Error as _idx_err:
             log.warning("[WorkflowSearch] perf index creation skipped: %s", _idx_err)
 
-        # Self-heal input_kinds so ANY DB (dev/prod) gains rule coverage on deploy with no manual
-        # step — the catalog DB is gitignored, so a one-shot local backfill would otherwise live
-        # only on the laptop. Idempotent + version-gated (runs once per DB per rule version).
+        # Self-heal empty input_kinds so ANY DB (dev/prod) gains rule coverage on deploy with no
+        # manual step — the catalog DB is gitignored. Fill-only by default (never mass-rewrites a
+        # populated LLM/classifier catalog). Idempotent + version-gated.
         self._self_heal_input_kinds(cursor)
         # Retire catalog rows whose primary .nf is missing/archived (Admet Pred 14553). Prefer
         # executable=0 over a wrong live match; search always drops these orphans (below).
@@ -898,16 +920,16 @@ class UnifiedWorkflowSearch:
         log.info("[WorkflowSearch] schema migration complete")
 
     def _self_heal_input_kinds(self, cursor) -> int:
-        """Idempotent, version-gated rule-based (re)labelling of workflows.input_kinds.
+        """Idempotent, version-gated rule-based fill of empty workflows.input_kinds.
 
-        PROVENANCE CONTRACT — the rule layer owns ONLY rule-origin rows. On a rule-version bump it
-        recomputes every row whose input_kinds_method is NULL (legacy rule-origin / unlabelled) or
-        'rule', OVERWRITING changed labels and CLEARING labels that no longer match (prefer NULL to a
-        false positive — the LLM pass then refines them). It NEVER touches a row whose
-        input_kinds_method='llm', so LLM refinements always survive a rule correction. This is what
-        self-heals the 2026-11-13 fastq/molecules mislabels on dev/prod with no manual step (the
-        catalog DB is gitignored). A no-op after the first run at a given version (the ai_meta marker
-        short-circuits before any scan). Never raises — must not block backend init."""
+        SAFETY CONTRACT (2026-11-13 DEV clobber): default mode is FILL-ONLY.
+        - Rows with meaningful non-empty input_kinds are NEVER overwritten — including review /
+          classifier catalogs where input_kinds_method is still NULL (no provenance yet).
+        - Rows with input_kinds_method='llm' are NEVER touched.
+        - Empty means NULL / blank / JSON ``[]`` only.
+        - Destructive recompute of method IS NULL / 'rule' rows requires explicit
+          BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1 (ops-only; not set on normal deploy).
+        A no-op after the first run at a given version (ai_meta marker). Never raises."""
         try:
             cursor.execute("CREATE TABLE IF NOT EXISTS ai_meta (key TEXT PRIMARY KEY, value TEXT)")
             marker = cursor.execute(
@@ -915,36 +937,57 @@ class UnifiedWorkflowSearch:
             if marker and str(marker[0]) == str(_RULE_INPUT_KINDS_VERSION):
                 return 0  # already healed at this rule version → bounded no-op
             from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
-            # Non-LLM rows only: method IS NULL (legacy rule-origin or still-unlabelled) or 'rule'.
-            rows = cursor.execute(
-                "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
-                "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds FROM workflows "
-                "WHERE input_kinds_method IS NULL OR input_kinds_method='rule'"
-            ).fetchall()
+            destructive = _env_truthy("BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL", "0")
+            # Never select llm-provenance rows. Default: only empty kinds. Destructive: also
+            # non-empty null-method / rule-method rows (explicit ops opt-in).
+            if destructive:
+                rows = cursor.execute(
+                    "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
+                    "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds "
+                    "FROM workflows "
+                    "WHERE input_kinds_method IS NULL OR input_kinds_method='rule'"
+                ).fetchall()
+            else:
+                rows = cursor.execute(
+                    "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
+                    "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds "
+                    "FROM workflows "
+                    "WHERE (input_kinds_method IS NULL OR input_kinds_method='rule') "
+                    "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
+                    "     OR TRIM(input_kinds)='[]' OR LOWER(TRIM(input_kinds))='null')"
+                ).fetchall()
             changed = 0
             for wid, name, desc, ann, inp, tags, old in rows:
+                # Defense in depth: never rewrite a populated catalog row without the flag.
+                if not destructive and not _input_kinds_is_empty(old):
+                    continue
                 kinds = rule_classify_kinds({"name": name, "description": desc, "annotation": ann,
                                              "input_types": inp, "tags": tags})
                 new = json.dumps(kinds) if kinds else None
                 if new == old:
-                    # value unchanged; still stamp provenance on legacy rule rows that lack it
-                    if new is not None:
-                        cursor.execute(
-                            "UPDATE workflows SET input_kinds_method='rule' WHERE id=? "
-                            "AND input_kinds_method IS NULL", (wid,))
                     continue
-                # value changed (corrected / cleared). Guard the UPDATE so a concurrently-written
-                # 'llm' row is never clobbered.
-                cursor.execute(
-                    "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
-                    "AND (input_kinds_method IS NULL OR input_kinds_method='rule')",
-                    (new, ('rule' if new is not None else None), wid))
+                # Guard so 'llm' is never clobbered. Fill-only also requires still-empty at UPDATE.
+                if destructive:
+                    cursor.execute(
+                        "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
+                        "AND (input_kinds_method IS NULL OR input_kinds_method='rule')",
+                        (new, ('rule' if new is not None else None), wid))
+                else:
+                    cursor.execute(
+                        "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
+                        "AND (input_kinds_method IS NULL OR input_kinds_method='rule') "
+                        "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
+                        "     OR TRIM(input_kinds)='[]' OR LOWER(TRIM(input_kinds))='null')",
+                        (new, ('rule' if new is not None else None), wid))
                 changed += cursor.rowcount
             cursor.execute(
                 "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('rule_input_kinds_version', ?)",
                 (str(_RULE_INPUT_KINDS_VERSION),))
-            log.info("[WorkflowSearch] self-healed input_kinds: (re)labelled %d rule-origin rows (rule v%s)",
-                     changed, _RULE_INPUT_KINDS_VERSION)
+            mode = "destructive" if destructive else "fill-only"
+            log.info(
+                "[WorkflowSearch] self-healed input_kinds (%s): (re)labelled %d rows (rule v%s)",
+                mode, changed, _RULE_INPUT_KINDS_VERSION,
+            )
             return changed
         except Exception as exc:  # noqa: BLE001 — self-heal must never block init
             log.warning("[WorkflowSearch] input_kinds self-heal skipped: %s", exc)

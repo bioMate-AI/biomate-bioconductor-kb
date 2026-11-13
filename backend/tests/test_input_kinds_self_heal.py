@@ -1,17 +1,29 @@
-"""Durable self-healing input_kinds migration (2026-11-13). The rule backfill must run
-automatically at schema init so ANY DB (dev/prod) gains rule coverage on deploy with NO manual
-step — the catalog DB is gitignored, so a one-shot local backfill would otherwise live only on the
-laptop. Requirements: labels only NULL rows, never clobbers an existing value, idempotent (second
-run is a no-op via the version marker), bounded startup.
+"""Durable self-healing input_kinds migration (2026-11-13).
+
+Default contract (post DEV clobber): fill ONLY NULL/empty/`[]` rows on schema init.
+Never mass-overwrite a populated classifier/LLM catalog. Destructive rewrite of
+rule/null-method rows requires BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1.
 """
 import json
 import sqlite3
 import sys
 import time
+import types
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend" / "lib"))
+
+# backend/conftest.py installs a minimal unified_workflow_search stub (avoid SIGFPE on
+# AIAssistant import). Evict it and stub optional embed deps so this file loads the REAL
+# heal implementation under test.
+if "numpy" not in sys.modules:
+    _np = types.ModuleType("numpy")
+    _np.ndarray = type("ndarray", (), {})  # type: ignore[attr-defined]
+    sys.modules["numpy"] = _np
+if "sentence_transformers" not in sys.modules:
+    sys.modules["sentence_transformers"] = types.ModuleType("sentence_transformers")
+sys.modules.pop("galaxy.ai.unified_workflow_search", None)
 
 from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch, _RULE_INPUT_KINDS_VERSION  # noqa: E402
 
@@ -84,14 +96,74 @@ def test_llm_values_are_never_clobbered_by_rule_heal(tmp_path):
     conn.close()
 
 
-def test_rule_origin_values_are_corrected_on_version_bump(tmp_path):
-    # id=2 (an assay ranker) carries a STALE rule label from an older rule version. On a version
-    # bump the self-heal must RECOMPUTE and overwrite it (rule layer owns rule-origin rows).
+def test_populated_catalog_is_not_mass_overwritten(tmp_path):
+    """Regression for 2026-11-13 DEV clobber: review-style catalog (meaningful kinds, method NULL)
+    must survive schema init / version-marker absence without mass rewrite."""
+    # Review-like seeds: classifier labels with no input_kinds_method provenance.
+    preset = {
+        1: (["molecules"], None),           # would become molecules+structure under rules
+        2: (["protein_table"], None),       # stale vs rule tabular — must KEEP
+        3: (["counts_matrix"], None),       # incomplete vs rule fastq — must KEEP
+        4: ([], None),                      # empty [] — may stay empty (unlabelable)
+    }
+    db = _db_with_null_rows(tmp_path, preset=preset)
+    before = {}
+    conn = sqlite3.connect(str(db))
+    for wid, kinds in conn.execute("SELECT id, input_kinds FROM workflows").fetchall():
+        before[wid] = kinds
+    conn.close()
+
+    UnifiedWorkflowSearch(db_path=db)
+
+    conn = sqlite3.connect(str(db))
+    after = dict(conn.execute("SELECT id, input_kinds FROM workflows").fetchall())
+    # Meaningful non-empty labels unchanged (including wrong/stale ones).
+    assert json.loads(after[1]) == ["molecules"]
+    assert json.loads(after[2]) == ["protein_table"]
+    assert json.loads(after[3]) == ["counts_matrix"]
+    # Provenance must stay NULL — do not stamp 'rule' onto classifier leftovers.
+    methods = dict(conn.execute("SELECT id, input_kinds_method FROM workflows").fetchall())
+    assert methods[1] is None and methods[2] is None and methods[3] is None
+    # Marker stamped so a later init does not re-scan.
+    v = conn.execute("SELECT value FROM ai_meta WHERE key='rule_input_kinds_version'").fetchone()
+    assert v and str(v[0]) == str(_RULE_INPUT_KINDS_VERSION)
+    conn.close()
+    assert before[1] == after[1] and before[2] == after[2] and before[3] == after[3]
+
+
+def test_empty_bracket_rows_are_fillable(tmp_path):
+    """`[]` counts as empty and may be filled; non-empty siblings stay put."""
+    db = _db_with_null_rows(tmp_path, preset={
+        1: (["molecules"], None),
+        2: ([], None),  # empty → fill with tabular
+    })
+    UnifiedWorkflowSearch(db_path=db)
+    conn = sqlite3.connect(str(db))
+    assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=1").fetchone()[0]) == ["molecules"]
+    assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=2").fetchone()[0]) == ["tabular"]
+    assert conn.execute("SELECT input_kinds_method FROM workflows WHERE id=2").fetchone()[0] == "rule"
+    conn.close()
+
+
+def test_rule_origin_values_are_corrected_only_with_destructive_flag(tmp_path, monkeypatch):
+    # Without the flag, stale rule labels must NOT be rewritten (same as populated null-method).
     db = _db_with_null_rows(tmp_path, preset={2: (["fastq"], "rule")})
+    monkeypatch.delenv("BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL", raising=False)
     UnifiedWorkflowSearch(db_path=db)
     conn = sqlite3.connect(str(db))
     row = conn.execute("SELECT input_kinds, input_kinds_method FROM workflows WHERE id=2").fetchone()
-    assert json.loads(row[0]) == ["tabular"] and row[1] == "rule"  # corrected, provenance stays 'rule'
+    assert json.loads(row[0]) == ["fastq"] and row[1] == "rule"
+    conn.close()
+
+    # With the flag, rule-origin rows are recomputed on the next version pass.
+    conn = sqlite3.connect(str(db))
+    conn.execute("DELETE FROM ai_meta WHERE key='rule_input_kinds_version'")
+    conn.commit(); conn.close()
+    monkeypatch.setenv("BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL", "1")
+    UnifiedWorkflowSearch(db_path=db)
+    conn = sqlite3.connect(str(db))
+    row = conn.execute("SELECT input_kinds, input_kinds_method FROM workflows WHERE id=2").fetchone()
+    assert json.loads(row[0]) == ["tabular"] and row[1] == "rule"
     conn.close()
 
 
