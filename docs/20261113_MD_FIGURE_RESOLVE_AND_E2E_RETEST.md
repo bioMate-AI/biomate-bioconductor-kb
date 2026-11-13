@@ -15,8 +15,16 @@ Live dig `chat-files-and-reports` E2E opened `ADMET_QC_report.md` beside chat bu
 - `resolveSiblingImage`: leaf-folder + basename fallbacks; safe `decodeURIComponent`.
 - E2E B: `.first()` + filter `e2e-probe*` sessions.
 
-## Verify
+## Scope
 
-- `npx vitest run client/src/components/datasets/markdown-report.test.tsx` (incl. reference-style case)
+**General product path** (not ADMET/Chinese/e2e-only): every project-chat MD/HTML report with relative figures goes through `MarkdownReport` / `HtmlReport` → `resolveSiblingImage`. Founder class: `mdReportNoFigures` (2026-11-12).
+
+## Verify (live dig tip `ecf9fedc4d`, 2026-11-13)
+
+- `npx vitest run client/src/components/datasets/markdown-report.test.tsx` (7 tests, incl. reference-style)
 - `npx tsc --noEmit -p .`
-- Live dig: A+B `run-manager-chat-and-cryosparc-license.e2e.ts` + `chat-files-and-reports.e2e.ts`
+- **3/3 Playwright green** on `https://dev-public.biomate.ai`:
+  - `chat-files-and-reports.e2e.ts` — Generated files (.png/.md/.docx); MD panel shows `markdown-figure` (no 未找到图片)
+  - A: CryoSPARC license `source=none` → execute **402** → LicenseGate + Confirm disabled
+  - B: Run Manager → `?session=&focusRun=` → owning chat (not empty New Chat)
+- Shots: `frontend/e2e/screenshots/chat-files-and-reports/` · `frontend/e2e/execshots/run-manager-cryosparc-license/`

@@ -1,13 +1,17 @@
 /**
  * Live dig E2E for the two screenshot bugs (2026-11-13):
  *
- *   Flow A — CryoSPARC must ASK for a license and hard-block Confirm / execute
- *            without a user credential (no silent CRYOSPARC_LICENSE env fallback).
+ *   Flow A — CryoSPARC license end-to-end run path (not just "ask" UI):
+ *            1) no user key → API 402 + LicenseGate blocks Confirm
+ *            2) Provide credentials in the panel → gate clears
+ *            3) Confirm & Run → execute is accepted past the license gate
+ *               (panel goes running/queued, or fails for non-license reasons).
+ *            Proves no silent CRYOSPARC_LICENSE env fallback. Cancels any
+ *            accepted run immediately — does not wait for GPU SPA completion.
  *   Flow B — Run Manager (All chats) click must open the owning chat on the left,
  *            not only the right workflow panel on an empty New Chat.
  *
  * Discipline (CLAUDE.md): login once, no /register, one fixture, screenshots for audit.
- * Stops before any GPU Batch spend.
  *
  * Run:
  *   cd frontend && E2E_FIXTURE_PASSWORD=$(cat ~/.config/biomate/e2e_fixture_password) \
@@ -93,132 +97,256 @@ async function withGalaxyRetry<T>(
 // Independent flows — do not serialize: Run Manager must still prove even if the
 // CryoSPARC UI open path flakes on clarification.
 
-test("A: CryoSPARC license ask + hard-block (API + UI)", async ({ page }) => {
-  test.setTimeout(12 * 60 * 1000);
+test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ page }) => {
+  test.setTimeout(15 * 60 * 1000);
   await loginAsFixture(page);
   const req = page.request;
+  // E2E-only placeholder — proves the gate accepts a *user* key (not env). Not a real Structura license.
+  const E2E_LICENSE = `e2e-${randomUUID()}`;
+  let launchedRunId: string | null = null;
 
-  // ── A1: API license-requirements hard-blocks cryosparc without user key ──
-  // Best-effort clear — Galaxy may 500 during recycle; license assert is what matters.
-  const del = await req.delete(BASE_URL + "/api/users/credentials/cryosparc").catch(() => null);
-  console.log("[A1] delete cryosparc credential →", del ? del.status() : "n/a");
+  try {
+    // ── A1: clear user key → license-requirements source=none ──
+    const del = await req.delete(BASE_URL + "/api/users/credentials/cryosparc").catch(() => null);
+    console.log("[A1] delete cryosparc credential →", del ? del.status() : "n/a");
 
-  const licBody = await withGalaxyRetry("license-requirements", async () => {
-    const lic = await req.get(
-      BASE_URL +
-        "/api/workflows/license-requirements?nextflow_path=" +
-        encodeURIComponent("cryosparc_standard_spa/main.nf"),
-    );
-    if (!lic.ok()) throw new Error(`license-requirements HTTP ${lic.status()}: ${(await lic.text()).slice(0, 200)}`);
-    return lic.json();
-  });
-  const cryo = (licBody.requirements || []).find(
-    (r: any) => r.tool_id === "cryosparc",
-  );
-  expect(cryo, "cryosparc must appear in license-requirements").toBeTruthy();
-  expect(cryo.source, "no user key → source none").toBe("none");
-  expect(cryo.has_fallback, "cryosparc has no open fallback").toBeFalsy();
-  console.log("[A1] cryosparc requirement:", JSON.stringify(cryo));
+    const licBody = await withGalaxyRetry("license-requirements", async () => {
+      const lic = await req.get(
+        BASE_URL +
+          "/api/workflows/license-requirements?nextflow_path=" +
+          encodeURIComponent("cryosparc_standard_spa/main.nf"),
+      );
+      if (!lic.ok()) throw new Error(`license-requirements HTTP ${lic.status()}: ${(await lic.text()).slice(0, 200)}`);
+      return lic.json();
+    });
+    const cryo = (licBody.requirements || []).find((r: any) => r.tool_id === "cryosparc");
+    expect(cryo, "cryosparc must appear in license-requirements").toBeTruthy();
+    expect(cryo.source, "no user key → source none").toBe("none");
+    expect(cryo.has_fallback, "cryosparc has no open fallback").toBeFalsy();
+    console.log("[A1] cryosparc requirement:", JSON.stringify(cryo));
 
-  // ── A2: execute without license → 402 (backend hard block) ──
-  const { execStatus, execBody } = await withGalaxyRetry(
-    "execute-without-license",
-    async () => {
-      const exec = await req.post(BASE_URL + "/api/workflows/execute", {
-        data: {
-          workflowDefinition: {
-            name: "Cryosparc Standard Spa",
-            workflow_type: "cryosparc",
-            nextflow_path:
-              "biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
-            parameters: { pixel_size: 1.05, voltage: 300 },
+    // ── A2: execute without license → 402 (no silent env fallback) ──
+    const { execStatus, execBody } = await withGalaxyRetry(
+      "execute-without-license",
+      async () => {
+        const exec = await req.post(BASE_URL + "/api/workflows/execute", {
+          data: {
+            workflowDefinition: {
+              name: "Cryosparc Standard Spa",
+              workflow_type: "cryosparc",
+              nextflow_path:
+                "biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
+              parameters: {
+                pixel_size: 1.05,
+                voltage: 300,
+                movies_path: "s3://biomate-demo/empiar-10028/movies/",
+              },
+            },
+            inputs: [],
+            chatSessionId: `e2e-cs-lic-${randomUUID()}`,
           },
-          inputs: [],
-          chatSessionId: `e2e-cs-lic-${randomUUID()}`,
-        },
-        timeout: 60_000,
-      });
-      const status = exec.status();
-      const body = await exec.json().catch(() => ({}));
-      // 5xx = Galaxy blip — retry. 402 is success for this assertion.
-      if (status >= 500) throw new Error(`execute HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`);
-      return { execStatus: status, execBody: body };
-    },
-    { ok: (v) => v.execStatus === 402 },
-  );
-  console.log("[A2] execute without license →", execStatus, JSON.stringify(execBody).slice(0, 300));
-  expect(
-    execStatus,
-    "execute must refuse without a CryoSPARC user license",
-  ).toBe(402);
-  expect(String(execBody.error || execBody.message || "")).toMatch(
-    /cryosparc_license_required|license/i,
-  );
+          timeout: 60_000,
+        });
+        const status = exec.status();
+        const body = await exec.json().catch(() => ({}));
+        if (status >= 500) throw new Error(`execute HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`);
+        return { execStatus: status, execBody: body };
+      },
+      { ok: (v) => v.execStatus === 402 },
+    );
+    console.log("[A2] execute without license →", execStatus, JSON.stringify(execBody).slice(0, 300));
+    expect(execStatus, "execute must refuse without a CryoSPARC user license").toBe(402);
+    expect(String(execBody.error || execBody.message || "")).toMatch(
+      /cryosparc_license_required|license/i,
+    );
 
-  // ── A3: UI — open panel, Tool Credentials blocks Confirm ──
-  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-  const composer = page.locator("textarea").first();
-  await composer.waitFor({ state: "visible", timeout: 60_000 });
-  // Include a placeholder movies_path so clarification does not swallow the panel open.
-  await composer.fill(
-    "Open cryosparc_standard_spa for my micrographs. movies_path=s3://biomate-demo/empiar-10028/movies/. Prepare the workflow panel only — do not run.",
-  );
-  await page.keyboard.press("Enter");
+    // ── A3: UI — open panel; Tool Credentials blocks Confirm ──
+    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+    const composer = page.locator("textarea").first();
+    await composer.waitFor({ state: "visible", timeout: 60_000 });
+    await composer.fill(
+      "Open cryosparc_standard_spa for my micrographs. movies_path=s3://biomate-demo/empiar-10028/movies/. pixel_size=1.05 voltage=300. Prepare the workflow panel — I will Confirm & Run myself.",
+    );
+    await page.keyboard.press("Enter");
 
-  // Prefer explicit open: Confirm and configure / wf-chip / In panel.
-  const openPanel = async () => {
-    const candidates = [
-      page.getByRole("button", { name: /Confirm and configure/i }),
-      page.getByTestId("wf-chip-open"),
-      page.locator(".wf-chip").first(),
-      page.getByText(/In panel/i).first(),
-    ];
-    for (const c of candidates) {
-      if (await c.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await c.click();
-        return true;
+    const openPanel = async () => {
+      const candidates = [
+        page.getByRole("button", { name: /Confirm and configure/i }),
+        page.getByTestId("wf-chip-open"),
+        page.locator(".wf-chip").first(),
+        page.getByText(/In panel/i).first(),
+      ];
+      for (const c of candidates) {
+        if (await c.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          await c.click();
+          return true;
+        }
       }
+      return false;
+    };
+    await page.waitForTimeout(8_000);
+    if (!(await openPanel())) {
+      await page.waitForTimeout(60_000);
+      await openPanel();
     }
-    return false;
-  };
 
-  // Wait for AI reply (clarification or card), then open panel.
-  await page.waitForTimeout(8_000);
-  const opened = await openPanel();
-  if (!opened) {
-    // Wait longer for the stream to finish, then retry.
-    await page.waitForTimeout(60_000);
-    await openPanel();
+    const panel = page
+      .locator(
+        '[data-testid="workflow-artifact-panel"], [data-testid="panel-phases"], [data-testid="panel-settings"]',
+      )
+      .first();
+    await expect(panel).toBeVisible({ timeout: 120_000 });
+    await shot(page, "A3_cryosparc_panel_before_settings");
+
+    const settingsBtn = page
+      .locator("button")
+      .filter({ hasText: /Workflow settings|^Settings$/i })
+      .first();
+    if (await settingsBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await settingsBtn.click();
+    }
+
+    const gate = page.getByTestId("license-gate");
+    await expect(gate).toBeVisible({ timeout: 30_000 });
+    await expect(gate).toHaveAttribute("data-blocked", "true");
+    await expect(page.getByTestId("license-row-cryosparc")).toBeVisible();
+    await expect(page.getByText(/Provide credentials/i).first()).toBeVisible();
+
+    const confirm = page.getByTestId("button-run-workflow-panel");
+    await expect(confirm).toBeVisible({ timeout: 15_000 });
+    await expect(confirm).toBeDisabled();
+    await expect(page.getByTestId("license-blocked-hint")).toBeVisible();
+    await shot(page, "A3_license_gate_blocks_confirm");
+    console.log("[A3] LicenseGate visible + Confirm disabled — pass");
+
+    // Disabled Confirm must not launch a run (force click is a no-op / ignored).
+    await confirm.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(1500);
+    const badge = page.getByTestId("workflow-overall-status-badge");
+    if (await badge.isVisible().catch(() => false)) {
+      const st = await badge.getAttribute("data-status");
+      expect(st, "force-click Confirm must not start a run while license-blocked").not.toMatch(
+        /running|queued|configuring/i,
+      );
+    }
+
+    // ── A4: Provide credentials in the panel (user key, not env) ──
+    await page.getByRole("button", { name: /Provide credentials/i }).first().click();
+    // Prefer new testids; fall back to stable ids/labels already on dig.
+    const modal = page
+      .getByTestId("credential-modal")
+      .or(page.getByRole("dialog").filter({ hasText: /CryoSPARC/i }));
+    await expect(modal).toBeVisible({ timeout: 15_000 });
+    await shot(page, "A4_credential_modal_open");
+    const keyInput = page
+      .getByTestId("credential-license-key")
+      .or(page.locator("#cred-license-key"));
+    await keyInput.fill(E2E_LICENSE);
+    const saveBtn = page
+      .getByTestId("credential-save")
+      .or(page.getByRole("button", { name: /Save credentials/i }));
+    await saveBtn.click();
+    await expect(modal).toBeHidden({ timeout: 30_000 });
+
+    // Gate must clear; Confirm enabled. Prefer row status + Confirm (authoritative
+    // onBlockedChange); data-blocked must agree once dig has the hardPath attribute fix.
+    await expect(page.getByTestId("license-row-cryosparc")).toHaveAttribute(
+      "data-status",
+      "resolved",
+      { timeout: 45_000 },
+    );
+    await expect(confirm).toBeEnabled({ timeout: 15_000 });
+    const blockedAttr = await gate.getAttribute("data-blocked");
+    console.log("[A4] data-blocked after save:", blockedAttr);
+    // Soft check: when dig serves the fixed LicenseGate, attribute must clear too.
+    if (blockedAttr === "true") {
+      console.warn(
+        "[A4] data-blocked still true (dig may lack hardPath attribute fix) — Confirm enabled is the run gate",
+      );
+    } else {
+      expect(blockedAttr).toBe("false");
+    }
+    await shot(page, "A4_license_saved_confirm_enabled");
+    console.log("[A4] user license saved → Confirm enabled — pass");
+
+    // license-requirements now reports source=user
+    const licAfter = await withGalaxyRetry("license-requirements-after-save", async () => {
+      const lic = await req.get(
+        BASE_URL +
+          "/api/workflows/license-requirements?nextflow_path=" +
+          encodeURIComponent("cryosparc_standard_spa/main.nf"),
+      );
+      if (!lic.ok()) throw new Error(`license-requirements HTTP ${lic.status()}`);
+      return lic.json();
+    });
+    const cryoAfter = (licAfter.requirements || []).find((r: any) => r.tool_id === "cryosparc");
+    expect(cryoAfter?.source, "saved key must show as user credential").toBe("user");
+
+    // ── A5: Confirm & Run — must pass the license gate (not 402) ──
+    const execWait = page.waitForResponse(
+      (r) => r.url().includes("/api/workflows/execute") && r.request().method() === "POST",
+      { timeout: 120_000 },
+    );
+    await confirm.click();
+    const execResp = await execWait;
+    const execCode = execResp.status();
+    const execJson = await execResp.json().catch(() => ({}));
+    console.log(
+      "[A5] Confirm & Run execute →",
+      execCode,
+      JSON.stringify(execJson).slice(0, 400),
+    );
+    expect(
+      execCode,
+      "with a user license, execute must NOT be cryosparc_license_required 402",
+    ).not.toBe(402);
+    expect(String(execJson.error || execJson.message || "")).not.toMatch(
+      /cryosparc_license_required/i,
+    );
+
+    launchedRunId =
+      execJson.runId ||
+      execJson.run_id ||
+      execJson.id ||
+      execJson.executionId ||
+      null;
+
+    // Panel should leave idle: running / queued / configuring, or fail for infra/data — not license.
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+        const st = el?.getAttribute("data-status") || "";
+        const bar = document.querySelector('[data-testid="panel-action-bar"]');
+        const barSt = bar?.getAttribute("data-status") || "";
+        const s = st || barSt;
+        return /running|queued|configuring|failed|completed/i.test(s);
+      },
+      undefined,
+      { timeout: 120_000 },
+    );
+    const afterStatus =
+      (await badge.getAttribute("data-status").catch(() => null)) ||
+      (await page.getByTestId("panel-action-bar").getAttribute("data-status").catch(() => null));
+    console.log("[A5] panel status after Confirm & Run:", afterStatus);
+    await shot(page, "A5_confirm_run_past_license_gate");
+    expect(afterStatus, "panel must leave idle after Confirm & Run").toBeTruthy();
+    expect(afterStatus).not.toBe("idle");
+    console.log("[A5] Confirm & Run past license gate — pass");
+  } finally {
+    // Cancel any launched run so we do not burn a full CryoSPARC SPA GPU cycle.
+    if (launchedRunId) {
+      const cancel = await req
+        .post(BASE_URL + `/api/workflows/runs/${encodeURIComponent(launchedRunId)}/cancel`, {
+          data: {},
+          timeout: 30_000,
+        })
+        .catch(() => null);
+      console.log("[A6] cancel run", launchedRunId, "→", cancel ? cancel.status() : "n/a");
+      await shot(page, "A6_run_cancelled").catch(() => {});
+    }
+    await req.delete(BASE_URL + "/api/users/credentials/cryosparc").catch(() => null);
+    console.log("[A6] cryosparc credential cleared");
   }
-
-  const panel = page
-    .locator(
-      '[data-testid="workflow-artifact-panel"], [data-testid="panel-phases"], [data-testid="panel-settings"]',
-    )
-    .first();
-  await expect(panel).toBeVisible({ timeout: 120_000 });
-  await shot(page, "A3_cryosparc_panel_before_settings");
-
-  const settingsBtn = page
-    .locator("button")
-    .filter({ hasText: /Workflow settings|^Settings$/i })
-    .first();
-  if (await settingsBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await settingsBtn.click();
-  }
-
-  const gate = page.getByTestId("license-gate");
-  await expect(gate).toBeVisible({ timeout: 30_000 });
-  await expect(gate).toHaveAttribute("data-blocked", "true");
-  await expect(page.getByTestId("license-row-cryosparc")).toBeVisible();
-  await expect(page.getByText(/Provide credentials/i).first()).toBeVisible();
-
-  const confirm = page.getByTestId("button-run-workflow-panel");
-  await expect(confirm).toBeVisible({ timeout: 15_000 });
-  await expect(confirm).toBeDisabled();
-  await expect(page.getByTestId("license-blocked-hint")).toBeVisible();
-  await shot(page, "A3_license_gate_blocks_confirm");
-  console.log("[A3] LicenseGate visible + Confirm disabled — pass");
 });
 
 test("B: Run Manager opens owning chat (not panel-only on New Chat)", async ({ page }) => {

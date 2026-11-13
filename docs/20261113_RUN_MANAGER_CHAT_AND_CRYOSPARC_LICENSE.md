@@ -36,12 +36,14 @@ Changes:
 
 - `client/src/components/run-manager-utils.test.ts` — switch href cases
 - `client/src/components/license-gate.test.ts` — path helpers
-- **Live dig E2E (2026-11-13, tip `429c3dbc`):**
-  `frontend/e2e/run-manager-chat-and-cryosparc-license.e2e.ts`
-  - **A passed:** delete credential → license-requirements `source=none` → execute **402** → UI Tool Credentials + Confirm disabled + license hint
-  - **B passed:** empty New Chat → All chats → search+click run with `chat-*` session → URL `?session=&focusRun=` → left chat leaves cold-start, right panel opens
-  - Screenshots: `frontend/e2e/execshots/run-manager-cryosparc-license/`
+- **Live dig E2E (2026-11-13):**
+  `frontend/e2e/run-manager-chat-and-cryosparc-license.e2e.ts` + `chat-files-and-reports.e2e.ts`
+  - **A (ask only, tip `ecf9fedc4d`):** delete credential → `source=none` → execute **402** → LicenseGate + Confirm disabled
+  - **A (Confirm & Run E2E):** Provide credentials in panel → Confirm enabled → Confirm & Run past license gate (execute ≠ 402) → cancel run immediately (no GPU SPA wait). Also fixes `data-blocked` so a resolved user key clears the attribute (`hardPath || …` bug).
+  - **B:** Run Manager → `?session=&focusRun=` → owning chat + panel
+  - **chat-files:** MD sibling figures beside chat
+  - Screenshots: `frontend/e2e/execshots/run-manager-cryosparc-license/` (A3–A6) · `frontend/e2e/screenshots/chat-files-and-reports/`
 
 ## Open
 
-- chat-files-and-reports e2e still pending from earlier session work
+- Re-verify A Confirm & Run after frontend sync of `isBlocked` / credential-modal testids (this tip).
