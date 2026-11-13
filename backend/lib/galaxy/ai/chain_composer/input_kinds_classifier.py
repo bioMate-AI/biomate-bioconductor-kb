@@ -70,6 +70,59 @@ protein_table. Use [] if the inputs cannot be determined.
 Reply with ONLY one JSON object: {{"input_kinds": ["<key>", ...], "reason": "<short phrase>"}}"""
 
 
+# ---------------------------------------------------------------------------
+# Deterministic rule-based labeler (hybrid rule-first; the LLM classify() below is the
+# refinement layer for rows this leaves unlabelled). Precision over recall: an uncertain row
+# returns None (column stays NULL) rather than a guess. Called at INSERT time by the indexers
+# so re-indexing a source PRESERVES the data-shape gate instead of reverting input_kinds to NULL.
+# ---------------------------------------------------------------------------
+import re as _re
+
+# (keyword pattern, kind). All patterns are scanned; a row may collect several kinds.
+_RULE_CUES: List = [
+    (r"fastq|raw reads|sequencing reads|rna-?seq|chip-?seq|atac-?seq|demultiplex|paired-?end reads", "fastq"),
+    (r"bam file|cram file|aligned reads|alignment file|sorted bam", "bam"),
+    (r"mass spectrom|mzml|mzxml|\.wiff|thermo \.?raw|lc-?ms/?ms spectra|\bdda\b|raw spectra", "raw_spectra"),
+    (r"\bidat\b|methylation array|450k array|epic array", "idat"),
+    (r"bcl2fastq|illumina run folder|\bbcl\b", "bcl"),
+    (r"fast5|pod5|nanopore signal", "nanopore_signal"),
+    (r"micrograph|cryo-?em|cryoem|tomogram|\.mrc\b|movie frames|electron microscopy|particle picking", "raw_images"),
+    (r"count matrix|counts matrix|gene counts|count table|featurecounts|expression matrix|\bdeseq2?\b|\bedger\b|\blimma\b", "counts_matrix"),
+    (r"cell ?ranger|matrix\.mtx|\b10x\b|filtered_feature_bc_matrix", "cellranger_output"),
+    (r"h5ad|anndata|\bseurat\b|single-?cell object|\bscanpy\b|singlecellexperiment", "h5ad"),
+    (r"proteingroups|protein table|protein quantification|protein abundance|pg_matrix|dia-?nn report", "protein_table"),
+    (r"peptide table|peptides\.txt|evidence\.txt|\bpsm\b|precursor table", "peptide_table"),
+    (r"metabolite|metabolomics feature|feature intensity table", "metabolite_table"),
+    (r"methylation beta|beta-?value|m-?value matrix", "beta_values"),
+    (r"vcf file|annotate variants|variant annotation|\.vcf\b|variant calls? table", "vcf"),
+    (r"narrowpeak|broadpeak|peak file|called peaks", "peaks"),
+    (r"gene list|ranked gene|gene set enrichment|enrichment analysis|over-?representation|\bgsea\b", "gene_list"),
+    (r"reference genome|\.fasta\b|protein sequence|amino acid sequence|nucleotide sequence", "fasta"),
+    (r"\bgtf\b|\bgff3?\b|gene annotation file", "annotation"),
+    (r"\bpdb\b|mmcif|receptor structure|protein structure|crystal structure|apo structure|holo structure|3d structure|molecular dynamics|\bmd simulation|docking|binding pocket", "structure"),
+    (r"smiles|\.sdf\b|ligand|small molecule|compound library|chemical library|\badmet\b|virtual screen|scaffold|building blocks|molecular docking|developability", "molecules"),
+    (r"assay data|\bic50\b|composite score|assay csv|dose-?response|clinical table|phenotype table", "tabular"),
+]
+_RULE_PATTERNS = [(_re.compile(p, _re.I), k) for p, k in _RULE_CUES]
+
+
+def rule_classify_kinds(row: Dict[str, str]) -> Optional[List[str]]:
+    """Deterministic, high-precision input-kind labels from a workflow's own metadata
+    (name/description/annotation/input_types/tags). Returns a sorted list of INPUT_KINDS keys,
+    or None when nothing matches confidently (the LLM pass refines those). NEVER raises."""
+    try:
+        def _g(k: str) -> str:
+            v = row.get(k) if isinstance(row, dict) else getattr(row, k, None)
+            return str(v) if v else ""
+        blob = " ".join(_g(k) for k in ("name", "description", "annotation", "input_types", "tags")).lower()
+        if not blob.strip():
+            return None
+        found = {kind for pat, kind in _RULE_PATTERNS if pat.search(blob) and kind in INPUT_KINDS}
+        return sorted(found) or None
+    except Exception:  # noqa: BLE001 — labelling must never break indexing
+        return None
+
+
 def _row_prompt(r: Dict[str, str]) -> str:
     return _PROMPT.format(name=r["name"], source=r["source"] or "unknown", description=(r["description"] or "")[:600],
                           input_types=(r["input_types"] or "[]")[:400], annotation=(r["annotation"] or "")[:400],
