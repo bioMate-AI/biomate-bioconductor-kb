@@ -84,3 +84,14 @@ Samplesheet/`input`/`matrix` accept table kinds; `reads`+CSV blocks before Batch
 - Pushed to `origin/devline/ds-audit-20261112` (`562908a3e7..dd58dfaae9`)
 - **Sync blocked in this agent sandbox:** `scripts/sync_to_dev.sh` needs AWS EC2 Instance Connect / SSM (`ssm.us-west-2.amazonaws.com`), which the Cursor sandbox cannot reach (`Could not connect to the endpoint URL`). Static `~/.ssh/biomate_ec2_ed25519` is no longer accepted (Permission denied). **Parent/operator should run `bash scripts/sync_to_dev.sh` from a full-network shell when remote lease is FREE.**
 - Pre-sync live tip observed while blocked: `429c3dbc` (does **not** yet include samplesheet/deferred/remote/gate)
+- Branch tip after doc + E2E harden: `b9f468b249` (pushed)
+
+### Live E2E on `429c3dbc` (folder deepen — before feature sync)
+
+**PASS** `folder-attach-all-files.e2e.ts` (~9.5s):
+
+- API `pairs/` → **5** files (3 top + 2 nested); nested `pairs/lane1` → **2**; empty → 404
+- Analysis attachFolder → **5** chips; Models `pairs/ (5 files)`
+- Samplesheet persist → **404 skipped** (route not on live until sync)
+
+Screenshots: `frontend/e2e/execshots/folder-attach-20261113/`
