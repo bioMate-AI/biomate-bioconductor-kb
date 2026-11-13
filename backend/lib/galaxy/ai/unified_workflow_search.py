@@ -144,6 +144,11 @@ _ASSAY_RANKING_TERMS: frozenset = frozenset({
     "safety potency ranking", "herg ranking", "potency safety",
 })
 
+# Version marker for the self-healing rule-based input_kinds backfill (_self_heal_input_kinds).
+# Bumping it re-runs the rule pass over still-NULL rows on the next init (existing non-NULL labels,
+# including LLM refinements, are never touched). Kept in the ai_meta key/value table per DB.
+_RULE_INPUT_KINDS_VERSION: int = 1
+
 # Downstream multi-omics INTEGRATION intent (step 8c). A user who ALREADY holds processed/summarised
 # tables (DE tables, protein-abundance tables, count matrices) and wants to INTEGRATE them — overlap,
 # concordant/discordant genes, MOFA, multi-omics integration, pathway enrichment on existing results —
@@ -820,8 +825,51 @@ class UnifiedWorkflowSearch:
         except sqlite3.Error as _idx_err:
             log.warning("[WorkflowSearch] perf index creation skipped: %s", _idx_err)
 
+        # Self-heal input_kinds so ANY DB (dev/prod) gains rule coverage on deploy with no manual
+        # step — the catalog DB is gitignored, so a one-shot local backfill would otherwise live
+        # only on the laptop. Idempotent + version-gated (runs once per DB per rule version).
+        self._self_heal_input_kinds(cursor)
+
         conn.commit()
         log.info("[WorkflowSearch] schema migration complete")
+
+    def _self_heal_input_kinds(self, cursor) -> int:
+        """Idempotent, version-gated rule-based backfill of workflows.input_kinds.
+
+        Labels ONLY rows WHERE input_kinds IS NULL and NEVER overwrites an existing value, so LLM
+        refinements and write-path labels survive. A no-op after the first run (the ai_meta version
+        marker short-circuits before any scan), so repeated inits / per-request constructions cost
+        one indexed SELECT. Returns the number of rows newly labelled. Never raises — must not block
+        backend init."""
+        try:
+            cursor.execute("CREATE TABLE IF NOT EXISTS ai_meta (key TEXT PRIMARY KEY, value TEXT)")
+            marker = cursor.execute(
+                "SELECT value FROM ai_meta WHERE key='rule_input_kinds_version'").fetchone()
+            if marker and str(marker[0]) == str(_RULE_INPUT_KINDS_VERSION):
+                return 0  # already healed at this rule version → bounded no-op
+            from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
+            rows = cursor.execute(
+                "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
+                "COALESCE(input_types,'[]'), COALESCE(tags,'[]') FROM workflows WHERE input_kinds IS NULL"
+            ).fetchall()
+            n = 0
+            for wid, name, desc, ann, inp, tags in rows:
+                kinds = rule_classify_kinds({"name": name, "description": desc, "annotation": ann,
+                                             "input_types": inp, "tags": tags})
+                if kinds:
+                    cursor.execute(
+                        "UPDATE workflows SET input_kinds=? WHERE id=? AND input_kinds IS NULL",
+                        (json.dumps(kinds), wid))
+                    n += cursor.rowcount
+            cursor.execute(
+                "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('rule_input_kinds_version', ?)",
+                (str(_RULE_INPUT_KINDS_VERSION),))
+            log.info("[WorkflowSearch] self-healed input_kinds: labelled %d NULL rows (rule v%s)",
+                     n, _RULE_INPUT_KINDS_VERSION)
+            return n
+        except Exception as exc:  # noqa: BLE001 — self-heal must never block init
+            log.warning("[WorkflowSearch] input_kinds self-heal skipped: %s", exc)
+            return 0
 
     def _ensure_fts_index(self):
         """Ensure FTS index exists and is populated."""
