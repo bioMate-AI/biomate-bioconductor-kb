@@ -18,8 +18,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { userSettingsService } from "@/lib/user-settings"
 import { notifyVoiceSettingsChanged } from "@/hooks/use-voice-settings"
 import { t, tOr, setLanguagePreference } from "@/lib/i18n"
-import { useLlmPolicy, modelGroups, effectivePick, pickRejected, INTL_DEFAULT_MODEL, CHINESE_MODELS } from "@/lib/llm-region"
-import { HintTabsTrigger } from "@/components/ui/hint-tip"
 import type { UserSettings } from "@shared/schema"
 import {
   User,
@@ -141,25 +139,12 @@ function useApiKeys(open: boolean) {
 // LLM Provider selection (BioMate default or OpenRouter)
 // ---------------------------------------------------------------------------
 
-/** The server's reason for refusing a save (e.g. a non-Chinese model for a China-region user). */
-async function saveError(r: Response): Promise<Error> {
-  const body = await r.json().catch(() => null);
-  return new Error(body?.error || `HTTP ${r.status}`);
-}
-
 function useLlmApiKeys(open: boolean) {
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
   const [hasOpenrouterKey, setHasOpenrouterKey] = useState(false);
-  // Region policy (lib/llm-region.ts): China users are offered Chinese models only.
-  const policy = useLlmPolicy(open);
-  const [storedPick, setStoredPick] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState(INTL_DEFAULT_MODEL);
-  useEffect(() => { if (policy) setSelectedModel(effectivePick(policy, storedPick)); }, [policy, storedPick]);
-  const modelRejected = pickRejected(policy, selectedModel);
+  const [selectedModel, setSelectedModel] = useState('z-ai/glm-5.3-prime');
 
   const [provider, setProvider] = useState<'default' | 'anthropic' | 'openrouter'>('default');
-  // A China-region user's stored Anthropic key is never used (the server drops it), so its option is hidden.
-  useEffect(() => { if (policy?.anthropicKeyAllowed === false) setProvider(p => (p === 'anthropic' ? 'default' : p)); }, [policy]);
   const [anthropicInput, setAnthropicInput] = useState('');
   const [openrouterInput, setOpenrouterInput] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -176,7 +161,7 @@ function useLlmApiKeys(open: boolean) {
         if (!d) return;
         setHasAnthropicKey(!!d.anthropic);
         setHasOpenrouterKey(!!d.openrouter);
-        if (d.selected_model) { setStoredPick(d.selected_model); setSelectedModel(d.selected_model); }
+        if (d.selected_model) setSelectedModel(d.selected_model);
         if (d.openrouter) setProvider('openrouter');
         else if (d.anthropic) setProvider('anthropic');
         else setProvider('default');
@@ -193,7 +178,7 @@ function useLlmApiKeys(open: boolean) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'anthropic', key: anthropicInput.trim() }),
       });
-      if (!r.ok) throw await saveError(r);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setHasAnthropicKey(true); setAnthropicInput('');
       setStatusMsg('Anthropic key saved — your chats use your own quota.');
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
@@ -202,7 +187,6 @@ function useLlmApiKeys(open: boolean) {
 
   const saveOpenrouterKey = useCallback(async () => {
     if (!openrouterInput.trim()) { setIsError(true); setStatusMsg('Paste your OpenRouter API key first.'); return; }
-    if (modelRejected) { setIsError(true); setStatusMsg(t('settings.api.region_cn_model_rejected')); return; }
     setSaving(true); setStatusMsg(''); setIsError(false);
     try {
       const r = await fetch('/api/user/llm-api-keys', {
@@ -210,15 +194,14 @@ function useLlmApiKeys(open: boolean) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'openrouter', key: openrouterInput.trim(), selected_model: selectedModel }),
       });
-      if (!r.ok) throw await saveError(r);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setHasOpenrouterKey(true); setOpenrouterInput('');
       setStatusMsg(`OpenRouter key saved — chats will use ${selectedModel}.`);
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
     finally { setSaving(false); }
-  }, [openrouterInput, selectedModel, modelRejected]);
+  }, [openrouterInput, selectedModel]);
 
   const saveModelOnly = useCallback(async () => {
-    if (modelRejected) { setIsError(true); setStatusMsg(t('settings.api.region_cn_model_rejected')); return; }
     setSaving(true); setStatusMsg(''); setIsError(false);
     try {
       const r = await fetch('/api/user/llm-api-keys', {
@@ -226,11 +209,11 @@ function useLlmApiKeys(open: boolean) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selected_model: selectedModel }),
       });
-      if (!r.ok) throw await saveError(r);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setStatusMsg(`Model updated to ${selectedModel}.`);
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
     finally { setSaving(false); }
-  }, [selectedModel, modelRejected]);
+  }, [selectedModel]);
 
   const removeProvider = useCallback(async (prov: 'anthropic' | 'openrouter') => {
     setRemoving(true); setStatusMsg(''); setIsError(false);
@@ -254,7 +237,6 @@ function useLlmApiKeys(open: boolean) {
     hasAnthropicKey, anthropicInput, setAnthropicInput,
     hasOpenrouterKey, openrouterInput, setOpenrouterInput,
     selectedModel, setSelectedModel,
-    policy, modelRejected,
     showKey, setShowKey,
     saving, removing,
     saveAnthropicKey, saveOpenrouterKey, saveModelOnly,
@@ -448,10 +430,10 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 min-w-0 flex-1" orientation="vertical">
             <div className="w-36 sm:w-48 shrink-0 overflow-y-auto overscroll-contain border-r bg-muted/50 p-2 sm:p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
-                <HintTabsTrigger hint={t('hint.settings.api_keys')} side="right" value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
+                <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
                   {t('settings.api_keys')}
-                </HintTabsTrigger>
+                </TabsTrigger>
                 <TabsTrigger value="voice" className="justify-start gap-2 p-3" data-testid="tab-voice">
                   <Mic className="w-4 h-4" />
                   {tOr('settings.voice', 'Voice')}
@@ -462,8 +444,8 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                   {tOr('settings.appearance', 'Appearance')}
                 </TabsTrigger>
                 */}
-                <HintTabsTrigger hint={t('hint.settings.connectors')} side="right" value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</HintTabsTrigger>
-                {onImportWorkflow && <HintTabsTrigger hint={t('hint.settings.import')} side="right" value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</HintTabsTrigger>}
+                <TabsTrigger value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</TabsTrigger>
+                {onImportWorkflow && <TabsTrigger value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</TabsTrigger>}
                 {/* Stale stub tabs (profile/general/chat/data/notifications/privacy/
                     security/advanced) remain gated below until rebuilt. */}
               </TabsList>
@@ -907,17 +889,19 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
 
               {/* Voice — must stay outside the {false && …} gate. Sidebar only
                   exposes api-keys / voice / connectors / imports; Chat was never
-                  a reachable tab, so earlier "Settings → Chat → Voice" was a lie. */}
-              <TabsContent value="voice" className="space-y-6 m-0" data-testid="tab-content-voice">
+                  a reachable tab, so earlier "Settings → Chat → Voice" was a lie.
+                  Layout mirrors Cursor’s dense Settings → Voice card: label +
+                  short desc + control per row. Only ship prefs we actually honor. */}
+              <TabsContent value="voice" className="space-y-4 m-0" data-testid="tab-content-voice">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">{tOr('settings.voice', 'Voice')}</h3>
-                  <Card>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Voice in chat</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Show compact Speak and Live icons in the composer toolbar.
+                  <h3 className="text-lg font-semibold mb-3">{tOr('settings.voice', 'Voice')}</h3>
+                  <Card className="overflow-hidden">
+                    <CardContent className="divide-y p-0">
+                      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+                        <div className="min-w-0 space-y-0.5">
+                          <Label className="text-sm font-medium">Voice in chat</Label>
+                          <p className="text-xs text-muted-foreground leading-snug">
+                            Show Speak and Live icons in the composer. Message read-aloud follows this switch.
                           </p>
                         </div>
                         <Switch
@@ -926,12 +910,11 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                           data-testid="switch-voice-enabled"
                         />
                       </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Hands-free</Label>
-                          <p className="text-sm text-muted-foreground">
-                            During a live session, send when you pause. Review gene names and sample IDs before relying on auto-send.
+                      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+                        <div className="min-w-0 space-y-0.5">
+                          <Label className="text-sm font-medium">Hands-free</Label>
+                          <p className="text-xs text-muted-foreground leading-snug">
+                            In a Live session, send when you pause. Review gene names and sample IDs before relying on auto-send.
                           </p>
                         </div>
                         <Switch
@@ -940,6 +923,17 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                           onCheckedChange={(checked) => updateSetting('voiceHandsFree', checked)}
                           data-testid="switch-voice-hands-free"
                         />
+                      </div>
+                      <div className="flex items-start justify-between gap-4 px-4 py-3.5">
+                        <div className="min-w-0 space-y-0.5">
+                          <Label className="text-sm font-medium">Composer controls</Label>
+                          <p className="text-xs text-muted-foreground leading-snug">
+                            Speak = dictate into the input. Live = continuous conversation. Both sit next to Data when Voice is on.
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums pt-0.5" data-testid="voice-composer-hint">
+                          Speak · Live
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -1113,18 +1107,10 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
 
                   {/* Provider radio group */}
                   <div className="space-y-2 mb-4">
-                  {llmKeys.policy?.region === 'cn' && (
-                    <p className="text-xs text-muted-foreground mb-3 rounded-md border bg-muted/40 px-3 py-2" data-testid="llm-region-note">
-                      {t('settings.api.region_cn_note')}
-                    </p>
-                  )}
                     {([
                       { value: 'default', label: t('settings.api.provider_default_label'), desc: t('settings.api.provider_default_desc') },
                       { value: 'openrouter', label: 'OpenRouter', desc: t('settings.api.provider_openrouter_desc') },
-                      // China-region users cannot use an Anthropic key (it only ever reaches Claude).
-                      ...(llmKeys.policy?.anthropicKeyAllowed === false ? [] : [
-                        { value: 'anthropic' as const, label: t('settings.api.provider_anthropic_label'), desc: t('settings.api.provider_anthropic_desc') },
-                      ]),
+                      { value: 'anthropic', label: t('settings.api.provider_anthropic_label'), desc: t('settings.api.provider_anthropic_desc') },
                     ] as const).map(opt => (
                       <button
                         key={opt.value}
@@ -1156,13 +1142,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                             value={llmKeys.selectedModel}
                             onChange={e => llmKeys.setSelectedModel(e.target.value)}
                             data-testid="input-llm-model"
-                            aria-invalid={llmKeys.modelRejected || undefined}
                           />
-                          {llmKeys.modelRejected && (
-                            <p className="text-xs text-destructive" role="alert" data-testid="llm-model-region-error">
-                              {t('settings.api.region_cn_model_rejected')}
-                            </p>
-                          )}
                           {/* Quick-pick the models BioMate has been tested against,
                               so the panel reflects the backend's supported set instead
                               of an opaque free-text box. Click to fill; still editable.
@@ -1173,15 +1153,30 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                               cost); all are function-calling capable so they get the full
                               agentic pipeline (tools + workflows + run_code). */}
                           <div className="space-y-2 pt-0.5" data-testid="llm-model-quickpick">
-                            {modelGroups(llmKeys.policy?.region).map(g => ({
-                              label: t(g.key === 'chinese' ? 'settings.api.models_chinese' : g.key === 'open' ? 'settings.api.models_open' : 'settings.api.models_proprietary'),
-                              slugs: g.slugs,
-                            })).map(group => (
+                            {([
+                              // Flagship-tier slugs only (no small/flash variants), each verified
+                              // against OpenRouter's live /models catalog on 2026-11-09.
+                              { label: t('settings.api.models_open'), slugs: [
+                                'z-ai/glm-5.3-prime',
+                                'deepseek/deepseek-v4-pro',
+                                'qwen/qwen3-235b-a22b-2507',
+                                'moonshotai/kimi-k3',
+                                'meta-llama/llama-4-maverick',
+                              ] },
+                              { label: t('settings.api.models_proprietary'), slugs: [
+                                'anthropic/claude-opus-5.5',
+                                'anthropic/claude-sonnet-5.5',
+                                'openai/gpt-6.1-sol-pro',
+                                'google/gemini-3.1-pro-preview',
+                                'x-ai/grok-4.7',
+                                'mistralai/mistral-large-4-0',
+                              ] },
+                            ] as const).map(group => (
                               <div key={group.label}>
                                 <p className="text-fs-xs uppercase tracking-wide text-muted-foreground/70 mb-1">{group.label}</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {group.slugs.map(slug => {
-                                    const recommended = slug === (llmKeys.policy?.region === 'cn' ? (llmKeys.policy.defaultModel || CHINESE_MODELS[0]) : INTL_DEFAULT_MODEL);
+                                    const recommended = slug === 'z-ai/glm-5.3-prime';
                                     return (
                                       <button
                                         key={slug}
