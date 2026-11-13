@@ -34,9 +34,13 @@ import { ModelObjectLoader } from "./model-object"
 import { OwnedTrainingRegistry } from "./owned-training-registry"
 import { RunPretrained } from "./run-pretrained"
 import { TrainingLauncher } from "./training-launcher"
+import { CodeSandboxPath } from "./code-sandbox-path"
 import { formatRunTime, openRunManager, runStatusLabel } from "./training-logic"
 import { TrainingRegistration } from "./training-registration"
 import type { ModelSummary } from "./types"
+
+/** Train-tab path: no-code UI (clinicians) vs code sandbox (power users). */
+export type TrainPath = "ui" | "code"
 
 /**
  * House style (adaptation) is hidden, not deleted: its ONLY data source is the
@@ -429,6 +433,9 @@ export function ModelsPanel({
   const [internalTab, setInternalTab] = useState(0)
   const activeTab = tab ?? internalTab
   const setTab = (i: number) => { setInternalTab(i); onTabChange?.(i) }
+  // Two paths on Train: default no-code launcher; code → owned run_code sandbox
+  // (not Galaxy Interactive Tools — those never worked in BioMate).
+  const [trainPath, setTrainPath] = useState<TrainPath>("ui")
 
   const { data: models } = useModels()
   const [openModelId, setOpenModelId] = useState<string | null>(null)
@@ -489,10 +496,41 @@ export function ModelsPanel({
             </TabsList>
 
             <TabsContent value="0" className="space-y-3">
-              <TrainingLauncher family="general" />
-              <TrackRequestState query={trainQuery} overridden={trainData !== undefined}>
-                <TrainingRuns data={effectiveTrainData} onOpenModel={setOpenModelId} />
-              </TrackRequestState>
+              <div className="flex flex-wrap gap-1" data-testid="train-path-toggle" role="group" aria-label={t("models.path_toggle_label")}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={trainPath === "ui" ? "default" : "outline"}
+                  className="h-7 text-xs"
+                  onClick={() => setTrainPath("ui")}
+                  data-testid="train-path-ui"
+                >
+                  {t("models.path_ui")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={trainPath === "code" ? "default" : "outline"}
+                  className="h-7 text-xs"
+                  onClick={() => setTrainPath("code")}
+                  data-testid="train-path-code"
+                >
+                  {t("models.path_code")}
+                </Button>
+              </div>
+              <p className="text-fs-xs text-muted-foreground" data-testid="train-path-hint">
+                {trainPath === "ui" ? t("models.path_ui_hint") : t("models.path_code_hint")}
+              </p>
+              {trainPath === "ui" ? (
+                <>
+                  <TrainingLauncher family="general" />
+                  <TrackRequestState query={trainQuery} overridden={trainData !== undefined}>
+                    <TrainingRuns data={effectiveTrainData} onOpenModel={setOpenModelId} />
+                  </TrackRequestState>
+                </>
+              ) : (
+                <CodeSandboxPath />
+              )}
             </TabsContent>
 
             <TabsContent value="1">
