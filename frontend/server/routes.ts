@@ -7,6 +7,7 @@ import { proxyTarget, rejectProxyPath } from "./proxy-path";
 import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
+import { parseMlTrainingFindings, looksLikeMlTrainingFluff } from "./ml-training-findings";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
@@ -16548,11 +16549,17 @@ Rules:
   function preProcessForFindings(
     workflowName: string,
     outputSamples: Array<{name: string; content: string}>,
+    opts?: { isMlTraining?: boolean },
   ): { context: string; numbers: Set<string>; findings?: Record<string, any> } | null {
     if (/admet|predict.*admet|admet.*properties/i.test(workflowName)) return _parseAdmetOutput(outputSamples);
     if (/differentialabundance|deseq2/i.test(workflowName)) return _parseDeseq2Output(outputSamples);
     if (/clusterprofiler|enrichgo|enrichment/i.test(workflowName)) return _parseEnrichGoOutput(outputSamples);
     if (/raredisease|rare.*disease/i.test(workflowName)) return _parseRarediseaseOutput(outputSamples);
+    // ml_training: always prefer metrics.json over LLM narration of Ludwig bookkeeping.
+    if (opts?.isMlTraining || /ml_training|chemprop|ludwig|potency predictor|sklearn|model.?train/i.test(workflowName)) {
+      const ml = parseMlTrainingFindings(outputSamples, workflowName);
+      if (ml) return ml;
+    }
     return null;
   }
 
@@ -16720,14 +16727,18 @@ Rules:
           } catch { /* sidecar not yet written — use markdown fallback */ }
 
           if (structured && isFindingsShaped(structured)) {
-            return res.json({
-              ...structured,
-              status: 'ready',
-              runId,
-              reportUrl,
-            });
-          }
-          if (structured) {
+            // ml_training: refuse architecture-fluff sidecars that omit metrics.json scores.
+            if (isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(structured)) {
+              console.warn(`[Findings] local sidecar for ml_training ${runId} looks like architecture fluff — regenerating from metrics.json`);
+            } else {
+              return res.json({
+                ...structured,
+                status: 'ready',
+                runId,
+                reportUrl,
+              });
+            }
+          } else if (structured) {
             // Sidecar exists but is NOT a findings object (e.g. raw output samples).
             // Ignore it and fall through to regeneration rather than serving an empty
             // "ready" card. The run's .md is written by the same path, so don't fall
@@ -16762,12 +16773,17 @@ Rules:
             if (dataResp.ok) {
               const structured = await dataResp.json();
               if (isFindingsShaped(structured)) {
-                const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-                return res.json({ ...structured, status: 'ready', runId, reportUrl });
+                if (isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(structured)) {
+                  console.warn(`[Findings] S3 sidecar for ml_training ${runId} looks like architecture fluff — regenerating from metrics.json`);
+                } else {
+                  const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+                  return res.json({ ...structured, status: 'ready', runId, reportUrl });
+                }
+              } else {
+                // Non-findings S3 sidecar (e.g. raw output samples) — ignore and
+                // regenerate rather than serving an empty "ready" card.
+                console.warn(`[Findings] S3 sidecar ${s3Uri} is not findings-shaped (keys: ${Object.keys(structured || {}).slice(0, 6).join(',')}) — regenerating`);
               }
-              // Non-findings S3 sidecar (e.g. raw output samples) — ignore and
-              // regenerate rather than serving an empty "ready" card.
-              console.warn(`[Findings] S3 sidecar ${s3Uri} is not findings-shaped (keys: ${Object.keys(structured || {}).slice(0, 6).join(',')}) — regenerating`);
             }
           }
         } catch { /* S3 not available — fall through to trigger analysis */ }
@@ -16808,8 +16824,13 @@ Rules:
         // fresh analysis rather than emitting a ready response from it.
         const stillCached = _findingsCache.get(runId);
         if (stillCached && isFindingsShaped(stillCached)) {
-          const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-          return res.json({ ...stillCached, status: 'ready', reportUrl, runId });
+          if (isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(stillCached)) {
+            console.warn(`[Findings] dropping ml_training fluff cache for ${runId} — regenerating from metrics.json`);
+            _findingsCache.delete(runId);
+          } else {
+            const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+            return res.json({ ...stillCached, status: 'ready', reportUrl, runId });
+          }
         }
         if (stillCached) {
           // Cached object isn't findings-shaped (stale/garbage) — drop it and
@@ -16895,9 +16916,14 @@ Rules:
               const _resultScore = (name: string): number => {
                 const n = name.toLowerCase();
                 let s = 0;
+                // Trainer metrics.json is the authoritative score card for ml_training —
+                // rank it above Ludwig bookkeeping so deterministic parse always sees it.
+                if (/(^|\/)metrics\.json$/.test(n) || /(^|\/)manifest\.json$/.test(n)) s += 10;
+                if (/(^|\/)training_progress\.json$/.test(n)) s += 8;
                 if (/(report|summary|result|finding|final|metric|stat|score|predict|analysis|toxic|qc)/.test(n)) s += 3;
                 if (/\.(json|tsv|csv)$/.test(n)) s += 2;          // structured > free text
                 if (/\.(txt|md)$/.test(n)) s += 1;
+                if (/(model_hyperparameters|training_set_metadata|qc_events)/.test(n)) s -= 6; // Ludwig noise / false QC
                 if (/(\.nextflow\.log|_trace|_timeline|_report|\bdag\b|execution_)/.test(n)) s -= 5; // bookkeeping
                 return s;
               };
@@ -17029,8 +17055,9 @@ Rules:
 
           // Pre-process known workflow output formats into clean structured context.
           // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
-          // ADMET returns deterministic findings directly — no LLM call needed.
-          const preprocessed = preProcessForFindings(workflowName, outputSamples);
+          // ADMET / ml_training return deterministic findings directly — no LLM call needed.
+          const _isMlTraining = isModelTrainingRun(run as any);
+          const preprocessed = preProcessForFindings(workflowName, outputSamples, { isMlTraining: _isMlTraining });
 
           // Entity-aware findings document (findings framework, migration — ADDITIVE).
           // The generic extractor builds a per-entity + shared-provenance FindingsDocument
@@ -17479,7 +17506,51 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
       } catch { /* disk file missing — fall through to in-memory render */ }
 
       // AWS Batch runs don't write findings_report.md locally. Render markdown from
-      // cached structured findings (populated by background Claude analysis).
+      // cached structured findings, else the S3 findings_data.json sidecar.
+      const renderFindingsMd = (data: Record<string, any>, workflowName: string): string => {
+        const lines: string[] = [
+          `# Findings Report — ${workflowName}`,
+          ``,
+          `**Run ID:** ${runId}`,
+          ``,
+          `## Summary`,
+          ``,
+          String(data.summary || `${workflowName} completed.`),
+          ``,
+        ];
+        const keyResults = Array.isArray(data.key_results) ? data.key_results
+          : (Array.isArray(data.keyResults) ? data.keyResults : []);
+        if (keyResults.length > 0) {
+          lines.push(`## Key Results`, ``);
+          lines.push(`| Metric | Value | Source |`, `| --- | --- | --- |`);
+          for (const kr of keyResults) {
+            const metric = String(kr.metric || '').replace(/\|/g, '\\|');
+            const value = kr.value !== undefined ? String(kr.value).replace(/\|/g, '\\|') : '';
+            const src = String(kr.source_file || '').replace(/\|/g, '\\|');
+            lines.push(`| ${metric} | ${value} | ${src} |`);
+          }
+          lines.push(``);
+          for (const kr of keyResults) {
+            if (kr.interpretation) lines.push(`- **${kr.metric || ''}**: ${kr.interpretation}`);
+          }
+          lines.push(``);
+        }
+        const nextSteps = Array.isArray(data.next_steps) ? data.next_steps
+          : (Array.isArray(data.nextSteps) ? data.nextSteps : []);
+        if (nextSteps.length > 0) {
+          lines.push(`## Next Steps`, ``);
+          for (const s of nextSteps) lines.push(`- ${s}`);
+          lines.push(``);
+        }
+        if (Array.isArray(data.caveats) && data.caveats.length > 0) {
+          lines.push(`## Caveats`, ``);
+          for (const c of data.caveats) lines.push(`- ${c}`);
+          lines.push(``);
+        }
+        return lines.join('\n');
+      };
+
+      const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
       const cached = _findingsCache.get(runId);
       if (cached?._notReadable) {
         // Never export a fallback sentence as if it were a findings report.
@@ -17489,42 +17560,42 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
           message: cached.message,
         });
       }
-      if (cached && !cached._generating) {
-        const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
-        const lines: string[] = [
-          `# Findings Report — ${workflowName}`,
-          ``,
-          `**Run ID:** ${runId}`,
-          ``,
-          `## Summary`,
-          ``,
-          String(cached.summary || `${workflowName} completed.`),
-          ``,
-        ];
-        if (Array.isArray(cached.key_results) && cached.key_results.length > 0) {
-          lines.push(`## Key Results`, ``);
-          for (const kr of cached.key_results) {
-            const metric = kr.metric || '';
-            const value = kr.value !== undefined ? String(kr.value) : '';
-            const interp = kr.interpretation || '';
-            lines.push(`- **${metric}**: ${value}${interp ? ` — ${interp}` : ''}`);
-          }
-          lines.push(``);
-        }
-        if (Array.isArray(cached.next_steps) && cached.next_steps.length > 0) {
-          lines.push(`## Next Steps`, ``);
-          for (const s of cached.next_steps) lines.push(`- ${s}`);
-          lines.push(``);
-        }
-        if (Array.isArray(cached.caveats) && cached.caveats.length > 0) {
-          lines.push(`## Caveats`, ``);
-          for (const c of cached.caveats) lines.push(`- ${c}`);
-          lines.push(``);
-        }
+      const _shaped = (o: any) => !!(o && typeof o === 'object' && !Array.isArray(o)
+        && (typeof o.summary === 'string' || Array.isArray(o.key_results) || typeof o.reportMd === 'string'));
+      if (cached && !cached._generating && _shaped(cached)
+          && !(isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(cached))) {
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
-        return res.send(lines.join('\n'));
+        return res.send(renderFindingsMd(cached, workflowName));
       }
+
+      // S3 sidecar fallback (Batch runs) — same source the Findings tab reads.
+      try {
+        const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+        const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
+        const storedOutdir: string = (run as any).execution?.nextflowOutputDir || '';
+        const sidecarBase = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${nfRunId}`;
+        const s3Uri = `${sidecarBase.replace(/\/?$/, '')}/output/findings_data.json`;
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const presignResp = await fetch(
+          `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=${nfRunId}&presigned_only=1`,
+          { signal: AbortSignal.timeout(5_000) }
+        );
+        if (presignResp.ok) {
+          const { url } = await presignResp.json() as { url: string };
+          const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+          if (dataResp.ok) {
+            const structured = await dataResp.json();
+            if (structured && typeof structured === 'object'
+                && (typeof structured.summary === 'string' || Array.isArray(structured.key_results))
+                && !(isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(structured))) {
+              res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+              res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
+              return res.send(renderFindingsMd(structured, workflowName));
+            }
+          }
+        }
+      } catch { /* fall through */ }
 
       return res.status(404).json({ error: "Findings report not yet available" });
     } catch (err: any) {
