@@ -265,7 +265,12 @@ export function useAdaptRetrain() {
 // ─────────────────────────────────────────────────────────────────────────────
 export interface TrainingPlanRequest {
   projectId: string
-  fileId: string
+  /** Single file (legacy). Prefer fileIds or folderPath for multi-file / folder inputs. */
+  fileId?: string
+  /** Explicit multi-file set (all staged; primary = first). */
+  fileIds?: string[]
+  /** Project folder path → every input file under the prefix. */
+  folderPath?: string
   model_type: string
   featurizer?: string
   task_type?: string
@@ -287,6 +292,8 @@ export interface TrainingPlan {
   compute_config: Record<string, unknown>
   projectId: string
   fileId: string
+  fileIds?: string[]
+  folderPath?: string
 }
 
 /** A launch failure: `stage` says which step failed; `detail` is the server text. */

@@ -11,6 +11,7 @@ import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { derivePrerunInputs, blockingInputRows, type InputMappingRow } from "./input-mapping-status";
+import { unboundClinicHardDataFromParams, CLINIC_HARD_REQUIRED_DATA_NAMES } from "../../../shared/workflow-data-inputs";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { StepDetail, type StepDetailStep } from "./steps/step-detail";
@@ -604,7 +605,8 @@ export function buildViewerParameters(workflowDefinition: any, currentParams: Re
           description: p.description,
           value: userValue !== undefined ? userValue : (p.value !== undefined ? p.value : (defaultVal !== null ? defaultVal : "")),
           defaultValue: defaultVal,
-          required: reqList.some((r: any) => r.name === p.name),
+          required: reqList.some((r: any) => r.name === p.name)
+            || CLINIC_HARD_REQUIRED_DATA_NAMES.has(String(p.name || '').toLowerCase()),
           group: p.group || undefined,
           options: Array.isArray(p.options) ? p.options : undefined,
           minimum: p.minimum != null ? Number(p.minimum) : undefined,
@@ -2242,9 +2244,23 @@ export function NextflowWorkflowViewer({
       setActiveTab('settings');
       return;
     }
+    // Seed from structured param rows so display-bound values (required_params[].value
+    // shown as "mapped" in the Inputs card) cannot be missing from the execute
+    // payload (2026-11-13 DE samplesheet symptom).
+    const fromStructured: Record<string, any> = {};
+    for (const p of [
+      ...(Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : []),
+      ...(Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : []),
+    ]) {
+      const n = p?.name;
+      if (!n) continue;
+      const v = p.value !== undefined && p.value !== null && p.value !== '' ? p.value : p.default;
+      if (v !== undefined && v !== null && v !== '') fromStructured[n] = v;
+    }
     emitUxEvent('workflow.run_clicked', { workflowId, invocationId });
     if (onExecute) {
       onExecute({
+        ...fromStructured,
         ...params,
         __qcConfig: {
           pauseAtQcFailures,
@@ -2575,7 +2591,27 @@ export function NextflowWorkflowViewer({
     : renderedParameters.filter(
         (p: any) => p.type === 'file' && p.required === true && !p.value && !p.default
       );
-  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired || missingFileInputs.length > 0;
+  // Clinic hard primary data (movies_path, samplesheet, matrix, …) even when the
+  // schema left required=false / demo elvis — same classifier as the execute gate.
+  const clinicHardUnbound = prereqChecklist?.overrideAllowed
+    ? []
+    : unboundClinicHardDataFromParams(workflowDefinition, {
+        ...Object.fromEntries(
+          renderedParameters.map((p: any) => [p.id || p.name, p.value]),
+        ),
+        ...params,
+      });
+  const missingClinicHard = clinicHardUnbound.map((u) => ({
+    name: u.name,
+    label: u.label,
+    required: true,
+    type: 'file' as const,
+  }));
+  const isPrereqBlocked =
+    (!!prereqChecklist && !prereqChecklist.canRun) ||
+    hasUnfilledRequired ||
+    missingFileInputs.length > 0 ||
+    missingClinicHard.length > 0;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
@@ -5151,12 +5187,12 @@ export function NextflowWorkflowViewer({
               <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
                 {tOr('panel.footer.fill_required_params', 'Fill in {{n}} required parameter{{s}} above before running', { n: globalRequiredUnfilledCount, s: globalRequiredUnfilledCount > 1 ? 's' : '' })}
               </div>
-            ) : (missingFileInputs.length > 0) ? (
+            ) : ((missingFileInputs.length > 0) || (missingClinicHard.length > 0)) ? (
               <div style={{ fontSize: 'var(--fs-micro)', color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
                 <span>⚠</span>
                 <span>
                   {tOr('panel.footer.input_files_required_prefix', 'Input files required:')}{' '}
-                  <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
+                  <strong>{[...missingFileInputs, ...missingClinicHard].map((p: any) => p.label || p.name).join(', ')}</strong>
                   {' '}{tOr('panel.footer.input_files_required_suffix', '— attach them with the file button in chat')}
                 </span>
               </div>

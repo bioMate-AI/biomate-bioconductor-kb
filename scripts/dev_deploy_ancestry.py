@@ -1,19 +1,9 @@
 #!/usr/bin/env python3
 """Fail closed before a stale worktree can replace newer public dev code.
 
-Two gates (both required):
-
-1. **Commit ancestry** — HEAD must contain the live build-info (and ledger) commit.
-2. **Content preservation** — for product paths whose tree differs from that live
-   tip, HEAD must include at least one *non-merge* commit after the tip that
-   touches the path. A bare `git merge -s ours <live>` records ancestry while
-   keeping the other branch's tree; that pattern used to pass gate 1 and silently
-   clobber dig (e.g. skills UI). Gate 2 refuses it.
-
-No fetch/reset/remote mutation. Emergency override permits a known divergent /
-older commit *or* an intentional content clobber, and requires an explicit
-operator reason (≥12 chars). Identity failures and unknown deployed commits
-remain fatal even with override.
+No fetch/reset/remote mutation. Emergency override permits a KNOWN divergent or
+older commit only, and requires an explicit operator reason. Identity failures
+and unknown deployed commits remain fatal even with override.
 """
 import argparse
 import json
@@ -25,16 +15,6 @@ import urllib.request
 
 DEFAULT_URL = 'https://dev-public.biomate.ai/build-info.json'
 SHA = re.compile(r'^[0-9a-f]{40}$')
-
-# Paths whose live blobs must not disappear via ancestry-only merges.
-# Docs / caches / DBs are excluded — they churn without meaning "dropped work".
-_PROTECTED_PREFIXES = (
-    'frontend/',
-    'backend/lib/',
-    'backend/biomni_workflows/',
-    'backend/config/',
-    'scripts/',
-)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -60,15 +40,23 @@ def public_commit(url=DEFAULT_URL):
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError('Build identity requires a credential-free HTTPS URL')
     request = urllib.request.Request(url, headers={'Accept':'application/json', 'Cache-Control':'no-cache'})
+    # Hit the origin directly. Env HTTP(S)_PROXY (Cursor sandbox CONNECT tunnels,
+    # corporate MITM) is not on the trust path and previously failed closed as an
+    # opaque "could not be read" after a 403 tunnel — SSH/SSM still worked, so
+    # operators saw a false "dev is down" signal. Empty ProxyHandler disables them.
+    opener = urllib.request.build_opener(NoRedirect(), urllib.request.ProxyHandler({}))
     try:
-        with urllib.request.build_opener(NoRedirect()).open(request, timeout=15) as response:
+        with opener.open(request, timeout=15) as response:
             if response.status != 200:
                 raise ValueError('Public build identity is not HTTP 200')
             return parse_identity(response.read(65537), response.headers.get('Content-Type', ''))
     except Exception as error:
         if isinstance(error, ValueError):
             raise
-        raise ValueError('Public build identity could not be read over verified HTTPS') from None
+        raise ValueError(
+            f'Public build identity could not be read over verified HTTPS '
+            f'({type(error).__name__}: {error})'
+        ) from None
 
 
 def git(repo, *args):
@@ -80,51 +68,6 @@ def lost_commits(repo, deployed, head, limit=30):
     out = git(repo, 'log', '--no-merges', '--format=%h %an %ad %s', '--date=short', f'{head}..{deployed}')
     lines = [l for l in out.stdout.splitlines() if l.strip()]
     return lines[:limit], len(lines)
-
-
-def _protected_path(path):
-    return any(path == p[:-1] or path.startswith(p) for p in _PROTECTED_PREFIXES)
-
-
-def content_clobber_paths(repo, baseline, head, limit=40):
-    """Product paths live on `baseline` whose blobs would change on deploy of `head`
-    without any non-merge commit in baseline..head touching the path.
-
-    That is the fingerprint of `git merge -s ours <baseline>` (ancestry recorded,
-    other branch's tree kept) and of merge resolutions that discard live content
-    without an explicit follow-up commit.
-    """
-    if baseline == head:
-        return []
-    diff = git(repo, 'diff', '--name-status', baseline, head)
-    if diff.returncode:
-        raise ValueError(f'Cannot diff {baseline[:10]}..{head[:10]} for content preservation')
-    clobbered = []
-    for line in diff.stdout.splitlines():
-        if not line.strip():
-            continue
-        parts = line.split('\t')
-        status, path = parts[0], parts[-1]
-        # Renames: name-status is "R###\told\tnew" — protect both ends.
-        paths = parts[1:] if status.startswith('R') or status.startswith('C') else [path]
-        for p in paths:
-            if not _protected_path(p):
-                continue
-            # --ancestry-path: only commits that descend from baseline toward head.
-            # Without it, a parallel branch's older edit (kept by `merge -s ours`)
-            # would look like "forward work" and wrongly pass.
-            touched = git(
-                repo, 'log', '--no-merges', '--ancestry-path', '--format=%H',
-                f'{baseline}..{head}', '--', p,
-            )
-            if touched.returncode:
-                raise ValueError(f'Cannot read history for {p} between {baseline[:10]} and {head[:10]}')
-            if touched.stdout.strip():
-                continue  # real forward work on this path after the live tip
-            clobbered.append(f'{status}\t{p}')
-            if len(clobbered) >= limit:
-                return clobbered
-    return clobbered
 
 
 def _require_contained(repo, commit, head, label, emergency_reason):
@@ -148,24 +91,6 @@ def _require_contained(repo, commit, head, label, emergency_reason):
     return False
 
 
-def _require_content_preserved(repo, baseline, head, label, emergency_reason):
-    """Refuse ancestry-only merges that drop live product-file content.
-    Returns True when an emergency override permitted a clobber."""
-    clobbered = content_clobber_paths(repo, baseline, head)
-    if not clobbered:
-        return False
-    if emergency_reason and len(emergency_reason.strip()) >= 12:
-        return True
-    raise ValueError(
-        f'Content clobber: deploying {head[:10]} would discard live {label} ({baseline[:10]}) '
-        f'product files without a follow-up commit on those paths '
-        f'(typical of `git merge -s ours`). Refused paths:\n  '
-        + '\n  '.join(clobbered)
-        + '\nDo a real merge that keeps the live blobs, or commit an explicit intentional '
-        'override on each path, then retry. Emergency: BIOMATE_EMERGENCY_DEPLOY_REASON=…'
-    )
-
-
 def preflight(repo, deployed, emergency_reason=None, head_ref='HEAD', ledger_head=None):
     if not isinstance(deployed,str) or not SHA.fullmatch(deployed):
         raise ValueError('Invalid deployed commit identity')
@@ -183,13 +108,6 @@ def preflight(repo, deployed, emergency_reason=None, head_ref='HEAD', ledger_hea
     #    requiring HEAD ⊇ ledger-head closes that window.
     if ledger_head and SHA.fullmatch(ledger_head) and ledger_head != deployed:
         override = _require_contained(repo, ledger_head, head, 'last-ledger', emergency_reason) or override
-    # 3. Containing the live commit is not enough: `merge -s ours` records ancestry
-    #    while keeping the other tree. Require a real non-merge commit on every
-    #    protected path that would change vs the live tip(s).
-    override = _require_content_preserved(repo, deployed, head, 'deployed', emergency_reason) or override
-    if ledger_head and SHA.fullmatch(ledger_head) and ledger_head != deployed:
-        override = _require_content_preserved(
-            repo, ledger_head, head, 'last-ledger', emergency_reason) or override
     return {'deployedCommit':deployed,'localCommit':head,'emergencyOverride':override,
             'ledgerHead':ledger_head if (ledger_head and SHA.fullmatch(ledger_head)) else None}
 

@@ -62,10 +62,41 @@ describe("CodeSandboxPath", () => {
     await waitFor(() =>
       expect((screen.getByTestId("code-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1),
     )
-    fireEvent.change(screen.getByTestId("code-dataset"), { target: { value: FILE.id } })
+    fireEvent.change(screen.getByTestId("code-dataset"), { target: { value: `file:${FILE.id}` } })
     fireEvent.click(screen.getByTestId("code-run"))
     expect(await screen.findByTestId("code-stdout")).toHaveTextContent("expr.csv")
     expect(screen.getByTestId("code-exit")).toHaveTextContent("0")
+  })
+
+  it("selecting a folder POSTs every file id under it as input_datasets", async () => {
+    const A = { id: "aaaaaaaa-0000-4000-8000-000000000001", name: "batch/a.csv", s3_key: "k/a" }
+    const B = { id: "bbbbbbbb-0000-4000-8000-000000000002", name: "batch/b.csv", s3_key: "k/b" }
+    let seen: unknown
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes("/files") && !url.includes("upload")) {
+        return { ok: true, status: 200, json: async () => ({ files: [A, B] }) } as Response
+      }
+      if (url.includes("/api/code/run")) {
+        seen = JSON.parse(String(init?.body || "{}"))
+        return {
+          ok: true, status: 200,
+          json: async () => ({ exit_code: 0, stdout: "ok\n", stderr: "", output_files: [] }),
+        } as Response
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response
+    }) as unknown as typeof fetch
+
+    render(<CodeSandboxPath />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("code-dataset").textContent).toContain("batch/"))
+    fireEvent.change(screen.getByTestId("code-dataset"), { target: { value: "folder:batch" } })
+    expect(await screen.findByTestId("code-folder-count")).toHaveTextContent("2")
+    fireEvent.click(screen.getByTestId("code-run"))
+    await waitFor(() => expect(seen).toBeTruthy())
+    expect(seen).toMatchObject({
+      project_id: PROJECT,
+      input_datasets: [A.id, B.id],
+    })
   })
 
   it("surfaces a server error without inventing a successful result", async () => {

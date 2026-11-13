@@ -415,38 +415,20 @@ export function cnRoleMessagesClient(route: CnRoute): any {
   return { messages: { create: (params: any) => clientFor(route.models[cnRoleForMessagesCall(params)]).messages.create(params) } };
 }
 
-/** A CN-chain failure that should fall through to the next Chinese model: a 5xx, a rate limit (429),
- *  a request timeout (408), or a network/transport error (no numeric HTTP status). Any other client
- *  4xx (bad request, oversized image, content-policy rejection) will fail identically on every chain
- *  model, so it breaks the chain early and surfaces the original error instead. */
-function cnFailureIsRetryable(status: unknown): boolean {
-  if (typeof status !== 'number') return true;          // network / transport / non-HTTP error
-  if (status === 429 || status === 408) return true;    // rate limit / request timeout
-  if (status >= 400 && status < 500) return false;      // other client errors: break early
-  return true;                                          // 5xx (and anything else): retry next model
-}
-
 /** A completion on the backend chain (llmGenerate's Chinese replacement for the Gemini → Claude →
- *  GPT chain): each model in turn until one answers; never a model outside the chain. A non-retryable
- *  client 4xx (not 429/408) breaks the chain early and surfaces the FIRST failing model's status +
- *  body, since retrying it on every chain model only wastes latency/cost and hides the real error. */
+ *  GPT chain): each model in turn until one answers; never a model outside the chain. */
 export async function cnChainCompletion(route: CnRoute, opts: CnCompletionOpts): Promise<{ text: string; model: string }> {
   const chain = route.models.galaxyChain.length ? route.models.galaxyChain : [route.model];
-  let firstError: unknown;
+  let lastError: unknown;
   for (const model of chain) {
     try {
       return { text: await cnCompletion({ ...route, model }, opts), model };
     } catch (err) {
-      if (firstError === undefined) firstError = err;
-      const status = (err as { status?: unknown })?.status;
-      if (!cnFailureIsRetryable(status)) {
-        console.warn(`[llm-region-policy] chain model ${model} failed with a non-retryable status ${status} (${(err as Error)?.message?.slice(0, 160)}) — surfacing the first error without trying later Chinese models`);
-        throw firstError instanceof Error ? firstError : new Error('Chinese model chain failed');
-      }
+      lastError = err;
       console.warn(`[llm-region-policy] chain model ${model} failed (${(err as Error)?.message?.slice(0, 160)}) — trying the next Chinese model`);
     }
   }
-  throw firstError instanceof Error ? firstError : new Error('Every Chinese model in the chain failed');
+  throw lastError instanceof Error ? lastError : new Error('Every Chinese model in the chain failed');
 }
 
 /** A plain text completion on the China user's Chinese model (the chokepoints' replacement for

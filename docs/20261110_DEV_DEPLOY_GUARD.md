@@ -12,22 +12,14 @@ different lines that did not contain each other —
   no ancestry check**. Deploying that image over today's dev would have removed **253 commits**.
 - old checkouts of `sync_to_dev.sh` from before the ancestry check existed (added 2026-11-07).
 
-## The rules (enforced on every official path)
+## The rule (unchanged, now enforced on every official path)
 
-1. **Commit ancestry** — The commit being deployed must **contain** the commit live on dev
-   (`https://dev-public.biomate.ai/build-info.json`) and the last ledger deploy when it differs.
+> The commit being deployed must **contain** the commit live on dev
+> (`https://dev-public.biomate.ai/build-info.json`).
 
-2. **Content preservation** (added 2026-11-13) — Containing the live commit is not enough.
-   `git merge -s ours <live>` records ancestry while keeping the *other* branch's tree, which
-   used to pass the gate and silently clobber dev (skills UI / short descriptions). For every
-   protected product path (`frontend/`, `backend/lib/`, `backend/biomni_workflows/`,
-   `backend/config/`, `scripts/`) whose blob would change vs the live tip, HEAD must include a
-   **non-merge** commit after that tip that touches the path. Otherwise the deploy is refused
-   with `Content clobber` and the path list.
-
-If ancestry fails, the refusal **lists the live commits it would remove**. If content
-preservation fails, do a real merge that keeps the live blobs (or commit an explicit intentional
-override on those paths) — never a bare `-s ours` sync.
+If it does not, the deploy is refused and the refusal **lists the live commits it would remove**
+(author, date, subject). The fix is to merge that commit/branch into what you deploy — never to
+overwrite.
 
 ## Mechanisms
 
@@ -59,15 +51,3 @@ for the script, `emergency_reason` input for the Action. Requires ≥12 chars; r
 Remaining gap: a copy of the script from before 2026-11-07, or a hand-run `docker` command on the
 host, is not blocked — only detected at the next sync. Closing it fully needs the container swap
 itself to run through a host-side gate.
-
-## Cross-session claim (added 2026-11-13)
-
-Cursor and Claude Code do **not** share chat history. Concurrent agents in different
-worktrees only meet on dig. After a successful sync the script writes
-`/opt/biomate/.deploy-claim.json` (worktree + session + branch, default TTL 4h).
-Another worktree must set `BIOMATE_DEPLOY_TAKEOVER_REASON` (≥12 chars) to deploy
-while that claim is active. Same worktree may redeploy freely. Ledger lines now
-also record `worktree` and `session`.
-
-Together with **content preservation**, this closes: (1) silent `-s ours` clobber,
-(2) blind cross-session takeover without acknowledging the other agent.

@@ -1,13 +1,15 @@
 /**
  * POST /api/model-training/plan — Models-panel structured training plan.
  *
- * The panel sends structured fields (project, project file, target column,
- * model type, metric, gate …). This route:
+ * The panel sends structured fields (project, project file(s) or folder, target
+ * column, model type, metric, gate …). This route:
  *   1. requires an authenticated user who can read the project (owner/member);
- *   2. resolves the project file's S3 key from the DB (never from the client);
- *   3. stages it into the Batch-readable bucket (same helper the execute path
- *      uses for project files), because the project bucket is not readable by
- *      the training container on SaaS;
+ *   2. resolves project file(s) from the DB (never from the client) — a single
+ *      fileId, an explicit fileIds[], or a folderPath (all input files under
+ *      that prefix);
+ *   3. stages each file into the Batch-readable bucket (same helper the execute
+ *      path uses for project files), because the project bucket is not readable
+ *      by the training container on SaaS;
  *   4. forwards a whitelisted body to Galaxy POST /api/model-training/plan with
  *      the admin key + X-BioMate-User-Id (fetchOwnedModelSurface).
  * The client then submits the returned workflow_ga through the ordinary
@@ -19,6 +21,8 @@ export interface PlanProjectFile { id: string; name: string; s3_key: string }
 export interface ModelTrainingPlanDependencies {
   /** The file, only when it belongs to the project AND the user can read the project. */
   getProjectFile(projectId: string, fileId: string, userId: string): Promise<PlanProjectFile | null>;
+  /** Every input file under a folder path prefix (recursive), same auth as getProjectFile. */
+  listFolderFiles?(projectId: string, folderPath: string, userId: string): Promise<PlanProjectFile[]>;
   /** Copy the project file to a Batch-readable s3:// URI (undefined on failure). */
   stageForBatch(file: PlanProjectFile, projectId: string): Promise<string | undefined>;
   /** Admin-keyed Galaxy call. */
@@ -33,6 +37,23 @@ export const PLAN_FORWARDED_FIELDS = [
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function parseFileIds(body: Record<string, unknown>): string[] {
+  if (Array.isArray(body.fileIds)) {
+    return [...new Set(body.fileIds.map((x) => String(x).trim()).filter((id) => UUID_RE.test(id)))];
+  }
+  const single = typeof body.fileId === 'string' ? body.fileId.trim() : '';
+  return UUID_RE.test(single) ? [single] : [];
+}
+
+function parseFolderPath(body: Record<string, unknown>): string | null {
+  if (typeof body.folderPath !== 'string') return null;
+  // Mirror project-folders.normalizeFolderPath lightly (no ".." / empty segments).
+  const segs = body.folderPath.replace(/\\/g, '/').split('/').map((s) => s.trim()).filter((s) => s !== '' && s !== '.');
+  if (segs.includes('..') || segs.length > 32) return null;
+  if (segs[0] === 'inputs') segs.shift();
+  return segs.join('/');
+}
+
 export async function planModelTraining(
   input: { userId?: string | null; body: unknown },
   deps: ModelTrainingPlanDependencies,
@@ -43,30 +64,58 @@ export async function planModelTraining(
     ? input.body as Record<string, unknown> : null;
   if (!body) return { status: 400, body: { error: 'Request body must be an object' } };
   const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
-  const fileId = typeof body.fileId === 'string' ? body.fileId.trim() : '';
-  if (!UUID_RE.test(projectId) || !UUID_RE.test(fileId)) {
-    return { status: 400, body: { error: 'projectId and fileId must identify a project file' } };
+  if (!UUID_RE.test(projectId)) {
+    return { status: 400, body: { error: 'projectId must identify a project' } };
   }
 
-  let file: PlanProjectFile | null;
+  const folderPath = parseFolderPath(body);
+  const hasFolderField = typeof body.folderPath === 'string';
+  if (hasFolderField && folderPath === null) {
+    return { status: 400, body: { error: 'folderPath is invalid' } };
+  }
+
+  let files: PlanProjectFile[] = [];
   try {
-    file = await deps.getProjectFile(projectId, fileId, userId);
+    if (folderPath !== null && folderPath !== undefined && hasFolderField) {
+      if (!deps.listFolderFiles) {
+        return { status: 500, body: { error: 'Folder listing is not configured' } };
+      }
+      files = await deps.listFolderFiles(projectId, folderPath, userId);
+      if (!files.length) return { status: 404, body: { error: 'Folder has no input files' } };
+    } else {
+      const fileIds = parseFileIds(body);
+      if (!fileIds.length) {
+        return { status: 400, body: { error: 'projectId and fileId (or fileIds / folderPath) must identify project file(s)' } };
+      }
+      for (const fileId of fileIds) {
+        const file = await deps.getProjectFile(projectId, fileId, userId);
+        if (!file) return { status: 404, body: { error: 'Project file not found' } };
+        files.push(file);
+      }
+    }
   } catch {
     return { status: 503, body: { error: 'Could not read project files' } };
   }
-  // 404 (not 403) so another user's project/file existence is not revealed.
-  if (!file) return { status: 404, body: { error: 'Project file not found' } };
 
-  const datasetUri = await deps.stageForBatch(file, projectId).catch(() => undefined);
-  if (!datasetUri || !datasetUri.startsWith('s3://')) {
-    return { status: 502, body: { error: 'Could not stage the dataset for training. No run was started.' } };
+  const staged: Array<{ file: PlanProjectFile; uri: string }> = [];
+  for (const file of files) {
+    const datasetUri = await deps.stageForBatch(file, projectId).catch(() => undefined);
+    if (!datasetUri || !datasetUri.startsWith('s3://')) {
+      return { status: 502, body: { error: 'Could not stage the dataset for training. No run was started.' } };
+    }
+    staged.push({ file, uri: datasetUri });
   }
 
+  const primary = staged[0];
   const forwarded: Record<string, unknown> = {
-    dataset_s3_uri: datasetUri,
-    dataset_name: file.name,
+    dataset_s3_uri: primary.uri,
+    dataset_name: primary.file.name,
     project_id: projectId,
   };
+  if (staged.length > 1) {
+    forwarded.dataset_s3_uris = staged.map((s) => s.uri);
+    forwarded.dataset_names = staged.map((s) => s.file.name);
+  }
   for (const key of PLAN_FORWARDED_FIELDS) {
     if (body[key] !== undefined && body[key] !== null && body[key] !== '') forwarded[key] = body[key];
   }
@@ -87,5 +136,15 @@ export async function planModelTraining(
   if (!plan || typeof plan !== 'object' || !plan.workflow_ga || typeof plan.nextflow_path !== 'string') {
     return { status: 502, body: { error: 'Training service returned an invalid plan' } };
   }
-  return { status: 200, body: { ...plan, projectId, fileId } };
+  const fileIds = files.map((f) => f.id);
+  return {
+    status: 200,
+    body: {
+      ...plan,
+      projectId,
+      fileId: fileIds[0],
+      fileIds,
+      ...(hasFolderField ? { folderPath } : {}),
+    },
+  };
 }

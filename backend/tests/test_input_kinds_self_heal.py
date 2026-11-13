@@ -1,7 +1,8 @@
 """Durable self-healing input_kinds migration (2026-11-13).
 
-Default contract (post DEV clobber): fill ONLY NULL/empty/`[]` rows on schema init.
-Never mass-overwrite a populated classifier/LLM catalog. Destructive rewrite of
+Default contract (post DEV clobber + [] follow-up): fill ONLY NULL/whitespace-empty
+rows on schema init. Intentional classifier JSON ``[]`` ("cannot determine") is left
+alone. Never mass-overwrite a populated classifier/LLM catalog. Destructive rewrite of
 rule/null-method rows requires BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1.
 """
 import json
@@ -104,7 +105,7 @@ def test_populated_catalog_is_not_mass_overwritten(tmp_path):
         1: (["molecules"], None),           # would become molecules+structure under rules
         2: (["protein_table"], None),       # stale vs rule tabular — must KEEP
         3: (["counts_matrix"], None),       # incomplete vs rule fastq — must KEEP
-        4: ([], None),                      # empty [] — may stay empty (unlabelable)
+        4: ([], None),                      # intentional [] — must KEEP (cannot determine)
     }
     db = _db_with_null_rows(tmp_path, preset=preset)
     before = {}
@@ -121,27 +122,32 @@ def test_populated_catalog_is_not_mass_overwritten(tmp_path):
     assert json.loads(after[1]) == ["molecules"]
     assert json.loads(after[2]) == ["protein_table"]
     assert json.loads(after[3]) == ["counts_matrix"]
+    assert json.loads(after[4]) == []  # intentional empty array preserved
     # Provenance must stay NULL — do not stamp 'rule' onto classifier leftovers.
     methods = dict(conn.execute("SELECT id, input_kinds_method FROM workflows").fetchall())
-    assert methods[1] is None and methods[2] is None and methods[3] is None
+    assert methods[1] is None and methods[2] is None and methods[3] is None and methods[4] is None
     # Marker stamped so a later init does not re-scan.
     v = conn.execute("SELECT value FROM ai_meta WHERE key='rule_input_kinds_version'").fetchone()
     assert v and str(v[0]) == str(_RULE_INPUT_KINDS_VERSION)
     conn.close()
-    assert before[1] == after[1] and before[2] == after[2] and before[3] == after[3]
+    assert before[1] == after[1] and before[2] == after[2] and before[3] == after[3] and before[4] == after[4]
 
 
-def test_empty_bracket_rows_are_fillable(tmp_path):
-    """`[]` counts as empty and may be filled; non-empty siblings stay put."""
+def test_empty_bracket_rows_left_alone_in_fill_only(tmp_path):
+    """JSON ``[]`` is intentional classifier output — fill-only must NOT overwrite it.
+    NULL siblings still get filled."""
     db = _db_with_null_rows(tmp_path, preset={
         1: (["molecules"], None),
-        2: ([], None),  # empty → fill with tabular
+        2: ([], None),  # intentional [] — must stay []
+        # id=3 stays NULL from seed → fill with fastq
     })
     UnifiedWorkflowSearch(db_path=db)
     conn = sqlite3.connect(str(db))
     assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=1").fetchone()[0]) == ["molecules"]
-    assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=2").fetchone()[0]) == ["tabular"]
-    assert conn.execute("SELECT input_kinds_method FROM workflows WHERE id=2").fetchone()[0] == "rule"
+    assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=2").fetchone()[0]) == []
+    assert conn.execute("SELECT input_kinds_method FROM workflows WHERE id=2").fetchone()[0] is None
+    assert "fastq" in json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=3").fetchone()[0])
+    assert conn.execute("SELECT input_kinds_method FROM workflows WHERE id=3").fetchone()[0] == "rule"
     conn.close()
 
 

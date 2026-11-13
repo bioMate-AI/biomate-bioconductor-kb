@@ -45,6 +45,22 @@ const CANONICAL_DATA_INPUT_NAMES = new Set([
   'input', 'input_csv', 'input_file', 'input_dir', 'input_path', 'samplesheet', 'sample_sheet',
   'reads', 'reads1', 'reads2', 'fastq', 'fastq1', 'fastq2', 'fastq_1', 'fastq_2', 'input_fastq',
   'matrix', 'counts', 'count_matrix', 'contrasts', 'design', 'bam', 'vcf', 'input_fasta',
+  // Cryo-EM primary data (missed here → panel treated Movies Path as optional override)
+  'movies_path', 'movie_dir',
+]);
+
+/**
+ * Clinic hard-required primary data — must block Confirm & Run / execute even when
+ * nextflow_schema.json declares `required: []` or the .nf elvis-falls-back to test_data.
+ * Keep in sync with AIAssistant._CLINIC_HARD_REQUIRED_DATA.
+ * (contrasts intentionally omitted — DE auto-derives when absent.)
+ */
+export const CLINIC_HARD_REQUIRED_DATA_NAMES = new Set([
+  'movies_path', 'movie_dir',
+  'samplesheet', 'sample_sheet',
+  'matrix', 'counts', 'count_matrix',
+  'reads', 'fastq', 'fastq_1', 'fastq_2', 'input_fastq',
+  'input_csv', 'input_file', 'input_path',
 ]);
 
 function paramName(p: DataInputParamLike): string {
@@ -60,6 +76,9 @@ export function isDataInputParam(p: DataInputParamLike): boolean {
   const name = paramName(p);
   if (!name || name.startsWith('__') || isExecutorSetParam(p)) return false;
   if (p.data_input === true) return true;
+  // Clinic hard primary data is always a data input — even when the schema left
+  // required=false (differentialabundance stub, cryo demo elvis).
+  if (CLINIC_HARD_REQUIRED_DATA_NAMES.has(name)) return true;
   // Optional params without the backend data_input flag are overrides/settings
   // (reference FASTA/GTF with genome defaults, multiqc_config, …), not the
   // user's primary data.
@@ -117,12 +136,28 @@ export function unboundRequiredDataInputs(
   const ga = generatedWorkflow?.workflow_ga || {};
   const req: any[] = Array.isArray(ga.required_params) ? ga.required_params
     : Array.isArray(generatedWorkflow?.required_params) ? generatedWorkflow.required_params : [];
+  const opt: any[] = Array.isArray(ga.optional_params) ? ga.optional_params
+    : Array.isArray(generatedWorkflow?.optional_params) ? generatedWorkflow.optional_params : [];
   const out: UnboundDataInput[] = [];
   const seen = new Set<string>();
   for (const p of req) {
     const name = String(p?.name || '');
     if (!name || seen.has(name)) continue;
     if (!isDataInputParam({ ...p, required: true })) continue;
+    if (isBoundValue(p.value) || isBoundValue(p.default) || alsoBound.has(name)) continue;
+    seen.add(name);
+    out.push({
+      name,
+      label: String(p.label || name),
+      description: String(p.description || '').slice(0, 200),
+    });
+  }
+  // Schema stubs often put samplesheet/matrix/movies_path in optional_params with
+  // required:[] — still block the clinic run when unbound.
+  for (const p of opt) {
+    const name = String(p?.name || '');
+    if (!name || seen.has(name)) continue;
+    if (!CLINIC_HARD_REQUIRED_DATA_NAMES.has(name.toLowerCase())) continue;
     if (isBoundValue(p.value) || isBoundValue(p.default) || alsoBound.has(name)) continue;
     seen.add(name);
     out.push({
@@ -149,6 +184,38 @@ export function unboundRequiredDataInputs(
     out.push({ name, label: name, description: '' });
   }
   return out;
+}
+
+/**
+ * Flat param map + workflow_ga → clinic-hard primary data still unbound.
+ * Used by the panel Confirm & Run gate and the server execute gate so they agree.
+ */
+export function unboundClinicHardDataFromParams(
+  workflowDefinition: any,
+  flatParams: Record<string, unknown> = {},
+): UnboundDataInput[] {
+  const alsoBound = new Set<string>();
+  for (const [k, v] of Object.entries(flatParams || {})) {
+    if (isBoundValue(v)) alsoBound.add(k);
+  }
+  // Mirror flat values onto param rows so unboundRequiredDataInputs sees them.
+  const ga = workflowDefinition?.workflow_ga || workflowDefinition || {};
+  const patch = (list: any[] | undefined) =>
+    (Array.isArray(list) ? list : []).map((p: any) => {
+      const n = String(p?.name || '');
+      if (!n || !Object.prototype.hasOwnProperty.call(flatParams, n)) return p;
+      return { ...p, value: flatParams[n] };
+    });
+  return unboundRequiredDataInputs({
+    ...workflowDefinition,
+    workflow_ga: {
+      ...ga,
+      required_params: patch(ga.required_params || workflowDefinition?.required_params),
+      optional_params: patch(ga.optional_params || workflowDefinition?.optional_params),
+      data_inputs: ga.data_inputs || workflowDefinition?.data_inputs,
+    },
+    missing_file_inputs: workflowDefinition?.missing_file_inputs,
+  }, alsoBound);
 }
 
 /**

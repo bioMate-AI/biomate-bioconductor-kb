@@ -149,9 +149,9 @@ _ASSAY_RANKING_TERMS: frozenset = frozenset({
 })
 
 # Version marker for the self-healing rule-based input_kinds backfill (_self_heal_input_kinds).
-# Bumping it re-runs the rule pass over still-empty rows on the next init. Existing non-empty
-# labels (LLM/classifier or prior rule) are NEVER overwritten unless
-# BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1. Kept in the ai_meta key/value table per DB.
+# Bumping it re-runs the rule pass over still-NULL / whitespace-empty rows on the next init.
+# Existing non-empty labels (LLM/classifier — including intentional JSON ``[]`` — or prior rule)
+# are NEVER overwritten unless BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1. Kept in ai_meta per DB.
 _RULE_INPUT_KINDS_VERSION: int = 2
 
 
@@ -159,20 +159,29 @@ def _env_truthy(name: str, default: str = "0") -> bool:
     return os.environ.get(name, default).strip().lower() in ("1", "true", "on", "yes")
 
 
-def _input_kinds_is_empty(raw) -> bool:
-    """True when input_kinds is missing / blank / JSON empty list — safe to fill."""
+def _input_kinds_is_empty(raw, *, treat_empty_array_as_empty: bool = False) -> bool:
+    """True when input_kinds is missing / whitespace-blank — safe to fill in fill-only mode.
+
+    JSON ``[]`` is intentional classifier output ("cannot determine") on the review catalog
+    and is NOT empty by default. Ops may set treat_empty_array_as_empty / env
+    BIOMATE_INPUT_KINDS_FILL_EMPTY_ARRAY=1 to allow filling those rows."""
     if raw is None:
         return True
     s = str(raw).strip()
     if not s or s.lower() in ("null", "none"):
         return True
+    is_empty_array = False
     if s == "[]":
-        return True
-    try:
-        parsed = json.loads(s)
-        return isinstance(parsed, list) and len(parsed) == 0
-    except (TypeError, ValueError, json.JSONDecodeError):
-        return False
+        is_empty_array = True
+    else:
+        try:
+            parsed = json.loads(s)
+            is_empty_array = isinstance(parsed, list) and len(parsed) == 0
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return False
+    if is_empty_array:
+        return bool(treat_empty_array_as_empty)
+    return False
 
 
 # Version marker for retiring catalog rows whose primary .nf path is missing / archived
@@ -910,7 +919,8 @@ class UnifiedWorkflowSearch:
 
         # Self-heal empty input_kinds so ANY DB (dev/prod) gains rule coverage on deploy with no
         # manual step — the catalog DB is gitignored. Fill-only by default (never mass-rewrites a
-        # populated LLM/classifier catalog). Idempotent + version-gated.
+        # populated LLM/classifier catalog, and never fills intentional JSON []). Idempotent +
+        # version-gated.
         self._self_heal_input_kinds(cursor)
         # Retire catalog rows whose primary .nf is missing/archived (Admet Pred 14553). Prefer
         # executable=0 over a wrong live match; search always drops these orphans (below).
@@ -922,11 +932,13 @@ class UnifiedWorkflowSearch:
     def _self_heal_input_kinds(self, cursor) -> int:
         """Idempotent, version-gated rule-based fill of empty workflows.input_kinds.
 
-        SAFETY CONTRACT (2026-11-13 DEV clobber): default mode is FILL-ONLY.
+        SAFETY CONTRACT (2026-11-13 DEV clobber + [] follow-up): default mode is FILL-ONLY.
         - Rows with meaningful non-empty input_kinds are NEVER overwritten — including review /
           classifier catalogs where input_kinds_method is still NULL (no provenance yet).
+        - JSON ``[]`` is intentional classifier output ("cannot determine") and is NOT filled
+          unless BIOMATE_INPUT_KINDS_FILL_EMPTY_ARRAY=1 (ops opt-in).
         - Rows with input_kinds_method='llm' are NEVER touched.
-        - Empty means NULL / blank / JSON ``[]`` only.
+        - Empty means NULL / whitespace / literal null only (not ``[]`` by default).
         - Destructive recompute of method IS NULL / 'rule' rows requires explicit
           BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1 (ops-only; not set on normal deploy).
         A no-op after the first run at a given version (ai_meta marker). Never raises."""
@@ -938,8 +950,9 @@ class UnifiedWorkflowSearch:
                 return 0  # already healed at this rule version → bounded no-op
             from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
             destructive = _env_truthy("BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL", "0")
-            # Never select llm-provenance rows. Default: only empty kinds. Destructive: also
-            # non-empty null-method / rule-method rows (explicit ops opt-in).
+            fill_empty_array = _env_truthy("BIOMATE_INPUT_KINDS_FILL_EMPTY_ARRAY", "0")
+            # Never select llm-provenance rows. Default: only NULL/blank kinds (not JSON []).
+            # Destructive: also non-empty null-method / rule-method rows (explicit ops opt-in).
             if destructive:
                 rows = cursor.execute(
                     "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
@@ -947,7 +960,7 @@ class UnifiedWorkflowSearch:
                     "FROM workflows "
                     "WHERE input_kinds_method IS NULL OR input_kinds_method='rule'"
                 ).fetchall()
-            else:
+            elif fill_empty_array:
                 rows = cursor.execute(
                     "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
                     "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds "
@@ -956,10 +969,21 @@ class UnifiedWorkflowSearch:
                     "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
                     "     OR TRIM(input_kinds)='[]' OR LOWER(TRIM(input_kinds))='null')"
                 ).fetchall()
+            else:
+                # Fill-only default: NULL / whitespace / 'null' only — leave intentional [].
+                rows = cursor.execute(
+                    "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
+                    "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds "
+                    "FROM workflows "
+                    "WHERE (input_kinds_method IS NULL OR input_kinds_method='rule') "
+                    "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
+                    "     OR LOWER(TRIM(input_kinds))='null')"
+                ).fetchall()
             changed = 0
             for wid, name, desc, ann, inp, tags, old in rows:
-                # Defense in depth: never rewrite a populated catalog row without the flag.
-                if not destructive and not _input_kinds_is_empty(old):
+                # Defense in depth: never rewrite a populated / intentional-[] row without flags.
+                if not destructive and not _input_kinds_is_empty(
+                        old, treat_empty_array_as_empty=fill_empty_array):
                     continue
                 kinds = rule_classify_kinds({"name": name, "description": desc, "annotation": ann,
                                              "input_types": inp, "tags": tags})
@@ -972,18 +996,26 @@ class UnifiedWorkflowSearch:
                         "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
                         "AND (input_kinds_method IS NULL OR input_kinds_method='rule')",
                         (new, ('rule' if new is not None else None), wid))
-                else:
+                elif fill_empty_array:
                     cursor.execute(
                         "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
                         "AND (input_kinds_method IS NULL OR input_kinds_method='rule') "
                         "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
                         "     OR TRIM(input_kinds)='[]' OR LOWER(TRIM(input_kinds))='null')",
                         (new, ('rule' if new is not None else None), wid))
+                else:
+                    cursor.execute(
+                        "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
+                        "AND (input_kinds_method IS NULL OR input_kinds_method='rule') "
+                        "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
+                        "     OR LOWER(TRIM(input_kinds))='null')",
+                        (new, ('rule' if new is not None else None), wid))
                 changed += cursor.rowcount
             cursor.execute(
                 "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('rule_input_kinds_version', ?)",
                 (str(_RULE_INPUT_KINDS_VERSION),))
-            mode = "destructive" if destructive else "fill-only"
+            mode = "destructive" if destructive else (
+                "fill-only+[]" if fill_empty_array else "fill-only")
             log.info(
                 "[WorkflowSearch] self-healed input_kinds (%s): (re)labelled %d rows (rule v%s)",
                 mode, changed, _RULE_INPUT_KINDS_VERSION,

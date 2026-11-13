@@ -45,6 +45,7 @@ import { downloadProjectFile } from "@/components/datasets/datasets-api"
 import { followFileList, followFolderRename } from "@/components/datasets/open-object-follow"
 import { PaneResizeHandle, useTreeWidth } from "@/components/datasets/pane-resize-handle"
 import { t, tOr, locale } from "@/lib/i18n"
+import { analyzeFolderChatUrl } from "@/lib/folder-as-input"
 import { toDatasetRef } from "@/components/datasets/to-dataset-ref"
 
 /** The detail pane sits under the file list (stacked panes), not beside it. */
@@ -292,7 +293,13 @@ export default function DataHubPage() {
 
           <div className="min-w-0" ref={detailRef} data-testid="data-hub-detail">
             {selectedFolder !== null && !selected ? (
-              <FolderProfileView projectId={activeProjectId} path={selectedFolder} />
+              <FolderProfileView
+                projectId={activeProjectId}
+                path={selectedFolder}
+                onAnalyze={() => {
+                  window.location.assign(analyzeFolderChatUrl(activeProjectId, selectedFolder))
+                }}
+              />
             ) : selected ? (
               <DatasetObject
                 dataset={toDatasetRef(selected)}

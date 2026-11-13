@@ -2,7 +2,7 @@ import { responseLanguageDirective } from "./response-language";
 import { runButtonLabel } from "./ui-labels";
 import { PROJECT_CONTEXT_NOTE, intentRulesBlock } from './project-rules';
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
-import { applyLibraryMoleculeDualPath } from './library-triage-sequential';
+import { applyLibraryMoleculeDualPath, isMoleculeGenerateRequest } from './library-triage-sequential';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
@@ -1303,7 +1303,7 @@ KEY PRINCIPLES:
 // Domain-gated routing rules (S7)
 // ============================================================================
 const DOMAIN_ROUTING_RULES: Record<string, string> = {
-  drug_discovery: `- "ADMET", "ADMET profiling", "ADMET screening", "toxicity screening", "DILI", "hERG toxicity", "BBB penetration", "blood-brain barrier", "drug-like properties", "lipophilicity", "bioavailability prediction", "predict ADMET", or "toxicity panel": use the predict_admet_properties workflow (6 ADMET endpoints: hERG cardiac, DILI hepato, Caco-2 permeability, BBB penetration, solubility, Ames mutagenicity — all computed from SMILES. Input: smiles_input as a SMILES string or newline-separated list. Outputs: admet_results.csv + risk_summary.json). Use immediately when a user provides SMILES and asks for ADMET or safety screening — do NOT ask for a file upload.
+  drug_discovery: `- "ADMET", "ADMET profiling", "ADMET screening", "toxicity screening", "DILI", "hERG toxicity", "BBB penetration", "blood-brain barrier", "lipophilicity", "bioavailability prediction", "predict ADMET", or "toxicity panel": use the predict_admet_properties workflow (6 ADMET endpoints: hERG cardiac, DILI hepato, Caco-2 permeability, BBB penetration, solubility, Ames mutagenicity — all computed from SMILES. Input: smiles_input as a SMILES string or newline-separated list. Outputs: admet_results.csv + risk_summary.json). Use immediately when a user provides SMILES and asks for ADMET or safety screening — do NOT ask for a file upload. IMPORTANT: "drug-like properties" alone is NOT an ADMET request when the user asks to GENERATE / DESIGN / invent candidates (e.g. "Generate 500 candidates… with drug-like properties") — that is reinvent4_lead_design generative design, NOT predict_admet_properties and NOT drug_discovery_admet_gated_screening.
 - "PK-Sim", "PK Sim", "pksim", "Open Systems Pharmacology", "OSP Suite", "OSP PBPK", "Willmann PBPK", "EMA OSP", or "LGPL PBPK": use the pk_sim_pbpk workflow (PK-Sim open-source PBPK wrapper, EMA-accepted, free, no license required. Rodgers-Rowland + Schmitt tissue partitioning, Weibull oral dissolution, CYP ontogeny for pediatric. Inputs: compound physicochemical params + CLint + dose. Outputs: pk_profile.json + nca_summary.json + PK plots. quality_tier: ema_accepted_open_source.) NO PREREQ CHECK needed — all params have defaults.
 - "Simcyp", "Certara PBPK", "Certara DDI", "Simcyp DDI", "population PBPK", "Simcyp population simulator", "ADAM oral absorption model", "virtual population trial", "Simcyp pediatric", "Simcyp renal", "Simcyp perpetrator", "Simcyp victim", "AUC ratio CYP", or "Sim Cyp": use the simcyp_pbpk workflow (Simcyp Population-Based PBPK BYOL wrapper, regulatory submission grade. Requires SIMCYP_LICENSE_FILE or SIMCYP_LICENSE_SERVER in user credentials; falls back to BioMate native 8-compartment PBPK if no license. Supports DDI CYP3A4/2D6 AUC ratios, special populations, oral absorption ADAM model. Outputs: pk_profile.json + ddi_summary.json + regulatory_report.txt. quality_tier: regulatory_submission or ind_ready_screening fallback.)
 - "NONMEM", "nmfe75", "population pharmacokinetics NONMEM", "population PK FOCE", "FOCE-I", "FOCE estimation", "population PK modeling", "PopPK NONMEM", "ADVAN2", "ADVAN4", "ADVAN11", "nlmixr2", "nlmixr population", "SAEM population PK", "VPC visual predictive check", "bootstrap PK", "ETA shrinkage", "OFV", "NCA population", or "nonlinear mixed effects NONMEM": use the nonmem_poppk workflow (NONMEM FOCE-I population PK modeling BYOL; nlmixr2 open-source fallback. Generates NONMEM CTL file (ADVAN2/4/11 + FOCE-I), runs VPC + bootstrap, covariate search. Requires NONMEM_HOME + NONMEM_LICENSE_FILE in credentials; auto-falls back to nlmixr2. Inputs: pk_data_csv (ID/TIME/DV/AMT/CMT/EVID). Outputs: parameter_estimates.json + vpc_plot.png + bootstrap_summary.csv. quality_tier: fda_submission_grade or fda_acceptable_open_source fallback.)
@@ -6583,12 +6583,18 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     if (decomposition.chainHint) {
       const _msgLc = (message || '').toLowerCase();
       const _hintTokens = String(decomposition.chainHint)
-        .toLowerCase().split(/[_\-\s]+/).filter((t) => t.length >= 4);
+        .toLowerCase().split(/[_\-\s]+/).filter((t) => t.length >= 5);
+      // Whole-word token match — `includes('drug')` / `\bdrug\b` falsely matched
+      // "drug-like" and kept ADMET-gated screening on Generate-500 turns (2026-11-13).
       const _msgSupportsChain =
         /\b(chain|pipeline|then|followed by|and then|multi-?step|end[- ]?to[- ]?end)\b/.test(_msgLc)
-        || _hintTokens.some((t) => _msgLc.includes(t));
-      if (!_msgSupportsChain) {
-        log(`Tier 2: dropping stale chain_hint "${decomposition.chainHint}" — current message has no chain/pipeline reference or hint-token overlap (likely inherited from prior-turn context)`);
+        || _hintTokens.some((t) =>
+          new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!-)\\b`, 'i').test(_msgLc));
+      // Generative design must never keep a screening mega-chain hint.
+      if (!_msgSupportsChain || isMoleculeGenerateRequest(message)) {
+        log(`Tier 2: dropping stale chain_hint "${decomposition.chainHint}" — ${
+          isMoleculeGenerateRequest(message) ? 'generate/design intent (not screening)' : 'current message has no chain/pipeline reference or hint-token overlap (likely inherited from prior-turn context)'
+        }`);
         decomposition.chainHint = null;
       }
     }

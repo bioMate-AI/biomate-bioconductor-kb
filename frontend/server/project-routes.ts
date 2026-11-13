@@ -1869,6 +1869,32 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── GET /api/projects/:id/folders/files?path=<folder> ───────────────────
+  // Every input file under a project folder (recursive path prefix), with ids.
+  // Used by Analysis "Ask in chat" / Models folder pick so a folder becomes the
+  // full file set — not a samplesheet-only stand-in and not one fake file id.
+  const MAX_FOLDER_FILES = 10_000;
+  app.get("/api/projects/:id/folders/files", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    const folder = normalizeFolderPath(req.query.path);
+    if (folder === null) return res.status(400).json({ error: "invalid_path" });
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const files = await loadFolderFiles((q, p) => pool.query(q, p), id, folder);
+      if (folder && !files.length) return res.status(404).json({ error: "folder_not_found" });
+      if (files.length > MAX_FOLDER_FILES) return res.status(413).json({ error: "folder_too_large", max: MAX_FOLDER_FILES });
+      return res.json({
+        path: folder,
+        files: files.map((f) => ({ id: f.id, name: f.name })).filter((f) => typeof f.id === "string" && f.id),
+      });
+    } catch (e: any) {
+      console.error("[project_files] folder files list failed:", e?.message ?? e);
+      return res.status(500).json({ error: "Failed to list folder files" });
+    }
+  });
+
   // ─── GET /api/projects/:id/folders/profile?path=<folder>[&download=samplesheet] ──
   // What an input folder holds AS A WHOLE: FASTQ pairs / orphans + an nf-core samplesheet
   // (Galaxy's auto_pairing), 10x matrix sets with cells × genes, or a format roll-up.
@@ -1877,7 +1903,6 @@ export function registerProjectRoutes(app: Express): void {
   // folder_profile decides what they are (backend galaxy/ai/folder_profile.py). The S3 keys
   // go to the backend only — the response carries project paths, never keys.
   // ?download=samplesheet returns the samplesheet CSV as an attachment.
-  const MAX_FOLDER_FILES = 10_000;
   app.get("/api/projects/:id/folders/profile", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });

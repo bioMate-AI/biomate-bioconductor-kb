@@ -15,6 +15,7 @@ import {
   isBoundUserDataParam,
   isOptionalFileOverride,
   isBoundValue,
+  CLINIC_HARD_REQUIRED_DATA_NAMES,
   type DataInputParamLike,
 } from '../../../shared/workflow-data-inputs';
 
@@ -158,6 +159,12 @@ export function derivePrerunInputs(
     // IS a mapped input; one still on its default is only an override.
     const userBound = isBoundValue(p.value) && String(p.value) !== String(p.defaultValue ?? '');
     (userBound ? primaryParams : overrideParams).push(p);
+  }
+  // Clinic hard primary data must count as required for unresolved/blocking status
+  // even when the schema left required=false (movies_path demo elvis, DE stubs).
+  for (const p of primaryParams) {
+    const n = String(p.id || p.name || '').toLowerCase();
+    if (CLINIC_HARD_REQUIRED_DATA_NAMES.has(n)) (p as InputParam).required = true;
   }
   primaryParams.sort((a, b) => Number(!!b.required) - Number(!!a.required));
   const primary = deriveInputMappingRows(primaryParams, sessionDatasets, paramDefs);

@@ -10,6 +10,8 @@ import {
   libraryTriageStepRoles,
   matchLibraryRelatedCatalogChain,
   selectLibraryMoleculeRouting,
+  isMoleculeGenerateRequest,
+  messageSupportsCatalogChainHint,
 } from './library-triage-sequential';
 import { isSingleBoundWorkflow, singleWorkflowGroundingDirective } from './single-workflow-grounding';
 import { awaitsWorkflowInput, hasGeneratedWorkflow } from '../shared/workflow-response-state';
@@ -90,6 +92,28 @@ describe('selectLibraryMoleculeRouting — dual path', () => {
 
   it('returns null for single-workflow ADMET (leave normal routing alone)', () => {
     expect(selectLibraryMoleculeRouting('Run ADMET on aspirin', ['molecules'])).toBeNull();
+  });
+
+  it('does not route Generate-500 + drug-like into ADMET-gated mega-chain', () => {
+    const gen =
+      'Generate 500 candidates for this target with drug-like properties.';
+    expect(isMoleculeGenerateRequest(gen)).toBe(true);
+    // "drug" ⊂ "drug-like" must NOT count as supporting drug_discovery_* hints.
+    expect(
+      messageSupportsCatalogChainHint(gen, 'drug_discovery_admet_gated_screening'),
+    ).toBe(false);
+    expect(
+      selectLibraryMoleculeRouting(gen, ['molecules', 'structure'], 'drug_discovery_admet_gated_screening'),
+    ).toBeNull();
+  });
+
+  it('still supports ADMET-gated when the message truly names screening', () => {
+    expect(
+      messageSupportsCatalogChainHint(
+        'Run the ADMET-gated virtual screening pipeline',
+        'drug_discovery_admet_gated_screening',
+      ),
+    ).toBe(true);
   });
 });
 

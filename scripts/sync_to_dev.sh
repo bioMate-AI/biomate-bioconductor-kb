@@ -14,6 +14,12 @@
 #
 # Usage: bash scripts/sync_to_dev.sh
 #        BIOMATE_SYNC_FORCE=frontend,backend bash scripts/sync_to_dev.sh   (re-deploy layers with no change)
+#        BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh   (code/workflows only — never upload galaxy_ai_tools.db)
+#
+# HOT-PATCH FORBIDDEN: do not docker cp / S3-drop files onto DEV outside this script
+# unless immediately followed by a ledger-correcting sync_to_dev.sh run. Ad-hoc
+# hot-patches leave /opt/biomate/.deploy-ledger.jsonl lying (2026-11-13). See
+# docs/20261113_COMMIT_PR_SYNC_PROCESS.md (one-writer rule + recovery).
 #
 # As of 2026-05-15 this script is MANUAL-ONLY.
 #   - The 10-minute auto-poll loop has been removed (caused orphan-process conflicts).
@@ -57,14 +63,23 @@ fi
 _SSM_PROXY="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region us-west-2"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Guard against accidentally running multiple syncs at once (per Lessons L7).
-LOCK_FILE="/tmp/biomate_sync_to_dev.lock"
-if [[ -e "$LOCK_FILE" ]] && kill -0 "$(cat "$LOCK_FILE" 2>/dev/null)" 2>/dev/null; then
-  echo "ERROR: another sync_to_dev.sh is already running (pid $(cat "$LOCK_FILE"))." >&2
-  echo "If you are sure no real sync is in progress: rm $LOCK_FILE" >&2
-  exit 1
+# Guard helpers (proxy / local lock / DB decision / receipt) — unit-tested in
+# scripts/tests/test_sync_guards.sh
+# shellcheck source=lib/sync_guards.sh
+source "$REPO_ROOT/scripts/lib/sync_guards.sh"
+
+# Cursor sandbox (and some corporate MITM setups) inject HTTP_PROXY=http://127.0.0.1:…
+# which breaks AWS SSM Session Manager. Clear loopback proxies before any aws/ssm call.
+# Set BIOMATE_STRICT_PROXY=1 to refuse instead of auto-unsetting.
+if ! biomate_guard_loopback_proxy; then
+  exit 2
 fi
-echo $$ > "$LOCK_FILE"
+
+# Guard against accidentally running multiple syncs at once (per Lessons L7).
+# Multi-worktree: panelfix / nextphase / review / coldstart share this lock path
+# on one machine; remote lease covers cross-machine writers.
+LOCK_FILE="/tmp/biomate_sync_to_dev.lock"
+biomate_acquire_local_sync_lock "$LOCK_FILE" || exit 1
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
@@ -1017,17 +1032,18 @@ deploy_databases() {
       || echo '')
     # Never ship a catalog whose external-content FTS index disagrees with the workflows table: search
     # then ranks on stale text and the update triggers fail mid-write (2026-11-05, docs/20261103 §13).
-    local _fts_bad=0
-    if command -v sqlite3 >/dev/null 2>&1 \
-       && ! sqlite3 "$local_db" "INSERT INTO workflows_fts(workflows_fts, rank) VALUES('integrity-check', 1);" >/dev/null 2>&1; then
-      log "::error:: [db] workflows_fts integrity-check FAILED on the local galaxy_ai_tools.db — not uploading it."
-      log "::error:: [db] rebuild first: sqlite3 $local_db \"INSERT INTO workflows_fts(workflows_fts) VALUES('rebuild')\""
-      _fts_bad=1
+    # 2026-11-13: soft-skip was treated as "DB aside" and still left operators thinking DEV got the
+    # intended catalog — refuse hard when an upload was about to happen.
+    local _db_decision _db_local_wf _db_dev_wf
+    _db_local_wf="$(biomate_db_workflow_count "$local_db")"
+    _db_dev_wf="${_DEV_DB_WF_COUNT:--1}"
+    _db_decision="$(biomate_db_upload_decision "$local_db" "$_db_dev_wf")"
+    if [[ "$_db_decision" != "allow" ]]; then
+      log "::error:: [db] $(biomate_db_decision_message "$_db_decision" "$local_db" "$_db_local_wf" "$_db_dev_wf")"
+      log "::error:: [db] refusing upload — set BIOMATE_SYNC_DB=0 for code-only, or fix the local catalog first"
+      return 1
     fi
-    if [[ "${_fts_bad:-0}" == 1 ]]; then
-      log "[db] galaxy_ai_tools.db NOT uploaded (FTS integrity) — dev keeps its current DB"
-      LAST_DB_SYNC="$local_db_mtime"
-    elif [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
+    if [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
       log "[db] galaxy_ai_tools.db MD5 matches dev (${_cur_local_md5}) — skipping upload"
       LAST_DB_SYNC="$local_db_mtime"
     else
@@ -1997,9 +2013,16 @@ do_sync() {
     do_backend=false; do_workflows=false; do_db=false
     log "[layers] BIOMATE_ONLY_FRONTEND=1 → forcing backend/workflows/db OFF (frontend only)"
   fi
+  # Explicit DB opt-out (wrong-worktree catalog, FTS rebuild pending, code-only ship).
+  if [[ "${BIOMATE_SYNC_DB:-1}" == "0" ]]; then
+    do_db=false
+    log "[layers] BIOMATE_SYNC_DB=0 → forcing db=false (DEV keeps current galaxy_ai_tools.db)"
+  fi
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
+  # Stash for the post-sync DEV receipt
+  _SYNC_LAYERS_SUMMARY="frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
 
   # Snapshot the pre-sync state BEFORE any mutation (and before the optional
   # resync_galaxy_env recreates the container) so we can roll back if the sync
@@ -2152,10 +2175,7 @@ do_sync() {
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
-  if [[ "$SYNC_RESULT" == healthy ]]; then
-    record_deploy_ledger "$commit"
-    record_deploy_claim "$commit"
-  fi
+  [[ "$SYNC_RESULT" == healthy ]] && record_deploy_ledger "$commit"
   [[ "$SYNC_RESULT" == healthy ]] && return 0 || return 1
 }
 
@@ -2168,93 +2188,14 @@ do_sync() {
 # deployed through a path that skips the ancestry gate (an old checkout of this
 # script, a raw docker command). "Who removed my fix" becomes answerable.
 DEPLOY_LEDGER=/opt/biomate/.deploy-ledger.jsonl
-# Sticky cross-session claim: survives after the lease is released so Cursor /
-# Claude Code / other worktrees see who last owned dig and must explicitly
-# take over (BIOMATE_DEPLOY_TAKEOVER_REASON) while the claim is fresh.
-DEPLOY_CLAIM=/opt/biomate/.deploy-claim.json
-DEPLOY_CLAIM_TTL_S="${BIOMATE_DEPLOY_CLAIM_TTL_S:-14400}"  # 4h
-_deploy_worktree() { printf '%s' "$REPO_ROOT"; }
-_deploy_session() {
-  # Prefer Cursor/Claude agent ids when present so ledger lines name the session.
-  printf '%s' "${CURSOR_AGENT_ID:-${CLAUDE_CODE_SESSION_ID:-${BIOMATE_DEPLOY_SESSION:-local}}}"
-}
 record_deploy_ledger() {
   local _commit="$1" _branch _who _line
   _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
   _who="$(git -C "$REPO_ROOT" config user.name 2>/dev/null || echo '?')@$(hostname -s 2>/dev/null || echo '?')"
-  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None, "worktree": sys.argv[5], "session": sys.argv[6]}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-${BIOMATE_DEPLOY_TAKEOVER_REASON:-}}" "$(_deploy_worktree)" "$(_deploy_session)")"
+  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}")"
   ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") >> $DEPLOY_LEDGER" \
-    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who} worktree=$(_deploy_worktree) session=$(_deploy_session)" \
+    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who}" \
     || log "[ledger] WARNING: could not append to $DEPLOY_LEDGER"
-}
-record_deploy_claim() {
-  local _commit="$1" _branch _line
-  _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
-  _line="$(python3 -c 'import json,sys,datetime,os
-ttl=int(sys.argv[5]); now=datetime.datetime.utcnow()
-print(json.dumps({
-  "at": now.isoformat(timespec="seconds")+"Z",
-  "until": (now+datetime.timedelta(seconds=ttl)).isoformat(timespec="seconds")+"Z",
-  "commit": sys.argv[1], "branch": sys.argv[2],
-  "worktree": sys.argv[3], "session": sys.argv[4],
-  "ttl_s": ttl,
-}))' "$_commit" "$_branch" "$(_deploy_worktree)" "$(_deploy_session)" "$DEPLOY_CLAIM_TTL_S")"
-  ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") > $DEPLOY_CLAIM" \
-    && log "[claim] dig owned by session=$(_deploy_session) branch=${_branch} until +${DEPLOY_CLAIM_TTL_S}s (other worktrees need BIOMATE_DEPLOY_TAKEOVER_REASON)" \
-    || log "[claim] WARNING: could not write $DEPLOY_CLAIM"
-}
-check_deploy_claim() {
-  # Refuse cross-worktree deploys while another session's sticky claim is active,
-  # unless an explicit takeover reason is set. Same worktree may redeploy freely.
-  local _raw _out _rc
-  _raw="$(ec2_ssh "cat $DEPLOY_CLAIM 2>/dev/null" || true)"
-  [[ -z "$_raw" ]] && return 0
-  set +e
-  _out="$(OUR_WT="$(_deploy_worktree)" OUR_SESS="$(_deploy_session)" TAKEOVER="${BIOMATE_DEPLOY_TAKEOVER_REASON:-}" python3 -c '
-import json,os,sys,datetime
-raw=sys.stdin.read().strip()
-if not raw: sys.exit(0)
-try: c=json.loads(raw)
-except Exception: sys.exit(0)
-until=c.get("until") or ""
-try:
-  exp=datetime.datetime.fromisoformat(until.replace("Z",""))
-except Exception:
-  sys.exit(0)
-if datetime.datetime.utcnow() > exp:
-  sys.exit(0)  # expired
-wt=c.get("worktree") or ""
-our=os.environ.get("OUR_WT") or ""
-if wt and our and os.path.normpath(wt)==os.path.normpath(our):
-  sys.exit(0)  # same worktree
-reason=(os.environ.get("TAKEOVER") or "").strip()
-if len(reason) >= 12:
-  print("TAKEOVER")
-  sys.exit(0)
-print(
-  "CROSS_SESSION_CLAIM: dig is claimed by another worktree/session until {until}.\n"
-  "  their branch={branch} worktree={wt} session={sess} commit={commit}\n"
-  "  your  worktree={our} session={ours}\n"
-  "Cursor and Claude Code do not share chat state — this claim is the cross-session signal.\n"
-  "Wait for the claim to expire, deploy from that worktree, or set\n"
-  "  BIOMATE_DEPLOY_TAKEOVER_REASON=\"why you are taking dig (>=12 chars)\"\n"
-  "Content-preservation + ancestry gates still apply after takeover.".format(
-    until=until, branch=c.get("branch"), wt=wt, sess=c.get("session"),
-    commit=(c.get("commit") or "")[:10], our=our, ours=os.environ.get("OUR_SESS"),
-  )
-)
-sys.exit(2)
-' <<<"$_raw")"
-  _rc=$?
-  set -e
-  if [[ "$_rc" -eq 0 ]]; then
-    if [[ "$_out" == "TAKEOVER" ]]; then
-      log "[claim] WARNING: taking over dig from another worktree — reason=${BIOMATE_DEPLOY_TAKEOVER_REASON}"
-    fi
-    return 0
-  fi
-  log "ERROR: $_out"
-  exit 2
 }
 show_deploy_ledger() {
   local _live="$1" _tail _last
@@ -2329,19 +2270,16 @@ else
     log "Broke a STALE remote lease (orphaned ${_lease_age}s > ${_LEASE_STALE_S}s, no live sync runs that long) and re-acquired"
     REMOTE_SYNC_LEASE_ACQUIRED=1
   else
-    log "Another deployment holds the remote lease (age=${_lease_age:-unknown}s); refusing"
+    _lease_owner="$(ec2_ssh 'cat /opt/biomate/.dev-deploy.lock/owner 2>/dev/null' 2>/dev/null || true)"
+    biomate_remote_lease_refuse_message "${_lease_age:-unknown}" "$_LEASE_STALE_S" "${_lease_owner:-}" >&2
     exit 1
   fi
 fi
-# Cross-session sticky claim (Cursor ↔ Claude ↔ other worktrees): refuse to
-# start a deploy while another worktree still owns dig, unless takeover reason set.
-check_deploy_claim
-# Refuse stale/divergent worktrees AND ancestry-only content clobbers
-# (`git merge -s ours <live>` keeping another tree) while holding the lease.
-# Read-only; does not change layer selection or health/rollback.
+# Refuse stale/divergent worktrees while holding the deployment lease. This is
+# read-only and does not change existing layer selection or health/rollback.
 _ANCESTRY_ARGS=(--repo "$REPO_ROOT")
 if [[ -n "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}" ]]; then
-  log "WARNING: explicit emergency ancestry/content override requested; retain the incident reason"
+  log "WARNING: explicit emergency ancestry override requested; retain the incident reason"
   _ANCESTRY_ARGS+=(--emergency-override-reason "$BIOMATE_EMERGENCY_DEPLOY_REASON")
 fi
 # The public build-info.json is baked only into the FRONTEND image, so a
@@ -2369,6 +2307,10 @@ if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
 fi
 
 _LOCAL_DB="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
+_SYNC_LAYERS_SUMMARY=""   # filled inside do_sync for the DEV receipt
+_RECEIPT_DB_MD5="?"
+_RECEIPT_WF_COUNT="?"
+_RECEIPT_IK_COUNT="?"
 
 # Code layers — git diff
 _PREV_COMMIT=""
@@ -2386,29 +2328,66 @@ fi
 # Comparing local→stored-local is wrong: if dev DB gets corrupted/truncated (e.g. a
 # failed docker cp that wrote 0 bytes), the stored md5 still matches local and the DB
 # is never re-synced. Root cause of the Jun-2026 "20K stub" incident.
+#
+# BIOMATE_SYNC_DB=0: never schedule a catalog upload (code/workflows-only). Required when
+# this worktree's galaxy_ai_tools.db is the wrong lineage (review vs biomate vs stub) or
+# FTS-broken — do not use "DB aside" hot-patches (2026-11-13).
+_DEV_DB_WF_COUNT="-1"
 _LOCAL_DB_MD5="$(md5 -q "$_LOCAL_DB" 2>/dev/null || md5sum "$_LOCAL_DB" 2>/dev/null | cut -d' ' -f1 || echo '')"
-if [[ -n "$_LOCAL_DB_MD5" ]]; then
-  # Fetch the actual dev DB md5 via SSH. One cheap round-trip saves 300MB transfer.
-  _DEV_DB_MD5="$(ec2_ssh \
-      'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1' 2>/dev/null || echo '')"
-  _DEV_DB_SIZE="$(ec2_ssh \
-      'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
-  if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
-    _LOCAL_DB_SIZE="$(stat -c %s "$_LOCAL_DB" 2>/dev/null || stat -f %z "$_LOCAL_DB" 2>/dev/null || echo 0)"
-    # Skip only when local looks like a STUB (< dev AND < 100MB). A full DB that is
-    # merely smaller than dev's bytes (VACUUM, added column) must still upload.
-    if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" && "${_LOCAL_DB_SIZE:-0}" -lt 104857600 ]]; then
-      log "DB: local (${_LOCAL_DB_SIZE}B) looks like a stub (<100MB and < dev ${_DEV_DB_SIZE}B) — skipping upload"
-    else
-      CHANGED="$CHANGED"$'\n'"backend/database/"
-      log "DB out of sync (local=$_LOCAL_DB_MD5 dev=$_DEV_DB_MD5 dev_size=${_DEV_DB_SIZE}B) — will sync"
-    fi
-  elif [[ "${_DEV_DB_SIZE:-0}" -lt 1048576 ]]; then
-    # Dev DB is < 1MB — corrupt/empty stub. Force sync even if md5 somehow matches.
-    CHANGED="$CHANGED"$'\n'"backend/database/"
-    log "Dev DB is too small (${_DEV_DB_SIZE}B) — forcing sync"
+if [[ "${BIOMATE_SYNC_DB:-1}" == "0" ]]; then
+  log "BIOMATE_SYNC_DB=0 — catalog upload disabled for this run"
+elif [[ -n "$_LOCAL_DB_MD5" ]]; then
+  # Fetch the actual dev DB md5 + size + workflow count via SSH. One round-trip saves 300MB.
+  _DEV_DB_PROBE="$(ec2_ssh '
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    md5=$(docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1)
+    sz=$(docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0)
+    wf=$(docker exec "$GC" python3.9 -c "import sqlite3; print(sqlite3.connect(\"/app/database/galaxy_ai_tools.db\").execute(\"select count(*) from workflows\").fetchone()[0])" 2>/dev/null || echo -1)
+    printf "%s %s %s\n" "${md5:-}" "${sz:-0}" "${wf:--1}"
+  ' 2>/dev/null || echo '')"
+  _DEV_DB_MD5="$(awk '{print $1}' <<<"$_DEV_DB_PROBE")"
+  _DEV_DB_SIZE="$(awk '{print $2}' <<<"$_DEV_DB_PROBE")"
+  _DEV_DB_WF_COUNT="$(awk '{print $3}' <<<"$_DEV_DB_PROBE")"
+  [[ "$_DEV_DB_SIZE" =~ ^[0-9]+$ ]] || _DEV_DB_SIZE=0
+  [[ "$_DEV_DB_WF_COUNT" =~ ^-?[0-9]+$ ]] || _DEV_DB_WF_COUNT=-1
+
+  # Preflight DB policy before do_sync mutates anything: FTS / min count / shrink.
+  # Stub / low-count DBs → skip upload and continue (code sync still OK).
+  # FTS-broken or shrink of a full local catalog → hard abort (do not "DB aside").
+  _LOCAL_WF_COUNT="$(biomate_db_workflow_count "$_LOCAL_DB")"
+  _DB_DECISION="$(biomate_db_upload_decision "$_LOCAL_DB" "$_DEV_DB_WF_COUNT")"
+  _LOCAL_DB_SIZE="$(stat -c %s "$_LOCAL_DB" 2>/dev/null || stat -f %z "$_LOCAL_DB" 2>/dev/null || echo 0)"
+  if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" || "${_DEV_DB_SIZE:-0}" -lt 1048576 ]]; then
+    case "$_DB_DECISION" in
+      allow)
+        if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" && "${_LOCAL_DB_SIZE:-0}" -lt 104857600 ]]; then
+          log "DB: local (${_LOCAL_DB_SIZE}B) looks like a stub (<100MB and < dev ${_DEV_DB_SIZE}B) — skipping upload"
+        else
+          CHANGED="$CHANGED"$'\n'"backend/database/"
+          log "DB out of sync (local=$_LOCAL_DB_MD5 dev=${_DEV_DB_MD5:-?} local_wf=$_LOCAL_WF_COUNT dev_wf=${_DEV_DB_WF_COUNT} size=${_DEV_DB_SIZE}B) — will sync"
+        fi
+        ;;
+      refuse_count|refuse_missing)
+        log "DB: $(biomate_db_decision_message "$_DB_DECISION" "$_LOCAL_DB" "$_LOCAL_WF_COUNT" "$_DEV_DB_WF_COUNT")"
+        log "DB: skipping catalog upload; continuing with code layers (set BIOMATE_SYNC_DB=0 to silence)"
+        ;;
+      refuse_fts|refuse_shrink)
+        # Full-looking local DB that would have been uploaded under the old soft-skip path.
+        if [[ "${_LOCAL_DB_SIZE:-0}" -ge 104857600 ]]; then
+          log "ERROR: $(biomate_db_decision_message "$_DB_DECISION" "$_LOCAL_DB" "$_LOCAL_WF_COUNT" "$_DEV_DB_WF_COUNT")"
+          log "ERROR: refusing sync so DEV is not left with a wrong/silent catalog. Fix FTS, use the designated catalog worktree, BIOMATE_SYNC_DB_ALLOW_SHRINK=1 (shrink only), or BIOMATE_SYNC_DB=0 for code-only."
+          exit 2
+        fi
+        log "DB: $(biomate_db_decision_message "$_DB_DECISION" "$_LOCAL_DB" "$_LOCAL_WF_COUNT" "$_DEV_DB_WF_COUNT") — treating as stub skip"
+        ;;
+      *)
+        log "ERROR: unexpected DB decision '$_DB_DECISION'"
+        exit 2
+        ;;
+    esac
   else
-    log "DB in sync on dev (${_DEV_DB_MD5}) — skipping 300MB transfer"
+    log "DB in sync on dev (${_DEV_DB_MD5}; wf=${_DEV_DB_WF_COUNT}) — skipping 300MB transfer"
   fi
 else
   log "WARNING: cannot compute local DB md5 (file missing?) — skipping DB sync"
@@ -2433,6 +2412,35 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
     echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
   fi
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
+  # One-screen DEV receipt — what is live after this healthy sync (cheap docker exec).
+  _RECEIPT_PROBE="$(ec2_ssh '
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    md5=$(docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1)
+    stats=$(docker exec "$GC" python3.9 -c "
+import sqlite3
+c=sqlite3.connect(\"/app/database/galaxy_ai_tools.db\")
+wf=c.execute(\"select count(*) from workflows\").fetchone()[0]
+try:
+  ik=c.execute(\"select count(*) from workflows where input_kinds is not null and trim(input_kinds) not in (\\\"\\\",\\\"null\\\")\").fetchone()[0]
+except Exception:
+  ik=\"?\"
+print(f\"{wf} {ik}\")
+" 2>/dev/null || echo "? ?")
+    printf "%s %s\n" "${md5:-?}" "${stats:-? ?}"
+  ' 2>/dev/null || echo '? ? ?')"
+  _RECEIPT_DB_MD5="$(awk '{print $1}' <<<"$_RECEIPT_PROBE")"
+  _RECEIPT_WF_COUNT="$(awk '{print $2}' <<<"$_RECEIPT_PROBE")"
+  _RECEIPT_IK_COUNT="$(awk '{print $3}' <<<"$_RECEIPT_PROBE")"
+  _RECEIPT_BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  biomate_print_dev_receipt \
+    "$CURRENT_COMMIT" \
+    "$_RECEIPT_BRANCH" \
+    "${_SYNC_LAYERS_SUMMARY:-unknown}" \
+    "$_RECEIPT_DB_MD5" \
+    "$_RECEIPT_WF_COUNT" \
+    "$_RECEIPT_IK_COUNT" \
+    "${SYNC_RESULT:-healthy}"
   # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
   # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being
   # left behind on old LT versions when the LT was updated. Auto-fix on every

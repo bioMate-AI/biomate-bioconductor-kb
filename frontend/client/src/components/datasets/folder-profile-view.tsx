@@ -8,7 +8,7 @@
  * (galaxy/ai/folder_profile.py, pairing = Galaxy's auto_pairing); this view only renders it.
  * Finding texts are i18n `perception.msg.<code>` like the per-file QC card.
  */
-import { Download, Folder } from "lucide-react"
+import { Download, Folder, Play } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { findingText, pathBaseText, type PerceptionFinding } from "@/components/data-perception"
 import { t, tOr } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+import { analyzeFolderChatUrl } from "@/lib/folder-as-input"
 import { folderProfileUrl, useFolderProfile, type FolderProfile, type FolderSample } from "./datasets-api"
 import { kindLabel, localizedFormatLabel } from "./dataset-presentation"
 import { VIEW_KINDS, type ViewKind } from "./dataset-view-model"
@@ -113,12 +114,28 @@ export function findingsShownBySamples(prof: FolderProfile): ReadonlySet<FolderP
   return out
 }
 
-export function FolderProfileView({ projectId, path, className }: { projectId: string; path: string; className?: string }) {
+export function FolderProfileView({
+  projectId,
+  path,
+  className,
+  onAnalyze,
+}: {
+  projectId: string
+  path: string
+  className?: string
+  /** Attach every file under this folder to chat (default: navigate with attachFolder). */
+  onAnalyze?: () => void
+}) {
   const q = useFolderProfile(projectId, path)
   const name = path ? path : t("dataset_obj.inputs")
   const prof = q.data
   const shownBySamples = prof && Array.isArray(prof.findings) ? findingsShownBySamples(prof) : new Set()
   const shownFindings = (prof?.findings ?? []).filter((f) => !shownBySamples.has(f))
+  const canAnalyze = (prof?.fileCount ?? 0) > 0
+  const handleAnalyze = () => {
+    if (onAnalyze) onAnalyze()
+    else window.location.assign(analyzeFolderChatUrl(projectId, path))
+  }
   return (
     <Card className={cn("min-w-0", className)} data-testid="folder-profile" data-kind={prof?.kind ?? ""} data-path={path}>
       <CardHeader className="space-y-1 pb-2">
@@ -140,6 +157,18 @@ export function FolderProfileView({ projectId, path, className }: { projectId: s
             <Badge variant="outline" className="text-xs" data-testid="folder-profile-verdict" data-verdict={prof.fastq.verdict}>
               {tOr(`folder_profile.verdict_${prof.fastq.verdict}`, prof.fastq.verdict)}
             </Badge>
+          )}
+          {canAnalyze && (
+            <Button
+              size="sm"
+              className="h-8 text-sm px-3 gap-1.5 ml-auto"
+              onClick={handleAnalyze}
+              data-testid="folder-profile-analyze"
+              title={t("folder_profile.ask_in_chat_tip")}
+            >
+              <Play className="h-3.5 w-3.5" />
+              {t("dataset_obj.ask_in_chat")}
+            </Button>
           )}
         </div>
       </CardHeader>

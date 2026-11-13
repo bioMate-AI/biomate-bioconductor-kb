@@ -143,21 +143,54 @@ function isKnownLibraryCatalogChain(
 /**
  * True when the current message plausibly supports a catalog chain slug
  * (same spirit as Tier-2 stale-hint guard in galaxy-assistant).
+ *
+ * Tokens must match as whole words — `includes('drug')` falsely matched
+ * "drug-like" and stole Generate-500 into ADMET-gated screening (2026-11-13).
  */
 export function messageSupportsCatalogChainHint(
   message: string,
   chainHint: string,
 ): boolean {
   const msgLc = (message || '').toLowerCase();
+  // Length ≥5 drops ambiguous 4-letter stems ("drug" ⊂ "drug-like"). Also refuse
+  // a match when the token is only the left side of a hyphenated compound.
   const hintTokens = String(chainHint)
     .toLowerCase()
     .split(/[_\-\s]+/)
-    .filter((t) => t.length >= 4);
+    .filter((t) => t.length >= 5);
   return (
     /\b(chain|pipeline|then|followed by|and then|multi-?step|end[- ]?to[- ]?end|screen|screening|triage)\b/.test(
       msgLc,
-    ) || hintTokens.some((t) => msgLc.includes(t))
+    ) ||
+    hintTokens.some((t) =>
+      new RegExp(`\\b${escapeRegExp(t)}(?!-)\\b`, 'i').test(msgLc),
+    )
   );
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Generative molecule design ("generate N candidates…", REINVENT, de novo) —
+ * must NOT route to library-screening mega-chains (ADMET-gated virtual screening).
+ */
+export function isMoleculeGenerateRequest(message: string): boolean {
+  const q = (message || '').toLowerCase();
+  if (!q.trim()) return false;
+  if (/\b(reinvent|reinvent4|de[- ]novo|scaffold[- ]hop|generative)\b/.test(q)) return true;
+  // "generate 500 candidates" / "design drug-like molecules" — generate|design + candidates/molecules
+  // without explicit screen/dock/filter library phrasing.
+  const generateIntent =
+    /\b(generat(?:e|ing|ion)|design(?:ing)?|invent)\b/.test(q) &&
+    /\b(candidates?|analogs?|analogues?|molecules?|compounds?|ligands?)\b/.test(q);
+  if (!generateIntent) return false;
+  const screeningIntent =
+    /\b(screen|screening|dock|docking|virtual screening|filter(?:ing)? by admet|admet[- ]gated)\b/.test(
+      q,
+    );
+  return !screeningIntent;
 }
 
 /**
@@ -230,6 +263,13 @@ export function selectLibraryMoleculeRouting(
   classifierChainHint?: string | null,
 ): LibraryMoleculeRouting | null {
   const synthesisePark = isSynthesiseNowParkRequest(message);
+
+  // Generate / de-novo design is NOT a screening mega-chain. Leave normal routing
+  // alone so reinvent4_lead_design (or honest disambiguation) can win — never
+  // honour a leaked ADMET-gated chain_hint via "drug"⊂"drug-like".
+  if (isMoleculeGenerateRequest(message)) {
+    return null;
+  }
 
   // Honour a classifier hint only when it is a real related catalog chain and
   // the current message supports it (avoid prior-turn leak).
