@@ -7,6 +7,7 @@ import {
   workflowPanelProjectId,
   workflowPanelProjectName,
   runManagerListParams,
+  runManagerSwitchHref,
   getRunPrimaryCta,
   getOutputReadinessHint,
   isRunNeedsAttention,
@@ -158,6 +159,16 @@ describe('saved run identity and history scope', () => {
   expect(runManagerListParams('current_chat', null)).toBeNull();
   expect(runManagerListParams('current_chat', 'chat1')?.get('chatSessionId')).toBe('chat1');
   expect(runManagerListParams('all_chats', null)?.has('chatSessionId')).toBe(false);
+ });
+ it('opens the owning chat (+ focusRun) when switching to a run from another session', () => {
+  expect(runManagerSwitchHref({ runId: 'r1', runChatSessionId: 'chat-b', currentChatSessionId: 'chat-a' }))
+    .toBe('/?session=chat-b&focusRun=r1');
+  expect(runManagerSwitchHref({ runId: 'r1', runChatSessionId: 'chat-a', currentChatSessionId: 'chat-a' }))
+    .toBeNull();
+  expect(runManagerSwitchHref({ runId: 'r1', runChatSessionId: 'chat-b', currentChatSessionId: null }))
+    .toBe('/?session=chat-b&focusRun=r1');
+  expect(runManagerSwitchHref({ runId: 'r1', runChatSessionId: null, currentChatSessionId: 'chat-a' }))
+    .toBeNull();
  });
 });
 

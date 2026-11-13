@@ -4,12 +4,44 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CredentialModal, LicenseRequirement } from './credential-modal';
 
+/** Tools that must never fail-open while the requirements check is in flight / errored.
+ *  Underscore-joined names (cryosparc_standard_spa) are common — do not require a
+ *  trailing word boundary after the tool token. */
+const HARD_LICENSE_PATH_RE = /(^|[^a-z0-9])(cryosparc|alphafold3|alphafold|schrodinger|moe|gastroplus|netmhc)/i;
+
+export function pathImpliesHardLicenseGate(nextflowPath: string | undefined | null): boolean {
+  return HARD_LICENSE_PATH_RE.test(nextflowPath || '');
+}
+
+/**
+ * Synthetic path for cryosparc workflows that arrive without nextflow_path
+ * (workflow_type=cryosparc). Path-based scan_nf_for_tool_ids still matches.
+ */
+export function licenseGatePathForWorkflow(wf: {
+  nextflow_path?: string
+  nextflowPath?: string
+  name?: string
+  filename?: string
+  workflow_type?: string
+  execution_engine?: string
+} | null | undefined): string | null {
+  if (!wf) return null
+  const explicit = wf.nextflow_path || wf.nextflowPath
+  if (explicit) return explicit
+  const blob = `${wf.name || ''} ${wf.filename || ''} ${wf.workflow_type || ''} ${wf.execution_engine || ''}`
+  if (/\bcryosparc\b/i.test(blob) || wf.workflow_type === 'cryosparc' || wf.execution_engine === 'cryosparc') {
+    return 'cryosparc_standard_spa/main.nf'
+  }
+  return null
+}
+
 interface LicenseGateProps {
   nextflowPath: string;
   onBlockedChange: (blocked: boolean) => void;
 }
 
 export function LicenseGate({ nextflowPath, onBlockedChange }: LicenseGateProps) {
+  const hardPath = pathImpliesHardLicenseGate(nextflowPath);
   const [loading, setLoading] = useState(true);
   const [requirements, setRequirements] = useState<LicenseRequirement[]>([]);
   const [modalTool, setModalTool] = useState<LicenseRequirement | null>(null);
@@ -17,7 +49,14 @@ export function LicenseGate({ nextflowPath, onBlockedChange }: LicenseGateProps)
   const fetchRequirements = useCallback(async () => {
     if (!nextflowPath) {
       setLoading(false);
+      onBlockedChange(false);
       return;
+    }
+    // Fail-closed for known BYOL tools while the check runs — Confirm must not
+    // race ahead of the credential lookup (screenshot: cryosparc started with
+    // no Tool Credentials prompt).
+    if (hardPath) {
+      onBlockedChange(true);
     }
     try {
       const res = await fetch(
@@ -31,22 +70,49 @@ export function LicenseGate({ nextflowPath, onBlockedChange }: LicenseGateProps)
       // Tools like Simcyp and NONMEM have workflow-level fallbacks (native PBPK / nlmixr2)
       // and should run in degraded mode rather than be blocked entirely.
       const hardBlocked = reqs.some(r => r.source === 'none' && !r.has_fallback);
-      onBlockedChange(hardBlocked);
+      // If the path implies a hard gate but the scan returned nothing (path not
+      // readable on the Galaxy host), still block — never silently unblock BYOL.
+      onBlockedChange(hardBlocked || (hardPath && reqs.length === 0));
     } catch {
       setRequirements([]);
-      onBlockedChange(false);
+      // Fail-closed for BYOL paths; fail-open for ordinary workflows.
+      onBlockedChange(hardPath);
     } finally {
       setLoading(false);
     }
-  }, [nextflowPath, onBlockedChange]);
+  }, [nextflowPath, onBlockedChange, hardPath]);
 
   useEffect(() => { fetchRequirements(); }, [fetchRequirements]);
 
-  if (!loading && requirements.length === 0) return null;
+  if (!loading && requirements.length === 0 && !hardPath) return null;
+
+  // Hard-path with empty requirements (API miss / scan miss): still show a
+  // CryoSPARC-style prompt so the user knows why Confirm is disabled.
+  const displayReqs: LicenseRequirement[] =
+    requirements.length > 0
+      ? requirements
+      : hardPath
+        ? [{
+            tool_id: 'cryosparc',
+            display_name: 'CryoSPARC',
+            vendor: 'Structura Biotechnology',
+            type: 'license_key',
+            registration_url: 'https://cryosparc.com/download',
+            approval_time: 'instant (academic) / contact sales (commercial)',
+            cost: 'free (academic)',
+            source: 'none',
+            has_fallback: false,
+            open_alternatives: [],
+          } as LicenseRequirement]
+        : [];
 
   return (
     <>
-      <div className="rounded-md border border-border bg-card p-3 space-y-2">
+      <div
+        className="rounded-md border border-border bg-card p-3 space-y-2"
+        data-testid="license-gate"
+        data-blocked={hardPath || requirements.some(r => r.source === 'none' && !r.has_fallback) ? 'true' : 'false'}
+      >
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           <KeyRound className="h-3.5 w-3.5" />
           Tool Credentials
@@ -59,7 +125,7 @@ export function LicenseGate({ nextflowPath, onBlockedChange }: LicenseGateProps)
           </div>
         ) : (
           <div className="space-y-2">
-            {requirements.map(req => (
+            {displayReqs.map(req => (
               <CredentialRow
                 key={req.tool_id}
                 requirement={req}

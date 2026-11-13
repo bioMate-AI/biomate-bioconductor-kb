@@ -50,6 +50,7 @@ import {
   workflowPanelProjectId,
   workflowPanelProjectName,
   runManagerListParams,
+  runManagerSwitchHref,
   outputReadinessLabel,
   runPrimaryCtaLabel,
 } from "./run-manager-utils"
@@ -469,6 +470,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         console.warn('[reuseWorkflow] failed:', e)
       } finally {
         url.searchParams.delete('reuseWorkflow')
+        window.history.replaceState({}, '', url.toString())
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Run Manager (All chats) → open owning session AND the clicked run in the panel.
+  // History dialogs already navigate with ?session=; we also carry focusRun so the
+  // remounted ChatWithArtifacts loads that exact run instead of whichever message
+  // session-restore picks first.
+  const handledFocusRun = useRef<string | null>(null)
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const runId = url.searchParams.get('focusRun')
+    if (!runId || handledFocusRun.current === runId) return
+    handledFocusRun.current = runId
+    ;(async () => {
+      try {
+        const restored = await loadRun(runId, { silent: true })
+        setFocusedRunId(runId)
+        setPanelWorkflow(restored.workflowDefinition || { name: restored.workflowName })
+        setPanelWorkflowMessageId(null)
+        setPanelOpen(true)
+        onWorkflowPanelOpenChange?.(true)
+      } catch (e) {
+        console.warn('[focusRun] failed:', e)
+      } finally {
+        url.searchParams.delete('focusRun')
         window.history.replaceState({}, '', url.toString())
       }
     })()
@@ -1080,6 +1109,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // This covers browser refresh, server HMR reload, and reopening BioMate mid-run.
   useEffect(() => {
     if (!currentChatSession?.id || currentRun) return; // already have a run
+    // Prefer ?focusRun= (Run Manager cross-chat open) over message-scan restore.
+    if (typeof window !== 'undefined' && new URL(window.location.href).searchParams.get('focusRun')) return
     const messages = currentChatSession.messages ?? [];
     // Scan messages newest-first for one with an invocationId.
     // Skip workflow_progress pills — their invocationId is the Galaxy UUID,
@@ -1807,7 +1838,32 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       })
     }
     try {
+      const fromList = runList.find((r) => r.id === runId)
+      // Cross-chat: navigate to the owning chat so the left panel shows the run's
+      // conversation (not an empty New Chat). Same-chat stays in-place.
+      const listHref = runManagerSwitchHref({
+        runId,
+        runChatSessionId: fromList?.chatSessionId,
+        currentChatSessionId: currentChatSession?.id,
+      })
+      if (listHref) {
+        setShowRunManager(false)
+        window.location.assign(listHref)
+        return
+      }
+
       const restored = await loadRun(runId)
+      const restoredHref = runManagerSwitchHref({
+        runId,
+        runChatSessionId: (restored as { chatSessionId?: string }).chatSessionId,
+        currentChatSessionId: currentChatSession?.id,
+      })
+      if (restoredHref) {
+        setShowRunManager(false)
+        window.location.assign(restoredHref)
+        return
+      }
+
       setPanelWorkflow(restored.workflowDefinition || { name: restored.workflowName })
       setPanelWorkflowMessageId(null)
       setPanelOpen(true)
