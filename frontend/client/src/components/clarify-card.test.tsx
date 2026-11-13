@@ -215,4 +215,38 @@ describe("<ClarifyCard>", () => {
     const ev = events.find((e) => e.type === "biomate:param-clarification-resolved")
     expect((ev!.detail as any)).toMatchObject({ paramName: "aligner", value: "hisat2" })
   })
+
+  it("zero-opt file prompt: Confirm with NONE emits empty fretext (opens panel bridge)", async () => {
+    // Clinic hell 2026-11-13: movies_path clarify with only "Provide the missing input"
+    // used to emit nothing on Confirm → right panel stayed closed.
+    const user = userEvent.setup()
+    const onDone = vi.fn<[ClarifyAnswer[]], void>()
+    const FILE_PROMPT: ClarifyQuestion[] = [
+      {
+        id: "movies_path",
+        q: "Which movies_path?",
+        field: "movies_path",
+        target: "param",
+        binds: "file path",
+        why: "movies_path is required",
+        opts: [], // only fretext escape hatch
+      },
+    ]
+    render(<ClarifyCard questions={FILE_PROMPT} onDone={onDone} messageId="mcryo" />)
+    await user.click(screen.getByTestId("clarify-next")) // Confirm and configure
+    expect(onDone).toHaveBeenCalledTimes(1)
+    expect(onDone.mock.calls[0][0]).toHaveLength(1)
+    expect(onDone.mock.calls[0][0][0]).toMatchObject({
+      value: "",
+      source: "freetext",
+      target: { type: "param", name: "movies_path" },
+    })
+    const ev = events.find((e) => e.type === "biomate:param-clarification-resolved")
+    expect(ev).toBeTruthy()
+    expect((ev!.detail as any)).toMatchObject({
+      messageId: "mcryo",
+      paramName: "movies_path",
+      value: "",
+    })
+  })
 })
