@@ -108,6 +108,35 @@ LLM pass: `google/gemini-3.8-flash`, 2,529 classified, 0 failed. The DB is gitig
 synced — dev/prod gain the **rule** labels automatically via the self-heal migration; the LLM
 refinement is a local enhancement (re-runnable on dev with the classifier CLI if desired).
 
+## Dev sync — BLOCKED (infra/environment, not code)
+
+`scripts/sync_to_dev.sh` was **not** run: a pre-deploy review (per the "no speculative deploys —
+predict the outcome first" discipline) determined it would fail before reaching dev, and running it
+risked the host disk. Evidence:
+
+1. **Disk at 99%, 2.0 GiB free.** The sync rebuilds the frontend Docker image (this branch changed
+   `frontend/shared/workflow-response-state.ts` + `frontend/server/galaxy-assistant.ts`, so the
+   frontend layer rebuilds). A node/vite build needs several GB → would fail and risk filling the
+   disk.
+2. **Sparse-checkout worktree missing deploy prerequisites.** `REPO_ROOT` is this worktree; the
+   preflight (`sync_to_dev.sh:515‑521`) requires `infra/nfcore-patches/dualrnaseq/1.0.0.patch`,
+   `backend/biomni_workflows`, `backend/nf-core-workflows/modules/biomate-ai-tools`,
+   `backend/nf-core-modules` — all excluded by sparse-checkout — plus `galaxy_ai_tools.db` (absent).
+   It would abort with `FATAL: … missing from checkout`.
+3. **Full checkout `/Users/kky/biomate` can't deploy this branch either** — on
+   `fix/resolver-real-nfcore` with ~6,649 uncommitted tracked changes, this branch locked to the
+   linked worktree, and also missing `infra/nfcore-patches`.
+
+**Remediation (for whoever runs the deploy):** free disk to ≳15 GB, then run
+`scripts/sync_to_dev.sh` from a **full, clean checkout** of `feat/example-routing-fixes-20261112`
+that has the workflow source dirs + `infra/nfcore-patches` + `galaxy_ai_tools.db` present. On dev the
+self-heal migration (`_RULE_INPUT_KINDS_VERSION=2`) runs at Galaxy init and backfills the corrected
+**rule** labels automatically; then verify `input_kinds` coverage is non-NULL on the dev DB and that
+the incident prompt no longer routes to id 12814.
+
+**Dev verification: DEFERRED** (depends on the sync). The code path is fully verified locally
+against the real catalog DB (see Testing + routing audit above).
+
 ## Known open issues / next steps
 
 - **Pre-existing** `test_8c` step-9b double-penalty bug and 2 `geo_fast_path` failures — documented,
