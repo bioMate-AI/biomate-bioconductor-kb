@@ -239,4 +239,12 @@ Ranking ≈ **user value × feasibility** under Nextflow/Batch. Scores are relat
 
 ---
 
+---
+
+## 8. Follow-up: remainder beyond this top list
+
+See **`docs/20261113_GALAXY_WHAT_ELSE.md`** for Galaxy capabilities that are real, not fully productized, and **not** covered by the near-term top 5 (remote fetch, deferred URL, FASTQ samplesheet, reproducibility zip, datatype Confirm&Run gate) — plus an explicit skip list (Pulsar/CVMFS/TPV, OIDC, libraries/quotas/roles, IT, Shed, etc.).
+
+---
+
 **Document only.** Commit this file; no sync; no feature code in this pass.
