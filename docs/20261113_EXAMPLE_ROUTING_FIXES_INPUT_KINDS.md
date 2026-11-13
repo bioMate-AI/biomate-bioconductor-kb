@@ -146,3 +146,42 @@ against the real catalog DB (see Testing + routing audit above).
 - py3.14's bundled sqlite (3.53.4) raises a false-positive FTS5 integrity-check "malformed" on the
   catalog DB (CLI sqlite 3.51.0 and `PRAGMA integrity_check` both report `ok`); the LLM apply was
   run directly (FTS-neutral — `input_kinds` is not an FTS-indexed column).
+
+---
+
+## 2026-11-13 follow-up — Admet Pred + raw S3 + fake-chain triage
+
+Cold-start prompt *"Triage this library into synthesise-now and park"* (4 chemistry uploads) bound
+**Admet Pred** (id **14553**), painted raw `s3://` in Workflow settings, and narrated a 4-step
+"Library Triage" chain while the panel showed **1 phase**. Three independent defects (PR #398 only
+partially covered match/chain; S3 strip and prose-vs-engine were open).
+
+### Findings → fixes (landed this session)
+
+| # | Defect | Root cause | Fix |
+|---|---|---|---|
+| 1 | Raw `s3://` in Workflow settings | Phase editor redacts via `cleanParamValueForDisplay`; `ParameterGroup` painted raw `param.value` | Display `cleanParamValueForDisplay` / read-only for storage URIs; form state keeps real URI until Browse |
+| 2 | Orphan **Admet Pred** + empty schema | DB filename `drug_discovery/ADMET_pred` archived; `_resolve_nextflow_path` aliases to pharmacology, `_find_nf_file` did not → empty `required_params`. Search did not retire missing primary paths (`BIOMATE_ENFORCE_EXECUTABLE` default off) | (a) `_find_nf_file` domain alias parity; (b) retire id 14553 (+14591) `executable=0`; (c) indexer stores **on-disk folder** in filename, skips `_archived`; (d) self-heal `_self_heal_orphan_catalog_paths` + always-on `_orphan_catalog_ids` search filter |
+| 3 | Phantom Recommended rows (`target_pdb`, `library_file`, …) | Empty schema skipped phantom-drop; viewer promoted `inline_parameters` as autoFilled | Fail closed: clear inline when schema empty (server); do not promote inline when schema empty (viewer `buildViewerParameters`) |
+| 4 | Chat narrates multi-step chain over single `workflow_ga` | LLM prose unconstrained when engine bound a single card | `singleWorkflowGroundingDirective` injected into system + user format prompts |
+
+### Tests
+
+- **vitest** (39): `parameter-group.test.tsx`, `nextflow-workflow-viewer.empty-schema.test.ts`,
+  `nextflow-workflow-viewer.display.test.ts`, `single-workflow-grounding.test.ts`,
+  `smiles-list-misparse-20261020.test.ts`
+- **pytest** (8): `test_find_nf_file_domain_alias.py`, `test_orphan_catalog_path_heal.py`
+
+### Deferred — integrator / real chain composition
+
+Grounding stops **fake** multi-step narration when the payload is a single `workflow_ga`. It does
+**not** invent a docking → ADMET → pharmacophore → rank integrator workflow or force
+`workflow_type:'chain'` for triage intents. That remains the earlier deferred item: a real catalog
+workflow (or chain composer path) that binds multi-criteria library triage to an executable DAG,
+plus end-to-end verification on live after sync is unblocked.
+
+### Sync
+
+Still **do not** `sync_to_dev` from this session (another agent owns deploy; ancestry HTTPS + disk
+blocks remain). Worktree catalog DB retired 14553/14591 locally; durable heal + search filter
+cover gitignored DBs on next Galaxy init after deploy.
