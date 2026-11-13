@@ -20317,22 +20317,56 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   });
 
   // ── Agent code execution endpoint ────────────────────────────────────────────
-  // POST /api/code/run — used by the `run_code` agent tool.
-  // Runs Python / R / bash in a restricted subprocess and returns captured output.
+  // POST /api/code/run — used by the `run_code` agent tool AND the Models panel
+  // code path (power users). Runs Python / R / bash in a restricted sandbox.
+  // Optional project_id: resolve project_files rows from S3 into the sandbox
+  // (same ownership + size cap as the chat tool path). Galaxy Interactive Tools
+  // never worked in BioMate; this is the owned code path (2026-11-12).
   app.post("/api/code/run", optionalAuth, express.json(), async (req, res) => {
-    const { language, code, input_datasets, timeout_seconds } = req.body ?? {};
+    const { language, code, input_datasets, timeout_seconds, project_id } = req.body ?? {};
     if (!code || typeof language !== 'string' || !['python', 'r', 'bash'].includes(language)) {
       return res.status(400).json({ error: 'language (python|r|bash) and code are required' });
     }
     try {
       const { runCode } = await import('./code-runner');
+      const { s3Service } = await import('./s3-client');
+      const RUN_CODE_PROJECT_FILE_MAX_BYTES = 100 * 1024 * 1024;
+      const uid = (req.user as any)?.id;
+      const projectFileById = new Map<string, { s3_key: string; name: string }>();
 
-      // Resolve filenames for dataset IDs so staged files keep their original names
       const rawIds: (string | { id: string; filename?: string })[] =
         Array.isArray(input_datasets) ? input_datasets : [];
+      const flatIds = rawIds.map((ref) =>
+        typeof ref === 'object' && ref !== null ? String(ref.id) : String(ref),
+      );
+
+      // Authorize + preload project files when the Models (or any) caller passes project_id.
+      if (project_id && typeof project_id === 'string' && flatIds.length) {
+        if (!uid) return res.status(401).json({ error: 'Authentication required to use project files' });
+        if (!(await _isOwnerOrMember(project_id, String(uid)))) {
+          return res.status(404).json({ error: 'Project not found' });
+        }
+        const uuidIds = flatIds.filter((id) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id),
+        );
+        if (uuidIds.length) {
+          const rows = await pool.query(
+            `SELECT id::text AS id, name, s3_key FROM project_files
+             WHERE project_id = $1 AND id = ANY($2::uuid[])`,
+            [project_id, uuidIds],
+          );
+          for (const row of rows.rows as { id: string; name: string; s3_key: string }[]) {
+            if (row.s3_key) projectFileById.set(row.id, { s3_key: row.s3_key, name: row.name });
+          }
+        }
+      }
+
+      // Resolve filenames for dataset IDs so staged files keep their original names
       const datasetRefs = await Promise.all(rawIds.map(async (ref) => {
         if (typeof ref === 'object' && ref !== null) return ref;
         const id = String(ref);
+        const pf = projectFileById.get(id);
+        if (pf) return { id, filename: pf.name };
         // Check local upload registry first
         const localFile = getUploadedFile(id);
         if (localFile) {
@@ -20353,15 +20387,25 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         return { id, filename: id };
       }));
 
-      // downloadDataset: check local upload registry first, fall back to Galaxy
+      // downloadDataset: project file (S3) → local upload registry → Galaxy
       const downloadDatasetFn = async (id: string) => {
+        const pf = projectFileById.get(id);
+        if (pf) {
+          const size = await s3Service.getFileSize(pf.s3_key).catch(() => 0);
+          if (size > RUN_CODE_PROJECT_FILE_MAX_BYTES) {
+            throw new Error(
+              `Project file "${pf.name}" is ${(size / 1_048_576).toFixed(0)} MB — over the ` +
+              `${RUN_CODE_PROJECT_FILE_MAX_BYTES / 1_048_576} MB run_code sandbox cap.`,
+            );
+          }
+          const buf = await s3Service.readBuffer(pf.s3_key, RUN_CODE_PROJECT_FILE_MAX_BYTES);
+          return (async function* () { yield buf; })();
+        }
         const localFile = getUploadedFile(id);
         if (localFile) {
-          // Stream from local filesystem (uploaded without Galaxy)
           const { createReadStream } = await import('fs');
           return createReadStream(localFile.filePath) as any;
         }
-        // Fall back to Galaxy
         return galaxyAPIProxy.downloadDataset(id);
       };
 
