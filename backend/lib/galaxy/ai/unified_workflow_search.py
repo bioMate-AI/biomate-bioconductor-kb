@@ -137,6 +137,13 @@ def _env_float(name: str, default: float) -> float:
 
 _INPUT_KIND_MISMATCH_PENALTY: float = _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0)
 
+# Generic compound-ranking verbs. Boosted ONLY when the request carries an actual assay table
+# (see _calculate_score step 2b) — a bare ranking verb must not inflate the CSV-assay ranker.
+_ASSAY_RANKING_TERMS: frozenset = frozenset({
+    "rank compounds", "compound ranking", "composite ranking",
+    "safety potency ranking", "herg ranking", "potency safety",
+})
+
 # Downstream multi-omics INTEGRATION intent (step 8c). A user who ALREADY holds processed/summarised
 # tables (DE tables, protein-abundance tables, count matrices) and wants to INTEGRATE them — overlap,
 # concordant/discordant genes, MOFA, multi-omics integration, pathway enrichment on existing results —
@@ -690,11 +697,22 @@ class UnifiedWorkflowSearch:
             'lead generation': 3.0, 'lead optimization': 3.0,
             'molecule optimization': 3.0, 'fragment decoration': 3.0,
 
-            # Assay ingestion & ranking
-            'assay ingestion': 4.0, 'compound ranking': 3.5, 'safety potency ranking': 4.0,
-            'composite ranking': 3.5, 'composite score': 3.5, 'bcr abl1': 3.5,
-            'herg ranking': 3.5, 'potency safety': 3.5, 'multi assay': 3.0,
-            'assay data': 3.0, 'ingest assay': 4.0, 'rank compounds': 3.5,
+            # Assay ingestion & ranking. The RANKING verbs ('rank compounds', 'compound ranking',
+            # 'composite/safety-potency/herg ranking', 'potency safety') are deliberately NOT here —
+            # they are gated below behind an actual assay table (_ASSAY_RANKING_TERMS) so a bare
+            # "rank these candidates" with a SMILES library cannot inflate the CSV-assay ranker
+            # (id 12814, incident 2026-11-12). Only assay-data NOUNS stay ungated.
+            'assay ingestion': 4.0, 'bcr abl1': 3.5, 'multi assay': 3.0,
+            'composite score': 3.5, 'assay data': 3.0, 'ingest assay': 4.0,
+
+            # Developability / virtual screening / property prediction (small-molecule triage) —
+            # the vocabulary that was missing, so a SMILES-library "developability" request had
+            # nothing to match (incident 2026-11-12).
+            'developability': 3.5, 'developability assessment': 4.0, 'virtual screening': 3.5,
+            'virtual screen': 3.0, 'hit identification': 3.0, 'hit finding': 3.0,
+            'library enumeration': 3.0, 'property prediction': 3.0, 'physicochemical': 2.5,
+            'admet screening': 3.5, 'permeability': 2.5, 'aqueous solubility': 2.5,
+            'aggregation propensity': 3.0, 'ligand efficiency': 3.0, 'compound triage': 3.5,
 
             # CRO submission export
             'cro submission': 4.0, 'wuxi apptec': 4.5, 'cro export': 4.0,
@@ -2078,6 +2096,19 @@ class UnifiedWorkflowSearch:
             if keyword in query_expanded and keyword in text:
                 score += weight
 
+        # 2b. Compound-RANKING boost, gated behind an actual assay table. A bare ranking verb
+        # ("rank these candidates", "compound ranking") must only lift an assay-specific ranker
+        # when the request truly carries measured assay data — not when the user has a SMILES
+        # library / receptor structure (incident 2026-11-12: id 12814 won on "rank").
+        _supplied = self._valid_kinds(user_input_kinds) if user_input_kinds is not None else frozenset()
+        _has_assay_table = bool(_supplied & {"tabular"}) or bool(
+            re.search(r"\bassay\b|\bic50\b|dose-?response|assay (?:csv|data|table)", query_lower)
+        )
+        if _has_assay_table:
+            for keyword in _ASSAY_RANKING_TERMS:
+                if keyword in query_expanded and keyword in text:
+                    score += 3.5
+
         # 3. Phrase match bonus (~25% weight) - boost for key phrases in both query and name/desc
         # Normalize description too (remove hyphens so "rna-seq" matches query "rna seq").
         # Use word-boundary check (' phrase ') to avoid false substring matches
@@ -2991,15 +3022,30 @@ class UnifiedWorkflowSearch:
         words = set(re.findall(r"[a-z0-9]+", blob))
         return bool(words & _DIFFERENTIAL_TOOLS)
 
+    # Small-molecule / structure regime (SMILES library, receptor PDB). A workflow that consumes
+    # ONLY this regime (docking, VS, de-novo design) cannot run on sequencing reads / tables /
+    # spectra, and — critically — a chemistry request cannot run on a table-only assay ranker.
+    _CHEMISTRY_KINDS: frozenset = frozenset({"molecules", "structure"})
+
     @classmethod
     def _kinds_mismatch(cls, user_kinds: frozenset, wf_kinds: frozenset) -> bool:
-        """True when the user's data is in one regime only (raw instrument data vs processed table/object)
-        and the workflow accepts only the other — it cannot run on the user's data. Shared by the step-8a
-        score and the card-swap guard (workflow_by_name input_compatible)."""
+        """True when the user's data is in one regime only and the workflow accepts only another —
+        it cannot run on the user's data. Shared by the step-8a score and the card-swap guard
+        (workflow_by_name input_compatible)."""
         user_raw, user_proc = user_kinds & cls._RAW_KINDS, user_kinds & cls._PROCESSED_KINDS
         wf_raw, wf_proc = wf_kinds & cls._RAW_KINDS, wf_kinds & cls._PROCESSED_KINDS
         if user_kinds & wf_kinds:
             return False
+        # Chemistry (molecules/structure) vs non-chemistry. A pure SMILES-library / structure
+        # request cannot feed a workflow that consumes only tables/reads/spectra (e.g. the
+        # BCR-ABL1 CSV-assay ranker, id 12814), and vice-versa (incident 2026-11-12).
+        user_chem = bool(user_kinds & cls._CHEMISTRY_KINDS)
+        wf_chem = bool(wf_kinds & cls._CHEMISTRY_KINDS)
+        if user_kinds and wf_kinds:
+            if user_chem and user_kinds <= cls._CHEMISTRY_KINDS and not wf_chem:
+                return True
+            if wf_chem and wf_kinds <= cls._CHEMISTRY_KINDS and not user_chem:
+                return True
         return bool((user_proc and not user_raw and wf_raw and not wf_proc)
                     or (user_raw and not user_proc and wf_proc and not wf_raw))
 
