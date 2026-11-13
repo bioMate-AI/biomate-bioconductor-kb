@@ -20,7 +20,7 @@ it('deletes notes durably and keeps the note visible when deletion fails', async
  await screen.findByRole('alert'); expect(notes).toHaveLength(1); expect(screen.getByText('Keep private until promoted')).toBeTruthy();
  rejectDelete = false; fireEvent.click(screen.getByRole('button', { name: 'Forget' }));
  await waitFor(() => expect(screen.queryByText('Keep private until promoted')).toBeNull());
- view.unmount(); open(); await screen.findByText(/Nothing remembered yet/); expect(notes).toEqual([]);
+ view.unmount(); open(); await screen.findByText(/No notes yet/); expect(notes).toEqual([]);
 });
 it('promotes only after successful rule persistence and preserves the original note on reload', async () => {
  const view = open(); await screen.findByText('Keep private until promoted');

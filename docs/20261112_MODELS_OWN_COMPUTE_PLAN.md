@@ -29,10 +29,10 @@ Founder direction (this session), in their words:
    - **No-code UI path — clinical users.** The UI-driven training launcher over Ludwig /
      AutoML: choose data → role columns (dropdowns) → train, with gates + provenance. A
      code notebook is wrong for non-coder clinicians.
-   - **Code path — power users.** Arbitrary ML/DL in code. NOTE: Galaxy Interactive Tools
-     (Jupyter) **never worked in BioMate**, so this path should either fix Interactive Tools
-     or route through the existing **`run_code` sandbox** (`biomate-runcode` image). Decision
-     pending.
+   - **Code path — power users.** Arbitrary ML/DL in code via the owned **`run_code`
+     sandbox** (`POST /api/code/run`, `biomate-runcode` image). Galaxy Interactive Tools
+     (Jupyter) **never worked in BioMate** and are not the product path for clinicians or
+     power users on this surface (IT may still exist for diagnostics elsewhere).
 
 ## Shipped this direction
 
@@ -42,6 +42,9 @@ Founder direction (this session), in their words:
   are filtered out; the genomic "Run a model" domain default is cleared so it honestly shows
   "no model for this domain" instead of resurfacing a hidden NVIDIA model.
 - Boltz-2 reads "BioMate compute" (Round C).
+- **Two paths on Train tab** (2026-11-12): No-code (default `TrainingLauncher`) ↔ Code
+  (`CodeSandboxPath` → `POST /api/code/run`). Project files stage from S3 when `project_id`
+  is passed (same ownership + 100 MB cap as the chat tool path).
 
 ## Follow-ups (tracked)
 
@@ -50,5 +53,5 @@ Founder direction (this session), in their words:
    Evo2-7B / OpenFold2 are the tractable ones; Evo2-40B needs large-GPU sizing.
 2. **Ground the training UI on Ludwig's schema** (+ an AutoML "just train" mode) rather than
    hand-maintained `SPEC_FIELDS`; keep it no-code.
-3. **Code path**: decide fix-Interactive-Tools vs `run_code` sandbox; wire it as the second
-   path from the Models surface.
+3. **Interactive Tools diagnosis (optional)** — understand why Galaxy IT never succeeded in
+   BioMate; do not block the Models code path on fixing it.
