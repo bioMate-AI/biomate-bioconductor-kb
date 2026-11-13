@@ -3,7 +3,9 @@
  *
  * When the engine returns a single workflow_ga (not workflow_type chain/pipeline),
  * the assistant must not narrate a multi-step "composite pipeline" as if it were
- * an executable chain. Full integrator/chain composition remains deferred.
+ * an executable chain. Real multi-step library triage is emitted as
+ * workflow_type:'pipeline' + pipeline_steps (ordinary workflows, task-by-task) —
+ * see library-triage-sequential.ts — not as a catalogued workflow_chains product.
  */
 
 export type GroundableWorkflowPayload = {
