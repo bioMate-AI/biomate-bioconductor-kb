@@ -106,12 +106,19 @@ export function LicenseGate({ nextflowPath, onBlockedChange }: LicenseGateProps)
           } as LicenseRequirement]
         : [];
 
+  // Must match onBlockedChange: a resolved user/biomate key clears the block even
+  // when the path is a known BYOL tool. (Was: `hardPath || …` → data-blocked stayed
+  // true forever for cryosparc, so E2E/UI could not see an unblocked gate after save.)
+  const isBlocked =
+    displayReqs.some((r) => r.source === 'none' && !r.has_fallback) ||
+    (hardPath && requirements.length === 0 && !loading);
+
   return (
     <>
       <div
         className="rounded-md border border-border bg-card p-3 space-y-2"
         data-testid="license-gate"
-        data-blocked={hardPath || requirements.some(r => r.source === 'none' && !r.has_fallback) ? 'true' : 'false'}
+        data-blocked={isBlocked ? 'true' : 'false'}
       >
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           <KeyRound className="h-3.5 w-3.5" />
