@@ -119,16 +119,21 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
     expect(String((emptyBody as any).error || "")).toMatch(/folder_not_found|not found/i);
 
     // ── Analysis: attachFolder deep-link expands to N chips ────────────────
+    // Seed active project BEFORE navigation so chat-input's attachFolder effect
+    // does not race an empty/wrong activeProjectId (live flake on 429c3dbc).
+    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
     await page.goto(
       `${BASE_URL}/?project=${encodeURIComponent(projectId)}&attachFolder=${encodeURIComponent(FOLDER)}`,
       { waitUntil: "domcontentloaded", timeout: 60_000 },
     );
-    await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
-    if (!(await page.locator('[data-testid="composer-dataset-ref"]').count())) {
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
-    }
     const chips = page.locator('[data-testid="composer-dataset-ref"]');
-    await expect(chips, "Analysis attachFolder → N composer chips").toHaveCount(expectedTop, { timeout: 45_000 });
+    await expect
+      .poll(async () => chips.count(), {
+        timeout: 60_000,
+        message: `Analysis attachFolder → ${expectedTop} composer chips`,
+      })
+      .toBe(expectedTop);
     await expect.poll(() => new URL(page.url()).searchParams.has("attachFolder")).toBe(false);
     const chipTexts = await chips.allTextContents();
     console.log(`[analysis] chips=${chipTexts.length} :: ${chipTexts.map((t) => t.trim()).join(" | ")}`);
@@ -138,18 +143,17 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
     await page.screenshot({ path: path.join(SHOT_DIR, "01-analysis-folder-chips.png"), fullPage: true });
 
     // ── Nested Analysis attach ─────────────────────────────────────────────
+    await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
     await page.goto(
       `${BASE_URL}/?project=${encodeURIComponent(projectId)}&attachFolder=${encodeURIComponent(NESTED)}`,
       { waitUntil: "domcontentloaded", timeout: 60_000 },
     );
-    await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
-    if ((await page.locator('[data-testid="composer-dataset-ref"]').count()) !== NESTED_FILES.length) {
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
-    }
-    await expect(
-      page.locator('[data-testid="composer-dataset-ref"]'),
-      "Nested attachFolder → only nested chips",
-    ).toHaveCount(NESTED_FILES.length, { timeout: 45_000 });
+    await expect
+      .poll(async () => page.locator('[data-testid="composer-dataset-ref"]').count(), {
+        timeout: 60_000,
+        message: "Nested attachFolder → only nested chips",
+      })
+      .toBe(NESTED_FILES.length);
     await page.screenshot({ path: path.join(SHOT_DIR, "01b-analysis-nested-chips.png"), fullPage: true });
 
     // ── Models: folder option lists N files ────────────────────────────────
