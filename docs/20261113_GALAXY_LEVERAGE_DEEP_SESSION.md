@@ -26,7 +26,12 @@ Complement, does not replace, folder→all-files.
 | Chat `UrlImportForm` (`galaxy-dataset-browser.tsx`) | Immediate / Defer radio → `/api/datasets/import-url` vs `/api/datasets/deferred` |
 | Data Hub URL row (`project-file-tree.tsx`) | Defer checkbox; **413 oversize** auto-falls back to deferred |
 
-**Still open:** Confirm & Run does not yet call `POST /api/datasets/:id/materialize` for deferred HDAs before Batch (Galaxy may materialize on tool access; Nextflow path should be verified).
+**Closed 2026-11-13 (follow-on):** `POST /api/workflows/execute` Nextflow path calls
+`ensureDeferredDatasetsMaterialized` (`deferred-materialize.ts`) — materialize → wait `ok` →
+download → session/`_uuidFilePaths` (+ rewrite bare HDA ids in `rawParams` to local paths) →
+`stageLocalFilesForBatch` (now resolves **any** registry key, not UUID-only — Galaxy hex HDAs).
+Hard-fails with `deferred_materialize_failed` if download never becomes ready. Explicit
+`POST /api/datasets/:id/materialize` now requires auth + `userProxy`.
 
 ### 3. Remote browse → project_files (Partial → Have for product path)
 
@@ -67,12 +72,11 @@ Samplesheet/`input`/`matrix` accept table kinds; `reads`+CSV blocks before Batch
 
 ## Still open (from checklist high-value Missing / residual Partial)
 
-1. Materialize-on-Confirm&Run for deferred HDAs (explicit `POST …/materialize`)
-2. Reproducibility pack zip
-3. Pre-run cost estimate badge restore
-4. BAM/VCF viewers without IT; datatype converters; workflow landings; storage purge; in-app notifications
-5. Live E2E for remote FTP + deferred (API smoke) after sync
-6. Samplesheet E2E attach assert requires this commit on live
+1. Reproducibility pack zip
+2. Pre-run cost estimate badge restore
+3. BAM/VCF viewers without IT; datatype converters; workflow landings; storage purge; in-app notifications
+4. Live E2E for remote FTP + deferred materialize (API smoke) after sync
+5. Samplesheet E2E attach assert requires feature commit on live
 
 ---
 
