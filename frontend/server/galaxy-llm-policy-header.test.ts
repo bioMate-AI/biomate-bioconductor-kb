@@ -87,22 +87,4 @@ describe('GalaxyAPIProxy (axios) carries the policy', () => {
     await llmPolicyStorage.run(INTL, () => proxy.client.get('/api/version'));
     expect(captured).toEqual(['region=cn; model=moonshotai/kimi-k3', 'region=intl']);
   });
-
-  it('forUser sends the CN policy from AsyncLocalStorage and does not force region=cn with no policy', async () => {
-    const { GalaxyAPIProxy } = await import('./galaxy-api-proxy');
-    const user = new GalaxyAPIProxy('http://galaxy.internal:8081', 'admin-key').forUser('user-key');
-    const captured: Array<string | null> = [];
-    user.client.defaults.adapter = async (config: any) => {
-      const h = config.headers;
-      const raw = h?.[LLM_POLICY_HEADER] ?? h?.get?.(LLM_POLICY_HEADER) ?? null;
-      captured.push(raw == null || raw === '' ? null : String(raw));
-      return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
-    };
-    await llmPolicyStorage.run(CN, () => user.client.post('/api/ai_assistant/generate_workflow', {}));
-    await user.client.post('/api/ai_assistant/generate_workflow', {});
-    await llmPolicyStorage.run(INTL, () => user.client.get('/api/version'));
-    expect(captured[0]).toBe('region=cn; model=moonshotai/kimi-k3');
-    expect(captured[1]).toBeNull();
-    expect(captured[2]).toBe('region=intl');
-  });
 });

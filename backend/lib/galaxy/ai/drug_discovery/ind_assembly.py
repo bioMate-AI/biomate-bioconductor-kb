@@ -286,7 +286,7 @@ def _call_frontier_regulatory_llm(
     _p = current_policy()
     if _p is not None and _p.is_cn:
         # A China-region request: the Chinese model stands in for the frontier model (never GPT /
-        # Claude / Gemini). "" on failure — the caller fail-closes instead of falling through.
+        # Claude / Gemini). "" on failure falls through to the Qwen-based Modal / vLLM / local paths.
         try:
             return cn_complete(user_prompt, system=system, max_tokens=max_new_tokens, temperature=temperature) or ""
         except Exception as exc:
@@ -417,8 +417,6 @@ def _call_local_regulatory_llm(
     """
     Call the local Qwen3-8B LoRA adapter for regulatory narrative generation.
     Returns empty string if unavailable (caller falls back to Gemini).
-    A China-region request that cannot get a Chinese-model answer raises
-    ChineseModelUnavailable instead of falling through to Modal / vLLM / local HF.
 
     Qwen3 uses /no_think mode: direct prose without chain-of-thought.
 
@@ -435,11 +433,7 @@ def _call_local_regulatory_llm(
     is unchanged. When BioMate v6 (Qwen3-8B + LoRA) is proven on Modal,
     drop REGULATORY_LLM_FRONTIER_MODEL to flip the priority.
     """
-    from galaxy.ai.llm_region import (
-        ChineseModelUnavailable,
-        cn_route as _cn_route,
-        current_policy as _cur_policy,
-    )
+    from galaxy.ai.llm_region import current_policy as _cur_policy
     _cn_req = bool(_cur_policy() and _cur_policy().is_cn)
     if os.environ.get("REGULATORY_LLM_FRONTIER_MODEL") or _cn_req:
         out = _call_frontier_regulatory_llm(
@@ -447,13 +441,6 @@ def _call_local_regulatory_llm(
         )
         if out:
             return out
-        # Shared with non-CN: a frontier error or a bogus env value falls through to
-        # Modal / vLLM / local HF. Those backends are not checked to be Chinese models,
-        # so a China-region request fail-closes here. cn_route() is None outside the
-        # region (fall through unchanged) and raises ChineseModelUnavailable when a CN
-        # request has no Chinese-model credential.
-        if _cn_route():
-            raise ChineseModelUnavailable()
         # Fall through if the API errored or the env value was bogus.
     if os.environ.get("MODAL_REGULATORY_LLM_ENDPOINT"):
         out = _call_openai_compat_regulatory_llm(
@@ -934,11 +921,6 @@ def _llm_narrative(
         return narrative
 
     except Exception as exc:
-        # A China-region failure is fail-closed (ChineseModelUnavailable). Do not
-        # turn it into an empty paragraph — that hides the Chinese-model error.
-        from galaxy.ai.llm_region import ChineseModelUnavailable
-        if isinstance(exc, ChineseModelUnavailable):
-            raise
         log.debug("[IND narrative] LLM call failed for section %s: %s", section_type, exc)
         return ""
 

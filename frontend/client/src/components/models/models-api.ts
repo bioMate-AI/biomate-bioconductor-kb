@@ -374,31 +374,3 @@ export function useRunStatus(runId: string | null, terminal: (s: string) => bool
     },
   })
 }
-
-/** A single output artifact a tracked run produced (S3/local). The canonical
- *  download path is `download_endpoint` (/api/runs/:id/output/:name). */
-export interface RunOutputFile {
-  name: string
-  filename?: string
-  extension?: string
-  size?: number
-  download_endpoint?: string
-  downloadUrl?: string
-  download_url?: string
-}
-
-/** GET /api/workflows/runs/{id}/output_files — the files a completed run wrote.
- *  Enabled only once the run is done so we don't poll an empty list mid-run. */
-export function useRunOutputs(runId: string | null, enabled: boolean): UseQueryResult<RunOutputFile[]> {
-  return useQuery<RunOutputFile[]>({
-    queryKey: ["/api/workflows/runs", runId, "output_files"],
-    enabled: !!runId && enabled,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const res = await fetch(`/api/workflows/runs/${encodeURIComponent(runId as string)}/output_files`, { credentials: "include" })
-      if (!res.ok) throw new Error(`${res.status}`)
-      const body = await res.json()
-      return (body.output_files || body.outputs || []) as RunOutputFile[]
-    },
-  })
-}

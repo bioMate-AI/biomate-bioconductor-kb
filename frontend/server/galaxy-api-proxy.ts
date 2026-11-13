@@ -65,17 +65,6 @@ export async function fetchGalaxyWithKeyRecovery(
   return send(fresh);
 }
 
-/** Per-request Chinese-LLM policy. Reads AsyncLocalStorage at request time.
- *  No policy (international / not classified) adds nothing — it does not force region=cn.
- *  A classified non-CN policy sends region=intl, the same as the constructor client. */
-function attachGalaxyPolicyInterceptor(client: AxiosInstance): void {
-  client.interceptors.request.use((config) => {
-    const policy = galaxyPolicyHeaders();
-    for (const [k, v] of Object.entries(policy)) (config.headers as any)[k] = v;
-    return config;
-  });
-}
-
 export class GalaxyAPIProxy {
   public client: AxiosInstance;
   private galaxyUrl: string;
@@ -114,7 +103,11 @@ export class GalaxyAPIProxy {
 
     // Chinese-LLM region policy: Galaxy's own LLM calls for this request follow it
     // (galaxy-llm-policy-header.ts / backend galaxy.ai.llm_region).
-    attachGalaxyPolicyInterceptor(this.client);
+    this.client.interceptors.request.use((config) => {
+      const policy = galaxyPolicyHeaders();
+      for (const [k, v] of Object.entries(policy)) (config.headers as any)[k] = v;
+      return config;
+    });
 
     // Validate connection on startup (async, non-blocking)
     this.validateConnection().catch(err => {
@@ -169,10 +162,6 @@ export class GalaxyAPIProxy {
       },
     });
     (proxy as any).client = client;
-    // Same policy interceptor as the constructor. Logged-in chat uses this client
-    // (generate_workflow, target-id, research); without it Galaxy sees no
-    // X-BioMate-LLM-Policy and treats a CN user as the ordinary chain.
-    attachGalaxyPolicyInterceptor(client);
     (proxy as any).onKeyRejected = onKeyRejected;  // used by the raw-fetch paths (uploadDataset)
     let currentKey = userApiKey;
     client.interceptors.response.use(

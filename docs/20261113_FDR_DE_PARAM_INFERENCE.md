@@ -35,13 +35,22 @@ Projection was fine — `differential_max_qval` is not in
 | Unit tests for extract + schema projection + apply | `test_fdr_param_inference.py` |
 
 Project rules were already threaded into generate (`_intentForBackend`) and
-param extraction (`_paramExtractQuery`); no frontend projection change needed.
+param extraction (`_paramExtractQuery`).
 
-**Note (2026-11-13 probe):** an empty `projectId` (failed project create) yields
-schema default `differential_max_qval=0.05` with no rules in `user_intent` —
-that is not an inference miss. With a real project + rules, rules must still
-beat the param LLM, which often re-emits 0.05 when the rule text is truncated
-out of its 600-char query window.
+**Frontend class close (2026-11-13):** with `SCHEMA_GROUNDED_EXTRACTION=1` on
+dev, `groundInlineParameters` often re-emits schema defaults
+(`differential_max_qval=0.05`, `|log2FC|→1`) *after* the backend rule fill.
+Spreading grounded after `_backendFilledParams` clobbered obedience in
+`metadata.inlineParameters` (live reprobe: backend `qval=0.01`/`FC=2` with
+`autoFilled` rule-based rationale, but meta FC became `1`). Fix:
+`mergeInlineParamsPreferringRuleFills` re-asserts rule-backed backend fills
+last. Guard: `server/merge-inline-params-rule-fills.test.ts`.
+
+**Note (2026-11-13 probe):** an empty / literal `projectId` (failed create, or
+a quoted heredoc that never expands `$PID`) yields schema default
+`differential_max_qval=0.05` with no rules in `user_intent` — that is not an
+inference miss. With a real project + rules, backend sets 0.01; frontend must
+not let grounded LLM defaults overwrite it.
 
 ## Tests
 

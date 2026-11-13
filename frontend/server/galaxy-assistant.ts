@@ -1711,6 +1711,41 @@ const SCHEMA_GROUNDED_FLAG = () =>
   process.env.SCHEMA_GROUNDED_EXTRACTION === '1';
 
 /**
+ * Merge backend-filled + schema-grounded + attachment-bound inline params.
+ *
+ * With SCHEMA_GROUNDED_EXTRACTION=1 the grounded LLM often re-emits schema
+ * defaults (e.g. differential_max_qval=0.05, |log2FC|→1) after the backend
+ * already applied standing project rules (0.01 / absolute FC 2). Spreading
+ * grounded AFTER backend silently clobbers obedience. Re-assert any param the
+ * backend marked autoFilled with a rule-based rationale so project rules win.
+ */
+export function mergeInlineParamsPreferringRuleFills(args: {
+  backendFilled: Record<string, string>;
+  grounded: Record<string, string>;
+  attachmentBound?: Record<string, string>;
+  workflowGa?: {
+    required_params?: Array<{ name?: string; autoFilled?: boolean; rationale?: string }>;
+    optional_params?: Array<{ name?: string; autoFilled?: boolean; rationale?: string }>;
+  } | null;
+}): Record<string, string> {
+  const ruleBacked: Record<string, string> = {};
+  for (const p of [
+    ...(args.workflowGa?.required_params || []),
+    ...(args.workflowGa?.optional_params || []),
+  ]) {
+    if (!p?.name || !p.autoFilled || !/rule-based/i.test(String(p.rationale || ''))) continue;
+    const v = args.backendFilled[p.name];
+    if (v != null && String(v).trim() !== '') ruleBacked[p.name] = String(v);
+  }
+  return {
+    ...args.backendFilled,
+    ...args.grounded,
+    ...(args.attachmentBound || {}),
+    ...ruleBacked,
+  };
+}
+
+/**
  * Async wrapper used at chat-stream call sites. Returns the canonical-keyed
  * dict and (optionally) an ExtractorResult for the caller to surface in the
  * chat response.
@@ -6339,11 +6374,12 @@ Rules:
     // filled" plus a "Which input_smiles?" card with the file already attached.
     // Carry the bound values into the overlay and withdraw their questions.
     const _attachmentBoundParams = attachmentBoundParams(generatedWorkflow);
-    const _remappedInlineParams = {
-      ..._backendFilledParams,
-      ..._groundedInlineParams,
-      ..._attachmentBoundParams,
-    };
+    const _remappedInlineParams = mergeInlineParamsPreferringRuleFills({
+      backendFilled: _backendFilledParams,
+      grounded: _groundedInlineParams,
+      attachmentBound: _attachmentBoundParams,
+      workflowGa: _gaForFill,
+    });
     const _clarifications = (_groundResult.details?.clarifications || []).filter(
       (c) => !_attachmentBoundParams[c.paramName],
     );
@@ -7222,12 +7258,27 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         : undefined,
     });
     // Same as the single-intent path: parameters the attachment binding already
-    // filled are carried into the overlay and no longer asked about.
+    // filled are carried into the overlay and no longer asked about. Also fold
+    // backend rule fills so SCHEMA_GROUNDED LLM defaults cannot clobber FDR/FC.
     const _multiAttachmentBound = attachmentBoundParams(_multiGeneratedWorkflow);
-    const _multiRemappedInlineParams = {
-      ...stringifyParamValues(_multiGroundResult.params),
-      ..._multiAttachmentBound,
-    };
+    const _multiGa = _multiGeneratedWorkflow?.workflow_ga || _multiGeneratedWorkflow || {};
+    const _multiBackendFilled: Record<string, string> = {};
+    for (const [k, v] of Object.entries(_multiGa.parameters || {})) {
+      if (v != null && String(v).trim() !== '') _multiBackendFilled[k] = String(v);
+    }
+    for (const p of [...(_multiGa.required_params || []), ...(_multiGa.optional_params || [])]) {
+      if (!p?.name) continue;
+      const v = p.value ?? p.default;
+      if (v != null && String(v).trim() !== '' && _multiBackendFilled[p.name] === undefined) {
+        _multiBackendFilled[p.name] = String(v);
+      }
+    }
+    const _multiRemappedInlineParams = mergeInlineParamsPreferringRuleFills({
+      backendFilled: _multiBackendFilled,
+      grounded: stringifyParamValues(_multiGroundResult.params),
+      attachmentBound: _multiAttachmentBound,
+      workflowGa: _multiGa,
+    });
     const _multiClarifications = (_multiGroundResult.details?.clarifications || []).filter(
       (c) => !_multiAttachmentBound[c.paramName],
     );
