@@ -11,6 +11,10 @@ import types
 from pathlib import Path
 
 # Avoid sentence_transformers / sklearn on developer laptops (scipy ABI mismatch).
+if "sentence_transformers" not in sys.modules:
+    _st = types.ModuleType("sentence_transformers")
+    _st.SentenceTransformer = type("SentenceTransformer", (), {})
+    sys.modules["sentence_transformers"] = _st
 if "galaxy.ai.unified_workflow_search" not in sys.modules:
     _uws = types.ModuleType("galaxy.ai.unified_workflow_search")
     _uws.UnifiedWorkflowSearch = type("UnifiedWorkflowSearch", (), {})
