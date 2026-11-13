@@ -16,6 +16,7 @@ export { ModelObject, ModelObjectLoader } from "./model-object"
 export { RunPretrained } from "./run-pretrained"
 export { TrainingLauncher } from "./training-launcher"
 export { CodeSandboxPath } from "./code-sandbox-path"
+export { FoldOutputs } from "./fold-outputs"
 export * from "./training-logic"
 export { InferenceResultView } from "./inference-result"
 export {
