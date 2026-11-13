@@ -108,6 +108,11 @@ local stub), so run it in CI or after an S3 DB pull. Do NOT sync a DB that trips
 git add <files> && git commit -m "<message>" && git push origin <branch>
 bash scripts/sync_to_dev.sh
 ```
+
+**Ops playbook (one-writer, DB matrix, proxy/SSM, no hot-patch):** see
+`docs/20261113_COMMIT_PR_SYNC_PROCESS.md`. Use `BIOMATE_SYNC_DB=0` when shipping
+code without the local catalog; do not sync DEV from two worktrees at once.
+
 **Then post-sync smoke** against dev to confirm the deployed bundle/backend behaves as it did locally:
 - For frontend: `curl -sf https://dev-public.biomate.ai/assets/index-*.js | wc -c` (size sanity)
 - For backend: `curl -sf https://dev-public.biomate.ai/api/version` (200 = workers up)

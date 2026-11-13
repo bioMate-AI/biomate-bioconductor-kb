@@ -69,6 +69,34 @@ describe('unboundRequiredDataInputs', () => {
   it('does not treat a required non-data setting as a missing input', () => {
     expect(unboundRequiredDataInputs({ workflow_ga: { required_params: [{ name: 'genome', type: 'string' }] } })).toEqual([]);
   });
+  it('blocks unbound clinic-hard data even when schema left it optional (cryo / DE stubs)', () => {
+    const cryo = {
+      optional_params: [
+        { name: 'movies_path', type: 'string', format: 'file-path', required: false, default: null },
+        { name: 'gain_ref', type: 'file', required: false, default: null },
+      ],
+      required_params: [],
+    };
+    expect(unboundRequiredDataInputs({ workflow_ga: cryo }).map(i => i.name)).toEqual(['movies_path']);
+    const de = {
+      optional_params: [
+        { name: 'samplesheet', type: 'string', format: 'file-path', required: false },
+        { name: 'matrix', type: 'string', format: 'file-path', required: false },
+        { name: 'contrasts', type: 'string', format: 'file-path', required: false },
+      ],
+      required_params: [],
+    };
+    expect(unboundRequiredDataInputs({ workflow_ga: de }).map(i => i.name).sort()).toEqual([
+      'matrix',
+      'samplesheet',
+    ]);
+  });
+});
+
+describe('isDataInputParam — clinic hard primary', () => {
+  it('treats movies_path as a data input even when required=false', () => {
+    expect(isDataInputParam({ name: 'movies_path', type: 'string', required: false })).toBe(true);
+  });
 });
 
 describe('message data signals', () => {

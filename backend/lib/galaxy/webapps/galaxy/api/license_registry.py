@@ -335,23 +335,41 @@ def scan_nf_for_tool_ids(nf_path: str) -> List[str]:
     path_lower = nf_path.lower()
 
     # Path-name based detection (e.g. cryosparc in the workflow path).
-    # Use word-boundary matching (\b) to avoid "structura" matching "structural_biology".
+    # Treat `_` / `-` / `/` as separators — Python `\b` does NOT break on `_`, so
+    # `\bcryosparc\b` missed `cryosparc_standard_spa` and the clinic LicenseGate
+    # never prompted (2026-11-13 noLicenseAsking).
+    def _path_has_pattern(haystack: str, pattern: str) -> bool:
+        return bool(re.search(
+            rf"(?:^|[^a-z0-9]){re.escape(pattern.lower())}(?:[^a-z0-9]|$)",
+            haystack,
+        ))
+
     for tool_id, info in LICENSE_REGISTRY.items():
         for pattern in info.get("container_patterns", []):
-            if re.search(rf"\b{re.escape(pattern.lower())}\b", path_lower):
+            if _path_has_pattern(path_lower, pattern):
                 if tool_id not in matched:
                     matched.append(tool_id)
                 break
 
-    # Content-based detection: scan container directives in the .nf file
+    # Content-based detection: scan container directives AND params.*_image defaults
+    # (cryosparc uses `container params.cs_image` with the ECR URI on params.cs_image).
     try:
         content = Path(nf_path).read_text(errors="replace")
+        content_lower = content.lower()
         for tool_id, info in LICENSE_REGISTRY.items():
             if tool_id in matched:
                 continue
             for pattern in info.get("container_patterns", []):
                 # Look for container = '...pattern...' or container "...pattern..."
                 if re.search(rf"container\s*[=\s]\s*['\"].*{re.escape(pattern)}.*['\"]", content, re.IGNORECASE):
+                    matched.append(tool_id)
+                    break
+                # Image URI embedded in a params.* assignment (cs_image = "...cryosparc...")
+                if pattern.lower() in content_lower and re.search(
+                    rf"params\.\w*(?:image|container)\w*\s*=\s*['\"][^'\"]*{re.escape(pattern)}",
+                    content,
+                    re.IGNORECASE,
+                ):
                     matched.append(tool_id)
                     break
     except (OSError, IOError):

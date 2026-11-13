@@ -26,6 +26,21 @@ def test_no_evidence_keeps_required():
     assert REQ("Channel.fromPath(params.ligand)", "ligand") is True
 
 
+def test_demo_elvis_still_required_for_clinic():
+    """CryoSPA: params.movies_path ?: test_data must NOT look optional to clinic users."""
+    src = 'def movies_path_str = params.movies_path ?: "${baseDir}/test_data"\n'
+    assert REQ(src, "movies_path") is True
+    # Empty-string elvis remains optional (real absence handling, not demo data).
+    assert REQ("def bc = params.box_center ?: ''\n", "box_center") is False
+
+
+def test_real_cryo_movies_path_required():
+    cryo = (
+        ROOT / "nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf"
+    ).read_text()
+    assert REQ(cryo, "movies_path") is True
+
+
 def test_real_md_workflows():
     gmx = (ROOT / "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf").read_text()
     assert REQ(gmx, "box_center") is False and REQ(gmx, "box_size") is False

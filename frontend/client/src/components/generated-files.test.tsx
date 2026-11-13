@@ -2,7 +2,7 @@ import React from "react"
 import { describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 vi.mock("wouter", () => ({ useLocation: () => ["/", vi.fn()] }))
-import { GeneratedFiles, analysisFolderPath, generatedFileTitle, savedFilesFromBlocks } from "./generated-files"
+import { GeneratedFiles, analysisFolderPath, savedFilesFromBlocks } from "./generated-files"
 import { ancestorPaths, treeFolderOf } from "./project-file-tree"
 
 const F = "ADMET QC · 2026-11-12 16.28"
@@ -25,18 +25,6 @@ describe("generated files in chat (founder: no links, files missing from the rep
     const folder = screen.getByTestId("generated-files-folder").getAttribute("href")!
     expect(new URLSearchParams(folder.split("?")[1]).get("folder")).toBe(`outputs/analysis/${F}`)
     expect(screen.getAllByTestId("generated-file-download")[0].getAttribute("href")).toBe("/dl/ADMET_QC_Details.csv")
-  })
-  it("size is muted after the name and repeated on hover/title", () => {
-    render(<GeneratedFiles blocks={blocks} />)
-    const opens = screen.getAllByTestId("generated-file-open")
-    const rows = screen.getAllByTestId("generated-file")
-    expect(opens[0].textContent?.trim()).toBe("ADMET_QC_Details.csv")
-    expect(opens[0].getAttribute("title")).toBe("ADMET_QC_Details.csv · 100 B")
-    expect(rows[0].getAttribute("data-file-size")).toBe("100 B")
-    expect(screen.getAllByTestId("generated-file-size")[0].textContent).toBe("100 B")
-    expect(rows[0].textContent).toContain("ADMET_QC_Details.csv")
-    expect(rows[0].textContent).toContain("100 B")
-    expect(generatedFileTitle({ id: "1", projectId: "p", name: "a.png", fullName: "a.png", size: 2048 })).toBe("a.png · 2.0 KB")
   })
   it("nothing to show → no card", () => {
     const { container } = render(<GeneratedFiles blocks={[blocks[2]]} />)

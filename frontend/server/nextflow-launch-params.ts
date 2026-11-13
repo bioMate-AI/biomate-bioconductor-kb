@@ -58,7 +58,7 @@ export function buildNextflowLaunchParameters(
 
   const nonEmptyRequestParams = nonEmptyRecord(requestParams);
 
-  return {
+  const merged: Record<string, unknown> = {
     // Generic parameter maps may supply defaults, but cannot erase structured
     // values with blank/null entries. Structured rows are what the execution
     // gate validates, so preserve their values at launch.
@@ -71,4 +71,16 @@ export function buildNextflowLaunchParameters(
     // Nextflow arguments.
     ...nonEmptyRequestParams,
   };
+
+  // nf-core/differentialabundance (and BioMate's DE stub) accept samplesheet OR
+  // input as aliases. Panel/AI bind to `samplesheet`; some paths only set
+  // `input`. Mirror whichever is present so Nextflow never sees both empty
+  // while the UI showed "samplesheet → mapped" (2026-11-13 symptom 9).
+  if (hasValue(merged.samplesheet) && !hasValue(merged.input)) {
+    merged.input = merged.samplesheet;
+  } else if (hasValue(merged.input) && !hasValue(merged.samplesheet)) {
+    merged.samplesheet = merged.input;
+  }
+
+  return merged;
 }
