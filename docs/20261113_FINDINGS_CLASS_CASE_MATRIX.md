@@ -1,7 +1,7 @@
 # 2026-11-13 — Findings/report class case matrix (close-out)
 
-Live tip at close-out verification: see `build-info.json` on DEV after sync.
-Worktree branch: `sync/pr398-onto-dev`.
+Live tip **before** this close-out sync: `ecf9fedc` (class gates `19914c14` already ancestor; potency S3 sidecar healed).
+Close-out commits: `67cb30ede2` (code) + `e2124936c7` (docs). Worktree branch: `sync/pr398-onto-dev`.
 
 ## Pipeline (every domain)
 
