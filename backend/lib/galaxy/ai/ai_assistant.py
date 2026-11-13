@@ -4170,9 +4170,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             or _explicit_registry_10813
             or (_explicit_dock_12824 and 'pdb_input' in _q_low)
         )
+        # Deterministic fills (project-rule FDR/FC, PE layout, explicit key=value) outrank
+        # LLM suggestions. Param LLM often re-emits schema defaults (e.g. qval 0.05) when the
+        # standing-rule text is truncated out of its 600-char query window.
+        _deterministic_param_names = {
+            s.get('name') for s in (_rule_suggestions + explicit_suggestions) if s.get('name')
+        }
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
+            if _deterministic_param_names:
+                llm_suggestions = [
+                    s for s in llm_suggestions
+                    if s.get('name') not in _deterministic_param_names
+                ]
             req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        # Re-assert rule fills after LLM/hints so standing project instructions always win.
+        if _rule_suggestions:
+            req, opt = self._apply_llm_suggestions(req, opt, _rule_suggestions)
         # Session uploads are authoritative user inputs.  Bind clearly named
         # files deterministically after best-effort LLM inference so a transient
         # model failure cannot leave a bulk-DE matrix/samplesheet unbound.

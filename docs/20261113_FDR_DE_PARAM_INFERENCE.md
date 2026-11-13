@@ -30,11 +30,18 @@ Projection was fine — `differential_max_qval` is not in
 | `_pick_significance_param_name` — prefer `*max_qval*`/`*fdr*` over bare `alpha` | same |
 | `_extract_abs_fold_change` — `\|log2FC\| >= 1` → absolute FC `2.0` | same |
 | Wire both into `_return_nextflow_match` rule suggestions | same |
-| E2E: (b) genome on rnaseq; (c) hard FDR assert on DE route | `instructions-obedience.e2e.ts` |
+| Rule fills outrank LLM param suggestions (filter + re-assert) | same |
+| E2E: (b) genome on rnaseq; (c) hard FDR assert on differentialabundance | `instructions-obedience.e2e.ts` |
 | Unit tests for extract + schema projection + apply | `test_fdr_param_inference.py` |
 
 Project rules were already threaded into generate (`_intentForBackend`) and
 param extraction (`_paramExtractQuery`); no frontend projection change needed.
+
+**Note (2026-11-13 probe):** an empty `projectId` (failed project create) yields
+schema default `differential_max_qval=0.05` with no rules in `user_intent` —
+that is not an inference miss. With a real project + rules, rules must still
+beat the param LLM, which often re-emits 0.05 when the rule text is truncated
+out of its 600-char query window.
 
 ## Tests
 
@@ -45,4 +52,13 @@ param extraction (`_paramExtractQuery`); no frontend projection change needed.
 
 - Instruction-panel UX (edit/delete rules UI) outside this obedience proof.
 - Soft `|log2FC|` e2e assert — conversion is covered in unit tests; live case
-  hard-asserts FDR only (FC default already matches `\|log2FC\| >= 1` → 2.0).
+  hard-asserts FDR only (FC default already matches `|log2FC| >= 1` → 2.0).
+
+## Pre-sync note (auth-service vitest)
+
+Full `npx vitest run` under multi-worktree CPU contention once timed out
+`server/auth-service.test.ts` → `verifyCredentials` (default 5s). FDR commit
+`5ce97d49b9` touches none of auth (`ai_assistant.py`, FDR unit test, docs,
+`instructions-obedience.e2e.ts` only). Isolated re-run of that case alone:
+**PASS in ~1.1s** (`bcrypt.hash(..., 12)` + two compares). Unrelated env flake
+— do not treat the full suite as green for that run; do not block FDR sync.
