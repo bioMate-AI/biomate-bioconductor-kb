@@ -20,6 +20,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import {
   dirOf, filesUnderFolder, folderSiblings, likePrefix, normalizeFolderPath, samplesheetFilename,
+  samplesheetStoredName, pickFolderSamplesheetCsv,
 } from "./project-folders";
 
 const httpFetch = globalThis.fetch;
@@ -122,6 +123,24 @@ describe("project-folders helpers", () => {
     expect(likePrefix("a_b%c\\")).toBe("a\\_b\\%c\\\\");
     expect(samplesheetFilename("run1/fastq")).toBe("fastq_samplesheet.csv");
     expect(samplesheetFilename("")).toBe("inputs_samplesheet.csv");
+    expect(samplesheetStoredName("pairs", "samplesheet.csv")).toBe("pairs/samplesheet.csv");
+    expect(samplesheetStoredName("", null)).toBe("inputs_samplesheet.csv");
+    expect(pickFolderSamplesheetCsv({ csv: "a,b\n" })?.csv).toBe("a,b\n");
+    expect(pickFolderSamplesheetCsv({ csv: "paired\n", single: { csv: "single\n", filename: "se.csv" } }, "single_end")).toEqual({
+      csv: "single\n", filename: "se.csv",
+    });
+    expect(pickFolderSamplesheetCsv({ csv: undefined })).toBeNull();
+  });
+});
+
+describe("POST /api/projects/:id/folders/samplesheet (source contract)", () => {
+  const src = fs.readFileSync(path.join(HERE, "project-routes.ts"), "utf8");
+  it("persists samplesheet via folder_profile + _storeProjectInput (upload source)", () => {
+    expect(src).toMatch(/app\.post\("\/api\/projects\/:id\/folders\/samplesheet"/);
+    expect(src).toContain("pickFolderSamplesheetCsv");
+    expect(src).toContain("samplesheetStoredName");
+    expect(src).toMatch(/source:\s*"upload"/);
+    expect(src).toContain('error: "no_samplesheet"');
   });
 });
 

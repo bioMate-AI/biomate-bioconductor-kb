@@ -121,9 +121,10 @@ describe("Folder view", () => {
     expect(within(screen.getByTestId("folder-sample-row-S2")).getByTestId("folder-orphan-S2_R1.fastq.gz")).toHaveTextContent("Missing mate — single-end")
     const dl = screen.getByTestId("folder-samplesheet-download")
     expect(dl.getAttribute("href")).toBe("/api/projects/proj-1/folders/profile?path=pairs&download=samplesheet")
-    // Ask in chat attaches the folder (all files), not a samplesheet-only stand-in.
+    // FASTQ folders: Use samplesheet (one file) + Attach all files (N chips).
+    expect(screen.getByTestId("folder-profile-use-samplesheet")).toHaveTextContent("Use samplesheet")
     const analyze = screen.getByTestId("folder-profile-analyze")
-    expect(analyze).toHaveTextContent("Ask in chat")
+    expect(analyze).toHaveTextContent("Attach all files")
     expect(screen.getByTestId("folder-rollup")).toHaveTextContent("Files: 3 — 3 FASTQ · pairs: 1")
     expect(screen.getByTestId("folder-profile-verdict")).toHaveTextContent("Paired + unpaired")
     // Round 5 — S2's missing mate is said ONCE in the samples section: the row's badge and the
@@ -157,6 +158,8 @@ describe("Folder view", () => {
     const text = fp.textContent ?? ""
     expect(text).toContain("共 3 个文件：3 个 FASTQ（1 对）")
     expect(text).toContain("下载样本表")
+    expect(text).toContain("使用样本表")
+    expect(text).toContain("附加全部文件")
     expect(text).toContain("未放入双端样本表（本文件夹中没有配对文件）：S2_R1.fastq.gz")
     expect(text).not.toContain("将按单端处理")
     const ALLOWED = ["S1_R1.fastq.gz", "S1_R2.fastq.gz", "S2_R1.fastq.gz", "pairs", "S1", "S2", "R2", "FASTQ",

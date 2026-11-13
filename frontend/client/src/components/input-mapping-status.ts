@@ -5,9 +5,10 @@
  * inline card so the status logic — and the run-block condition — is unit-testable
  * without mounting the ~3,700-line panel.
  *
- * Honesty rule: a resolved input is "resolved · format not checked" unless a real
- * `format_mismatch_warning` exists on its param definition — we never assert a
- * green compatibility "ok" we did not actually check.
+ * Honesty rule: a resolved input is "resolved · format not checked" unless we
+ * actually sniffed a kind (perception viewKind or clear extension map) and it
+ * matched — we never assert a green compatibility "ok" we did not check. A
+ * declared `format_mismatch_warning` or a strong sniff contradiction → needs-mapping.
  */
 
 import {
@@ -18,6 +19,7 @@ import {
   CLINIC_HARD_REQUIRED_DATA_NAMES,
   type DataInputParamLike,
 } from '../../../shared/workflow-data-inputs';
+import { kindFromName } from './datasets/dataset-view-model';
 
 export interface InputParam {
   id?: string;
@@ -34,6 +36,10 @@ export interface SessionDataset {
   name: string;
   file_path?: string | null;
   source_url?: string | null;
+  /** Perception (or stored profileSummary) viewKind when known. */
+  viewKind?: string | null;
+  /** Perception quality — blocked/unreached must not invent a type mismatch. */
+  quality?: string | null;
 }
 
 export interface ParamDef extends DataInputParamLike {
@@ -42,9 +48,9 @@ export interface ParamDef extends DataInputParamLike {
 }
 
 export type InputMappingStatus =
-  | 'resolved'        // bound to a value; no known format mismatch (compat not auto-checked)
+  | 'resolved'        // bound to a value; no known format mismatch
   | 'unresolved'      // required input with no value → run is blocked
-  | 'needs-mapping'   // bound but the param def carries a real format-mismatch warning → blocked
+  | 'needs-mapping'   // bound but format mismatch (declared or sniffed) → blocked
   | 'optional-empty'; // optional input left empty → fine, run not blocked
 
 export interface InputMappingRow {
@@ -54,6 +60,83 @@ export interface InputMappingRow {
   dataset: SessionDataset | null;
   mismatch: string | null;
   status: InputMappingStatus;
+  /** True when we sniffed a kind and it was compatible (chip can say format ok). */
+  formatChecked?: boolean;
+}
+
+/** Param-name families → accepted perception viewKinds. null = do not sniff-gate. */
+export function expectedViewKindsForParam(name: string | undefined): ReadonlySet<string> | null {
+  if (!name) return null;
+  const n = name.toLowerCase().replace(/-/g, '_');
+  if (/^(reads|fastq|fastqs|input_fastq|read1|read2|r1|r2)$/.test(n) || /_fastq$/.test(n)) {
+    return new Set(['reads']);
+  }
+  if (/^(bam|cram|sam|alignment|alignments)$/.test(n) || /_(bam|cram)$/.test(n)) {
+    return new Set(['alignment']);
+  }
+  if (/^(vcf|variants)$/.test(n) || /_vcf$/.test(n)) {
+    return new Set(['variants']);
+  }
+  if (/^(fasta|fa|genome_fasta|reference_fasta|ref_fasta)$/.test(n) || /_fasta$/.test(n)) {
+    return new Set(['sequences']);
+  }
+  if (/^(gtf|gff|gff3|annotation)$/.test(n)) {
+    return new Set(['annotation']);
+  }
+  if (/^(movies_path|movie_dir|movies|mrc|tomogram)$/.test(n)) {
+    return new Set(['image']);
+  }
+  if (/^(matrix|counts|count_matrix|countmatrix|expression)$/.test(n)) {
+    return new Set(['table', 'matrix', 'anndata', 'loom']);
+  }
+  // samplesheet / input / design CSV — the bound file is the sheet, not the FASTQs
+  if (/^(samplesheet|sample_sheet|sample_metadata|metadata|design|contrasts|coldata|input|input_csv)$/.test(n)) {
+    return new Set(['table', 'records', 'document']);
+  }
+  return null;
+}
+
+function datasetNameHint(dataset: SessionDataset | null, value: unknown): string {
+  if (dataset?.name) return dataset.name;
+  if (value === undefined || value === null || value === '') return '';
+  const s = String(value);
+  // Basename of a path / URI for extension sniff when session lookup missed.
+  const leaf = s.split(/[\\/]/).pop() || s;
+  return leaf.split('?')[0] || leaf;
+}
+
+/** Kinds strong enough to contradict a param family. binary/archive/json/… stay unchecked. */
+const GATEABLE_KINDS = new Set([
+  'reads', 'alignment', 'variants', 'sequences', 'annotation', 'image',
+  'table', 'matrix', 'anndata', 'loom', 'records', 'document',
+]);
+
+function sniffedViewKind(dataset: SessionDataset | null, value?: unknown): string | null {
+  if (dataset?.quality === 'blocked') return null;
+  const vk = dataset?.viewKind;
+  if (typeof vk === 'string' && vk && vk !== 'unknown') {
+    return GATEABLE_KINDS.has(vk) ? vk : null;
+  }
+  const fromName = kindFromName(datasetNameHint(dataset, value));
+  return GATEABLE_KINDS.has(fromName) ? fromName : null;
+}
+
+/**
+ * Strong contradiction between a bound file's sniffed kind and the param's
+ * expected kinds. Returns a user-facing warning or null (no block).
+ */
+export function perceptionMismatch(
+  paramName: string | undefined,
+  dataset: SessionDataset | null,
+  value?: unknown,
+): string | null {
+  const expected = expectedViewKindsForParam(paramName);
+  if (!expected) return null;
+  const got = sniffedViewKind(dataset, value);
+  if (!got) return null;
+  if (expected.has(got)) return null;
+  const label = datasetNameHint(dataset, value) || 'file';
+  return `Expected ${[...expected].join('/')} for “${paramName}”, got ${got} (${label})`;
 }
 
 /** Resolve a bound param value to the session dataset object it refers to (by
@@ -96,7 +179,12 @@ export function deriveInputMappingRows(
     const value = p.value;
     const empty = isEmpty(value);
     const dataset = datasetForValue(value, sessionDatasets);
-    const mismatch = mismatchForParam(p.id || p.name || '', paramDefs);
+    const paramName = p.id || p.name || '';
+    const declared = mismatchForParam(paramName, paramDefs);
+    const sniffed = perceptionMismatch(paramName, dataset, value);
+    const mismatch = declared || sniffed;
+    const formatChecked = !empty && !mismatch && sniffedViewKind(dataset, value) != null
+      && expectedViewKindsForParam(paramName) != null;
     const status: InputMappingStatus =
       p.required && empty
         ? 'unresolved'
@@ -105,7 +193,7 @@ export function deriveInputMappingRows(
           : empty
             ? 'optional-empty'
             : 'resolved';
-    return { param: p, value, empty, dataset, mismatch, status };
+    return { param: p, value, empty, dataset, mismatch, status, formatChecked };
   });
 }
 

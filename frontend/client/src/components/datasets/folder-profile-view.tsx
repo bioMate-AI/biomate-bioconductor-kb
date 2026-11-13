@@ -8,7 +8,8 @@
  * (galaxy/ai/folder_profile.py, pairing = Galaxy's auto_pairing); this view only renders it.
  * Finding texts are i18n `perception.msg.<code>` like the per-file QC card.
  */
-import { Download, Folder, Play } from "lucide-react"
+import { useState } from "react"
+import { Download, FileSpreadsheet, Folder, Play } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { findingText, pathBaseText, type PerceptionFinding } from "@/components/data-perception"
 import { t, tOr } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import { analyzeFolderChatUrl } from "@/lib/folder-as-input"
+import { analyzeFileChatUrl, analyzeFolderChatUrl, persistFolderSamplesheet } from "@/lib/folder-as-input"
 import { folderProfileUrl, useFolderProfile, type FolderProfile, type FolderSample } from "./datasets-api"
 import { kindLabel, localizedFormatLabel } from "./dataset-presentation"
 import { VIEW_KINDS, type ViewKind } from "./dataset-view-model"
@@ -119,12 +120,15 @@ export function FolderProfileView({
   path,
   className,
   onAnalyze,
+  onUseSamplesheet,
 }: {
   projectId: string
   path: string
   className?: string
   /** Attach every file under this folder to chat (default: navigate with attachFolder). */
   onAnalyze?: () => void
+  /** After persisting samplesheet — default: navigate with attachFile=<id>. */
+  onUseSamplesheet?: (file: { id: string; name: string }) => void
 }) {
   const q = useFolderProfile(projectId, path)
   const name = path ? path : t("dataset_obj.inputs")
@@ -132,9 +136,26 @@ export function FolderProfileView({
   const shownBySamples = prof && Array.isArray(prof.findings) ? findingsShownBySamples(prof) : new Set()
   const shownFindings = (prof?.findings ?? []).filter((f) => !shownBySamples.has(f))
   const canAnalyze = (prof?.fileCount ?? 0) > 0
+  const hasSamplesheet = Boolean(prof?.samplesheet?.csv)
+  const [persistingSheet, setPersistingSheet] = useState(false)
+  const [sheetError, setSheetError] = useState<string | null>(null)
   const handleAnalyze = () => {
     if (onAnalyze) onAnalyze()
     else window.location.assign(analyzeFolderChatUrl(projectId, path))
+  }
+  const handleUseSamplesheet = async () => {
+    if (!hasSamplesheet || persistingSheet) return
+    setPersistingSheet(true)
+    setSheetError(null)
+    try {
+      const file = await persistFolderSamplesheet(projectId, path)
+      if (onUseSamplesheet) onUseSamplesheet(file)
+      else window.location.assign(analyzeFileChatUrl(projectId, file.id))
+    } catch (e: any) {
+      setSheetError(e instanceof Error ? e.message : t("folder_profile.samplesheet_use_error"))
+    } finally {
+      setPersistingSheet(false)
+    }
   }
   return (
     <Card className={cn("min-w-0", className)} data-testid="folder-profile" data-kind={prof?.kind ?? ""} data-path={path}>
@@ -158,19 +179,41 @@ export function FolderProfileView({
               {tOr(`folder_profile.verdict_${prof.fastq.verdict}`, prof.fastq.verdict)}
             </Badge>
           )}
-          {canAnalyze && (
-            <Button
-              size="sm"
-              className="h-8 text-sm px-3 gap-1.5 ml-auto"
-              onClick={handleAnalyze}
-              data-testid="folder-profile-analyze"
-              title={t("folder_profile.ask_in_chat_tip")}
-            >
-              <Play className="h-3.5 w-3.5" />
-              {t("dataset_obj.ask_in_chat")}
-            </Button>
+          {(canAnalyze || hasSamplesheet) && (
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap justify-end">
+              {hasSamplesheet && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-8 text-sm px-3 gap-1.5"
+                  onClick={() => { void handleUseSamplesheet() }}
+                  disabled={persistingSheet}
+                  data-testid="folder-profile-use-samplesheet"
+                  title={t("folder_profile.samplesheet_use_tip")}
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  {persistingSheet ? t("folder_profile.samplesheet_using") : t("folder_profile.samplesheet_use")}
+                </Button>
+              )}
+              {canAnalyze && (
+                <Button
+                  size="sm"
+                  variant={hasSamplesheet ? "outline" : "default"}
+                  className="h-8 text-sm px-3 gap-1.5"
+                  onClick={handleAnalyze}
+                  data-testid="folder-profile-analyze"
+                  title={t("folder_profile.ask_in_chat_tip")}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  {hasSamplesheet ? t("folder_profile.attach_all_files") : t("dataset_obj.ask_in_chat")}
+                </Button>
+              )}
+            </div>
           )}
         </div>
+        {sheetError && (
+          <p className="text-xs text-destructive" data-testid="folder-samplesheet-use-error">{sheetError}</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {q.isLoading ? (

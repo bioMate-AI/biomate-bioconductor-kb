@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  analyzeFileChatUrl,
   analyzeFolderChatUrl,
   filesUnderFolderPrefix,
   folderPathsFromFiles,
@@ -23,6 +24,10 @@ const FILES = [
 describe("folder-as-input", () => {
   it("builds an attachFolder chat URL for analysis", () => {
     expect(analyzeFolderChatUrl("proj-1", "pairs")).toBe("/?project=proj-1&attachFolder=pairs")
+  })
+
+  it("builds an attachFile chat URL for a persisted samplesheet", () => {
+    expect(analyzeFileChatUrl("proj-1", "file-abc")).toBe("/?project=proj-1&attachFile=file-abc")
   })
 
   it("lists files under a folder prefix recursively, excluding run outputs and sibling folders", () => {
