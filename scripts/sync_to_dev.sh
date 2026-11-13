@@ -14,6 +14,12 @@
 #
 # Usage: bash scripts/sync_to_dev.sh
 #        BIOMATE_SYNC_FORCE=frontend,backend bash scripts/sync_to_dev.sh   (re-deploy layers with no change)
+#        BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh   (code/workflows only — never upload galaxy_ai_tools.db)
+#
+# HOT-PATCH FORBIDDEN: do not docker cp / S3-drop files onto DEV outside this script
+# unless immediately followed by a ledger-correcting sync_to_dev.sh run. Ad-hoc
+# hot-patches leave /opt/biomate/.deploy-ledger.jsonl lying (2026-11-13). See
+# docs/20261113_COMMIT_PR_SYNC_PROCESS.md (one-writer rule + recovery).
 #
 # As of 2026-05-15 this script is MANUAL-ONLY.
 #   - The 10-minute auto-poll loop has been removed (caused orphan-process conflicts).
@@ -57,14 +63,23 @@ fi
 _SSM_PROXY="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region us-west-2"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Guard against accidentally running multiple syncs at once (per Lessons L7).
-LOCK_FILE="/tmp/biomate_sync_to_dev.lock"
-if [[ -e "$LOCK_FILE" ]] && kill -0 "$(cat "$LOCK_FILE" 2>/dev/null)" 2>/dev/null; then
-  echo "ERROR: another sync_to_dev.sh is already running (pid $(cat "$LOCK_FILE"))." >&2
-  echo "If you are sure no real sync is in progress: rm $LOCK_FILE" >&2
-  exit 1
+# Guard helpers (proxy / local lock / DB decision / receipt) — unit-tested in
+# scripts/tests/test_sync_guards.sh
+# shellcheck source=lib/sync_guards.sh
+source "$REPO_ROOT/scripts/lib/sync_guards.sh"
+
+# Cursor sandbox (and some corporate MITM setups) inject HTTP_PROXY=http://127.0.0.1:…
+# which breaks AWS SSM Session Manager. Clear loopback proxies before any aws/ssm call.
+# Set BIOMATE_STRICT_PROXY=1 to refuse instead of auto-unsetting.
+if ! biomate_guard_loopback_proxy; then
+  exit 2
 fi
-echo $$ > "$LOCK_FILE"
+
+# Guard against accidentally running multiple syncs at once (per Lessons L7).
+# Multi-worktree: panelfix / nextphase / review / coldstart share this lock path
+# on one machine; remote lease covers cross-machine writers.
+LOCK_FILE="/tmp/biomate_sync_to_dev.lock"
+biomate_acquire_local_sync_lock "$LOCK_FILE" || exit 1
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
@@ -1017,17 +1032,18 @@ deploy_databases() {
       || echo '')
     # Never ship a catalog whose external-content FTS index disagrees with the workflows table: search
     # then ranks on stale text and the update triggers fail mid-write (2026-11-05, docs/20261103 §13).
-    local _fts_bad=0
-    if command -v sqlite3 >/dev/null 2>&1 \
-       && ! sqlite3 "$local_db" "INSERT INTO workflows_fts(workflows_fts, rank) VALUES('integrity-check', 1);" >/dev/null 2>&1; then
-      log "::error:: [db] workflows_fts integrity-check FAILED on the local galaxy_ai_tools.db — not uploading it."
-      log "::error:: [db] rebuild first: sqlite3 $local_db \"INSERT INTO workflows_fts(workflows_fts) VALUES('rebuild')\""
-      _fts_bad=1
+    # 2026-11-13: soft-skip was treated as "DB aside" and still left operators thinking DEV got the
+    # intended catalog — refuse hard when an upload was about to happen.
+    local _db_decision _db_local_wf _db_dev_wf
+    _db_local_wf="$(biomate_db_workflow_count "$local_db")"
+    _db_dev_wf="${_DEV_DB_WF_COUNT:--1}"
+    _db_decision="$(biomate_db_upload_decision "$local_db" "$_db_dev_wf")"
+    if [[ "$_db_decision" != "allow" ]]; then
+      log "::error:: [db] $(biomate_db_decision_message "$_db_decision" "$local_db" "$_db_local_wf" "$_db_dev_wf")"
+      log "::error:: [db] refusing upload — set BIOMATE_SYNC_DB=0 for code-only, or fix the local catalog first"
+      return 1
     fi
-    if [[ "${_fts_bad:-0}" == 1 ]]; then
-      log "[db] galaxy_ai_tools.db NOT uploaded (FTS integrity) — dev keeps its current DB"
-      LAST_DB_SYNC="$local_db_mtime"
-    elif [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
+    if [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
       log "[db] galaxy_ai_tools.db MD5 matches dev (${_cur_local_md5}) — skipping upload"
       LAST_DB_SYNC="$local_db_mtime"
     else
@@ -1997,9 +2013,16 @@ do_sync() {
     do_backend=false; do_workflows=false; do_db=false
     log "[layers] BIOMATE_ONLY_FRONTEND=1 → forcing backend/workflows/db OFF (frontend only)"
   fi
+  # Explicit DB opt-out (wrong-worktree catalog, FTS rebuild pending, code-only ship).
+  if [[ "${BIOMATE_SYNC_DB:-1}" == "0" ]]; then
+    do_db=false
+    log "[layers] BIOMATE_SYNC_DB=0 → forcing db=false (DEV keeps current galaxy_ai_tools.db)"
+  fi
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
+  # Stash for the post-sync DEV receipt
+  _SYNC_LAYERS_SUMMARY="frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
 
   # Snapshot the pre-sync state BEFORE any mutation (and before the optional
   # resync_galaxy_env recreates the container) so we can roll back if the sync
@@ -2247,7 +2270,8 @@ else
     log "Broke a STALE remote lease (orphaned ${_lease_age}s > ${_LEASE_STALE_S}s, no live sync runs that long) and re-acquired"
     REMOTE_SYNC_LEASE_ACQUIRED=1
   else
-    log "Another deployment holds the remote lease (age=${_lease_age:-unknown}s); refusing"
+    _lease_owner="$(ec2_ssh 'cat /opt/biomate/.dev-deploy.lock/owner 2>/dev/null' 2>/dev/null || true)"
+    biomate_remote_lease_refuse_message "${_lease_age:-unknown}" "$_LEASE_STALE_S" "${_lease_owner:-}" >&2
     exit 1
   fi
 fi
@@ -2283,6 +2307,10 @@ if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
 fi
 
 _LOCAL_DB="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
+_SYNC_LAYERS_SUMMARY=""   # filled inside do_sync for the DEV receipt
+_RECEIPT_DB_MD5="?"
+_RECEIPT_WF_COUNT="?"
+_RECEIPT_IK_COUNT="?"
 
 # Code layers — git diff
 _PREV_COMMIT=""
@@ -2300,29 +2328,66 @@ fi
 # Comparing local→stored-local is wrong: if dev DB gets corrupted/truncated (e.g. a
 # failed docker cp that wrote 0 bytes), the stored md5 still matches local and the DB
 # is never re-synced. Root cause of the Jun-2026 "20K stub" incident.
+#
+# BIOMATE_SYNC_DB=0: never schedule a catalog upload (code/workflows-only). Required when
+# this worktree's galaxy_ai_tools.db is the wrong lineage (review vs biomate vs stub) or
+# FTS-broken — do not use "DB aside" hot-patches (2026-11-13).
+_DEV_DB_WF_COUNT="-1"
 _LOCAL_DB_MD5="$(md5 -q "$_LOCAL_DB" 2>/dev/null || md5sum "$_LOCAL_DB" 2>/dev/null | cut -d' ' -f1 || echo '')"
-if [[ -n "$_LOCAL_DB_MD5" ]]; then
-  # Fetch the actual dev DB md5 via SSH. One cheap round-trip saves 300MB transfer.
-  _DEV_DB_MD5="$(ec2_ssh \
-      'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1' 2>/dev/null || echo '')"
-  _DEV_DB_SIZE="$(ec2_ssh \
-      'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
-  if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
-    _LOCAL_DB_SIZE="$(stat -c %s "$_LOCAL_DB" 2>/dev/null || stat -f %z "$_LOCAL_DB" 2>/dev/null || echo 0)"
-    # Skip only when local looks like a STUB (< dev AND < 100MB). A full DB that is
-    # merely smaller than dev's bytes (VACUUM, added column) must still upload.
-    if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" && "${_LOCAL_DB_SIZE:-0}" -lt 104857600 ]]; then
-      log "DB: local (${_LOCAL_DB_SIZE}B) looks like a stub (<100MB and < dev ${_DEV_DB_SIZE}B) — skipping upload"
-    else
-      CHANGED="$CHANGED"$'\n'"backend/database/"
-      log "DB out of sync (local=$_LOCAL_DB_MD5 dev=$_DEV_DB_MD5 dev_size=${_DEV_DB_SIZE}B) — will sync"
-    fi
-  elif [[ "${_DEV_DB_SIZE:-0}" -lt 1048576 ]]; then
-    # Dev DB is < 1MB — corrupt/empty stub. Force sync even if md5 somehow matches.
-    CHANGED="$CHANGED"$'\n'"backend/database/"
-    log "Dev DB is too small (${_DEV_DB_SIZE}B) — forcing sync"
+if [[ "${BIOMATE_SYNC_DB:-1}" == "0" ]]; then
+  log "BIOMATE_SYNC_DB=0 — catalog upload disabled for this run"
+elif [[ -n "$_LOCAL_DB_MD5" ]]; then
+  # Fetch the actual dev DB md5 + size + workflow count via SSH. One round-trip saves 300MB.
+  _DEV_DB_PROBE="$(ec2_ssh '
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    md5=$(docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1)
+    sz=$(docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0)
+    wf=$(docker exec "$GC" python3.9 -c "import sqlite3; print(sqlite3.connect(\"/app/database/galaxy_ai_tools.db\").execute(\"select count(*) from workflows\").fetchone()[0])" 2>/dev/null || echo -1)
+    printf "%s %s %s\n" "${md5:-}" "${sz:-0}" "${wf:--1}"
+  ' 2>/dev/null || echo '')"
+  _DEV_DB_MD5="$(awk '{print $1}' <<<"$_DEV_DB_PROBE")"
+  _DEV_DB_SIZE="$(awk '{print $2}' <<<"$_DEV_DB_PROBE")"
+  _DEV_DB_WF_COUNT="$(awk '{print $3}' <<<"$_DEV_DB_PROBE")"
+  [[ "$_DEV_DB_SIZE" =~ ^[0-9]+$ ]] || _DEV_DB_SIZE=0
+  [[ "$_DEV_DB_WF_COUNT" =~ ^-?[0-9]+$ ]] || _DEV_DB_WF_COUNT=-1
+
+  # Preflight DB policy before do_sync mutates anything: FTS / min count / shrink.
+  # Stub / low-count DBs → skip upload and continue (code sync still OK).
+  # FTS-broken or shrink of a full local catalog → hard abort (do not "DB aside").
+  _LOCAL_WF_COUNT="$(biomate_db_workflow_count "$_LOCAL_DB")"
+  _DB_DECISION="$(biomate_db_upload_decision "$_LOCAL_DB" "$_DEV_DB_WF_COUNT")"
+  _LOCAL_DB_SIZE="$(stat -c %s "$_LOCAL_DB" 2>/dev/null || stat -f %z "$_LOCAL_DB" 2>/dev/null || echo 0)"
+  if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" || "${_DEV_DB_SIZE:-0}" -lt 1048576 ]]; then
+    case "$_DB_DECISION" in
+      allow)
+        if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" && "${_LOCAL_DB_SIZE:-0}" -lt 104857600 ]]; then
+          log "DB: local (${_LOCAL_DB_SIZE}B) looks like a stub (<100MB and < dev ${_DEV_DB_SIZE}B) — skipping upload"
+        else
+          CHANGED="$CHANGED"$'\n'"backend/database/"
+          log "DB out of sync (local=$_LOCAL_DB_MD5 dev=${_DEV_DB_MD5:-?} local_wf=$_LOCAL_WF_COUNT dev_wf=${_DEV_DB_WF_COUNT} size=${_DEV_DB_SIZE}B) — will sync"
+        fi
+        ;;
+      refuse_count|refuse_missing)
+        log "DB: $(biomate_db_decision_message "$_DB_DECISION" "$_LOCAL_DB" "$_LOCAL_WF_COUNT" "$_DEV_DB_WF_COUNT")"
+        log "DB: skipping catalog upload; continuing with code layers (set BIOMATE_SYNC_DB=0 to silence)"
+        ;;
+      refuse_fts|refuse_shrink)
+        # Full-looking local DB that would have been uploaded under the old soft-skip path.
+        if [[ "${_LOCAL_DB_SIZE:-0}" -ge 104857600 ]]; then
+          log "ERROR: $(biomate_db_decision_message "$_DB_DECISION" "$_LOCAL_DB" "$_LOCAL_WF_COUNT" "$_DEV_DB_WF_COUNT")"
+          log "ERROR: refusing sync so DEV is not left with a wrong/silent catalog. Fix FTS, use the designated catalog worktree, BIOMATE_SYNC_DB_ALLOW_SHRINK=1 (shrink only), or BIOMATE_SYNC_DB=0 for code-only."
+          exit 2
+        fi
+        log "DB: $(biomate_db_decision_message "$_DB_DECISION" "$_LOCAL_DB" "$_LOCAL_WF_COUNT" "$_DEV_DB_WF_COUNT") — treating as stub skip"
+        ;;
+      *)
+        log "ERROR: unexpected DB decision '$_DB_DECISION'"
+        exit 2
+        ;;
+    esac
   else
-    log "DB in sync on dev (${_DEV_DB_MD5}) — skipping 300MB transfer"
+    log "DB in sync on dev (${_DEV_DB_MD5}; wf=${_DEV_DB_WF_COUNT}) — skipping 300MB transfer"
   fi
 else
   log "WARNING: cannot compute local DB md5 (file missing?) — skipping DB sync"
@@ -2347,6 +2412,35 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
     echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
   fi
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
+  # One-screen DEV receipt — what is live after this healthy sync (cheap docker exec).
+  _RECEIPT_PROBE="$(ec2_ssh '
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    md5=$(docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1)
+    stats=$(docker exec "$GC" python3.9 -c "
+import sqlite3
+c=sqlite3.connect(\"/app/database/galaxy_ai_tools.db\")
+wf=c.execute(\"select count(*) from workflows\").fetchone()[0]
+try:
+  ik=c.execute(\"select count(*) from workflows where input_kinds is not null and trim(input_kinds) not in (\\\"\\\",\\\"null\\\")\").fetchone()[0]
+except Exception:
+  ik=\"?\"
+print(f\"{wf} {ik}\")
+" 2>/dev/null || echo "? ?")
+    printf "%s %s\n" "${md5:-?}" "${stats:-? ?}"
+  ' 2>/dev/null || echo '? ? ?')"
+  _RECEIPT_DB_MD5="$(awk '{print $1}' <<<"$_RECEIPT_PROBE")"
+  _RECEIPT_WF_COUNT="$(awk '{print $2}' <<<"$_RECEIPT_PROBE")"
+  _RECEIPT_IK_COUNT="$(awk '{print $3}' <<<"$_RECEIPT_PROBE")"
+  _RECEIPT_BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  biomate_print_dev_receipt \
+    "$CURRENT_COMMIT" \
+    "$_RECEIPT_BRANCH" \
+    "${_SYNC_LAYERS_SUMMARY:-unknown}" \
+    "$_RECEIPT_DB_MD5" \
+    "$_RECEIPT_WF_COUNT" \
+    "$_RECEIPT_IK_COUNT" \
+    "${SYNC_RESULT:-healthy}"
   # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
   # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being
   # left behind on old LT versions when the LT was updated. Auto-fix on every

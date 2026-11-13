@@ -82,4 +82,26 @@ describe("buildNextflowLaunchParameters", () => {
       ),
     ).toEqual({ smiles: "CCO", threads: 4 });
   });
+
+  it("mirrors samplesheet ↔ input aliases for differentialabundance", () => {
+    expect(
+      buildNextflowLaunchParameters(
+        { optional_params: [{ name: "samplesheet", value: "s3://b/sample_metadata.csv" }] },
+        undefined,
+      ),
+    ).toEqual({
+      samplesheet: "s3://b/sample_metadata.csv",
+      input: "s3://b/sample_metadata.csv",
+    });
+    expect(
+      buildNextflowLaunchParameters(
+        { parameters: { input: "s3://b/meta.csv", matrix: "s3://b/counts.csv" } },
+        undefined,
+      ),
+    ).toEqual({
+      input: "s3://b/meta.csv",
+      samplesheet: "s3://b/meta.csv",
+      matrix: "s3://b/counts.csv",
+    });
+  });
 });

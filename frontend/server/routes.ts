@@ -133,6 +133,7 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
+import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
@@ -11981,6 +11982,31 @@ ${paramLines || '(none recorded)'}`;
             })),
             guidance:
               "Provide values for the listed parameters (fill them in the workflow params panel, or pass them in the request `params` map) and retry.",
+          });
+        }
+
+        // Clinic hard primary data (movies_path / samplesheet / matrix / …) even when
+        // schema required:[] or .nf demo elvis left them optional — UI + executor agree.
+        const launchPreview = buildNextflowLaunchParameters(
+          request.workflowDefinition,
+          providedParams,
+        );
+        const clinicMissing = unboundClinicHardDataFromParams(
+          request.workflowDefinition,
+          launchPreview as Record<string, unknown>,
+        );
+        if (clinicMissing.length > 0) {
+          return res.status(400).json({
+            error: "missing_required_params",
+            message: `Workflow "${request.workflowDefinition?.name || 'this workflow'}" needs ${clinicMissing.length} required data input(s) before it can run. No compute was launched.`,
+            missing: clinicMissing.map((p) => ({
+              name: p.name,
+              label: p.label || p.name,
+              description: p.description || '',
+              type: 'file',
+            })),
+            guidance:
+              "Provide the listed data inputs (fill them in the workflow params panel or attach files) and retry.",
           });
         }
       }

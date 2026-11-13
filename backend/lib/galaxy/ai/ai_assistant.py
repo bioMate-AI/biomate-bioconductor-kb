@@ -2481,6 +2481,9 @@ Respond with a single JSON object — no other text:
         'cryosparc_email', 'cryosparc_host', 'cryosparc_port', 'cryosparc_project_dir', 'cryosparc_lane',
         # CryoSPARC license — injected at runtime by executor from credential vault, not user-entered
         'cryosparc_license',
+        # Container image URIs — executor/infra, never clinic-facing (ECR leak 2026-11-13)
+        'cs_image', 'container', 'container_image', 'pmemd_container',
+        'fpsim2_container', 'foldseek_container', 'mlip_container', 'mmseqs_container',
         # Dev/testing flags — never shown to users (false = mock mode which breaks production)
         'use_cryosparc',
         # Parallelism / executor internals — auto-set by BioMate executor before launch
@@ -2489,6 +2492,19 @@ Respond with a single JSON object — no other text:
         # Motion & GPU internals — auto-tuned by executor
         'motion_correction_dose_weighting', 'enable_low_memory_mode', 'gpu_memory_gb',
     }
+
+    # Clinic hard-required primary data inputs. nextflow_schema.json often declares
+    # `required: []` (differentialabundance stub) or .nf uses demo elvis
+    # (movies_path ?: test_data). Without this override the panel says "no required
+    # data inputs" and Confirm & Run launches empty. Keep in sync with
+    # frontend/shared/workflow-data-inputs.ts CLINIC_HARD_REQUIRED_DATA_NAMES.
+    _CLINIC_HARD_REQUIRED_DATA = frozenset({
+        'movies_path', 'movie_dir',
+        'samplesheet', 'sample_sheet',
+        'matrix', 'counts', 'count_matrix',
+        'reads', 'fastq', 'fastq_1', 'fastq_2', 'input_fastq',
+        'input_csv', 'input_file', 'input_path',
+    })
 
     # Params that are `= null` in .nf files but are auto-calculated or truly optional.
     # These should NOT be treated as hard required-by-user params even though their
@@ -2818,7 +2834,16 @@ Respond with a single JSON object — no other text:
             description = inline_desc if inline_desc else f"Workflow parameter: {label}"
             # A param is truly required only if it's null AND not in the known-optional set.
             # ...and the workflow's own code does not handle its absence (nf_param_requirement).
-            is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS) and _null_required(text, name)
+            # Clinic hard primary data (movies_path, samplesheet, matrix, …) stay required
+            # even when the .nf elvis-falls-back to test_data (nf_param_requirement demo rule).
+            is_required = (
+                (val_raw == "null")
+                and (name not in self._OPTIONAL_NULL_PARAMS)
+                and (
+                    name in self._CLINIC_HARD_REQUIRED_DATA
+                    or _null_required(text, name)
+                )
+            )
             # null-default params get Python None (renders as empty in UI), not the string "null"
             default_str = None if (is_required or val_raw == "null") else val_raw.strip("'\"")
             # iGenomes key is a string build ID even when default is null
@@ -3008,6 +3033,13 @@ Respond with a single JSON object — no other text:
                 # Keep description short for UI; put help_text in description if no description
                 full_description = description or help_text
 
+                # Schema `required: []` is common on stubs (differentialabundance);
+                # clinic primary data with no usable default is still required.
+                _clinic_hard = (
+                    param_name in self._CLINIC_HARD_REQUIRED_DATA
+                    and (default is None or default == '')
+                )
+                is_required = param_name in group_required or _clinic_hard
                 entry: dict = {
                     'name': param_name,
                     'label': param_name.replace('_', ' ').title(),
@@ -3015,8 +3047,10 @@ Respond with a single JSON object — no other text:
                     'type': ptype,
                     'default': default,
                     'group': group_title,
-                    'required': param_name in group_required,
+                    'required': is_required,
                 }
+                if self._is_schema_data_input(param_name, param_def) or _clinic_hard:
+                    entry['data_input'] = True
 
                 if 'enum' in param_def:
                     entry['options'] = [{'label': str(v), 'value': v} for v in param_def['enum']]
@@ -3027,7 +3061,7 @@ Respond with a single JSON object — no other text:
                 if 'pattern' in param_def:
                     entry['pattern'] = param_def['pattern']
 
-                if param_name in group_required:
+                if is_required:
                     required_params.append(entry)
                 else:
                     optional_params.append(entry)

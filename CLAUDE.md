@@ -34,6 +34,8 @@ Before deploying a change and re-running an expensive test, you MUST:
 
 **How to apply:** Before any `docker restart` / `sync_to_dev.sh` / fresh E2E launch that depends on a code change, write a one-paragraph review note: what the change does, what conditions it requires, and what the smoke test should return given current state. If the smoke test will fail for reasons unrelated to the bug being fixed (e.g., MemStorage wiped, state lost), DO NOT run it — fix the test setup first or run against a fresh state intentionally.
 
+**DEV sync ops (one-writer, DB gates, no hot-patch):** `docs/20261113_COMMIT_PR_SYNC_PROCESS.md`.
+
 **Mandatory pre-sync test checklist:** Before running `scripts/sync_to_dev.sh`, run every step in `docs/PRE_SYNC_CHECKLIST.md`:
 1. `cd frontend && npx tsc --noEmit -p .` — type check
 2. `cd frontend && npx vitest run` — unit + integration suites (~7s)
