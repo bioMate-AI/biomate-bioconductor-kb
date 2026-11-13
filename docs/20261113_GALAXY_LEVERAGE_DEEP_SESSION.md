@@ -79,5 +79,8 @@ Samplesheet/`input`/`matrix` accept table kinds; `reads`+CSV blocks before Batch
 ## Deploy notes
 
 - Live tip at session start: `562908a3` (folder-attach merge)
-- Commit SHAs / post-sync live tip: fill after push+sync
-- Sync only when local+remote leases free and live tip is ancestor of HEAD
+- Feature commit: `82524c3839` — `feat(galaxy-leverage): samplesheet attach, deferred URL, remote FTP, datatype gate`
+- Ancestry merge: `dd58dfaae9` — merge live `429c3dbc` (Run Manager + license) onto deep-session line
+- Pushed to `origin/devline/ds-audit-20261112` (`562908a3e7..dd58dfaae9`)
+- **Sync blocked in this agent sandbox:** `scripts/sync_to_dev.sh` needs AWS EC2 Instance Connect / SSM (`ssm.us-west-2.amazonaws.com`), which the Cursor sandbox cannot reach (`Could not connect to the endpoint URL`). Static `~/.ssh/biomate_ec2_ed25519` is no longer accepted (Permission denied). **Parent/operator should run `bash scripts/sync_to_dev.sh` from a full-network shell when remote lease is FREE.**
+- Pre-sync live tip observed while blocked: `429c3dbc` (does **not** yet include samplesheet/deferred/remote/gate)
