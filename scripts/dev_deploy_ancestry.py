@@ -40,15 +40,23 @@ def public_commit(url=DEFAULT_URL):
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError('Build identity requires a credential-free HTTPS URL')
     request = urllib.request.Request(url, headers={'Accept':'application/json', 'Cache-Control':'no-cache'})
+    # Hit the origin directly. Env HTTP(S)_PROXY (Cursor sandbox CONNECT tunnels,
+    # corporate MITM) is not on the trust path and previously failed closed as an
+    # opaque "could not be read" after a 403 tunnel — SSH/SSM still worked, so
+    # operators saw a false "dev is down" signal. Empty ProxyHandler disables them.
+    opener = urllib.request.build_opener(NoRedirect(), urllib.request.ProxyHandler({}))
     try:
-        with urllib.request.build_opener(NoRedirect()).open(request, timeout=15) as response:
+        with opener.open(request, timeout=15) as response:
             if response.status != 200:
                 raise ValueError('Public build identity is not HTTP 200')
             return parse_identity(response.read(65537), response.headers.get('Content-Type', ''))
     except Exception as error:
         if isinstance(error, ValueError):
             raise
-        raise ValueError('Public build identity could not be read over verified HTTPS') from None
+        raise ValueError(
+            f'Public build identity could not be read over verified HTTPS '
+            f'({type(error).__name__}: {error})'
+        ) from None
 
 
 def git(repo, *args):

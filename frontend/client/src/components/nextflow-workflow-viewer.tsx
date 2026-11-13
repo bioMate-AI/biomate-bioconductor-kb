@@ -572,7 +572,15 @@ export function deriveRunKind(workflowDefinition: any): 'Design run' | 'Ad-hoc �
   return 'Workflow';
 }
 
-function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
+/**
+ * Build the Workflow settings / param-strip rows from a workflow_ga-shaped
+ * definition. Exported for unit tests (empty-schema phantom guard).
+ *
+ * When required_params ∪ optional_params is empty because the .nf was not
+ * found, do NOT promote LLM inline_parameters into Recommended rows — that
+ * produced the Admet Pred phantom target_pdb / library_file strip (2026-11-13).
+ */
+export function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
   // Prefer structured required_params / optional_params when the backend .nf parser populated them.
   const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
   const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
@@ -630,16 +638,14 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
     return [...structured, ...extraInline];
   }
 
-  // Fallback: old flat-map from parameters / inline_parameters keys.
+  // Empty schema (missing .nf / orphan catalog): fail honestly — do NOT promote
+  // LLM inline_parameters into Recommended rows (target_pdb, library_file, …).
+  // Keep only explicit parameters / currentParams without autoFilled badges.
   const fromWorkflow = workflowDefinition?.parameters && typeof workflowDefinition.parameters === "object"
     ? workflowDefinition.parameters
     : {};
-  const fromInline = workflowDefinition?.inline_parameters && typeof workflowDefinition.inline_parameters === "object"
-    ? workflowDefinition.inline_parameters
-    : {};
   const merged: Record<string, any> = {
     ...fromWorkflow,
-    ...fromInline,
     ...currentParams,
   };
 
@@ -653,10 +659,7 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
       value,
       defaultValue: fromWorkflow[key],
       required: false,
-      // Mark inline-param entries as autoFilled so the viewer's
-      // "default-open when autoFilled present" logic triggers and so the
-      // input rows show the LLM-prefill visual badge.
-      autoFilled: Object.prototype.hasOwnProperty.call(fromInline, key),
+      autoFilled: false,
     }));
 }
 

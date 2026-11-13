@@ -7,10 +7,28 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { tOr } from "@/lib/i18n";
+import { cleanParamValueForDisplay } from "@/lib/user-facing-text";
 import { Info, ExternalLink, Pencil, Check, X, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+/** True when the stored value is a storage URI the user must never see raw. */
+export function isStorageParamValue(v: unknown): boolean {
+  const s = String(v ?? '').trim();
+  return /^(?:s3|gs|file):\/\//i.test(s) || /^https?:\/\/\S+\/\S+/i.test(s);
+}
+
+/**
+ * Value shown in Workflow settings Inputs. Storage URIs render as the clean
+ * file name (same policy as the phase editor / cleanParamValueForDisplay);
+ * form state keeps the real URI for submit until the user edits or Browses.
+ */
+export function paramValueForDisplay(v: unknown): string {
+  if (v == null) return '';
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return cleanParamValueForDisplay(v);
+}
 
 // ── Multi-value (list) params ─────────────────────────────────────────────────
 // A multi-compound input (smiles_list, compounds, …) must be edited as named
@@ -47,22 +65,34 @@ function ListParamField({ param, onChange }: { param: any; onChange?: (id: strin
   return (
     <div className="space-y-1.5 w-full" data-testid={`list-param-${param.id}`} data-param-kind="list">
       {items.length === 0 && <p className="text-fs-xs text-muted-foreground">No entries yet — add one below.</p>}
-      {items.map((it, i) => (
-        <div key={i} className="flex items-center gap-1.5">
-          <span className="text-fs-xs text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
-          <Input
-            value={it}
-            spellCheck={false}
-            aria-label={`${param.label || param.id} item ${i + 1}`}
-            onChange={(e) => { const next = items.slice(); next[i] = e.target.value; commit(next); }}
-            className="font-mono text-xs h-7 flex-1"
-          />
-          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0"
-            aria-label={`Remove item ${i + 1}`} onClick={() => commit(items.filter((_, j) => j !== i))}>
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      ))}
+      {items.map((it, i) => {
+        const storage = isStorageParamValue(it);
+        const shown = paramValueForDisplay(it);
+        return (
+          <div key={i} className="flex items-center gap-1.5">
+            <span className="text-fs-xs text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
+            <Input
+              value={shown}
+              readOnly={storage}
+              title={storage ? shown : undefined}
+              data-storage-redacted={storage ? '1' : undefined}
+              spellCheck={false}
+              aria-label={`${param.label || param.id} item ${i + 1}`}
+              onChange={(e) => {
+                if (storage) return; // keep real s3 URI in form state until Browse/replace
+                const next = items.slice();
+                next[i] = e.target.value;
+                commit(next);
+              }}
+              className="font-mono text-xs h-7 flex-1"
+            />
+            <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0"
+              aria-label={`Remove item ${i + 1}`} onClick={() => commit(items.filter((_, j) => j !== i))}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      })}
       <Button type="button" variant="outline" size="sm" className="h-7 text-xs"
         data-testid={`list-param-add-${param.id}`} onClick={() => commit([...items, ''])}>
         <Plus className="h-3 w-3 mr-1" /> Add
@@ -377,14 +407,20 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         const _ML_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_actives', '_library', '_smiles'];
         const isMultilineFile = _ML_SUFFIXES.some(s => idLower.endsWith(s));
         if (isMultilineFile) {
+          const storage = isStorageParamValue(param.value);
           return (
             <div className="space-y-1">
               <LabelWithKnowledge />
               <Textarea
                 id={param.id}
-                value={param.value ?? ''}
+                value={paramValueForDisplay(param.value)}
+                readOnly={storage}
+                data-storage-redacted={storage ? '1' : undefined}
                 rows={5}
-                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                onChange={(e) => {
+                  if (storage) return;
+                  onChange && onChange(param.id, e.target.value);
+                }}
                 placeholder={tOr('panel.file_inline_placeholder', 'Paste inline content (CSV / SMILES / FASTA) or enter a file path…')}
                 className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
               />
@@ -394,6 +430,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         // Only show Browse button for actual file-path params (ends with _path, _dir, _file, _input, _output, _paths)
         const _PATH_SUFFIXES = ['_path', '_paths', '_dir', '_directory', '_input', '_output', '_file', '_files'];
         const isActualPath = _PATH_SUFFIXES.some(s => idLower.endsWith(s));
+        const storage = isStorageParamValue(param.value);
         return (
           <div className="space-y-1">
             <LabelWithKnowledge />
@@ -401,8 +438,16 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
               <Input
                 id={param.id}
                 type="text"
-                value={param.value || ''}
-                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                value={paramValueForDisplay(param.value) || ''}
+                readOnly={storage}
+                title={storage ? paramValueForDisplay(param.value) : undefined}
+                data-storage-redacted={storage ? '1' : undefined}
+                data-testid={`param-input-${param.id}`}
+                onChange={(e) => {
+                  // Keep the real s3 URI in form state until Browse / explicit replace.
+                  if (storage) return;
+                  onChange && onChange(param.id, e.target.value);
+                }}
                 placeholder={isActualPath ? tOr('panel.dataset_path_placeholder', 'Dataset path or ID') : ""}
                 className={`${isActualPath ? 'flex-1 min-w-0 ' : ''}${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
               />
@@ -439,6 +484,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         const _MULTILINE_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_library'];
         const isMultiline = _MULTILINE_SUFFIXES.some(s => param.id.toLowerCase().endsWith(s));
         if (isMultiline) {
+          const storage = isStorageParamValue(param.value);
           return (
             <div className="space-y-1">
               <div className="flex items-center gap-1 flex-wrap">
@@ -446,9 +492,14 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
               </div>
               <Textarea
                 id={param.id}
-                value={param.value ?? ''}
+                value={paramValueForDisplay(param.value)}
+                readOnly={storage}
+                data-storage-redacted={storage ? '1' : undefined}
                 rows={5}
-                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                onChange={(e) => {
+                  if (storage) return;
+                  onChange && onChange(param.id, e.target.value);
+                }}
                 placeholder={param.defaultValue != null ? String(param.defaultValue) : 'Paste CSV / SMILES / FASTA content here…'}
                 className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
               />
@@ -476,27 +527,37 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             </div>
           );
         }
-        return (
-          <div className="space-y-1">
-            <div className="flex items-center gap-1 flex-wrap">
-              <LabelWithKnowledge />
-              <EditableParamRow param={param} onChange={onChange} />
+        {
+          const storage = param.type !== 'number' && isStorageParamValue(param.value);
+          return (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 flex-wrap">
+                <LabelWithKnowledge />
+                <EditableParamRow param={param} onChange={onChange} />
+              </div>
+              <Input
+                id={param.id}
+                type={param.type === 'number' ? 'number' : 'text'}
+                value={param.type === 'number' ? (param.value ?? '') : (paramValueForDisplay(param.value) || '')}
+                readOnly={storage}
+                title={storage ? paramValueForDisplay(param.value) : undefined}
+                data-storage-redacted={storage ? '1' : undefined}
+                data-testid={`param-input-${param.id}`}
+                min={param.type === 'number' ? param.minimum : undefined}
+                max={param.type === 'number' ? param.maximum : undefined}
+                onChange={(e) => {
+                  if (storage) return;
+                  onChange && onChange(param.id, param.type === 'number' ? Number(e.target.value) : e.target.value);
+                }}
+                placeholder={param.defaultValue != null ? String(param.defaultValue) : ''}
+                className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
+              />
+              {param.minimum != null && param.maximum != null && (
+                <p className="text-fs-xs text-muted-foreground">Range: {param.minimum} – {param.maximum}</p>
+              )}
             </div>
-            <Input
-              id={param.id}
-              type={param.type === 'number' ? 'number' : 'text'}
-              value={param.value ?? ''}
-              min={param.type === 'number' ? param.minimum : undefined}
-              max={param.type === 'number' ? param.maximum : undefined}
-              onChange={(e) => onChange && onChange(param.id, param.type === 'number' ? Number(e.target.value) : e.target.value)}
-              placeholder={param.defaultValue != null ? String(param.defaultValue) : ''}
-              className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
-            />
-            {param.minimum != null && param.maximum != null && (
-              <p className="text-fs-xs text-muted-foreground">Range: {param.minimum} – {param.maximum}</p>
-            )}
-          </div>
-        );
+          );
+        }
       }
     }
   };
