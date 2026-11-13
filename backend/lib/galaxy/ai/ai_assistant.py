@@ -2435,8 +2435,12 @@ Respond with a single JSON object — no other text:
     # Nextflow parameter extraction helpers
     # -------------------------------------------------------------------------
 
+    # NOTE: `genome` is NOT internal — it is the nf-core iGenomes key (GRCh38, …),
+    # a user-facing scientific parameter. Hiding it broke rule-based organism→genome
+    # inference and made project-rule obedience impossible for rnaseq/sarek/etc.
+    # `input` stays internal: the executor builds the samplesheet (fetchngs / upload).
     _NEXTFLOW_INTERNAL_PARAMS = {
-        'mock_mode', 'outdir', 'sample_id', 'platform', 'library', 'genome',
+        'mock_mode', 'outdir', 'sample_id', 'platform', 'library',
         'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
         'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
@@ -2587,9 +2591,11 @@ Respond with a single JSON object — no other text:
 
     # Parameter names that represent input data files — these get type="file" so the
     # frontend renders a dataset browser instead of a plain text box.
+    # iGenomes key names (genome / genome_build / …) are STRING build IDs, not files —
+    # keep them out of this set so schema/.nf projection types them as string/select.
     _INPUT_FILE_PARAM_NAMES: frozenset = frozenset([
         'input', 'reads', 'reads1', 'reads2', 'fastq', 'fastq1', 'fastq2',
-        'bam', 'genome', 'fasta', 'genome_fasta', 'reference', 'reference_genome',
+        'bam', 'fasta', 'genome_fasta', 'reference', 'reference_genome',
         'gtf', 'gff', 'bed', 'vcf', 'csv', 'samplesheet', 'sample_sheet',
         # Differential-expression inputs are deliberately explicit here.  They are
         # files even though their names do not end in "_file" or "_path"; without
@@ -2694,7 +2700,7 @@ Respond with a single JSON object — no other text:
         if _flat_extra:
             text = '\n'.join(_flat_extra) + '\n' + text
 
-        required, optional = [], []
+        required, optional, data_inputs = [], [], []
         seen_names: set = set()
         section_re = _re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
         param_re = _re.compile(r'^\s*params\.(\w+)\s*=\s*(.+)$')
@@ -2735,6 +2741,23 @@ Respond with a single JSON object — no other text:
             raw = _re.sub(r'\s*//.*$', '', raw_with_comment).strip()
             val_raw = raw
             if name in self._NEXTFLOW_INTERNAL_PARAMS:
+                # Executor-owned required data inputs still surface as data_inputs
+                # (never editable params) — mirrors _parse_nextflow_schema.
+                if (
+                    name in ('input', 'samplesheet', 'reads')
+                    and val_raw == "null"
+                    and name not in self._OPTIONAL_NULL_PARAMS
+                    and _null_required(text, name)
+                ):
+                    data_inputs.append({
+                        'name': name,
+                        'label': self._EXECUTOR_DATA_INPUT_LABELS.get(
+                            name, name.replace('_', ' ').title()),
+                        'description': (inline_desc or '')[:200],
+                        'required': True,
+                        'executor_bound': True,
+                    })
+                    seen_names.add(name)
                 continue
             label = name.replace("_", " ").title()
             description = inline_desc if inline_desc else f"Workflow parameter: {label}"
@@ -2743,11 +2766,25 @@ Respond with a single JSON object — no other text:
             is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS) and _null_required(text, name)
             # null-default params get Python None (renders as empty in UI), not the string "null"
             default_str = None if (is_required or val_raw == "null") else val_raw.strip("'\"")
-            param_type = self._detect_param_type(name, default_str or "")
+            # iGenomes key is a string build ID even when default is null
+            if name.lower() in self._IGENOMES_KEY_PARAM_NAMES:
+                param_type = 'string'
+            else:
+                param_type = self._detect_param_type(name, default_str or "")
             if param_type == 'boolean' and default_str in ('true', 'True'):
                 default_str = True
             elif param_type == 'boolean' and default_str in ('false', 'False'):
                 default_str = False
+            # Pipe-separated options in the trailing comment → select enum
+            # (e.g. "Reference genome: GRCh38 | GRCm39 | …")
+            allowed_values: list = []
+            if inline_desc and '|' in inline_desc:
+                options_part = inline_desc.split(':')[-1] if ':' in inline_desc else inline_desc
+                raw_opts = [o.strip() for o in options_part.split('|') if o.strip()]
+                if raw_opts and all(len(o) <= 40 and ' ' not in o.split('(')[0].strip() for o in raw_opts):
+                    allowed_values = [o.split('(')[0].strip() for o in raw_opts]
+                    if allowed_values:
+                        param_type = 'select'
             entry: dict = {
                 "name": name,
                 "label": label,
@@ -2755,6 +2792,8 @@ Respond with a single JSON object — no other text:
                 "type": param_type,
                 "default": default_str,
             }
+            if allowed_values:
+                entry['options'] = [{'label': v, 'value': v} for v in allowed_values]
             if default_str not in (None, '', True, False) and (_example_re.search(inline_desc) or _example_re.search(prev_comment)):
                 entry["example"] = True
             prev_comment = ''
@@ -2814,7 +2853,16 @@ Respond with a single JSON object — no other text:
                     "data_input": True,
                 })
 
-        return {"required": required, "optional": optional}
+        out = {"required": required, "optional": optional}
+        if data_inputs:
+            out["data_inputs"] = data_inputs
+        return out
+
+    # iGenomes / assembly key params — string build IDs (GRCh38), never file paths
+    # unless the schema explicitly declares format=file-path.
+    _IGENOMES_KEY_PARAM_NAMES: frozenset = frozenset([
+        'genome', 'genome_build', 'genome_id', 'assembly',
+    ])
 
     def _schema_type_to_param_type(self, name: str, param_def: dict) -> str:
         """Map a JSON Schema property definition to BioMate's parameter type vocabulary."""
@@ -2831,8 +2879,11 @@ Respond with a single JSON object — no other text:
             return 'boolean'
         if json_type in ('integer', 'number'):
             return 'number'
-        # Heuristic for unformatted strings that look like file inputs
         low = name.lower()
+        # Bare `genome` in nf-core schemas is the iGenomes key, not a FASTA path.
+        if low in self._IGENOMES_KEY_PARAM_NAMES and fmt not in ('file-path', 'file-path-pattern'):
+            return 'string'
+        # Heuristic for unformatted strings that look like file inputs
         if low in self._INPUT_FILE_PARAM_NAMES or low.endswith('_file') or low.endswith('_path'):
             return 'file'
         return 'string'
@@ -3011,15 +3062,44 @@ Respond with a single JSON object — no other text:
         m = self._SRA_ACCESSION_RE.search(user_intent)
         return m.group(1).upper() if m else None
 
+    # Organism / vernacular → canonical nf-core iGenomes key (rule-based; no LLM).
+    _ORGANISM_GENOME_PATTERNS: tuple = (
+        (r'\b(GRCh38|hg38|GRCh38\.p\d+)\b', 'GRCh38'),
+        (r'\b(GRCh37|hg19|GRCh37\.p\d+)\b', 'GRCh37'),
+        (r'\b(GRCm39|mm39)\b', 'GRCm39'),
+        (r'\b(GRCm38|mm10|GRCm38\.p\d+)\b', 'GRCm38'),
+        (r'\bhuman\b|\bhomo\s+sapiens\b', 'GRCh38'),
+        (r'\bpatient\b|\bclinical\s+(?:trial|sample|cohort|specimen)\b', 'GRCh38'),
+        (r'\bmouse\b|\bmurine\b|\bmus\s+musculus\b', 'GRCm39'),
+        (r'\brat\b|\brattus\s+norvegicus\b', 'Rnor_6.0'),
+        (r'\bzebrafish\b|\bdanio\s+rerio\b', 'GRCz11'),
+        (r'\bdrosophila\b|\bfruit\s*fly\b', 'BDGP6'),
+        (r'\byeast\b|\bsaccharomyces\b', 'R64-1-1'),
+    )
+
     def _extract_genome_build(self, user_intent: str) -> Optional[str]:
-        """Return the first recognised genome build mentioned in the user's message, normalised to lowercase."""
+        """Return a canonical iGenomes / nf-core genome key from the user's message.
+
+        Prefer explicit build IDs, then organism vernacular (human → GRCh38). Returns
+        the nf-core form (GRCh38) so select enums on rnaseq stubs match; igenomes S3
+        lookups lower-case the key.
+        """
+        if not user_intent:
+            return None
+        for pattern, genome_id in self._ORGANISM_GENOME_PATTERNS:
+            if re.search(pattern, user_intent, re.IGNORECASE):
+                return genome_id
         m = self._GENOME_BUILD_RE.search(user_intent)
         if not m:
             return None
         raw = m.group(1)
-        # Normalise aliases: GRCh38→hg38, GRCh37→hg19, GRCm38→mm10, GRCm39→mm39
-        alias_map = {'grch38': 'hg38', 'grch37': 'hg19', 'grcm38': 'mm10', 'grcm39': 'mm39'}
-        return alias_map.get(raw.lower(), raw.lower())
+        canon = {
+            'hg38': 'GRCh38', 'grch38': 'GRCh38',
+            'hg19': 'GRCh37', 'grch37': 'GRCh37',
+            'mm10': 'GRCm38', 'grcm38': 'GRCm38',
+            'mm39': 'GRCm39', 'grcm39': 'GRCm39',
+        }
+        return canon.get(raw.lower(), raw)
 
     def _inject_sra_into_params(self, req_params: list, opt_params: list, accession: str) -> tuple:
         """If user provided an SRA accession, set it as the default for the 'reads' required param.
@@ -3066,17 +3146,49 @@ Respond with a single JSON object — no other text:
                                         'known_vcf', 'bqsr_known_sites', 'mills', 'dbsnp_vcf'])
         _GENOME_NAMES = frozenset(['genome', 'genome_build', 'genome_id', 'assembly'])
 
-        ref_path = self._IGENOMES_REFERENCE.get(genome_build)
-        ks_path = self._IGENOMES_KNOWN_SITES.get(genome_build)
+        _key = (genome_build or '').lower()
+        # Accept both GRCh38 and hg38 style keys in the igenomes path tables.
+        _path_aliases = {
+            'grch38': 'grch38', 'hg38': 'hg38',
+            'grch37': 'grch37', 'hg19': 'hg19',
+            'grcm38': 'mm10', 'mm10': 'mm10',
+            'grcm39': 'mm39', 'mm39': 'mm39',
+        }
+        _path_key = _path_aliases.get(_key, _key)
+        ref_path = self._IGENOMES_REFERENCE.get(_path_key) or self._IGENOMES_REFERENCE.get(_key)
+        ks_path = self._IGENOMES_KNOWN_SITES.get(_path_key) or self._IGENOMES_KNOWN_SITES.get(_key)
+        # UCSC-style aliases some schemas declare instead of GRCh*
+        _ucsc_alias = {
+            'grch38': 'hg38', 'grch37': 'hg19', 'grcm38': 'mm10', 'grcm39': 'mm39',
+        }
+
+        def _genome_value_for(p: dict) -> str:
+            """Pick a value that matches the param's enum when present."""
+            options = p.get('options') or []
+            vals = [
+                (o.get('value') if isinstance(o, dict) else o)
+                for o in options
+            ]
+            vals = [v for v in vals if v is not None]
+            if not vals:
+                return genome_build
+            for candidate in (genome_build, _ucsc_alias.get(_key), genome_build.lower(), _key):
+                if not candidate:
+                    continue
+                for v in vals:
+                    if str(v).lower() == str(candidate).lower():
+                        return v
+            return genome_build
 
         def _patch(p: dict) -> dict:
             n = p['name']
             if n in _REFERENCE_NAMES and not p.get('default') and ref_path:
-                return {**p, 'default': ref_path, 'genome_auto': True}
+                return {**p, 'default': ref_path, 'value': ref_path, 'genome_auto': True}
             if n in _KNOWN_SITES_NAMES and not p.get('default') and ks_path:
-                return {**p, 'default': ks_path, 'genome_auto': True}
+                return {**p, 'default': ks_path, 'value': ks_path, 'genome_auto': True}
             if n in _GENOME_NAMES and not p.get('default'):
-                return {**p, 'default': genome_build, 'genome_auto': True}
+                gv = _genome_value_for(p)
+                return {**p, 'default': gv, 'value': gv, 'genome_auto': True}
             return p
 
         return [_patch(p) for p in req_params], [_patch(p) for p in opt_params]
@@ -3888,6 +4000,33 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         max_spots = self._extract_max_spots(user_intent)
         if max_spots:
             opt = self._inject_max_spots_into_params(opt, max_spots)
+        # Layer 1a′: deterministic library-layout rules (paired-end → single_end=false).
+        # Genome/organism aliases are handled above via _extract_genome_build.
+        _rule_suggestions: list = []
+        _param_names = {p.get('name') for p in req + opt}
+        if 'single_end' in _param_names:
+            if re.search(r'\bpaired[-\s]?end\b|\bPE\b|\bR1\b.*\bR2\b', user_intent or '', re.IGNORECASE):
+                _rule_suggestions.append({
+                    'name': 'single_end', 'value': False,
+                    'rationale': 'rule-based: paired-end → single_end=false',
+                })
+            elif re.search(r'\bsingle[-\s]?end\b|\bSE\b', user_intent or '', re.IGNORECASE):
+                _rule_suggestions.append({
+                    'name': 'single_end', 'value': True,
+                    'rationale': 'rule-based: single-end → single_end=true',
+                })
+        # Standing project-rule / prose FDR phrases when a significance param exists
+        _fdr_names = [n for n in _param_names if re.search(r'fdr|padj|p_?adj|q_?val|alpha|max_qval', n or '', re.I)]
+        if _fdr_names and re.search(r'\bFDR\b|\badjusted\s+p\b|\bp\s*adj|\bq\s*-?\s*val', user_intent or '', re.I):
+            _m_fdr = re.search(r'(?:FDR|padj|p-?adj|q-?val|alpha)\s*[<≤=:]?\s*(0?\.\d+)', user_intent or '', re.I)
+            if _m_fdr:
+                _fv = float(_m_fdr.group(1))
+                _rule_suggestions.append({
+                    'name': _fdr_names[0], 'value': _fv,
+                    'rationale': 'rule-based: significance threshold from query',
+                })
+        if _rule_suggestions:
+            req, opt = self._apply_llm_suggestions(req, opt, _rule_suggestions)
         # Layer 2: apply DB-driven tool_knowledge hints
         hints = (scientific_rationale or {}).get('parameter_hints', [])
         req, opt = self._apply_parameter_hints(req, opt, hints)

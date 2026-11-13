@@ -6291,10 +6291,19 @@ Rules:
     // WORKFLOW_PARAM_ALIASES table.
     const _workflowNameForRemap =
       generatedWorkflow?.workflow_ga?.name || generatedWorkflow?.workflow_name;
+    // Standing project rules must reach schema-grounded extraction so a silent
+    // message still honors "always GRCh38" / FDR thresholds once the workflow
+    // schema exposes those slots (backend rule-based fill also uses the message).
+    const _paramExtractQuery = [
+      message,
+      ...(context?.projectRules?.length
+        ? [`Standing project instructions:\n${context.projectRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`]
+        : []),
+    ].join('\n\n');
     const _groundResult = await groundInlineParameters({
       workflowName: _workflowNameForRemap,
       rawParams: intent.inlineParameters,
-      userQuery: message,
+      userQuery: _paramExtractQuery,
       requiredParams: generatedWorkflow?.workflow_ga?.required_params,
       optionalParams: generatedWorkflow?.workflow_ga?.optional_params,
       onStatus: onToolEvent
@@ -6309,13 +6318,32 @@ Rules:
         : undefined,
     });
     const _groundedInlineParams = stringifyParamValues(_groundResult.params);
+    // Backend rule-based / genome injection fills optional_params[].default|value and
+    // workflow_ga.parameters — fold those into the overlay so the panel and e2e see
+    // structured obedience even when the LLM intent stage only echoed rules in prose.
+    const _backendFilledParams: Record<string, string> = {};
+    const _gaForFill = generatedWorkflow?.workflow_ga || generatedWorkflow || {};
+    for (const [k, v] of Object.entries(_gaForFill.parameters || {})) {
+      if (v != null && String(v).trim() !== '') _backendFilledParams[k] = String(v);
+    }
+    for (const p of [...(_gaForFill.required_params || []), ...(_gaForFill.optional_params || [])]) {
+      if (!p?.name) continue;
+      const v = p.value ?? p.default;
+      if (v != null && String(v).trim() !== '' && _backendFilledParams[p.name] === undefined) {
+        _backendFilledParams[p.name] = String(v);
+      }
+    }
     // The parameter extractor reads the message, not the workflow object, so a
     // required input the attachment binding already filled still came back as
     // "missing_required" — the founder saw "1 required parameter need to be
     // filled" plus a "Which input_smiles?" card with the file already attached.
     // Carry the bound values into the overlay and withdraw their questions.
     const _attachmentBoundParams = attachmentBoundParams(generatedWorkflow);
-    const _remappedInlineParams = { ..._groundedInlineParams, ..._attachmentBoundParams };
+    const _remappedInlineParams = {
+      ..._backendFilledParams,
+      ..._groundedInlineParams,
+      ..._attachmentBoundParams,
+    };
     const _clarifications = (_groundResult.details?.clarifications || []).filter(
       (c) => !_attachmentBoundParams[c.paramName],
     );
@@ -9725,8 +9753,15 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     console.log('[GalaxyAssistant] Available datasets:', datasets.length);
     console.log('[GalaxyAssistant] Inline parameters:', JSON.stringify(mergedInlineParameters));
 
+    // Append standing project rules so backend rule-based param inference
+    // (_extract_genome_build, genome injection) can honor "always GRCh38" even
+    // when the user message does not name a genome. Search still keys primarily
+    // on the leading userIntent sentence.
+    const _intentForBackend = context?.projectRules?.length
+      ? `${userIntent}\n\nStanding project instructions:\n${context.projectRules.join('\n')}`
+      : userIntent;
     const response = await this._api().generateWorkflow({
-      user_intent: userIntent,
+      user_intent: _intentForBackend,
       max_tools_search: 30,
       inline_parameters: mergedInlineParameters,
       session_id: context?.sessionId,
