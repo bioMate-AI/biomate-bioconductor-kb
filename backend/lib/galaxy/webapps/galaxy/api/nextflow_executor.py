@@ -8093,12 +8093,36 @@ def _execute_nextflow_impl(
     # The standard AI assistant chat path never calls /api/cryosparc/execute, so host/password
     # must be filled from env vars here; otherwise the Nextflow task defaults to localhost:30000
     # which is unreachable inside AWS Batch containers.
+    #
+    # License policy (LICENSE_REGISTRY cryosparc.user_must_provide=True): NEVER inject
+    # BioMate's master CRYOSPARC_LICENSE(_ID) as a silent fallback. The license must come
+    # from the user credential store (request.credentials['cryosparc']) or an explicit
+    # params.cryosparc_license the user typed. Infra host/password remain env-injected.
     if "cryosparc" in str(nf_path).lower():
         _cs_host = os.environ.get("CRYOSPARC_HOST", "")
         _cs_port = int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000"))
         _cs_email = os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai")
         _cs_password = os.environ.get("CRYOSPARC_PASSWORD", "")
-        _cs_license = os.environ.get("CRYOSPARC_LICENSE_ID", "")
+        _cs_cred = (request.credentials or {}).get("cryosparc") or {}
+        _cs_license = (
+            (_cs_cred.get("license_key") if isinstance(_cs_cred, dict) else None)
+            or params.get("cryosparc_license")
+            or ""
+        )
+        # Opt-in shared key for hermetic E2E only — never default-on in production.
+        if not _cs_license and os.environ.get("BIOMATE_ALLOW_SHARED_CRYOSPARC_LICENSE", "").lower() in ("1", "true", "yes"):
+            _cs_license = os.environ.get("CRYOSPARC_LICENSE_ID", "") or os.environ.get("CRYOSPARC_LICENSE", "")
+        if not _cs_license:
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "cryosparc_license_required",
+                    "message": (
+                        "A CryoSPARC license key is required. Add yours at "
+                        "Settings → Credentials → CryoSPARC (or Workflow settings → Tool Credentials)."
+                    ),
+                },
+            )
         for _k, _v in [
             ("cryosparc_host", _cs_host),
             ("cryosparc_port", _cs_port),
@@ -8108,7 +8132,7 @@ def _execute_nextflow_impl(
         ]:
             if _v and _k not in params:
                 params[_k] = _v
-        log.info(f"[Nextflow run {run_id}] CryoSPARC params injected: host={_cs_host!r} port={_cs_port} email={_cs_email!r}")
+        log.info(f"[Nextflow run {run_id}] CryoSPARC params injected: host={_cs_host!r} port={_cs_port} email={_cs_email!r} license=user")
 
     # Work directory — for awsbatch, the work dir must be S3 (set in executor config);
     # passing a local path via -w would override that and cause "S3 bucket required" errors.

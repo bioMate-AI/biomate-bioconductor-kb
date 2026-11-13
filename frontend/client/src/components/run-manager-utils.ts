@@ -2,6 +2,8 @@ import { t } from "@/lib/i18n"
 export interface RunListItem {
   id: string
   workflowName: string
+  /** Owning chat — present on /api/workflows/runs rows; used to open the right session. */
+  chatSessionId?: string
   mode?: "sandbox" | "production"
   execution?: {
     status?: string
@@ -218,6 +220,25 @@ export function workflowPanelProjectId(run: { id?: string; projectId?: string | 
 }
 
 /** A new unsaved chat has no run history; current-chat never falls back to all. */
+/**
+ * Where Run Manager should navigate when the user clicks a run.
+ * Cross-chat picks must open the owning chat (left panel), not only the right workflow panel.
+ */
+export function runManagerSwitchHref(opts: {
+  runId: string
+  runChatSessionId?: string | null
+  currentChatSessionId?: string | null
+}): string | null {
+  const owner = opts.runChatSessionId || null
+  const current = opts.currentChatSessionId || null
+  if (!owner || !opts.runId) return null
+  if (current && owner === current) return null
+  const params = new URLSearchParams()
+  params.set('session', owner)
+  params.set('focusRun', opts.runId)
+  return `/?${params.toString()}`
+}
+
 export function runManagerListParams(scope: 'current_chat' | 'all_chats', chatSessionId?: string | null): URLSearchParams | null {
   if (scope === 'current_chat' && !chatSessionId) return null;
   const params = new URLSearchParams({ limit: '50', offset: '0' });
