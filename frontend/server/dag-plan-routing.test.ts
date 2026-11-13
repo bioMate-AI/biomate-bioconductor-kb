@@ -169,6 +169,17 @@ describe('plan inputs', () => {
   });
 });
 
+it('never leaks the internal engine path (nextflow_path) into the user-facing plan message', async () => {
+  const post = vi.fn(async () => ({ data: { success: true, workflow: CARD } }));
+  const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'x', () => {});
+  // The raw subworkflow paths must not appear anywhere in the message the user reads.
+  expect(res.message).not.toContain('main.nf');
+  expect(res.message).not.toContain('bioc/');
+  expect(res.message).not.toMatch(/subworkflows\//);
+  // The step is still named by its human description.
+  expect(res.message).toContain('RNA-seq differential expression KO vs WT');
+});
+
 it('says when a step was switched to a workflow that takes the user\'s data', async () => {
   const steps = CARD.pipeline_steps.map((s: any, k: number) => k === 0
     ? { ...s, workflow_label: 'deseq2_counts', rerouted_from: 'salmon_quant_de', reroute_reason: 'accepts your counts_matrix.csv' } : s);
