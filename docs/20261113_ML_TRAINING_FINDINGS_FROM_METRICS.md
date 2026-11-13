@@ -51,7 +51,23 @@
 3. Download report must show the same Key Results table (not combiner fluff).
 4. `cd frontend && npx vitest run server/ml-training-findings.test.ts`
 
+## Verification 2026-11-13 (continue/test)
+
+| Check | Result |
+|-------|--------|
+| Live `build-info.json` | `429c3dbc…` (was `562908a3`) — **PASS** (`a41a9a76` still ancestor). Class follow-up: `docs/20261113_FINDINGS_CLASS_AUDIT_METRICS_FIRST.md` |
+| FE image symbols | `/app/dist/index.js` contains `ml-training-metrics-v1` (1) + `looksLikeMlTrainingFluff` (6) — **PASS** |
+| Unit + related | `ml-training-findings.test.ts` **5/5**; `findings-figures.test.ts` **6/6**; `tsc --noEmit` exit 0 |
+| S3 sidecar | `…/042dc0da/output/findings_data.json` summary leads with test MAE=0.7920 / validation MAE=0.9433; `evidence_version=ml-training-metrics-v1`; no combiner/MolLogP fluff — **PASS** |
+| Report (render path) | Same Key Results table from sidecar → `frontend/e2e/execshots/ml-findings-verify/report_from_sidecar.md` — **PASS** |
+| Authenticated `/findings` as E2E fixture | **403** — run owned by `drugtest@biomate.dev` (`user_id=37942b0f-…`), not `lifeifei163361@163.com`. No stored password for owner; did not invent one. |
+
+Evidence dir: `frontend/e2e/execshots/ml-findings-verify/` (`s3_findings_data.json`, `s3_metrics.json`, `report_from_sidecar.md`).
+
+**S3 sidecar healed** (score-first + R²). Class-wide code follow-up committed; sync ships refuse-hollow / descriptor cutover / chip UX.
+
 ## Open
 
 - Existing bad sidecars for other ml_training runs heal on next Findings open (fluff detector → regen).
 - Gate measured value in this run was val_mae with `no_gate_configured`; summary still prefers explicit test/val MAE keys.
+- Owner-authenticated UI/API screenshot for this session needs `drugtest@biomate.dev` credentials (not the E2E fixture).

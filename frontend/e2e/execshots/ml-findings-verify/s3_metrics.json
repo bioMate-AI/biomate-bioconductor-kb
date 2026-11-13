@@ -1,0 +1,27 @@
+{
+  "name": "potency predictor",
+  "model_version": null,
+  "model_status": null,
+  "metrics": {
+    "test_mae": 0.7920467257499695,
+    "val_mae": 0.9433045983314514
+  },
+  "gate": {
+    "gates": [
+      {
+        "name": "mae",
+        "measured": 0.9433045983314514,
+        "threshold": null,
+        "status": "pass",
+        "direction": "lower_is_better",
+        "reason": "no_gate_configured"
+      }
+    ]
+  },
+  "mlflow_run_id": "noop-run",
+  "mlflow_model_uri": "runs:/noop-run/artifact",
+  "registered": false,
+  "artifact_dir": "results/artifact",
+  "dataset_source": "csv:7713a3f788_bace_assays.csv",
+  "error": null
+}
