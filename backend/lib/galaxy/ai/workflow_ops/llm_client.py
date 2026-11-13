@@ -422,6 +422,21 @@ class UnifiedLLMClient:
         """
         start_time = time.time()
 
+        # A China-region request (galaxy.ai.llm_region): a Chinese model only, whatever model /
+        # provider the caller named. Text in, text out (no Anthropic tool-use blocks on this path).
+        from galaxy.ai.llm_region import cn_complete, cn_route
+        _cn = cn_route()
+        if _cn is not None:
+            text = cn_complete(messages=messages, max_tokens=max_tokens, temperature=temperature) or ""
+            _would_be = provider or ('anthropic' if 'claude' in model else 'openai' if 'gpt' in model else self.default_provider)
+            return {
+                # The shape the caller's provider returns: Anthropic → content blocks, others → text.
+                'content': [{'type': 'text', 'text': text}] if _would_be == 'anthropic' else text,
+                'stop_reason': 'end_turn',
+                'usage_stats': LLMUsageStats(model=_cn.model, input_tokens=0, output_tokens=0,
+                                             cost=0.0, duration=time.time() - start_time),
+            }
+
         # 选择提供商
         if provider is None:
             if 'claude' in model:

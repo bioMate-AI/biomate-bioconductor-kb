@@ -115,13 +115,16 @@ test.describe("run_code generated files are kept", () => {
       const chatText = await page.locator("body").innerText();
       expect(FOOTER.test(chatText), "no 'not produced by any code' footer").toBe(false);
 
-      // Saved into the project: source run_code, under "Analysis outputs" (folder-outputs/analysis).
+      // Saved into the project: source run_code, under "Analysis outputs" (folder-outputs/analysis),
+      // in this chat's own folder ("<chat title> · <date time>/QC_Report.txt", ab11d0adca).
       const files = await (await api.get(`${BASE_URL}/api/projects/${projectId}/files`)).json();
-      const f = (files.files || []).find((x: any) => x.name === "QC_Report.txt");
+      const f = (files.files || []).find((x: any) => String(x.name).split("/").pop() === "QC_Report.txt");
       expect(f, `QC_Report.txt must be in the project; got ${(files.files || []).map((x: any) => `${x.name}:${x.source}`).join(", ")}`).toBeTruthy();
       expect(f.source).toBe("run_code");
+      const chatFolder = String(f.name).includes("/") ? String(f.name).slice(0, String(f.name).lastIndexOf("/")) : "";
+      expect(chatFolder, "the output is filed in this chat's own folder").toMatch(/ · \d{4}-\d{2}-\d{2} \d{2}\.\d{2}$/);
       await openProjectFiles(page, projectId, projectName);
-      await revealFile(page, f.id, undefined, "outputs/analysis");   // folder starts collapsed; expand only if so
+      await revealFile(page, f.id, chatFolder, "outputs/analysis");   // folders start collapsed; expand only if so
       await page.screenshot({ path: "e2e/screenshots/run-code-outputs-project-2-files.png", fullPage: true });
       await expect(page.getByTestId(`file-open-${f.id}`), "file listed in the project files view").toBeVisible();
     } finally {

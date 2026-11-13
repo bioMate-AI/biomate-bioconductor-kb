@@ -5,9 +5,24 @@ accessions, upload wiring for files), so it never becomes an editable param. Bef
 also vanished from the workflow definition entirely: chat could not say what nf-core/rnaseq
 needs, and the panel listed only the 9 optional reference overrides.
 """
-import json
+from __future__ import annotations
 
-from galaxy.ai.ai_assistant import AIAssistant
+import json
+import sys
+import types
+
+if "sentence_transformers" not in sys.modules:
+    _st = types.ModuleType("sentence_transformers")
+    _st.SentenceTransformer = type("SentenceTransformer", (), {})
+    sys.modules["sentence_transformers"] = _st
+if "galaxy.ai.unified_workflow_search" not in sys.modules:
+    _uws = types.ModuleType("galaxy.ai.unified_workflow_search")
+    _uws.UnifiedWorkflowSearch = type("UnifiedWorkflowSearch", (), {})
+    _uws.get_workflow_search = lambda *a, **k: None  # type: ignore[assignment]
+    _uws.WorkflowMatch = type("WorkflowMatch", (), {})
+    sys.modules["galaxy.ai.unified_workflow_search"] = _uws
+
+from galaxy.ai.ai_assistant import AIAssistant  # noqa: E402
 
 RNASEQ_LIKE_SCHEMA = {
     "$defs": {
@@ -23,6 +38,10 @@ RNASEQ_LIKE_SCHEMA = {
         "reference_genome_options": {
             "title": "Reference genome options",
             "properties": {
+                # iGenomes key — string build ID, not a FASTA path. Must surface as an
+                # editable param so organism→genome rules and project instructions can fill it.
+                "genome": {"type": "string",
+                           "description": "Name of iGenomes reference to use (e.g. GRCh38)."},
                 "fasta": {"type": "string", "format": "file-path", "description": "Path to FASTA genome file."},
                 "gtf": {"type": "string", "format": "file-path", "description": "Path to GTF annotation file."},
             },
@@ -52,8 +71,16 @@ def test_required_executor_input_is_described_not_editable(tmp_path):
 
 def test_reference_overrides_stay_optional_and_outdir_is_not_a_data_input(tmp_path):
     parsed = _assistant_for(tmp_path)._parse_nextflow_schema("nfcore/rnaseq/main.nf")
-    assert {p["name"] for p in parsed["optional"]} == {"fasta", "gtf"}
+    assert {p["name"] for p in parsed["optional"]} == {"genome", "fasta", "gtf"}
     assert all(d["name"] != "outdir" for d in parsed["data_inputs"])
+
+
+def test_igenomes_genome_is_string_not_file(tmp_path):
+    """genome without format=file-path is the iGenomes key (string), never a file picker."""
+    parsed = _assistant_for(tmp_path)._parse_nextflow_schema("nfcore/rnaseq/main.nf")
+    genome = next(p for p in parsed["optional"] if p["name"] == "genome")
+    assert genome["type"] == "string"
+    assert "genome" not in {d["name"] for d in parsed["data_inputs"]}
 
 
 def test_run_data_detection():
