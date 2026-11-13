@@ -98,9 +98,13 @@ it('ignores late events after ending and toasts on disconnect', async () => {
   expect(onTranscript).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
 });
 
-it('does not render ElevenLabs disclaimer panels', async () => {
+it('renders a compact toolbar control without stacked disclaimer chrome', async () => {
   render(<LiveVoicePanel busy={false} onSend={vi.fn()} />);
-  await screen.findByRole('button', { name: 'Start voice' });
-  expect(screen.queryByText(/Audio is sent to ElevenLabs/i)).toBeNull();
+  const start = await screen.findByRole('button', { name: 'Start voice' });
+  expect(start.closest('[data-testid="composer-voice-live"]')).toBeTruthy();
+  expect(screen.queryByText(/Audio is sent/i)).toBeNull();
+  expect(screen.queryByText(/ElevenLabs/i)).toBeNull();
+  expect(screen.queryByText(/AI-generated voice/i)).toBeNull();
   expect(screen.queryByText(/Hands-free/i)).toBeNull();
+  expect(start.getAttribute('title') || '').not.toMatch(/ElevenLabs|AI-generated voice|Audio is sent/i);
 });

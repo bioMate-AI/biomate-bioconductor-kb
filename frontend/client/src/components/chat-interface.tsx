@@ -1,7 +1,6 @@
 import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { buildAssistantMessageFromFinal } from "@/lib/assistant-message-from-final"
 import { computeTurnIndicators, signalsPendingWorkflow } from "@/lib/chat-turn-state"
-import { LiveVoicePanel } from "./live-voice-panel"
 import { prepareColdStartSelection, preparedInputsBlock } from "./cold-start-examples"
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -2336,9 +2335,7 @@ export function ChatInterface({
             {t('chat.library_input_reminder', { name: libraryPick })}
           </div>
         )}
-        <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={turnBusy || preparingExample}
-          reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
-          onSend={text => handleSendOrQueue(text)} />
+        {/* Voice lives only inside ChatInput's toolbar (Speak + Live icons). Never mount panels above the composer. */}
         <ChatInput
           voiceContextKey={chatSession?.id || "new-chat"}
           disabled={preparingExample}

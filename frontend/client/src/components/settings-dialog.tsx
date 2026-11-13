@@ -637,7 +637,7 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                         <div className="space-y-0.5">
                           <Label>Voice in chat</Label>
                           <p className="text-sm text-muted-foreground">
-                            Show a compact mic in the composer. Audio is sent to ElevenLabs for transcription; replies can use an AI-generated voice. Hover the mic for details.
+                            Show compact Speak and Live icons in the composer toolbar. Hover each icon for a short tip.
                           </p>
                         </div>
                         <Switch

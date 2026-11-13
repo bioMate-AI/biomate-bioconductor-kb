@@ -13,7 +13,6 @@ const labels = {
   working: zh ? '正在处理语音…' : 'Processing audio…',
   recording: zh ? '正在录音，点击停止（最长 60 秒）' : 'Recording. Press Stop when finished (up to 60 seconds).',
   review: zh ? '请检查转写内容，尤其是基因名称和样本编号，再发送。' : 'Review the transcript, especially gene names and sample IDs, before sending.',
-  notice: zh ? '录音将发送至 ElevenLabs 进行转写；朗读使用 AI 生成语音。' : 'Recordings are sent to ElevenLabs for transcription. Read-aloud uses an AI-generated voice.',
   unavailable: zh ? '语音服务暂时不可用，请使用文字输入。' : 'Voice is unavailable. Please use text for now.',
   microphone: zh ? '无法使用麦克风。请检查浏览器权限。' : 'Microphone unavailable. Check your browser permissions.',
   noSpeech: zh ? '未识别到语音，请重新录制。' : 'No speech detected. Please record again.',
@@ -146,7 +145,7 @@ export function VoiceInput({ onTranscript, disabled }: { onTranscript: (text: st
   const active = state === 'recording' || state === 'busy';
   const tip = state === 'recording' ? labels.recording
     : state === 'busy' ? labels.working
-    : `${labels.speak}. ${labels.notice}`;
+    : `${labels.speak}. ${labels.review}`;
 
   return (
     <span className="relative inline-flex items-center" data-testid="composer-voice-speak">
@@ -220,7 +219,7 @@ export function ReadAloud({ text, disabled }: { text: string; disabled?: boolean
   if (!voiceEnabled || !available) return null;
   return <>
     <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => void play()}
-      title={zh ? 'ElevenLabs AI 生成语音' : 'AI-generated voice by ElevenLabs'}
+      title={labels.read}
       aria-label={state === 'idle' ? labels.read : labels.stop}>
       {state === 'busy' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'playing' ? <Square className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       <span className="ml-1">{state === 'idle' ? labels.read : labels.stop}</span>

@@ -131,10 +131,15 @@ describe('voice controls', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Ask for a short summary');
     expect(vi.mocked(fetch).mock.calls.some(c => String(c[0]).includes('/speak'))).toBe(false);
   });
-  it('does not render ElevenLabs disclaimer walls in the composer', async () => {
+  it('renders a compact Speak icon without disclaimer walls or vendor copy', async () => {
     render(<VoiceInput onTranscript={vi.fn()} />);
-    await screen.findByRole('button', { name: 'Speak' });
-    expect(screen.queryByText(/Recordings are sent to ElevenLabs/i)).toBeNull();
+    const speak = await screen.findByRole('button', { name: 'Speak' });
+    expect(speak.closest('[data-testid="composer-voice-speak"]')).toBeTruthy();
+    expect(screen.queryByText(/Recordings are sent/i)).toBeNull();
+    expect(screen.queryByText(/ElevenLabs/i)).toBeNull();
+    expect(screen.queryByText(/AI-generated voice/i)).toBeNull();
+    // Review tip is hover-only (title), not a visible stacked paragraph.
     expect(screen.queryByText(/Review the transcript/i)).toBeNull();
+    expect(speak.getAttribute('title') || '').not.toMatch(/ElevenLabs|AI-generated voice|Recordings are sent/i);
   });
 });

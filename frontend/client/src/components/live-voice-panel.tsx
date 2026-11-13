@@ -19,8 +19,8 @@ interface Props {
 }
 
 const hint = label(
-  'Live voice. Audio goes to ElevenLabs; replies use an AI voice. Review gene names before sending. Prefer headphones to reduce echo.',
-  '实时语音。音频发送至 ElevenLabs，回复使用 AI 语音。发送前请核对基因名称。建议使用耳机减少回声。',
+  'Live voice. Review gene names before sending. Prefer headphones to reduce echo.',
+  '实时语音。发送前请核对基因名称。建议使用耳机减少回声。',
 );
 
 /** Compact live-voice control for the composer toolbar. Gated by Settings → Chat → Voice. */
