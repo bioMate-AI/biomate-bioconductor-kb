@@ -5,8 +5,10 @@
  *
  * One project (created here, deleted in teardown), three rules, real chat turns via the API:
  *   (a) plain answer ends with the exact tag a rule demands; control without the project does not;
- *   (b) a workflow request that names no genome/threshold gets GRCh38 (and FDR 0.01 where the
- *       workflow has a significance parameter) from the project rules.
+ *   (b) a genome-bearing workflow request that names no genome gets GRCh38 from the project rules
+ *       (nf-core/rnaseq — alignment/quant; no significance param expected);
+ *   (c) a DE request under the same rules must yield FDR/q ≈ 0.01 on a real significance param
+ *       (nf-core/differentialabundance differential_max_qval or equivalent — hard assert, not soft).
  *
  * Run: E2E_FIXTURE_PASSWORD=$(cat ~/.config/biomate/e2e_fixture_password) \
  *      BIOMATE_URL=https://dev-public.biomate.ai npx playwright test e2e/instructions-obedience.e2e.ts --project=chromium
@@ -56,6 +58,9 @@ const allParams = (f: any): Record<string, unknown> => {
   return out;
 };
 
+const workflowName = (f: any) =>
+  String(f?.workflow?.workflow_ga?.name || f?.workflow?.name || f?.workflowName || "");
+
 test("project instructions change replies and workflow parameters", async ({ page }) => {
   test.setTimeout(15 * 60 * 1000);
   await loginAsFixture(page);
@@ -73,16 +78,35 @@ test("project instructions change replies and workflow parameters", async ({ pag
     const ctl = await chat(req, "In two sentences, what is a volcano plot?");
     expect(replyText(ctl)).not.toMatch(/KX-7741/);
 
-    // (b) workflow parameters follow the rules although the message names neither
-    const b = await chat(req, "Set up an RNA-seq differential expression analysis for my human paired-end samples, treated vs control.", pid);
-    const params = allParams(b);
-    console.log("[b] workflow:", b?.workflow?.workflow_ga?.name || b?.workflow?.name, "params:", JSON.stringify(params).slice(0, 600));
-    const genome = Object.entries(params).find(([k]) => /genome|reference|assembly/i.test(k));
-    expect(genome, "the workflow has a genome parameter").toBeTruthy();
+    // (b) genome on a genome-bearing workflow (rnaseq). Message names neither genome nor FDR.
+    const b = await chat(
+      req,
+      "Set up nf-core/rnaseq bulk RNA-seq alignment and quantification for my human paired-end FASTQ samples.",
+      pid,
+    );
+    const bParams = allParams(b);
+    console.log("[b] workflow:", workflowName(b), "params:", JSON.stringify(bParams).slice(0, 600));
+    const genome = Object.entries(bParams).find(([k]) => /genome|reference|assembly/i.test(k));
+    expect(genome, "the rnaseq-style workflow has a genome parameter").toBeTruthy();
     expect(String(genome![1])).toMatch(/GRCh38|hg38/i);
-    const fdr = Object.entries(params).find(([k]) => /fdr|padj|alpha|q_?val|p_?adj/i.test(k));
-    if (fdr) expect(Number(fdr[1])).toBeCloseTo(0.01, 5);
-    else console.log("[b] note: this workflow exposes no significance-threshold parameter");
+
+    // (c) FDR on a real DE significance param — not soft-skipped on rnaseq.
+    const c = await chat(
+      req,
+      "Run DESeq2 differential expression on my gene count matrix, treated vs control.",
+      pid,
+    );
+    const cParams = allParams(c);
+    const cName = workflowName(c);
+    console.log("[c] workflow:", cName, "params:", JSON.stringify(cParams).slice(0, 600));
+    expect(cName, "DE request should route to a differential-expression workflow").toMatch(
+      /differential|deseq|edger|limma/i,
+    );
+    const fdr = Object.entries(cParams).find(([k]) =>
+      /fdr|padj|q_?val|p_?adj|max_qval/i.test(k),
+    );
+    expect(fdr, "DE workflow exposes a significance / FDR / q-value parameter").toBeTruthy();
+    expect(Number(fdr![1])).toBeCloseTo(0.01, 5);
   } finally {
     await req.delete(BASE_URL + `/api/projects/${encodeURIComponent(pid)}`).catch(() => {});
   }

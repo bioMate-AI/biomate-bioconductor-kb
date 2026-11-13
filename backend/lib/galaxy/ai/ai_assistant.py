@@ -3136,6 +3136,114 @@ Respond with a single JSON object — no other text:
             'description': 'Limit SRA spots downloaded (0 = unlimited)',
         }]
 
+    # Significance / fold-change rules from query or standing project instructions.
+    # Parenthetical glosses are common in project rules: "FDR (adjusted p) < 0.01".
+    _FDR_THRESHOLD_RE = re.compile(
+        r'(?:FDR|padj|p-?adj|adjusted\s+p(?:-?values?)?|q-?val(?:ues?)?|alpha)'
+        r'(?:\s*\([^)]*\))?'
+        r'(?:\s*(?:threshold|cutoff|of))?'
+        # Allow `<`, `<=`, `≤`, `=`, `:` (project rules often use `padj <= 0.01`)
+        r'\s*(?:[<≤]=?|[=:])\s*(0?\.\d+|\d+\.\d+)',
+        re.IGNORECASE,
+    )
+    _FDR_GATE_RE = re.compile(
+        r'\bFDR\b|\badjusted\s+p\b|\bp\s*adj|\bq\s*-?\s*val|\bpadj\b|\balpha\b',
+        re.IGNORECASE,
+    )
+    # "|log2FC| >= 1" / "log2 fold change > 1.5" — convert to absolute fold-change
+    # when the workflow param is absolute FC (nf-core differential_min_fold_change).
+    _LOG2FC_THRESHOLD_RE = re.compile(
+        r'(?:\|?\s*log\s*2?\s*FC\s*\|?|\blog2(?:ged)?\s*fold[\s-]*change\b|\bLFC\b)'
+        r'\s*[>≥=]{1,2}\s*([\d.]+)',
+        re.IGNORECASE,
+    )
+    _ABS_FC_THRESHOLD_RE = re.compile(
+        r'(?:\|?\s*fold[\s-]*change\s*\|?|\bmin(?:imum)?[\s_]*fold[\s_]*change\b)'
+        r'\s*[>≥=]{1,2}\s*([\d.]+)',
+        re.IGNORECASE,
+    )
+
+    def _extract_fdr_threshold(self, user_intent: str) -> Optional[float]:
+        """Return FDR / adjusted-p cutoff from query or standing project rules.
+
+        Handles project-rule phrasing such as ``FDR (adjusted p) < 0.01`` where a
+        parenthetical gloss sits between the token and the operator — the older
+        ``FDR\\s*[<≤=:]?\\s*(0?.\\d+)`` pattern missed those and left DE workflows
+        on the schema default (0.05).
+        """
+        if not user_intent or not self._FDR_GATE_RE.search(user_intent):
+            return None
+        m = self._FDR_THRESHOLD_RE.search(user_intent)
+        if not m:
+            return None
+        try:
+            v = float(m.group(1))
+        except (TypeError, ValueError):
+            return None
+        if not (0.0 < v < 1.0):
+            return None
+        return v
+
+    def _pick_significance_param_name(self, param_names) -> Optional[str]:
+        """Prefer differential_max_qval / *fdr* / *padj* over a bare clinical ``alpha``."""
+        ranked: list = []
+        for n in param_names or []:
+            if not n or not re.search(r'fdr|padj|p_?adj|q_?val|alpha|max_qval', n, re.I):
+                continue
+            nl = n.lower()
+            score = 0
+            if re.search(r'max_qval|fdr|padj|p_adj|q_?val', nl):
+                score += 10
+            if 'differential' in nl or 'deseq' in nl:
+                score += 5
+            if nl == 'alpha':
+                score -= 8  # clinical-trial alpha; last resort only
+            ranked.append((score, n))
+        if not ranked:
+            return None
+        ranked.sort(key=lambda t: (-t[0], t[1]))
+        return ranked[0][1]
+
+    def _extract_abs_fold_change(self, user_intent: str) -> Optional[float]:
+        """Absolute fold-change cutoff from query/rules.
+
+        ``|log2FC| >= 1`` → 2.0 (2**1) for params like differential_min_fold_change
+        that are absolute FC, not log2. Bare ``fold change >= 2`` stays as 2.0.
+        """
+        if not user_intent:
+            return None
+        m = self._LOG2FC_THRESHOLD_RE.search(user_intent)
+        if m:
+            try:
+                return float(2 ** float(m.group(1)))
+            except (TypeError, ValueError):
+                return None
+        m2 = self._ABS_FC_THRESHOLD_RE.search(user_intent)
+        if not m2:
+            return None
+        try:
+            return float(m2.group(1))
+        except (TypeError, ValueError):
+            return None
+
+    def _pick_fold_change_param_name(self, param_names) -> Optional[str]:
+        ranked: list = []
+        for n in param_names or []:
+            if not n or not re.search(r'fold.?change|min_fc|lfc|log2.?fc', n, re.I):
+                continue
+            nl = n.lower()
+            score = 10 if 'fold' in nl else 5
+            if 'differential' in nl:
+                score += 5
+            # Prefer absolute-FC params over log2-named ones when both exist.
+            if re.search(r'log2|lfc', nl) and 'fold' not in nl:
+                score -= 3
+            ranked.append((score, n))
+        if not ranked:
+            return None
+        ranked.sort(key=lambda t: (-t[0], t[1]))
+        return ranked[0][1]
+
     def _inject_genome_into_params(self, req_params: list, opt_params: list, genome_build: str) -> tuple:
         """Pre-fill reference, known_sites, and genome params when user mentioned a genome build.
         Uses igenomes-compatible S3 paths so the Run button is not blocked by empty required fields.
@@ -4015,16 +4123,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     'name': 'single_end', 'value': True,
                     'rationale': 'rule-based: single-end → single_end=true',
                 })
-        # Standing project-rule / prose FDR phrases when a significance param exists
-        _fdr_names = [n for n in _param_names if re.search(r'fdr|padj|p_?adj|q_?val|alpha|max_qval', n or '', re.I)]
-        if _fdr_names and re.search(r'\bFDR\b|\badjusted\s+p\b|\bp\s*adj|\bq\s*-?\s*val', user_intent or '', re.I):
-            _m_fdr = re.search(r'(?:FDR|padj|p-?adj|q-?val|alpha)\s*[<≤=:]?\s*(0?\.\d+)', user_intent or '', re.I)
-            if _m_fdr:
-                _fv = float(_m_fdr.group(1))
-                _rule_suggestions.append({
-                    'name': _fdr_names[0], 'value': _fv,
-                    'rationale': 'rule-based: significance threshold from query',
-                })
+        # Standing project-rule / prose FDR + |log2FC| when the workflow exposes those slots
+        # (e.g. nf-core/differentialabundance differential_max_qval / differential_min_fold_change).
+        # rnaseq has no significance param — correct; do not invent one.
+        _fdr_name = self._pick_significance_param_name(_param_names)
+        _fdr_val = self._extract_fdr_threshold(user_intent or '') if _fdr_name else None
+        if _fdr_name and _fdr_val is not None:
+            _rule_suggestions.append({
+                'name': _fdr_name, 'value': _fdr_val,
+                'rationale': 'rule-based: significance threshold from query/project rules',
+            })
+        _fc_name = self._pick_fold_change_param_name(_param_names)
+        _fc_val = self._extract_abs_fold_change(user_intent or '') if _fc_name else None
+        if _fc_name and _fc_val is not None:
+            _rule_suggestions.append({
+                'name': _fc_name, 'value': _fc_val,
+                'rationale': 'rule-based: fold-change threshold from query/project rules',
+            })
         if _rule_suggestions:
             req, opt = self._apply_llm_suggestions(req, opt, _rule_suggestions)
         # Layer 2: apply DB-driven tool_knowledge hints
