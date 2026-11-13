@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "baseUrl": "https://dev-public.biomate.ai",
+  "liveCommit": "562908a3e7280631adae5cb413e9699f27976f31",
+  "projectId": "8691d0bd-e7de-4830-bd1d-5d85bd3753cd",
+  "folder": "pairs",
+  "fileCount": 3,
+  "apiFileNames": [
+    "pairs/S1_R1.fastq.gz",
+    "pairs/S1_R2.fastq.gz",
+    "pairs/S2_R1.fastq.gz"
+  ],
+  "chipTexts": [
+    "pairs/S1_R1.fastq.gz",
+    "pairs/S1_R2.fastq.gz",
+    "pairs/S2_R1.fastq.gz"
+  ],
+  "modelsFolderLabel": "pairs/ (3 files)",
+  "at": "2026-11-13T18:57:35.697Z"
+}

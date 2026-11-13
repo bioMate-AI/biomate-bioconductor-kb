@@ -84,6 +84,44 @@ describe('ChatInput — request-scoped dataset references', () => {
     expect(onSend.mock.calls[0][2].datasetReferences.map((item: { id: string }) => item.id)).toEqual(['f1', 'f2', 'f3']);
   });
 
+  it('expands attachFolder from ?project= even when activeProjectId has not caught up yet', async () => {
+    // Live race: useChatProjectLink / chat-interface sync lag behind the URL.
+    // Composer must still expand using the deep-link project id (not wait forever).
+    window.history.replaceState(null, '', '/?project=project-a&attachFolder=pairs');
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes('/folders/files')) {
+        expect(url).toContain('/projects/project-a/folders/files');
+        return {
+          ok: true,
+          json: async () => ({
+            path: 'pairs',
+            files: [
+              { id: 'f1', name: 'pairs/S1_R1.fastq.gz' },
+              { id: 'f2', name: 'pairs/S1_R2.fastq.gz' },
+            ],
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({ settings: { outputRequirements: '', skillPackIds: [] } }) };
+    });
+    vi.stubGlobal('fetch', fetch);
+    render(<ChatInput activeProjectId={null} onSend={vi.fn()} />);
+    await waitFor(() => expect(screen.getAllByTestId('composer-dataset-ref')).toHaveLength(2));
+    expect(window.location.search).not.toContain('attachFolder');
+    expect(fetch.mock.calls.some(([u]) => String(u).includes('/folders/files'))).toBe(true);
+  });
+
+  it('waits to expand attachFolder when activeProjectId is a different project than ?project=', async () => {
+    window.history.replaceState(null, '', '/?project=project-a&attachFolder=pairs');
+    const fetch = vi.fn(async () => ({ ok: true, json: async () => ({ files: [], settings: {} }) }));
+    vi.stubGlobal('fetch', fetch);
+    render(<ChatInput activeProjectId="project-other" onSend={vi.fn()} />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryAllByTestId('composer-dataset-ref')).toHaveLength(0);
+    expect(window.location.search).toContain('attachFolder=pairs');
+    expect(fetch.mock.calls.some(([u]) => String(u).includes('/folders/files'))).toBe(false);
+  });
+
   it('carries the exact selected project-file IDs with a multi-file comparison request', () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} isStreaming={false} />);

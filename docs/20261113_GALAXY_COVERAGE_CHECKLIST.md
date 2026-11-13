@@ -42,14 +42,14 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Connectors / credentials vault surface | **Have** | `connectors-dialog.tsx`; settings connections; vault-backed connector keys |
 | Save run outputs to project | **Have** | save-to-project paths on execute / AfterRun (`routes.ts` + panel) |
 | Step / file preview (tables, images, text, VCF table) | **Have** | `step-output-preview.tsx` — common formats; binary genomics still weak (see Display apps) |
-| Deferred / large URL import | **Partial** | API: `POST /api/datasets/deferred` + materialize (`routes.ts`, `galaxy-api-proxy.ts`). UI exists in orphaned `file-upload.tsx`; primary chat/Data Hub paths use sync `import-url` / `files/import-url` only |
-| Remote public FTP/HTTP → project file | **Partial** | Routes: `GET /api/data/sources\|browse`, `POST /api/data/fetch`; `file_sources_conf.yml` (EBI/NCBI/Ensembl/UCSC). Agent/MCP can call them; no Data Hub “browse FTP → project_files” product flow |
-| FASTQ folder → **samplesheet** as one Analysis input | **Partial** | Samplesheet download Have; Ask-in-chat attaches **all files** (`attachFolder`), not persist-samplesheet→single `attachFile` |
+| Deferred / large URL import | **Partial** | Primary UX wired 2026-11-13: chat `UrlImportForm` + Data Hub URL defer/413→deferred (`galaxy-dataset-browser.tsx`, `project-file-tree.tsx`). Materialize-on-Confirm&Run still open |
+| Remote public FTP/HTTP → project file | **Have** | Data Hub `RemoteSourcePicker` → sources/browse/fetch → `files/import-url` (2026-11-13). Agent/MCP unchanged |
+| FASTQ folder → **samplesheet** as one Analysis input | **Have** | `POST …/folders/samplesheet` + folder **Use samplesheet** (complement **Attach all files**) — 2026-11-13 |
 | Collections / HDCA create | **Partial** | `POST /api/collections*`; `createDatasetCollection` in proxy; **no** client UI; Nextflow rejects HDCA (`workflow-input-gate.ts`) |
 | Pre-run cost estimate badge | **Partial** | `GET\|POST /api/workflows/estimate_cost` wired; `CostEstimateBadge` removed from panel (`wiring-contracts.test.ts` asserts absent); billing page shows usage after the fact |
 | Post-run cost on Runs / panel strip | **Partial** | Billing ledger + panel vCPU meter (`nextflow-workflow-viewer.tsx`); no estimate-vs-actual Runs-row strip |
 | Reproducibility pack (one zip) | **Partial** | Methods / software / citations / RO-Crate pieces exist; no single “download pack” zip; `ReproducibilityRecordTab` commented out in `AfterRunReport.tsx` |
-| Perception → Confirm & Run datatype gate | **Partial** | Perception Have; panel blocks missing inputs (`blockingInputRows`) but does not refuse wrong datatype vs param hints before Batch |
+| Perception → Confirm & Run datatype gate | **Have** | `perceptionMismatch` in `input-mapping-status.ts` → `isPrereqBlocked` (2026-11-13); strong kinds only |
 | Native Galaxy `.ga` invoke | **Partial** | Upload accepts `.ga` into `personal_workflows` (`POST /api/workflows/upload-file`); execute path is Nextflow/`file_content`-oriented — not honest Galaxy-engine invoke UX |
 | Galaxy invoke API (proxy) | **Partial** | `invokeWorkflow` + `/api/galaxy/workflows/...` exist; product default engine is Nextflow |
 | Subworkflow extract | **Partial** | `POST /api/workflows/:id/extract-subworkflow`; `extractSubworkflow` in proxy; no product UI |
@@ -94,18 +94,17 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 
 Cap for chat summary; full Missing rows remain in the table.
 
-1. Public remote browse → land in project_files (finish Partial remote fetch)  
-2. Deferred large URL materialize in primary Data Hub / chat import  
-3. FASTQ folder → samplesheet as **one** Analysis input  
-4. Reproducibility pack zip (methods + software + citations + RO-Crate)  
-5. Perception datatype Confirm & Run gate  
-6. Inline estimate vs actual run cost  
-7. BAM/VCF/(h5ad) viewers without GIT (IGV.js-class)  
-8. Datatype auto-converters before Batch  
-9. Workflow landing / shareable pre-filled run links  
-10. Storage archive/purge for abandoned S3 data  
-11. In-app run-complete / QC notifications  
-12. Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling  
+1. Deferred materialize on Confirm & Run (import UX wired 2026-11-13; materialize still open)  
+2. Reproducibility pack zip (methods + software + citations + RO-Crate)  
+3. Inline estimate vs actual run cost  
+4. BAM/VCF/(h5ad) viewers without IT (IGV.js-class)  
+5. Datatype auto-converters before Batch  
+6. Workflow landing / shareable pre-filled run links  
+7. Storage archive/purge for abandoned S3 data  
+8. In-app run-complete / QC notifications  
+9. Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling  
+
+Shipped from this list on 2026-11-13 (deep session): remote browse → project_files; FASTQ samplesheet-as-one Analysis input; perception Confirm & Run datatype gate; deferred import in primary chat/Data Hub UX.
 
 ---
 

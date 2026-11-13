@@ -116,3 +116,40 @@ export function samplesheetFilename(folder: string): string {
   const leaf = folder.split("/").filter(Boolean).pop() || "inputs";
   return `${leaf.replace(/[^A-Za-z0-9._-]/g, "_")}_samplesheet.csv`;
 }
+
+/** Project-files stored name for a persisted samplesheet (under the folder prefix). */
+export function samplesheetStoredName(folder: string, filename?: string | null): string {
+  const raw = (filename && String(filename).trim()) || samplesheetFilename(folder);
+  const leaf = raw.replace(/\\/g, "/").split("/").filter(Boolean).pop() || samplesheetFilename(folder);
+  const safe = leaf.replace(/[^A-Za-z0-9._-]/g, "_") || "samplesheet.csv";
+  return folder ? `${folder}/${safe}` : safe;
+}
+
+type SamplesheetLike = {
+  csv?: unknown;
+  filename?: unknown;
+  single?: { csv?: unknown; filename?: unknown } | null;
+} | null | undefined;
+
+/** Pick the CSV body (+ leaf filename) from a folder profile samplesheet block. */
+export function pickFolderSamplesheetCsv(
+  samplesheet: SamplesheetLike,
+  layout?: "paired" | "single_end" | string | null,
+): { csv: string; filename: string } | null {
+  if (!samplesheet || typeof samplesheet !== "object") return null;
+  if (layout === "single_end") {
+    const csv = samplesheet.single?.csv;
+    if (typeof csv !== "string" || !csv) return null;
+    const filename =
+      typeof samplesheet.single?.filename === "string" && samplesheet.single.filename
+        ? samplesheet.single.filename
+        : "samplesheet_single_end.csv";
+    return { csv, filename };
+  }
+  if (typeof samplesheet.csv !== "string" || !samplesheet.csv) return null;
+  const filename =
+    typeof samplesheet.filename === "string" && samplesheet.filename
+      ? samplesheet.filename
+      : "samplesheet.csv";
+  return { csv: samplesheet.csv, filename };
+}

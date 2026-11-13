@@ -68,6 +68,7 @@ import { t, locale } from "@/lib/i18n";
 import { effectiveQuality } from "@/components/datasets/dataset-view-model";
 import type { PerceptionFinding, PerceptionQuality } from "@/components/data-perception";
 import { filesFromDataTransfer, relativePathOf } from "@/lib/folder-drop";
+import { RemoteSourcePicker } from "@/components/remote-source-picker";
 
 export interface ProjectFile {
   id: string;
@@ -903,6 +904,9 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   const [urlOpen, setUrlOpen] = useState(false);
   const [urlVal, setUrlVal] = useState("");
   const [importingUrl, setImportingUrl] = useState(false);
+  const [urlDeferred, setUrlDeferred] = useState(false);
+  const [remoteOpen, setRemoteOpen] = useState(false);
+  const [urlStatus, setUrlStatus] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1036,6 +1040,23 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     if (!url) return;
     setImportingUrl(true);
     try {
+      if (urlDeferred) {
+        // Large/deferred: register Galaxy HDA reference (not project_files bytes yet).
+        const res = await fetch("/api/datasets/deferred", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, filename: url.split("/").pop() }),
+        });
+        if (!res.ok) {
+          throw new Error(t("data_hub.tree_err_with_status", { message: t("file_tree.err_import_url"), status: res.status }));
+        }
+        setUrlVal("");
+        setUrlOpen(false);
+        setError(null);
+        setUrlStatus(t("file_tree.deferred_registered"));
+        return;
+      }
       const res = await fetch(`/api/projects/${projectId}/files/import-url`, {
         method: "POST",
         credentials: "include",
@@ -1043,6 +1064,21 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         body: JSON.stringify({ url }),
       });
       if (!res.ok) {
+        // Auto-fallback: oversize sync import → deferred registration (same APIs).
+        if (res.status === 413) {
+          const def = await fetch("/api/datasets/deferred", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, filename: url.split("/").pop() }),
+          });
+          if (def.ok) {
+            setUrlVal("");
+            setUrlOpen(false);
+            setUrlStatus(t("file_tree.deferred_registered_oversize"));
+            return;
+          }
+        }
         // A name clash says which entry holds the name (same reason as an upload's 409).
         if (res.status === 409) {
           const body = await res.json().catch(() => null);
@@ -1278,13 +1314,27 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             size="sm"
             variant="ghost"
             className="h-6 px-2 text-xs gap-1"
-            onClick={() => setUrlOpen((o) => !o)}
+            onClick={() => { setUrlOpen((o) => !o); setRemoteOpen(false); }}
             disabled={uploading}
             title={t('file_tree.import_url_title')}
             data-testid="project-files-url-btn"
           >
             <Link2 className="h-3 w-3" />
             {t('file_tree.add_url')}
+          </Button>
+        )}
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs gap-1"
+            onClick={() => { setRemoteOpen((o) => !o); setUrlOpen(false); }}
+            disabled={uploading}
+            title={t('file_tree.remote_title')}
+            data-testid="project-files-remote-btn"
+          >
+            <FolderUp className="h-3 w-3" />
+            {t('file_tree.remote_browse')}
           </Button>
         )}
         <Button
@@ -1319,27 +1369,53 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       </div>
       {/* Paste-a-URL ingest (design §4.6) — fetches into the project and shows in the tree. */}
       {urlOpen && canEdit && (
-        <div className="flex items-center gap-1 px-1 pb-1 shrink-0" data-testid="project-files-url-row">
-          <input
-            type="url"
-            value={urlVal}
-            onChange={(e) => setUrlVal(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !importingUrl) handleImportUrl(); }}
-            placeholder={t('file_tree.import_url_placeholder')}
-            className="flex-1 rounded border bg-background px-2 py-1 text-xs"
-            data-testid="project-files-url-input"
-            autoFocus
-          />
-          <Button
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={handleImportUrl}
-            disabled={importingUrl || !urlVal.trim()}
-            data-testid="project-files-url-import"
-          >
-            {importingUrl ? <RefreshCw className="h-3 w-3 animate-spin" /> : t('file_tree.import')}
-          </Button>
+        <div className="flex flex-col gap-1 px-1 pb-1 shrink-0" data-testid="project-files-url-row">
+          <div className="flex items-center gap-1">
+            <input
+              type="url"
+              value={urlVal}
+              onChange={(e) => setUrlVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !importingUrl) handleImportUrl(); }}
+              placeholder={t('file_tree.import_url_placeholder')}
+              className="flex-1 rounded border bg-background px-2 py-1 text-xs"
+              data-testid="project-files-url-input"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={handleImportUrl}
+              disabled={importingUrl || !urlVal.trim()}
+              data-testid="project-files-url-import"
+            >
+              {importingUrl ? <RefreshCw className="h-3 w-3 animate-spin" /> : t('file_tree.import')}
+            </Button>
+          </div>
+          <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground cursor-pointer px-0.5">
+            <input
+              type="checkbox"
+              checked={urlDeferred}
+              onChange={(e) => setUrlDeferred(e.target.checked)}
+              data-testid="project-files-url-deferred"
+            />
+            {t("file_tree.import_url_deferred")}
+          </label>
         </div>
+      )}
+      {remoteOpen && canEdit && (
+        <div className="px-1 pb-1 shrink-0">
+          <RemoteSourcePicker
+            projectId={projectId}
+            onImported={async () => { await load(); setRemoteOpen(false); }}
+            onClose={() => setRemoteOpen(false)}
+          />
+        </div>
+      )}
+      {urlStatus && (
+        <p className="px-3 py-1 text-xs text-muted-foreground shrink-0" data-testid="project-files-url-status">
+          {urlStatus}
+          <button type="button" className="ml-2 underline" onClick={() => setUrlStatus(null)}>{t("data_hub.tree_dismiss")}</button>
+        </p>
       )}
 
       {/* Upload progress + per-file outcome (localized). */}
