@@ -172,35 +172,39 @@ partially covered match/chain; S3 strip and prose-vs-engine were open).
   `smiles-list-misparse-20261020.test.ts`
 - **pytest** (8): `test_find_nf_file_domain_alias.py`, `test_orphan_catalog_path_heal.py`
 
-### Follow-up — library triage is sequential single workflows (not a catalog chain)
+### Follow-up — library / molecule-design dual path
 
-User correction: do **not** index ad-hoc step compositions as `workflow_chains` rows. BioMate runs
-each step as an ordinary indexed workflow, **one by one**.
+User correction: do **not** index ad-hoc step compositions as `workflow_chains` rows. Later
+clarification: **both** catalog mega-chain and step-by-step must work — see
+`docs/20261113_LIBRARY_MOLECULE_DUAL_PATH.md`.
 
-| Piece | Behaviour |
+| Path | When | Behaviour |
+|---|---|---|
+| Catalog mega-chain | Real `workflow_chains` match (e.g. ADMET-gated screening) | `chainHint` → Tier-2 curated card |
+| Step-by-step | synthesise-now/park or triage+library with **no** catalog match | docking → ADMET → pharmacophore as ordinary workflows; `pipeline_steps`; `chainHint=null` |
+
+Explicitly avoided: inventing a new "Library Triage…" catalog row; single Admet Pred for multi-step
+prose. Ranking integrator still deferred (do not misuse 12814).
+
+Tests: `frontend/server/library-triage-sequential.test.ts`.
+
+### Sync (completed 2026-11-13)
+
+**Result: Sync OK** — tip `a1f44c67758ce71ebbcc947cda00579a612b5950` on
+`sync/pr398-onto-dev` (ancestry-safe tree + parents include feat tip `f9dd7b3ff8` and
+ledger tip `895432839b`).
+
+| Check | Evidence |
 |---|---|
-| Detector | `isLibraryTriageRequest` — synthesise-now/park or triage+library; rejects pure `tabular` (12814) |
-| Plan | `buildLibraryTriageSequentialDecomposition` → docking → ADMET → pharmacophore intents |
-| Live path | After `analyzeIntent`, override → `isSequential` + `skipPipelineCollapse` → `processSequentialPipeline` |
-| Payload | `workflow_type:'pipeline'` + `pipeline_steps` (PipelineListView task-by-task / `endAtStep:0`) |
-| Explicitly avoided | New `workflow_chains` row named "Library Triage…"; mega-chain card; single Admet Pred bind |
+| Sync log | `/tmp/biomate_sync_pr398_20261113T123643Z.log` — `Public dev ancestry verified: 8e8b1b1f -> a1f44c67`; `=== Sync OK at a1f44c67 ===`; smoke PASS |
+| build-info | `https://dev-public.biomate.ai/build-info.json` → `a1f44c67758ce71ebbcc947cda00579a612b5950` (`git merge-base --is-ancestor f9dd7b3ff8` = YES) |
+| ledger | `/opt/biomate/.deploy-ledger.jsonl` recorded `a1f44c67` at `2026-11-13T12:50:27Z` |
+| Galaxy | host `:8081/api/version` → `25.1.dev0` after unpause (container was briefly paused post-sync; unpaused to healthy) |
+| Admet Pred 14553 | `executable=0` on `/opt/biomate/galaxy_db/galaxy_ai_tools.db` |
+| S3 strip | frontend bundle contains `data-storage-redacted` (`index-BywRMhY8.js`) |
+| input_kinds | self-heal code deployed; post-sync DB still had `2571/4233` NULL (local DB upload **skipped**: `workflows_fts integrity-check FAILED` — not a silent pass). Orphan/executable filters still gate 14553. |
 
-Ranking / synthesise-now vs park integrator: still deferred until a **real** chemistry multi-criteria
-workflow exists (do not misuse assay ranker 12814).
-
-Tests: `frontend/server/library-triage-sequential.test.ts` (+ grounding still blocks fake prose on
-single-wf binds).
-
-### Sync
-
-Still **do not** `sync_to_dev` from this session (another agent owns deploy; ancestry HTTPS + disk
-blocks remain). Worktree catalog DB retired 14553/14591 locally; durable heal + search filter
-cover gitignored DBs on next Galaxy init after deploy. Gold E2E on live after sync remains deferred.
-
-**Tip for the sync agent (do not sync from this agent):**  
-Sync **`origin/feat/example-routing-fixes-20261112` HEAD** (must include library-triage
-`f27efabb9e` = cherry-pick of `8451b4c1e0`).  
-Original `8451b4c1e0` remains on `sync/pr398-onto-dev` / `origin/sync/pr398-onto-dev`.
+**PR body:** skipped (`gh` keyring invalid) — paste block below remains the intended addition.
 
 ---
 
