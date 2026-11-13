@@ -2152,7 +2152,10 @@ do_sync() {
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
-  [[ "$SYNC_RESULT" == healthy ]] && record_deploy_ledger "$commit"
+  if [[ "$SYNC_RESULT" == healthy ]]; then
+    record_deploy_ledger "$commit"
+    record_deploy_claim "$commit"
+  fi
   [[ "$SYNC_RESULT" == healthy ]] && return 0 || return 1
 }
 
@@ -2165,14 +2168,93 @@ do_sync() {
 # deployed through a path that skips the ancestry gate (an old checkout of this
 # script, a raw docker command). "Who removed my fix" becomes answerable.
 DEPLOY_LEDGER=/opt/biomate/.deploy-ledger.jsonl
+# Sticky cross-session claim: survives after the lease is released so Cursor /
+# Claude Code / other worktrees see who last owned dig and must explicitly
+# take over (BIOMATE_DEPLOY_TAKEOVER_REASON) while the claim is fresh.
+DEPLOY_CLAIM=/opt/biomate/.deploy-claim.json
+DEPLOY_CLAIM_TTL_S="${BIOMATE_DEPLOY_CLAIM_TTL_S:-14400}"  # 4h
+_deploy_worktree() { printf '%s' "$REPO_ROOT"; }
+_deploy_session() {
+  # Prefer Cursor/Claude agent ids when present so ledger lines name the session.
+  printf '%s' "${CURSOR_AGENT_ID:-${CLAUDE_CODE_SESSION_ID:-${BIOMATE_DEPLOY_SESSION:-local}}}"
+}
 record_deploy_ledger() {
   local _commit="$1" _branch _who _line
   _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
   _who="$(git -C "$REPO_ROOT" config user.name 2>/dev/null || echo '?')@$(hostname -s 2>/dev/null || echo '?')"
-  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}")"
+  _line="$(python3 -c 'import json,sys,datetime; print(json.dumps({"at": datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z", "commit": sys.argv[1], "branch": sys.argv[2], "by": sys.argv[3], "via": "sync_to_dev.sh", "override": sys.argv[4] or None, "worktree": sys.argv[5], "session": sys.argv[6]}))' "$_commit" "$_branch" "$_who" "${BIOMATE_EMERGENCY_DEPLOY_REASON:-${BIOMATE_DEPLOY_TAKEOVER_REASON:-}}" "$(_deploy_worktree)" "$(_deploy_session)")"
   ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") >> $DEPLOY_LEDGER" \
-    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who}" \
+    && log "[ledger] recorded ${_commit:0:8} (${_branch}) by ${_who} worktree=$(_deploy_worktree) session=$(_deploy_session)" \
     || log "[ledger] WARNING: could not append to $DEPLOY_LEDGER"
+}
+record_deploy_claim() {
+  local _commit="$1" _branch _line
+  _branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  _line="$(python3 -c 'import json,sys,datetime,os
+ttl=int(sys.argv[5]); now=datetime.datetime.utcnow()
+print(json.dumps({
+  "at": now.isoformat(timespec="seconds")+"Z",
+  "until": (now+datetime.timedelta(seconds=ttl)).isoformat(timespec="seconds")+"Z",
+  "commit": sys.argv[1], "branch": sys.argv[2],
+  "worktree": sys.argv[3], "session": sys.argv[4],
+  "ttl_s": ttl,
+}))' "$_commit" "$_branch" "$(_deploy_worktree)" "$(_deploy_session)" "$DEPLOY_CLAIM_TTL_S")"
+  ec2_ssh "printf '%s\\n' $(printf '%q' "$_line") > $DEPLOY_CLAIM" \
+    && log "[claim] dig owned by session=$(_deploy_session) branch=${_branch} until +${DEPLOY_CLAIM_TTL_S}s (other worktrees need BIOMATE_DEPLOY_TAKEOVER_REASON)" \
+    || log "[claim] WARNING: could not write $DEPLOY_CLAIM"
+}
+check_deploy_claim() {
+  # Refuse cross-worktree deploys while another session's sticky claim is active,
+  # unless an explicit takeover reason is set. Same worktree may redeploy freely.
+  local _raw _out _rc
+  _raw="$(ec2_ssh "cat $DEPLOY_CLAIM 2>/dev/null" || true)"
+  [[ -z "$_raw" ]] && return 0
+  set +e
+  _out="$(OUR_WT="$(_deploy_worktree)" OUR_SESS="$(_deploy_session)" TAKEOVER="${BIOMATE_DEPLOY_TAKEOVER_REASON:-}" python3 -c '
+import json,os,sys,datetime
+raw=sys.stdin.read().strip()
+if not raw: sys.exit(0)
+try: c=json.loads(raw)
+except Exception: sys.exit(0)
+until=c.get("until") or ""
+try:
+  exp=datetime.datetime.fromisoformat(until.replace("Z",""))
+except Exception:
+  sys.exit(0)
+if datetime.datetime.utcnow() > exp:
+  sys.exit(0)  # expired
+wt=c.get("worktree") or ""
+our=os.environ.get("OUR_WT") or ""
+if wt and our and os.path.normpath(wt)==os.path.normpath(our):
+  sys.exit(0)  # same worktree
+reason=(os.environ.get("TAKEOVER") or "").strip()
+if len(reason) >= 12:
+  print("TAKEOVER")
+  sys.exit(0)
+print(
+  "CROSS_SESSION_CLAIM: dig is claimed by another worktree/session until {until}.\n"
+  "  their branch={branch} worktree={wt} session={sess} commit={commit}\n"
+  "  your  worktree={our} session={ours}\n"
+  "Cursor and Claude Code do not share chat state — this claim is the cross-session signal.\n"
+  "Wait for the claim to expire, deploy from that worktree, or set\n"
+  "  BIOMATE_DEPLOY_TAKEOVER_REASON=\"why you are taking dig (>=12 chars)\"\n"
+  "Content-preservation + ancestry gates still apply after takeover.".format(
+    until=until, branch=c.get("branch"), wt=wt, sess=c.get("session"),
+    commit=(c.get("commit") or "")[:10], our=our, ours=os.environ.get("OUR_SESS"),
+  )
+)
+sys.exit(2)
+' <<<"$_raw")"
+  _rc=$?
+  set -e
+  if [[ "$_rc" -eq 0 ]]; then
+    if [[ "$_out" == "TAKEOVER" ]]; then
+      log "[claim] WARNING: taking over dig from another worktree — reason=${BIOMATE_DEPLOY_TAKEOVER_REASON}"
+    fi
+    return 0
+  fi
+  log "ERROR: $_out"
+  exit 2
 }
 show_deploy_ledger() {
   local _live="$1" _tail _last
@@ -2251,11 +2333,15 @@ else
     exit 1
   fi
 fi
-# Refuse stale/divergent worktrees while holding the deployment lease. This is
-# read-only and does not change existing layer selection or health/rollback.
+# Cross-session sticky claim (Cursor ↔ Claude ↔ other worktrees): refuse to
+# start a deploy while another worktree still owns dig, unless takeover reason set.
+check_deploy_claim
+# Refuse stale/divergent worktrees AND ancestry-only content clobbers
+# (`git merge -s ours <live>` keeping another tree) while holding the lease.
+# Read-only; does not change layer selection or health/rollback.
 _ANCESTRY_ARGS=(--repo "$REPO_ROOT")
 if [[ -n "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}" ]]; then
-  log "WARNING: explicit emergency ancestry override requested; retain the incident reason"
+  log "WARNING: explicit emergency ancestry/content override requested; retain the incident reason"
   _ANCESTRY_ARGS+=(--emergency-override-reason "$BIOMATE_EMERGENCY_DEPLOY_REASON")
 fi
 # The public build-info.json is baked only into the FRONTEND image, so a

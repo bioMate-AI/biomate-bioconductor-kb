@@ -1,16 +1,12 @@
 ---
 name: generator-adaptation
 title: Generator Adaptation (Models → Adapt)
+# Short UI blurb (skills selector). Full discrimination + routing live in the body
+# below and in frontend/server/operation-skills.ts (decomp whenToUse) — do NOT
+# fold those into this field or the selector fills with a wall of prose.
 description: >-
-  Select this when the user wants to ADAPT or fine-tune an existing GENERATIVE model
-  (molecule / peptide / protein generator) on their own data — "adapt the generative
-  model to our chemical series", "fine-tune the molecule generator on our compounds",
-  "continue-train the peptide designer on our actives". This is the documented hospital
-  "Models → Adapt" capability and the "generator adaptation" kind of learning. It is NOT
-  docking, ADMET, virtual screening, or de-novo generation from scratch; it is NOT a
-  property-PREDICTOR retrain (that is predictor-retraining); it is NOT merely running an
-  existing model (that is inference). The outcome is a new generator checkpoint, presented
-  as a model-version card — never a Nextflow dock/ADMET pipeline.
+  Adapt / fine-tune an existing generative model (molecule, peptide, or protein)
+  on your data — Models → Adapt. Produces a new generator checkpoint.
 triggers: [adapt the generative model, fine-tune the generator, adapt generator, continue-train the generator, fine-tune the molecule generator, adapt the molecule model, fine-tune the peptide generator]
 domains: [drug_discovery, structural_biology]
 version: 1.0
