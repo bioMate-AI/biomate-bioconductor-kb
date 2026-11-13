@@ -119,10 +119,11 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
     expect(String((emptyBody as any).error || "")).toMatch(/folder_not_found|not found/i);
 
     // ── Analysis: attachFolder deep-link expands to N chips ────────────────
-    // Seed active project BEFORE navigation so chat-input's attachFolder effect
-    // does not race an empty/wrong activeProjectId (live flake on 429c3dbc).
+    // Deliberately clear active-project localStorage so this asserts the
+    // product fix (composer expands from ?project= even when activeProjectId
+    // has not caught up) — not the old seed-before-nav workaround.
     await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-    await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
+    await page.evaluate(() => localStorage.removeItem("biomate-active-project-id"));
     await page.goto(
       `${BASE_URL}/?project=${encodeURIComponent(projectId)}&attachFolder=${encodeURIComponent(FOLDER)}`,
       { waitUntil: "domcontentloaded", timeout: 60_000 },
@@ -131,7 +132,7 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
     await expect
       .poll(async () => chips.count(), {
         timeout: 60_000,
-        message: `Analysis attachFolder → ${expectedTop} composer chips`,
+        message: `Analysis attachFolder → ${expectedTop} composer chips (no localStorage seed)`,
       })
       .toBe(expectedTop);
     await expect.poll(() => new URL(page.url()).searchParams.has("attachFolder")).toBe(false);
@@ -143,7 +144,7 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
     await page.screenshot({ path: path.join(SHOT_DIR, "01-analysis-folder-chips.png"), fullPage: true });
 
     // ── Nested Analysis attach ─────────────────────────────────────────────
-    await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
+    await page.evaluate(() => localStorage.removeItem("biomate-active-project-id"));
     await page.goto(
       `${BASE_URL}/?project=${encodeURIComponent(projectId)}&attachFolder=${encodeURIComponent(NESTED)}`,
       { waitUntil: "domcontentloaded", timeout: 60_000 },
@@ -151,7 +152,7 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
     await expect
       .poll(async () => page.locator('[data-testid="composer-dataset-ref"]').count(), {
         timeout: 60_000,
-        message: "Nested attachFolder → only nested chips",
+        message: "Nested attachFolder → only nested chips (no localStorage seed)",
       })
       .toBe(NESTED_FILES.length);
     await page.screenshot({ path: path.join(SHOT_DIR, "01b-analysis-nested-chips.png"), fullPage: true });
@@ -199,18 +200,17 @@ test("folder Use/attach yields multiple files (Analysis + Models + nested/empty)
       samplesheet.id = body.file?.id;
       samplesheet.name = body.file?.name;
       expect(samplesheet.id, "persisted samplesheet file id").toBeTruthy();
+      await page.evaluate(() => localStorage.removeItem("biomate-active-project-id"));
       await page.goto(
         `${BASE_URL}/?project=${encodeURIComponent(projectId)}&attachFile=${encodeURIComponent(samplesheet.id!)}`,
         { waitUntil: "domcontentloaded", timeout: 60_000 },
       );
-      await page.evaluate((id) => localStorage.setItem("biomate-active-project-id", id), projectId);
-      if (!(await page.locator('[data-testid="composer-dataset-ref"]').count())) {
-        await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
-      }
-      await expect(
-        page.locator('[data-testid="composer-dataset-ref"]'),
-        "samplesheet attachFile → exactly one chip",
-      ).toHaveCount(1, { timeout: 45_000 });
+      await expect
+        .poll(async () => page.locator('[data-testid="composer-dataset-ref"]').count(), {
+          timeout: 60_000,
+          message: "samplesheet attachFile → exactly one chip (no localStorage seed)",
+        })
+        .toBe(1);
       const sheetChip = (await page.locator('[data-testid="composer-dataset-ref"]').allTextContents())[0] || "";
       expect(sheetChip.toLowerCase()).toMatch(/samplesheet|\.csv/);
       await page.screenshot({ path: path.join(SHOT_DIR, "03-samplesheet-one-chip.png"), fullPage: true });
