@@ -259,20 +259,27 @@ async def cn_generate(route: CnRoute, prompt: Any = None, *, system: Optional[st
     import httpx  # noqa: PLC0415
 
     msgs = build_messages(prompt, system, messages)
-    last: Optional[Exception] = None
+    first: Optional[Exception] = None
     for model in models_for(route):
         attempt = CnRoute(route.url, route.key, model, route.source)
+        status: Optional[int] = None
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(f"{route.url}/chat/completions", headers=_headers(attempt),
                                              json=_chat_body(attempt, msgs, max_tokens, temperature, json_mode))
             if response.status_code != 200:
+                status = response.status_code
                 raise RuntimeError(f"Chinese model ({model}) error: {response.status_code} {response.text[:300]}")
             return _text(response.json())
         except Exception as exc:  # noqa: BLE001 — fall through to the next Chinese model
-            last = exc
+            if first is None:
+                first = exc
+            if not _cn_failure_is_retryable(status):
+                log.warning("[llm-region] %s failed with a non-retryable status %s (%s) — surfacing the first "
+                            "error without trying later Chinese models", model, status, str(exc)[:160])
+                raise first
             log.warning("[llm-region] %s failed (%s) — trying the next Chinese model", model, str(exc)[:160])
-    raise last if last else RuntimeError("no Chinese model to try")
+    raise first if first else RuntimeError("no Chinese model to try")
 
 
 def cn_generate_sync(route: CnRoute, prompt: Any = None, *, system: Optional[str] = None,
@@ -281,20 +288,40 @@ def cn_generate_sync(route: CnRoute, prompt: Any = None, *, system: Optional[str
     import httpx  # noqa: PLC0415
 
     msgs = build_messages(prompt, system, messages)
-    last: Optional[Exception] = None
+    first: Optional[Exception] = None
     for model in models_for(route):
         attempt = CnRoute(route.url, route.key, model, route.source)
+        status: Optional[int] = None
         try:
             with httpx.Client(timeout=timeout) as client:
                 response = client.post(f"{route.url}/chat/completions", headers=_headers(attempt),
                                        json=_chat_body(attempt, msgs, max_tokens, temperature, json_mode))
             if response.status_code != 200:
+                status = response.status_code
                 raise RuntimeError(f"Chinese model ({model}) error: {response.status_code} {response.text[:300]}")
             return _text(response.json())
         except Exception as exc:  # noqa: BLE001 — fall through to the next Chinese model
-            last = exc
+            if first is None:
+                first = exc
+            if not _cn_failure_is_retryable(status):
+                log.warning("[llm-region] %s failed with a non-retryable status %s (%s) — surfacing the first "
+                            "error without trying later Chinese models", model, status, str(exc)[:160])
+                raise first
             log.warning("[llm-region] %s failed (%s) — trying the next Chinese model", model, str(exc)[:160])
-    raise last if last else RuntimeError("no Chinese model to try")
+    raise first if first else RuntimeError("no Chinese model to try")
+
+
+def _cn_failure_is_retryable(status: Optional[int]) -> bool:
+    """A CN-chain failure that should fall through to the next Chinese model: a 5xx, a rate limit
+    (429), a request timeout (408), or a network/transport error (no HTTP status). Any other client
+    4xx will fail identically on every chain model, so it breaks the chain early instead."""
+    if status is None:
+        return True  # network / transport / non-HTTP error
+    if status in (429, 408):
+        return True  # rate limit / request timeout
+    if 400 <= status < 500:
+        return False  # other client errors: break early
+    return True  # 5xx (and anything else): retry the next model
 
 
 def image_part(image_b64: str, mime_type: str = "image/png") -> Dict[str, Any]:
@@ -370,8 +397,13 @@ def install_thread_context_propagation() -> None:
 
     - ``ThreadPoolExecutor.submit`` (which ``map`` and ``loop.run_in_executor`` use) runs the work with
       the submitter's policy set;
-    - ``threading.Thread.start`` runs ``run`` with the starter's policy set.
+    - ``threading.Thread.start`` runs ``run`` with the starter's policy set, except a pool worker.
     Only the policy is carried, never the rest of the request context (see below).
+
+    The pool worker function (``concurrent.futures.thread._worker``) is an infinite loop. Wrapping it
+    would pin the policy of whichever request started the worker onto every later task. ``submit``
+    already scopes a task that has a policy; a later ``submit`` with no policy stays on the worker's
+    empty ContextVar default.
 
     Threads started at boot (pollers) copy the boot context, which has no policy — unchanged.
     Idempotent; called from initialize_fast_app.
@@ -409,7 +441,9 @@ def install_thread_context_propagation() -> None:
 
     def start(self):  # type: ignore[no-untyped-def]
         policy = _policy.get()
-        if policy is not None:
+        # One-shot threads only. A pool worker's run() is the infinite _worker loop;
+        # wrapping it bakes this request's policy into every later task on that worker.
+        if policy is not None and getattr(self, "_target", None) is not _cft._worker:
             self.run = _with_policy(policy, self.run)  # type: ignore[assignment]
         return _orig_start(self)
 

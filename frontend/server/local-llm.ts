@@ -246,7 +246,14 @@ export async function openaiCompatCompletion(
       body: JSON.stringify({ ...body, model: cfg.model, stream: false }),
     };
     const response = await fetch(`${cfg.url.replace(/\/$/, '')}/chat/completions`, options);
-    if (!response.ok) throw new Error(`Inference HTTP ${response.status}`);
+    if (!response.ok) {
+      // Carry the HTTP status (and a bounded body) on the error so a caller walking a fallback
+      // chain can tell a retryable failure (429/408/5xx) from a non-retryable client 4xx.
+      const body = await response.text().catch(() => '');
+      const err = new Error(`Inference HTTP ${response.status}${body ? ` ${body.slice(0, 300)}` : ''}`) as Error & { status?: number };
+      err.status = response.status;
+      throw err;
+    }
     const result = await response.json();
     const choice = result.choices?.[0];
     if (!choice?.message || !['stop', 'length', 'tool_calls'].includes(choice.finish_reason)) {

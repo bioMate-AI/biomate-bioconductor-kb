@@ -178,6 +178,62 @@ describe('Chinese-model chokepoints (callGeminiFlash, llmGenerate) under a China
   });
 });
 
+describe('CN chain retry policy (WARN#2: a non-retryable 4xx must not walk the whole chain)', () => {
+  const route = () => resolveCnRoute({}, { OPENROUTER_ZH_API_KEY: 'zh' } as any)!;
+  const stubStatuses = (byModel: Record<string, number>, tried: string[]) =>
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: any) => {
+      const model = JSON.parse(init.body).model;
+      tried.push(model);
+      const status = byModel[model] ?? 200;
+      if (status !== 200) return new Response(`error body for ${model}`, { status });
+      return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '回答' } }] }));
+    }));
+
+  it('a 400 on the first chain model surfaces that 400 and never tries later models', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tried: string[] = [];
+    stubStatuses({ 'deepseek/deepseek-v4.1-flash': 400 }, tried);
+    await expect(cnChainCompletion(route(), { messages: [{ role: 'user', content: 'p' }] }))
+      .rejects.toThrow(/Inference HTTP 400/);
+    expect(tried).toEqual(['deepseek/deepseek-v4.1-flash']);
+  });
+
+  it('429, 408 and 500 on the first model fall through to the next Chinese model and succeed', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (const status of [429, 408, 500]) {
+      const tried: string[] = [];
+      stubStatuses({ 'deepseek/deepseek-v4.1-flash': status }, tried);
+      const r = await cnChainCompletion(route(), { messages: [{ role: 'user', content: 'p' }] });
+      expect(r, String(status)).toEqual({ text: '回答', model: 'z-ai/glm-5.2' });
+      expect(tried, String(status)).toEqual(['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.2']);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a network/transport error on the first model also falls through', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tried: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: any) => {
+      const model = JSON.parse(init.body).model;
+      tried.push(model);
+      if (model === 'deepseek/deepseek-v4.1-flash') throw new TypeError('network down');
+      return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '回答' } }] }));
+    }));
+    const r = await cnChainCompletion(route(), { messages: [{ role: 'user', content: 'p' }] });
+    expect(r).toEqual({ text: '回答', model: 'z-ai/glm-5.2' });
+    expect(tried).toEqual(['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.2']);
+  });
+
+  it('the surfaced error reflects the FIRST non-retryable failure (not a later model)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tried: string[] = [];
+    stubStatuses({ 'deepseek/deepseek-v4.1-flash': 403 }, tried);
+    await expect(cnChainCompletion(route(), { messages: [{ role: 'user', content: 'p' }] }))
+      .rejects.toThrow(/Inference HTTP 403/);
+    expect(tried).toEqual(['deepseek/deepseek-v4.1-flash']);
+  });
+});
+
 describe('policy summary + save check', () => {
   it('China users: Chinese vendors, Chinese default, no Anthropic key', () => {
     const s = policySummary(classifyRegion({ uiLanguage: 'zh' }), { OPENROUTER_ZH_API_KEY: 'zh' } as any);

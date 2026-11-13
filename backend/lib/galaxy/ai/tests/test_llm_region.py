@@ -231,6 +231,36 @@ def test_6_work_handed_to_threads_keeps_the_policy():
     assert box2 == [None], box2
 
 
+def test_14_pool_worker_does_not_keep_the_policy_that_started_it():
+    """submit() while a policy is set still runs under that policy. The pool worker loop itself
+    must not keep it: a later submit with no policy stays on the empty ContextVar default."""
+    lr.install_thread_context_propagation()
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        with lr.policy_scope(CN):
+            # Starts the worker under CN. This task is scoped by submit().
+            first = ex.submit(lr.current_policy).result()
+        # Same worker, no policy on the submitting thread.
+        second = ex.submit(lr.current_policy).result()
+        # A worker started with no policy still picks up a later submit that has one,
+        # and drops it again afterwards.
+        ex2 = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        try:
+            started_clear = ex2.submit(lr.current_policy).result()
+            with lr.policy_scope(CN):
+                while_set = ex2.submit(lr.current_policy).result()
+            after = ex2.submit(lr.current_policy).result()
+        finally:
+            ex2.shutdown(wait=True)
+    finally:
+        ex.shutdown(wait=True)
+    assert first == CN, first
+    assert second is None, second
+    assert started_clear is None, started_clear
+    assert while_set == CN, while_set
+    assert after is None, after
+
+
 def test_7_background_run_reenters_the_policy_it_was_launched_with():
     with lr.policy_scope(CN):
         record = {"run_id": "r1", "llm_policy": lr.current_policy_dict()}
@@ -362,6 +392,78 @@ def test_12_chain_and_response_overrides_stay_chinese():
         assert lr.zh_default_model() == "z-ai/glm-5.2"
     with _Env(BIOMATE_CN_RESPONSE_MODEL="anthropic/claude-opus-5.5"):
         assert lr.zh_default_model() == lr.ZH_DEFAULT_MODEL
+
+
+def _fake_httpx_status(status_by_model, tried):
+    """A stand-in httpx whose Client / AsyncClient return each model's mapped status (200 if
+    unmapped); the sentinel 'raise' makes .post raise a transport error (a network failure)."""
+    import types
+
+    class _Transport(Exception):
+        pass
+
+    def _post(url, headers=None, json=None):
+        model = json["model"]
+        tried.append(model)
+        code = status_by_model.get(model, 200)
+        if code == "raise":
+            raise _Transport("connection reset")
+        return _FakeResponse(code, model)
+
+    class Client:
+        def __init__(self, timeout=None): ...
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def post(self, url, headers=None, json=None): return _post(url, headers, json)
+
+    class AsyncClient:
+        def __init__(self, timeout=None): ...
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def post(self, url, headers=None, json=None): return _post(url, headers, json)
+
+    return types.SimpleNamespace(Client=Client, AsyncClient=AsyncClient)
+
+
+def test_13_chain_breaks_on_non_retryable_4xx_but_retries_429_408_5xx_network():
+    """WARN#2: a client 4xx (not 429/408) fails identically on every chain model, so the chain must
+    break early and surface the FIRST error; 429/408/5xx and network errors stay retryable."""
+    route = lr.CnRoute(lr.OPENROUTER_URL, "k", "deepseek/deepseek-v4.1-flash", "openrouter_zh_key")
+    first = "deepseek/deepseek-v4.1-flash"
+    saved = sys.modules.get("httpx")
+    try:
+        # (a) a 400 on the first chain model surfaces that 400 and never tries later models.
+        tried: list = []
+        sys.modules["httpx"] = _fake_httpx_status({first: 400}, tried)  # type: ignore[assignment]
+        with _Env():
+            try:
+                lr.cn_generate_sync(route, "p")
+                raise AssertionError("a 400 on the first model must surface, not fall through")
+            except RuntimeError as exc:
+                assert "400" in str(exc), exc
+            assert tried == [first], tried
+        # (b) a 429, a 408, a 500 and a network error on the first model each fall through and succeed.
+        for status in (429, 408, 500, "raise"):
+            tried = []
+            sys.modules["httpx"] = _fake_httpx_status({first: status}, tried)  # type: ignore[assignment]
+            with _Env():
+                assert lr.cn_generate_sync(route, "p") == "answer from z-ai/glm-5.2", status
+                assert tried == [first, "z-ai/glm-5.2"], (status, tried)
+        # (c) the surfaced error reflects the FIRST non-retryable failure (async path too).
+        tried = []
+        sys.modules["httpx"] = _fake_httpx_status({first: 403}, tried)  # type: ignore[assignment]
+        with _Env():
+            try:
+                asyncio.run(lr.cn_generate(route, "p"))
+                raise AssertionError("a 403 on the first model must surface, not fall through")
+            except RuntimeError as exc:
+                assert "403" in str(exc), exc
+            assert tried == [first], tried
+    finally:
+        if saved is not None:
+            sys.modules["httpx"] = saved
+        else:
+            sys.modules.pop("httpx", None)
 
 
 def main():
