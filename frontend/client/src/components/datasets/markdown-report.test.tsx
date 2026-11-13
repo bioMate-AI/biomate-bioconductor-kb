@@ -19,12 +19,42 @@ describe("Markdown report figures (founder: md report no figures)", () => {
     expect(resolveSiblingImage("https://x/y.png", report, files)).toBeNull()
     expect(resolveSiblingImage("/abs.png", report, files)).toBeNull()
   })
+  it("resolves when the panel path has 分析结果/ but stored files omit that prefix", () => {
+    const stored = [
+      { id: "a", name: "这张图在说什么 · 2026-11-13 13.30/fig1_physchem_dili.png" },
+      { id: "b", name: "这张图在说什么 · 2026-11-13 13.30/ADMET_QC_report.md" },
+    ]
+    expect(
+      resolveSiblingImage(
+        "fig1_physchem_dili.png",
+        "分析结果/这张图在说什么 · 2026-11-13 13.30/ADMET_QC_report.md",
+        stored,
+      ),
+    ).toBe("a")
+  })
+  it("falls back to basename when only the leaf file name matches", () => {
+    expect(
+      resolveSiblingImage("fig1_score.png", "ADMET_QC_Report.md", files),
+    ).toBe("f1")
+  })
   it("renders the figure from the project file", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ files }) } as any)
     render(<MarkdownReport text={"# QC\n\n![score](fig1_score.png)\n\n![gone](nope.png)"} projectId="p1" reportName={report} />)
     const img = await screen.findByTestId("markdown-figure")
     expect(img.getAttribute("src")).toBe("/api/projects/p1/files/f1/url?redirect=1")
     await waitFor(() => expect(screen.getByTestId("markdown-figure-missing")).toBeInTheDocument())
+  })
+  it("resolves reference-style images (no inline ![](…) for the hasRelativeImages gate)", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ files }) } as any)
+    render(
+      <MarkdownReport
+        text={"# QC\n\n![score][fig]\n\n[fig]: fig1_score.png\n"}
+        projectId="p1"
+        reportName={report}
+      />,
+    )
+    const img = await screen.findByTestId("markdown-figure")
+    expect(img.getAttribute("src")).toBe("/api/projects/p1/files/f1/url?redirect=1")
   })
 })
 
