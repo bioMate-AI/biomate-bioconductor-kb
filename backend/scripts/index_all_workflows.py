@@ -893,17 +893,39 @@ def _wf_insert(cursor, *, name, filename, description, annotation, tags, domain,
                input_types=None, output_types=None):
     inp = json.dumps(input_types) if input_types is not None else "[]"
     out = json.dumps(output_types) if output_types is not None else "[]"
+    # Compute the closed-vocabulary input_kinds label at INSERT time so re-indexing a source
+    # (DELETE FROM workflows WHERE source=? → re-insert) PRESERVES the data-shape gate (step 8a)
+    # instead of reverting the column to NULL. A one-shot UPDATE backfill would silently revert
+    # on the next re-index — that is the workaround we are explicitly avoiding. None → leave NULL
+    # for the LLM refinement pass (input_kinds_classifier.classify/apply).
+    _ensure_input_kinds_column(cursor)
+    try:
+        from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
+        _kinds = rule_classify_kinds({"name": name, "description": description or "",
+                                      "annotation": annotation or "", "input_types": inp,
+                                      "tags": tags or ""})
+    except Exception:
+        _kinds = None
+    input_kinds = json.dumps(_kinds) if _kinds else None
     cursor.execute("""
         INSERT INTO workflows (
             name, filename, description, annotation, tags, domain,
             workflow_json, step_count, tools_used, source, format,
             executable, docker_image, category, workflow_hash, indexed_at,
-            input_types, output_types
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            input_types, output_types, input_kinds
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (name, filename, description[:500], annotation, tags, domain,
           workflow_json, step_count, tools_used, source, format_,
           executable, docker_image[:300] if docker_image else "", category,
-          workflow_hash, indexed_at, inp, out))
+          workflow_hash, indexed_at, inp, out, input_kinds))
+
+
+def _ensure_input_kinds_column(cursor) -> None:
+    """Add the input_kinds column if the schema predates it (idempotent). The runtime
+    UnifiedWorkflowSearch migration also adds it, but the indexer may run against a fresh DB."""
+    cols = {r[1] for r in cursor.execute("PRAGMA table_info(workflows)")}
+    if "input_kinds" not in cols:
+        cursor.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
 
 
 def _wf_exists(cursor, wf_hash: str) -> bool:
