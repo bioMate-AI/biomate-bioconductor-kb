@@ -89,6 +89,10 @@ export interface OutputFile {
   /** Set when saved into the chat's project (project chats save there automatically). */
   project_file_id?: string;
   project_id?: string;
+  /** Full project_files.name including the per-chat folder prefix. */
+  project_file_name?: string;
+  /** project_files.created_at (ISO) — shown beside the file in the chat Generated files list. */
+  created_at?: string;
   download_url?: string;
 }
 
