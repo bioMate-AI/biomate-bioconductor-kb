@@ -2587,6 +2587,28 @@ Respond with a single JSON object — no other text:
         without_schema = [c for c in candidates if c.exists() and c not in with_schema]
         for c in (with_schema + without_schema):
             return c
+
+        # Domain alias fallback — same drug_discovery ↔ pharmacology map as
+        # nextflow_executor._resolve_nextflow_path. Without this, a catalog row
+        # whose filename still says drug_discovery/ADMET_pred resolves for
+        # execution (alias) but _find_nf_file returns None → empty required_params
+        # and empty-schema phantom inline_parameters (2026-11-13 Admet Pred).
+        _DOMAIN_ALIASES = {
+            "drug_discovery": "pharmacology",
+            "pharmacology": "drug_discovery",
+        }
+        alias_candidates = []
+        for c in candidates:
+            parts = c.parts
+            for i, part in enumerate(parts):
+                if part in _DOMAIN_ALIASES:
+                    aliased = _Path(*parts[:i]) / _DOMAIN_ALIASES[part] / _Path(*parts[i + 1:])
+                    alias_candidates.append(aliased)
+                    break
+        with_schema_a = [c for c in alias_candidates if c.exists() and (c.parent / "nextflow_schema.json").exists()]
+        without_schema_a = [c for c in alias_candidates if c.exists() and c not in with_schema_a]
+        for c in (with_schema_a + without_schema_a):
+            return c
         return None
 
     # Groups in nextflow_schema.json that are infrastructure / admin — skip them

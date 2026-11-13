@@ -153,6 +153,62 @@ _ASSAY_RANKING_TERMS: frozenset = frozenset({
 # including LLM refinements, are never touched). Kept in the ai_meta key/value table per DB.
 _RULE_INPUT_KINDS_VERSION: int = 2
 
+# Version marker for retiring catalog rows whose primary .nf path is missing / archived
+# (_self_heal_orphan_catalog_paths). Prefer executable=0 over silently aliasing to a sibling
+# domain (2026-11-13 Admet Pred id 14553). Alias remains for param parse when somehow selected.
+_ORPHAN_PATH_HEAL_VERSION: int = 1
+
+
+def _biomni_workflows_root() -> Optional[Path]:
+    """Locate biomni_workflows/ relative to this package (backend root)."""
+    here = Path(__file__).resolve()
+    for ancestor in here.parents:
+        candidate = ancestor / "biomni_workflows"
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _primary_nf_path_exists(filename: str, biomni_root: Optional[Path] = None) -> bool:
+    """True when the catalog filename resolves on disk WITHOUT domain aliasing.
+
+    Used to retire orphan rows (drug_discovery/ADMET_pred after archive) rather than
+    keeping them searchable via the pharmacology sibling alias.
+    """
+    if not filename:
+        return False
+    fn = str(filename).replace("\\", "/")
+    if "_archived" in fn.split("/"):
+        return False
+    root = biomni_root if biomni_root is not None else _biomni_workflows_root()
+    if root is None:
+        return True  # cannot verify → do not retire
+    # Common biomni / nextflow_nfcore layouts stored in the catalog.
+    candidates = [
+        root / fn,
+        root / "nextflow_nfcore" / "subworkflows" / fn,
+    ]
+    if fn.startswith("nextflow_nfcore/"):
+        candidates.append(root / fn)
+    elif fn.startswith("nfcore/"):
+        candidates.append(root.parent / "nf-core-workflows" / fn[len("nfcore/"):])
+    for c in candidates:
+        if c.is_file():
+            return True
+        if c.is_dir() and (c / "main.nf").is_file():
+            return True
+    # Bare relative under subworkflows/
+    if "subworkflows/" in fn:
+        rel = fn.split("subworkflows/", 1)[1]
+        p = root / "nextflow_nfcore" / "subworkflows" / rel
+        if p.is_file() or (p.is_dir() and (p / "main.nf").is_file()):
+            return True
+        if p.suffix != ".nf":
+            main = p / "main.nf" if not str(p).endswith("main.nf") else p
+            if main.is_file():
+                return True
+    return False
+
 # Downstream multi-omics INTEGRATION intent (step 8c). A user who ALREADY holds processed/summarised
 # tables (DE tables, protein-abundance tables, count matrices) and wants to INTEGRATE them — overlap,
 # concordant/discordant genes, MOFA, multi-omics integration, pathway enrichment on existing results —
@@ -834,6 +890,9 @@ class UnifiedWorkflowSearch:
         # step — the catalog DB is gitignored, so a one-shot local backfill would otherwise live
         # only on the laptop. Idempotent + version-gated (runs once per DB per rule version).
         self._self_heal_input_kinds(cursor)
+        # Retire catalog rows whose primary .nf is missing/archived (Admet Pred 14553). Prefer
+        # executable=0 over a wrong live match; search always drops these orphans (below).
+        self._self_heal_orphan_catalog_paths(cursor)
 
         conn.commit()
         log.info("[WorkflowSearch] schema migration complete")
@@ -890,6 +949,93 @@ class UnifiedWorkflowSearch:
         except Exception as exc:  # noqa: BLE001 — self-heal must never block init
             log.warning("[WorkflowSearch] input_kinds self-heal skipped: %s", exc)
             return 0
+
+    def _self_heal_orphan_catalog_paths(self, cursor) -> int:
+        """Mark executable=0 for biomni/nextflow rows whose primary .nf path is gone.
+
+        Durable write-path companion to the indexer fix (store on-disk folder in filename,
+        never index _archived). One-shot DB edits alone would die with the gitignored catalog;
+        this heal runs on every deploy until the version marker matches. Prefer retiring the
+        orphan over retargeting to a sibling domain live path (wrong-name match risk).
+        Never raises — must not block backend init."""
+        try:
+            cursor.execute("CREATE TABLE IF NOT EXISTS ai_meta (key TEXT PRIMARY KEY, value TEXT)")
+            marker = cursor.execute(
+                "SELECT value FROM ai_meta WHERE key='orphan_path_heal_version'").fetchone()
+            if marker and str(marker[0]) == str(_ORPHAN_PATH_HEAL_VERSION):
+                return 0
+            biomni = _biomni_workflows_root()
+            rows = cursor.execute(
+                "SELECT id, filename FROM workflows "
+                "WHERE executable=1 AND filename IS NOT NULL AND filename != '' "
+                "AND (filename LIKE '%nextflow_nfcore/subworkflows/%' "
+                "     OR filename LIKE '%/_archived/%' OR filename LIKE '%_archived/%' "
+                "     OR source IN ('biomni_nextflow','biomni'))"
+            ).fetchall()
+            changed = 0
+            for wid, filename in rows:
+                if _primary_nf_path_exists(filename or "", biomni):
+                    continue
+                cursor.execute("UPDATE workflows SET executable=0 WHERE id=? AND executable=1", (wid,))
+                changed += cursor.rowcount
+            cursor.execute(
+                "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('orphan_path_heal_version', ?)",
+                (str(_ORPHAN_PATH_HEAL_VERSION),))
+            if changed:
+                log.info(
+                    "[WorkflowSearch] self-healed orphan catalog paths: retired %d rows (heal v%s)",
+                    changed, _ORPHAN_PATH_HEAL_VERSION,
+                )
+            return changed
+        except Exception as exc:  # noqa: BLE001 — self-heal must never block init
+            log.warning("[WorkflowSearch] orphan-path self-heal skipped: %s", exc)
+            return 0
+
+    def _orphan_catalog_ids(self) -> frozenset:
+        """Ids whose primary .nf is missing/archived — always excluded from search.
+
+        Independent of BIOMATE_ENFORCE_EXECUTABLE (that flag stays off until the broader
+        stale-flag cleanup lands). Cached per DB mtime."""
+        try:
+            db = Path(str(self.db_path)); wal = Path(str(db) + "-wal")
+            key = (db.stat().st_mtime, wal.stat().st_mtime if wal.exists() else 0.0)
+        except OSError:
+            return frozenset()
+        cached = getattr(self, "_orphan_path_cache", None)
+        if cached and cached[0] == key:
+            return cached[1]
+        try:
+            biomni = _biomni_workflows_root()
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                rows = conn.execute(
+                    "SELECT id, filename, executable FROM workflows "
+                    "WHERE filename IS NOT NULL AND filename != ''"
+                ).fetchall()
+            finally:
+                conn.close()
+            ids = set()
+            for wid, filename, executable in rows:
+                fn = filename or ""
+                if "_archived" in fn.replace("\\", "/").split("/"):
+                    ids.add(wid)
+                    continue
+                if int(executable or 1) == 0 and (
+                    "nextflow_nfcore/subworkflows/" in fn or fn.startswith("biomni")
+                ):
+                    # Retired by orphan heal (or manual) — keep out of search even when
+                    # BIOMATE_ENFORCE_EXECUTABLE is off.
+                    if not _primary_nf_path_exists(fn, biomni):
+                        ids.add(wid)
+                        continue
+                if "nextflow_nfcore/subworkflows/" in fn and not _primary_nf_path_exists(fn, biomni):
+                    ids.add(wid)
+            ids_fs = frozenset(ids)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("[WorkflowSearch] orphan-path id load failed: %s", exc)
+            return frozenset()
+        self._orphan_path_cache = (key, ids_fs)
+        return ids_fs
 
     def _ensure_fts_index(self):
         """Ensure FTS index exists and is populated."""
@@ -1136,6 +1282,13 @@ class UnifiedWorkflowSearch:
             _off = self._non_executable_ids()
             if _off:
                 results = [m for m in results if getattr(m, "id", None) not in _off]
+        # Always drop orphan/archived primary paths (Admet Pred 14553) — independent of
+        # BIOMATE_ENFORCE_EXECUTABLE so a one-shot executable=0 flag is not required for
+        # search honesty on gitignored catalogs.
+        if results:
+            _orphans = self._orphan_catalog_ids()
+            if _orphans:
+                results = [m for m in results if getattr(m, "id", None) not in _orphans]
         try:
             from galaxy.ai import scope_guard as _scope_guard
             if not _scope_guard.enforcement_enabled():
