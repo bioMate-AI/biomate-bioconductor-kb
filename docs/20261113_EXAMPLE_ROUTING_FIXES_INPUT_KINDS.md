@@ -196,3 +196,33 @@ single-wf binds).
 Still **do not** `sync_to_dev` from this session (another agent owns deploy; ancestry HTTPS + disk
 blocks remain). Worktree catalog DB retired 14553/14591 locally; durable heal + search filter
 cover gitignored DBs on next Galaxy init after deploy. Gold E2E on live after sync remains deferred.
+
+**Tip SHA for the sync agent (do not sync from this agent):**  
+`f27efabb9eacf25425453ee8b07900c2019b7459` on `feat/example-routing-fixes-20261112`  
+(= cherry-pick of `8451b4c1e0` from `sync/pr398-onto-dev`; same library-triage content).  
+Also present as original `8451b4c1e0` on `sync/pr398-onto-dev` / `origin/sync/pr398-onto-dev`.
+
+---
+
+## PR #398 body update (gh failed — paste manually)
+
+Intended addition to the PR #398 description (https://github.com/bioMate-AI/biomate/pull/398):
+
+> **Library triage (2026-11-13 follow-up):** synthesise-now / park library triage is now a
+> **sequential plan of ordinary indexed workflows** (docking → ADMET → pharmacophore), not a
+> catalog mega-chain. Payload is `workflow_type: 'pipeline'` + `pipeline_steps` (task-by-task;
+> `skipPipelineCollapse`). Commit: `8451b4c1e0` on `sync/pr398-onto-dev`; equivalent on this PR
+> branch: `f27efabb9e`.
+
+**`gh` error (exact):**
+```
+Post "https://api.github.com/graphql": Forbidden
+```
+Underlying auth (`gh auth status`):
+```
+X Failed to log in to github.com account yaoyun-dev (keyring)
+  - The token in keyring is invalid.
+  - To re-authenticate, run: gh auth login -h github.com
+```
+Code is already on `origin/feat/example-routing-fixes-20261112` (PR head); only the GitHub
+description text could not be updated from this agent.
