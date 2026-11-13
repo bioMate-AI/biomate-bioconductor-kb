@@ -26,6 +26,7 @@ import { Play, Loader2, Sparkles } from "lucide-react"
 import { useModels, useInfer, useInferenceResult, useRunStatus, launchFold, TrainingLaunchError } from "./models-api"
 import { TERMINAL_STATUSES, openRunManager, runStatusLabel } from "./training-logic"
 import { InferenceResultView } from "./inference-result"
+import { FoldOutputs } from "./fold-outputs"
 import type { EvidenceClass, ModelSummary } from "./types"
 import { originLabel } from "./model-origin"
 
@@ -280,7 +281,10 @@ export function RunPretrained({ onOpenModel, className, initialModelId }: RunPre
                   ? (foldStatus.data?.errorMessage || t("models.fold_failed_note"))
                   : t("models.fold_running_note")}
             </p>
-            <Button size="sm" variant="outline" className="h-7 text-xs" data-testid="fold-run-open"
+            {/* The result renders INLINE here — the structure + confidence are
+                shown in-panel, not behind a trip to the Run Manager. */}
+            {foldDone && foldState !== "failed" && foldRunId && <FoldOutputs runId={foldRunId} />}
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" data-testid="fold-run-open"
               onClick={() => openRunManager()}>
               {t("models.fold_open_run")}
             </Button>
