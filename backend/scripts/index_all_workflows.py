@@ -1089,12 +1089,19 @@ def index_biomni_nextflow(conn: sqlite3.Connection) -> int:
         return 0
     # Folder-name → canonical domain mapping.
     # pharmacology/ is merged into drug_discovery to avoid category overlap.
+    # IMPORTANT: filename must keep the on-disk folder (domain_dir.name), NOT the
+    # remapped domain — otherwise rows point at drug_discovery/<wf> while the file
+    # lives under pharmacology/<wf>, empty required_params until alias resolve, and
+    # orphan "Admet Pred" catalog entries (2026-11-13). Prefer honest path over a
+    # wrong live match.
     _FOLDER_DOMAIN_MAP = {
         "pharmacology": "drug_discovery",
     }
     for domain_dir in sorted(BIOMNI_NF_PATH.iterdir()):
         if not domain_dir.is_dir() or domain_dir.name == "bioconductor":
             continue
+        if domain_dir.name.startswith("_") or domain_dir.name == "_archived":
+            continue  # never index archived / private folders
         domain = _FOLDER_DOMAIN_MAP.get(domain_dir.name, domain_dir.name)
         for wf_dir in sorted(domain_dir.iterdir()):
             if not wf_dir.is_dir():
@@ -1112,7 +1119,7 @@ def index_biomni_nextflow(conn: sqlite3.Connection) -> int:
             try:
                 _wf_insert(cursor,
                     name=wf_name(wf_dir.name),
-                    filename=f"nextflow_nfcore/subworkflows/{domain}/{wf_dir.name}/main.nf",
+                    filename=f"nextflow_nfcore/subworkflows/{domain_dir.name}/{wf_dir.name}/main.nf",
                     description=description, annotation=description,
                     tags=json.dumps([domain, "biomni", "nextflow", wf_dir.name]),
                     domain=domain, workflow_json=content,
