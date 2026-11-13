@@ -146,8 +146,9 @@ export function fileTime(iso: string | Date, now: Date = new Date()): string {
 }
 
 /**
- * Hover/title for a narrow file row: full name plus date and size (not shown inline —
- * the ~280 px tree truncates the name when those compete for width).
+ * Hover/title for a narrow file row: full name plus date (and size for a11y).
+ * Date stays hover-only so the ~280 px tree doesn't truncate names; size is shown
+ * inline after the name.
  */
 export function fileRowTitle(
   name: string,
@@ -675,7 +676,7 @@ function FileRow({
   }
 
   const nameClass = "truncate text-left text-xs text-foreground";
-  // Date + size live in the hover/title (and aria-label) so the name gets the full row width.
+  // Date stays in hover/title; size is shown muted after the name (pre-declutter pattern).
   const metaTitle = fileRowTitle(file.name, { createdAt: file.created_at, size: file.size });
   return (
     <div>
@@ -688,7 +689,7 @@ function FileRow({
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" data-testid={`file-icon-${file.id}`} />
         <QualityDot file={file} />
-        {/* Full path + date + size on hover — never inline (narrow panel). */}
+        {/* Full path + date (+ size) on hover; size also inline after the name. */}
         {onOpenDataset ? (
           <button
             type="button"
@@ -709,6 +710,7 @@ function FileRow({
             {file.step_name}
           </span>
         )}
+        <span className="text-xs text-muted-foreground shrink-0 tabular-nums" data-testid={`file-size-${file.id}`}>{formatBytes(file.size)}</span>
         <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`file-actions-${file.id}`}>
           {showPreview && (
             <button

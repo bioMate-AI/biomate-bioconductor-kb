@@ -30,7 +30,7 @@ export function analysisFolderPath(fullName: string): string {
   return dir ? `outputs/analysis/${dir}` : "outputs/analysis"
 }
 
-/** Hover/title for a generated-file row: name · size (size not shown inline — same as the Data tree). */
+/** Hover/title for a generated-file row: name · size (size also shown muted after the name). */
 export function generatedFileTitle(file: SavedFile): string {
   return `${file.name} · ${formatBytes(file.size)}`
 }
@@ -75,6 +75,7 @@ export function GeneratedFiles({ blocks }: { blocks: ToolBlock[] | undefined }) 
               >
                 {f.name}
               </a>
+              <span className="shrink-0 tabular-nums text-muted-foreground" data-testid="generated-file-size">{formatBytes(f.size)}</span>
               {f.downloadUrl && (
                 <a href={f.downloadUrl} download={f.name} className="shrink-0 text-primary" aria-label={t("tool_card.download")} data-testid="generated-file-download">
                   <Download className="h-3.5 w-3.5" />
