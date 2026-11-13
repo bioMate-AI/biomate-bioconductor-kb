@@ -34,3 +34,7 @@ hardcoded local ports) are not Playwright harness paths; left alone.
 `BASE_URL=https://dev-public.biomate.ai` with `BIOMATE_URL` / `PLAYWRIGHT_BASE_URL`
 unset → shared resolver + Playwright `baseURL` resolve to live;
 `folder-attach-all-files.e2e.ts` login hits `dev-public.biomate.ai`.
+
+Re-run 2026-11-13 (only `BASE_URL` set): **PASS** (1.2m) — Analysis chips=5,
+Models `folder:pairs`, samplesheet chip persisted. Live build tip observed in
+test log was independent of this e2e-only class close (no product sync needed).
