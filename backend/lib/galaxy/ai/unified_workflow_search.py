@@ -65,7 +65,11 @@ try:
     _CHAIN_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_chains × dim)
     _CHAIN_EMBED_DESC_HASH: str = ""              # hash of chain descriptions for cache invalidation
     _EMBEDDINGS_AVAILABLE = True
-except ImportError:
+except Exception:  # noqa: BLE001 — optional embeddings dep: a MISSING (ImportError) *or* a
+    # binary-broken (TypeError/OSError from a compiled transitive dep such as scipy/numpy ABI
+    # mismatch) install must both degrade gracefully, never crash backend init. The feature is
+    # optional (FTS + rule scoring work without it); a narrow `except ImportError` previously let
+    # an import-time TypeError escape and fail module load on environments with a broken scipy.
     _np = None
     _ST = None
     _CHAIN_EMBED_MODEL = None
@@ -147,7 +151,7 @@ _ASSAY_RANKING_TERMS: frozenset = frozenset({
 # Version marker for the self-healing rule-based input_kinds backfill (_self_heal_input_kinds).
 # Bumping it re-runs the rule pass over still-NULL rows on the next init (existing non-NULL labels,
 # including LLM refinements, are never touched). Kept in the ai_meta key/value table per DB.
-_RULE_INPUT_KINDS_VERSION: int = 1
+_RULE_INPUT_KINDS_VERSION: int = 2
 
 # Downstream multi-omics INTEGRATION intent (step 8c). A user who ALREADY holds processed/summarised
 # tables (DE tables, protein-abundance tables, count matrices) and wants to INTEGRATE them — overlap,
@@ -665,7 +669,7 @@ class UnifiedWorkflowSearch:
             'smiles': 2.5, 'ligand': 2.5, 'scaffold': 2.5,
             'pharmacology': 3.0, 'pharmacokinetics': 3.0, 'pharmacokinetic': 3.0,
             'absorption': 2.0, 'distribution': 1.5, 'metabolism': 2.0, 'excretion': 2.0,
-            'bioavailability': 2.5, 'permeability': 2.0, 'bbb': 2.5,
+            'bioavailability': 2.5, 'bbb': 2.5,  # 'permeability' set once below (developability block)
             'docking': 3.0, 'binding': 2.0, 'affinity': 2.0,
             'alphafold': 2.5, 'alphafold3': 3.0, 'diffdock': 3.0, 'autodock': 2.5, 'vina': 2.5,
             'nca': 3.0, 'pknca': 3.0, 'nlmixr2': 3.0,
@@ -791,6 +795,7 @@ class UnifiedWorkflowSearch:
             ("workflow_correctness_score",  "REAL"),
             ("workflow_correctness_verdict","TEXT"),
             ("input_kinds",                 "TEXT"),  # closed-vocabulary input kinds (input_kinds_classifier)
+            ("input_kinds_method",          "TEXT"),  # provenance: 'rule' | 'llm' (rule layer never clobbers 'llm')
         ]:
             if col not in existing_cols:
                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
@@ -834,13 +839,16 @@ class UnifiedWorkflowSearch:
         log.info("[WorkflowSearch] schema migration complete")
 
     def _self_heal_input_kinds(self, cursor) -> int:
-        """Idempotent, version-gated rule-based backfill of workflows.input_kinds.
+        """Idempotent, version-gated rule-based (re)labelling of workflows.input_kinds.
 
-        Labels ONLY rows WHERE input_kinds IS NULL and NEVER overwrites an existing value, so LLM
-        refinements and write-path labels survive. A no-op after the first run (the ai_meta version
-        marker short-circuits before any scan), so repeated inits / per-request constructions cost
-        one indexed SELECT. Returns the number of rows newly labelled. Never raises — must not block
-        backend init."""
+        PROVENANCE CONTRACT — the rule layer owns ONLY rule-origin rows. On a rule-version bump it
+        recomputes every row whose input_kinds_method is NULL (legacy rule-origin / unlabelled) or
+        'rule', OVERWRITING changed labels and CLEARING labels that no longer match (prefer NULL to a
+        false positive — the LLM pass then refines them). It NEVER touches a row whose
+        input_kinds_method='llm', so LLM refinements always survive a rule correction. This is what
+        self-heals the 2026-11-13 fastq/molecules mislabels on dev/prod with no manual step (the
+        catalog DB is gitignored). A no-op after the first run at a given version (the ai_meta marker
+        short-circuits before any scan). Never raises — must not block backend init."""
         try:
             cursor.execute("CREATE TABLE IF NOT EXISTS ai_meta (key TEXT PRIMARY KEY, value TEXT)")
             marker = cursor.execute(
@@ -848,25 +856,37 @@ class UnifiedWorkflowSearch:
             if marker and str(marker[0]) == str(_RULE_INPUT_KINDS_VERSION):
                 return 0  # already healed at this rule version → bounded no-op
             from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
+            # Non-LLM rows only: method IS NULL (legacy rule-origin or still-unlabelled) or 'rule'.
             rows = cursor.execute(
                 "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
-                "COALESCE(input_types,'[]'), COALESCE(tags,'[]') FROM workflows WHERE input_kinds IS NULL"
+                "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds FROM workflows "
+                "WHERE input_kinds_method IS NULL OR input_kinds_method='rule'"
             ).fetchall()
-            n = 0
-            for wid, name, desc, ann, inp, tags in rows:
+            changed = 0
+            for wid, name, desc, ann, inp, tags, old in rows:
                 kinds = rule_classify_kinds({"name": name, "description": desc, "annotation": ann,
                                              "input_types": inp, "tags": tags})
-                if kinds:
-                    cursor.execute(
-                        "UPDATE workflows SET input_kinds=? WHERE id=? AND input_kinds IS NULL",
-                        (json.dumps(kinds), wid))
-                    n += cursor.rowcount
+                new = json.dumps(kinds) if kinds else None
+                if new == old:
+                    # value unchanged; still stamp provenance on legacy rule rows that lack it
+                    if new is not None:
+                        cursor.execute(
+                            "UPDATE workflows SET input_kinds_method='rule' WHERE id=? "
+                            "AND input_kinds_method IS NULL", (wid,))
+                    continue
+                # value changed (corrected / cleared). Guard the UPDATE so a concurrently-written
+                # 'llm' row is never clobbered.
+                cursor.execute(
+                    "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
+                    "AND (input_kinds_method IS NULL OR input_kinds_method='rule')",
+                    (new, ('rule' if new is not None else None), wid))
+                changed += cursor.rowcount
             cursor.execute(
                 "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('rule_input_kinds_version', ?)",
                 (str(_RULE_INPUT_KINDS_VERSION),))
-            log.info("[WorkflowSearch] self-healed input_kinds: labelled %d NULL rows (rule v%s)",
-                     n, _RULE_INPUT_KINDS_VERSION)
-            return n
+            log.info("[WorkflowSearch] self-healed input_kinds: (re)labelled %d rule-origin rows (rule v%s)",
+                     changed, _RULE_INPUT_KINDS_VERSION)
+            return changed
         except Exception as exc:  # noqa: BLE001 — self-heal must never block init
             log.warning("[WorkflowSearch] input_kinds self-heal skipped: %s", exc)
             return 0

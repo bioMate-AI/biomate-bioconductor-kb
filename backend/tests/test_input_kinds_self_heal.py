@@ -26,7 +26,9 @@ _ROWS = [
 def _db_with_null_rows(tmp_path, preset=None):
     """Build a DB with the real schema (via one init), insert rows with NULL input_kinds, then
     DELETE the version marker to simulate a DB built BEFORE this migration version (e.g. a DB
-    synced to dev/prod as a binary). Returns the path; the NEXT init must self-heal it."""
+    synced to dev/prod as a binary). Returns the path; the NEXT init must self-heal it.
+
+    preset maps id -> list[str] OR (list[str], method) to seed an existing label with provenance."""
     db = tmp_path / "wf.db"
     UnifiedWorkflowSearch(db_path=db)  # creates full schema incl input_kinds + ai_meta
     conn = sqlite3.connect(str(db))
@@ -35,8 +37,10 @@ def _db_with_null_rows(tmp_path, preset=None):
                      "tools_used,executable,input_kinds) VALUES (?,?,?,?,?,'[]','[]','[]',1,NULL)",
                      (wid, name, fn, desc, dom))
     if preset:
-        for wid, val in preset.items():
-            conn.execute("UPDATE workflows SET input_kinds=? WHERE id=?", (json.dumps(val), wid))
+        for wid, spec in preset.items():
+            val, method = spec if isinstance(spec, tuple) else (spec, None)
+            conn.execute("UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=?",
+                         (json.dumps(val), method, wid))
     conn.execute("DELETE FROM ai_meta WHERE key='rule_input_kinds_version'")
     conn.commit(); conn.close()
     return db
@@ -68,13 +72,26 @@ def test_second_init_is_a_noop_and_does_not_reclassify(tmp_path):
     conn.close()
 
 
-def test_existing_non_null_values_are_never_clobbered(tmp_path):
-    # id=2 already carries an LLM-style label BEFORE the heal; the rule pass must not overwrite it.
-    db = _db_with_null_rows(tmp_path, preset={2: ["protein_table"]})
+def test_llm_values_are_never_clobbered_by_rule_heal(tmp_path):
+    # id=2 carries an LLM label (method='llm') BEFORE the heal; the rule pass must NEVER touch it,
+    # even on a version bump — LLM refinements always survive a rule correction.
+    db = _db_with_null_rows(tmp_path, preset={2: (["protein_table"], "llm")})
     UnifiedWorkflowSearch(db_path=db)
     conn = sqlite3.connect(str(db))
-    assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=2").fetchone()[0]) == ["protein_table"]
+    row = conn.execute("SELECT input_kinds, input_kinds_method FROM workflows WHERE id=2").fetchone()
+    assert json.loads(row[0]) == ["protein_table"] and row[1] == "llm"
     assert json.loads(conn.execute("SELECT input_kinds FROM workflows WHERE id=1").fetchone()[0]) == ["molecules", "structure"]
+    conn.close()
+
+
+def test_rule_origin_values_are_corrected_on_version_bump(tmp_path):
+    # id=2 (an assay ranker) carries a STALE rule label from an older rule version. On a version
+    # bump the self-heal must RECOMPUTE and overwrite it (rule layer owns rule-origin rows).
+    db = _db_with_null_rows(tmp_path, preset={2: (["fastq"], "rule")})
+    UnifiedWorkflowSearch(db_path=db)
+    conn = sqlite3.connect(str(db))
+    row = conn.execute("SELECT input_kinds, input_kinds_method FROM workflows WHERE id=2").fetchone()
+    assert json.loads(row[0]) == ["tabular"] and row[1] == "rule"  # corrected, provenance stays 'rule'
     conn.close()
 
 
