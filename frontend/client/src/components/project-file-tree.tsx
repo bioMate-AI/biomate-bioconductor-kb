@@ -145,6 +145,23 @@ export function fileTime(iso: string | Date, now: Date = new Date()): string {
   return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}-${md}`
 }
 
+/**
+ * Hover/title for a narrow file row: full name plus date and size (not shown inline —
+ * the ~280 px tree truncates the name when those compete for width).
+ */
+export function fileRowTitle(
+  name: string,
+  opts: { createdAt?: string | Date | null; size?: number | null; now?: Date } = {},
+): string {
+  const parts = [name]
+  if (opts.createdAt) {
+    const when = fileTime(opts.createdAt, opts.now)
+    if (when) parts.push(when)
+  }
+  if (opts.size != null && Number.isFinite(opts.size)) parts.push(formatBytes(opts.size))
+  return parts.join(" · ")
+}
+
 /** Folders before files at every level; files keep their (newest-first) order. */
 function sortFoldersFirst(node: FolderNode): void {
   node.children.sort((x, y) => (x.type === y.type ? 0 : x.type === "folder" ? -1 : 1));
@@ -658,46 +675,40 @@ function FileRow({
   }
 
   const nameClass = "truncate text-left text-xs text-foreground";
+  // Date + size live in the hover/title (and aria-label) so the name gets the full row width.
+  const metaTitle = fileRowTitle(file.name, { createdAt: file.created_at, size: file.size });
   return (
     <div>
       <div
         className="group relative flex items-center gap-1.5 pr-2 py-1 rounded hover:bg-muted text-sm cursor-default"
         style={{ paddingLeft: treeIndent(depth) }}
         data-testid={`file-row-${file.id}`}
+        data-file-time={file.created_at ? fileTime(file.created_at) : undefined}
+        data-file-size={formatBytes(file.size)}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" data-testid={`file-icon-${file.id}`} />
         <QualityDot file={file} />
-        {/* The full stored name (with its folders) is the name's own tooltip. */}
+        {/* Full path + date + size on hover — never inline (narrow panel). */}
         {onOpenDataset ? (
           <button
             type="button"
             onClick={() => onOpenDataset(file)}
             className={cn(nameClass, "hover:underline cursor-pointer")}
             style={NAME_STYLE}
-            title={file.name}
-            aria-label={`${t("file_tree.open_dataset")}: ${file.name}`}
+            title={metaTitle}
+            aria-label={`${t("file_tree.open_dataset")}: ${metaTitle}`}
             data-testid={`file-open-${file.id}`}
           >
             {shown}
           </button>
         ) : (
-          <span className={nameClass} style={NAME_STYLE} title={file.name} data-testid={`file-name-${file.id}`}>{shown}</span>
+          <span className={nameClass} style={NAME_STYLE} title={metaTitle} aria-label={metaTitle} data-testid={`file-name-${file.id}`}>{shown}</span>
         )}
         {file.step_name && (
           <span className="min-w-0 max-w-[30%] truncate text-fs-xs px-1 py-0.5 rounded bg-blue-100 text-blue-700 font-mono" title={t("data_hub.tree_produced_by", { step: file.step_name })}>
             {file.step_name}
           </span>
         )}
-        {file.created_at && (
-          <span
-            className="text-fs-xs text-muted-foreground/80 shrink-0 tabular-nums hidden sm:inline"
-            title={new Date(file.created_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}
-            data-testid={`file-time-${file.id}`}
-          >
-            {fileTime(file.created_at)}
-          </span>
-        )}
-        <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
         <div className={ACTIONS_CLASS} style={ACTIONS_STYLE} data-testid={`file-actions-${file.id}`}>
           {showPreview && (
             <button

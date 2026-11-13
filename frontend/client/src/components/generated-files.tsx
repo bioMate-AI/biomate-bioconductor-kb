@@ -30,6 +30,11 @@ export function analysisFolderPath(fullName: string): string {
   return dir ? `outputs/analysis/${dir}` : "outputs/analysis"
 }
 
+/** Hover/title for a generated-file row: name · size (size not shown inline — same as the Data tree). */
+export function generatedFileTitle(file: SavedFile): string {
+  return `${file.name} · ${formatBytes(file.size)}`
+}
+
 /** Links to everything a reply generated: each file opens in the Data page (preview, versions,
  *  where-from) or downloads; the header opens the chat's output folder. */
 export function GeneratedFiles({ blocks }: { blocks: ToolBlock[] | undefined }) {
@@ -51,14 +56,25 @@ export function GeneratedFiles({ blocks }: { blocks: ToolBlock[] | undefined }) 
       <ul className="divide-y divide-border">
         {files.map((f) => {
           const href = `/files?${new URLSearchParams({ project: f.projectId, file: f.id }).toString()}`
+          const tip = generatedFileTitle(f)
           return (
-            <li key={f.fullName} className="flex items-center gap-2 px-3 py-1.5" data-testid="generated-file">
+            <li
+              key={f.fullName}
+              className="flex items-center gap-2 px-3 py-1.5"
+              data-testid="generated-file"
+              data-file-size={formatBytes(f.size)}
+            >
               <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <a href={href} onClick={(e) => { e.preventDefault(); if (!openFileInPanel({ projectId: f.projectId, fileId: f.id })) setLocation(href) }}
-                className="min-w-0 flex-1 truncate text-foreground hover:underline" title={t("chat.open_file_panel")} data-testid="generated-file-open">
+              <a
+                href={href}
+                onClick={(e) => { e.preventDefault(); if (!openFileInPanel({ projectId: f.projectId, fileId: f.id })) setLocation(href) }}
+                className="min-w-0 flex-1 truncate text-foreground hover:underline"
+                title={tip}
+                aria-label={`${t("chat.open_file_panel")}: ${tip}`}
+                data-testid="generated-file-open"
+              >
                 {f.name}
               </a>
-              <span className="shrink-0 tabular-nums text-muted-foreground">{formatBytes(f.size)}</span>
               {f.downloadUrl && (
                 <a href={f.downloadUrl} download={f.name} className="shrink-0 text-primary" aria-label={t("tool_card.download")} data-testid="generated-file-download">
                   <Download className="h-3.5 w-3.5" />

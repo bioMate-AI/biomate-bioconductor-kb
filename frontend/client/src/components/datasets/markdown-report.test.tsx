@@ -28,7 +28,7 @@ describe("Markdown report figures (founder: md report no figures)", () => {
   })
 })
 
-import { buildTree, fileTime } from "../project-file-tree"
+import { buildTree, fileRowTitle, fileTime } from "../project-file-tree"
 describe("generated files: one folder per chat, with time (founder screenshot)", () => {
   it("run_code files nest under 分析结果 by chat folder", () => {
     const tree: any[] = buildTree([
@@ -43,5 +43,10 @@ describe("generated files: one folder per chat, with time (founder screenshot)",
     const d = new Date(2026, 10, 12, 16, 28)
     expect(fileTime(d, new Date(2026, 10, 13))).toBe("11-12 16:28")
     expect(fileTime(d, new Date(2027, 0, 1))).toBe("2026-11-12 16:28")
+  })
+  it("row hover title carries date + size (not shown inline)", () => {
+    const d = new Date(2026, 10, 12, 16, 28)
+    expect(fileRowTitle("umap_perturbation.png", { createdAt: d, size: 54600, now: new Date(2026, 10, 13) }))
+      .toBe("umap_perturbation.png · 11-12 16:28 · 53.3 KB")
   })
 })

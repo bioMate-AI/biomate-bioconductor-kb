@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import {
-  ProjectFileTree, renameErrorReason, renameErrorCode, treeIndent, NAME_MIN_PX, type ProjectFile,
+  ProjectFileTree, fileRowTitle, renameErrorReason, renameErrorCode, treeIndent, NAME_MIN_PX, type ProjectFile,
 } from "./project-file-tree"
 import { t } from "@/lib/i18n"
 
@@ -71,9 +71,11 @@ describe("ProjectFileTree — names stay readable at any depth (U10)", () => {
     expect(px(cs.minWidth)).toBeGreaterThanOrEqual(64)
     expect(px(cs.minWidth)).toBe(NAME_MIN_PX)
     expect(cs.flexGrow).toBe("1")
-    // the tooltip is the full stored path, not an action label
-    expect(name.getAttribute("title")).toBe(DEEP)
+    // tooltip: full path + date + size (meta moved off the inline row so the name keeps width)
+    expect(name.getAttribute("title")).toBe(fileRowTitle(DEEP, { createdAt: "2026-11-10T00:00:00Z", size: 9700 }))
+    expect(name.getAttribute("title")).toContain(DEEP)
     expect(name.textContent).toBe("sample.count_normalized_with_a_long_name.txt")
+    expect(row.getAttribute("data-file-size")).toBe("9.5 KB")
     // indent: bounded per level (old: 16 + depth*20 = 96 px of a 280 px tree at depth 4)
     expect(px(row.style.paddingLeft)).toBe(treeIndent(4))
     expect(px(row.style.paddingLeft)).toBeLessThanOrEqual(56)
