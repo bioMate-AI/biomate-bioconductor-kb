@@ -198,9 +198,9 @@ blocks remain). Worktree catalog DB retired 14553/14591 locally; durable heal + 
 cover gitignored DBs on next Galaxy init after deploy. Gold E2E on live after sync remains deferred.
 
 **Tip SHA for the sync agent (do not sync from this agent):**  
-`f27efabb9eacf25425453ee8b07900c2019b7459` on `feat/example-routing-fixes-20261112`  
-(= cherry-pick of `8451b4c1e0` from `sync/pr398-onto-dev`; same library-triage content).  
-Also present as original `8451b4c1e0` on `sync/pr398-onto-dev` / `origin/sync/pr398-onto-dev`.
+`27a2fb5085a738c835a5462cf99577812d0a2552` on `origin/feat/example-routing-fixes-20261112`  
+(library-triage content = `f27efabb9e`, cherry-pick of `8451b4c1e0` from `sync/pr398-onto-dev`).  
+Original `8451b4c1e0` remains on `sync/pr398-onto-dev` / `origin/sync/pr398-onto-dev`.
 
 ---
 
