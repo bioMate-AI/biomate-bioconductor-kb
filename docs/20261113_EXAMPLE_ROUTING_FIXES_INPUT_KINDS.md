@@ -197,9 +197,9 @@ Still **do not** `sync_to_dev` from this session (another agent owns deploy; anc
 blocks remain). Worktree catalog DB retired 14553/14591 locally; durable heal + search filter
 cover gitignored DBs on next Galaxy init after deploy. Gold E2E on live after sync remains deferred.
 
-**Tip SHA for the sync agent (do not sync from this agent):**  
-`27a2fb5085a738c835a5462cf99577812d0a2552` on `origin/feat/example-routing-fixes-20261112`  
-(library-triage content = `f27efabb9e`, cherry-pick of `8451b4c1e0` from `sync/pr398-onto-dev`).  
+**Tip for the sync agent (do not sync from this agent):**  
+Sync **`origin/feat/example-routing-fixes-20261112` HEAD** (must include library-triage
+`f27efabb9e` = cherry-pick of `8451b4c1e0`).  
 Original `8451b4c1e0` remains on `sync/pr398-onto-dev` / `origin/sync/pr398-onto-dev`.
 
 ---
