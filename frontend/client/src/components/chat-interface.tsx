@@ -2339,11 +2339,6 @@ export function ChatInterface({
         <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={turnBusy || preparingExample}
           reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
           onSend={text => handleSendOrQueue(text)} />
-        {libraryPick && (
-          <div className="mx-auto mb-1 w-full max-w-3xl rounded-md border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="note" data-testid="library-input-reminder">
-            {t('chat.library_input_reminder', { name: libraryPick })}
-          </div>
-        )}
         <ChatInput
           voiceContextKey={chatSession?.id || "new-chat"}
           disabled={preparingExample}
