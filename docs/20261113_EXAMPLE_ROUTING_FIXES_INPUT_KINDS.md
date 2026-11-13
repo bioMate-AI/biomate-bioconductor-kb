@@ -1,0 +1,119 @@
+# 2026-11-13 — Drug-discovery routing fix: `input_kinds` data-shape gate, provenance & self-heal
+
+Branch: `feat/example-routing-fixes-20261112` (off `origin/integration/next-phase`, base `7d9a04cdb9`).
+
+## Problem
+
+The prompt *"Rank these 500 candidates for developability and show me the top 20."* (4 uploads:
+`candidate_library.csv` of 500 BACE SMILES, `1IEP.pdb`, `pilot_reference_actives.smi`,
+`pilot_target_info.json`) mis-matched to the workflow **"Assay Ingestion And Ranking"** (DB id
+12814) — a workflow that ingests an **assay CSV (IC50/dose-response)**, not a chemical library.
+
+### Root cause (three independent defects, all required to produce the bug)
+
+1. **Keyword boost on the bare word "rank".** `keyword_weights` boosted any query containing
+   "rank"/"ranking", which lifted the assay-ranker regardless of input shape.
+2. **The data-shape gate was dead.** `workflows.input_kinds` was `NULL` for ~96% of rows, so the
+   step-8a kind gate and the relevance-floor `input_compatible` veto never fired — a
+   chemistry-library user was never separated from an assay-table workflow.
+3. **The relevance floor was defeated twice.** The boosted score read as `high_confidence`, and
+   `input_compatible` returned `None` against a `NULL` column, so neither guard demoted 12814.
+
+A fourth, user-facing defect: the plan/chain/pipeline chat message **leaked engine paths**
+(`` `subworkflows/.../main.nf` ``) and the right panel failed to rebind for chain/pipeline
+responses.
+
+## Fixes (7 commits)
+
+| Commit | What |
+|---|---|
+| `ff104f9c8a` | Stop leaking `nextflow_path` in plan/chain/pipeline chat text; `hasProposal` recognises `chain`/`pipeline` responses so the panel rebinds. |
+| `cc57000206` | Thread perceived `user_input_kinds` (from uploaded datasets) into the chat + chain search paths (`_perceive_user_input_kinds`, `_resolve_task_to_workflow`, `_handle_multi_task_clarification`). |
+| `707f783358` | Deterministic `rule_classify_kinds()` labeler **owned by the write path** (`index_all_workflows`, `register_ai_tool_workflows`) so re-indexing preserves the gate instead of reverting to NULL. |
+| `1da206754f` | Standalone rule backfill script (`backfill_input_kinds_rules.py`) + real-DB coverage report. |
+| `4669c441d8` | Chemistry-regime data gate (`_CHEMISTRY_KINDS = {molecules, structure}` in `_kinds_mismatch`), developability / virtual-screening vocab, and a **gated** rank boost (fires only for a genuine assay table: user has `{tabular}` or the query names an assay/IC50/dose-response). |
+| `492796bc33` | Self-healing, version-gated rule backfill at schema init so dev/prod gain coverage with **no manual step** (the catalog DB is gitignored). |
+| `73e9fd8edf` | 2026-11-13 regression-audit fixes (below). |
+
+## 2026-11-13 regression-audit fixes (`73e9fd8edf`)
+
+An independent audit of the full branch changeset found three real collateral issues + one honesty
+gate. All were fixed before opening the PR.
+
+1. **[MEDIUM] `rule_classify_kinds` mislabelled matrix-input tools as `{fastq}`.** The fastq cue
+   fired on a bare `rna-seq`/`chip-seq`/`atac-seq` domain word, so downstream **matrix-input**
+   analysis tools (e.g. `linnorm` "raw count or expression data", `degseq` "pre-calculated gene
+   expression matrices", `rcsl` "scRNA-seq expression data") were labelled `{fastq}` — and the
+   step-8a −25 penalty then **demoted** them for `{counts_matrix}` users. Fix: fastq now requires
+   **genuine raw-read evidence** (FASTQ/reads/trimming/demultiplex); a matrix/count/expression-data
+   cue with no raw-read evidence drops any fastq label (prefer `NULL` over a false positive).
+2. **[LOW] IVIVE mislabel.** id 12825 "Ivive Hepatic Clearance" was `{molecules}` but IVIVE
+   consumes a measured-CLint **table** → now `{tabular}` (IVIVE/intrinsic-clearance cue discards
+   molecules/structure).
+3. **[LOW] Dead duplicate `keyword_weights['permeability']`.** Removed the shadowed `2.0` entry
+   (the `2.5` developability entry below it wins).
+4. **[ROBUSTNESS] Optional-dependency import guards.** `unified_workflow_search` and
+   `vector_search` guarded the optional `sentence-transformers` import with `except ImportError`,
+   so a **binary-broken** transitive dep (scipy/numpy ABI mismatch raising `TypeError`) crashed
+   module load. Broadened to `except Exception` — an optional dep must degrade like a missing one.
+
+### Provenance + durable self-heal
+
+New column `workflows.input_kinds_method` (`'rule'` | `'llm'`). The rule self-heal **owns
+rule-origin rows** (method `NULL`/`'rule'`): on a rule-version bump (`_RULE_INPUT_KINDS_VERSION`
+`1 → 2`) it recomputes + overwrites them and clears stale labels, but **never** touches
+`method='llm'`. The LLM apply stamps `'llm'`. This self-heals the above mislabels on dev/prod with
+no manual step and guarantees LLM refinements survive future rule corrections.
+
+## Testing
+
+- **Rule-labeler regressions** (`tests/test_input_kinds_rule_regressions_20261113.py`): `linnorm`/
+  `degseq`/`rcsl` are **not** `{fastq}`; IVIVE is `{tabular}`; raw-read pipelines still `{fastq}`.
+- **Self-heal/provenance** (`tests/test_input_kinds_self_heal.py`): LLM values never clobbered;
+  rule-origin corrected on version bump; idempotent; bounded startup.
+- **py3.9 (canonical)**: all 4 modified `galaxy.ai.*` modules load; input_kinds suites **26 passed**.
+- **Full routing suite on py3.9**: **26 passed, 12 skipped, 6 xfailed, 3 failed** — all 3 failures
+  (`test_8c_suppressed_when_data_shape_known_no_double_penalty` + 2 `geo_fast_path` tests) are
+  **PRE-EXISTING**: they reproduce **identically** against the pristine base `7d9a04cdb9` scoring
+  code (verified by swapping `unified_workflow_search.py` to the base revision). My branch
+  introduces **zero** new failures.
+- **Frontend**: branch's own vitest suites pass (25). `tsc --noEmit` has errors **only** in
+  untracked, unrelated test files + one unchanged tracked file (`cold-start-examples.ts` — a
+  missing demo-asset JSON, pre-existing on base). Zero new tsc errors from this branch.
+
+### Routing audit (real DB, `scripts/audit_routing_prompts.py`)
+
+With/without `user_input_kinds`, all domains route correctly: RNA-seq → `nf-core/differentialabundance`
+/`rnaseq`; proteomics (raw/table) → `diaproteomics`/`msstatstmt`; variant → `variantannotation`;
+scRNA → `nf-core/scdownstream`; docking → docking workflows; ADMET → `Predict Admet Properties`.
+Crucially:
+
+- **Incident prompt** (developability + 4 chemistry uploads) → `Antibody Developability` top;
+  **12814 absent**. ✔ (bug fixed)
+- **Genuine assay-ranking prompt** with `{tabular}` → **12814 top-1 (116.3)**. ✔ (the gated boost
+  did not over-correct — a real assay table still reaches the ranker)
+- **`{counts_matrix}` prompt** ("Normalize my raw count expression data") → `linnorm` restored to
+  the top band (no longer buried by the false `{fastq}` penalty).
+
+### Catalog `input_kinds` coverage (local real DB)
+
+| | rows |
+|---|---|
+| rule-labelled | 1,642 |
+| LLM-labelled | 2,264 |
+| NULL (unlabelled) | 294 |
+| **total labelled** | **3,906 / 4,200 (93.0%)** |
+
+LLM pass: `google/gemini-3.8-flash`, 2,529 classified, 0 failed. The DB is gitignored and **not**
+synced — dev/prod gain the **rule** labels automatically via the self-heal migration; the LLM
+refinement is a local enhancement (re-runnable on dev with the classifier CLI if desired).
+
+## Known open issues / next steps
+
+- **Pre-existing** `test_8c` step-9b double-penalty bug and 2 `geo_fast_path` failures — documented,
+  not in scope for this PR (reproduced on base).
+- 294 catalog rows remain `NULL` (the classifier declined low-confidence rows — correct; prefer
+  NULL to a false positive).
+- py3.14's bundled sqlite (3.53.4) raises a false-positive FTS5 integrity-check "malformed" on the
+  catalog DB (CLI sqlite 3.51.0 and `PRAGMA integrity_check` both report `ok`); the LLM apply was
+  run directly (FTS-neutral — `input_kinds` is not an FTS-indexed column).
