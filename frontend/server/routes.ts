@@ -27,6 +27,9 @@ import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity";
 import { chatOutputFolderName } from "./chat-output-folder";
+import { searchQueryForCatalog } from "./search-query-translation";
+import { memoryProjectAccess, memoryProjectUpdate } from "./memory-project-access";
+import { projectRulesFrom, renderProjectContext } from "./project-rules";
 import { translateLabels, MAX_LABELS } from "./label-translation";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -7211,7 +7214,17 @@ ${paramLines || '(none recorded)'}`;
           // for project context, LTM association, or persistence.  Without
           // this gate an authenticated caller could attach a guessed project
           // UUID and receive its research goal/instructions in the prompt.
-          const requestedProjectId = await memoryService.resolveProjectForChat(context?.projectId);
+          // A chat that already belongs to a project answers under THAT project — not whichever
+          // project the browser visited last (context.projectId is localStorage state; instruction
+          // committee 2026-11-12: a reopened Project A chat ran under Project B's rules).
+          let _sessionProjectId: string | null = null;
+          if (_resolvedSessionId) {
+            try {
+              const _sp = await pool.query('SELECT project_id FROM chat_sessions WHERE session_id = $1 AND user_id = $2 LIMIT 1', [_resolvedSessionId, String(_u.id)]);
+              _sessionProjectId = _sp.rows?.[0]?.project_id ? String(_sp.rows[0].project_id) : null;
+            } catch { /* new chat / no row yet */ }
+          }
+          const requestedProjectId = _sessionProjectId ?? await memoryService.resolveProjectForChat(context?.projectId);
           if (requestedProjectId && await _isOwnerOrMember(requestedProjectId, String(_u.id))) {
             _resolvedProjectId = requestedProjectId;
           } else if (requestedProjectId) {
@@ -7248,6 +7261,7 @@ ${paramLines || '(none recorded)'}`;
 
       // Load project researchGoal for LLM context injection when a project is active.
       let _projectContext: string | undefined;
+      let _projectRules: string[] = [];
       if (_resolvedProjectId) {
         try {
           const _proj = await pool.query(
@@ -7256,41 +7270,20 @@ ${paramLines || '(none recorded)'}`;
           );
           const _p = _proj.rows?.[0];
           if (_p) {
-            const parts: string[] = [];
-            if (_p.name) parts.push(`Project: ${_p.name}`);
-            if (_p.description) parts.push(`Description: ${_p.description}`);
-            if (_p.research_goal) parts.push(`Research goal: ${_p.research_goal}`);
-            if (_p.instructions) parts.push(`Background instructions: ${_p.instructions}`);
-            if (parts.length > 0) _projectContext = parts.join('\n');
+            // Exactly what the Instructions page shows, as numbered directives (project-rules.ts).
+            _projectRules = projectRulesFrom(_p);
+            const _rendered = renderProjectContext(_p, _projectRules);
+            if (_rendered) _projectContext = _rendered;
           }
-        } catch {
-          // Non-fatal — never break chat on a project lookup failure.
+        } catch (err: any) {
+          // Non-fatal — never break chat on a project lookup failure (but say so).
+          console.warn('[chat-stream] project context lookup failed:', err?.message);
         }
       }
 
-      // Standing instructions the user explicitly promoted from a Search &
-      // evidence answer ("Make instruction"). Injected SELECTIVELY: discrete
-      // rows (not one ever-growing blob), project-scoped, and capped so a long
-      // list can never flood the prompt. Each line is length-bounded too.
-      if (_resolvedProjectId) {
-        try {
-          const _instr = await memoryService.projects.getProjectKnowledge(
-            _resolvedProjectId,
-            'project_instruction',
-          );
-          const _lines = (_instr || [])
-            .map((k: any) => String(k.content ?? '').trim())
-            .filter(Boolean)
-            .slice(0, 8)
-            .map((l: string) => `- ${l.slice(0, 300)}`);
-          if (_lines.length) {
-            const _block = `Standing instructions set by the user (apply when relevant):\n${_lines.join('\n')}`;
-            _projectContext = _projectContext ? `${_projectContext}\n${_block}` : _block;
-          }
-        } catch {
-          // Non-fatal — never break chat on an instruction lookup failure.
-        }
-      }
+      // Promoted "project_instruction" knowledge rows are no longer injected: no UI shows or deletes
+      // them, so they applied invisibly forever (instruction committee 2026-11-12). The Instructions
+      // page is the single source of what BioMate is told.
 
       // Output-format requirements the user saved on the project (Instructions →
       // Output formats). The browser composer threads these as composerInstructions,
@@ -7547,6 +7540,7 @@ ${paramLines || '(none recorded)'}`;
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
+        projectRules: _projectRules,
         composerInstructions: composerContext.composerInstructions,
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
@@ -8279,12 +8273,14 @@ ${paramLines || '(none recorded)'}`;
       if (!query || !String(query).trim()) {
         return res.status(400).json({ error: "query is required" });
       }
+      // The catalog is indexed in English: a Chinese query is searched by its English terms.
+      const { query: catalogQuery, translated } = await searchQueryForCatalog(String(query));
       const response = await galaxyAPIProxy.client.post('/api/ai_assistant/search_ranked', {
-        query: String(query),
+        query: catalogQuery,
         limit: typeof limit === 'number' ? limit : 10,
         preferred_domains: Array.isArray(preferred_domains) ? preferred_domains : null,
       });
-      res.json(response.data);
+      res.json({ ...response.data, query: String(query), ...(translated ? { searched_as: catalogQuery } : {}) });
     } catch (error: any) {
       console.error("[search_ranked API] Error:", error?.message || error);
       res.status(500).json({ error: 'RankedSearchError', message: error?.message || 'Ranked search failed' });
@@ -9161,7 +9157,10 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get project with full context
-  app.get("/api/memory/projects/:projectId", authenticateToken, async (req, res) => {
+  // Project-scoped memory routes: membership for reads, owner/editor for writes (memory-project-access.ts).
+  const memoryAccess = (level: 'member' | 'editor') => memoryProjectAccess(level, { member: _isOwnerOrMember, editor: _isOwnerOrEditor });
+
+  app.get("/api/memory/projects/:projectId", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const projectContext = await memoryService.projects.loadProjectContext(projectId);
@@ -9176,10 +9175,10 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Update project
-  app.put("/api/memory/projects/:projectId", authenticateToken, async (req, res) => {
+  app.put("/api/memory/projects/:projectId", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
-      const project = await memoryService.projects.updateProject(projectId, req.body);
+      const project = await memoryService.projects.updateProject(projectId, memoryProjectUpdate(req.body) as any);
       res.json(project);
     } catch (error: any) {
       console.error('[API] Update project failed:', error);
@@ -9188,7 +9187,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Add project knowledge
-  app.post("/api/memory/projects/:projectId/knowledge", authenticateToken, async (req, res) => {
+  app.post("/api/memory/projects/:projectId/knowledge", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { knowledgeType, title, content, source, relatedWorkflows, relatedSessions } = req.body;
@@ -9560,7 +9559,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get similar episodes for a project
-  app.get("/api/memory/projects/:projectId/episodes", authenticateToken, async (req, res) => {
+  app.get("/api/memory/projects/:projectId/episodes", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { intent, tools, limit } = req.query;
@@ -9597,7 +9596,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Consolidate episodes into patterns
-  app.post("/api/memory/projects/:projectId/consolidate", authenticateToken, async (req, res) => {
+  app.post("/api/memory/projects/:projectId/consolidate", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const result = await memoryService.episodes.consolidateEpisodes(projectId);
@@ -9613,7 +9612,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Get procedures for a project
-  app.get("/api/memory/projects/:projectId/procedures", authenticateToken, async (req, res) => {
+  app.get("/api/memory/projects/:projectId/procedures", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { minSuccessRate } = req.query;
@@ -9629,7 +9628,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Find matching procedures for a trigger
-  app.get("/api/memory/projects/:projectId/procedures/match", authenticateToken, async (req, res) => {
+  app.get("/api/memory/projects/:projectId/procedures/match", authenticateToken, memoryAccess('member'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { trigger } = req.query;
@@ -9648,7 +9647,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Create a procedure
-  app.post("/api/memory/projects/:projectId/procedures", authenticateToken, async (req, res) => {
+  app.post("/api/memory/projects/:projectId/procedures", authenticateToken, memoryAccess('editor'), async (req, res) => {
     try {
       const { projectId } = req.params;
       const { name, triggerPattern, description, steps, preconditions, postconditions, applicableDomains, learnedFrom } = req.body;
