@@ -275,7 +275,7 @@ This is a larger, separate change. Step 3 makes it easier but does not require i
 | Region policy, Node side (detection, enforcement, Settings, identity, label) | `feat/cn-llm-region-policy-20261112` @ `28017770a2` | built, tested, pushed (ancestor of model-set branch) |
 | Galaxy per-request routing + thread-context fix | `feat/cn-llm-galaxy-routing-20261112` @ `151c910d30` | built, tested, pushed (ancestor of model-set branch) |
 | Per-role Chinese model set (§3) | `feat/cn-llm-model-set-20261112` @ `1e58083519` | committed and pushed; unit tests not re-verified in this session; doc update unfinished at the weekly usage limit |
-| Round-9 dataset-panel / run_code fixes | `devline/ds-audit-20261112` @ `c8b1032b75` | **not on dev**. Dev tip is `3182a6ab45` (`origin/deploy/models-abc-20261112` / fix/f9-turn-busy). `f18133ea32` is not an ancestor of that tip. Needs re-merge + gate + deploy. |
+| Round-9 + CN model set + dev `1ecb81fd48` re-merge | `devline/ds-audit-20261112` @ `eb3e14273c` | gate passed (tsc 0, vitest 70/70, python 12/12); ancestry gate satisfied (contains dev's `1ecb81fd48`); deploying to dev. |
 | Last recorded sync commit in deploy worktree | `.last_dev_sync_commit` = `2554e05cb0` | older than both round-9 and current models-abc tip |
 | `OPENROUTER_ZH_API_KEY` on dev | `/opt/biomate/.env` | added (prior session; not re-checked tonight) |
 | Deploy Chinese-model rule to dev | — | blocked on: (1) round-9 re-merge/deploy, (2) model-set gate, (3) warn other sessions about Galaxy restart |
@@ -287,7 +287,7 @@ This is a larger, separate change. Step 3 makes it easier but does not require i
 | Worktree | Branch | What's there |
 |---|---|---|
 | `/Users/kky/biomate-review` | `fix/images-and-reroute-20261111` | older image/reroute work; local dirty files; not touched for CN/round-9 |
-| `/Users/kky/biomate-deploy-images-20261111` | `devline/ds-audit-20261112` @ `c8b1032b75` | round-9 fixes + merges of earlier deployed tips; clean |
+| `/Users/kky/biomate-deploy-images-20261111` | `devline/ds-audit-20261112` @ `eb3e14273c` | round-9 + CN model set + merge of dev's deployed `1ecb81fd48`; clean |
 | `/Users/kky/biomate-cn-set` | `feat/cn-llm-model-set-20261112` @ `1e58083519` | per-role Chinese model set (`CN_MODEL_SET` + env overrides); clean, tracking origin |
 
 ### Env overrides for the Chinese set

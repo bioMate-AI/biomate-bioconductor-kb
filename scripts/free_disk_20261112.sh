@@ -33,6 +33,7 @@ rm -rf \
   "/Users/kky/Library/Application Support/Cursor/CachedExtensionVSIXs"
 
 echo "== 3) Huge Claude transcripts (>50MB) =="
+# NOTE: this permanently deletes large agent transcripts (not just caches) and is irreversible.
 find /Users/kky/.claude/projects -name '*.jsonl' -size +50M -print -delete
 
 echo "== 4) Claude debug / snapshots =="
