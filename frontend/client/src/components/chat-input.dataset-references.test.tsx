@@ -113,7 +113,7 @@ describe('ChatInput — request-scoped dataset references', () => {
 
   it('waits to expand attachFolder when activeProjectId is a different project than ?project=', async () => {
     window.history.replaceState(null, '', '/?project=project-a&attachFolder=pairs');
-    const fetch = vi.fn(async () => ({ ok: true, json: async () => ({ files: [], settings: {} }) }));
+    const fetch = vi.fn(async (_url: string) => ({ ok: true, json: async () => ({ files: [], settings: {} }) }));
     vi.stubGlobal('fetch', fetch);
     render(<ChatInput activeProjectId="project-other" onSend={vi.fn()} />);
     await new Promise((r) => setTimeout(r, 50));
