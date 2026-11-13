@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanParamValueForDisplay, userFacingStepName } from './nextflow-workflow-viewer';
+import { cleanParamValueForDisplay, userFacingStepName } from '@/lib/user-facing-text';
 
 // Real values from the live dev phase tab (2026-11-11): storage paths and UUIDs
 // must never reach the user — the file is shown by its name.
