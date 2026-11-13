@@ -36,8 +36,12 @@ Changes:
 
 - `client/src/components/run-manager-utils.test.ts` — switch href cases
 - `client/src/components/license-gate.test.ts` — path helpers
+- **Live dig E2E (2026-11-13, tip `429c3dbc`):**
+  `frontend/e2e/run-manager-chat-and-cryosparc-license.e2e.ts`
+  - **A passed:** delete credential → license-requirements `source=none` → execute **402** → UI Tool Credentials + Confirm disabled + license hint
+  - **B passed:** empty New Chat → All chats → search+click run with `chat-*` session → URL `?session=&focusRun=` → left chat leaves cold-start, right panel opens
+  - Screenshots: `frontend/e2e/execshots/run-manager-cryosparc-license/`
 
 ## Open
 
 - chat-files-and-reports e2e still pending from earlier session work
-- Live dig verify of Run Manager cross-chat + CryoSPARC Confirm blocked without license
