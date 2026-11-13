@@ -36,7 +36,10 @@ import { randomUUID, randomBytes, createHash } from "crypto";
 import { applyCellEdits, isReaderDelimiter, pickDelimiter, tableRows, READER_DELIMITERS, type CellEdit } from "./delimited-text";
 import path from "path";
 import fs from "fs";
-import { likePrefix, loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename } from "./project-folders";
+import {
+  likePrefix, loadFolderContext, loadFolderFiles, normalizeFolderPath, samplesheetFilename,
+  samplesheetStoredName, pickFolderSamplesheetCsv,
+} from "./project-folders";
 import { PROFILE_TABLE_DDL, withProfileSummaries } from "./project-file-profiles";
 
 /** pool.query as the plain query function the helper modules take (resolved at call time). */
@@ -1938,6 +1941,54 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] folder profile failed:", e?.message ?? e);
       res.status(502).json({ error: "folder_profile_unavailable" });
+    }
+  });
+
+  // ─── POST /api/projects/:id/folders/samplesheet ─────────────────────────
+  // Persist the folder profiler’s nf-core samplesheet CSV as ONE project input
+  // file (source=upload) and return its file id for Analysis attachFile. Complements
+  // Ask-in-chat / folders/files (all files) — does not replace it. Owner/editor only.
+  // Body: { path: string, layout?: "paired" | "single_end" }
+  app.post("/api/projects/:id/folders/samplesheet", authenticateToken, _projectFileIds, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    const folder = normalizeFolderPath(req.body?.path ?? req.query.path);
+    if (folder === null) return res.status(400).json({ error: "invalid_path" });
+    const layoutRaw = typeof req.body?.layout === "string" ? req.body.layout.trim() : "";
+    const layout = layoutRaw === "single_end" ? "single_end" : layoutRaw === "paired" ? "paired" : null;
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const files = await loadFolderFiles((q, p) => pool.query(q, p), id, folder);
+      if (folder && !files.length) return res.status(404).json({ error: "folder_not_found" });
+      if (files.length > MAX_FOLDER_FILES) return res.status(413).json({ error: "folder_too_large", max: MAX_FOLDER_FILES });
+      const { fetchGalaxyAsUser, galaxyBaseUrl } = await _galaxyUserFetch();
+      const resp = await fetchGalaxyAsUser(req, `${galaxyBaseUrl()}/api/perception/folder_profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: id, path: folder, files: files.map((f) => ({ name: f.name, datasetRef: f.s3_key })) }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      const body: any = await resp.json().catch(() => null);
+      if (!resp.ok || !body || typeof body.kind !== "string") {
+        console.error(`[project_files] folder samplesheet persist: profile backend ${resp.status} for ${id}:${folder}`);
+        return res.status(502).json({ error: "folder_profile_unavailable" });
+      }
+      const picked = pickFolderSamplesheetCsv(body.samplesheet, layout);
+      if (!picked) return res.status(404).json({ error: "no_samplesheet" });
+      const storedName = samplesheetStoredName(folder, picked.filename);
+      const { name: originalName, keyPath } = projectInputPath(picked.filename, storedName);
+      const key = `projects/${id}/inputs/${keyPath}`;
+      const buf = Buffer.from(picked.csv, "utf8");
+      const contentHash = createHash("sha256").update(buf).digest("hex");
+      const stored = await _storeProjectInput({
+        id, uid, name: originalName, key, buf,
+        contentType: "text/csv", contentHash, source: "upload",
+      });
+      return res.status(stored.status).json(_storeResponse(stored));
+    } catch (e: any) {
+      console.error("[project_files] folder samplesheet persist failed:", e?.message ?? e);
+      return res.status(500).json({ error: "Failed to persist samplesheet" });
     }
   });
 

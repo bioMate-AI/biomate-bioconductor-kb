@@ -19,6 +19,38 @@ export function analyzeFolderChatUrl(projectId: string | null | undefined, folde
   return `/?${q.toString()}`
 }
 
+/** Chat deep-link: attach one persisted samplesheet (or any single project file) by id. */
+export function analyzeFileChatUrl(projectId: string | null | undefined, fileId: string): string {
+  const q = new URLSearchParams()
+  if (projectId) q.set("project", projectId)
+  q.set("attachFile", fileId)
+  return `/?${q.toString()}`
+}
+
+/** Persist the folder’s nf-core samplesheet as one project_files row; returns the new file. */
+export async function persistFolderSamplesheet(
+  projectId: string,
+  folderPath: string,
+  opts?: { layout?: "paired" | "single_end"; init?: RequestInit },
+): Promise<{ id: string; name: string }> {
+  const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/folders/samplesheet`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: folderPath, ...(opts?.layout ? { layout: opts.layout } : {}) }),
+    ...opts?.init,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string }
+    throw new Error(typeof body.error === "string" ? body.error : `Cannot persist samplesheet (${res.status})`)
+  }
+  const body = await res.json() as { file?: { id?: string; name?: string } }
+  const id = body.file?.id
+  const name = body.file?.name
+  if (typeof id !== "string" || !id) throw new Error("samplesheet persist returned no file id")
+  return { id, name: typeof name === "string" && name ? name : "samplesheet.csv" }
+}
+
 /** Client-side filter mirroring server `filesUnderFolder` (inputs only when source is known). */
 export function filesUnderFolderPrefix<T extends { name: string; source?: string | null }>(
   rows: T[],

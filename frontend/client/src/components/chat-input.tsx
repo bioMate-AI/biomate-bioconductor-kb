@@ -259,14 +259,23 @@ export function ChatInput({
     const fileIds = [...new Set(query.getAll("attachFile"))].filter(Boolean)
     const folderPath = query.get("attachFolder")
     const hasFolder = folderPath !== null
-    if ((!fileIds.length && !hasFolder) || !activeProjectId || query.get("project") !== activeProjectId) return
+    // Deep-link attach is keyed by ?project= in the URL. Do not require
+    // activeProjectId to already match — that lags useChatProjectLink →
+    // chat-interface local sync and left attachFolder/attachFile stuck at 0
+    // chips until a reload or localStorage seed (live E2E on 429c3dbc).
+    const linkProjectId = query.get("project")?.trim() || null
+    if ((!fileIds.length && !hasFolder) || !linkProjectId) return
+    // If composer already has a *different* project, wait for the link hook
+    // to switch it (avoid attaching another project's files into the wrong home).
+    if (activeProjectId && activeProjectId !== linkProjectId) return
+    const projectId = linkProjectId
     let cancelled = false
     const abort = new AbortController()
     setLinkingDataset(true)
     setDatasetLinkError("")
     ;(async () => {
       const fromFiles = await Promise.all(fileIds.map(async fileId => {
-        const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url`, {
           credentials: "include", signal: abort.signal,
         })
         if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
@@ -277,7 +286,7 @@ export function ChatInput({
       let fromFolder: Array<{ id: string; value: string; name: string }> = []
       if (hasFolder) {
         const { loadFolderFileRefs } = await import("@/lib/folder-as-input")
-        const refs = await loadFolderFileRefs(activeProjectId, folderPath, { signal: abort.signal })
+        const refs = await loadFolderFileRefs(projectId, folderPath, { signal: abort.signal })
         if (!refs.length) throw new Error("This folder has no input files to attach.")
         fromFolder = refs.map(f => ({ id: f.id, value: f.id, name: f.name }))
       }

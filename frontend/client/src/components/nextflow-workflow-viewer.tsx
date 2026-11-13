@@ -10,7 +10,7 @@ import { HintTip } from '@/components/ui/hint-tip';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
-import { derivePrerunInputs, blockingInputRows, type InputMappingRow } from "./input-mapping-status";
+import { derivePrerunInputs, blockingInputRows, runIsBlockedByInputs, type InputMappingRow } from "./input-mapping-status";
 import { unboundClinicHardDataFromParams, CLINIC_HARD_REQUIRED_DATA_NAMES } from "../../../shared/workflow-data-inputs";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
@@ -2607,11 +2607,29 @@ export function NextflowWorkflowViewer({
     required: true,
     type: 'file' as const,
   }));
+  // Perception / extension sniff vs param kind — same pure helper as the Inputs card.
+  // Override-allowed (demo recovery) skips the hard block; the card still shows the warning.
+  const datatypeGateBlocked = React.useMemo(() => {
+    if (prereqChecklist?.overrideAllowed) return false;
+    const paramDefs: any[] = [
+      ...(workflowDefinition?.required_params || []),
+      ...(workflowDefinition?.optional_params || []),
+    ];
+    const model = derivePrerunInputs(renderedParameters as any, sessionDatasets as any, paramDefs);
+    return runIsBlockedByInputs(model.primary);
+  }, [
+    prereqChecklist?.overrideAllowed,
+    workflowDefinition?.required_params,
+    workflowDefinition?.optional_params,
+    renderedParameters,
+    sessionDatasets,
+  ]);
   const isPrereqBlocked =
     (!!prereqChecklist && !prereqChecklist.canRun) ||
     hasUnfilledRequired ||
     missingFileInputs.length > 0 ||
-    missingClinicHard.length > 0;
+    missingClinicHard.length > 0 ||
+    datatypeGateBlocked;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
@@ -4107,8 +4125,17 @@ export function NextflowWorkflowViewer({
                     <span className="chip" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}>{tOr('panel.uses_default', 'default')}</span>
                   )}
                   {!isOverride && r.status === 'resolved' && (
-                    <span className="chip ok" style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }} title={tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}>
-                      {tOr('panel.resolved_format_unchecked', 'resolved · format not checked')}
+                    <span
+                      className="chip ok"
+                      style={{ fontSize: 'var(--fs-xs)', padding: '1px 5px' }}
+                      data-format-checked={r.formatChecked ? 'true' : 'false'}
+                      title={r.formatChecked
+                        ? tOr('panel.resolved_format_ok_tip', 'Bound to this dataset. File kind matches this input’s expected type.')
+                        : tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}
+                    >
+                      {r.formatChecked
+                        ? tOr('panel.resolved_format_ok', 'resolved · format ok')
+                        : tOr('panel.resolved_format_unchecked', 'resolved · format not checked')}
                     </span>
                   )}
                   {r.status === 'unresolved' && (

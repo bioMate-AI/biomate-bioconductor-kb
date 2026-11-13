@@ -599,6 +599,9 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   const [url, setUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Deferred = Galaxy HDA reference; materialize when a tool/workflow needs bytes.
+  // Default immediate for small/previewable files; deferred for large remote WGS/BAM/etc.
+  const [urlImportMode, setUrlImportMode] = useState<'immediate' | 'deferred'>('immediate');
   // Examples are secondary — collapsed by default so the input is the focus and
   // the tab isn't a wall of example URIs. Each source keeps its (localized) label.
   const [showExamples, setShowExamples] = useState(false);
@@ -608,7 +611,8 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
     setImporting(true);
     setError(null);
     try {
-      const res = await fetch('/api/datasets/import-url', {
+      const endpoint = urlImportMode === 'deferred' ? '/api/datasets/deferred' : '/api/datasets/import-url';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), filename: url.split('/').pop() }),
@@ -618,7 +622,7 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
         throw new Error(data.message || data.error || `HTTP ${res.status}`);
       }
       const data = await res.json();
-      const id = data.galaxy_dataset_id || data.dataset_id || '';
+      const id = data.galaxy_dataset_id || data.dataset_id || data.id || '';
       const name = data.name || url.split('/').pop() || 'imported';
       onImported(id, name);
       setUrl('');
@@ -663,10 +667,37 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
 
+      <div className="flex items-center gap-3 text-fs-xs px-0.5" data-testid="url-import-mode">
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            name="url-import-mode"
+            checked={urlImportMode === 'immediate'}
+            onChange={() => setUrlImportMode('immediate')}
+            data-testid="url-import-mode-immediate"
+          />
+          {tOr('datasets_dialog.url_mode_immediate', 'Download now')}
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            name="url-import-mode"
+            checked={urlImportMode === 'deferred'}
+            onChange={() => setUrlImportMode('deferred')}
+            data-testid="url-import-mode-deferred"
+          />
+          {tOr('datasets_dialog.url_mode_deferred', 'Defer (large files)')}
+        </label>
+      </div>
+
       {/* One-line reassurance — always visible, secondary to the input */}
       <p className="flex items-start gap-1.5 text-fs-xs text-muted-foreground px-0.5">
         <Info className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-px" />
-        <span>{tOr('datasets_dialog.url_no_limit', 'No size limit — BioMate downloads server-side. Works for files of any size.')}</span>
+        <span>
+          {urlImportMode === 'deferred'
+            ? tOr('datasets_dialog.url_deferred_hint', 'Registers the URL without downloading now. BioMate fetches when a workflow needs the data.')
+            : tOr('datasets_dialog.url_no_limit', 'No size limit — BioMate downloads server-side. Works for files of any size.')}
+        </span>
       </p>
 
       {/* Examples + help — collapsed disclosure so the tab isn't a wall of URIs */}

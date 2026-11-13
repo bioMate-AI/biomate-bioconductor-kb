@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   datasetForValue,
   mismatchForParam,
+  perceptionMismatch,
+  expectedViewKindsForParam,
   deriveInputMappingRows,
   blockingInputRows,
   runIsBlockedByInputs,
@@ -37,6 +39,21 @@ describe('mismatchForParam', () => {
     expect(mismatchForParam('ref', defs)).toBeNull();
     expect(mismatchForParam('absent', defs)).toBeNull();
     expect(mismatchForParam(undefined, defs)).toBeNull();
+  });
+});
+
+describe('perceptionMismatch / expectedViewKindsForParam', () => {
+  it('maps param families to accepted viewKinds', () => {
+    expect([...expectedViewKindsForParam('reads')!]).toEqual(['reads']);
+    expect(expectedViewKindsForParam('bam')!.has('alignment')).toBe(true);
+    expect(expectedViewKindsForParam('samplesheet')!.has('table')).toBe(true);
+    expect(expectedViewKindsForParam('genome')).toBeNull();
+  });
+  it('flags CSV on reads; accepts FASTQ; skips blocked quality', () => {
+    expect(perceptionMismatch('reads', { id: '1', name: 'x.csv' })).toMatch(/table/);
+    expect(perceptionMismatch('reads', { id: '1', name: 'x.fastq.gz', viewKind: 'reads' })).toBeNull();
+    expect(perceptionMismatch('bam', { id: '1', name: 'x.bam', viewKind: 'reads' })).toMatch(/alignment/);
+    expect(perceptionMismatch('reads', { id: '1', name: 'x.csv', quality: 'blocked' })).toBeNull();
   });
 });
 
@@ -83,6 +100,39 @@ describe('deriveInputMappingRows + run-block condition', () => {
     expect(rows[0].status).toBe('needs-mapping');
     expect(rows[0].mismatch).toContain('FASTQ');
     expect(runIsBlockedByInputs(rows)).toBe(true);
+  });
+
+  it('blocks when extension sniff contradicts the param kind (CSV on reads)', () => {
+    const rows = deriveInputMappingRows(
+      [{ id: 'reads', name: 'reads', type: 'file', required: true, value: 'ds-1' }],
+      DS,
+      [{ name: 'reads' }],
+    );
+    expect(rows[0].status).toBe('needs-mapping');
+    expect(rows[0].mismatch).toMatch(/reads/i);
+    expect(runIsBlockedByInputs(rows)).toBe(true);
+  });
+
+  it('does not block samplesheet/input bound to a table CSV', () => {
+    const rows = deriveInputMappingRows(
+      [{ id: 'samplesheet', name: 'samplesheet', type: 'file', required: true, value: 'ds-1' }],
+      DS,
+      [],
+    );
+    expect(rows[0].status).toBe('resolved');
+    expect(rows[0].formatChecked).toBe(true);
+    expect(runIsBlockedByInputs(rows)).toBe(false);
+  });
+
+  it('does not block when kind is unknown / unprofiled', () => {
+    const rows = deriveInputMappingRows(
+      [{ id: 'reads', name: 'reads', type: 'file', required: true, value: 'mystery' }],
+      [{ id: 'mystery', name: 'mystery.bin' }],
+      [],
+    );
+    expect(rows[0].status).toBe('resolved');
+    expect(rows[0].formatChecked).toBe(false);
+    expect(runIsBlockedByInputs(rows)).toBe(false);
   });
 
   it('required-and-empty outranks a mismatch (unresolved wins) so the block reason is the missing file', () => {
@@ -147,10 +197,11 @@ describe('derivePrerunInputs (rnaseq-like schema)', () => {
   });
 
   it('binding the samplesheet resolves it; a user-bound optional file becomes a mapped input', () => {
+    const withGtf: SessionDataset[] = [...DS, { id: 'ds-gtf', name: 'genes.gtf', file_path: 's3://b/genes.gtf' }];
     const bound = params.map(p =>
       p.id === 'input' ? { ...p, value: 's3://b/counts.csv' }
-      : p.id === 'gtf' ? { ...p, value: 'https://x/design.tsv' } : p);
-    const m = derivePrerunInputs(bound, DS, defs);
+      : p.id === 'gtf' ? { ...p, value: 's3://b/genes.gtf' } : p);
+    const m = derivePrerunInputs(bound, withGtf, defs);
     expect(m.primary.map(r => [r.param.id, r.status])).toEqual([['input', 'resolved'], ['gtf', 'resolved']]);
     expect(m.requiredUnset).toBe(0);
     expect(m.boundCount).toBe(2);
