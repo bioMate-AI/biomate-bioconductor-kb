@@ -907,17 +907,18 @@ def _wf_insert(cursor, *, name, filename, description, annotation, tags, domain,
     except Exception:
         _kinds = None
     input_kinds = json.dumps(_kinds) if _kinds else None
+    input_kinds_method = 'rule' if _kinds else None  # provenance: rule layer owns this label
     cursor.execute("""
         INSERT INTO workflows (
             name, filename, description, annotation, tags, domain,
             workflow_json, step_count, tools_used, source, format,
             executable, docker_image, category, workflow_hash, indexed_at,
-            input_types, output_types, input_kinds
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            input_types, output_types, input_kinds, input_kinds_method
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (name, filename, description[:500], annotation, tags, domain,
           workflow_json, step_count, tools_used, source, format_,
           executable, docker_image[:300] if docker_image else "", category,
-          workflow_hash, indexed_at, inp, out, input_kinds))
+          workflow_hash, indexed_at, inp, out, input_kinds, input_kinds_method))
 
 
 def _ensure_input_kinds_column(cursor) -> None:
@@ -926,6 +927,8 @@ def _ensure_input_kinds_column(cursor) -> None:
     cols = {r[1] for r in cursor.execute("PRAGMA table_info(workflows)")}
     if "input_kinds" not in cols:
         cursor.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
+    if "input_kinds_method" not in cols:
+        cursor.execute("ALTER TABLE workflows ADD COLUMN input_kinds_method TEXT")
 
 
 def _wf_exists(cursor, wf_hash: str) -> bool:

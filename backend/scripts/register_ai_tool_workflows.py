@@ -982,6 +982,8 @@ def register(db_path: Path, dry_run: bool = False) -> None:
         _cols = {r[1] for r in cur.execute("PRAGMA table_info(workflows)")}
         if "input_kinds" not in _cols:
             cur.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
+        if "input_kinds_method" not in _cols:
+            cur.execute("ALTER TABLE workflows ADD COLUMN input_kinds_method TEXT")
         try:
             from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
             _kinds = rule_classify_kinds({"name": wf["name"], "description": wf["description"],
@@ -995,8 +997,8 @@ def register(db_path: Path, dry_run: bool = False) -> None:
                 (name, filename, description, annotation, tags, domain,
                  workflow_json, step_count, tools_used, source, format,
                  executable, docker_image, category, workflow_hash, indexed_at,
-                 input_types, output_types, input_kinds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 input_types, output_types, input_kinds, input_kinds_method)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             wf["name"],
             wf["filename"],
@@ -1017,6 +1019,7 @@ def register(db_path: Path, dry_run: bool = False) -> None:
             json.dumps(wf["input_types"]),
             json.dumps(wf["output_types"]),
             json.dumps(_kinds) if _kinds else None,
+            'rule' if _kinds else None,
         ))
         print(f"  [added]  {wf['name']} (id={cur.lastrowid})")
         added += 1
