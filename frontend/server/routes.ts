@@ -8,6 +8,7 @@ import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
 import { parseMlTrainingFindings, looksLikeMlTrainingFluff } from "./ml-training-findings";
+import { looksLikeHollowFindings, scoreFindingsSampleName } from "./findings-quality";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
 import { planModelTraining } from "./model-training-plan";
@@ -16727,9 +16728,11 @@ Rules:
           } catch { /* sidecar not yet written — use markdown fallback */ }
 
           if (structured && isFindingsShaped(structured)) {
-            // ml_training: refuse architecture-fluff sidecars that omit metrics.json scores.
-            if (isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(structured)) {
-              console.warn(`[Findings] local sidecar for ml_training ${runId} looks like architecture fluff — regenerating from metrics.json`);
+            // Class gate: refuse hollow/fluff sidecars (architecture prose, "metrics missing"
+            // caveats) for ANY workflow — not only isModelTrainingRun. Poisoned S3/local
+            // caches must regenerate from structured outputs.
+            if (looksLikeHollowFindings(structured) || looksLikeMlTrainingFluff(structured)) {
+              console.warn(`[Findings] local sidecar for ${runId} looks like hollow/fluff findings — regenerating`);
             } else {
               return res.json({
                 ...structured,
@@ -16773,8 +16776,8 @@ Rules:
             if (dataResp.ok) {
               const structured = await dataResp.json();
               if (isFindingsShaped(structured)) {
-                if (isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(structured)) {
-                  console.warn(`[Findings] S3 sidecar for ml_training ${runId} looks like architecture fluff — regenerating from metrics.json`);
+                if (looksLikeHollowFindings(structured) || looksLikeMlTrainingFluff(structured)) {
+                  console.warn(`[Findings] S3 sidecar for ${runId} looks like hollow/fluff findings — regenerating`);
                 } else {
                   const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
                   return res.json({ ...structured, status: 'ready', runId, reportUrl });
@@ -16824,8 +16827,8 @@ Rules:
         // fresh analysis rather than emitting a ready response from it.
         const stillCached = _findingsCache.get(runId);
         if (stillCached && isFindingsShaped(stillCached)) {
-          if (isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(stillCached)) {
-            console.warn(`[Findings] dropping ml_training fluff cache for ${runId} — regenerating from metrics.json`);
+          if (looksLikeHollowFindings(stillCached) || looksLikeMlTrainingFluff(stillCached)) {
+            console.warn(`[Findings] dropping hollow/fluff cache for ${runId} — regenerating`);
             _findingsCache.delete(runId);
           } else {
             const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
@@ -16913,24 +16916,12 @@ Rules:
                 const fp: string = out.s3_uri || out.file_path || out.path || '';
                 return out.filename || out.name || out.file_name || fp.split('/').pop() || 'output';
               };
-              const _resultScore = (name: string): number => {
-                const n = name.toLowerCase();
-                let s = 0;
-                // Trainer metrics.json is the authoritative score card for ml_training —
-                // rank it above Ludwig bookkeeping so deterministic parse always sees it.
-                if (/(^|\/)metrics\.json$/.test(n) || /(^|\/)manifest\.json$/.test(n)) s += 10;
-                if (/(^|\/)training_progress\.json$/.test(n)) s += 8;
-                if (/(report|summary|result|finding|final|metric|stat|score|predict|analysis|toxic|qc)/.test(n)) s += 3;
-                if (/\.(json|tsv|csv)$/.test(n)) s += 2;          // structured > free text
-                if (/\.(txt|md)$/.test(n)) s += 1;
-                if (/(model_hyperparameters|training_set_metadata|qc_events)/.test(n)) s -= 6; // Ludwig noise / false QC
-                if (/(\.nextflow\.log|_trace|_timeline|_report|\bdag\b|execution_)/.test(n)) s -= 5; // bookkeeping
-                return s;
-              };
+              // Shared class-wide sample rank (metrics.json / toxicity_report / DESeq2
+              // before Ludwig hyperparams / Nextflow logs). See findings-quality.ts.
               const readableOutputs = outputs.slice(0, 40).filter(out => {
                 const fileName = _nameOf(out);
                 return fileName && TEXT_EXTS.test(fileName);
-              }).sort((a, b) => _resultScore(_nameOf(b)) - _resultScore(_nameOf(a))).slice(0, 8);
+              }).sort((a, b) => scoreFindingsSampleName(_nameOf(b)) - scoreFindingsSampleName(_nameOf(a))).slice(0, 8);
               const readResults = await Promise.all(readableOutputs.map(async (out) => {
                 const filePath: string = out.s3_uri || out.file_path || out.path || '';
                 const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
@@ -16982,11 +16973,24 @@ Rules:
                 ...(_nfKeyI && _nfSecI ? { credentials: { accessKeyId: _nfKeyI, secretAccessKey: _nfSecI } } : {}),
               });
               const TEXT_EXTS_I = /\.(txt|log|csv|tsv|json|vcf|md|bed|gff|gtf)$/i;
-              for (const o of canonical) {
-                if (outputSamples.length >= 6) break;
+              // Same class-wide rank as the /output_files path — without this, the
+              // fallback sampled the first 6 text files and could miss metrics.json.
+              const rankedCanonical = [...canonical]
+                .filter(o => {
+                  const s3Uri: string = (o as any).s3Uri || '';
+                  const fileName: string = (o as any).name || s3Uri.split('/').pop() || '';
+                  return s3Uri.startsWith('s3://') && TEXT_EXTS_I.test(fileName);
+                })
+                .sort((a, b) => {
+                  const na = (a as any).name || ((a as any).s3Uri || '').split('/').pop() || '';
+                  const nb = (b as any).name || ((b as any).s3Uri || '').split('/').pop() || '';
+                  return scoreFindingsSampleName(nb) - scoreFindingsSampleName(na);
+                })
+                .slice(0, 8);
+              for (const o of rankedCanonical) {
+                if (outputSamples.length >= 8) break;
                 const s3Uri: string = (o as any).s3Uri || '';
                 const fileName: string = (o as any).name || s3Uri.split('/').pop() || 'output';
-                if (!s3Uri.startsWith('s3://') || !TEXT_EXTS_I.test(fileName)) continue;
                 const _m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
                 if (!_m) continue;
                 try {
@@ -17071,6 +17075,21 @@ Rules:
             if (_m) _findingsDoc = buildFindingsDocument(_m.descriptor, _m.file);
           } catch (e) {
             console.warn(`[Findings] entity-aware extractor skipped for "${workflowName}": ${(e as Error).message}`);
+          }
+
+          // Class cutover (descriptor domains without a dedicated flat parser — DESeq2,
+          // enrichGO, variant): when the entity document extracted real records, use
+          // documentToLegacy as the flat findings and SKIP the LLM. ADMET/ml_training
+          // still win via preprocessed.findings above/below. Prevents the same
+          // "narrate bookkeeping, miss the table" failure mode on those workflows.
+          if (!preprocessed?.findings && _findingsDoc && Array.isArray((_findingsDoc as any).records)
+              && (_findingsDoc as any).records.length > 0) {
+            const _fromDoc = documentToLegacy(_findingsDoc);
+            console.log(`[Findings] descriptor document→flat for "${workflowName}" (${_fromDoc.key_results.length} metrics) — skipping LLM`);
+            const _detDoc = { ..._fromDoc, findings_document: _findingsDoc, evidence_version: 'descriptor-document-v1' };
+            _findingsCache.set(runId, _detDoc);
+            void persistFindingsSidecar(_detDoc);
+            return;
           }
 
           if (preprocessed?.findings) {
@@ -17563,7 +17582,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
       const _shaped = (o: any) => !!(o && typeof o === 'object' && !Array.isArray(o)
         && (typeof o.summary === 'string' || Array.isArray(o.key_results) || typeof o.reportMd === 'string'));
       if (cached && !cached._generating && _shaped(cached)
-          && !(isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(cached))) {
+          && !(looksLikeHollowFindings(cached) || looksLikeMlTrainingFluff(cached))) {
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
         return res.send(renderFindingsMd(cached, workflowName));
@@ -17588,7 +17607,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
             const structured = await dataResp.json();
             if (structured && typeof structured === 'object'
                 && (typeof structured.summary === 'string' || Array.isArray(structured.key_results))
-                && !(isModelTrainingRun(run as any) && looksLikeMlTrainingFluff(structured))) {
+                && !(looksLikeHollowFindings(structured) || looksLikeMlTrainingFluff(structured))) {
               res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
               res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
               return res.send(renderFindingsMd(structured, workflowName));

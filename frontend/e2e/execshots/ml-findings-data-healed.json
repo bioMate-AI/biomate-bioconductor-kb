@@ -1,0 +1,57 @@
+{
+  "summary": "potency predictor finished. Key scores: test MAE=0.7920; validation MAE=0.9433; gate pass. Read the Key Results table below (sourced from metrics.json); full artifacts remain in Outputs.",
+  "key_results": [
+    {
+      "metric": "Test MAE",
+      "value": "0.7920",
+      "interpretation": "Hold-out test performance (test_mae)",
+      "source_file": "metrics.json"
+    },
+    {
+      "metric": "Validation MAE",
+      "value": "0.9433",
+      "interpretation": "Validation performance (val_mae)",
+      "source_file": "metrics.json"
+    },
+    {
+      "metric": "Test R\u00b2",
+      "value": "0.3724",
+      "interpretation": "Best-checkpoint R\u00b2 on the test split",
+      "source_file": "training_progress.json"
+    },
+    {
+      "metric": "Validation R\u00b2",
+      "value": "0.4462",
+      "interpretation": "Best-checkpoint R\u00b2 on the validation split",
+      "source_file": "training_progress.json"
+    },
+    {
+      "metric": "Train R\u00b2",
+      "value": "0.3007",
+      "interpretation": "Best-checkpoint R\u00b2 on the train split",
+      "source_file": "training_progress.json"
+    },
+    {
+      "metric": "Data split",
+      "value": "bemis_murcko_scaffold \u00b7 train=1211 \u00b7 val=151 \u00b7 test=151",
+      "interpretation": "Scaffold-aware / holdout separation used for training",
+      "source_file": "manifest.json"
+    },
+    {
+      "metric": "Gate \u00b7 MAE",
+      "value": "0.9433",
+      "interpretation": "Passed gate (threshold None, lower_is_better)",
+      "source_file": "metrics.json"
+    }
+  ],
+  "next_steps": [
+    "Open metrics.json in Outputs for the authoritative score table.",
+    "If the gate failed, adjust features / split / model type and re-train.",
+    "Register the model from Train runs when the gate passes and you want it reusable."
+  ],
+  "caveats": [
+    "Scores are read directly from the trainer metrics.json (and optional training_progress / manifest), not inferred.",
+    "Hold-out metrics can still overstate real-world performance \u2014 validate on an external set before deployment."
+  ],
+  "evidence_version": "ml-training-metrics-v1"
+}

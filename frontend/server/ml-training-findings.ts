@@ -122,19 +122,27 @@ function splitInfo(files: EvidenceFile[]): {
 /**
  * True when a persisted findings sidecar looks like architecture fluff that
  * missed the trainer metrics — safe signal to regenerate for ml_training runs.
+ *
+ * Delegates to the cross-workflow hollow/fluff detector so the class stays closed
+ * even when callers forget the isModelTrainingRun gate.
  */
 export function looksLikeMlTrainingFluff(findings: unknown): boolean {
+  // Lazy require avoided — keep this module free of circular imports by inlining
+  // the same predicates as findings-quality.looksLikeHollowFindings (kept in sync
+  // by findings-quality.test.ts + ml-training-findings.test.ts).
   if (!findings || typeof findings !== 'object') return false;
   const f = findings as Record<string, any>;
   const rows = Array.isArray(f.key_results) ? f.key_results : [];
   const fluff = rows.some((k: any) =>
-    /combiner|hyperparameter|training set (mean|standard)|dropout rate|outlier threshold|activation function|fully connected layers/i
-      .test(`${k?.metric || ''} ${k?.interpretation || ''}`));
+    /combiner|hyperparameter|training set (mean|standard)|dropout rate|outlier threshold|activation function|fully connected layers|model_hyperparameters|training_set_metadata/i
+      .test(`${k?.metric || ''} ${k?.interpretation || ''} ${k?.source_file || ''}`));
   const admitsMissing = (Array.isArray(f.caveats) ? f.caveats : [])
-    .some((c: unknown) => /no model training or validation performance metrics/i.test(String(c)));
+    .some((c: unknown) => /no model training or validation performance metrics|no .*metrics (are|were) present|could not find .*metric/i.test(String(c)));
   const summaryFluff = /combiner layer|multimodal input|z-score standardization|deep learning framework/i
     .test(String(f.summary || ''));
-  return fluff || admitsMissing || summaryFluff;
+  const emptyRedirect = rows.length === 0
+    && /see (the )?outputs|open .*in outputs|retrieve the metrics/i.test(String(f.summary || ''));
+  return fluff || admitsMissing || summaryFluff || emptyRedirect;
 }
 
 export function parseMlTrainingFindings(
@@ -152,25 +160,8 @@ export function parseMlTrainingFindings(
   const key_results: MlTrainingFindings['key_results'] = [];
   const numbers = new Set<string>();
 
-  // Gate first (the Train-runs list already prefers it).
-  const gate = Array.isArray(doc.gate?.gates) ? doc.gate.gates.find((g: any) => g && typeof g.measured === 'number') : null;
-  if (gate) {
-    const measured = fmt(gate.measured);
-    numbers.add(String(gate.measured));
-    if (typeof gate.threshold === 'number') numbers.add(String(gate.threshold));
-    key_results.push({
-      metric: `Gate · ${labelFor(String(gate.name))}`,
-      value: measured,
-      interpretation: gate.status === 'pass'
-        ? `Passed gate (threshold ${gate.threshold ?? 'n/a'}, ${gate.direction || 'higher_is_better'})`
-        : gate.status === 'fail'
-          ? `Failed gate (threshold ${gate.threshold ?? 'n/a'}, ${gate.direction || 'higher_is_better'})`
-          : `Gate status: ${gate.status ?? 'unknown'}`,
-      source_file: metricsFile.name,
-    });
-  }
-
-  // All numeric metrics from metrics.json — test/val scores first.
+  // Hold-out scores FIRST so Findings headline chips (top 3) and report tables
+  // lead with what users actually need — not the gate row.
   const metricNames = Object.keys(metrics).filter(k => typeof metrics[k] === 'number');
   const order = (a: string, b: string) => {
     const rank = (k: string) =>
@@ -222,6 +213,24 @@ export function parseMlTrainingFindings(
         source_file: split.source,
       });
     }
+  }
+
+  // Gate last (Train-runs list still reads gate from metrics.json directly).
+  const gate = Array.isArray(doc.gate?.gates) ? doc.gate.gates.find((g: any) => g && typeof g.measured === 'number') : null;
+  if (gate) {
+    const measured = fmt(gate.measured);
+    numbers.add(String(gate.measured));
+    if (typeof gate.threshold === 'number') numbers.add(String(gate.threshold));
+    key_results.push({
+      metric: `Gate · ${labelFor(String(gate.name))}`,
+      value: measured,
+      interpretation: gate.status === 'pass'
+        ? `Passed gate (threshold ${gate.threshold ?? 'n/a'}, ${gate.direction || 'higher_is_better'})`
+        : gate.status === 'fail'
+          ? `Failed gate (threshold ${gate.threshold ?? 'n/a'}, ${gate.direction || 'higher_is_better'})`
+          : `Gate status: ${gate.status ?? 'unknown'}`,
+      source_file: metricsFile.name,
+    });
   }
 
   if (!key_results.length) return null;

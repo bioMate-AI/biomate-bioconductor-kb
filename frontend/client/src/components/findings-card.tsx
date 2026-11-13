@@ -306,7 +306,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
       <CardHeader className="pb-2 pt-3 px-3">
         <CardTitle className="text-sm flex items-center gap-2" style={{ fontWeight: 600 }}>
           <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--bm-text-dim, var(--text-dim))' }} />
-          {tOr('panel.findings.summary_title', 'Findings · generated from outputs')}
+          {tOr('panel.findings.summary_title', 'Findings · key scores from outputs')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">
@@ -317,11 +317,14 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
         )}
 
         {/* §7.8 headline metrics — the top results as scannable chips so the
-            answer is legible at a glance without expanding the table. Each chip
-            with a known source opens that output (same path as the prose links). */}
+            answer is legible at a glance without expanding the table. Prefer
+            score rows over Gate · … so users see test/val MAE (etc.) first. */}
         {kr && kr.length > 0 && !multiEntity && (
           <div className="flex flex-wrap gap-1.5" data-testid="findings-headline-metrics">
-            {kr.slice(0, 3).map((r, i) => {
+            {[...kr].sort((a, b) => {
+              const rank = (m: string) => /^gate\b/i.test(m) ? 2 : /test|val|mae|rmse|r²|r2|auc|accuracy|padj|log2/i.test(m) ? 0 : 1;
+              return rank(a.metric || '') - rank(b.metric || '');
+            }).slice(0, 3).map((r, i) => {
               const clickable = Boolean(r.source_file && onOpenOutput)
               return (
                 <button
@@ -349,12 +352,16 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
             <button
               className="text-xs text-muted-foreground flex items-center gap-1 mb-1 hover:text-foreground transition-colors"
               onClick={() => setResultsExpanded(e => !e)}
+              data-testid="findings-key-results-toggle"
             >
               {tOr('panel.findings.key_results', 'Key Results')}
+              <span className="opacity-70">({kr.length})</span>
               {multiEntity && <span className="opacity-70">{tOr('panel.findings.per_entity', '(per compound)')}</span>}
-              {(resultsExpanded || (multiEntity && !preview)) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {(resultsExpanded || (multiEntity && !preview) || !preview) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
-            {(resultsExpanded || (multiEntity && !preview)) && (
+            {/* Panel (non-preview): always show the full Key Results table — this is
+                where users expect the authoritative scores. Chat preview stays collapsed. */}
+            {(resultsExpanded || (multiEntity && !preview) || !preview) && (
               <div className="overflow-x-auto">
                 <table className="text-xs w-full border-collapse">
                   <thead>
