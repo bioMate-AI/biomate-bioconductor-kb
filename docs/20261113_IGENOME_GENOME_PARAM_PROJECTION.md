@@ -49,7 +49,6 @@ editable param.
 
 ## Remaining gaps
 
-- Live obedience e2e on `dev-public` still needs sync after this branch lands
-  (dev was on `1ecb81fd` when diagnosed).
-- FDR 0.01 remains soft for rnaseq (no significance param); DE workflows that
-  expose `differential_max_qval` / similar can harden that assert later.
+- FDR / DE significance: fixed separately in
+  `docs/20261113_FDR_DE_PARAM_INFERENCE.md` (hard e2e assert on
+  differentialabundance, not rnaseq).
