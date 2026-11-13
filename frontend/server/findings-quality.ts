@@ -17,7 +17,11 @@ export function scoreFindingsSampleName(name: string): number {
   if (/(^|\/)metrics\.json$/.test(n) || /(^|\/)manifest\.json$/.test(n)) s += 10;
   if (/(^|\/)training_progress\.json$/.test(n)) s += 8;
   if (/(toxicity_report|predict_admet|deseq2|de_results|enrichgo|enrich_go|multiqc)/.test(n)) s += 8;
-  if (/(report|summary|result|finding|final|metric|stat|score|predict|analysis|toxic|qc|vina|docking)/.test(n)) s += 3;
+  // Docking / structure confidence — same priority band as DESeq2/ADMET score cards
+  if (/(docking_autodock_vina|vina_results|best_affinity|boltz_summary|qc_metrics\.json|confidence_)/.test(n)) s += 8;
+  // Cryo-EM score cards (FSC / particle / acquisition) — ahead of Nextflow bookkeeping
+  if (/(fsc_validation|workflow_summary\.json|nu_refinement_report|picking_report|extract_report\.json|motion_report)/.test(n)) s += 8;
+  if (/(report|summary|result|finding|final|metric|stat|score|predict|analysis|toxic|qc|vina|docking|plddt|fsc)/.test(n)) s += 3;
   if (/\.(json|tsv|csv)$/.test(n)) s += 2;
   if (/\.(txt|md)$/.test(n)) s += 1;
   // Ludwig / false-QC / Nextflow bookkeeping — demote so they never crowd out scores
@@ -43,12 +47,16 @@ export function looksLikeHollowFindings(findings: unknown): boolean {
       .test(blob);
   });
   const admitsMissing = (Array.isArray(f.caveats) ? f.caveats : [])
-    .some((c: unknown) => /no model training or validation performance metrics|no .*metrics (are|were) present|could not find .*metric/i.test(String(c)));
+    .some((c: unknown) => /no model training or validation performance metrics|no .*metrics (are|were) present|could not find .*metric|no (binding )?affinit|no (plddt|confidence)|no significant genes|metrics are missing/i.test(String(c)));
   const summaryFluff = /combiner layer|multimodal input|z-score standardization|deep learning framework/i
     .test(String(f.summary || ''));
   // Hollow: has a summary but zero key_results AND tells the user to go look in outputs
   // for the numbers it should have extracted.
   const emptyRedirect = rows.length === 0
-    && /see (the )?outputs|open .*in outputs|retrieve the metrics/i.test(String(f.summary || ''));
-  return fluffRow || admitsMissing || summaryFluff || emptyRedirect;
+    && /see (the )?outputs|open .*in outputs|retrieve the metrics|check (the )?outputs/i.test(String(f.summary || ''));
+  // Hollow: summary claims docking/DE/structure finished but key_results omit the score card.
+  const summary = String(f.summary || '');
+  const claimsScoresMissing = rows.length === 0 && /docking|vina|deseq|enrich|plddt|structure prediction|affinity|cryo|fsc|resolution|multiqc|alignment/i.test(summary)
+    && /no (scores|metrics|results|affinities|resolution)|could not|unavailable|missing/i.test(summary);
+  return fluffRow || admitsMissing || summaryFluff || emptyRedirect || claimsScoresMissing;
 }

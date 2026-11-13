@@ -8,6 +8,8 @@ import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
 import { parseMlTrainingFindings, looksLikeMlTrainingFluff } from "./ml-training-findings";
+import { parseCryoEmFindings } from "./cryo-em-findings";
+import { parseMultiqcFindings } from "./multiqc-findings";
 import { looksLikeHollowFindings, scoreFindingsSampleName } from "./findings-quality";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
@@ -16521,7 +16523,10 @@ Rules:
     if (!f) return null;
     const lines = f.content.split('\n').filter(l => l.trim());
     if (lines.length < 2) return null;
-    const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    // Same autodelim as DESeq2 — clusterProfiler often writes TSV; comma-only
+    // split returned null on parseable enrichment tables → LLM fluff.
+    const delim = lines[0].includes('\t') ? '\t' : ',';
+    const header = lines[0].split(delim).map(h => h.replace(/"/g, '').trim());
     const descIdx = header.findIndex(h => /^(description|term|pathway|name)$/i.test(h));
     const padjIdx = header.findIndex(h => /^(p\.adjust|padj|fdr|qvalue)$/i.test(h));
     const ratioIdx = header.findIndex(h => /^(generatio|gene_ratio|ratio)$/i.test(h));
@@ -16530,7 +16535,7 @@ Rules:
     type Term = {desc: string; padj: number; ratio: string; count: string};
     const terms: Term[] = [];
     for (const line of lines.slice(1)) {
-      const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+      const cols = line.split(delim).map(c => c.replace(/"/g, '').trim());
       const padj = parseFloat(cols[padjIdx]);
       if (isNaN(padj)) continue;
       terms.push({ desc: cols[descIdx] || '', padj, ratio: ratioIdx >= 0 ? cols[ratioIdx] : '', count: countIdx >= 0 ? cols[countIdx] : '' });
@@ -16614,6 +16619,25 @@ Rules:
     if (opts?.isMlTraining || /ml_training|chemprop|ludwig|potency predictor|sklearn|model.?train/i.test(workflowName)) {
       const ml = parseMlTrainingFindings(outputSamples, workflowName);
       if (ml) return ml;
+    }
+    // cryo-EM: assemble FSC / particle / acquisition score card from step reports.
+    if (/cryo|cryosparc|relion|spa\b|electron.?microscop/i.test(workflowName)) {
+      const cryo = parseCryoEmFindings(outputSamples, workflowName);
+      if (cryo) return { context: cryo.summary, numbers: new Set(cryo.key_results.map(k => k.value.replace(/[^\d.eE+-]/g, '')).filter(Boolean)), findings: cryo };
+    }
+    // RNA-seq / WGS QC without a DE / enrichment table: MultiQC general stats → Key Results.
+    // Never outrank DESeq2/enrichGO content — those go through matchDescriptor → documentToLegacy.
+    const hasDeOrEnrich = outputSamples.some(f =>
+      /log2FoldChange/i.test(f.content)
+      || /GeneRatio/i.test(f.content)
+      || /(deseq2|de_results|enrichgo|enrich_go)/i.test(f.name),
+    );
+    if (!hasDeOrEnrich && (
+      /rnaseq|rna.?seq|sarek|wgs|chipseq|atac|multiqc/i.test(workflowName)
+      || outputSamples.some(f => /multiqc_data\.json$/i.test(f.name))
+    )) {
+      const mq = parseMultiqcFindings(outputSamples, workflowName);
+      if (mq) return { context: mq.summary, numbers: new Set(mq.key_results.map(k => k.value.replace(/[^\d.eE+-]/g, '')).filter(Boolean)), findings: mq };
     }
     return null;
   }

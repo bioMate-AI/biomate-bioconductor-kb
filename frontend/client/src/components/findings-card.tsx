@@ -322,7 +322,10 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
         {kr && kr.length > 0 && !multiEntity && (
           <div className="flex flex-wrap gap-1.5" data-testid="findings-headline-metrics">
             {[...kr].sort((a, b) => {
-              const rank = (m: string) => /^gate\b/i.test(m) ? 2 : /test|val|mae|rmse|r²|r2|auc|accuracy|padj|log2/i.test(m) ? 0 : 1;
+              const rank = (m: string) =>
+                /^gate\b/i.test(m) ? 2
+                : /test|val|mae|rmse|r²|r2|auc|accuracy|padj|log2|affinity|plddt|confident|impact|fsc|resolution|aligned|particles|coverage/i.test(m) ? 0
+                : 1;
               return rank(a.metric || '') - rank(b.metric || '');
             }).slice(0, 3).map((r, i) => {
               const clickable = Boolean(r.source_file && onOpenOutput)

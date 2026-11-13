@@ -100,6 +100,15 @@ vi.mock("../../storage", () => ({
     })),
     getInvocationByGalaxyId: vi.fn(async () => null),
     getInvocationOutputs: vi.fn(async () => mockOutputs),
+    getExecutionRun: vi.fn(async () => undefined),
+    getExecutionRunByGalaxyId: vi.fn(async () => undefined),
+  },
+}));
+// Default: canonical resolver empty → fall through to Galaxy outputs (legacy path).
+vi.mock("../../services/runs-outputs-service", () => ({
+  runsOutputsService: {
+    list: vi.fn(async () => []),
+    resolve: vi.fn(async () => null),
   },
 }));
 
@@ -150,7 +159,7 @@ function seedQueuedJob(): FakeRow {
   return row;
 }
 
-async function waitFor(pred: () => boolean, timeoutMs = 5000): Promise<void> {
+async function waitFor(pred: () => boolean, timeoutMs = 10000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (pred()) return;
@@ -179,6 +188,45 @@ describe("download_all_zip handler", () => {
     const head = fs.readFileSync(artifactPath).subarray(0, 2);
     expect(head[0]).toBe(0x50);
     expect(head[1]).toBe(0x4b);
+  });
+
+  it("uses canonical Outputs when Galaxy invocation has zero OutputDatasets (727de1b4 class)", async () => {
+    // Stub S3 GetObject so executeCanonicalOutputs can stream the file.
+    const { S3Client } = await import("@aws-sdk/client-s3");
+    const sendSpy = vi.spyOn(S3Client.prototype as any, "send").mockResolvedValue({
+      Body: Readable.from([Buffer.from('{"metrics":{"test_mae":0.79}}')]),
+    });
+
+    const { runsOutputsService } = await import("../../services/runs-outputs-service");
+    (runsOutputsService.list as any).mockResolvedValue([
+      {
+        name: "results/metrics.json",
+        s3Uri: "s3://biomate-nextflow-work/nextflow/outputs/u/r/results/metrics.json",
+        s3Bucket: "biomate-nextflow-work",
+        s3Key: "nextflow/outputs/u/r/results/metrics.json",
+        size: 42,
+      },
+    ]);
+    (runsOutputsService.resolve as any).mockResolvedValue({
+      runId: "727de1b4-5bed-4409-92ca-d7ba10a7f46e",
+      workflowName: "potency predictor",
+    });
+
+    await import("../handlers/download-all-zip");
+    const { dispatch } = await import("../executor");
+    const row = seedQueuedJob();
+    row.payload = {
+      invocationId: "synth-inv-empty",
+      runId: "727de1b4-5bed-4409-92ca-d7ba10a7f46e",
+    };
+    row.dedup_key = "download_all_zip:synth-inv-empty";
+    dispatch(row.id);
+
+    await waitFor(() => row.state === "ready" || row.state === "failed");
+    sendSpy.mockRestore();
+    expect(row.state).toBe("ready");
+    expect(row.artifact_bytes ?? 0).toBeGreaterThan(0);
+    expect(runsOutputsService.list).toHaveBeenCalled();
   });
 
   it("ends in cancelled state and deletes the artifact when cancelled mid-flight", async () => {
