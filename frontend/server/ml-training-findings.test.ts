@@ -26,10 +26,11 @@ const LIVE_METRICS = `{
   }
 }`;
 
+/** Live Ludwig nesting: R² lives under the target column (pIC50), not combined. */
 const LIVE_PROGRESS = `{
-  "best_eval_test_metrics": { "combined": { "loss": 1.07, "r2": 0.37242525815963745 } },
-  "best_eval_validation_metrics": { "combined": { "loss": 1.27, "r2": 0.4462311863899231 } },
-  "best_eval_train_metrics": { "combined": { "loss": 1.20, "r2": 0.3006513714790344 } }
+  "best_eval_test_metrics": { "combined": { "loss": 1.07 }, "pIC50": { "loss": 1.07, "r2": 0.37242525815963745 } },
+  "best_eval_validation_metrics": { "combined": { "loss": 1.27 }, "pIC50": { "loss": 1.27, "r2": 0.4462311863899231 } },
+  "best_eval_train_metrics": { "combined": { "loss": 1.20 }, "pIC50": { "loss": 1.20, "r2": 0.3006513714790344 } }
 }`;
 
 const LIVE_MANIFEST = `{
@@ -77,6 +78,9 @@ describe('parseMlTrainingFindings', () => {
     expect(f.key_results.find(k => k.metric === 'Test MAE')?.value).toBe('0.7920');
     expect(f.key_results.find(k => k.metric === 'Validation MAE')?.value).toBe('0.9433');
     expect(f.key_results.some(k => /Gate/i.test(k.metric))).toBe(true);
+    // Scores before gate — Findings chips / report lead with what users need
+    const names = f.key_results.map(k => k.metric);
+    expect(names.indexOf('Test MAE')).toBeLessThan(names.findIndex(m => /Gate/i.test(m)));
     expect(f.key_results.find(k => /Test R/i.test(k.metric))?.value).toBe('0.3724');
     expect(f.key_results.find(k => k.metric === 'Data split')?.value).toMatch(/bemis_murcko_scaffold/);
     expect(f.key_results.find(k => k.metric === 'Data split')?.value).toMatch(/train=1211/);
