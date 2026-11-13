@@ -4,6 +4,7 @@ import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
+import { singleWorkflowGroundingDirective } from './single-workflow-grounding';
 import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
@@ -9742,15 +9743,26 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
           for (const _host of [_wfGaN, (response as any)]) {
             const _inlineObj = _host?.inline_parameters;
             if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
+              // Empty schema (missing .nf / orphan catalog): do NOT keep LLM
+              // inline_parameters — the viewer would promote them as Recommended
+              // phantoms (Admet Pred → target_pdb / library_file, 2026-11-13).
+              // Prefer honest empty over invented docking rows. Alias/_find_nf_file
+              // parity is the durable fix for real schemas; this is the fail-closed guard.
+              if (_schemaNames.size === 0) {
+                for (const _k of Object.keys(_inlineObj)) {
+                  if (_k === 'domain_hint') continue;
+                  console.log(
+                    `[GalaxyAssistant] Clearing inline param "${_k}" (schema empty for ${_wfGaN?.name || 'workflow'}) — prevents empty-schema phantom row`,
+                  );
+                  delete _inlineObj[_k];
+                }
+                continue;
+              }
               for (const _k of Object.keys(_inlineObj)) {
                 if (_k === 'domain_hint') continue;
                 // Drop any inline key the schema doesn't declare (prevents a hallucinated phantom
-                // "Recommended" row). committee Sonnet-1: only do this when a schema is ACTUALLY
-                // available to validate against — when _schemaNames is empty (lazily-fetched / fresh
-                // workflow), we cannot distinguish a hallucinated key from a real user-supplied value
-                // (SMILES, dataset ref), and these objects are consumed in place with no re-prefill,
-                // so dropping all of them would silently lose the user's grounded input. Leave them.
-                if (_schemaNames.size > 0 && !_schemaNames.has(_k)) {
+                // "Recommended" row).
+                if (!_schemaNames.has(_k)) {
                   console.log(`[GalaxyAssistant] Dropping inline param "${_k}" (not in ${_wfGaN?.name || 'workflow'} schema) — prevents phantom param row`);
                   delete _inlineObj[_k];
                 }
@@ -10014,6 +10026,11 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     // Compute isWorkflowTurn here so it is available for both the system prompt
     // selection (below) and the agent-tools gate (further down in the Claude branch).
     const isWorkflowTurn = workflowSuggestion.shouldGenerate || !!generatedWorkflow;
+    // Ground chat prose to a single bound workflow_ga (no fake multi-step chain narration).
+    const singleWfGrounding = singleWorkflowGroundingDirective(
+      generatedWorkflow as any,
+      cardWorkflowName(generatedWorkflow) || undefined,
+    );
     // Tools should be suppressed only when there is a REAL, runnable workflow to
     // narrate — not merely when generateWorkflow ran and returned a failed/empty
     // object (which happens on false-positive workflow classification of plain
@@ -10269,6 +10286,7 @@ Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
 ${runsOnExampleData ? `- EXAMPLE-DATA WORKFLOW (overrides the DATA-FIRST RULE): This workflow ships its own built-in example/reference dataset and runs on it when no files are attached. Do NOT ask the user to upload or provide data, and do NOT list missing inputs — the card is runnable now. Present it with the "Workflow generated" format and include exactly one honest sentence to the effect of: "${exampleDataNote(generatedWorkflow)}" Never mention storage paths, S3, buckets or dataset IDs, and do not claim it analyses the user's own data.` : needsDataInput ? `- Workflow generated; its required data input is not provided yet (${needsInputList}) — use the "generated but required data input not provided yet" format` : runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
+${singleWfGrounding ? `- ${singleWfGrounding}` : ''}
 ${attachmentsUnused ? `- ATTACHED DATA NOT USED: the user attached ${attachmentsUnusedList.join(', ')}, but this workflow reads none of them — it is configured by parameters only. Do NOT say it was built from, uses, or analyses their data, and do NOT list their files as its inputs. State in one plain sentence that this workflow does not take those files, say what it does run on, and offer to find a workflow that does read that data.` : ''}
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
@@ -10336,9 +10354,10 @@ ${needsDataInput
           : ''}`
         : `Start with "**[workflow name]** — [one sentence]"`}
      - Bullet: Input used (the actual value from the message)
-     - Bullet: Key steps (2–3, tool → output)
+     - Bullet: Key steps (2–3, tool → output) — ONLY steps of the bound workflow above; never invent a multi-step composite pipeline in prose when the engine bound a single workflow_ga
      - Bullet: Expected output (file types / results)
-     - Do NOT say "click Run" — the Run button is already visible`
+     - Do NOT say "click Run" — the Run button is already visible${singleWfGrounding ? `
+     - ${singleWfGrounding}` : ''}`
   : !isWorkflowTurn
     ? (researchResponse || /\[Paper content:/i.test(message))
       ? `FORMAT: Research / document answer.
