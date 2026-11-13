@@ -1,7 +1,6 @@
 import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { buildAssistantMessageFromFinal } from "@/lib/assistant-message-from-final"
 import { computeTurnIndicators, signalsPendingWorkflow } from "@/lib/chat-turn-state"
-import { LiveVoicePanel } from "./live-voice-panel"
 import { prepareColdStartSelection, preparedInputsBlock } from "./cold-start-examples"
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -2331,14 +2330,12 @@ export function ChatInterface({
           input card itself carries the border/elevation. */}
       <div style={{ padding: '14px 24px 18px' }}>
         {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
-        <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={turnBusy || preparingExample}
-          reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
-          onSend={text => handleSendOrQueue(text)} />
         {libraryPick && (
           <div className="mx-auto mb-1 w-full max-w-3xl rounded-md border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="note" data-testid="library-input-reminder">
             {t('chat.library_input_reminder', { name: libraryPick })}
           </div>
         )}
+        {/* Voice lives only inside ChatInput's toolbar (Speak + Live icons). Never mount panels above the composer. */}
         <ChatInput
           voiceContextKey={chatSession?.id || "new-chat"}
           disabled={preparingExample}
@@ -2346,6 +2343,7 @@ export function ChatInterface({
           pendingCount={pendingMessages.length}
           isStreaming={turnBusy}
           onStop={stopStreaming}
+          voiceReply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
           onRegisterSetDraft={(setter) => {
             localSetDraftRef.current = setter
             onRegisterSetDraft?.(setter)

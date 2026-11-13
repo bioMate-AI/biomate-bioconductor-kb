@@ -2,10 +2,12 @@ import { responseLanguageDirective } from "./response-language";
 import { runButtonLabel } from "./ui-labels";
 import { PROJECT_CONTEXT_NOTE, intentRulesBlock } from './project-rules';
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
+import { applyLibraryMoleculeDualPath } from './library-triage-sequential';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
+import { singleWorkflowGroundingDirective } from './single-workflow-grounding';
 import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
@@ -1711,41 +1713,6 @@ const SCHEMA_GROUNDED_FLAG = () =>
   process.env.SCHEMA_GROUNDED_EXTRACTION === '1';
 
 /**
- * Merge backend-filled + schema-grounded + attachment-bound inline params.
- *
- * With SCHEMA_GROUNDED_EXTRACTION=1 the grounded LLM often re-emits schema
- * defaults (e.g. differential_max_qval=0.05, |log2FC|→1) after the backend
- * already applied standing project rules (0.01 / absolute FC 2). Spreading
- * grounded AFTER backend silently clobbers obedience. Re-assert any param the
- * backend marked autoFilled with a rule-based rationale so project rules win.
- */
-export function mergeInlineParamsPreferringRuleFills(args: {
-  backendFilled: Record<string, string>;
-  grounded: Record<string, string>;
-  attachmentBound?: Record<string, string>;
-  workflowGa?: {
-    required_params?: Array<{ name?: string; autoFilled?: boolean; rationale?: string }>;
-    optional_params?: Array<{ name?: string; autoFilled?: boolean; rationale?: string }>;
-  } | null;
-}): Record<string, string> {
-  const ruleBacked: Record<string, string> = {};
-  for (const p of [
-    ...(args.workflowGa?.required_params || []),
-    ...(args.workflowGa?.optional_params || []),
-  ]) {
-    if (!p?.name || !p.autoFilled || !/rule-based/i.test(String(p.rationale || ''))) continue;
-    const v = args.backendFilled[p.name];
-    if (v != null && String(v).trim() !== '') ruleBacked[p.name] = String(v);
-  }
-  return {
-    ...args.backendFilled,
-    ...args.grounded,
-    ...(args.attachmentBound || {}),
-    ...ruleBacked,
-  };
-}
-
-/**
  * Async wrapper used at chat-stream call sites. Returns the canonical-keyed
  * dict and (optionally) an ExtractorResult for the caller to surface in the
  * chat response.
@@ -2146,6 +2113,10 @@ export interface DecomposedIntent {
   inputKinds?: string[];
   /** LLM-assigned scientific domain of this branch (e.g. proteomics), preferred when routing it. */
   domain?: string;
+  /** Sequential pipeline: where this step's input comes from (human-readable). */
+  inputFromDescription?: string;
+  /** Sequential pipeline: what this step produces (human-readable). */
+  outputDescription?: string;
 }
 
 export interface IntentDecomposition {
@@ -2154,6 +2125,13 @@ export interface IntentDecomposition {
   primaryIntent: DecomposedIntent;
   /** True when the intents form an ordered pipeline (output of step N feeds step N+1) */
   isSequential?: boolean;
+  /**
+   * Skip Tier-1 single-workflow collapse in processSequentialPipeline so a
+   * multi-step plan is not reduced to one Admet Pred (etc.). Tier-2 curated
+   * chain lookup still runs when chainHint names a real workflow_chains row
+   * (library/molecule dual path). Step-by-step triage sets chainHint=null.
+   */
+  skipPipelineCollapse?: boolean;
   /** LLM-inferred domain preferences for workflow search ranking (replaces rule-based _infer_domain_preferences) */
   preferredDomains?: string[];
   /** LLM-inferred domains to penalize in workflow search ranking */
@@ -5564,10 +5542,35 @@ Rules:
     // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
     onProgress?.('intent');
     log('Step 1: Analyzing intent');
-    const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
+    let decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     // A degraded (keyword last-resort) decomposition carries no inferred intent: leave it unknown.
     context.turnSyntheticDataRequested = decomposition.degraded ? undefined : decomposition.userRequestedSyntheticData;
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
+
+    // Library / molecule-design dual path (both supported — never force only one):
+    //  - catalog mega-chain when a real workflow_chains row matches
+    //  - sequential step-by-step (ordinary single workflows) for synthesise-now/park
+    //    triage and other multi-step asks with no catalog match
+    // Do NOT invent ad-hoc workflow_chains rows; do NOT bind a lone Admet Pred card
+    // for multi-step triage prose.
+    {
+      const perceivedKinds =
+        decomposition.inputKinds ?? decomposition.primaryIntent?.inputKinds;
+      const dual = applyLibraryMoleculeDualPath(
+        message,
+        perceivedKinds,
+        decomposition.chainHint,
+      );
+      if (dual) {
+        decomposition = dual as IntentDecomposition;
+        log(
+          `Step 1: library/molecule dual-path → ${dual.libraryMoleculePath}` +
+            (dual.chainHint ? ` chain=${dual.chainHint}` : '') +
+            ` (${dual.intents.length} intents; skipPipelineCollapse=` +
+            `${!!dual.skipPipelineCollapse})`,
+        );
+      }
+    }
 
     // Apply intentOverride from a prior IntentClarificationCard chip click.
     if (context.intentOverride) {
@@ -6374,12 +6377,11 @@ Rules:
     // filled" plus a "Which input_smiles?" card with the file already attached.
     // Carry the bound values into the overlay and withdraw their questions.
     const _attachmentBoundParams = attachmentBoundParams(generatedWorkflow);
-    const _remappedInlineParams = mergeInlineParamsPreferringRuleFills({
-      backendFilled: _backendFilledParams,
-      grounded: _groundedInlineParams,
-      attachmentBound: _attachmentBoundParams,
-      workflowGa: _gaForFill,
-    });
+    const _remappedInlineParams = {
+      ..._backendFilledParams,
+      ..._groundedInlineParams,
+      ..._attachmentBoundParams,
+    };
     const _clarifications = (_groundResult.details?.clarifications || []).filter(
       (c) => !_attachmentBoundParams[c.paramName],
     );
@@ -6658,7 +6660,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
             message: [
               `I've mapped your request to the **${chain.display_name}** pipeline (${chainPipelineSteps.length} steps):`,
               '',
-              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**`)
+              chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? '' : ' (workflow not yet resolved)'}`)
                 .join('\n'),
               '',
               `Review the steps below, then click **${runButtonLabel((context as any)?.uiLanguage)}** to execute them in order.`,
@@ -6707,13 +6709,16 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
   ): Promise<GalaxyAssistantResponse> {
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] [SEQ] ${step}`);
     log(`Building sequential pipeline: ${decomposition.intents.length} steps`);
+    const noCollapse = decomposition.skipPipelineCollapse === true;
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIER 1: Try the full query as a single workflow first.
     // If one workflow covers all the user's biological steps → return early.
+    // Skipped for rule-built plans that must stay discrete (library triage).
     // ═══════════════════════════════════════════════════════════════════════
-    log('Tier 1: Attempting full-query single-workflow resolution');
-    try {
+    if (noCollapse) {
+      log('Tier 1: skipped (skipPipelineCollapse — keep discrete single-workflow steps)');
+    } else try {
       // Use a clean context (no previous messages) to avoid chat-history bias from prior turns.
       // Tier 1 evaluates this query in isolation: "can one workflow cover all the steps?"
       const tier1Context: ChatContext = {
@@ -6809,13 +6814,22 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
 
     // TIER 2: curated chain (see _curatedChainResponse).
-    const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
-    if (tier2) return tier2;
+    // Dual-path: honour a real chainHint even when skipPipelineCollapse
+    // (that flag only blocks Tier-1 single-wf collapse — e.g. Admet Pred).
+    // Step-by-step library triage sets chainHint=null so this no-ops.
+    {
+      const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
+      if (tier2) return tier2;
+      if (noCollapse && !decomposition.chainHint) {
+        log('Tier 2: no catalog chainHint (sequential step-by-step path)');
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIER 3: Greedy sequential resolution.
     // Resolve steps one cluster at a time; a single workflow may cover multiple
-    // consecutive biological steps.
+    // consecutive biological steps. When skipPipelineCollapse, resolve each
+    // intent independently (one catalog workflow per step — task-by-task).
     // ═══════════════════════════════════════════════════════════════════════
     log('Tier 3: Greedy sequential resolution');
 
@@ -6825,13 +6839,17 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
     while (remainingIntents.length > 0) {
       const currentIntent = remainingIntents[0];
-      // Build a combined sub-query for remaining steps to give the workflow search better context
-      const combinedQuery = remainingIntents.length > 1
-        ? remainingIntents.slice(0, Math.min(3, remainingIntents.length)).map(i => i.subQuery).join(' then ')
-        : currentIntent.subQuery;
-      const combinedIntent: DecomposedIntent = { ...currentIntent, subQuery: combinedQuery };
+      // Build a combined sub-query for remaining steps to give the workflow search better context.
+      // Independent resolution for skipPipelineCollapse avoids "dock then ADMET then …"
+      // collapsing into a single wrong bind (e.g. Admet Pred).
+      const stepQuery = noCollapse
+        ? currentIntent.subQuery
+        : remainingIntents.length > 1
+          ? remainingIntents.slice(0, Math.min(3, remainingIntents.length)).map(i => i.subQuery).join(' then ')
+          : currentIntent.subQuery;
+      const combinedIntent: DecomposedIntent = { ...currentIntent, subQuery: stepQuery };
 
-      log(`Tier 3 step ${globalIdx + 1}: resolving "${combinedQuery}"`);
+      log(`Tier 3 step ${globalIdx + 1}: resolving "${stepQuery}"`);
       let subResult: any = null;
       try {
           // Use clean context (no prior-turn history) so the search for each step is
@@ -6846,7 +6864,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       // Check if the resolved workflow covers more than one remaining intent
       let coveredCount = 1;
       const wf = subResult?.generatedWorkflow;
-      if (wf?.nextflow_path && remainingIntents.length > 1) {
+      if (!noCollapse && wf?.nextflow_path && remainingIntents.length > 1) {
         try {
           const coverage = await this._checkWorkflowCoverage(
             wf.workflow_name || wf.name || '',
@@ -6897,10 +6915,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // single workflow card instead of a multi-step chain.
     // Example: "build pharmacophore model then screen library" → both steps
     // resolve to pharmacophore_filtering/main.nf (it does both internally).
+    // Skipped when skipPipelineCollapse (library triage must stay multi-step).
     // -----------------------------------------------------------------------
     const resolvedPaths = pipelineSteps.map(s => s.nextflow_path).filter(Boolean);
     const uniquePaths = new Set(resolvedPaths);
-    if (resolvedPaths.length === pipelineSteps.length && uniquePaths.size === 1) {
+    if (!noCollapse && resolvedPaths.length === pipelineSteps.length && uniquePaths.size === 1) {
       const canonicalResult = stepResults[0].subResult;
       if (canonicalResult?.generatedWorkflow) {
         // Merge params from all steps (later steps supplement earlier ones)
@@ -6932,15 +6951,19 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
     // Build a summary message
     const stepSummaryLines = pipelineSteps.map(
-      (s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (workflow path TBD)'}` +
+      (s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? '' : ' (workflow not yet resolved)'}` +
         (s.uses_description ? `\n     → Input: ${s.uses_description}` : '')
     );
     const summaryMessage = [
-      `I've planned a **${pipelineSteps.length}-step sequential pipeline** for you:`,
+      noCollapse
+        ? `I've planned a **${pipelineSteps.length}-step library triage** — each step is a separate indexed workflow (run **task by task**):`
+        : `I've planned a **${pipelineSteps.length}-step sequential pipeline** for you:`,
       '',
       ...stepSummaryLines,
       '',
-      'Review the steps below, then click **Confirm & Run** to execute them in order.',
+      noCollapse
+        ? 'Review the steps below. **Confirm & Run** starts step 1 only; after it finishes, **Approve & Run** the next step. Outputs stay available for later steps — this is not one mega-chain card.'
+        : 'Review the steps below, then click **Confirm & Run** to execute them in order.',
       resolvedCount < pipelineSteps.length
         ? `\n⚠️ ${pipelineSteps.length - resolvedCount} step(s) could not be resolved to specific workflow paths — you may need to confirm them before running.`
         : '',
@@ -6966,10 +6989,12 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       generatedWorkflow: {
         success: true,
         workflow_type: 'pipeline',
-        name: `Sequential Pipeline (${pipelineSteps.length} steps)`,
+        name: noCollapse
+          ? `Library Triage (${pipelineSteps.length} steps — task by task)`
+          : `Sequential Pipeline (${pipelineSteps.length} steps)`,
         pipeline_steps: pipelineSteps,
         step_count: pipelineSteps.length,
-        source: 'biomate_sequential',
+        source: noCollapse ? 'library_triage_sequential' : 'biomate_sequential',
       },
       suggestions: [
         'Modify a specific step',
@@ -7026,8 +7051,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const lines = steps.map((s, k) => {
       const deps = (s.depends_on || []) as number[];
       const wired = !data.order_only;
-      return `  ${k + 1}. **${s.description || s.workflow_name}** — ` +
-        (s.workflow_label ? `runs **${s.workflow_label}** (\`${s.nextflow_path}\`)` : `\`${s.nextflow_path}\``) +
+      // User-facing name only — never leak the internal engine path (nextflow_path /
+      // nextflow_nfcore/subworkflows/.../main.nf), per the storage-path redaction standard.
+      return `  ${k + 1}. **${s.description || s.workflow_name}**` +
+        (s.workflow_label ? ` — runs **${s.workflow_label}**` : '') +
+        (s.reroute_reason ? ` — switched from ${s.rerouted_from} because it ${s.reroute_reason}` : '') +
         (deps.length
           ? ` (${wired ? 'uses the results of' : 'runs after'} step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})`
           : ' (runs in parallel)');
@@ -7258,27 +7286,12 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         : undefined,
     });
     // Same as the single-intent path: parameters the attachment binding already
-    // filled are carried into the overlay and no longer asked about. Also fold
-    // backend rule fills so SCHEMA_GROUNDED LLM defaults cannot clobber FDR/FC.
+    // filled are carried into the overlay and no longer asked about.
     const _multiAttachmentBound = attachmentBoundParams(_multiGeneratedWorkflow);
-    const _multiGa = _multiGeneratedWorkflow?.workflow_ga || _multiGeneratedWorkflow || {};
-    const _multiBackendFilled: Record<string, string> = {};
-    for (const [k, v] of Object.entries(_multiGa.parameters || {})) {
-      if (v != null && String(v).trim() !== '') _multiBackendFilled[k] = String(v);
-    }
-    for (const p of [...(_multiGa.required_params || []), ...(_multiGa.optional_params || [])]) {
-      if (!p?.name) continue;
-      const v = p.value ?? p.default;
-      if (v != null && String(v).trim() !== '' && _multiBackendFilled[p.name] === undefined) {
-        _multiBackendFilled[p.name] = String(v);
-      }
-    }
-    const _multiRemappedInlineParams = mergeInlineParamsPreferringRuleFills({
-      backendFilled: _multiBackendFilled,
-      grounded: stringifyParamValues(_multiGroundResult.params),
-      attachmentBound: _multiAttachmentBound,
-      workflowGa: _multiGa,
-    });
+    const _multiRemappedInlineParams = {
+      ...stringifyParamValues(_multiGroundResult.params),
+      ..._multiAttachmentBound,
+    };
     const _multiClarifications = (_multiGroundResult.details?.clarifications || []).filter(
       (c) => !_multiAttachmentBound[c.paramName],
     );
@@ -8707,6 +8720,18 @@ For MULTI-HOP workflow queries (user describes a biological goal without naming 
   "chain_hint": null
 }
 
+**Library / molecule-design — dual path (both supported).**
+(A) Catalog mega-chain: when the request matches a REAL known chain in the list above
+(e.g. drug_discovery_admet_gated_screening, drug_discovery_screening, admet_to_cipa_cardiac,
+target_to_lead_full, andv_inhibitor_track_v1), set chain_hint to that exact name and
+is_sequential true. Do NOT invent new chain names.
+(B) Step-by-step: when the user asks to triage a compound/SMILES library into "synthesise-now"
+vs "park" (or triage+library with no matching catalog chain), this is multi-intent sequential
+workflow_generation with ≥3 intents: (1) AutoDock Vina docking, (2) predict_admet_properties,
+(3) pharmacophore_filtering. Set chain_hint null — do NOT collapse to a single Admet Pred /
+ADMET-only workflow and do NOT invent a curated mega-chain. Each intent is one ordinary
+indexed workflow; BioMate runs them task by task.
+
 For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequential": true and chain dependsOn:
 {
   "is_sequential": true,
@@ -10010,15 +10035,26 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
           for (const _host of [_wfGaN, (response as any)]) {
             const _inlineObj = _host?.inline_parameters;
             if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
+              // Empty schema (missing .nf / orphan catalog): do NOT keep LLM
+              // inline_parameters — the viewer would promote them as Recommended
+              // phantoms (Admet Pred → target_pdb / library_file, 2026-11-13).
+              // Prefer honest empty over invented docking rows. Alias/_find_nf_file
+              // parity is the durable fix for real schemas; this is the fail-closed guard.
+              if (_schemaNames.size === 0) {
+                for (const _k of Object.keys(_inlineObj)) {
+                  if (_k === 'domain_hint') continue;
+                  console.log(
+                    `[GalaxyAssistant] Clearing inline param "${_k}" (schema empty for ${_wfGaN?.name || 'workflow'}) — prevents empty-schema phantom row`,
+                  );
+                  delete _inlineObj[_k];
+                }
+                continue;
+              }
               for (const _k of Object.keys(_inlineObj)) {
                 if (_k === 'domain_hint') continue;
                 // Drop any inline key the schema doesn't declare (prevents a hallucinated phantom
-                // "Recommended" row). committee Sonnet-1: only do this when a schema is ACTUALLY
-                // available to validate against — when _schemaNames is empty (lazily-fetched / fresh
-                // workflow), we cannot distinguish a hallucinated key from a real user-supplied value
-                // (SMILES, dataset ref), and these objects are consumed in place with no re-prefill,
-                // so dropping all of them would silently lose the user's grounded input. Leave them.
-                if (_schemaNames.size > 0 && !_schemaNames.has(_k)) {
+                // "Recommended" row).
+                if (!_schemaNames.has(_k)) {
                   console.log(`[GalaxyAssistant] Dropping inline param "${_k}" (not in ${_wfGaN?.name || 'workflow'} schema) — prevents phantom param row`);
                   delete _inlineObj[_k];
                 }
@@ -10291,6 +10327,11 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     // Compute isWorkflowTurn here so it is available for both the system prompt
     // selection (below) and the agent-tools gate (further down in the Claude branch).
     const isWorkflowTurn = workflowSuggestion.shouldGenerate || !!generatedWorkflow;
+    // Ground chat prose to a single bound workflow_ga (no fake multi-step chain narration).
+    const singleWfGrounding = singleWorkflowGroundingDirective(
+      generatedWorkflow as any,
+      cardWorkflowName(generatedWorkflow) || undefined,
+    );
     // Tools should be suppressed only when there is a REAL, runnable workflow to
     // narrate — not merely when generateWorkflow ran and returned a failed/empty
     // object (which happens on false-positive workflow classification of plain
@@ -10546,6 +10587,7 @@ Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
 ${runsOnExampleData ? `- EXAMPLE-DATA WORKFLOW (overrides the DATA-FIRST RULE): This workflow ships its own built-in example/reference dataset and runs on it when no files are attached. Do NOT ask the user to upload or provide data, and do NOT list missing inputs — the card is runnable now. Present it with the "Workflow generated" format and include exactly one honest sentence to the effect of: "${exampleDataNote(generatedWorkflow)}" Never mention storage paths, S3, buckets or dataset IDs, and do not claim it analyses the user's own data.` : needsDataInput ? `- Workflow generated; its required data input is not provided yet (${needsInputList}) — use the "generated but required data input not provided yet" format` : runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
+${singleWfGrounding ? `- ${singleWfGrounding}` : ''}
 ${attachmentsUnused ? `- ATTACHED DATA NOT USED: the user attached ${attachmentsUnusedList.join(', ')}, but this workflow reads none of them — it is configured by parameters only. Do NOT say it was built from, uses, or analyses their data, and do NOT list their files as its inputs. State in one plain sentence that this workflow does not take those files, say what it does run on, and offer to find a workflow that does read that data.` : ''}
 ${(() => {
   const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
@@ -10614,9 +10656,10 @@ ${needsDataInput
           : ''}`
         : `Start with "**[workflow name]** — [one sentence]"`}
      - Bullet: Input used (the actual value from the message)
-     - Bullet: Key steps (2–3, tool → output)
+     - Bullet: Key steps (2–3, tool → output) — ONLY steps of the bound workflow above; never invent a multi-step composite pipeline in prose when the engine bound a single workflow_ga
      - Bullet: Expected output (file types / results)
-     - Do NOT say "click Run" — the Run button is already visible`
+     - Do NOT say "click Run" — the Run button is already visible${singleWfGrounding ? `
+     - ${singleWfGrounding}` : ''}`
   : !isWorkflowTurn
     ? (researchResponse || /\[Paper content:/i.test(message))
       ? `FORMAT: Research / document answer.

@@ -318,6 +318,10 @@ export const userSettingsSchema = z.object({
   chatSuggestions: z.boolean().default(true),
   typingIndicator: z.boolean().default(true),
   messageTimestamps: z.boolean().default(true),
+  /** When false, chat shows no voice chrome (mic / live). Opt-in from Settings. */
+  voiceEnabled: z.boolean().default(false),
+  /** Live voice: auto-send committed transcript when the user pauses. */
+  voiceHandsFree: z.boolean().default(false),
   // Data preferences
   defaultStorageType: z.enum(["local", "s3", "replit_storage"]).default("replit_storage"),
   autoDeleteTempFiles: z.boolean().default(true),

@@ -693,7 +693,16 @@ class AIAssistant:
         # ---------------------------------------------------------------------
         # Use the existing generate_workflow_unified method
         datasets = context.get('datasets', []) if context else []
-        result = self.generate_workflow_unified(query, available_datasets=datasets)
+        # Ground routing in the SHAPE of the user's attached data (data_perception).
+        # Without this the chat/agent path searched on prose alone, so a SMILES library +
+        # receptor .pdb (→ {molecules, structure}) never reached step 8a or the relevance
+        # floor's input_compatible veto, and a bare "rank …" keyword-matched a CSV-assay
+        # ranker (incident 2026-11-12). The /generate_workflow HTTP endpoint already threads
+        # this via resolve_effective_input_kinds; the chat/agent path did not.
+        user_input_kinds = self._perceive_user_input_kinds(context)
+        result = self.generate_workflow_unified(
+            query, uploaded_datasets=datasets, user_input_kinds=user_input_kinds,
+        )
         return {
             "success": result.get('success', False),
             "handler": "agent_orchestrator",
@@ -869,8 +878,13 @@ class AIAssistant:
             if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
                 try:
                     from .decomposed_dag import build_dag_plan, bind_shared_inputs, to_pipeline_card
+                    from functools import partial as _partial
+                    # Bind the user's perceived data shape onto every per-step resolution so the
+                    # chain's sub-searches are data-grounded, not prose-only (incident 2026-11-12).
+                    _user_kinds = self._perceive_user_input_kinds(context)
                     _dag = build_dag_plan(
-                        tasks, self._resolve_task_to_workflow,
+                        tasks,
+                        _partial(self._resolve_task_to_workflow, user_input_kinds=_user_kinds),
                         type_provider=self._workflow_io_types,
                     )
                     if _dag:
@@ -897,7 +911,22 @@ class AIAssistant:
             log.warning(f"[MultiTask] Decomposition failed ({e}), falling back to single-task")
             return await self._handle_workflow_generation(query, context)
 
-    def _resolve_task_to_workflow(self, task):
+    def _perceive_user_input_kinds(self, context):
+        """Closed-vocabulary input kinds the user HAS, grounded in the datasets actually
+        attached to this turn (data_perception.resolve_effective_input_kinds). Returns a
+        list, or None when nothing can be grounded (routing then falls back to prose). NEVER
+        raises — perception must not block routing. Threaded into workflow search so step 8a
+        and the relevance floor's input_compatible veto can demote a workflow that cannot
+        consume the user's data shape (incident 2026-11-12: {molecules, structure} ignored)."""
+        try:
+            from .data_perception import resolve_effective_input_kinds
+            datasets = (context or {}).get('datasets') or []
+            return resolve_effective_input_kinds(None, datasets)
+        except Exception as exc:  # noqa: BLE001 — perception must never block routing
+            log.debug(f"[Perception] input-kind inference failed: {exc}")
+            return None
+
+    def _resolve_task_to_workflow(self, task, user_input_kinds=None):
         """Best-effort per-task resolution for the decomposed DAG (reconciliation #3).
 
         Returns ``{'nextflow_path', 'parameters'}`` or ``None``. Conservative: the
@@ -905,6 +934,10 @@ class AIAssistant:
         ``build_dag_plan`` safely falls back to single-task generation rather than
         emitting an unexecutable DAG. (Richer resolution + input binding is the
         next sub-slice of the logical->executable adapter.)
+
+        ``user_input_kinds`` is the SHAPE of the user's attached data (bound by the caller
+        via functools.partial). Threading it means each per-step search is grounded in the
+        real data shape instead of the step description's prose alone.
         """
         try:
             desc = getattr(task, 'description', None)
@@ -915,7 +948,7 @@ class AIAssistant:
             from .decomposed_dag import pick_workflow_match
             # Confidence-gated: only a medium+ match resolves; weak matches → None
             # → build_dag_plan falls back to single-task (never dispatches a guess).
-            return pick_workflow_match(self.workflow_search.search(desc))
+            return pick_workflow_match(self.workflow_search.search(desc, user_input_kinds=user_input_kinds))
         except Exception as exc:
             log.debug(f"[MultiTask] task resolution failed: {exc}")
         return None
@@ -2554,6 +2587,28 @@ Respond with a single JSON object — no other text:
         without_schema = [c for c in candidates if c.exists() and c not in with_schema]
         for c in (with_schema + without_schema):
             return c
+
+        # Domain alias fallback — same drug_discovery ↔ pharmacology map as
+        # nextflow_executor._resolve_nextflow_path. Without this, a catalog row
+        # whose filename still says drug_discovery/ADMET_pred resolves for
+        # execution (alias) but _find_nf_file returns None → empty required_params
+        # and empty-schema phantom inline_parameters (2026-11-13 Admet Pred).
+        _DOMAIN_ALIASES = {
+            "drug_discovery": "pharmacology",
+            "pharmacology": "drug_discovery",
+        }
+        alias_candidates = []
+        for c in candidates:
+            parts = c.parts
+            for i, part in enumerate(parts):
+                if part in _DOMAIN_ALIASES:
+                    aliased = _Path(*parts[:i]) / _DOMAIN_ALIASES[part] / _Path(*parts[i + 1:])
+                    alias_candidates.append(aliased)
+                    break
+        with_schema_a = [c for c in alias_candidates if c.exists() and (c.parent / "nextflow_schema.json").exists()]
+        without_schema_a = [c for c in alias_candidates if c.exists() and c not in with_schema_a]
+        for c in (with_schema_a + without_schema_a):
+            return c
         return None
 
     # Groups in nextflow_schema.json that are infrastructure / admin — skip them
@@ -3135,114 +3190,6 @@ Respond with a single JSON object — no other text:
             'name': 'max_spots', 'default': max_spots, 'required': False,
             'description': 'Limit SRA spots downloaded (0 = unlimited)',
         }]
-
-    # Significance / fold-change rules from query or standing project instructions.
-    # Parenthetical glosses are common in project rules: "FDR (adjusted p) < 0.01".
-    _FDR_THRESHOLD_RE = re.compile(
-        r'(?:FDR|padj|p-?adj|adjusted\s+p(?:-?values?)?|q-?val(?:ues?)?|alpha)'
-        r'(?:\s*\([^)]*\))?'
-        r'(?:\s*(?:threshold|cutoff|of))?'
-        # Allow `<`, `<=`, `≤`, `=`, `:` (project rules often use `padj <= 0.01`)
-        r'\s*(?:[<≤]=?|[=:])\s*(0?\.\d+|\d+\.\d+)',
-        re.IGNORECASE,
-    )
-    _FDR_GATE_RE = re.compile(
-        r'\bFDR\b|\badjusted\s+p\b|\bp\s*adj|\bq\s*-?\s*val|\bpadj\b|\balpha\b',
-        re.IGNORECASE,
-    )
-    # "|log2FC| >= 1" / "log2 fold change > 1.5" — convert to absolute fold-change
-    # when the workflow param is absolute FC (nf-core differential_min_fold_change).
-    _LOG2FC_THRESHOLD_RE = re.compile(
-        r'(?:\|?\s*log\s*2?\s*FC\s*\|?|\blog2(?:ged)?\s*fold[\s-]*change\b|\bLFC\b)'
-        r'\s*[>≥=]{1,2}\s*([\d.]+)',
-        re.IGNORECASE,
-    )
-    _ABS_FC_THRESHOLD_RE = re.compile(
-        r'(?:\|?\s*fold[\s-]*change\s*\|?|\bmin(?:imum)?[\s_]*fold[\s_]*change\b)'
-        r'\s*[>≥=]{1,2}\s*([\d.]+)',
-        re.IGNORECASE,
-    )
-
-    def _extract_fdr_threshold(self, user_intent: str) -> Optional[float]:
-        """Return FDR / adjusted-p cutoff from query or standing project rules.
-
-        Handles project-rule phrasing such as ``FDR (adjusted p) < 0.01`` where a
-        parenthetical gloss sits between the token and the operator — the older
-        ``FDR\\s*[<≤=:]?\\s*(0?.\\d+)`` pattern missed those and left DE workflows
-        on the schema default (0.05).
-        """
-        if not user_intent or not self._FDR_GATE_RE.search(user_intent):
-            return None
-        m = self._FDR_THRESHOLD_RE.search(user_intent)
-        if not m:
-            return None
-        try:
-            v = float(m.group(1))
-        except (TypeError, ValueError):
-            return None
-        if not (0.0 < v < 1.0):
-            return None
-        return v
-
-    def _pick_significance_param_name(self, param_names) -> Optional[str]:
-        """Prefer differential_max_qval / *fdr* / *padj* over a bare clinical ``alpha``."""
-        ranked: list = []
-        for n in param_names or []:
-            if not n or not re.search(r'fdr|padj|p_?adj|q_?val|alpha|max_qval', n, re.I):
-                continue
-            nl = n.lower()
-            score = 0
-            if re.search(r'max_qval|fdr|padj|p_adj|q_?val', nl):
-                score += 10
-            if 'differential' in nl or 'deseq' in nl:
-                score += 5
-            if nl == 'alpha':
-                score -= 8  # clinical-trial alpha; last resort only
-            ranked.append((score, n))
-        if not ranked:
-            return None
-        ranked.sort(key=lambda t: (-t[0], t[1]))
-        return ranked[0][1]
-
-    def _extract_abs_fold_change(self, user_intent: str) -> Optional[float]:
-        """Absolute fold-change cutoff from query/rules.
-
-        ``|log2FC| >= 1`` → 2.0 (2**1) for params like differential_min_fold_change
-        that are absolute FC, not log2. Bare ``fold change >= 2`` stays as 2.0.
-        """
-        if not user_intent:
-            return None
-        m = self._LOG2FC_THRESHOLD_RE.search(user_intent)
-        if m:
-            try:
-                return float(2 ** float(m.group(1)))
-            except (TypeError, ValueError):
-                return None
-        m2 = self._ABS_FC_THRESHOLD_RE.search(user_intent)
-        if not m2:
-            return None
-        try:
-            return float(m2.group(1))
-        except (TypeError, ValueError):
-            return None
-
-    def _pick_fold_change_param_name(self, param_names) -> Optional[str]:
-        ranked: list = []
-        for n in param_names or []:
-            if not n or not re.search(r'fold.?change|min_fc|lfc|log2.?fc', n, re.I):
-                continue
-            nl = n.lower()
-            score = 10 if 'fold' in nl else 5
-            if 'differential' in nl:
-                score += 5
-            # Prefer absolute-FC params over log2-named ones when both exist.
-            if re.search(r'log2|lfc', nl) and 'fold' not in nl:
-                score -= 3
-            ranked.append((score, n))
-        if not ranked:
-            return None
-        ranked.sort(key=lambda t: (-t[0], t[1]))
-        return ranked[0][1]
 
     def _inject_genome_into_params(self, req_params: list, opt_params: list, genome_build: str) -> tuple:
         """Pre-fill reference, known_sites, and genome params when user mentioned a genome build.
@@ -4123,23 +4070,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     'name': 'single_end', 'value': True,
                     'rationale': 'rule-based: single-end → single_end=true',
                 })
-        # Standing project-rule / prose FDR + |log2FC| when the workflow exposes those slots
-        # (e.g. nf-core/differentialabundance differential_max_qval / differential_min_fold_change).
-        # rnaseq has no significance param — correct; do not invent one.
-        _fdr_name = self._pick_significance_param_name(_param_names)
-        _fdr_val = self._extract_fdr_threshold(user_intent or '') if _fdr_name else None
-        if _fdr_name and _fdr_val is not None:
-            _rule_suggestions.append({
-                'name': _fdr_name, 'value': _fdr_val,
-                'rationale': 'rule-based: significance threshold from query/project rules',
-            })
-        _fc_name = self._pick_fold_change_param_name(_param_names)
-        _fc_val = self._extract_abs_fold_change(user_intent or '') if _fc_name else None
-        if _fc_name and _fc_val is not None:
-            _rule_suggestions.append({
-                'name': _fc_name, 'value': _fc_val,
-                'rationale': 'rule-based: fold-change threshold from query/project rules',
-            })
+        # Standing project-rule / prose FDR phrases when a significance param exists
+        _fdr_names = [n for n in _param_names if re.search(r'fdr|padj|p_?adj|q_?val|alpha|max_qval', n or '', re.I)]
+        if _fdr_names and re.search(r'\bFDR\b|\badjusted\s+p\b|\bp\s*adj|\bq\s*-?\s*val', user_intent or '', re.I):
+            _m_fdr = re.search(r'(?:FDR|padj|p-?adj|q-?val|alpha)\s*[<≤=:]?\s*(0?\.\d+)', user_intent or '', re.I)
+            if _m_fdr:
+                _fv = float(_m_fdr.group(1))
+                _rule_suggestions.append({
+                    'name': _fdr_names[0], 'value': _fv,
+                    'rationale': 'rule-based: significance threshold from query',
+                })
         if _rule_suggestions:
             req, opt = self._apply_llm_suggestions(req, opt, _rule_suggestions)
         # Layer 2: apply DB-driven tool_knowledge hints
@@ -4170,23 +4110,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             or _explicit_registry_10813
             or (_explicit_dock_12824 and 'pdb_input' in _q_low)
         )
-        # Deterministic fills (project-rule FDR/FC, PE layout, explicit key=value) outrank
-        # LLM suggestions. Param LLM often re-emits schema defaults (e.g. qval 0.05) when the
-        # standing-rule text is truncated out of its 600-char query window.
-        _deterministic_param_names = {
-            s.get('name') for s in (_rule_suggestions + explicit_suggestions) if s.get('name')
-        }
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
-            if _deterministic_param_names:
-                llm_suggestions = [
-                    s for s in llm_suggestions
-                    if s.get('name') not in _deterministic_param_names
-                ]
             req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
-        # Re-assert rule fills after LLM/hints so standing project instructions always win.
-        if _rule_suggestions:
-            req, opt = self._apply_llm_suggestions(req, opt, _rule_suggestions)
         # Session uploads are authoritative user inputs.  Bind clearly named
         # files deterministically after best-effort LLM inference so a transient
         # model failure cannot leave a bulk-DE matrix/samplesheet unbound.

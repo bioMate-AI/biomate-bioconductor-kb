@@ -195,12 +195,7 @@
     "count_on": "已启用 {{n}}",
     "experts_header": "应用于本次请求的专家包 — 回答中会记录启用了哪些。",
     "loading_expert_packs": "正在加载专家包…",
-    "no_expert_packs": "暂无可用的专家包。",
-    "group_default": "默认",
-    "group_experts": "BioMate 专家技能",
-    "group_user": "我的技能",
-    "default_skill_locked": "始终启用——每次请求都会应用 BioMate 的能力上下文。",
-    "clear_all": "全部清除"
+    "no_expert_packs": "暂无可用的专家包。"
   },
   "runs_ui": {
     "run_manager": "运行管理器",

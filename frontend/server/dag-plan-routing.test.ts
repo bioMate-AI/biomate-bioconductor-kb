@@ -168,3 +168,23 @@ describe('plan inputs', () => {
     expect((post.mock.calls[0] as any)[1].uploaded_datasets).toEqual([{ name: 'c.csv', s3_uri: 's3://b/c.csv' }]);
   });
 });
+
+it('never leaks the internal engine path (nextflow_path) into the user-facing plan message', async () => {
+  const post = vi.fn(async () => ({ data: { success: true, workflow: CARD } }));
+  const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'x', () => {});
+  // The raw subworkflow paths must not appear anywhere in the message the user reads.
+  expect(res.message).not.toContain('main.nf');
+  expect(res.message).not.toContain('bioc/');
+  expect(res.message).not.toMatch(/subworkflows\//);
+  // The step is still named by its human description.
+  expect(res.message).toContain('RNA-seq differential expression KO vs WT');
+});
+
+it('says when a step was switched to a workflow that takes the user\'s data', async () => {
+  const steps = CARD.pipeline_steps.map((s: any, k: number) => k === 0
+    ? { ...s, workflow_label: 'deseq2_counts', rerouted_from: 'salmon_quant_de', reroute_reason: 'accepts your counts_matrix.csv' } : s);
+  const post = vi.fn(async () => ({ data: { success: true, workflow: { ...CARD, pipeline_steps: steps } } }));
+  const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'x', () => {});
+  expect(res.message).toMatch(/switched from salmon_quant_de because it accepts your counts_matrix\.csv/);
+});
+

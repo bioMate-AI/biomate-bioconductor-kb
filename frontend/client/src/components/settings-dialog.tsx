@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { userSettingsService } from "@/lib/user-settings"
+import { notifyVoiceSettingsChanged } from "@/hooks/use-voice-settings"
 import { t, tOr, setLanguagePreference } from "@/lib/i18n"
 import { useLlmPolicy, modelGroups, effectivePick, pickRejected, INTL_DEFAULT_MODEL, CHINESE_MODELS } from "@/lib/llm-region"
 import { HintTabsTrigger } from "@/components/ui/hint-tip"
@@ -391,11 +392,13 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     const updatedSettings = userSettingsService.updateSetting(key, value)
     setSettings(updatedSettings)
+    if (key === 'voiceEnabled' || key === 'voiceHandsFree') notifyVoiceSettingsChanged()
   }
 
   const resetToDefaults = () => {
     const defaultSettings = userSettingsService.resetToDefaults()
     setSettings(defaultSettings)
+    notifyVoiceSettingsChanged()
   }
 
   const exportSettings = () => {
@@ -625,6 +628,37 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                           checked={settings.messageTimestamps}
                           onCheckedChange={(checked) => updateSetting('messageTimestamps', checked)}
                           data-testid="switch-message-timestamps"
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Voice in chat</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Show compact Speak and Live icons in the composer toolbar. Hover each icon for a short tip.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.voiceEnabled === true}
+                          onCheckedChange={(checked) => updateSetting('voiceEnabled', checked)}
+                          data-testid="switch-voice-enabled"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Hands-free voice</Label>
+                          <p className="text-sm text-muted-foreground">
+                            During a live voice session, send when you pause. Review gene names and sample IDs before relying on auto-send.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.voiceHandsFree === true}
+                          disabled={settings.voiceEnabled !== true}
+                          onCheckedChange={(checked) => updateSetting('voiceHandsFree', checked)}
+                          data-testid="switch-voice-hands-free"
                         />
                       </div>
                     </CardContent>

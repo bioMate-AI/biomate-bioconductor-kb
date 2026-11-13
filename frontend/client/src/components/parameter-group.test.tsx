@@ -2,10 +2,19 @@
  * RTL tests for <ParameterGroup> — §7.4 parameter-origin taxonomy badges.
  * Every param row must carry exactly one origin badge; derivation is honest
  * (unknown provenance falls back to "default").
+ *
+ * Also covers storage-URI redaction in Workflow settings (2026-11-13 Admet Pred
+ * incident): Inputs show cleanParamValueForDisplay, form state keeps real s3://.
  */
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { ParameterGroup, deriveParamOrigin, type Parameter } from './parameter-group'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import {
+  ParameterGroup,
+  deriveParamOrigin,
+  paramValueForDisplay,
+  isStorageParamValue,
+  type Parameter,
+} from './parameter-group'
 
 function mk(partial: Partial<Parameter>): Parameter {
   return {
@@ -63,5 +72,63 @@ describe('<ParameterGroup> origin badges', () => {
   it('badges the boolean-type row too', () => {
     render(<ParameterGroup id="grp2" title="Params" parameters={[params[5]]} defaultOpen />)
     expect(screen.getByTestId('param-origin-badge-f')).toHaveAttribute('data-origin', 'recommended')
+  })
+})
+
+describe('paramValueForDisplay / storage redaction', () => {
+  const S3 =
+    's3://biomate-nextflow-work/uploads/0238d454-8be2-42db-9bc7-9e76e274f317/candidate_library.csv'
+
+  it('detects storage URIs and shows only the file name', () => {
+    expect(isStorageParamValue(S3)).toBe(true)
+    expect(paramValueForDisplay(S3)).toBe('candidate_library.csv')
+    expect(paramValueForDisplay(S3)).not.toMatch(/s3:\/\//i)
+    expect(paramValueForDisplay('plain SMILES')).toBe('plain SMILES')
+  })
+
+  it('Workflow settings Inputs never paint raw s3://; form state keeps the URI until Browse', () => {
+    const onChange = vi.fn()
+    render(
+      <ParameterGroup
+        id="settings"
+        title="Workflow settings"
+        defaultOpen
+        onChange={onChange}
+        parameters={[
+          mk({
+            id: 'library_file',
+            label: 'Library File',
+            type: 'file',
+            value: S3,
+            autoFilled: true,
+          }),
+        ]}
+      />,
+    )
+    const input = screen.getByTestId('param-input-library_file') as HTMLInputElement
+    expect(input.value).toBe('candidate_library.csv')
+    expect(input.value).not.toMatch(/s3:\/\//i)
+    expect(input).toHaveAttribute('data-storage-redacted', '1')
+    expect(input).toHaveAttribute('readOnly')
+    // Typing must not clobber the real s3 URI held in parent state.
+    fireEvent.change(input, { target: { value: 'hacked.csv' } })
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('non-storage string values remain editable and pass through onChange', () => {
+    const onChange = vi.fn()
+    render(
+      <ParameterGroup
+        id="settings2"
+        title="Workflow settings"
+        defaultOpen
+        onChange={onChange}
+        parameters={[mk({ id: 'model_type', label: 'Model type', type: 'string', value: 'MPNN' })]}
+      />,
+    )
+    const input = screen.getByTestId('param-input-model_type') as HTMLInputElement
+    expect(input.value).toBe('MPNN')
+    fireEvent.change(input, { target: { value: 'RF' } })
+    expect(onChange).toHaveBeenCalledWith('model_type', 'RF')
   })
 })

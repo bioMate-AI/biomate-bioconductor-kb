@@ -70,6 +70,90 @@ protein_table. Use [] if the inputs cannot be determined.
 Reply with ONLY one JSON object: {{"input_kinds": ["<key>", ...], "reason": "<short phrase>"}}"""
 
 
+# ---------------------------------------------------------------------------
+# Deterministic rule-based labeler (hybrid rule-first; the LLM classify() below is the
+# refinement layer for rows this leaves unlabelled). Precision over recall: an uncertain row
+# returns None (column stays NULL) rather than a guess. Called at INSERT time by the indexers
+# so re-indexing a source PRESERVES the data-shape gate instead of reverting input_kinds to NULL.
+# ---------------------------------------------------------------------------
+import re as _re
+
+# Matrix/count/expression-TABLE input evidence. A downstream analysis tool that consumes a matrix
+# must NOT be labelled fastq just because it mentions "RNA-seq" (regression 2026-11-13: linnorm,
+# degseq, rcsl were mislabelled {fastq} via a bare rna-seq cue in their tags/description, then the
+# step-8a -25 penalty demoted them for a {counts_matrix} user).
+_MATRIX_INPUT_CUE = _re.compile(
+    r"count matrix|counts matrix|count table|gene counts|raw counts?|expression matrix|"
+    r"expression matrices|expression data|pre-?calculated|normali[sz]ed (?:counts|expression)|"
+    r"abundance (?:matrix|table)|expression values|expression profile",
+    _re.I)
+# Genuine RAW-READ evidence (what actually justifies a fastq label).
+_RAW_READ_CUE = _re.compile(
+    r"\bfastq\b|\.fq\b|raw reads|raw sequencing reads|sequencing reads|paired-?end reads|"
+    r"single-?end reads|adapter trimming|read trimming|\bdemultiplex",
+    _re.I)
+# IVIVE / intrinsic-clearance PK calculators consume a measured-CLint TABLE, not molecules
+# (regression 2026-11-13: id 12825 'Ivive Hepatic Clearance' mislabelled {molecules}).
+_IVIVE_CUE = _re.compile(
+    r"\bivive\b|in vitro[- ]to[- ]in vivo|intrinsic clearance|\bclint\b|hepatic clearance",
+    _re.I)
+
+# (keyword pattern, kind). All patterns are scanned; a row may collect several kinds.
+_RULE_CUES: List = [
+    # fastq requires RAW-READ evidence only — NOT a bare 'rna-seq'/'chip-seq'/'atac-seq' domain word.
+    (r"\bfastq\b|\.fq\b|raw reads|raw sequencing reads|sequencing reads|paired-?end reads|"
+     r"single-?end reads|adapter trimming|read trimming|\bdemultiplex", "fastq"),
+    (r"bam file|cram file|aligned reads|alignment file|sorted bam", "bam"),
+    (r"mass spectrom|mzml|mzxml|\.wiff|thermo \.?raw|lc-?ms/?ms spectra|\bdda\b|raw spectra", "raw_spectra"),
+    (r"\bidat\b|methylation array|450k array|epic array", "idat"),
+    (r"bcl2fastq|illumina run folder|\bbcl\b", "bcl"),
+    (r"fast5|pod5|nanopore signal", "nanopore_signal"),
+    (r"micrograph|cryo-?em|cryoem|tomogram|\.mrc\b|movie frames|electron microscopy|particle picking", "raw_images"),
+    (r"count matrix|counts matrix|gene counts|count table|featurecounts|expression matrix|\bdeseq2?\b|\bedger\b|\blimma\b", "counts_matrix"),
+    (r"cell ?ranger|matrix\.mtx|\b10x\b|filtered_feature_bc_matrix", "cellranger_output"),
+    (r"h5ad|anndata|\bseurat\b|single-?cell object|\bscanpy\b|singlecellexperiment", "h5ad"),
+    (r"proteingroups|protein table|protein quantification|protein abundance|pg_matrix|dia-?nn report", "protein_table"),
+    (r"peptide table|peptides\.txt|evidence\.txt|\bpsm\b|precursor table", "peptide_table"),
+    (r"metabolite|metabolomics feature|feature intensity table", "metabolite_table"),
+    (r"methylation beta|beta-?value|m-?value matrix", "beta_values"),
+    (r"vcf file|annotate variants|variant annotation|\.vcf\b|variant calls? table", "vcf"),
+    (r"narrowpeak|broadpeak|peak file|called peaks", "peaks"),
+    (r"gene list|ranked gene|gene set enrichment|enrichment analysis|over-?representation|\bgsea\b", "gene_list"),
+    (r"reference genome|\.fasta\b|protein sequence|amino acid sequence|nucleotide sequence", "fasta"),
+    (r"\bgtf\b|\bgff3?\b|gene annotation file", "annotation"),
+    (r"\bpdb\b|mmcif|receptor structure|protein structure|crystal structure|apo structure|holo structure|3d structure|molecular dynamics|\bmd simulation|docking|binding pocket", "structure"),
+    (r"smiles|\.sdf\b|ligand|small molecule|compound library|chemical library|\badmet\b|virtual screen|scaffold|building blocks|molecular docking|developability", "molecules"),
+    (r"assay data|\bic50\b|composite score|assay csv|dose-?response|clinical table|phenotype table", "tabular"),
+]
+_RULE_PATTERNS = [(_re.compile(p, _re.I), k) for p, k in _RULE_CUES]
+
+
+def rule_classify_kinds(row: Dict[str, str]) -> Optional[List[str]]:
+    """Deterministic, high-precision input-kind labels from a workflow's own metadata
+    (name/description/annotation/input_types/tags). Returns a sorted list of INPUT_KINDS keys,
+    or None when nothing matches confidently (the LLM pass refines those). NEVER raises."""
+    try:
+        def _g(k: str) -> str:
+            v = row.get(k) if isinstance(row, dict) else getattr(row, k, None)
+            return str(v) if v else ""
+        blob = " ".join(_g(k) for k in ("name", "description", "annotation", "input_types", "tags")).lower()
+        if not blob.strip():
+            return None
+        found = {kind for pat, kind in _RULE_PATTERNS if pat.search(blob) and kind in INPUT_KINDS}
+        # Guard 1: a downstream matrix/count analysis tool that only *mentions* RNA-seq must not keep
+        # a fastq label when there is matrix-input evidence and NO genuine raw-read evidence.
+        if "fastq" in found and _MATRIX_INPUT_CUE.search(blob) and not _RAW_READ_CUE.search(blob):
+            found.discard("fastq")
+        # Guard 2: IVIVE / intrinsic-clearance PK calculators consume a measured-parameter TABLE.
+        if _IVIVE_CUE.search(blob):
+            found.discard("molecules")
+            found.discard("structure")
+            found.add("tabular")
+        return sorted(found) or None
+    except Exception:  # noqa: BLE001 — labelling must never break indexing
+        return None
+
+
 def _row_prompt(r: Dict[str, str]) -> str:
     return _PROMPT.format(name=r["name"], source=r["source"] or "unknown", description=(r["description"] or "")[:600],
                           input_types=(r["input_types"] or "[]")[:400], annotation=(r["annotation"] or "")[:400],
@@ -91,10 +175,17 @@ def parse_kinds(raw: str) -> Optional[Dict]:
     return {"input_kinds": sorted(set(kinds)), "reason": str(d.get("reason", ""))[:200]}
 
 
-def classify(db_path: Path, llm: Callable[[str], str], workers: int = 8, limit: Optional[int] = None) -> List[Dict]:
+def classify(db_path: Path, llm: Callable[[str], str], workers: int = 8, limit: Optional[int] = None,
+             null_only: bool = False) -> List[Dict]:
     conn = sqlite3.connect(str(db_path))
+    where = "WHERE executable=1"
+    if null_only:
+        # Refinement pass: classify ONLY rows the rule labeler left NULL (preserve rule labels).
+        has_col = "input_kinds" in {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
+        if has_col:
+            where += " AND input_kinds IS NULL"
     rows = conn.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(input_types,'[]'), "
-                        "COALESCE(annotation,''), id FROM workflows WHERE executable=1 ORDER BY name").fetchall()
+                        f"COALESCE(annotation,''), id FROM workflows {where} ORDER BY name").fetchall()
     conn.close()
     rows = rows[:limit] if limit else rows
 
@@ -111,22 +202,29 @@ def classify(db_path: Path, llm: Callable[[str], str], workers: int = 8, limit: 
         return list(ex.map(one, rows))
 
 
-def apply(db_path: Path, results: List[Dict]) -> int:
+def apply(db_path: Path, results: List[Dict], null_only: bool = False) -> int:
     """Write input_kinds (failed rows untouched). Adds the column if absent. Rows are addressed by id
-    (names are not unique); results recorded before ids fall back to the name."""
+    (names are not unique); results recorded before ids fall back to the name. With null_only, only
+    rows still NULL are written — so an LLM refinement run never clobbers an existing rule label."""
     assert_fts_consistent(db_path)
     conn = sqlite3.connect(str(db_path))
     cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
     if "input_kinds" not in cols:
         conn.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
+    if "input_kinds_method" not in cols:
+        conn.execute("ALTER TABLE workflows ADD COLUMN input_kinds_method TEXT")  # provenance marker
+    guard = " AND input_kinds IS NULL" if null_only else ""
     n = 0
     for r in results:
         if r.get("input_kinds") is not None:
+            # Stamp provenance 'llm' so a later rule-version self-heal NEVER clobbers this value.
             if r.get("id") is not None:
-                n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE id = ? AND executable = 1",
+                n += conn.execute(f"UPDATE workflows SET input_kinds = ?, input_kinds_method = 'llm' "
+                                  f"WHERE id = ? AND executable = 1{guard}",
                                   (json.dumps(r["input_kinds"]), r["id"])).rowcount
             else:
-                n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE name = ? AND executable = 1",
+                n += conn.execute(f"UPDATE workflows SET input_kinds = ?, input_kinds_method = 'llm' "
+                                  f"WHERE name = ? AND executable = 1{guard}",
                                   (json.dumps(r["input_kinds"]), r["name"])).rowcount
     conn.commit()
     conn.close()
@@ -138,14 +236,18 @@ def _cli(argv=None) -> int:
     p.add_argument("--openrouter-model", default="google/gemini-3.8-flash")
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--db", default=None, help="DB to classify (defaults to the bundled catalog DB)")
+    p.add_argument("--null-only", action="store_true",
+                   help="refinement pass: classify/apply ONLY rows with input_kinds IS NULL (preserve rule labels)")
     p.add_argument("--output", required=True, help="JSONL of results (read back with --apply)")
     p.add_argument("--apply", default=None, help="DB path to write input_kinds into, from --output")
     a = p.parse_args(argv)
     if a.apply:
         res = [json.loads(l) for l in open(a.output) if l.strip()]
-        sys.stderr.write(f"updated {apply(Path(a.apply), res)} rows\n")
+        sys.stderr.write(f"updated {apply(Path(a.apply), res, null_only=a.null_only)} rows\n")
         return 0
-    res = classify(_DEFAULT_DB, openrouter_llm(a.openrouter_model), a.workers, a.limit)
+    res = classify(Path(a.db) if a.db else _DEFAULT_DB,
+                   openrouter_llm(a.openrouter_model), a.workers, a.limit, null_only=a.null_only)
     with open(a.output, "w") as f:
         for r in res:
             f.write(json.dumps(r) + "\n")

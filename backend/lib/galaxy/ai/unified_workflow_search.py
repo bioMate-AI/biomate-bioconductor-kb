@@ -65,7 +65,11 @@ try:
     _CHAIN_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_chains × dim)
     _CHAIN_EMBED_DESC_HASH: str = ""              # hash of chain descriptions for cache invalidation
     _EMBEDDINGS_AVAILABLE = True
-except ImportError:
+except Exception:  # noqa: BLE001 — optional embeddings dep: a MISSING (ImportError) *or* a
+    # binary-broken (TypeError/OSError from a compiled transitive dep such as scipy/numpy ABI
+    # mismatch) install must both degrade gracefully, never crash backend init. The feature is
+    # optional (FTS + rule scoring work without it); a narrow `except ImportError` previously let
+    # an import-time TypeError escape and fail module load on environments with a broken scipy.
     _np = None
     _ST = None
     _CHAIN_EMBED_MODEL = None
@@ -136,6 +140,96 @@ def _env_float(name: str, default: float) -> float:
 
 
 _INPUT_KIND_MISMATCH_PENALTY: float = _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0)
+
+# Generic compound-ranking verbs. Boosted ONLY when the request carries an actual assay table
+# (see _calculate_score step 2b) — a bare ranking verb must not inflate the CSV-assay ranker.
+_ASSAY_RANKING_TERMS: frozenset = frozenset({
+    "rank compounds", "compound ranking", "composite ranking",
+    "safety potency ranking", "herg ranking", "potency safety",
+})
+
+# Version marker for the self-healing rule-based input_kinds backfill (_self_heal_input_kinds).
+# Bumping it re-runs the rule pass over still-empty rows on the next init. Existing non-empty
+# labels (LLM/classifier or prior rule) are NEVER overwritten unless
+# BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1. Kept in the ai_meta key/value table per DB.
+_RULE_INPUT_KINDS_VERSION: int = 2
+
+
+def _env_truthy(name: str, default: str = "0") -> bool:
+    return os.environ.get(name, default).strip().lower() in ("1", "true", "on", "yes")
+
+
+def _input_kinds_is_empty(raw) -> bool:
+    """True when input_kinds is missing / blank / JSON empty list — safe to fill."""
+    if raw is None:
+        return True
+    s = str(raw).strip()
+    if not s or s.lower() in ("null", "none"):
+        return True
+    if s == "[]":
+        return True
+    try:
+        parsed = json.loads(s)
+        return isinstance(parsed, list) and len(parsed) == 0
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
+
+
+# Version marker for retiring catalog rows whose primary .nf path is missing / archived
+# (_self_heal_orphan_catalog_paths). Prefer executable=0 over silently aliasing to a sibling
+# domain (2026-11-13 Admet Pred id 14553). Alias remains for param parse when somehow selected.
+_ORPHAN_PATH_HEAL_VERSION: int = 1
+
+
+def _biomni_workflows_root() -> Optional[Path]:
+    """Locate biomni_workflows/ relative to this package (backend root)."""
+    here = Path(__file__).resolve()
+    for ancestor in here.parents:
+        candidate = ancestor / "biomni_workflows"
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _primary_nf_path_exists(filename: str, biomni_root: Optional[Path] = None) -> bool:
+    """True when the catalog filename resolves on disk WITHOUT domain aliasing.
+
+    Used to retire orphan rows (drug_discovery/ADMET_pred after archive) rather than
+    keeping them searchable via the pharmacology sibling alias.
+    """
+    if not filename:
+        return False
+    fn = str(filename).replace("\\", "/")
+    if "_archived" in fn.split("/"):
+        return False
+    root = biomni_root if biomni_root is not None else _biomni_workflows_root()
+    if root is None:
+        return True  # cannot verify → do not retire
+    # Common biomni / nextflow_nfcore layouts stored in the catalog.
+    candidates = [
+        root / fn,
+        root / "nextflow_nfcore" / "subworkflows" / fn,
+    ]
+    if fn.startswith("nextflow_nfcore/"):
+        candidates.append(root / fn)
+    elif fn.startswith("nfcore/"):
+        candidates.append(root.parent / "nf-core-workflows" / fn[len("nfcore/"):])
+    for c in candidates:
+        if c.is_file():
+            return True
+        if c.is_dir() and (c / "main.nf").is_file():
+            return True
+    # Bare relative under subworkflows/
+    if "subworkflows/" in fn:
+        rel = fn.split("subworkflows/", 1)[1]
+        p = root / "nextflow_nfcore" / "subworkflows" / rel
+        if p.is_file() or (p.is_dir() and (p / "main.nf").is_file()):
+            return True
+        if p.suffix != ".nf":
+            main = p / "main.nf" if not str(p).endswith("main.nf") else p
+            if main.is_file():
+                return True
+    return False
 
 # Downstream multi-omics INTEGRATION intent (step 8c). A user who ALREADY holds processed/summarised
 # tables (DE tables, protein-abundance tables, count matrices) and wants to INTEGRATE them — overlap,
@@ -653,7 +747,7 @@ class UnifiedWorkflowSearch:
             'smiles': 2.5, 'ligand': 2.5, 'scaffold': 2.5,
             'pharmacology': 3.0, 'pharmacokinetics': 3.0, 'pharmacokinetic': 3.0,
             'absorption': 2.0, 'distribution': 1.5, 'metabolism': 2.0, 'excretion': 2.0,
-            'bioavailability': 2.5, 'permeability': 2.0, 'bbb': 2.5,
+            'bioavailability': 2.5, 'bbb': 2.5,  # 'permeability' set once below (developability block)
             'docking': 3.0, 'binding': 2.0, 'affinity': 2.0,
             'alphafold': 2.5, 'alphafold3': 3.0, 'diffdock': 3.0, 'autodock': 2.5, 'vina': 2.5,
             'nca': 3.0, 'pknca': 3.0, 'nlmixr2': 3.0,
@@ -690,11 +784,22 @@ class UnifiedWorkflowSearch:
             'lead generation': 3.0, 'lead optimization': 3.0,
             'molecule optimization': 3.0, 'fragment decoration': 3.0,
 
-            # Assay ingestion & ranking
-            'assay ingestion': 4.0, 'compound ranking': 3.5, 'safety potency ranking': 4.0,
-            'composite ranking': 3.5, 'composite score': 3.5, 'bcr abl1': 3.5,
-            'herg ranking': 3.5, 'potency safety': 3.5, 'multi assay': 3.0,
-            'assay data': 3.0, 'ingest assay': 4.0, 'rank compounds': 3.5,
+            # Assay ingestion & ranking. The RANKING verbs ('rank compounds', 'compound ranking',
+            # 'composite/safety-potency/herg ranking', 'potency safety') are deliberately NOT here —
+            # they are gated below behind an actual assay table (_ASSAY_RANKING_TERMS) so a bare
+            # "rank these candidates" with a SMILES library cannot inflate the CSV-assay ranker
+            # (id 12814, incident 2026-11-12). Only assay-data NOUNS stay ungated.
+            'assay ingestion': 4.0, 'bcr abl1': 3.5, 'multi assay': 3.0,
+            'composite score': 3.5, 'assay data': 3.0, 'ingest assay': 4.0,
+
+            # Developability / virtual screening / property prediction (small-molecule triage) —
+            # the vocabulary that was missing, so a SMILES-library "developability" request had
+            # nothing to match (incident 2026-11-12).
+            'developability': 3.5, 'developability assessment': 4.0, 'virtual screening': 3.5,
+            'virtual screen': 3.0, 'hit identification': 3.0, 'hit finding': 3.0,
+            'library enumeration': 3.0, 'property prediction': 3.0, 'physicochemical': 2.5,
+            'admet screening': 3.5, 'permeability': 2.5, 'aqueous solubility': 2.5,
+            'aggregation propensity': 3.0, 'ligand efficiency': 3.0, 'compound triage': 3.5,
 
             # CRO submission export
             'cro submission': 4.0, 'wuxi apptec': 4.5, 'cro export': 4.0,
@@ -768,6 +873,7 @@ class UnifiedWorkflowSearch:
             ("workflow_correctness_score",  "REAL"),
             ("workflow_correctness_verdict","TEXT"),
             ("input_kinds",                 "TEXT"),  # closed-vocabulary input kinds (input_kinds_classifier)
+            ("input_kinds_method",          "TEXT"),  # provenance: 'rule' | 'llm' (rule layer never clobbers 'llm')
         ]:
             if col not in existing_cols:
                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
@@ -802,8 +908,177 @@ class UnifiedWorkflowSearch:
         except sqlite3.Error as _idx_err:
             log.warning("[WorkflowSearch] perf index creation skipped: %s", _idx_err)
 
+        # Self-heal empty input_kinds so ANY DB (dev/prod) gains rule coverage on deploy with no
+        # manual step — the catalog DB is gitignored. Fill-only by default (never mass-rewrites a
+        # populated LLM/classifier catalog). Idempotent + version-gated.
+        self._self_heal_input_kinds(cursor)
+        # Retire catalog rows whose primary .nf is missing/archived (Admet Pred 14553). Prefer
+        # executable=0 over a wrong live match; search always drops these orphans (below).
+        self._self_heal_orphan_catalog_paths(cursor)
+
         conn.commit()
         log.info("[WorkflowSearch] schema migration complete")
+
+    def _self_heal_input_kinds(self, cursor) -> int:
+        """Idempotent, version-gated rule-based fill of empty workflows.input_kinds.
+
+        SAFETY CONTRACT (2026-11-13 DEV clobber): default mode is FILL-ONLY.
+        - Rows with meaningful non-empty input_kinds are NEVER overwritten — including review /
+          classifier catalogs where input_kinds_method is still NULL (no provenance yet).
+        - Rows with input_kinds_method='llm' are NEVER touched.
+        - Empty means NULL / blank / JSON ``[]`` only.
+        - Destructive recompute of method IS NULL / 'rule' rows requires explicit
+          BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL=1 (ops-only; not set on normal deploy).
+        A no-op after the first run at a given version (ai_meta marker). Never raises."""
+        try:
+            cursor.execute("CREATE TABLE IF NOT EXISTS ai_meta (key TEXT PRIMARY KEY, value TEXT)")
+            marker = cursor.execute(
+                "SELECT value FROM ai_meta WHERE key='rule_input_kinds_version'").fetchone()
+            if marker and str(marker[0]) == str(_RULE_INPUT_KINDS_VERSION):
+                return 0  # already healed at this rule version → bounded no-op
+            from galaxy.ai.chain_composer.input_kinds_classifier import rule_classify_kinds
+            destructive = _env_truthy("BIOMATE_INPUT_KINDS_DESTRUCTIVE_HEAL", "0")
+            # Never select llm-provenance rows. Default: only empty kinds. Destructive: also
+            # non-empty null-method / rule-method rows (explicit ops opt-in).
+            if destructive:
+                rows = cursor.execute(
+                    "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
+                    "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds "
+                    "FROM workflows "
+                    "WHERE input_kinds_method IS NULL OR input_kinds_method='rule'"
+                ).fetchall()
+            else:
+                rows = cursor.execute(
+                    "SELECT id, name, COALESCE(description,''), COALESCE(annotation,''), "
+                    "COALESCE(input_types,'[]'), COALESCE(tags,'[]'), input_kinds "
+                    "FROM workflows "
+                    "WHERE (input_kinds_method IS NULL OR input_kinds_method='rule') "
+                    "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
+                    "     OR TRIM(input_kinds)='[]' OR LOWER(TRIM(input_kinds))='null')"
+                ).fetchall()
+            changed = 0
+            for wid, name, desc, ann, inp, tags, old in rows:
+                # Defense in depth: never rewrite a populated catalog row without the flag.
+                if not destructive and not _input_kinds_is_empty(old):
+                    continue
+                kinds = rule_classify_kinds({"name": name, "description": desc, "annotation": ann,
+                                             "input_types": inp, "tags": tags})
+                new = json.dumps(kinds) if kinds else None
+                if new == old:
+                    continue
+                # Guard so 'llm' is never clobbered. Fill-only also requires still-empty at UPDATE.
+                if destructive:
+                    cursor.execute(
+                        "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
+                        "AND (input_kinds_method IS NULL OR input_kinds_method='rule')",
+                        (new, ('rule' if new is not None else None), wid))
+                else:
+                    cursor.execute(
+                        "UPDATE workflows SET input_kinds=?, input_kinds_method=? WHERE id=? "
+                        "AND (input_kinds_method IS NULL OR input_kinds_method='rule') "
+                        "AND (input_kinds IS NULL OR TRIM(input_kinds)='' "
+                        "     OR TRIM(input_kinds)='[]' OR LOWER(TRIM(input_kinds))='null')",
+                        (new, ('rule' if new is not None else None), wid))
+                changed += cursor.rowcount
+            cursor.execute(
+                "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('rule_input_kinds_version', ?)",
+                (str(_RULE_INPUT_KINDS_VERSION),))
+            mode = "destructive" if destructive else "fill-only"
+            log.info(
+                "[WorkflowSearch] self-healed input_kinds (%s): (re)labelled %d rows (rule v%s)",
+                mode, changed, _RULE_INPUT_KINDS_VERSION,
+            )
+            return changed
+        except Exception as exc:  # noqa: BLE001 — self-heal must never block init
+            log.warning("[WorkflowSearch] input_kinds self-heal skipped: %s", exc)
+            return 0
+
+    def _self_heal_orphan_catalog_paths(self, cursor) -> int:
+        """Mark executable=0 for biomni/nextflow rows whose primary .nf path is gone.
+
+        Durable write-path companion to the indexer fix (store on-disk folder in filename,
+        never index _archived). One-shot DB edits alone would die with the gitignored catalog;
+        this heal runs on every deploy until the version marker matches. Prefer retiring the
+        orphan over retargeting to a sibling domain live path (wrong-name match risk).
+        Never raises — must not block backend init."""
+        try:
+            cursor.execute("CREATE TABLE IF NOT EXISTS ai_meta (key TEXT PRIMARY KEY, value TEXT)")
+            marker = cursor.execute(
+                "SELECT value FROM ai_meta WHERE key='orphan_path_heal_version'").fetchone()
+            if marker and str(marker[0]) == str(_ORPHAN_PATH_HEAL_VERSION):
+                return 0
+            biomni = _biomni_workflows_root()
+            rows = cursor.execute(
+                "SELECT id, filename FROM workflows "
+                "WHERE executable=1 AND filename IS NOT NULL AND filename != '' "
+                "AND (filename LIKE '%nextflow_nfcore/subworkflows/%' "
+                "     OR filename LIKE '%/_archived/%' OR filename LIKE '%_archived/%' "
+                "     OR source IN ('biomni_nextflow','biomni'))"
+            ).fetchall()
+            changed = 0
+            for wid, filename in rows:
+                if _primary_nf_path_exists(filename or "", biomni):
+                    continue
+                cursor.execute("UPDATE workflows SET executable=0 WHERE id=? AND executable=1", (wid,))
+                changed += cursor.rowcount
+            cursor.execute(
+                "INSERT OR REPLACE INTO ai_meta(key, value) VALUES ('orphan_path_heal_version', ?)",
+                (str(_ORPHAN_PATH_HEAL_VERSION),))
+            if changed:
+                log.info(
+                    "[WorkflowSearch] self-healed orphan catalog paths: retired %d rows (heal v%s)",
+                    changed, _ORPHAN_PATH_HEAL_VERSION,
+                )
+            return changed
+        except Exception as exc:  # noqa: BLE001 — self-heal must never block init
+            log.warning("[WorkflowSearch] orphan-path self-heal skipped: %s", exc)
+            return 0
+
+    def _orphan_catalog_ids(self) -> frozenset:
+        """Ids whose primary .nf is missing/archived — always excluded from search.
+
+        Independent of BIOMATE_ENFORCE_EXECUTABLE (that flag stays off until the broader
+        stale-flag cleanup lands). Cached per DB mtime."""
+        try:
+            db = Path(str(self.db_path)); wal = Path(str(db) + "-wal")
+            key = (db.stat().st_mtime, wal.stat().st_mtime if wal.exists() else 0.0)
+        except OSError:
+            return frozenset()
+        cached = getattr(self, "_orphan_path_cache", None)
+        if cached and cached[0] == key:
+            return cached[1]
+        try:
+            biomni = _biomni_workflows_root()
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                rows = conn.execute(
+                    "SELECT id, filename, executable FROM workflows "
+                    "WHERE filename IS NOT NULL AND filename != ''"
+                ).fetchall()
+            finally:
+                conn.close()
+            ids = set()
+            for wid, filename, executable in rows:
+                fn = filename or ""
+                if "_archived" in fn.replace("\\", "/").split("/"):
+                    ids.add(wid)
+                    continue
+                if int(executable or 1) == 0 and (
+                    "nextflow_nfcore/subworkflows/" in fn or fn.startswith("biomni")
+                ):
+                    # Retired by orphan heal (or manual) — keep out of search even when
+                    # BIOMATE_ENFORCE_EXECUTABLE is off.
+                    if not _primary_nf_path_exists(fn, biomni):
+                        ids.add(wid)
+                        continue
+                if "nextflow_nfcore/subworkflows/" in fn and not _primary_nf_path_exists(fn, biomni):
+                    ids.add(wid)
+            ids_fs = frozenset(ids)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("[WorkflowSearch] orphan-path id load failed: %s", exc)
+            return frozenset()
+        self._orphan_path_cache = (key, ids_fs)
+        return ids_fs
 
     def _ensure_fts_index(self):
         """Ensure FTS index exists and is populated."""
@@ -1050,6 +1325,13 @@ class UnifiedWorkflowSearch:
             _off = self._non_executable_ids()
             if _off:
                 results = [m for m in results if getattr(m, "id", None) not in _off]
+        # Always drop orphan/archived primary paths (Admet Pred 14553) — independent of
+        # BIOMATE_ENFORCE_EXECUTABLE so a one-shot executable=0 flag is not required for
+        # search honesty on gitignored catalogs.
+        if results:
+            _orphans = self._orphan_catalog_ids()
+            if _orphans:
+                results = [m for m in results if getattr(m, "id", None) not in _orphans]
         try:
             from galaxy.ai import scope_guard as _scope_guard
             if not _scope_guard.enforcement_enabled():
@@ -2078,6 +2360,19 @@ class UnifiedWorkflowSearch:
             if keyword in query_expanded and keyword in text:
                 score += weight
 
+        # 2b. Compound-RANKING boost, gated behind an actual assay table. A bare ranking verb
+        # ("rank these candidates", "compound ranking") must only lift an assay-specific ranker
+        # when the request truly carries measured assay data — not when the user has a SMILES
+        # library / receptor structure (incident 2026-11-12: id 12814 won on "rank").
+        _supplied = self._valid_kinds(user_input_kinds) if user_input_kinds is not None else frozenset()
+        _has_assay_table = bool(_supplied & {"tabular"}) or bool(
+            re.search(r"\bassay\b|\bic50\b|dose-?response|assay (?:csv|data|table)", query_lower)
+        )
+        if _has_assay_table:
+            for keyword in _ASSAY_RANKING_TERMS:
+                if keyword in query_expanded and keyword in text:
+                    score += 3.5
+
         # 3. Phrase match bonus (~25% weight) - boost for key phrases in both query and name/desc
         # Normalize description too (remove hyphens so "rna-seq" matches query "rna seq").
         # Use word-boundary check (' phrase ') to avoid false substring matches
@@ -2991,15 +3286,30 @@ class UnifiedWorkflowSearch:
         words = set(re.findall(r"[a-z0-9]+", blob))
         return bool(words & _DIFFERENTIAL_TOOLS)
 
+    # Small-molecule / structure regime (SMILES library, receptor PDB). A workflow that consumes
+    # ONLY this regime (docking, VS, de-novo design) cannot run on sequencing reads / tables /
+    # spectra, and — critically — a chemistry request cannot run on a table-only assay ranker.
+    _CHEMISTRY_KINDS: frozenset = frozenset({"molecules", "structure"})
+
     @classmethod
     def _kinds_mismatch(cls, user_kinds: frozenset, wf_kinds: frozenset) -> bool:
-        """True when the user's data is in one regime only (raw instrument data vs processed table/object)
-        and the workflow accepts only the other — it cannot run on the user's data. Shared by the step-8a
-        score and the card-swap guard (workflow_by_name input_compatible)."""
+        """True when the user's data is in one regime only and the workflow accepts only another —
+        it cannot run on the user's data. Shared by the step-8a score and the card-swap guard
+        (workflow_by_name input_compatible)."""
         user_raw, user_proc = user_kinds & cls._RAW_KINDS, user_kinds & cls._PROCESSED_KINDS
         wf_raw, wf_proc = wf_kinds & cls._RAW_KINDS, wf_kinds & cls._PROCESSED_KINDS
         if user_kinds & wf_kinds:
             return False
+        # Chemistry (molecules/structure) vs non-chemistry. A pure SMILES-library / structure
+        # request cannot feed a workflow that consumes only tables/reads/spectra (e.g. the
+        # BCR-ABL1 CSV-assay ranker, id 12814), and vice-versa (incident 2026-11-12).
+        user_chem = bool(user_kinds & cls._CHEMISTRY_KINDS)
+        wf_chem = bool(wf_kinds & cls._CHEMISTRY_KINDS)
+        if user_kinds and wf_kinds:
+            if user_chem and user_kinds <= cls._CHEMISTRY_KINDS and not wf_chem:
+                return True
+            if wf_chem and wf_kinds <= cls._CHEMISTRY_KINDS and not user_chem:
+                return True
         return bool((user_proc and not user_raw and wf_raw and not wf_proc)
                     or (user_raw and not user_proc and wf_proc and not wf_raw))
 
