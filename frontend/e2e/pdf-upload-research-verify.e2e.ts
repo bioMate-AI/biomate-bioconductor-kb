@@ -12,11 +12,12 @@ import { test, expect } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
+import { BASE_URL } from "./_e2e-base-url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const BASE_URL = 'http://localhost:5000';
+
 const EMAIL = 'lifeifei163361@163.com';
 const PASSWORD = 'WpmFixture!2026';
 const SCREENSHOT_DIR = path.join(__dirname, 'screenshots', 'pdf-verify');

@@ -9,11 +9,16 @@
 #   ./e2e/run-demos.sh --no-video 01      # screenshots only, no video
 #
 # Environment:
-#   BIOMATE_URL      — server URL (default: http://localhost:5000)
+#   BASE_URL / PLAYWRIGHT_BASE_URL / BIOMATE_URL — server URL
+#     (precedence matches e2e/_e2e-base-url.ts; default localhost:5000)
 #   E2E_TEST_TOKEN   — bypass token (default: biomate-e2e-bypass-token-dev-only)
 
 set -uo pipefail
 cd "$(dirname "$0")/.."   # repo root = frontend/
+
+# Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > localhost
+export BIOMATE_URL="${BASE_URL:-${PLAYWRIGHT_BASE_URL:-${BIOMATE_URL:-http://localhost:5000}}}"
+export BASE_URL="$BIOMATE_URL"
 
 NO_VIDEO=false
 DEMOS=()
@@ -44,7 +49,7 @@ mkdir -p "$VIDEO_DIR"
 rm -rf e2e/demo-reports
 
 echo "=== BioMate Demo Recording ==="
-echo "Server: ${BIOMATE_URL:-http://localhost:5000}"
+echo "Server: ${BASE_URL}"
 echo "Demos:  ${DEMOS[*]}"
 echo "Video:  $( $NO_VIDEO && echo 'off' || echo 'on (2560×1440 @2x — Retina 1440p)' )"
 echo "Output: ${VIDEO_DIR}/<demo-name>.webm"

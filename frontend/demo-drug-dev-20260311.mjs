@@ -20,7 +20,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const BASE_URL      = process.env.BIOMATE_URL      || 'http://localhost:5000';
+// Precedence must match e2e/_e2e-base-url.ts: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > fallback
+const BASE_URL = (process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || process.env.BIOMATE_URL || "http://localhost:5000").replace(/\/+$/, "");
 const DEMO_EMAIL    = process.env.DEMO_EMAIL        || 'demo@biomate.dev';
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD     || 'DemoBioMate2026';
 

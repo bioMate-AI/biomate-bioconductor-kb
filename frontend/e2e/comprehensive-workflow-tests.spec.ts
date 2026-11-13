@@ -8,8 +8,8 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { BASE_URL } from "./_e2e-base-url";
 
-const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
 
 // Helper to simulate natural typing with delays
 async function simulateNaturalTyping(locator: any, text: string) {

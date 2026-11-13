@@ -19,11 +19,12 @@ import { test, expect, Page, request } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
+import { BASE_URL } from "./_e2e-base-url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
+
 const FIXTURE_EMAIL = "lifeifei163361@163.com";
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";

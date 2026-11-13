@@ -23,7 +23,11 @@ REF_DIR="$REPO_ROOT/reference/claude_design"
 FRONTEND="$REPO_ROOT/frontend"
 SCOPE="${1:-all}"
 
-export BIOMATE_URL="${BIOMATE_URL:-https://dev-public.biomate.ai}"
+# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
+
+export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://dev-public.biomate.ai}}"
+
+export BASE_URL="$BIOMATE_URL"
 export E2E_TEST_TOKEN="${E2E_TEST_TOKEN:-biomate-e2e-bypass-token-dev-only}"
 
 say() { printf '\n\033[1;36m[ux-audit]\033[0m %s\n' "$*"; }

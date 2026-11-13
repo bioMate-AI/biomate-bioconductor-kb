@@ -29,42 +29,9 @@
  *     --reporter=line --project=chromium
  */
 import { test, expect, type Page } from "@playwright/test";
+import { loginAsFixture, BASE_URL, E2E_TOKEN } from "./_fixture-login";
 
-const BASE_URL = (process.env.BIOMATE_URL || "http://localhost:5000").replace(/\/+$/, "");
-const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
-const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
-const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 
-async function loginShared(page: Page): Promise<boolean> {
-  await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
-  await page.context().clearCookies();
-  const loginUrl = `${BASE_URL}/api/auth/login`;
-  let resp = await page.request.post(loginUrl, {
-    headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
-    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
-  });
-  let token = "";
-  if (resp.ok()) {
-    token = (await resp.json())?.token || "";
-  } else {
-    // NEVER register-on-fail. Per CLAUDE.md the fixture user must already
-    // exist. Surface auth failures instead of polluting the user list.
-    console.error(`[login] FAILED status=${resp.status()} — fixture user must already exist; not registering`);
-    return false;
-  }
-  if (!token) return false;
-  const url = new URL(BASE_URL);
-  await page.context().addCookies([{
-    name: "biomate_token",
-    value: token,
-    domain: url.hostname,
-    path: "/",
-    httpOnly: true,
-    secure: BASE_URL.startsWith("https"),
-    sameSite: "Strict",
-  }]);
-  return true;
-}
 
 /**
  * Send a chat-stream POST that forces intent classification via the
@@ -119,8 +86,7 @@ test.describe("IntentClarificationCard end-to-end", () => {
   test("API: forced tool_search misclassification fires the clarification card", async ({
     page,
   }) => {
-    const ok = await loginShared(page);
-    expect(ok, "fixture login").toBeTruthy();
+    await loginAsFixture(page);
 
     // Test 1 — API-level: card payload arrives in the SSE response.
     const clar = await probeIntentClar({
@@ -160,8 +126,7 @@ test.describe("IntentClarificationCard end-to-end", () => {
     page,
   }, testInfo) => {
     test.setTimeout(120_000);
-    const ok = await loginShared(page);
-    expect(ok, "fixture login").toBeTruthy();
+    await loginAsFixture(page);
 
     // Two-phase route strategy:
     //  Request 1 (no intentOverride): inject testForceIntent=tool_search via
@@ -307,8 +272,7 @@ test.describe("IntentClarificationCard end-to-end", () => {
   });
 
   test("UI: skip button hides card without re-submit", async ({ page }, testInfo) => {
-    const ok = await loginShared(page);
-    expect(ok, "fixture login").toBeTruthy();
+    await loginAsFixture(page);
 
     await page.route("**/api/chat/stream", async (route) => {
       const request = route.request();

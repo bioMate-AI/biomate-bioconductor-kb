@@ -11,9 +11,9 @@
  *
  * One login, one project. No Batch/GPU runs.
  *
- * Run:
+ * Run (BASE_URL alone is enough — BIOMATE_URL optional):
  *   E2E_FIXTURE_PASSWORD=$(cat ~/.config/biomate/e2e_fixture_password) \
- *   BIOMATE_URL=https://dev-public.biomate.ai \
+ *   BASE_URL=https://dev-public.biomate.ai \
  *   npx playwright test e2e/folder-attach-all-files.e2e.ts --project=chromium --retries=0
  */
 import { test, expect } from "@playwright/test";

@@ -13,10 +13,12 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveE2eBaseUrl } from "./_e2e-base-url";
+const BASE = resolveE2eBaseUrl("https://dev-public.biomate.ai");
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const STATE_FILE = process.env.LIVE_JOURNEYS_STATE || path.join(HERE, '.live-journeys-state.json')  // NOT under test-results/: Playwright clears that dir at run start;
-const BASE = (process.env.BIOMATE_URL || 'https://dev-public.biomate.ai').replace(/\/$/, '');
+
 const EMAIL = 'lifeifei163361@163.com';
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';
 

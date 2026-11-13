@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config as dotenvConfig } from 'dotenv';
+import { resolveE2eBaseUrl } from './e2e/_e2e-base-url';
 
 // Load .env, then .env.local (worktree overrides) if present
 dotenvConfig();
@@ -30,13 +31,8 @@ export default defineConfig({
   timeout: 2_700_000,
 
   use: {
-    // Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > live (must match e2e/_fixture-login.ts).
-    baseURL: (
-      process.env.BASE_URL ||
-      process.env.PLAYWRIGHT_BASE_URL ||
-      process.env.BIOMATE_URL ||
-      'https://dev-public.biomate.ai'
-    ).replace(/\/+$/, ''),
+    // Same precedence as e2e/_e2e-base-url.ts; live default when unset.
+    baseURL: resolveE2eBaseUrl('https://dev-public.biomate.ai'),
     trace: 'retain-on-failure',
     screenshot: 'on', // Capture screenshots for every test — audit trail
     video: {

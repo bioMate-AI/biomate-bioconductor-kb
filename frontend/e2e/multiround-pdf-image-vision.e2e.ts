@@ -13,8 +13,10 @@
  */
 import { test, expect } from '@playwright/test';
 import * as zlib from 'zlib';
+import { resolveE2eBaseUrl } from "./_e2e-base-url";
+const BASE_URL = resolveE2eBaseUrl("https://dev-public.biomate.ai");
 
-const BASE_URL = process.env.BIOMATE_URL || 'https://dev-public.biomate.ai';
+
 const EMAIL = 'lifeifei163361@163.com';
 const PASSWORD = process.env.E2E_FIXTURE_PASSWORD || 'WpmFixture!2026';
 const E2E_TOKEN = 'biomate-e2e-bypass-token-dev-only';

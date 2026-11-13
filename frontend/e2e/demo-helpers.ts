@@ -16,11 +16,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { BASE_URL } from './_e2e-base-url';
+
+export { BASE_URL };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-export const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';
 
 // ---------------------------------------------------------------------------

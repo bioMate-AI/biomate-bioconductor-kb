@@ -5,7 +5,8 @@ import { chromium } from "@playwright/test";
 import { readFileSync, mkdirSync, writeFileSync } from "fs";
 import { homedir } from "os";
 
-const BASE = process.env.BIOMATE_URL || "https://dev-public.biomate.ai";
+// Precedence must match e2e/_e2e-base-url.ts: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > fallback
+const BASE = (process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || process.env.BIOMATE_URL || "https://dev-public.biomate.ai").replace(/\/+$/, "");
 const [out, projectId, fileId] = process.argv.slice(2); mkdirSync(out, { recursive: true });
 const PW = readFileSync(`${homedir()}/.config/biomate/e2e_fixture_password`, "utf8").trim();
 const b = await chromium.launch();

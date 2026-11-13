@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config as dotenvConfig } from 'dotenv';
+import { resolveE2eBaseUrl } from './e2e/_e2e-base-url';
 dotenvConfig();
 export default defineConfig({
   testDir: './e2e',
@@ -9,7 +10,8 @@ export default defineConfig({
   timeout: 300_000,
   reporter: [['list']],
   use: {
-    baseURL: process.env.BIOMATE_URL || 'http://localhost:5000',
+    // Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > localhost.
+    baseURL: resolveE2eBaseUrl(),
     viewport: { width: 1440, height: 900 },
     video: 'off',
     screenshot: 'off',

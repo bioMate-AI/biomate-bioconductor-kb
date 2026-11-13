@@ -14,10 +14,11 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
+import { BASE_URL } from "./_e2e-base-url";
 
 test.describe.configure({ mode: "parallel" });
 
-const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
+
 const E2E_TOKEN =
   process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 const FIXTURE_EMAIL = "lifeifei163361@163.com";

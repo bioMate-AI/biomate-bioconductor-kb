@@ -26,7 +26,11 @@ RUN_LOG="$LOG_DIR/${TS}_provider.log"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-BIOMATE_URL="${BIOMATE_URL:-https://test.stage-public.biomate.ai}"
+# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
+
+export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://test.stage-public.biomate.ai}}"
+
+export BASE_URL="$BIOMATE_URL"
 E2E_TEST_TOKEN="${E2E_TEST_TOKEN:-test-e2e-token-12345}"
 FIXTURE_EMAIL="${FIXTURE_EMAIL:-lifeifei163361@163.com}"
 FIXTURE_PASSWORD="${FIXTURE_PASSWORD:-WpmFixture!2026}"

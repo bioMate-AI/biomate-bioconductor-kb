@@ -32,7 +32,7 @@
  *   - Login ONCE per file (sharedPage), single fixture lifeifei163361@163.com
  *   - NO page.route() mocking — all calls hit the live dev backend
  *   - 90 s LLM timeout for chat/workflow-generation calls
- *   - BASE_URL = process.env.BIOMATE_URL || https://dev-public.biomate.ai
+ *   - BASE_URL precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > localhost
  */
 
 import { test, expect, type Page } from "@playwright/test";
