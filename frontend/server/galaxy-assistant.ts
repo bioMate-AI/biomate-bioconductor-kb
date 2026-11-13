@@ -5386,8 +5386,6 @@ Rules:
     onProgress?.('intent');
     log('Step 1: Analyzing intent');
     let decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
-    // A degraded (keyword last-resort) decomposition carries no inferred intent: leave it unknown.
-    context.turnSyntheticDataRequested = decomposition.degraded ? undefined : decomposition.userRequestedSyntheticData;
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
 
     // Library / molecule-design dual path (both supported — never force only one):
