@@ -39,11 +39,19 @@ async function chat(req: APIRequestContext, message: string, projectId?: string)
 }
 
 const replyText = (f: any) => String(f?.response ?? f?.message ?? "").trim();
+/** Structured params the panel / execute path actually see — not reply prose. */
 const allParams = (f: any): Record<string, unknown> => {
   const ga = f?.workflow?.workflow_ga || f?.workflow || {};
-  const out: Record<string, unknown> = { ...(ga.inline_parameters || {}), ...(f?.inlineParameters || {}) };
+  const out: Record<string, unknown> = {
+    ...(ga.parameters || {}),
+    ...(ga.inline_parameters || {}),
+    ...(f?.inlineParameters || {}),
+    ...(f?.metadata?.inlineParameters || {}),
+  };
   for (const p of [...(ga.required_params || []), ...(ga.optional_params || [])]) {
-    if (p?.name && out[p.name] === undefined && p.value != null) out[p.name] = p.value;
+    if (!p?.name || out[p.name] !== undefined) continue;
+    const v = p.value ?? p.default;
+    if (v != null && String(v).trim() !== "") out[p.name] = v;
   }
   return out;
 };
