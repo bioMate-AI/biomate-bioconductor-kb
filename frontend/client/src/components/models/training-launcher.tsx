@@ -27,8 +27,12 @@ import {
 } from './training-logic';
 import { launchTraining, TrainingLaunchError, useRunStatus, type TrainingPlan } from './models-api';
 import { SPEC_DEFAULTS, SPEC_FIELDS, specPayload, type SpecValues } from './training-specs';
+import {
+  buildDatasetOptions, encodeDatasetSelection, parseDatasetSelection, primaryTableForSelection,
+  resolveSelectionToFileIds, type DatasetSelection,
+} from './dataset-selection';
 
-interface ProjectFile { id: string; name: string; s3_key: string }
+interface ProjectFile { id: string; name: string; s3_key: string; source?: string | null }
 
 const FIELD = 'block w-full rounded border bg-background px-2 py-1.5 text-sm';
 
@@ -38,7 +42,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const [project, setProject] = useState(context?.activeProjectId ?? '');
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
-  const [fileId, setFileId] = useState('');
+  const [selectionValue, setSelectionValue] = useState('');
   const [columns, setColumns] = useState<string[]>([]);
   const [sampleRows, setSampleRows] = useState<unknown[][]>([]);
   const [profileState, setProfileState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -61,8 +65,11 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const [runId, setRunId] = useState<string | null>(null);
   const [launched, setLaunched] = useState<TrainingPlan | null>(null);
 
-  const file = files.find(f => f.id === fileId);
+  const selection: DatasetSelection | null = parseDatasetSelection(selectionValue);
+  const file = primaryTableForSelection(files, selection, (n) => fileKind(n) === 'table');
+  const selectedFileIds = resolveSelectionToFileIds(files, selection);
   const kind = file ? fileKind(file.name) : 'other';
+  const datasetOptions = useMemo(() => buildDatasetOptions(files), [files]);
 
   // Load the project's files; returns them so callers (e.g. after an upload) can
   // select the one they just added.
@@ -93,7 +100,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
 
   // Project files.
   useEffect(() => {
-    setFiles([]); setFileId(''); setError('');
+    setFiles([]); setSelectionValue(''); setError('');
     loadFiles();
   }, [project, loadFiles]);
 
@@ -114,7 +121,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
       if (!r.ok) throw new Error(tOr('models.upload_error', 'Upload failed'));
       const fs = await loadFiles();
       const added = fs.find(x => x.name === f.name);
-      if (added) setFileId(added.id);
+      if (added) setSelectionValue(encodeDatasetSelection({ kind: 'file', fileId: added.id }));
     } catch (cause) {
       setError((cause as Error).message);
     } finally {
@@ -122,7 +129,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
     }
   }
 
-  // Real columns for the selected file (tables only).
+  // Real columns for the selected file / first table in a folder (tables only).
   useEffect(() => {
     setColumns([]); setSampleRows([]); setRowCount(null); setTarget(''); setSmilesCol(''); setModelType('');
     setTaskTouched(false); setNameTouched(false); setSpec({});
@@ -147,7 +154,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
       })
       .catch(cause => { if (!controller.signal.aborted) { setProfileState('error'); setError(cause.message); } });
     return () => controller.abort();
-  }, [fileId]);
+  }, [selectionValue, file?.id]);
 
   const smilesColumns = useMemo(() => detectSmilesColumns(columns, sampleRows), [columns, sampleRows]);
   const modelTypes = useMemo(
@@ -191,7 +198,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const gateValid = gateValue === undefined || Number.isFinite(gateValue);
   // Same floor the server enforces (galaxy.ai.ml_training.plan.MIN_TRAIN_ROWS).
   const tooFewRows = !!file && isDelimitedTable(file.name) && rowCount !== null && rowCount < MIN_TRAIN_ROWS;
-  const valid = !!project && !!file && !!modelType && gateValid && !tooFewRows
+  const valid = !!project && !!selection && selectedFileIds.length > 0 && !!file && !!modelType && gateValid && !tooFewRows
     && (!supervised || (!!target && !!metric))
     && (!needsSmiles || (!!smilesCol && smilesCol !== target))
     && (epochs.trim() === '' || Number(epochs) > 0);
@@ -200,12 +207,17 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
 
   async function submit(event: { preventDefault: () => void }) {
     event.preventDefault();
-    if (!valid || !file || !modelType) return;
+    if (!valid || !file || !modelType || !selection) return;
     setBusy(true); setError(''); setRunId(null); setLaunched(null);
     try {
       const mapped = backendModelType(modelType);
+      const datasetPayload = selection.kind === 'folder'
+        ? { folderPath: selection.folderPath }
+        : selectedFileIds.length > 1
+          ? { fileIds: selectedFileIds }
+          : { fileId: selectedFileIds[0] };
       const { runId: id, plan } = await launchTraining({
-        projectId: project, fileId: file.id,
+        projectId: project, ...datasetPayload,
         ...mapped,
         ...(supervised ? { task_type: task, target_col: target, metric } : {}),
         ...(needsSmiles ? { smiles_col: smilesCol } : {}),
@@ -244,10 +256,12 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
 
       <label className="block text-xs">{t('models.setup_dataset')}
         <div className="flex items-center gap-2">
-          <select className={FIELD} value={fileId} disabled={filesLoading || !project}
-            onChange={e => setFileId(e.target.value)} required data-testid="launcher-dataset">
+          <select className={FIELD} value={selectionValue} disabled={filesLoading || !project}
+            onChange={e => setSelectionValue(e.target.value)} required data-testid="launcher-dataset">
             <option value="">{filesLoading ? t('models.setup_loading') : t('models.setup_choose_dataset')}</option>
-            {files.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {datasetOptions.map(o => (
+              <option key={o.value} value={o.value} data-kind={o.kind}>{o.label}</option>
+            ))}
           </select>
           {/* Upload a local dataset into the project without leaving the panel. */}
           <label className={`shrink-0 cursor-pointer rounded border px-2 py-1 text-xs hover:bg-muted ${(!project || uploading) ? 'pointer-events-none opacity-50' : ''}`}
@@ -257,6 +271,11 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
               onChange={handleUpload} />
           </label>
         </div>
+        {selection?.kind === 'folder' && selectedFileIds.length > 0 && (
+          <p className="mt-1 text-fs-xs text-muted-foreground" data-testid="launcher-folder-count">
+            {t('models.setup_folder_files', { n: selectedFileIds.length })}
+          </p>
+        )}
       </label>
       {project && !filesLoading && !files.length && <p className="text-xs">{t('models.setup_no_files')}</p>}
       {profileState === 'loading' && <p role="status" className="text-xs">{t('models.columns_loading')}</p>}

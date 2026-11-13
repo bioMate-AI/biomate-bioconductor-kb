@@ -13,7 +13,8 @@ export function useChatProjectLink(
     if (!authenticated) return;
     const query = new URLSearchParams(search);
     const projectId = query.get('project')?.trim();
-    const hasFiles = query.getAll('attachFile').some(id => id.trim().length > 0);
+    const hasFiles = query.getAll('attachFile').some(id => id.trim().length > 0)
+      || (query.get('attachFolder')?.trim().length ?? 0) > 0;
     if (projectId && hasFiles) setActiveProjectId(projectId);
     // Do not consume the query: the composer still needs every exact file ID.
   }, [search, authenticated, setActiveProjectId]);

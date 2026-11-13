@@ -5896,6 +5896,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const row = rows.rows[0];
         return row ? { id: String(row.id), name: String(row.name), s3_key: String(row.s3_key) } : null;
       },
+      listFolderFiles: async (projectId, folderPath, uid) => {
+        const allowed = await pool.query(
+          `SELECT 1 FROM projects p WHERE p.id::text = $1 AND (p.user_id::text = $2 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
+          )) LIMIT 1`,
+          [projectId, uid],
+        );
+        if (!allowed.rows.length) return [];
+        const { loadFolderFiles } = await import('./project-folders');
+        const rows = await loadFolderFiles((q, p) => pool.query(q, p), projectId, folderPath);
+        return rows
+          .filter((r) => r.id && r.s3_key)
+          .map((r) => ({ id: String(r.id), name: String(r.name), s3_key: String(r.s3_key) }));
+      },
       stageForBatch: async (file, projectId) => {
         const bucket = process.env.S3_BUCKET_NAME || '';
         if (!bucket) return undefined;

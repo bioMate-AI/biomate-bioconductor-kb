@@ -2,20 +2,25 @@
  * CodeSandboxPath — the Models panel power-user path.
  *
  * Runs Python / R / bash through the owned `POST /api/code/run` sandbox
- * (`biomate-runcode`), optionally staging a project file from S3. This is the
- * second of the two Models paths (no-code UI + code). Galaxy Interactive Tools
- * never worked in BioMate, so we do not route here through Jupyter.
+ * (`biomate-runcode`), optionally staging project file(s) from S3. A project
+ * folder expands to every input file under that prefix as input_datasets.
+ * This is the second of the two Models paths (no-code UI + code). Galaxy
+ * Interactive Tools never worked in BioMate, so we do not route here through
+ * Jupyter.
  */
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Play } from "lucide-react"
 import { t } from "@/lib/i18n"
+import {
+  buildDatasetOptions, parseDatasetSelection, resolveSelectionToFileIds,
+} from "./dataset-selection"
 
 type Lang = "python" | "r" | "bash"
 
-interface ProjectFile { id: string; name: string; s3_key: string }
+interface ProjectFile { id: string; name: string; s3_key: string; source?: string | null }
 
 interface CodeRunResult {
   exit_code: number
@@ -46,7 +51,7 @@ export function CodeSandboxPath() {
   const [project, setProject] = useState(context?.activeProjectId ?? "")
   const [files, setFiles] = useState<ProjectFile[]>([])
   const [filesLoading, setFilesLoading] = useState(false)
-  const [fileId, setFileId] = useState("")
+  const [selectionValue, setSelectionValue] = useState("")
   const [language, setLanguage] = useState<Lang>("python")
   const [code, setCode] = useState(STARTERS.python)
   const [busy, setBusy] = useState(false)
@@ -74,10 +79,14 @@ export function CodeSandboxPath() {
   }, [project])
 
   useEffect(() => {
-    setFileId("")
+    setSelectionValue("")
     setError("")
     loadFiles()
   }, [project, loadFiles])
+
+  const selection = parseDatasetSelection(selectionValue)
+  const selectedFileIds = resolveSelectionToFileIds(files, selection)
+  const datasetOptions = useMemo(() => buildDatasetOptions(files), [files])
 
   const onLanguage = (lang: Lang) => {
     setLanguage(lang)
@@ -96,9 +105,9 @@ export function CodeSandboxPath() {
         code,
         timeout_seconds: 120,
       }
-      if (project && fileId) {
+      if (project && selectedFileIds.length) {
         body.project_id = project
-        body.input_datasets = [fileId]
+        body.input_datasets = selectedFileIds
       }
       const r = await fetch("/api/code/run", {
         method: "POST",
@@ -142,16 +151,21 @@ export function CodeSandboxPath() {
           <span className="text-muted-foreground">{t("models.code_input_optional")}</span>
           <select
             className={FIELD.replace("font-mono", "")}
-            value={fileId}
-            onChange={(e) => setFileId(e.target.value)}
+            value={selectionValue}
+            onChange={(e) => setSelectionValue(e.target.value)}
             disabled={!project || filesLoading}
             data-testid="code-dataset"
           >
             <option value="">{t("models.code_no_input")}</option>
-            {files.map((f) => (
-              <option key={f.id} value={f.id}>{f.name}</option>
+            {datasetOptions.map((o) => (
+              <option key={o.value} value={o.value} data-kind={o.kind}>{o.label}</option>
             ))}
           </select>
+          {selection?.kind === "folder" && selectedFileIds.length > 0 && (
+            <p className="text-fs-xs text-muted-foreground" data-testid="code-folder-count">
+              {t("models.setup_folder_files", { n: selectedFileIds.length })}
+            </p>
+          )}
         </label>
       </div>
 

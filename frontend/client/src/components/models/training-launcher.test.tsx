@@ -77,9 +77,9 @@ function mockApi(options: MockOptions = {}) {
 
 beforeEach(() => { vi.restoreAllMocks() })
 
-async function pickTableFile() {
+async function pickTableFile(fileId = TABLE_FILE.id) {
   await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
-  fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: TABLE_FILE.id } })
+  fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: `file:${fileId}` } })
   await waitFor(() => expect((screen.getByTestId("launcher-target") as HTMLSelectElement).options.length).toBeGreaterThan(1))
 }
 
@@ -172,7 +172,7 @@ describe("TrainingLauncher — general data", () => {
     mockApi({ profile: { columns: ["prompt", "chosen", "rejected"], sampleRows: [["q", "a", "b"], ["q2", "a2", "b2"]] } })
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
     await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
-    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: TABLE_FILE.id } })
+    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: `file:${TABLE_FILE.id}` } })
     await waitFor(() => expect(screen.getByTestId("launcher-model-type")).toBeTruthy())
     const types = [...(screen.getByTestId("launcher-model-type") as HTMLSelectElement).options].map(o => o.value)
     expect(types).toContain("trl_dpo")
@@ -200,7 +200,7 @@ describe("TrainingLauncher — general data", () => {
       target: { files: [new File(["x"], "fresh.csv", { type: "text/csv" })] },
     })
     // The uploaded file appears and is auto-selected.
-    await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).value).toBe(UPLOADED.id))
+    await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).value).toBe(`file:${UPLOADED.id}`))
     expect(fetchSpy.mock.calls.some((c) => String(c[0]).includes("/files/upload"))).toBe(true)
   })
 
@@ -208,7 +208,7 @@ describe("TrainingLauncher — general data", () => {
     mockApi({ files: [{ id: "55555555-5555-4555-8555-555555555555", name: "notes.pdf", s3_key: "k" }] })
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
     await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
-    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: "55555555-5555-4555-8555-555555555555" } })
+    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: "file:55555555-5555-4555-8555-555555555555" } })
     await waitFor(() => expect(screen.getByTestId("launcher-no-model-types")).toBeTruthy())
     expect(screen.getByTestId("launcher-submit")).toBeDisabled()
   })
@@ -217,10 +217,32 @@ describe("TrainingLauncher — general data", () => {
     mockApi({ files: [H5AD_FILE] })
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
     await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
-    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: H5AD_FILE.id } })
+    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: `file:${H5AD_FILE.id}` } })
     await waitFor(() => expect(screen.getByTestId("launcher-model-type")).toBeTruthy())
     const types = [...(screen.getByTestId("launcher-model-type") as HTMLSelectElement).options].map(o => o.value)
     expect(types).toEqual(["scrna_diffusion"])
+  })
+
+  it("selecting a folder plans with folderPath and stages every file under it", async () => {
+    const F1 = { id: "aaaaaaaa-0000-4000-8000-000000000001", name: "train/a.csv", s3_key: "k/a.csv" }
+    const F2 = { id: "bbbbbbbb-0000-4000-8000-000000000002", name: "train/b.csv", s3_key: "k/b.csv" }
+    const sampleRows = Array.from({ length: 12 }, (_, i) => [String(i), i % 2 === 0 ? "A" : "B"])
+    const calls = mockApi({
+      files: [F1, F2],
+      profile: { columns: ["x", "y"], sampleRows, shape: { rows: 12, cols: 2 } },
+    })
+    render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("launcher-dataset").textContent).toContain("train/"))
+    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: "folder:train" } })
+    expect(await screen.findByTestId("launcher-folder-count")).toHaveTextContent("2")
+    await waitFor(() => expect((screen.getByTestId("launcher-target") as HTMLSelectElement).options.length).toBeGreaterThan(1))
+    fireEvent.change(screen.getByTestId("launcher-target"), { target: { value: "y" } })
+    await waitFor(() => expect(screen.getByTestId("launcher-submit")).not.toBeDisabled())
+    fireEvent.click(screen.getByTestId("launcher-submit"))
+    await waitFor(() => expect(screen.getByTestId("launcher-run")).toBeTruthy())
+    const plan = calls.find(c => c.url.includes("/api/model-training/plan"))!
+    expect(plan.body).toMatchObject({ projectId: PROJECT, folderPath: "train", model_type: "sklearn_tabular", target_col: "y" })
+    expect(plan.body.fileId).toBeUndefined()
   })
 })
 
@@ -234,7 +256,7 @@ describe("TrainingLauncher — molecular", () => {
     })
     render(<TrainingLauncher family="molecular" />, { wrapper: wrapper() })
     await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
-    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: MOL_FILE.id } })
+    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: `file:${MOL_FILE.id}` } })
     await waitFor(() => expect(screen.getByTestId("launcher-smiles")).toBeTruthy())
     expect((screen.getByTestId("launcher-smiles") as HTMLSelectElement).value).toBe("smiles")
     fireEvent.change(screen.getByTestId("launcher-target"), { target: { value: "pIC50" } })

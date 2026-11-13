@@ -41,11 +41,12 @@ async function fakeQuery(text: string, params: any[] = []): Promise<any> {
   if (/SELECT s3_key, name, source, version_no FROM project_files WHERE id::text = \$1 AND project_id::text = \$2/.test(t)) {
     return { rows: fileRows.filter((r) => r.id === params[0] && r.project_id === params[1]) };
   }
-  if (/^SELECT name, (s3_key, )?source FROM project_files WHERE project_id::text = \$1/.test(t)) {
+  if (/^SELECT (id::text AS id, )?name, (s3_key, )?source FROM project_files WHERE project_id::text = \$1/.test(t)
+    || /^SELECT id::text AS id, name, s3_key, source FROM project_files WHERE project_id::text = \$1/.test(t)) {
     let rows = fileRows.filter((r) => r.project_id === params[0]);
     if (/name LIKE \$2/.test(t)) rows = rows.filter((r) => likeMatch(r.name, params[1]));
     if (/position\('\/' in name\) = 0/.test(t)) rows = rows.filter((r) => !r.name.includes("/"));
-    return { rows: rows.map((r) => ({ name: r.name, s3_key: r.s3_key, source: r.source })) };
+    return { rows: rows.map((r) => ({ id: r.id, name: r.name, s3_key: r.s3_key, source: r.source })) };
   }
   return { rows: [] };
 }
@@ -121,6 +122,27 @@ describe("project-folders helpers", () => {
     expect(likePrefix("a_b%c\\")).toBe("a\\_b\\%c\\\\");
     expect(samplesheetFilename("run1/fastq")).toBe("fastq_samplesheet.csv");
     expect(samplesheetFilename("")).toBe("inputs_samplesheet.csv");
+  });
+});
+
+describe("GET /api/projects/:id/folders/files", () => {
+  it("returns every input file id under the folder prefix (not sibling folders / run outputs)", async () => {
+    const r = await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/files?path=pairs`);
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body.path).toBe("pairs");
+    expect(body.files).toEqual([
+      { id: "aaaaaaaa-0000-4000-8000-000000000000", name: "pairs/S1_R1.fastq.gz" },
+      { id: "bbbbbbbb-0000-4000-8000-000000000000", name: "pairs/S1_R2.fastq.gz" },
+      { id: "cccccccc-0000-4000-8000-000000000000", name: "pairs/S2_R1.fastq.gz" },
+    ]);
+  });
+
+  it("404s for an unknown folder; 400 for traversal; 404 for a non-member", async () => {
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/files?path=nope`)).status).toBe(404);
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/files?path=../x`)).status).toBe(400);
+    currentUser = { id: "stranger" };
+    expect((await httpFetch(`${base}/api/projects/11111111-1111-4111-8111-111111111111/folders/files?path=pairs`)).status).toBe(404);
   });
 });
 

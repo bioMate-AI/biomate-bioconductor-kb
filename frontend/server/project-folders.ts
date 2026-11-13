@@ -18,6 +18,7 @@
 const MAX_DEPTH = 32;
 
 export interface FolderFileRow {
+  id?: string;
   name: string;
   s3_key?: string | null;
   source?: string | null;
@@ -73,7 +74,7 @@ export function likePrefix(s: string): string {
 
 export type QueryFn = (sql: string, params: unknown[]) => Promise<{ rows: any[] }>;
 
-/** Rows of every file below `folder` in `projectId` (inputs only), names + keys. */
+/** Rows of every file below `folder` in `projectId` (inputs only), ids + names + keys. */
 export async function loadFolderFiles(query: QueryFn, projectId: string, folder: string): Promise<FolderFileRow[]> {
   const params: unknown[] = [projectId];
   let where = "";
@@ -82,7 +83,7 @@ export async function loadFolderFiles(query: QueryFn, projectId: string, folder:
     where = ` AND name LIKE $2 ESCAPE '\\'`;
   }
   const r = await query(
-    `SELECT name, s3_key, source FROM project_files WHERE project_id::text = $1${where} ORDER BY name`,
+    `SELECT id::text AS id, name, s3_key, source FROM project_files WHERE project_id::text = $1${where} ORDER BY name`,
     params,
   );
   return filesUnderFolder(r.rows as FolderFileRow[], folder);

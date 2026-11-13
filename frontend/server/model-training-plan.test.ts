@@ -78,4 +78,47 @@ describe('POST /api/model-training/plan contract', () => {
     expect(fetcher).toHaveBeenCalledWith('http://backend/api/model-training/plan', expect.objectContaining({ method: 'POST' }));
     await expect(fetchOwnedModelSurface('owner', '/api/model-training/register')).rejects.toMatchObject({ status: 400 });
   });
+
+  it('accepts fileIds[] and stages every file, forwarding dataset_s3_uris', async () => {
+    const FILE2 = '33333333-3333-4333-8333-333333333333';
+    const ROW2 = { id: FILE2, name: 'extra.csv', s3_key: `projects/${PROJECT}/inputs/extra.csv` };
+    const d = deps({
+      getProjectFile: vi.fn(async (_p, id) => id === FILE ? FILE_ROW : id === FILE2 ? ROW2 : null),
+      stageForBatch: vi.fn(async (file) => `s3://biomate-nextflow-work/uploads/project-${PROJECT}/${file.name}`),
+    });
+    const r = await planModelTraining({
+      userId: 'u',
+      body: { projectId: PROJECT, fileIds: [FILE, FILE2], model_type: 'sklearn_tabular', target_col: 'y', task_type: 'classification', metric: 'accuracy' },
+    }, d);
+    expect(r.status).toBe(200);
+    expect(d.getProjectFile).toHaveBeenCalledTimes(2);
+    expect(d.stageForBatch).toHaveBeenCalledTimes(2);
+    const sent = d.requestGalaxyPlan.mock.calls[0][1] as Record<string, unknown>;
+    expect(sent.dataset_s3_uri).toContain('expression.jsonl');
+    expect(sent.dataset_s3_uris).toEqual([
+      `s3://biomate-nextflow-work/uploads/project-${PROJECT}/expression.jsonl`,
+      `s3://biomate-nextflow-work/uploads/project-${PROJECT}/extra.csv`,
+    ]);
+    expect(r.body.fileIds).toEqual([FILE, FILE2]);
+  });
+
+  it('accepts folderPath and lists every file under the folder', async () => {
+    const F1 = { id: FILE, name: 'train/a.csv', s3_key: `projects/${PROJECT}/inputs/train/a.csv` };
+    const F2 = { id: '33333333-3333-4333-8333-333333333333', name: 'train/b.csv', s3_key: `projects/${PROJECT}/inputs/train/b.csv` };
+    const d = deps({
+      listFolderFiles: vi.fn(async () => [F1, F2]),
+      stageForBatch: vi.fn(async (file) => `s3://biomate-nextflow-work/uploads/project-${PROJECT}/${file.name.split('/').pop()}`),
+    });
+    const r = await planModelTraining({
+      userId: 'u',
+      body: { projectId: PROJECT, folderPath: 'train', model_type: 'protein_diffusion' },
+    }, d);
+    expect(r.status).toBe(200);
+    expect(d.listFolderFiles).toHaveBeenCalledWith(PROJECT, 'train', 'u');
+    expect(d.getProjectFile).not.toHaveBeenCalled();
+    expect(d.stageForBatch).toHaveBeenCalledTimes(2);
+    expect(r.body).toMatchObject({ folderPath: 'train', fileIds: [F1.id, F2.id], fileId: F1.id });
+    const sent = d.requestGalaxyPlan.mock.calls[0][1] as Record<string, unknown>;
+    expect(sent.dataset_s3_uris).toHaveLength(2);
+  });
 });
