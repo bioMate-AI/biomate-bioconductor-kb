@@ -2,6 +2,10 @@ import { responseLanguageDirective } from "./response-language";
 import { runButtonLabel } from "./ui-labels";
 import { PROJECT_CONTEXT_NOTE, intentRulesBlock } from './project-rules';
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
+import {
+  buildLibraryTriageSequentialDecomposition,
+  isLibraryTriageRequest,
+} from './library-triage-sequential';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
@@ -2112,6 +2116,10 @@ export interface DecomposedIntent {
   inputKinds?: string[];
   /** LLM-assigned scientific domain of this branch (e.g. proteomics), preferred when routing it. */
   domain?: string;
+  /** Sequential pipeline: where this step's input comes from (human-readable). */
+  inputFromDescription?: string;
+  /** Sequential pipeline: what this step produces (human-readable). */
+  outputDescription?: string;
 }
 
 export interface IntentDecomposition {
@@ -2120,6 +2128,12 @@ export interface IntentDecomposition {
   primaryIntent: DecomposedIntent;
   /** True when the intents form an ordered pipeline (output of step N feeds step N+1) */
   isSequential?: boolean;
+  /**
+   * Skip Tier-1 single-workflow collapse and Tier-2 curated chain lookup in
+   * processSequentialPipeline. Used when a rule-built plan must stay as
+   * discrete single-workflow steps (library triage → task-by-task).
+   */
+  skipPipelineCollapse?: boolean;
   /** LLM-inferred domain preferences for workflow search ranking (replaces rule-based _infer_domain_preferences) */
   preferredDomains?: string[];
   /** LLM-inferred domains to penalize in workflow search ranking */
@@ -5530,10 +5544,28 @@ Rules:
     // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
     onProgress?.('intent');
     log('Step 1: Analyzing intent');
-    const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
+    let decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     // A degraded (keyword last-resort) decomposition carries no inferred intent: leave it unknown.
     context.turnSyntheticDataRequested = decomposition.degraded ? undefined : decomposition.userRequestedSyntheticData;
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
+
+    // Library triage (synthesise-now / park + chemistry library): force a sequential
+    // plan of ordinary single workflows (docking → ADMET → pharmacophore). Do NOT
+    // bind one Admet Pred card and do NOT escalate to a catalogued workflow_chains row.
+    {
+      const perceivedKinds =
+        decomposition.inputKinds ?? decomposition.primaryIntent?.inputKinds;
+      if (isLibraryTriageRequest(message, perceivedKinds)) {
+        decomposition = buildLibraryTriageSequentialDecomposition(
+          message,
+          perceivedKinds,
+        ) as IntentDecomposition;
+        log(
+          `Step 1: library-triage rule → sequential ${decomposition.intents.length}-step plan ` +
+            `(skipPipelineCollapse; no catalog chain)`,
+        );
+      }
+    }
 
     // Apply intentOverride from a prior IntentClarificationCard chip click.
     if (context.intentOverride) {
@@ -6672,13 +6704,16 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
   ): Promise<GalaxyAssistantResponse> {
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] [SEQ] ${step}`);
     log(`Building sequential pipeline: ${decomposition.intents.length} steps`);
+    const noCollapse = decomposition.skipPipelineCollapse === true;
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIER 1: Try the full query as a single workflow first.
     // If one workflow covers all the user's biological steps → return early.
+    // Skipped for rule-built plans that must stay discrete (library triage).
     // ═══════════════════════════════════════════════════════════════════════
-    log('Tier 1: Attempting full-query single-workflow resolution');
-    try {
+    if (noCollapse) {
+      log('Tier 1: skipped (skipPipelineCollapse — keep discrete single-workflow steps)');
+    } else try {
       // Use a clean context (no previous messages) to avoid chat-history bias from prior turns.
       // Tier 1 evaluates this query in isolation: "can one workflow cover all the steps?"
       const tier1Context: ChatContext = {
@@ -6774,13 +6809,19 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
 
     // TIER 2: curated chain (see _curatedChainResponse).
-    const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
-    if (tier2) return tier2;
+    // Library triage must NOT become a catalogued mega-chain — skip.
+    if (!noCollapse) {
+      const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
+      if (tier2) return tier2;
+    } else {
+      log('Tier 2: skipped (skipPipelineCollapse — no curated workflow_chains product)');
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIER 3: Greedy sequential resolution.
     // Resolve steps one cluster at a time; a single workflow may cover multiple
-    // consecutive biological steps.
+    // consecutive biological steps. When skipPipelineCollapse, resolve each
+    // intent independently (one catalog workflow per step — task-by-task).
     // ═══════════════════════════════════════════════════════════════════════
     log('Tier 3: Greedy sequential resolution');
 
@@ -6790,13 +6831,17 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
     while (remainingIntents.length > 0) {
       const currentIntent = remainingIntents[0];
-      // Build a combined sub-query for remaining steps to give the workflow search better context
-      const combinedQuery = remainingIntents.length > 1
-        ? remainingIntents.slice(0, Math.min(3, remainingIntents.length)).map(i => i.subQuery).join(' then ')
-        : currentIntent.subQuery;
-      const combinedIntent: DecomposedIntent = { ...currentIntent, subQuery: combinedQuery };
+      // Build a combined sub-query for remaining steps to give the workflow search better context.
+      // Independent resolution for skipPipelineCollapse avoids "dock then ADMET then …"
+      // collapsing into a single wrong bind (e.g. Admet Pred).
+      const stepQuery = noCollapse
+        ? currentIntent.subQuery
+        : remainingIntents.length > 1
+          ? remainingIntents.slice(0, Math.min(3, remainingIntents.length)).map(i => i.subQuery).join(' then ')
+          : currentIntent.subQuery;
+      const combinedIntent: DecomposedIntent = { ...currentIntent, subQuery: stepQuery };
 
-      log(`Tier 3 step ${globalIdx + 1}: resolving "${combinedQuery}"`);
+      log(`Tier 3 step ${globalIdx + 1}: resolving "${stepQuery}"`);
       let subResult: any = null;
       try {
           // Use clean context (no prior-turn history) so the search for each step is
@@ -6811,7 +6856,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       // Check if the resolved workflow covers more than one remaining intent
       let coveredCount = 1;
       const wf = subResult?.generatedWorkflow;
-      if (wf?.nextflow_path && remainingIntents.length > 1) {
+      if (!noCollapse && wf?.nextflow_path && remainingIntents.length > 1) {
         try {
           const coverage = await this._checkWorkflowCoverage(
             wf.workflow_name || wf.name || '',
@@ -6862,10 +6907,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // single workflow card instead of a multi-step chain.
     // Example: "build pharmacophore model then screen library" → both steps
     // resolve to pharmacophore_filtering/main.nf (it does both internally).
+    // Skipped when skipPipelineCollapse (library triage must stay multi-step).
     // -----------------------------------------------------------------------
     const resolvedPaths = pipelineSteps.map(s => s.nextflow_path).filter(Boolean);
     const uniquePaths = new Set(resolvedPaths);
-    if (resolvedPaths.length === pipelineSteps.length && uniquePaths.size === 1) {
+    if (!noCollapse && resolvedPaths.length === pipelineSteps.length && uniquePaths.size === 1) {
       const canonicalResult = stepResults[0].subResult;
       if (canonicalResult?.generatedWorkflow) {
         // Merge params from all steps (later steps supplement earlier ones)
@@ -6901,11 +6947,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         (s.uses_description ? `\n     → Input: ${s.uses_description}` : '')
     );
     const summaryMessage = [
-      `I've planned a **${pipelineSteps.length}-step sequential pipeline** for you:`,
+      noCollapse
+        ? `I've planned a **${pipelineSteps.length}-step library triage** — each step is a separate indexed workflow (run **task by task**):`
+        : `I've planned a **${pipelineSteps.length}-step sequential pipeline** for you:`,
       '',
       ...stepSummaryLines,
       '',
-      'Review the steps below, then click **Confirm & Run** to execute them in order.',
+      noCollapse
+        ? 'Review the steps below. **Confirm & Run** starts step 1 only; after it finishes, **Approve & Run** the next step. Outputs stay available for later steps — this is not one mega-chain card.'
+        : 'Review the steps below, then click **Confirm & Run** to execute them in order.',
       resolvedCount < pipelineSteps.length
         ? `\n⚠️ ${pipelineSteps.length - resolvedCount} step(s) could not be resolved to specific workflow paths — you may need to confirm them before running.`
         : '',
@@ -6931,10 +6981,12 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       generatedWorkflow: {
         success: true,
         workflow_type: 'pipeline',
-        name: `Sequential Pipeline (${pipelineSteps.length} steps)`,
+        name: noCollapse
+          ? `Library Triage (${pipelineSteps.length} steps — task by task)`
+          : `Sequential Pipeline (${pipelineSteps.length} steps)`,
         pipeline_steps: pipelineSteps,
         step_count: pipelineSteps.length,
-        source: 'biomate_sequential',
+        source: noCollapse ? 'library_triage_sequential' : 'biomate_sequential',
       },
       suggestions: [
         'Modify a specific step',
@@ -8659,6 +8711,14 @@ For MULTI-HOP workflow queries (user describes a biological goal without naming 
   "needs_thinking": false,
   "chain_hint": null
 }
+
+**Library triage (synthesise-now / park) — hard example.** When the user asks to triage a
+compound/SMILES library into "synthesise-now" vs "park" (with or without a receptor PDB and
+reference actives), this is ALWAYS multi-intent sequential workflow_generation with ≥3 intents:
+(1) AutoDock Vina / molecular docking of the library against the receptor, (2) predict_admet_properties
+ADMET for the library, (3) pharmacophore_filtering using reference actives. Set chain_hint null —
+do NOT collapse to a single Admet Pred / ADMET-only workflow and do NOT name a curated mega-chain.
+Each intent is one ordinary indexed workflow; BioMate runs them task by task.
 
 For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequential": true and chain dependsOn:
 {

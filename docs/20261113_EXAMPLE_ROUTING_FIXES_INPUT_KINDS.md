@@ -172,16 +172,27 @@ partially covered match/chain; S3 strip and prose-vs-engine were open).
   `smiles-list-misparse-20261020.test.ts`
 - **pytest** (8): `test_find_nf_file_domain_alias.py`, `test_orphan_catalog_path_heal.py`
 
-### Deferred — integrator / real chain composition
+### Follow-up — library triage is sequential single workflows (not a catalog chain)
 
-Grounding stops **fake** multi-step narration when the payload is a single `workflow_ga`. It does
-**not** invent a docking → ADMET → pharmacophore → rank integrator workflow or force
-`workflow_type:'chain'` for triage intents. That remains the earlier deferred item: a real catalog
-workflow (or chain composer path) that binds multi-criteria library triage to an executable DAG,
-plus end-to-end verification on live after sync is unblocked.
+User correction: do **not** index ad-hoc step compositions as `workflow_chains` rows. BioMate runs
+each step as an ordinary indexed workflow, **one by one**.
+
+| Piece | Behaviour |
+|---|---|
+| Detector | `isLibraryTriageRequest` — synthesise-now/park or triage+library; rejects pure `tabular` (12814) |
+| Plan | `buildLibraryTriageSequentialDecomposition` → docking → ADMET → pharmacophore intents |
+| Live path | After `analyzeIntent`, override → `isSequential` + `skipPipelineCollapse` → `processSequentialPipeline` |
+| Payload | `workflow_type:'pipeline'` + `pipeline_steps` (PipelineListView task-by-task / `endAtStep:0`) |
+| Explicitly avoided | New `workflow_chains` row named "Library Triage…"; mega-chain card; single Admet Pred bind |
+
+Ranking / synthesise-now vs park integrator: still deferred until a **real** chemistry multi-criteria
+workflow exists (do not misuse assay ranker 12814).
+
+Tests: `frontend/server/library-triage-sequential.test.ts` (+ grounding still blocks fake prose on
+single-wf binds).
 
 ### Sync
 
 Still **do not** `sync_to_dev` from this session (another agent owns deploy; ancestry HTTPS + disk
 blocks remain). Worktree catalog DB retired 14553/14591 locally; durable heal + search filter
-cover gitignored DBs on next Galaxy init after deploy.
+cover gitignored DBs on next Galaxy init after deploy. Gold E2E on live after sync remains deferred.
