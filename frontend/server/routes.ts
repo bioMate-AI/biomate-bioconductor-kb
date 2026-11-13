@@ -18,7 +18,9 @@ import { attachmentDisposition } from "./content-disposition";
 import { loadFolderContext } from "./project-folders";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
-import { normalizeUiLanguage, isChineseBrowser, zhDefaultModel } from "./response-language";
+import { normalizeUiLanguage, zhDefaultModel } from "./response-language";
+import { classifyRegion, regionSignalsFromRequest, resolveChatLlm, llmPolicyStorage, modelIdentity, ChineseModelUnavailableError, type ChatLlm } from "./llm-region-policy";
+import { registerLlmPolicyRoutes } from "./llm-policy-routes";
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
 import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
@@ -7325,6 +7327,7 @@ ${paramLines || '(none recorded)'}`;
       let _userAnthropicApiKey: string | undefined;
       let _openrouterKey: string | undefined;
       let _selectedModel: string | undefined;
+      let _userOpenrouterKey: string | undefined;
       if (req.user?.id) {
         try {
           const _keyRow = await pool.query(
@@ -7336,50 +7339,31 @@ ${paramLines || '(none recorded)'}`;
           if (_encAnthropic) _userAnthropicApiKey = decryptField(_encAnthropic);
           const _encOpenrouter = _stored?.openrouter;
           if (_encOpenrouter) _openrouterKey = decryptField(_encOpenrouter);
+          _userOpenrouterKey = _openrouterKey;
           if (_stored?.selected_model) _selectedModel = _stored.selected_model;
         } catch { /* non-fatal — fall back to system key */ }
       }
 
-      // Fall back to system-level OpenRouter key if user has none.
-      // OPENROUTER_API_KEY in server env enables cheap Chinese models for all users.
-      // Chinese-language browsers get a Chinese model that also reads images (plots, figures):
-      // ui language → primary Accept-Language → geo header (isChineseBrowser). A user's own
-      // selected model/provider always wins. Overridable via OPENROUTER_ZH_DEFAULT_MODEL.
-      const _zhBrowser = isChineseBrowser((context as any)?.uiLanguage, req.headers['accept-language'],
-        req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'] || req.headers['x-appengine-country']);
-      if (!_openrouterKey && process.env.OPENROUTER_API_KEY) {
-        _openrouterKey = process.env.OPENROUTER_API_KEY;
-        if (!_selectedModel) {
-          _selectedModel = _zhBrowser ? zhDefaultModel() : (process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat');
-        }
+      // Chinese-LLM region policy (llm-region-policy.ts), re-checked on EVERY request (the region can
+      // change: a VPN, a language switch). A China user — Chinese UI/settings language, Chinese primary
+      // browser language, or an IP in CN/HK/MO/TW — runs every LLM call on a Chinese model; with no
+      // Chinese-model credential the turn fails closed. Everyone else keeps their own keys and pick.
+      const _region = classifyRegion(regionSignalsFromRequest(req, (context as any)?.uiLanguage));
+      let _chatLlm: ChatLlm;
+      try {
+        _chatLlm = resolveChatLlm({ region: _region, userAnthropicKey: _userAnthropicApiKey, userOpenrouterKey: _userOpenrouterKey, selectedModel: _selectedModel });
+      } catch (err: any) {
+        if (!(err instanceof ChineseModelUnavailableError)) throw err;
+        console.warn(`[Chat Stream API] China-region user (${_region.reasons.join(',')}) but no Chinese-model credential is configured — refusing (fail closed)`);
+        safeSend("error", { message: err.message, code: err.code });
+        safeSend("done", { ok: false });
+        return res.end();
       }
-      // Chinese browsers only: a key scoped to them (OPENROUTER_ZH_API_KEY), so a deployment can serve
-      // Chinese users with a Chinese model without routing every keyless user through OpenRouter.
-      // Never on on-prem / local-only deployments (LLM_API_URL / localOnly): their data stays local.
-      if (!_openrouterKey && _zhBrowser && process.env.OPENROUTER_ZH_API_KEY && !process.env.LLM_API_URL && !localOnly()) {
-        _openrouterKey = process.env.OPENROUTER_ZH_API_KEY;
-        if (!_selectedModel) _selectedModel = zhDefaultModel();
-      }
-
-      // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
-      // Enables on-prem deployments with Qianwen/DashScope, local vLLM, DeepSeek, etc.
-      // when no Anthropic/Gemini/OpenRouter key is configured.
-      // Condition: check LLM_API_URL first so on-prem setups work even when
-      // LLM_API_KEY=none (the default in .env.onprem.example — local models
-      // typically require no auth key; 'none' is a valid placeholder).
-      let _openaiBaseUrl: string | undefined;
-      if (!_openrouterKey && process.env.LLM_API_URL) {
-        // Use the key if provided; 'none' or empty → pass 'none' (accepted by local servers).
-        _openrouterKey = (process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none')
-          ? process.env.LLM_API_KEY
-          : 'none';
-        _openaiBaseUrl = process.env.LLM_API_URL;
-        if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
-      } else if (!_openrouterKey && process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none') {
-        _openrouterKey = process.env.LLM_API_KEY;
-        _openaiBaseUrl = process.env.LLM_API_URL || undefined;
-        if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
-      }
+      _userAnthropicApiKey = _chatLlm.userAnthropicKey;
+      _openrouterKey = _chatLlm.openrouterKey;
+      _selectedModel = _chatLlm.selectedModel;
+      const _openaiBaseUrl = _chatLlm.openaiBaseUrl;
+      const _llmPolicy = _chatLlm.state;
       // Resolve chat dataset references BEFORE building enrichedContext.
       // Session-cached datasets resolve synchronously, but a file the user
       // picked from the "Project files" tab arrives as a project_files.id UUID
@@ -7552,6 +7536,7 @@ ${paramLines || '(none recorded)'}`;
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
         uiLanguage: normalizeUiLanguage((context as any)?.uiLanguage),
+        llmRegion: _region.region,
         // run_code outputs → session datasets (download link + later turns), the same store as uploads.
         persistGeneratedFile: async (hostPath: string, name: string) => {
           // One folder per chat, named "<title> · <start time>" (resolved once per turn).
@@ -7640,24 +7625,31 @@ ${paramLines || '(none recorded)'}`;
         },
       };
 
+      // The model that actually answers (policy-resolved, not the stored pick): stated to the model in
+      // its MODEL IDENTITY block and shown to the user as the chat's model label.
+      const _modelIdentity = modelIdentity(galaxyAssistant.responseModelFor(enrichedContext as any));
+      (enrichedContext as any).modelIdentity = _modelIdentity;
+      safeSend("model", { ..._modelIdentity, region: _region.region });
+
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
       // injects prior experience hints, and records interactions for future learning.
+      // Every LLM call below runs under this request's region policy (llmPolicyStorage).
       const _streamStartTime = Date.now();
-      const assistantResponse = memoryIntegration
-        ? await memoryIntegration.processWithMemory(
+      const assistantResponse = await llmPolicyStorage.run(_llmPolicy, () => memoryIntegration
+        ? memoryIntegration.processWithMemory(
             safeMessage,
             enrichedContext as unknown as MemoryEnhancedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event),
             (stage, detail) => safeSend("progress", { stage, detail })
           )
-        : await galaxyAssistant.processMessage(
+        : galaxyAssistant.processMessage(
             safeMessage,
             enrichedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event),
             (stage, detail) => safeSend("progress", { stage, detail })
-          );
+          ));
 
       let prerequisitesValidation = null;
       if (assistantResponse.generatedWorkflow && prerequisitesValidator) {
@@ -8533,60 +8525,8 @@ ${paramLines || '(none recorded)'}`;
   // Users can supply their own Anthropic key so chats use their quota.
   // The key is stored encrypted; GET only returns a boolean (never the value).
 
-  app.get("/api/user/llm-api-keys", authenticateToken, async (req, res) => {
-    try {
-      const row = await pool.query(
-        `SELECT llm_api_keys FROM users WHERE id = $1`,
-        [req.user!.id]
-      );
-      const stored = (row.rows[0]?.llm_api_keys ?? {}) as any;
-      res.json({
-        anthropic: !!stored.anthropic,
-        openrouter: !!stored.openrouter,
-        selected_model: stored.selected_model ?? null,
-      });
-    } catch (error: any) {
-      console.error('[llm-api-keys] get error:', error?.message);
-      res.status(500).json({ error: 'Failed to get LLM API keys' });
-    }
-  });
-
-  app.patch("/api/user/llm-api-keys", authenticateToken, express.json(), async (req, res) => {
-    try {
-      const { provider, key, selected_model } = req.body ?? {};
-      const VALID_PROVIDERS = ['anthropic', 'openrouter'];
-      if (provider !== undefined && (typeof provider !== 'string' || !VALID_PROVIDERS.includes(provider))) {
-        return res.status(400).json({ error: `provider must be one of: ${VALID_PROVIDERS.join(', ')}` });
-      }
-      const rowResult = await pool.query(
-        `SELECT llm_api_keys FROM users WHERE id = $1`,
-        [req.user!.id]
-      );
-      const existing: Record<string, string> = rowResult.rows[0]?.llm_api_keys ?? {};
-      if (provider) {
-        if (typeof key === 'string' && key.trim().length > 0) {
-          existing[provider] = encryptField(key.trim());
-        } else if (key !== undefined) {
-          delete existing[provider];
-        }
-      }
-      if (selected_model !== undefined) {
-        if (typeof selected_model === 'string' && selected_model.trim().length > 0) {
-          existing.selected_model = selected_model.trim();
-        } else {
-          delete existing.selected_model;
-        }
-      }
-      await pool.query(
-        `UPDATE users SET llm_api_keys = $1::jsonb, updated_at = NOW() WHERE id = $2`,
-        [JSON.stringify(existing), req.user!.id]
-      );
-      res.json({ ok: true, anthropic: !!existing.anthropic, openrouter: !!existing.openrouter, selected_model: existing.selected_model ?? null });
-    } catch (error: any) {
-      console.error('[llm-api-keys] patch error:', error?.message);
-      res.status(500).json({ error: 'Failed to update LLM API keys' });
-    }
-  });
+  // GET /api/llm/policy + GET/PATCH /api/user/llm-api-keys — region-aware (llm-policy-routes.ts).
+  registerLlmPolicyRoutes(app, { authenticateToken, query: (sql, params) => pool.query(sql, params as any[]), encryptField });
 
   app.get("/api/users/credentials/map", optionalAuth, async (req, res) => {
     try {

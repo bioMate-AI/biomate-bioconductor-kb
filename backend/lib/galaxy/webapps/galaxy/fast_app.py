@@ -8,6 +8,7 @@ from fastapi import (
     Request,
 )
 from fastapi.openapi.constants import REF_TEMPLATE
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
 from galaxy.schema.generics import CustomJsonSchema
@@ -184,6 +185,18 @@ def initialize_fast_app(gx_wsgi_webapp, gx_app):
         add_request_id_middleware(app)
     include_all_package_routers(app, "galaxy.webapps.galaxy.api")
     include_legacy_openapi(app, gx_app)
+    # Chinese-LLM region policy: the frontend's X-BioMate-LLM-Policy header → a ContextVar for the
+    # request (FastAPI routes, their background tasks and the WSGI-mounted legacy app alike).
+    from galaxy.ai.llm_region import ChineseModelUnavailable, LlmPolicyMiddleware, install_thread_context_propagation
+
+    install_thread_context_propagation()
+    app.add_middleware(LlmPolicyMiddleware)
+
+    @app.exception_handler(ChineseModelUnavailable)
+    async def _cn_model_unavailable(_request: Request, exc: ChineseModelUnavailable):
+        # A China-region request whose deployment has no Chinese-model credential: say so, never a
+        # silent Gemini / Claude / GPT fallback.
+        return JSONResponse(status_code=503, content={"error": str(exc), "code": exc.code})
     wsgi_handler = WSGIMiddleware(gx_wsgi_webapp)
     gx_app.haltables.append(("WSGI Middleware threadpool", wsgi_handler.executor.shutdown))
     app.mount("/", wsgi_handler)  # type: ignore[arg-type]

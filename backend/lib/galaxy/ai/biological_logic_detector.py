@@ -67,11 +67,14 @@ class BiologicalLogicDetector:
         # Build analysis prompt
         prompt = self._build_detection_prompt(galaxy_wf)
 
-        # Query LLM
-        response = self.model.generate_content(prompt)
+        # Query LLM (a China-region request: a Chinese model — galaxy.ai.llm_region)
+        from galaxy.ai.llm_region import cn_complete
+        text = cn_complete(prompt, max_tokens=4096)
+        if text is None:
+            text = self.model.generate_content(prompt).text
 
         # Parse response
-        groups = self._parse_llm_response(response.text, galaxy_wf)
+        groups = self._parse_llm_response(text, galaxy_wf)
 
         return groups
 

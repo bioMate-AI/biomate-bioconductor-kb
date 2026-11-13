@@ -52,6 +52,12 @@ def call_gemini_flash(
     Returns:
         Response text string
     """
+    from galaxy.ai.llm_region import cn_generate_sync, cn_route  # noqa: PLC0415
+    _cn = cn_route()
+    if _cn is not None:  # a China-region request: a Chinese model, never Gemini
+        return cn_generate_sync(_cn, system=system, messages=messages, max_tokens=max_tokens,
+                                temperature=temperature, json_mode=json_mode)
+
     genai = _get_client()
 
     gen_config_kwargs: dict = {
@@ -109,6 +115,12 @@ def call_gemini_flash_vision(
     Returns:
         Response text string
     """
+    from galaxy.ai.llm_region import cn_generate_sync, cn_route, image_part  # noqa: PLC0415
+    _cn = cn_route()
+    if _cn is not None:  # a China-region request: a Chinese vision model, never Gemini
+        return cn_generate_sync(_cn, [image_part(image_b64, mime_type), {"type": "text", "text": prompt}],
+                                max_tokens=max_tokens)
+
     genai = _get_client()
 
     model = genai.GenerativeModel(

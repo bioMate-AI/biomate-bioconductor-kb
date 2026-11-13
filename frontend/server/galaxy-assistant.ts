@@ -34,6 +34,7 @@ import OpenAI from 'openai';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
+import { requireCnRoute, currentLlmPolicy, policyMessagesClient, cnCompletion, cnRouteForRole, cnRoleMessagesClient, isChineseModel, modelIdentity, modelIdentityDirective, OPENROUTER_URL, type ModelIdentity, type LlmRegion } from './llm-region-policy';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { buildCanonicalFixturePromptSection, matchesCanonicalFixture } from './canonical-fixtures';
 import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
@@ -793,6 +794,10 @@ export interface GalaxyAssistantOptions {
 export interface ChatContext {
   /** Default reply language; scientific values and user text remain unchanged. */
   uiLanguage?: 'en' | 'zh';
+  /** Chinese-LLM region policy (llm-region-policy.ts): 'cn' = every LLM call runs on a Chinese model. */
+  llmRegion?: LlmRegion;
+  /** The model that answers this turn — stated to the model in its MODEL IDENTITY block. */
+  modelIdentity?: ModelIdentity;
   previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentWorkflow?: any;
   /** Workflow the user explicitly chose for this turn (Workflows library "Run" or another explicit picker).
@@ -3943,7 +3948,12 @@ export function extractInlineData(message: string): InlineDataMap {
 
 export class GalaxyAssistant {
   private claude: Anthropic;
-  private gemini: GoogleGenerativeAI | null = null;
+  private _geminiClient: GoogleGenerativeAI | null = null;
+  /** Gemini, unless the request is a China-region user's (llm-region-policy.ts): then null, so every
+   *  Gemini branch falls through to the policy-aware clients. */
+  private get gemini(): GoogleGenerativeAI | null {
+    return currentLlmPolicy()?.region === 'cn' ? null : this._geminiClient;
+  }
   private galaxyAPI: GalaxyAPIProxy;
   private modelConfig: ModelConfig;
   private sessionMemory: SessionMemoryUpdater;
@@ -3957,7 +3967,7 @@ export class GalaxyAssistant {
     this.claude = localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey: options.anthropicApiKey || '' });
     // Accept either GEMINI_API_KEY or GOOGLE_API_KEY (both mean the same credential)
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (geminiKey && !localOnly()) this.gemini = new GoogleGenerativeAI(geminiKey);
+    if (geminiKey && !localOnly()) this._geminiClient = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
     // Auto-detect: if no Anthropic key but Gemini is available, switch response model to Gemini.
     // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
@@ -4012,7 +4022,18 @@ export class GalaxyAssistant {
    *  Uses the per-user key stored in AsyncLocalStorage when set by processMessage();
    *  falls back to the singleton system key otherwise. */
   private _getClaude(): Anthropic {
-    return localOnly() ? this.claude : (_anthropicOverride.getStore() ?? this.claude);
+    // A China-region user with no per-request client still gets their Chinese model (fail closed).
+    return localOnly() ? this.claude : (_anthropicOverride.getStore() ?? policyMessagesClient(this.claude));
+  }
+
+  /** The model that answers a chat turn with this context (what processMessage will use). */
+  responseModelFor(context: ChatContext): string {
+    if (localOnly()) return localConfig().model;
+    if (context.openrouterKey) {
+      const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
+      return context.selectedModel || (baseURL.includes('openrouter.ai') ? 'z-ai/glm-5.3-prime' : (process.env.LLM_MODEL || 'qwen-max'));
+    }
+    return this.modelConfig.responseModel;
   }
 
   /** Returns the OpenRouter OpenAI client if set for this request, otherwise null. */
@@ -4045,7 +4066,7 @@ export class GalaxyAssistant {
 
     const systemPrompt = `${ltmBlock}${projectBlock}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge across genomics, transcriptomics, proteomics, drug discovery, cryo-EM, and clinical research.
 
-Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which can run workflows directly.${responseLanguageDirective(context.uiLanguage)}`;
+Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which can run workflows directly.${responseLanguageDirective(context.uiLanguage)}${modelIdentityDirective(context.modelIdentity ?? modelIdentity(model), context.llmRegion)}`;
 
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       ...(context.previousMessages ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
@@ -5319,8 +5340,10 @@ Rules:
     // If the caller (chat-stream) supplied a per-user Galaxy proxy, scope it
     // to this turn via AsyncLocalStorage so every `this._api()` call in any
     // helper method picks it up. Skip the wrapper if no override is provided.
+    if (!context.modelIdentity) context = { ...context, modelIdentity: modelIdentity(this.responseModelFor(context)) };
     const overrideProxy = context.galaxyAPIOverride as GalaxyAPIProxy | undefined;
-    const userAnthropicKey = context.userAnthropicApiKey;
+    // A China-region user's Anthropic key is never used (llm-region-policy.ts; routes.ts drops it too).
+    const userAnthropicKey = context.llmRegion === 'cn' ? undefined : context.userAnthropicApiKey;
     const openrouterKey = context.openrouterKey;
 
     const runInner = () => {
@@ -5347,11 +5370,15 @@ Rules:
     if (openrouterKey && !localOnly()) {
       const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
       if (baseURL.includes('openrouter.ai')) {
-        const orShim = openaiCompatMessagesClient({
+        // China-region users: the Chinese model SET — each call on its role's model (the reply and
+        // tool loop on the response model, Haiku-class calls on the light model, images on the
+        // vision model). Everyone else: the selected model for every Anthropic-SDK call, as before.
+        const cnRoute = requireCnRoute();
+        const orShim = (cnRoute ? cnRoleMessagesClient(cnRoute) : openaiCompatMessagesClient({
           url: baseURL,
           model: context.selectedModel || 'z-ai/glm-5.3-prime',
           key: openrouterKey,
-        }) as unknown as Anthropic;
+        })) as unknown as Anthropic;
         return _anthropicOverride.run(orShim, () => _openrouterAgentic.run(true, runInner));
       }
       const orClient = new OpenAI({ baseURL, apiKey: openrouterKey });
@@ -8659,8 +8686,17 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       // (BIOMATE_DECOMP_OPENROUTER_KEY — not OPENROUTER_API_KEY, which routes every keyless user's whole
       // chat through OpenRouter). Chosen on the held-out decomposition benchmark (docs/20261103 §12.2).
       // On failure the Gemini path below runs (Flash), then the keyword fallback, marked degraded.
-      const orModel = configured.startsWith('openrouter:') ? configured.slice('openrouter:'.length) : '';
-      const orKey = process.env.BIOMATE_DECOMP_OPENROUTER_KEY || '';
+      let orModel = configured.startsWith('openrouter:') ? configured.slice('openrouter:'.length) : '';
+      let orKey = process.env.BIOMATE_DECOMP_OPENROUTER_KEY || '';
+      // China-region users: the Chinese set's intent model (llm-region-policy.ts CN_MODEL_SET.intent,
+      // overridable by BIOMATE_CN_INTENT_MODEL) on the user's Chinese route — not the deployment's
+      // decomposition model and not the response model.
+      const cnRoute = requireCnRoute();
+      const cnOnprem = !!cnRoute && cnRoute.url !== OPENROUTER_URL;
+      if (cnRoute) {
+        orModel = cnRoute.models.intent;
+        orKey = cnRoute.key;
+      }
       const isGemini = configured.startsWith('gemini-') || !!orModel;
       const effectiveIntentModel = orModel ? GEMINI_FLASH_MODEL : isGemini ? pickGeminiIntentModel(message) : configured;
       let primaryText: string | undefined;
@@ -8668,7 +8704,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         console.warn(`[Intent] BIOMATE_INTENT_MODEL=openrouter:${orModel} but BIOMATE_DECOMP_OPENROUTER_KEY is unset — using ${GEMINI_FLASH_MODEL}`);
       }
       if (orModel && orKey) {
-        primaryText = await decomposeViaOpenRouter(orModel, orKey, systemPrompt, messageForUQU).catch((e: any) => {
+        primaryText = await (cnOnprem
+          ? cnCompletion(cnRouteForRole(cnRoute!, 'intent'), { system: systemPrompt, messages: [{ role: 'user', content: messageForUQU }] })
+          : decomposeViaOpenRouter(orModel, orKey, systemPrompt, messageForUQU)).catch((e: any) => {
           console.warn(`[Intent] primary decomposition model ${orModel} failed (${String(e?.message || e).slice(0, 160)}) — falling back to ${GEMINI_FLASH_MODEL}`);
           return undefined;
         });
@@ -10431,6 +10469,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
 
 
     systemPrompt += responseLanguageDirective(context.uiLanguage);
+    systemPrompt += modelIdentityDirective(context.modelIdentity ?? modelIdentity(this.responseModelFor(context)), context.llmRegion);
 
     if (isSimpleSequencePropertyRequest(message)) {
       systemPrompt += '\nThis is a basic property calculation on the supplied sequence, not folding or antibody design. Execute it with run_code using Bio.SeqUtils.ProtParam.ProteinAnalysis. Print a JSON object with sequence, molecular_weight and isoelectric_point from the actual library methods. Only report values returned by the successful tool. State that these are theoretical properties of an unmodified linear sequence; do not infer cyclic chemistry, structure, affinity, efficacy or safety. If reporting the computed instability index, the ProtParam convention is below 40 predicted stable and above 40 potentially unstable; 40 is a boundary, not a measured half-life or a validated stability threshold for this short peptide. Do not invent a different threshold or assert experimentally established peptide instability. Prefer the requested molecular weight and pI over unsolicited biological interpretations.';

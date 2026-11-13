@@ -83,9 +83,20 @@ class ChatAPI:
                     error_message="",
                 )
 
-        self._ensure_openai_configured()
-
         messages = self._build_messages(payload, trans)
+
+        # A China-region request (galaxy.ai.llm_region): a Chinese model, never OpenAI; no
+        # Chinese-model credential → ChineseModelUnavailable (503 cn_model_unavailable).
+        from galaxy.ai.llm_region import cn_complete
+
+        cn_answer = cn_complete(messages=messages, max_tokens=2048)
+        if cn_answer is not None:
+            result["response"] = cn_answer
+            if job:
+                self.chat_manager.create(trans, job.id, cn_answer)
+            return ChatResponse(**result)
+
+        self._ensure_openai_configured()
 
         try:
             # We never want this to just blow up and return *nothing*, so catch common errors and provide friendly responses.

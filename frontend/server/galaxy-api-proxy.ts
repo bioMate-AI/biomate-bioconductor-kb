@@ -7,6 +7,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
+import { galaxyPolicyHeaders } from './galaxy-llm-policy-header';
 import type {
   GalaxyTool,
   ToolSearchResponse,
@@ -98,6 +99,14 @@ export class GalaxyAPIProxy {
         'Content-Type': 'application/json',
         ...(this.apiKey && { 'X-API-Key': this.apiKey }),
       },
+    });
+
+    // Chinese-LLM region policy: Galaxy's own LLM calls for this request follow it
+    // (galaxy-llm-policy-header.ts / backend galaxy.ai.llm_region).
+    this.client.interceptors.request.use((config) => {
+      const policy = galaxyPolicyHeaders();
+      for (const [k, v] of Object.entries(policy)) (config.headers as any)[k] = v;
+      return config;
     });
 
     // Validate connection on startup (async, non-blocking)

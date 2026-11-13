@@ -50,6 +50,13 @@ except Exception as _e:
 
 router = Router(tags=["nextflow"])
 
+
+def _current_llm_policy_dict():
+    """The current request's LLM region policy as a run-record field (None outside a request)."""
+    from galaxy.ai.llm_region import current_policy_dict  # noqa: PLC0415
+
+    return current_policy_dict()
+
 # In-process registry: run_id → {status, process, outdir, ...}
 # Stage 2a of the persistence refactor (docs/20260615_RUNS_PERSISTENCE_DESIGN.md)
 # adds a parallel write to RunStateStore at the init site. Reads still go
@@ -1508,6 +1515,7 @@ def _trigger_auto_reroute_on_failure(
                     "is_pilot": run_meta.get("is_pilot", False),
                     "is_auto_reroute": True,
                     "rerouted_from": run_id,
+                    "llm_policy": run_meta.get("llm_policy"),
                     "started_at": time.time(),
                     "workflow_domain": alternative["domain"],
                 }
@@ -7432,6 +7440,9 @@ def execute_nextflow(
         "user_id": request.user_id or "anonymous",
         "is_pilot": bool(request.is_pilot),
         "started_at": time.time(),
+        # The launching request's LLM region policy, re-entered by paths that handle this run
+        # outside the request (completion poller / orphan finalizer) — galaxy.ai.llm_region.
+        "llm_policy": _current_llm_policy_dict(),
         **({"outdir": _pre_outdir} if _pre_outdir else {}),
         **({"workdir": _pre_workdir} if _pre_workdir else {}),
     }
@@ -8603,6 +8614,9 @@ def _execute_nextflow_impl(
         # Original params — persisted so resume_nextflow_run can re-inject them
         # when the "Restart" button sends no body (avoids params.sequence = '' default).
         "params": dict(params),
+        # LLM region policy of the launching request (galaxy.ai.llm_region); this launch thread
+        # inherits the request context.
+        "llm_policy": _current_llm_policy_dict(),
     }
     with _runs_lock:
         _runs[run_id] = dict(_run_record_init)

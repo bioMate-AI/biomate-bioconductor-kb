@@ -383,8 +383,11 @@ class GeminiClient:
     def _convert_single(self, proc_id: str, prompt: str):
         """Convert single process."""
         try:
-            response = self.model.generate_content(prompt)
-            return self._parse_response(proc_id, response.text)
+            from galaxy.ai.llm_region import cn_complete
+            text = cn_complete(prompt, max_tokens=8192)  # China-region request: a Chinese model
+            if text is None:
+                text = self.model.generate_content(prompt).text
+            return self._parse_response(proc_id, text)
         except Exception as e:
             print(f"⚠️  Gemini error for {proc_id}: {e}")
             return None

@@ -1054,7 +1054,10 @@
       "anthropic_key_label": "Anthropic API 密钥",
       "models_open": "开源",
       "models_proprietary": "专有",
-      "model_recommended": "推荐的开源默认模型——在我们的基准测试中以最低成本取得最佳路由准确率"
+      "model_recommended": "推荐的开源默认模型——在我们的基准测试中以最低成本取得最佳路由准确率",
+      "models_chinese": "国产大模型",
+      "region_cn_note": "根据您的语言设置、浏览器语言或所在地区，您只能使用国产大模型。所有回复均由聊天中显示的国产大模型生成。",
+      "region_cn_model_rejected": "您所在地区仅可使用国产大模型，请从列表中选择，例如 deepseek/deepseek-v4.1-flash。"
     },
     "appearance": "外观",
     "content": "设置内容"

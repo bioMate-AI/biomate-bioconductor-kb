@@ -31,6 +31,8 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 
+from galaxy.ai.llm_region import ChineseModelUnavailable
+
 log = logging.getLogger(__name__)
 
 router = APIRouter(tags=["llm-internal"])
@@ -107,7 +109,9 @@ async def generate(request: Request) -> Dict[str, Any]:
     # through to the canonical chain so the request never fails for this reason.
     try:
         from galaxy.ai import sft_gold_inference
-        if sft_gold_inference.enabled_for(task):
+        from galaxy.ai.llm_region import current_policy as _cur_policy
+        _cn_req = bool(_cur_policy() and _cur_policy().is_cn)  # China region: Chinese models only
+        if not _cn_req and sft_gold_inference.enabled_for(task):
             try:
                 sft_text = await sft_gold_inference.agenerate(
                     prompt,
@@ -133,6 +137,8 @@ async def generate(request: Request) -> Dict[str, Any]:
     client = _llm_client()
     try:
         text = client.generate(prompt, **kwargs)
+    except ChineseModelUnavailable:
+        raise  # → 503 cn_model_unavailable (fast_app exception handler)
     except Exception as exc:
         log.exception("[LLMInternal] generate failed")
         raise HTTPException(status_code=502, detail=f"LLM generation failed: {exc}")
