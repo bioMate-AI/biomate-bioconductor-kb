@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolveE2eBaseUrl } from './e2e/_e2e-base-url';
 
 /**
  * Live-journey Playwright config (Track E, docs/20261110_LIVE_JOURNEY_TESTS_AND_CI.md).
@@ -29,7 +30,8 @@ export default defineConfig({
     ['json', { outputFile: process.env.LIVE_JOURNEYS_JSON || 'e2e/reports/live-journeys.json' }],
   ],
   use: {
-    baseURL: process.env.BIOMATE_URL || 'https://dev-public.biomate.ai',
+    // Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > live.
+    baseURL: resolveE2eBaseUrl('https://dev-public.biomate.ai'),
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',

@@ -106,6 +106,7 @@ import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./aut
 import { decideRunAccess } from "./run-access";
 import { decideOutputAccess, decideInvocationAccess } from "./output-access";
 import { assembleReproducibilityRecord, enrichOutputsWithChecksums } from "./reproducibility-record";
+import { buildReproducibilityPackMembers } from "./reproducibility-pack";
 import { reportVersionStore } from "./report-version-store";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
@@ -14569,6 +14570,104 @@ Rules:
     } catch (e: any) {
       console.error("[reproducibility-record] error:", e?.message ?? e);
       res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
+  // Reproducibility pack ZIP — methods + software + citations + run record +
+  // run-level RO-Crate. Provenance only (not scientific outputs). Distinct from
+  // Galaxy GET …/reproducibility (reads /tmp only; useless for AWS Batch).
+  app.get("/api/runs/:anyId/reproducibility-pack", authenticateToken, async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
+      let outputs: any[] = [];
+      try {
+        const { runsOutputsService } = await import("./services/runs-outputs-service");
+        outputs = (await runsOutputsService.list(run.id)) || [];
+      } catch (e: any) {
+        console.warn("[reproducibility-pack] canonical resolver failed:", e?.message ?? e);
+      }
+      if (!outputs.length) {
+        try {
+          const gid = (run as any).execution?.galaxyInvocationId;
+          if (gid) {
+            outputs = (await storage.getInvocationOutputs(gid)) || [];
+            if (!outputs.length) {
+              const inv = await storage.getInvocationByGalaxyId(gid);
+              if (inv) outputs = (await storage.getInvocationOutputs(inv.id)) || [];
+            }
+          }
+        } catch (e: any) {
+          console.warn("[reproducibility-pack] invocation-output fallback failed:", e?.message ?? e);
+        }
+      }
+      const record = assembleReproducibilityRecord(run, outputs);
+
+      let software: unknown = { versions: {}, count: 0 };
+      let softwareNote: string | undefined;
+      try {
+        const gid =
+          (run as any).execution?.galaxyInvocationId ||
+          (run as any).execution?.nextflowRunId ||
+          run.id;
+        const softResp = await (galaxyAPIProxy.client as any).get(
+          `/api/invocations/${encodeURIComponent(String(gid))}/software`,
+          { timeout: 8000 },
+        );
+        software = softResp?.data ?? software;
+      } catch (e: any) {
+        softwareNote = `software fetch failed: ${e?.message || "unavailable"}`;
+      }
+
+      let citations: unknown = { citations: [], count: 0 };
+      let citationsNote: string | undefined;
+      try {
+        const wfName = record.workflowName;
+        if (wfName && wfName !== "Untitled Workflow") {
+          const citeResp = await (galaxyAPIProxy.client as any).post(
+            `/api/ai_assistant/workflow_citations`,
+            { name: wfName },
+            { timeout: 8000 },
+          );
+          const data = citeResp?.data;
+          const list = Array.isArray(data) ? data : (data?.citations || []);
+          citations = { citations: list, count: list.length };
+        } else {
+          citationsNote = "no workflow name on run — citations skipped";
+        }
+      } catch (e: any) {
+        citationsNote = `citations fetch failed: ${e?.message || "unavailable"}`;
+      }
+
+      const members = buildReproducibilityPackMembers({
+        record,
+        software,
+        citations,
+        softwareNote,
+        citationsNote,
+      });
+
+      const safeName = String(record.workflowName || "run")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_")
+        .slice(0, 48);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="biomate-repro-pack-${safeName}-${record.runId.slice(0, 8)}.zip"`,
+      );
+      const archive = archiver("zip", { zlib: { level: 9 } });
+      archive.on("error", (err: Error) => {
+        console.error("[reproducibility-pack] archiver error:", err);
+        try { res.status(500).end(); } catch { /* headers may be sent */ }
+      });
+      archive.pipe(res);
+      for (const m of members) {
+        archive.append(m.body, { name: m.name });
+      }
+      await archive.finalize();
+    } catch (e: any) {
+      console.error("[reproducibility-pack] error:", e?.message ?? e);
+      if (!res.headersSent) res.status(500).json({ error: e?.message || String(e) });
     }
   });
 

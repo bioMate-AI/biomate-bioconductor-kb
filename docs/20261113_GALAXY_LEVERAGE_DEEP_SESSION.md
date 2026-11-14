@@ -67,12 +67,11 @@ Samplesheet/`input`/`matrix` accept table kinds; `reads`+CSV blocks before Batch
 
 ## Still open (from checklist high-value Missing / residual Partial)
 
-1. Materialize-on-Confirm&Run for deferred HDAs (explicit `POST …/materialize`)
-2. Reproducibility pack zip
-3. Pre-run cost estimate badge restore
+1. ~~Materialize-on-Confirm&Run~~ → **Have** (`deferred-materialize.ts`, 2026-11-13)
+2. ~~Reproducibility pack zip~~ → **Have** (`GET /api/runs/:id/reproducibility-pack`, 2026-11-13)
+3. Pre-run cost estimate badge restore (honesty redesign — historical/prior; do not uncomment static table)
 4. BAM/VCF viewers without IT; datatype converters; workflow landings; storage purge; in-app notifications
-5. Live E2E for remote FTP + deferred (API smoke) after sync
-6. Samplesheet E2E attach assert requires this commit on live
+5. Live E2E for remote FTP + deferred materialize (API smoke) after sync
 
 ---
 
