@@ -35,7 +35,8 @@ Worktree tip base: `8c946897dd` · branch `sync/pr398-onto-dev`
 - Inline Python fragment from `GENERATE_REINVENT4` → `compile()` OK
 
 ## Sync
-- Needs `BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh` when lease FREE / SSM reachable.
+- Commit pushed: `c0fe0249ea` on `sync/pr398-onto-dev`.
+- Sync **blocked** here: `ssm.us-west-2.amazonaws.com` unreachable (same Cursor/proxy class as prior tip). Operator: `BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh` when SSM works (stash any unrelated dirty source first — sync refuses dirty trees).
 - After sync: re-run `design-generate-sm-0` (expect past exit 3 if `/opt/REINVENT4` importable + Zenodo egress); re-seed cryo coldstart str-0 (expect `movies_path` prefilled, Confirm enabled if license OK).
 - Image rebuild still recommended so priors/CLI are baked in (no runtime Zenodo dependency).
 
