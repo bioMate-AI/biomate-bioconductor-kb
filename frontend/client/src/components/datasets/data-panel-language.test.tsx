@@ -85,6 +85,7 @@ const ALLOWED = [
   "study/counts.csv", "counts.csv", "de.tsv", "study", "RNA pilot", "nf-core/rnaseq",
   "gene", "label", "batch", "TP53", "EGFR", "ctrl", "case", "b1", "b2",
   "text/csv", "RO-Crate", "Galaxy", "BioMate", "FastQC", "MultiQC", "ID", "Jupyter", "RStudio", "QC", "S3", "URL", "KB", "MB", "bp", "Phred",
+  "FTP", "HTTP", // protocol labels in the add-URL / public-FTP affordance (kept as acronyms in zh)
   "big/huge.csv", "big/net.csv",
   "inputs", // the top-level folder node is a storage path segment, not UI copy
 ]

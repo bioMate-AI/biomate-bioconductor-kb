@@ -111,7 +111,7 @@ async function renderTabsUnder(language: "chinese" | "english"): Promise<string[
     } else {
       const family = tab === 0 ? "general" : "molecular"
       await waitFor(() => expect((getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
-      fireEvent.change(getByTestId("launcher-dataset"), { target: { value: FILE.id } })
+      fireEvent.change(getByTestId("launcher-dataset"), { target: { value: `file:${FILE.id}` } })
       if (family === "general") {
         await waitFor(() => expect(container.querySelector('[data-testid="launcher-target"]')).toBeTruthy())
         await waitFor(() => expect(container.querySelector('[data-testid="train-run-r1"]')).toBeTruthy())

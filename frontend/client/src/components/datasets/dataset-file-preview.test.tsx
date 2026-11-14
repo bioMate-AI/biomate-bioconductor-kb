@@ -9,8 +9,11 @@ function mockFile(text: string | Uint8Array) {
   const value = typeof text === "string" ? new TextEncoder().encode(text) : text
   const read = vi.fn().mockResolvedValueOnce({ value, done: false }).mockResolvedValue({ done: true })
   const cancel = vi.fn().mockResolvedValue(undefined)
-  const fetch = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ url: "https://files.example/test" }) })
+  // url → body → any later sibling fetches (e.g. MarkdownReport file list) must stay thenable.
+  const fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ url: "https://files.example/test" }) })
     .mockResolvedValueOnce({ ok: true, body: { getReader: () => ({ read, cancel, releaseLock: vi.fn() }) } })
+    .mockResolvedValue({ ok: true, json: async () => ({ files: [] }) })
   vi.stubGlobal("fetch", fetch)
   return { fetch, cancel }
 }
@@ -91,16 +94,15 @@ it("renders YAML config as readable inert text", async () => {
 
 const VCF = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nchr7\t55191822\trs1\tT\tG\t60\tPASS\tDP=40\n"
 
-it("decompresses a .vcf.gz in the browser (Range request) and dispatches it to the VCF viewer", async () => {
-  const gz = new Uint8Array(Buffer.concat([gzipSync(VCF.slice(0, 40)), gzipSync(VCF.slice(40))]))  // two members
-  const { fetch } = mockFile(gz)
+it("routes indexed .vcf.gz to the IGV preview slot (not the gzip text / VCF table path)", async () => {
+  const { fetch } = mockFile(new Uint8Array(gzipSync(VCF)))
   render(<DatasetFilePreview projectId="p" fileId="f" name="calls.vcf.gz" />)
-  const view = await screen.findByTestId("dataset-text-preview")
-  // Variant table: header from #CHROM, the record split into columns (not a raw dump).
-  expect(view.querySelector("th")?.textContent).toBe("CHROM")
-  expect(view).toHaveTextContent("55191822")
-  expect(view).not.toHaveTextContent("##fileformat")
-  expect(fetch.mock.calls[1][1].headers.Range).toBe("bytes=0-1048575")
+  expect(await screen.findByTestId("dataset-igv-preview")).toBeInTheDocument()
+  expect(await screen.findByTestId("inline-igv-viewer")).toBeInTheDocument()
+  // Signed URL only — no gzip Range body fetch into the VCF table path.
+  expect(fetch.mock.calls[0][0]).toBe("/api/projects/p/files/f/url")
+  expect(fetch.mock.calls.some((c) => c[1]?.headers?.Range === "bytes=0-1048575")).toBe(false)
+  expect(screen.queryByTestId("dataset-text-preview")).toBeNull()
 })
 
 it("previews .fastq.gz as sequence cards", async () => {
@@ -113,8 +115,8 @@ it("previews .fastq.gz as sequence cards", async () => {
 
 it("says so honestly when the browser has no DecompressionStream", async () => {
   vi.stubGlobal("DecompressionStream", undefined)
-  const { fetch } = mockFile(new Uint8Array(gzipSync(VCF)))
-  render(<DatasetFilePreview projectId="p" fileId="f" name="calls.vcf.gz" />)
+  const { fetch } = mockFile(new Uint8Array(gzipSync("@read1\nACGTN\n+\nIIIII\n")))
+  render(<DatasetFilePreview projectId="p" fileId="f" name="R1.fastq.gz" />)
   expect(await screen.findByTestId("dataset-preview-no-decompress")).toHaveTextContent("cannot decompress")
   expect(fetch).not.toHaveBeenCalled()
 })
