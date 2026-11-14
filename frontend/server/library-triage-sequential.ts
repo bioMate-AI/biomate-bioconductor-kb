@@ -149,6 +149,17 @@ function isKnownLibraryCatalogChain(
  * single-intent "Run ADMET on aspirin" / "Screen aspirin for ADMET" (Bugbot 2026-11-14).
  * Bare "screen" without a library/candidates cue is also insufficient.
  */
+/** True when the message attaches / names a count matrix (not raw FASTQ). */
+export function messageHasCountMatrixInputs(message: string): boolean {
+  const m = message || '';
+  return (
+    /\b(airway_counts|counts_matrix|submission_counts_matrix|count[_ ]matrix|gene[_ ]counts)\b/i.test(
+      m,
+    ) ||
+    /\b[\w.-]*counts?[_-]?(matrix|table)\.(csv|tsv|txt)\b/i.test(m)
+  );
+}
+
 export function messageSupportsCatalogChainHint(
   message: string,
   chainHint: string,
@@ -165,6 +176,20 @@ export function messageSupportsCatalogChainHint(
     /\b(screen|screening|triage)\b/.test(msgLc) &&
     /\b(library|libraries|candidates?|compounds?|ligands?|molecules?)\b/.test(msgLc);
   return multiStepCue || libraryScreenCue;
+}
+
+/**
+ * Remap FASTQ bulk RNA-seq chain → count-matrix bioc chain when counts are attached.
+ * Coldstart DE examples ship airway_counts.csv / MG counts_matrix — launching
+ * bulk_rnaseq_de_analysis (nf-core/rnaseq first) fails without FASTQ.
+ */
+export function remapBulkRnaseqChainForCounts(
+  chainHint: string | null | undefined,
+  message: string,
+): string | null | undefined {
+  if (chainHint !== 'bulk_rnaseq_de_analysis') return chainHint;
+  if (!messageHasCountMatrixInputs(message || '')) return chainHint;
+  return 'bioc_bulk_rnaseq_de_v2';
 }
 
 /**

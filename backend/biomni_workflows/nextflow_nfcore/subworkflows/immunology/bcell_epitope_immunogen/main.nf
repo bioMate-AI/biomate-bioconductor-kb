@@ -58,11 +58,11 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
-
-// Demo default — a SYNTHETIC illustrative antigen (NOT a validated EBV sequence);
-// production supplies the real antigen FASTA (gp350/gH/gL/gB/EBNA1/LMP2) at launch.
-params.antigens = '[{"id":"demo_antigen","sequence":"MKLVTSILAVLLPLALCKNGDRSNPEVKQLLNGTDKWEHKGPSSQTYNRWFLDGKEYTVPESTWYNRQTGKDAPLHKRELSDNWQ"}]'
+// Default antigens: UniProt P03200 EBV gp350 (vendored under sample_data/ebv/).
+// Overridden by BioMate executor / prepared-input seeds at launch. Fully-qualified
+// JsonSlurper (no top-level import) — same Nextflow compile constraint as
+// antibody_antigen_complex.
+params.antigens = '[{"id":"gp350","sequence":"MEAALLVCQYTIQSLIHLTGEDPGFFNVEIPEFPFYPTCNVCTADVNVTINFDVGGKKHQLDLDFGQLTPHTKAVYQPRGAFGGSENATNLFLLELLGAGELALTMRSKKLPINVTTGEEQQVSLESVDVYFQDVFGTMWCHHAEMQNPVYLIPETVPYIKWDNCNSTNITAVVRAQGLDVTLPLSLPTSAQDSNFSVKTEMLGNEIDIECIMEDGEISQVLPGDNKFNITCSGYESHVPSGGILTSTSPVATPIPGTGYAYSLRLTPRPVSRFLGNNSILYVFYSGNGPKASGGDYCIQSNIVFSDEIPASQDMPTNTTDITYVGDNATYSVPMVTSEDANSPNVTVTAFWAWPNNTETDFKCKWTLTSGTPSGCENISGAFASNRTFDITVSGLGTAPKTLIITRTATNATTTTHKVIFSKAPESTTTSPTLNTTGFADPNTTTGLPSSTHVPTNLTAPASTGPTVSTADVTSPTPAGTTSGASPVTPSPSPWDNGTESKAPDMTSSTSPVTTPTPNATSPTPAVTTPTPNATSPTPAVTTPTPNATSPTLGKTSPTSAVTTPTPNATSPTLGKTSPTSAVTTPTPNATSPTLGKTSPTSAVTTPTPNATGPTVGETSPQANATNHTLGGTSPTPVVTSQPKNATSAVTTGQHNITSSSTSSMSLRPSSNPETLSPSTSDNSTSHMPLLTSAHPTGGENITQVTPASISTHHVSTSSPAPRPGTTSQASGPGNSSTSTKPGEVNVTKGTPPQNATSPQAPSGQKTAVPTVTSTGGKANSTTGGKHTTGHGARTSTEPTTDYGGDSTTPRPRYNATTYLPPSTSSKLRPRWTFTSPPVTTAQATVPVPPTSQPRFSNLSMLVLQWASLAVLTLLLLLVMADCAFRRNLSTSHTYTTPPYDDAETYV"}]'
 params.target          = 'EBV'
 params.window          = '7'
 params.min_epitope_len = '6'
@@ -382,8 +382,11 @@ workflow BCELL_EPITOPE_IMMUNOGEN {
 // Entry workflow for standalone execution.
 workflow {
     def antigens = params.antigens instanceof String
-        ? new JsonSlurper().parseText(params.antigens)
+        ? new groovy.json.JsonSlurper().parseText(params.antigens as String)
         : params.antigens
+    if (!(antigens instanceof List) || antigens.isEmpty()) {
+        error "params.antigens must be a non-empty JSON list of {id, sequence}"
+    }
 
     ch_antigens = Channel
         .fromList(antigens)

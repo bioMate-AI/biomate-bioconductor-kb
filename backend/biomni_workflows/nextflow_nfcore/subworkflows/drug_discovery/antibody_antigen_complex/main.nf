@@ -48,11 +48,12 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
-
 // Demo defaults (overridden by BioMate's executor at launch). VH/VL below are the
 // FMC63 anti-CD19 Fv (Kymriah/Yescarta) folded against a short CD19 fragment — a
 // wiring demo only, not a validated epitope.
+// Note: use fully-qualified groovy.json.JsonSlurper (no top-level import) — Nextflow
+// strict/classic parsers reject `import groovy.json.JsonSlurper` as a script compile
+// error on some Batch head images (coldstart design-fold-complex-bio-0/1).
 params.antibodies      = '[{"id": "fmc63", "vh": "EVKLQESGPGLVAPSQSLSVTCTVSGVSLPDYGVSWIRQPPRKGLEWLGVIWGSETTYYNSALKSRLTIIKDNSKSQVFLKMNSLQTDDTAIYYCAKHYYYGGSYAMDYWGQGTSVTVSS", "vl": "DIQMTQTTSSLSASLGDRVTISCRASQDISKYLNWYQQKPDGTVKLLIYHTSRLHSGVPSRFSGSGSGTDYSLTISNLEQEDIATYFCQQGNTLPYTFGGGTKLEIT"}]'
 params.antigen_chains  = '{"A": "PEELGGGGSGGGGSGGGGSQFSVLKMTTIRHWEDIKELGPTPGSEDSLYNNFRGSSHGFPEDIIIGSDIKE"}'
 params.target          = 'demo_target'
@@ -229,8 +230,11 @@ workflow ANTIBODY_ANTIGEN_COMPLEX {
 // Entry workflow for standalone execution.
 workflow {
     def antibodies = params.antibodies instanceof String
-        ? new JsonSlurper().parseText(params.antibodies)
+        ? new groovy.json.JsonSlurper().parseText(params.antibodies as String)
         : params.antibodies
+    if (!(antibodies instanceof List) || antibodies.isEmpty()) {
+        error "params.antibodies must be a non-empty JSON list of {id, vh, vl?}"
+    }
 
     ch_antibodies = Channel
         .fromList(antibodies)

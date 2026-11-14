@@ -6,7 +6,9 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir                   = './results'
 params.smiles_list              = '["CC(=O)Nc1ccc(O)cc1"]'
-params.receptor_pdb_file        = ''
+// Coldstart / demo default: ABL1 ATP pocket (imatinib-bound). Bare PDB id is
+// fetched from RCSB inside the task when no local/S3 path is supplied.
+params.receptor_pdb_file        = '1IEP'
 params.box_center               = '[0.0, 0.0, 0.0]'
 params.box_size                 = '[20.0, 20.0, 20.0]'
 params.ncpu                     = '4'     // used only by direct (unsharded) callers; sharded runs use the CPUs Batch allocates
@@ -14,7 +16,7 @@ params.docking_shard_size       = 10      // ligands per parallel Batch task (Vi
 params.exhaustiveness           = '8'
 params.n_poses                  = '9'
 params.reference_ligand_smiles  = ''
-params.site_ligand             = ''      // residue name of a co-crystallised ligand to REMOVE from the receptor before docking (e.g. 'AQ4' in 1M17); waters are always removed
+params.site_ligand             = 'STI'   // remove co-crystallised STI (imatinib) from 1IEP before docking; waters always removed
 
 process DOCKING_AUTODOCK_VINA {
     tag "${meta.id}"

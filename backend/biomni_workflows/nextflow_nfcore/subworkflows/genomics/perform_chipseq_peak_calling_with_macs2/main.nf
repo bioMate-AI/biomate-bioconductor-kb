@@ -396,15 +396,14 @@ workflow PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2_WORKFLOW {
 workflow {
     def demo        = ( !params.chip_seq_file || !params.control_file )
     // Canonical MACS test pair — real public CTCF ChIP-seq (NA12878), chr22, ~50k single-end reads.
-    def demo_chip   = 'https://raw.githubusercontent.com/macs3-project/MACS/master/test/CTCF_SE_ChIP_chr22_50k.bed.gz'
-    def demo_ctrl   = 'https://raw.githubusercontent.com/macs3-project/MACS/master/test/CTCF_SE_CTRL_chr22_50k.bed.gz'
+    def demo_chip   = "${projectDir}/../../../../sample_data/chipseq/CTCF_SE_ChIP_chr22_50k.bed.gz"
+    def demo_ctrl   = "${projectDir}/../../../../sample_data/chipseq/CTCF_SE_CTRL_chr22_50k.bed.gz"
     def chip_src    = demo ? demo_chip : params.chip_seq_file
     def control_src = demo ? demo_ctrl : params.control_file
 
     if( demo ) {
-        log.warn "[demo] no --chip_seq_file/--control_file supplied -> using canonical MACS CTCF " +
-                 "ChIP-seq demo pair (CTCF_SE_ChIP_chr22_50k + CTCF_SE_CTRL_chr22_50k, chr22 ~50k " +
-                 "reads each, macs3-project/MACS test data)"
+        log.warn "[demo] no --chip_seq_file/--control_file supplied -> using vendored MACS CTCF " +
+                 "demo pair under sample_data/chipseq (CTCF_SE_ChIP_chr22_50k + CTCF_SE_CTRL_chr22_50k)"
     }
 
     ch_input = Channel.of(

@@ -2573,6 +2573,73 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     #       fails with "Path value cannot be null". We bind a non-null placeholder file instead.
     staged: list[Path] = []
     _keys_to_pop: list[str] = []
+    # Freestyle file-param pool for Style-A collect-all slots. Used when declared
+    # Input: tokens are unbound (LLM/upload used arbitrary keys or bare attachments).
+    # Multi-name headers (transcriptome,proteome,metabolome / gene_summary,sgrna_summary)
+    # previously only collected when len(names)==1 → placeholder .dat and R "missing CSV".
+    # Include VCF/pedigree extensions for seqvartools coldstart (ceph1463_*.vcf.gz + .ped).
+    # Match `.vcf.gz` explicitly — a bare `gz` token would also catch FASTQ.gz.
+    _fre_ext = re.compile(
+        r'(?:[.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab|parquet|vcf|ped|bed|gds|bcf)$|[.]vcf\.gz$|[.]bcf\.gz$)',
+        re.IGNORECASE,
+    )
+    _skip_file_keys = {"outdir", "output", "output_dir", "output_location", "workdir",
+                       "work_dir", "publish_dir", "publishdir", "resume_from_run_id",
+                       "labels", "label", "benchmark_methods", "methods", "n_clusters"}
+    # Basename / stem role hints so tcga_mrna.csv → transcriptome, proteinGroups.txt →
+    # proteinGroups.txt, crispr_counts.tsv does NOT silently become gene_summary.txt
+    # (counts→RRA is handled inside the mageckflute script, not by rename here).
+    _ROLE_HINTS = {
+        "transcriptome": ("transcript", "mrna", "rna", "gene_expr", "rnaseq"),
+        "proteome": ("protein", "proteome", "proteomic", "lfq"),
+        "metabolome": ("metabol", "hmdb", "lipid", "metabo"),
+        "gene_summary": ("gene_summary", "rra.gene", "mageck_gene"),
+        "sgrna_summary": ("sgrna_summary", "rra.sgrna", "mageck_sgrna"),
+        "proteingroups": ("proteingroups", "protein_groups"),
+        "proteinGroups": ("proteingroups", "protein_groups"),
+        "patient_clinical_data": ("clinical", "patient", "survival", "cohort", "pbc"),
+        "file": ("vcf", "genotype", "genotypes", "variants", "ceph"),
+        "file.vcf": ("vcf", "genotype", "genotypes", "variants", "ceph"),
+        "pedigree_data": ("ped", "pedigree", "ceph"),
+        "pedigree_data.RData": ("ped", "pedigree", "ceph"),
+    }
+
+    def _collect_freestyle_file_vals() -> list:
+        # Exclude keys that already match a declared Input: token (with/without ext)
+        # so a correctly bound `transcriptome=` is not also stolen into the pool.
+        _declared_keys = set()
+        for _n in names:
+            _declared_keys.add(_n.lower())
+            if "." in _n:
+                _declared_keys.add(_n.rsplit(".", 1)[0].lower())
+        out: list = []
+        for _k, _v in list(params.items()):
+            _kl = str(_k).lower()
+            if _kl in _skip_file_keys or _kl in _declared_keys:
+                continue
+            if isinstance(_v, str) and _fre_ext.search(_v):
+                out.append(_v)
+                _keys_to_pop.append(_k)
+            elif isinstance(_v, (list, tuple)) and any(
+                isinstance(_e, str) and _fre_ext.search(_e) for _e in _v
+            ):
+                out.extend([_e for _e in _v if isinstance(_e, str) and _fre_ext.search(_e)])
+                _keys_to_pop.append(_k)
+        return out
+
+    def _role_match(decl_name: str, file_uri: str) -> bool:
+        base = Path(str(file_uri).split("?", 1)[0].rstrip("/")).name.lower()
+        stem = Path(base).stem.lower()
+        logical = decl_name.rsplit(".", 1)[0].lower() if "." in decl_name else decl_name.lower()
+        if stem == logical or base == decl_name.lower() or stem.replace("-", "_") == logical:
+            return True
+        hints = _ROLE_HINTS.get(logical) or _ROLE_HINTS.get(decl_name) or ()
+        return any(h in stem or h in base for h in hints)
+
+    _freestyle_pool: list = []
+    if names and n_path <= 1:
+        _freestyle_pool = _collect_freestyle_file_vals()
+
     if names:
         # Style A: every declared input must be supplied; otherwise fall back to the normal path
         # so the missing-input error surfaces clearly rather than a half-bound channel.
@@ -2588,38 +2655,29 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 src = params.get(_no_ext)
                 if src:
                     _pop_key = _no_ext
-            if not src and n_path <= 1 and len(names) == 1:
-                # UNIVERSAL multi-omics fallback: the workflow declares ONE list-style input
-                # (e.g. `omics`, collected as a single `path(input_files, stageAs:'?/*')` slot),
-                # but the caller — the LLM param-prefill parsing a free-text multi-omics request
-                # ("drugs = s3://…/drugs.csv, methylation = …") — supplied the matrices under
-                # ARBITRARY param names (drugs_data, methylation, mrna, ...), not `omics`. Collect
-                # every file-valued param (s3:// URI or *.csv/.tsv/.txt/.rds/.h5ad path) into the
-                # list so the UI/routing flow works without the caller knowing the `omics` token.
-                # Each is staged under its basename below → the R body names each view by its file.
-                # Match only real input MATRICES by DATA-FILE EXTENSION. Do NOT match a bare
-                # `s3://…` prefix: the `outdir` / output-location param is also an s3:// URI but
-                # is a directory (no extension) that does not exist yet — collecting it made the
-                # wrapper try to download it and 404 on HeadObject, failing every mis-named run.
-                _fre = re.compile(r'[.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab|parquet)$', re.IGNORECASE)
-                _skip_keys = {"outdir", "output", "output_dir", "output_location", "workdir",
-                              "work_dir", "publish_dir", "publishdir", "resume_from_run_id",
-                              # benchmark workflow: ground-truth label + method selector are NOT
-                              # omics modalities — labels is an s3://…csv (would match _fre) that
-                              # must reach only the COMPARE scoring step, never the method inputs.
-                              "labels", "label", "benchmark_methods", "methods", "n_clusters"}
-                _collected = []
-                for _k, _v in list(params.items()):
-                    if str(_k).lower() in _skip_keys:
-                        continue
-                    if isinstance(_v, str) and _fre.search(_v):
-                        _collected.append(_v)
-                        _keys_to_pop.append(_k)
-                    elif isinstance(_v, (list, tuple)) and any(isinstance(_e, str) and _fre.search(_e) for _e in _v):
-                        _collected.extend([_e for _e in _v if isinstance(_e, str) and _fre.search(_e)])
-                        _keys_to_pop.append(_k)
-                if _collected:
-                    src = _collected
+            if not src and n_path <= 1 and _freestyle_pool:
+                # Prefer semantic/basename match. For a single declared name, the whole
+                # remaining pool is the list-style input (omics). For multi-name headers,
+                # ONLY bind on a role/basename hit — never blind-zip leftovers (e.g.
+                # tcga_metadata.csv must not become metabolome.csv).
+                _matched_idx = next(
+                    (i for i, u in enumerate(_freestyle_pool) if _role_match(name, u)),
+                    None,
+                )
+                if _matched_idx is not None:
+                    src = _freestyle_pool.pop(_matched_idx)
+                elif len(names) == 1:
+                    # UNIVERSAL multi-omics fallback: one list-style input (e.g. `omics`) —
+                    # stage every remaining file under its own basename for the R body.
+                    src = list(_freestyle_pool)
+                    _freestyle_pool.clear()
+                elif not staged:
+                    # Multi-token header with no role match yet (e.g. crispr_counts.tsv for
+                    # gene_summary.txt,sgrna_summary.txt): stage the pool under ORIGINAL
+                    # basenames so the R body can discover/convert. Subsequent declared
+                    # names see `staged` and skip (no placeholder pollution).
+                    src = list(_freestyle_pool)
+                    _freestyle_pool.clear()
             if not src:
                 # No input resolved for this declared name. Rather than abort the
                 # launch with a 422 ("no entry wrapper could be generated"), bind a
@@ -2686,6 +2744,20 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
             # filename the workflow actually reads so the input contract is satisfied without
             # touching the workflow logic.
             stage_name = _resolve_read_filename(text, name)
+            src_base = Path(str(src).split('?', 1)[0].rstrip('/')).name
+            src_suf = Path(src_base).suffix.lower()
+            dest_suf = Path(stage_name).suffix.lower()
+            # Keep original basename when the upload is a compatible alternate format
+            # the workflow discovers at runtime (e.g. .ped vs pedigree_data.RData,
+            # .vcf.gz vs file.vcf). Renaming a .ped to .RData trips the format guard.
+            _alt_ok = {
+                ('.ped', '.rdata'), ('.ped', '.rds'),
+                ('.vcf', '.vcf'), ('.gz', '.vcf'),  # *.vcf.gz → stem ends .gz
+            }
+            if src_base and (src_suf, dest_suf) in _alt_ok:
+                stage_name = src_base
+            elif src_base.lower().endswith('.vcf.gz') and 'vcf' in name.lower():
+                stage_name = src_base
             dest = run_dir / stage_name
             try:
                 _stage_declared_input(src, dest)
@@ -4139,7 +4211,16 @@ process {{
         # `container` directive wins (the benchmark-validated per-tool images). SAFETY: only
         # add a workflow here whose EVERY process declares a container — nf_encyclopedia does
         # NOT (its modules rely on the forced global), so it is intentionally excluded.
-        _PER_PROCESS_CONTAINER_WORKFLOWS = ("proteomics_dda_search", "proteomics_db_search")
+        # reinvent4_* declare distinct RDKit vs reinvent4-nf images per process —
+        # a global container would wipe the reinvent CLI/prior image (class of
+        # "REINVENT4 CLI/package not found" when drug-discovery-nf is forced).
+        _PER_PROCESS_CONTAINER_WORKFLOWS = (
+            "proteomics_dda_search",
+            "proteomics_db_search",
+            "reinvent4_lead_design",
+            "reinvent4_finetune_rl",
+            "mpo_denovo_optimization",
+        )
         _per_process_containers = any(w in (nf_path or "") for w in _PER_PROCESS_CONTAINER_WORKFLOWS)
         _skip_global_container = is_nfcore_or_bioc or _per_process_containers
         lines += [
@@ -4239,10 +4320,23 @@ process {{
         # Skip GPU process label/name selectors for user-uploaded personal workflows.
         # Personal workflows live under /tmp/biomate_user_nf/ and don't use BioMate
         # process labels (process_gpu, PRODUCTION_MD). Nextflow 24+ strict mode exits
-        # code 1 when a withName selector matches no process in the workflow.
+        # code 1 when a withName selector matches no process in the workflow —
+        # observed coldstart analysis-try-sample-data-3 (flow cytometry) where the
+        # blanket PRODUCTION_MD selector aborted the session before any task ran.
+        # withLabel unmatched is harmless; withName must only be emitted when the
+        # process is actually declared in this .nf (same discipline as resource_classification).
         _is_personal_wf = "/tmp/biomate_user_nf/" in nf_path
+        _nf_declares_production_md = False
+        if nf_path and os.path.exists(nf_path):
+            try:
+                _nf_declares_production_md = bool(re.search(
+                    r"(?m)^\s*process\s+PRODUCTION_MD\b",
+                    Path(nf_path).read_text(errors="replace"),
+                ))
+            except OSError:
+                _nf_declares_production_md = False
         if gpu_queue and not _is_personal_wf:
-            lines += [
+            _gpu_block = [
                 "process {",
                 "    withLabel: 'process_gpu' {",
                 f"        queue = '{gpu_queue}'",
@@ -4253,15 +4347,22 @@ process {{
                 "        cpus = 8",
                 "        memory = '32.GB'",
                 "    }",
-                "    withName: 'PRODUCTION_MD' {",
-                f"        queue = '{gpu_queue}'",
-                "        accelerator = 1",
-                "        cpus = 8",
-                "        memory = '32.GB'",
-                "    }",
-                "}",
             ]
-            log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
+            if _nf_declares_production_md:
+                _gpu_block += [
+                    "    withName: 'PRODUCTION_MD' {",
+                    f"        queue = '{gpu_queue}'",
+                    "        accelerator = 1",
+                    "        cpus = 8",
+                    "        memory = '32.GB'",
+                    "    }",
+                ]
+            _gpu_block.append("}")
+            lines += _gpu_block
+            log.info(
+                f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}"
+                + (" + PRODUCTION_MD" if _nf_declares_production_md else " (no PRODUCTION_MD in .nf)")
+            )
         # Per-label CPU/memory for the standard nf-core resource tiers. Without this,
         # processes labelled `process_low|medium|high` carry NO `memory` directive, so the
         # awsbatch executor falls back to the Batch job-definition default (~1-2 GB). That

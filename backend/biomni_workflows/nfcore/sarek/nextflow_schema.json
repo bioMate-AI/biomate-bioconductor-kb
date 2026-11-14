@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/nfcore/sarek/nextflow_schema.json",
+  "title": "nf-core/sarek stub schema",
+  "description": "Display/execution-gate schema aligned with nf-core/sarek input + main options (subset).",
+  "type": "object",
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "required": ["step"],
+      "properties": {
+        "input": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Samplesheet CSV: patient,sample,sex,status,lane,fastq_1,fastq_2 (status 0=normal, 1=tumor)."
+        },
+        "step": {
+          "type": "string",
+          "default": "mapping",
+          "enum": ["mapping", "markduplicates", "prepare_recalibration", "recalibrate", "variant_calling", "annotate"],
+          "description": "Starting step"
+        },
+        "outdir": {
+          "type": "string",
+          "description": "Output directory",
+          "hidden": true
+        }
+      }
+    },
+    "main_options": {
+      "title": "Main options",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "tools": {
+          "type": "string",
+          "description": "Variant callers / annotation tools (comma-separated). Use mutect2 for tumour-normal somatic calling."
+        },
+        "fasta": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Path to FASTA genome file."
+        },
+        "wes": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whole exome sequencing mode"
+        },
+        "intervals": {
+          "type": "string",
+          "format": "file-path",
+          "description": "BED intervals for WES"
+        },
+        "joint_germline": {
+          "type": "boolean",
+          "default": false,
+          "description": "Joint germline calling"
+        }
+      }
+    }
+  }
+}

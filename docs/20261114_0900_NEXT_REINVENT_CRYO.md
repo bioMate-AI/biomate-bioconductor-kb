@@ -36,9 +36,13 @@ Worktree tip base: `8c946897dd` · branch `sync/pr398-onto-dev`
 
 ## Sync
 - Commit pushed: `c0fe0249ea` on `sync/pr398-onto-dev`.
-- Sync **blocked** here: `ssm.us-west-2.amazonaws.com` unreachable (same Cursor/proxy class as prior tip). Operator: `BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh` when SSM works (stash any unrelated dirty source first — sync refuses dirty trees).
-- After sync: re-run `design-generate-sm-0` (expect past exit 3 if `/opt/REINVENT4` importable + Zenodo egress); re-seed cryo coldstart str-0 (expect `movies_path` prefilled, Confirm enabled if license OK).
-- Image rebuild still recommended so priors/CLI are baked in (no runtime Zenodo dependency).
+- **Synced 2026-11-14 ~15:28–15:32Z** (`BIOMATE_SYNC_DB=0`):
+  - `SYNC_RC=0` healthy for `cedda7c4` (frontend+backend+workflows) then ledger-advance `9fb3c6f3` (ours-merge of live `b9caa8b0`; no layer delta).
+  - Public `build-info.json`: `cedda7c4a5251eaaade7e49c2466f873bb35f336` (contains reinvent/cryo + skills UI).
+  - Ledger tip: `9fb3c6f302e7467a5de9ecee55be04ea6ef830eb`.
+  - Verified in `biomate-galaxy-dev`: `/app/biomni_workflows/.../reinvent4_lead_design/main.nf` md5 `1713a45d…` (bridge present). Cryo demo `movies_path=s3://biomate-cryo-data/empiar-10028/Micrographs/`.
+- Next measure: re-run `design-generate-sm-0` (expect past exit 3 if `/opt/REINVENT4` importable + Zenodo egress); re-seed cryo coldstart str-0 (Confirm if license OK).
+- **ECR rebuild still required** for `reinvent4-nf:x86` (Dockerfile PATH + Zenodo priors bake-in; sync shipped Nextflow bridge only).
 
 ## Still open after this pass
 1. Authenticated UI autopsy (`drugtest@biomate.dev`)

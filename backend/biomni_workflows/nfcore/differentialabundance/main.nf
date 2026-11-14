@@ -1,5 +1,5 @@
 // nf-core/differentialabundance — BioMate stub with embedded R (DESeq2 + limma)
-// Input files are downloaded via aws s3 cp in the R script (no path staging).
+// Inputs via Channel.fromPath (local demo under sample_data/mg_demo or staged paths).
 // Pattern follows validation_deseq2_raw_counts/main.nf.
 //
 // Method is chosen from params.normalisation_method / params.study_type:
@@ -391,16 +391,31 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
 
 workflow DIFFERENTIALABUNDANCE {
     main:
-    if (!params.samplesheet && !params.input) error "Please provide --samplesheet (sample metadata CSV or S3 URI)"
+    def _blank = { v ->
+        def s = (v == null) ? '' : v.toString().trim()
+        return !s || s.equalsIgnoreCase('null') || s.equalsIgnoreCase('none')
+    }
+    // When no data inputs are supplied, use vendored GSE227835 MG PBMC tutorial
+    // CSVs under sample_data/mg_demo (Channel.fromPath on local files — no remote
+    // storage download). Partial supply still requires a samplesheet.
+    def demo = _blank(params.samplesheet) && _blank(params.input) &&
+               _blank(params.matrix) && _blank(params.contrasts)
+    if (demo) {
+        log.warn "[demo] no --samplesheet/--matrix/--contrasts -> sample_data/mg_demo/"
+    } else if (_blank(params.samplesheet) && _blank(params.input)) {
+        error "Please provide --samplesheet (sample metadata CSV, S3 URI, or local path)"
+    }
 
-    def ss  = params.samplesheet ?: params.input
-    def mat = params.matrix ?: ''
-    def con = params.contrasts ?: ''
+    def demo_dir = "${projectDir}/../../sample_data/mg_demo"
+    def ss  = demo ? "${demo_dir}/sample_metadata.csv" : (params.samplesheet ?: params.input)
+    def mat = demo ? "${demo_dir}/counts_matrix.csv"   : (params.matrix ?: '')
+    def con = demo ? "${demo_dir}/contrasts.csv"       : (params.contrasts ?: '')
 
-    // Channel.fromPath handles S3 URIs via the nf-amazon NIO plugin (same as enrichGO)
-    ch_ss  = Channel.fromPath(ss)
-    ch_mat = mat?.trim() ? Channel.fromPath(mat) : Channel.empty()
-    ch_con = con?.trim() ? Channel.fromPath(con) : Channel.empty()
+    // Prefer local / already-staged paths. checkIfExists fails fast with a clear
+    // path error instead of nf-amazon "Exception thrown downloading storage".
+    ch_ss  = Channel.fromPath(ss, checkIfExists: true)
+    ch_mat = (mat?.toString()?.trim()) ? Channel.fromPath(mat, checkIfExists: true) : Channel.empty()
+    ch_con = (con?.toString()?.trim()) ? Channel.fromPath(con, checkIfExists: true) : Channel.empty()
 
     ch_input = ch_ss.mix(ch_mat).mix(ch_con)
         .collect()

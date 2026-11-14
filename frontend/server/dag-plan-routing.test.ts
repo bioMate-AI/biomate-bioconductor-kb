@@ -145,6 +145,14 @@ describe('plan title from the request goal', () => {
     expect(dagPlanName([{ description: 'integrate rna and protein', depends_on: [] }, { description: 'b', depends_on: [1] }], 'ok'))
       .toBe('B'); // too short a goal → previous behaviour (sink step)
   });
+  it('does not title the plan with a question when catalog labels exist (prompt-as-name)', () => {
+    const tasks = [
+      { description: 'dock candidates', depends_on: [], workflow_label: 'Docking Autodock Vina' },
+      { description: 'score ADMET', depends_on: [], workflow_label: 'Predict Admet Properties' },
+    ];
+    expect(dagPlanName(tasks, 'Which of these would you expect to bind, and why?'))
+      .toBe('Docking Autodock Vina + 1 more');
+  });
 });
 
 describe('plan inputs', () => {

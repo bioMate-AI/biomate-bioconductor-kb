@@ -6,6 +6,7 @@ import {
   applyLibraryMoleculeDualPath,
   isMoleculeGenerateRequest,
   messageSupportsCatalogChainHint,
+  remapBulkRnaseqChainForCounts,
   type LibraryMoleculePath,
 } from './library-triage-sequential';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
@@ -98,7 +99,12 @@ import {
   rebindFilenameValues,
   attachmentsNotUsed,
   isNonInputAttachment,
+  buildResolvedNfcoreInputSamplesheet,
 } from '../shared/attachment-binding';
+import {
+  applyPreparedInputParamsToWorkflow,
+  parsePreparedInputParams,
+} from '../shared/prepared-inputs-params';
 
 // ─── Agent tool infrastructure ────────────────────────────────────────────────
 
@@ -2891,14 +2897,30 @@ export function requestGoal(message: string): string {
 /** Name for a DAG plan card. Prefer the goal of the user's own request (the demo card was titled
  *  after its fan-in step, "Integrate docking scores and ADMET…", for a request to adapt a generative
  *  model); else the integration step's task, else the first branch; never a generic placeholder. */
-export function dagPlanName(tasks: Array<{ description: string; depends_on: number[] }>, goal?: string): string {
+export function dagPlanName(
+  tasks: Array<{ description: string; depends_on: number[]; workflow_label?: string; workflow_name?: string }>,
+  goal?: string,
+): string {
   const fit = (text: string) => {
     const clause = text.replace(/\s+/g, ' ').trim();
     const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
   const g = goal ? requestGoal(goal) : '';
-  if (g && (g.split(/\s+/).length >= 3 || /[一-鿿]{4,}/.test(g))) return fit(g);
+  // Prompt-as-name class (coldstart): questions / "which of these…" must NOT become
+  // the panel title — prefer resolved catalog workflow labels when present.
+  const labels = tasks
+    .map((t) => String(t.workflow_label || t.workflow_name || '').trim())
+    .filter(Boolean);
+  const goalIsPromptLike =
+    !g ||
+    /\?$/.test(g) ||
+    /^(which|what|how|why|rank these|dock the|triage this|predict binding)\b/i.test(g);
+  if (goalIsPromptLike && labels.length === 1) return fit(labels[0]);
+  if (goalIsPromptLike && labels.length > 1) {
+    return fit(`${labels[0]} + ${labels.length - 1} more`);
+  }
+  if (g && !goalIsPromptLike && (g.split(/\s+/).length >= 3 || /[一-鿿]{4,}/.test(g))) return fit(g);
   // Named after the combining step; a plan with no dependent step is not "about" its last branch.
   if (tasks.length > 1 && tasks.every(t => !t.depends_on.length)) return `${tasks.length} parallel analyses`;
   const sink = [...tasks].reverse().find(t => t.depends_on.length > 1) || tasks[tasks.length - 1] || tasks[0];
@@ -6398,18 +6420,38 @@ Rules:
     // "missing_required" — the founder saw "1 required parameter need to be
     // filled" plus a "Which input_smiles?" card with the file already attached.
     // Carry the bound values into the overlay and withdraw their questions.
+    // Same for prepared-input key=value / backend-filled slots (movies_path=s3://…,
+    // analysis=screening, ligand_a=…) — Confirm must enable without force-Confirm.
+    // Also write prepared KV onto the workflow object itself (param strip source).
+    if (generatedWorkflow?.workflow_ga) {
+      applyPreparedInputParamsToWorkflow(generatedWorkflow.workflow_ga, _paramExtractQuery);
+    } else if (generatedWorkflow) {
+      applyPreparedInputParamsToWorkflow(generatedWorkflow, _paramExtractQuery);
+    }
     const _attachmentBoundParams = attachmentBoundParams(generatedWorkflow);
+    const _preparedKvParams = parsePreparedInputParams(_paramExtractQuery, [
+      ...Object.keys(_backendFilledParams),
+      ...Object.keys(_groundedInlineParams),
+      ...((_gaForFill.required_params || []).map((p: any) => p?.name).filter(Boolean)),
+      ...((_gaForFill.optional_params || []).map((p: any) => p?.name).filter(Boolean)),
+    ]);
+    const _filledForClarify: Record<string, string> = {
+      ..._backendFilledParams,
+      ..._preparedKvParams,
+      ..._attachmentBoundParams,
+    };
     const _remappedInlineParams = {
       ..._backendFilledParams,
+      ..._preparedKvParams,
       ..._groundedInlineParams,
       ..._attachmentBoundParams,
     };
     const _clarifications = (_groundResult.details?.clarifications || []).filter(
-      (c) => !_attachmentBoundParams[c.paramName],
+      (c) => !_filledForClarify[c.paramName],
     );
-    if (Object.keys(_attachmentBoundParams).length > 0) {
+    if (Object.keys(_filledForClarify).length > 0) {
       console.log(
-        '[InlineParam Ground] attachment-bound params kept:', Object.keys(_attachmentBoundParams).join(','),
+        '[InlineParam Ground] filled params kept:', Object.keys(_filledForClarify).join(','),
         '— clarifications withdrawn:',
         (_groundResult.details?.clarifications || []).length - _clarifications.length,
       );
@@ -6615,6 +6657,14 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           isMoleculeGenerateRequest(message) ? 'generate/design intent (not screening)' : 'current message lacks multi-step/library-screening phrasing or explicit chain slug (likely inherited from prior-turn context)'
         }`);
         decomposition.chainHint = null;
+      }
+    }
+    // Count-matrix DE coldstart: do not launch FASTQ nf-core/rnaseq chain.
+    if (decomposition.chainHint) {
+      const remapped = remapBulkRnaseqChainForCounts(decomposition.chainHint, message);
+      if (remapped && remapped !== decomposition.chainHint) {
+        log(`Tier 2: remapping chain_hint ${decomposition.chainHint} → ${remapped} (count matrix attached)`);
+        decomposition.chainHint = remapped;
       }
     }
 
@@ -7106,6 +7156,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
     const card = data.workflow;
     const steps: any[] = card.pipeline_steps || [];
+    // Repair prompt-as-name titles after plan_dag resolves catalog labels.
+    const catalogLabels = steps
+      .map((s) => String(s.workflow_label || s.workflow_name || '').trim())
+      .filter(Boolean);
+    if (catalogLabels.length && /^(which|what|how|why|rank these|dock the|triage this)\b|\?$/i.test(String(card.name || ''))) {
+      card.name = catalogLabels.length === 1
+        ? catalogLabels[0]
+        : `${catalogLabels[0]} + ${catalogLabels.length - 1} more`;
+    }
     log(`DAG plan assembled: ${steps.length} steps, max_parallel=${card.max_parallel}`);
     const lines = steps.map((s, k) => {
       const deps = (s.depends_on || []) as number[];
@@ -7344,15 +7403,30 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
             })
         : undefined,
     });
-    // Same as the single-intent path: parameters the attachment binding already
-    // filled are carried into the overlay and no longer asked about.
+    // Same as the single-intent path: attachment-bound + prepared-input key=value
+    // slots are carried into the overlay and no longer asked about.
+    const _multiQuery = primaryIntent.subQuery || message;
+    if (_multiGeneratedWorkflow?.workflow_ga) {
+      applyPreparedInputParamsToWorkflow(_multiGeneratedWorkflow.workflow_ga, _multiQuery);
+    } else if (_multiGeneratedWorkflow) {
+      applyPreparedInputParamsToWorkflow(_multiGeneratedWorkflow, _multiQuery);
+    }
     const _multiAttachmentBound = attachmentBoundParams(_multiGeneratedWorkflow);
+    const _multiPreparedKv = parsePreparedInputParams(_multiQuery, [
+      ...((_multiGeneratedWorkflow?.workflow_ga?.required_params || []).map((p: any) => p?.name).filter(Boolean)),
+      ...((_multiGeneratedWorkflow?.workflow_ga?.optional_params || []).map((p: any) => p?.name).filter(Boolean)),
+    ]);
+    const _multiFilled: Record<string, string> = {
+      ..._multiPreparedKv,
+      ..._multiAttachmentBound,
+    };
     const _multiRemappedInlineParams = {
+      ..._multiPreparedKv,
       ...stringifyParamValues(_multiGroundResult.params),
       ..._multiAttachmentBound,
     };
     const _multiClarifications = (_multiGroundResult.details?.clarifications || []).filter(
-      (c) => !_multiAttachmentBound[c.paramName],
+      (c) => !_multiFilled[c.paramName],
     );
 
     const multiIntentResult: GalaxyAssistantResponse = {
@@ -9967,6 +10041,26 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         }
       }
 
+      // ── Prepared-input key=value → param strip (rule-first) ──────────────
+      // Cold-start demos put `movies_path=s3://…`, `analysis=screening`,
+      // `ligand_a=imatinib.sdf`, etc. in the hidden [Prepared inputs] block.
+      // The LLM/schema-grounded path often leaves those required slots empty
+      // (Confirm blocked + "Which <param>?"). Seed them onto workflow_ga here
+      // before attachment binding so Confirm enables without force-Confirm.
+      // Attachment binding (below) overwrites bare filenames with dataset refs.
+      {
+        const _wfGaPrep: any = (response as any).workflow_ga || (response as any);
+        const _seeded = applyPreparedInputParamsToWorkflow(
+          _wfGaPrep,
+          attachmentMessage || userIntent,
+        );
+        if (_seeded.length > 0) {
+          console.log(
+            `[GalaxyAssistant] PreparedInputSeed ${_seeded.join(', ')} ← explicit key=value in message`,
+          );
+        }
+      }
+
       // ── Attachment → input binding (schema-driven) ───────────────────────
       // The name-based mapping above only knows canonical parameter names
       // (samplesheet / matrix / reads / …). A workflow whose input is called
@@ -9999,6 +10093,45 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
             console.log(
               `[GalaxyAssistant] AttachmentBind ${b.param} ← ${b.files.map((f) => f.name).join(', ')} (score ${b.score}: ${b.reason})`,
             );
+          }
+          // nf-core sarek/proteinfold: rebuild `input` as a schema-valid samplesheet
+          // whose path cells are co-attached S3/dataset refs. Bare basenames in the
+          // demo CSV fail nf-schema exists:true → "Validation of pipeline parameters
+          // failed". Inline CSV is materialized to S3 at execute time. `input` is
+          // often executor-owned (data_inputs only) — always write inline_parameters.
+          {
+            const _sheet = buildResolvedNfcoreInputSamplesheet(
+              String(_wfGaA?.name || _wfGaA?.display_name || ''),
+              _attached,
+            );
+            if (_sheet) {
+              const _inputParam =
+                _specs.find((p: any) => String(p?.name) === 'input') ||
+                _specs.find((p: any) => String(p?.name) === 'samplesheet') ||
+                (_wfGaA.data_inputs || []).find((p: any) =>
+                  ['input', 'samplesheet', 'sample_sheet'].includes(String(p?.name || '')),
+                );
+              const _inputName = String(_inputParam?.name || 'input');
+              if (_inputParam) {
+                _inputParam.value = _sheet.csv;
+                _inputParam.autoFilled = true;
+                if ('bound' in _inputParam) {
+                  _inputParam.bound = true;
+                  _inputParam.bound_value = 'samplesheet from attached files';
+                }
+              }
+              if (!_wfGaA.inline_parameters || typeof _wfGaA.inline_parameters !== 'object') {
+                _wfGaA.inline_parameters = {};
+              }
+              if (!_wfGaA.parameters || typeof _wfGaA.parameters !== 'object') {
+                _wfGaA.parameters = {};
+              }
+              _wfGaA.inline_parameters[_inputName] = _sheet.csv;
+              _wfGaA.parameters[_inputName] = _sheet.csv;
+              console.log(
+                `[GalaxyAssistant] NfcoreSamplesheet ${_inputName} ← inline (${_sheet.reason})`,
+              );
+            }
           }
           // Record what we could and could not bind so the reply never claims a
           // workflow was built from data it does not actually read.

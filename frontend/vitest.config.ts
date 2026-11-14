@@ -12,6 +12,8 @@ export default defineConfig({
       'client/src/**/*.test.{ts,tsx}',
       'server/**/*.test.ts',
       'shared/**/*.test.ts',
+      // Pure harness helpers (runId / deep-grade) — not Playwright; unit-tested here.
+      'e2e/lib/**/*.test.ts',
     ],
     exclude: ['node_modules', 'dist'],
     coverage: {

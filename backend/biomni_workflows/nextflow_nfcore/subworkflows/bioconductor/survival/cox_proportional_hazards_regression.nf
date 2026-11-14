@@ -61,8 +61,59 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
         # Load required library
         library(survival)
         
-        # Read user input file
-        clinical_data <- read.csv("patient_clinical_data.csv")
+        # Read user input file (accept common cold-start aliases of the basename)
+        .clin_candidates <- c(
+          "patient_clinical_data.csv",
+          list.files(".", pattern = "(?i)(clinical|patient|cohort|survival).*\\\\.(csv|tsv|txt)$")
+        )
+        .clin_path <- .clin_candidates[file.exists(.clin_candidates)][1]
+        if (is.na(.clin_path) || !nzchar(.clin_path)) {
+          stop("Required input file missing: patient_clinical_data.csv (or a *clinical*/*patient* CSV)")
+        }
+        clinical_data <- if (grepl("\\\\.tsv$", .clin_path, ignore.case = TRUE)) {
+          read.delim(.clin_path, stringsAsFactors = FALSE)
+        } else {
+          read.csv(.clin_path, stringsAsFactors = FALSE)
+        }
+
+        # Standardize columns — same contract as survival/main.nf (KM). Cold-start
+        # autoimmune cohort uses time_months + status; Surv(time, status) needs numeric `time`.
+        colnames(clinical_data) <- tolower(colnames(clinical_data))
+        if (!"time" %in% colnames(clinical_data)) {
+          time_col <- grep("time|month|day|year|duration|follow", colnames(clinical_data), value = TRUE)[1]
+          if (!is.na(time_col)) colnames(clinical_data)[colnames(clinical_data) == time_col] <- "time"
+        }
+        if (!"status" %in% colnames(clinical_data)) {
+          status_col <- grep("status|event|cens|flare", colnames(clinical_data), value = TRUE)[1]
+          if (!is.na(status_col)) colnames(clinical_data)[colnames(clinical_data) == status_col] <- "status"
+        }
+        if (!all(c("time", "status") %in% colnames(clinical_data))) {
+          stop("Clinical table must have time and status columns (or aliases like time_months / event).")
+        }
+        if (is.character(clinical_data\$status) || is.factor(clinical_data\$status)) {
+          num_status <- suppressWarnings(as.numeric(as.character(clinical_data\$status)))
+          if (!any(is.na(num_status) & !is.na(clinical_data\$status))) {
+            clinical_data\$status <- num_status
+          } else {
+            status_lower <- tolower(trimws(as.character(clinical_data\$status)))
+            new_status <- rep(NA_real_, length(status_lower))
+            new_status[status_lower %in% c("alive", "censored", "stable", "disease free", "false", "no", "0")] <- 0
+            new_status[status_lower %in% c("dead", "death", "event", "progression", "relapse", "recurrence", "deceased", "true", "yes", "1", "flare")] <- 1
+            unmapped <- is.na(new_status) & !is.na(status_lower)
+            if (any(unmapped)) new_status[unmapped] <- as.numeric(as.factor(status_lower[unmapped])) - 1
+            clinical_data\$status <- new_status
+          }
+        } else {
+          clinical_data\$status <- as.numeric(clinical_data\$status)
+        }
+        clinical_data\$time <- as.numeric(clinical_data\$time)
+        # Drop ID-like columns from the RHS so coxph(~ .) is identifiable
+        .drop <- grepl("(?i)^(patient|subject|sample|id|rownames)$|(_id)$", colnames(clinical_data))
+        clinical_data <- clinical_data[, (!.drop) | colnames(clinical_data) %in% c("time", "status"), drop = FALSE]
+        # Coerce remaining character covariates to factors
+        for (.cn in setdiff(colnames(clinical_data), c("time", "status"))) {
+          if (is.character(clinical_data[[.cn]])) clinical_data[[.cn]] <- as.factor(clinical_data[[.cn]])
+        }
         
         # 1. Fit the Cox proportional hazards model using coxph()
         fit <- coxph(Surv(time, status) ~ ., data = clinical_data)

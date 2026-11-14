@@ -3351,6 +3351,14 @@ Respond with a single JSON object — no other text:
             "design": ("design", "metadata", "sample", "coldata"),
             "contrasts": ("contrast", "comparison"),
             "contrast": ("contrast", "comparison"),
+            # Bioconductor Style-A declared inputs (coldstart Batch G)
+            "patient_clinical_data": ("clinical", "patient", "survival", "cohort", "pbc"),
+            "proteingroups": ("proteingroups", "protein_groups", "lfq"),
+            "transcriptome": ("transcriptome", "transcript", "mrna", "rna"),
+            "proteome": ("proteome", "protein", "proteomic"),
+            "metabolome": ("metabolome", "metabol", "hmdb", "lipid"),
+            "gene_summary": ("gene_summary", "rra.gene"),
+            "sgrna_summary": ("sgrna_summary", "rra.sgrna"),
         }
         suggestions = []
         used_values: set = set()
@@ -3358,7 +3366,31 @@ Respond with a single JSON object — no other text:
             name = str(param.get("name") or "")
             if not name or param.get("default") not in (None, "") or param.get("value") not in (None, ""):
                 continue
-            terms = cues.get(name.lower())
+            name_l = name.lower()
+            # Exact stem / basename match first (patient_clinical_data.csv → patient_clinical_data)
+            exact = next(
+                (
+                    f for f in files
+                    if f["value"] not in used_values
+                    and (
+                        f["name"] == name_l
+                        or f["name"].rsplit(".", 1)[0] == name_l
+                        or f["name"] == f"{name_l}.csv"
+                        or f["name"] == f"{name_l}.txt"
+                        or f["name"] == f"{name_l}.tsv"
+                    )
+                ),
+                None,
+            )
+            if exact:
+                suggestions.append({
+                    "name": name,
+                    "value": exact["value"],
+                    "rationale": f"Exact filename match '{exact['name']}' → {name}.",
+                })
+                used_values.add(exact["value"])
+                continue
+            terms = cues.get(name_l)
             if not terms:
                 continue
             match = next((f for f in files if f["value"] not in used_values and any(term in f["name"] for term in terms)), None)

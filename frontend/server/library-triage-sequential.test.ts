@@ -12,6 +12,8 @@ import {
   selectLibraryMoleculeRouting,
   isMoleculeGenerateRequest,
   messageSupportsCatalogChainHint,
+  messageHasCountMatrixInputs,
+  remapBulkRnaseqChainForCounts,
 } from './library-triage-sequential';
 import { isSingleBoundWorkflow, singleWorkflowGroundingDirective } from './single-workflow-grounding';
 import { awaitsWorkflowInput, hasGeneratedWorkflow } from '../shared/workflow-response-state';
@@ -273,5 +275,26 @@ describe('FE hasProposal — both paths remain panel-bindable', () => {
       needs_user_feedback: true,
     };
     expect(hasGeneratedWorkflow(wf)).toBe(true);
+  });
+});
+
+describe('count-matrix bulk RNA-seq chain remap (Batch H)', () => {
+  it('detects airway / MG count matrices in coldstart messages', () => {
+    expect(messageHasCountMatrixInputs('Use airway_counts.csv and airway_metadata.csv')).toBe(true);
+    expect(messageHasCountMatrixInputs('matrix=submission_counts_matrix.csv')).toBe(true);
+    expect(messageHasCountMatrixInputs('Call variants on these FASTQ reads')).toBe(false);
+  });
+
+  it('remaps bulk_rnaseq_de_analysis → bioc_bulk_rnaseq_de_v2 when counts are attached', () => {
+    expect(
+      remapBulkRnaseqChainForCounts(
+        'bulk_rnaseq_de_analysis',
+        'DESeq2 on airway_counts.csv then GO enrichment',
+      ),
+    ).toBe('bioc_bulk_rnaseq_de_v2');
+    expect(remapBulkRnaseqChainForCounts('bulk_rnaseq_de_analysis', 'align my FASTQ')).toBe(
+      'bulk_rnaseq_de_analysis',
+    );
+    expect(remapBulkRnaseqChainForCounts('other_chain', 'airway_counts.csv')).toBe('other_chain');
   });
 });

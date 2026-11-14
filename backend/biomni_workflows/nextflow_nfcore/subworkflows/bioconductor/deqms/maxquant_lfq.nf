@@ -70,21 +70,54 @@ process BIOC_DEQMS_MAXQUANT_LFQ {
     library(matrixStats)
     library(limma)
     
-    # 1. Read and filter out decoy/contaminant matches
-    df.prot = read.table("proteinGroups.txt",header=T,sep="\t",stringsAsFactors = F,
-                            comment.char = "",quote ="")
-    df.prot = df.prot[!df.prot\$Reverse=="+",]
-    df.prot = df.prot[!df.prot\$Contaminant=="+",]
+    # 1. Read MaxQuant proteinGroups (cold-start LFQ-Analyst file uses tab +
+    #    Potential.contaminant, not the vignette's Contaminant column).
+    .pg_candidates <- c(
+      "proteinGroups.txt",
+      list.files(".", pattern = "(?i)proteingroups.*\\\\.(txt|tsv|csv)$")
+    )
+    .pg_path <- .pg_candidates[file.exists(.pg_candidates)][1]
+    if (is.na(.pg_path) || !nzchar(.pg_path)) stop("Required input file missing: proteinGroups.txt")
+    .sep <- if (grepl("\\\\.csv$", .pg_path, ignore.case = TRUE)) "," else "\\t"
+    df.prot = read.table(.pg_path, header = TRUE, sep = .sep, stringsAsFactors = FALSE,
+                         comment.char = "", quote = "")
+    if ("Reverse" %in% colnames(df.prot)) {
+      df.prot = df.prot[is.na(df.prot\$Reverse) | df.prot\$Reverse != "+", , drop = FALSE]
+    }
+    .contam_col <- intersect(c("Potential.contaminant", "Contaminant", "Potential.contaminants"),
+                             colnames(df.prot))
+    if (length(.contam_col)) {
+      .cc <- df.prot[[.contam_col[1]]]
+      df.prot = df.prot[is.na(.cc) | .cc != "+", , drop = FALSE]
+    }
+    if (!nrow(df.prot)) stop("No proteins left after Reverse/contaminant filtering.")
+
+    .id_col <- intersect(c("Majority.protein.IDs", "Protein.IDs"), colnames(df.prot))
+    if (!length(.id_col)) {
+      .id_col <- grep("(?i)majority.*protein|protein.?ids", colnames(df.prot), value = TRUE)[1]
+    }
+    if (is.na(.id_col) || !nzchar(.id_col)) .id_col <- colnames(df.prot)[1]
     
     # 2. Extract LFQ intensity columns and filter for missing values
-    lfq_cols <- grep("^LFQ\\\\.intensity\\\\.", colnames(df.prot))
+    lfq_cols <- grep("(?i)^LFQ[._ ]*intensity[._ ]*", colnames(df.prot))
+    if (!length(lfq_cols)) {
+      stop("No LFQ intensity columns found in proteinGroups (expected 'LFQ intensity <sample>').")
+    }
     df.LFQ = df.prot[, lfq_cols, drop=FALSE]
     df.LFQ[df.LFQ==0] <- NA
-    rownames(df.LFQ) = df.prot\$Majority.protein.IDs
+    rownames(df.LFQ) = make.unique(as.character(df.prot[[.id_col]]))
     
-    # Dynamically infer experimental design from sample names
-    sample_names <- sub("^LFQ\\\\.intensity\\\\.", "", colnames(df.prot)[lfq_cols])
-    class <- as.factor(gsub("[_\\\\.]?[0-9]+\$", "", sample_names))
+    # Dynamically infer experimental design from sample names (H1/L1/N1 → H/L/N).
+    # Prefer a two-group contrast (H vs L) when a third batch/neg group (N) is present —
+    # cold-start LFQ-Analyst design asks for H versus L.
+    sample_names <- sub("(?i)^LFQ[._ ]*intensity[._ ]*", "", colnames(df.LFQ))
+    class <- as.factor(gsub("[_\\\\. ]?[0-9]+\$", "", sample_names))
+    if (nlevels(class) > 2 && all(c("H", "L") %in% levels(class))) {
+      .keep_samp <- class %in% c("H", "L")
+      df.LFQ <- df.LFQ[, .keep_samp, drop = FALSE]
+      sample_names <- sample_names[.keep_samp]
+      class <- factor(as.character(class[.keep_samp]))
+    }
     
     # Filter protein table. DEqMS requires a minimum of two values for each group.
     valid_per_group <- sapply(levels(class), function(g) {
@@ -92,15 +125,36 @@ process BIOC_DEQMS_MAXQUANT_LFQ {
     })
     keep_idx <- rowSums(valid_per_group >= 2) == length(levels(class))
     df.LFQ.filter = df.LFQ[keep_idx, , drop=FALSE]
+    if (!nrow(df.LFQ.filter) || ncol(df.LFQ.filter) < 2) {
+      stop("LFQ matrix empty after requiring ≥2 non-missing values per group — check groups and missingness.")
+    }
     
-    # 3. Extract unique/razor peptide counts and add a pseudocount of 1
+    # 3. Extract unique/razor peptide counts and add a pseudocount of 1.
+    # MaxQuant make.names turns "Razor + unique peptides H1" into Razor....unique.peptides.H1
     pep_col_names <- paste0("Razor.and.unique.peptides.", sample_names)
     if (!all(pep_col_names %in% colnames(df.prot))) {
-      pep_col_names <- paste0("Peptides.", sample_names)
+      pep_col_names <- vapply(sample_names, function(s) {
+        hit <- grep(paste0("razor.*unique.*peptides.*", s, "\$"), colnames(df.prot),
+                    ignore.case = TRUE, value = TRUE)[1]
+        if (is.na(hit)) {
+          hit <- grep(paste0("^Peptides([._ ]+)", s, "\$"), colnames(df.prot),
+                      ignore.case = TRUE, value = TRUE)[1]
+        }
+        hit
+      }, character(1))
     }
-    pep.count.table = data.frame(count = rowMins(as.matrix(df.prot[, pep_col_names, drop=FALSE])),
-                                 row.names = df.prot\$Majority.protein.IDs)
-    pep.count.table\$count = pep.count.table\$count+1
+    .rownames_prot <- make.unique(as.character(df.prot[[.id_col]]))
+    if (any(is.na(pep_col_names)) || !length(pep_col_names)) {
+      pep.count.table = data.frame(count = rep(2, nrow(df.prot)), row.names = .rownames_prot)
+    } else {
+      .pep_mat <- as.matrix(df.prot[, pep_col_names, drop = FALSE])
+      storage.mode(.pep_mat) <- "numeric"
+      if (ncol(.pep_mat) < 2) {
+        pep.count.table = data.frame(count = as.numeric(.pep_mat[, 1]) + 1, row.names = .rownames_prot)
+      } else {
+        pep.count.table = data.frame(count = rowMins(.pep_mat) + 1, row.names = .rownames_prot)
+      }
+    }
     
     # 4. Log2 transform intensities
     protein.matrix = log2(as.matrix(df.LFQ.filter))
@@ -111,6 +165,7 @@ process BIOC_DEQMS_MAXQUANT_LFQ {
     
     # 6. Fit linear model using Limma
     fit1 = lmFit(protein.matrix,design = design)
+    if (nlevels(class) < 2) stop("Need at least two experimental groups in LFQ sample names.")
     contrast_str <- paste(levels(class)[1], levels(class)[2], sep="-")
     cont <- makeContrasts(contrasts=contrast_str, levels = design)
     fit2 = contrasts.fit(fit1,contrasts = cont)
@@ -133,15 +188,17 @@ process BIOC_DEQMS_MAXQUANT_LFQ {
     DEqMS.results = outputResult(fit4,coef_col = 1)
     
     # Add Gene names to the data frame if Gene.names column exists in the input
-    rownames(df.prot) = df.prot\$Majority.protein.IDs
-    if ("Gene.names" %in% colnames(df.prot)) {
-      DEqMS.results\$Gene.name = df.prot[DEqMS.results\$gene,]\$Gene.names
+    rownames(df.prot) = .rownames_prot
+    .gene_col <- grep("(?i)^Gene.names\$|^Gene.names\$|^Genes\$", colnames(df.prot), value = TRUE)[1]
+    if (!is.na(.gene_col) && "gene" %in% colnames(DEqMS.results)) {
+      DEqMS.results\$Gene.name = df.prot[as.character(DEqMS.results\$gene), .gene_col]
     }
     
     # Write outputs to files
     out_filename <- paste0(contrast_str, ".DEqMS.results.txt")
     write.table(DEqMS.results, out_filename, sep = "\t",
                 row.names = F,quote=F)
+    write.csv(DEqMS.results, "deqms_results.csv", row.names = FALSE)
     saveRDS(DEqMS.results, "DEqMS_results.rds")
     # ── BIOC_QC_HARNESS — Phase 3c multi-label adoption ───────────────────────
     # Per-label metric computation. Each block is defensive (tryCatch +

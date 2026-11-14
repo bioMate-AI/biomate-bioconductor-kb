@@ -153,7 +153,9 @@ process REINVENT4_TRAIN {
     def train_arg = needs_train ? "--train-smiles ${train_smiles}" : ''
     """
     set -euo pipefail
-    export PYTHONPATH="/opt/biomate:\${PYTHONPATH:-}"
+    # ECR :x86 keeps the git tree at /opt/REINVENT4 (not always pip-installed).
+    # Prefer that tree + /opt/biomate runner helpers on PYTHONPATH.
+    export PYTHONPATH="/opt/REINVENT4:/opt/biomate:\${PYTHONPATH:-}"
     export REINVENT4_DEVICE='${use_gpu}'
     export REINVENT4_PRIORS="\${REINVENT4_PRIORS:-/opt/reinvent4/priors}"
 

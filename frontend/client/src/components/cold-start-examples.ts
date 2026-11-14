@@ -12,7 +12,7 @@ export const PREPARED_EXAMPLES = [
   { label: 'Quantify EBV antibody titers (VCA/EA/EBNA1) across sample groups', prompt: 'Run analyze_ebv_antibody_titers to quantify VCA, EA and EBNA1 antibody titers (IgG and IgM) across the EBV-positive, EBV-active and EBV-negative groups from the ELISA OD readings.' },
   { label: 'Gate flow cytometry scatter and count events', prompt: 'Run analyze_flow_cytometry_immunophenotyping to gate the FSC/SSC scatter and report event counts per population. The run is an instrument blank for format and gating — request a labelled biological sample for immune-subset quantification.' },
   { label: 'Design a CD19-targeting CAR-T construct', prompt: 'Run cart_construct_design to design a CD19-targeting CAR for B-cell indications — choose the CAR generation, costimulatory domain and format, and explain the rationale, using default construct parameters (CD19, 2nd generation, auto costimulatory domain). In-silico design, not a validated construct.' },
-  { label: 'Map B-cell epitopes on an EBV antigen and draft a vaccine immunogen', prompt: 'Run bcell_epitope_immunogen on the EBV antigen to predict linear B-cell epitopes and draft a candidate vaccine immunogen — report epitope positions, antigenicity scores and the proposed immunogen construct. In-silico design, not a validated immunogen.' },
+  { label: 'Map B-cell epitopes on an EBV antigen and draft a vaccine immunogen', prompt: 'Run bcell_epitope_immunogen on the EBV antigen (UniProt P03200 gp350) to predict linear B-cell epitopes and draft a candidate vaccine immunogen — report epitope positions, antigenicity scores and the proposed immunogen construct. In-silico design, not a validated immunogen.', files: ['P03200_gp350.fasta'], root: '/demo/cold-start/', hiddenContext: 'Antigen is UniProt P03200 EBV gp350 (attached FASTA). Prefer the workflow default antigens JSON for P03200; target=EBV build_vaccine=true. Do not invent epitope scores.' },
   { label: 'Predict HLA class-I binding for neoantigen peptides', prompt: 'Run mhc_binding_prediction to rank peptide–HLA class-I presentation for candidate neoantigen peptides against HLA-A*02:01 and HLA-B*07:02 with MHCflurry 2; report predicted binding affinity and presentation rank per allele.' },
   { label: 'Model time-to-flare in an autoimmune cohort with Cox regression', prompt: 'Run survival_cox_proportional_hazards_regression on the attached autoimmune-cohort clinical data (60 patients: time-to-flare in months, event status, age, sex, treatment arm, disease-activity score). Fit a Cox proportional-hazards model for how treatment arm and disease-activity score affect flare-free survival, and report hazard ratios with confidence intervals. (Synthetic sample cohort.)', files: ['patient_clinical_data.csv'] },
   { label: 'Call CTCF ChIP-seq peaks with MACS', prompt: 'Run perform_chipseq_peak_calling_with_macs2 to call CTCF ChIP-seq peaks with MACS and annotate the enriched regions from the chr22 ChIP and control tracks.' },
@@ -47,7 +47,11 @@ export async function prepareColdStartExample(text: string): Promise<PreparedExa
   // Context specifies exact entities and contrasts; no unresolved “this target”.
   // Incompatible generic hints (e.g. GRCh38) are replaced by the fixture's build.
   const goal = demo ? text.replace(/ Human GRCh38\./g, '').replace(/this protein sequence and tell me where to trust it: .+$/, 'the attached lysozyme sequence and tell me where to trust it.') : text;
-  return example ? { prompt: example.prompt, files } : { prompt: goal, files, hiddenContext: demo!.context };
+  if (example) {
+    const hidden = 'hiddenContext' in example ? String((example as { hiddenContext?: string }).hiddenContext || '') : '';
+    return hidden ? { prompt: example.prompt, files, hiddenContext: hidden } : { prompt: example.prompt, files };
+  }
+  return { prompt: goal, files, hiddenContext: demo!.context };
 }
 
 /** The hidden block appended to the sent message; the chat bubble strips it. */
