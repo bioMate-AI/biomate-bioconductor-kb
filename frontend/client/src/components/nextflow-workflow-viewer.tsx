@@ -21,6 +21,7 @@ import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Squ
 import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
+import { JobButton } from "@/components/job-button";
 import { ChatOutputAttachments } from "./chat-output-attachments";
 import { FindingsCard } from "./findings-card";
 import type { PrereqChecklist } from "@/lib/prereq-normalizer";
@@ -4706,19 +4707,43 @@ export function NextflowWorkflowViewer({
                     {showResults ? tOr('panel.hide_results', 'Hide results') : tOr('panel.view_results', 'View results')}
                   </button>
                   <span className="sep">·</span>
-                  <button
-                    className="linkish"
-                    onClick={() => {
-                      if (!invocationId) return;
-                      emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
-                      window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
-                      setDownloadAllPromptOpen(true);
-                    }}
-                    disabled={!invocationId}
-                    data-testid="button-download-all-workflow-panel"
-                  >
-                    {tOr('panel.download_all', 'Download all')}
-                  </button>
+                  {(invocationId || runId) ? (
+                    <span data-testid="button-download-all-workflow-panel" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <JobButton
+                        kind="download_all_zip"
+                        payload={{
+                          invocationId: invocationId || runId,
+                          runId: runId || undefined,
+                        }}
+                        label={tOr('panel.download_all', 'Download all')}
+                        className="linkish"
+                        onReady={(url) => {
+                          emitUxEvent('output.download_clicked', {
+                            invocationId,
+                            runId,
+                            scope: 'all',
+                          });
+                          window.open(url, '_blank');
+                          setDownloadAllPromptOpen(true);
+                        }}
+                        onFailed={() => {
+                          // Sync fallback with runId query (unified AWS_NF_* client).
+                          const ref = encodeURIComponent(String(invocationId || runId));
+                          const q = runId ? `?runId=${encodeURIComponent(runId)}` : '';
+                          window.open(`/api/invocations/${ref}/download-all${q}`, '_blank');
+                          setDownloadAllPromptOpen(true);
+                        }}
+                      />
+                    </span>
+                  ) : (
+                    <button
+                      className="linkish"
+                      disabled
+                      data-testid="button-download-all-workflow-panel"
+                    >
+                      {tOr('panel.download_all', 'Download all')}
+                    </button>
+                  )}
                   <span className="sep">·</span>
                   <button
                     className="linkish"

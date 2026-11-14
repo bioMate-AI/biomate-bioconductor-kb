@@ -94,8 +94,9 @@ import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
-import { promises as fs, createReadStream, existsSync, readdirSync, readFileSync } from "fs";
+import { promises as fs, createReadStream, createWriteStream, existsSync, readdirSync, readFileSync } from "fs";
 import path from "path";
+import { pipeline } from "stream/promises";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
 import { createHash, randomBytes } from "crypto";
@@ -139,6 +140,10 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
+import {
+  collectCandidateDatasetIds,
+  ensureDeferredDatasetsMaterialized,
+} from "./deferred-materialize";
 import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
@@ -11155,19 +11160,24 @@ ${paramLines || '(none recorded)'}`;
   // Download all outputs for an invocation as ZIP
   app.get("/api/invocations/:id/download-all", authenticateToken, async (req, res) => {
     try {
+      // Prefer ?runId= when the panel knows the ExecutionRun UUID (canonical
+      // Outputs resolver). Path :id may still be a Galaxy invocation id.
+      const queryRunId = typeof req.query.runId === "string" ? req.query.runId.trim() : "";
+      const pathId = req.params.id;
+
       // Accept a WorkflowInvocation ID, a galaxyInvocationId, or an ExecutionRun
       // ID. Nextflow runs often have NO WorkflowInvocation PK row — their outputs
       // are keyed by galaxyInvocationId and the owner lives on the ExecutionRun —
       // so resolve the owning run by galaxy id / run id and authorize via that.
-      let invocation = await storage.getInvocation(req.params.id);
+      let invocation = await storage.getInvocation(pathId);
       if (!invocation) {
-        const byGalaxyId = await storage.getInvocationByGalaxyId(req.params.id);
+        const byGalaxyId = await storage.getInvocationByGalaxyId(pathId);
         if (byGalaxyId) {
           invocation = byGalaxyId;
         }
       }
       if (!invocation) {
-        const executionRun = await storage.getExecutionRun(req.params.id);
+        const executionRun = await storage.getExecutionRun(queryRunId || pathId);
         if (executionRun?.execution?.galaxyInvocationId) {
           const resolved = await storage.getInvocationByGalaxyId(executionRun.execution.galaxyInvocationId);
           if (resolved) {
@@ -11180,16 +11190,19 @@ ${paramLines || '(none recorded)'}`;
       // ExecutionRun (by galaxy id or run id). Authorize via the run and stream
       // the outputs keyed by the galaxy id.
       let ownerRun: any = undefined;
-      let outputKey = req.params.id;
+      let outputKey = pathId;
       let displayName = "workflow";
       if (!invocation) {
         ownerRun =
-          (await storage.getExecutionRunByGalaxyId(req.params.id)) ||
-          (await storage.getExecutionRun(req.params.id));
+          (queryRunId ? await storage.getExecutionRun(queryRunId) : null) ||
+          (await storage.getExecutionRunByGalaxyId(pathId)) ||
+          (await storage.getExecutionRun(pathId));
         if (ownerRun) {
-          outputKey = ownerRun.execution?.galaxyInvocationId || req.params.id;
+          outputKey = ownerRun.execution?.galaxyInvocationId || pathId;
           displayName = ownerRun.workflowName || ownerRun.name || "workflow";
         }
+      } else if (queryRunId) {
+        ownerRun = await storage.getExecutionRun(queryRunId).catch(() => null);
       }
 
       if (!invocation && !ownerRun) {
@@ -11209,11 +11222,71 @@ ${paramLines || '(none recorded)'}`;
       // galaxyDatasetId/localPath were archived). Fall back to the legacy store
       // only when the resolver is empty (pure Galaxy invocations).
       const { runsOutputsService: _rosZip } = await import("./services/runs-outputs-service");
-      const runResolverId = (ownerRun as any)?.id || (invocation as any)?.galaxyInvocationId || outputKey || req.params.id;
-      const canonical = await _rosZip.list(runResolverId);
+      // Prefer ExecutionRun UUID (runId) — same order as download_all_zip async handler.
+      const tryResolverIds = [
+        queryRunId,
+        (ownerRun as any)?.id,
+        (invocation as any)?.galaxyInvocationId,
+        outputKey,
+        pathId,
+      ].filter((x): x is string => typeof x === "string" && x.length > 0);
+      let canonical: Awaited<ReturnType<typeof _rosZip.list>> = [];
+      let runResolverId = pathId;
+      for (const id of tryResolverIds) {
+        const listed = await _rosZip.list(id).catch(() => []);
+        if (listed.length > 0) {
+          canonical = listed;
+          runResolverId = id;
+          break;
+        }
+      }
       const legacy = canonical.length ? [] : await storage.getInvocationOutputs(invocation ? invocation.id : outputKey);
       if (canonical.length === 0 && legacy.length === 0) {
         return res.status(404).json({ error: "No outputs found for this invocation" });
+      }
+
+      // Prefetch canonical S3 bytes with the SAME AWS_NF_* / MinIO client as
+      // runs-outputs-service + download_all_zip (Bugbot High #2). Fail before
+      // headers if every fetch skips — avoids empty-ZIP false success (Medium #7).
+      const canonicalBuffers: Array<{ name: string; body: Buffer }> = [];
+      if (canonical.length) {
+        const { S3Client: _S3Z, GetObjectCommand: _GZ } = await import("@aws-sdk/client-s3");
+        const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+        const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+        const _endpointUrl = process.env.S3_ENDPOINT_URL;
+        const _s3z = new _S3Z(_endpointUrl ? {
+          endpoint: _endpointUrl,
+          region: "us-east-1",
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || "",
+            secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || "",
+          },
+        } : {
+          region: "us-east-1",
+          followRegionRedirects: true,
+          ...(_nfKey && _nfSec
+            ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } }
+            : {}),
+        });
+        for (const o of canonical) {
+          try {
+            const m = (o.s3Uri || "").match(/^s3:\/\/([^/]+)\/(.+)$/);
+            if (!m) continue;
+            const obj: any = await _s3z.send(new _GZ({ Bucket: m[1], Key: m[2] }));
+            const chunks: Buffer[] = [];
+            for await (const c of obj.Body as any) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+            canonicalBuffers.push({ name: o.name, body: Buffer.concat(chunks) });
+          } catch (err) {
+            console.error(`Failed to fetch ${o.name} for archive (resolver=${runResolverId}):`, err);
+          }
+        }
+        if (canonicalBuffers.length === 0) {
+          return res.status(502).json({
+            error: "download_all_empty",
+            message: "Outputs were listed but none could be fetched from S3. Retry Download all, or use the After-run ZIP job.",
+          });
+        }
       }
 
       // Create ZIP archive
@@ -11237,30 +11310,8 @@ ${paramLines || '(none recorded)'}`;
         }
       });
 
-      // Stream canonical (S3) outputs directly from their s3Uri — the fix for the
-      // silent S3-skip. Names come from the resolver (already include extension).
-      if (canonical.length) {
-        const { S3Client: _S3Z, GetObjectCommand: _GZ } = await import("@aws-sdk/client-s3");
-        // Default credential chain + region redirects — the same path the record
-        // checksum + single-file download use successfully for these buckets.
-        const _s3z = new _S3Z({
-          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
-          followRegionRedirects: true,
-        });
-        for (const o of canonical) {
-          try {
-            const m = (o.s3Uri || "").match(/^s3:\/\/([^/]+)\/(.+)$/);
-            if (!m) continue;
-            const obj: any = await _s3z.send(new _GZ({ Bucket: m[1], Key: m[2] }));
-            // Buffer fully before appending — archiver drops lazily-piped S3
-            // streams, yielding an empty zip.
-            const chunks: Buffer[] = [];
-            for await (const c of obj.Body as any) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
-            archive.append(Buffer.concat(chunks), { name: o.name });
-          } catch (err) {
-            console.error(`Failed to add ${o.name} to archive:`, err);
-          }
-        }
+      for (const entry of canonicalBuffers) {
+        archive.append(entry.body, { name: entry.name });
       }
       // Legacy Galaxy outputs (galaxyDatasetId / localPath), only when the
       // canonical resolver had nothing.
@@ -12699,6 +12750,76 @@ ${paramLines || '(none recorded)'}`;
           for (const [id, entry] of uploadedFileRegistry.entries()) {
             if (entry.filePath) _uuidFilePaths[id] = { filePath: entry.filePath, name: entry.name };
             if (entry.s3Uri) _uuidS3Uris[id] = entry.s3Uri;
+          }
+
+          // Deferred URL HDAs: materialize + download before Batch staging.
+          // Product promise from UrlImportForm: "BioMate fetches when a workflow needs the data."
+          // Restored after merge-drop left deferred-materialize.ts without this call site.
+          {
+            const proxy = userProxy(req);
+            const candidates = collectCandidateDatasetIds(rawParams, inputs, _sessionDs);
+            const alreadyResolved = new Set([
+              ...Object.keys(_uuidFilePaths),
+              ...Object.keys(_uuidS3Uris),
+            ]);
+            const mat = await ensureDeferredDatasetsMaterialized(
+              candidates,
+              {
+                getMetadata: (id) => proxy.getDatasetMetadata(id),
+                materialize: (id) => proxy.materializeDeferredDataset(id),
+                downloadToFile: async (id, localPath) => {
+                  await fs.mkdir(path.dirname(localPath), { recursive: true });
+                  const stream = await proxy.downloadDataset(id);
+                  if (!stream) throw new Error("Galaxy did not return a download stream");
+                  await pipeline(stream, createWriteStream(localPath));
+                },
+              },
+              { uploadDir, alreadyResolved },
+            );
+            if (mat.failures.length > 0) {
+              const first = mat.failures[0];
+              console.error(
+                `[Execute] deferred materialize failed for ${mat.failures.length} dataset(s); first=${first.id} reason=${first.reason}`,
+              );
+              return res.status(409).json({
+                error: "deferred_materialize_failed",
+                message:
+                  "A deferred (URL) dataset could not be downloaded before launch. Fix the URL or import immediately, then retry.",
+                failures: mat.failures,
+              });
+            }
+            for (const [id, entry] of Object.entries(mat.filePaths)) {
+              _uuidFilePaths[id] = entry;
+              for (const [k, v] of Object.entries(rawParams)) {
+                if (typeof v === "string" && v === id) {
+                  rawParams[k] = entry.filePath;
+                }
+              }
+              if (req.session) {
+                if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
+                const existing = (req.session.uploadedDatasets as any[]).find(
+                  (d: any) => d.galaxy_dataset_id === id || d.dataset_id === id,
+                );
+                if (existing) {
+                  existing.file_path = entry.filePath;
+                  existing.deferred = false;
+                  existing.name = entry.name || existing.name;
+                } else {
+                  (req.session.uploadedDatasets as any[]).push({
+                    dataset_id: id,
+                    galaxy_dataset_id: id,
+                    name: entry.name,
+                    file_path: entry.filePath,
+                    deferred: false,
+                  });
+                }
+              }
+            }
+            if (mat.materializedIds.length > 0) {
+              console.log(
+                `[Execute] materialized deferred datasets: ${mat.materializedIds.join(",")}`,
+              );
+            }
           }
 
           // Pre-substitute UUIDs that already have s3 URIs from upload-time staging.

@@ -22,7 +22,7 @@ export function notifyVoiceSettingsChanged() {
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
-/** Voice chrome is opt-in via Settings → Chat. Default off so the composer stays clean. */
+/** Voice chrome is opt-in via Settings → Voice. Default off so the composer stays clean. */
 export function useVoiceSettings(): VoiceSettings {
   const [settings, setSettings] = useState<VoiceSettings>(readVoiceSettings);
   const refresh = useCallback(() => setSettings(readVoiceSettings()), []);

@@ -58,5 +58,11 @@ export function looksLikeHollowFindings(findings: unknown): boolean {
   const summary = String(f.summary || '');
   const claimsScoresMissing = rows.length === 0 && /docking|vina|deseq|enrich|plddt|structure prediction|affinity|cryo|fsc|resolution|multiqc|alignment/i.test(summary)
     && /no (scores|metrics|results|affinities|resolution)|could not|unavailable|missing/i.test(summary);
-  return fluffRow || admitsMissing || summaryFluff || emptyRedirect || claimsScoresMissing;
+  // Hollow: docking / Boltz prose without any affinity/pLDDT key_results (Bugbot Medium #5).
+  // Deterministic descriptors should have filled these; empty table = poison sidecar.
+  const dockingOrBoltzNoScores = rows.length === 0 && (
+    (/docking|vina|autodock/i.test(summary) && !/best affinity|kcal\/mol/i.test(summary))
+    || (/\b(boltz|plddt|structure prediction)\b/i.test(summary) && !/mean[_\s-]?plddt|plddt\s*[:=]?\s*\d/i.test(summary))
+  );
+  return fluffRow || admitsMissing || summaryFluff || emptyRedirect || claimsScoresMissing || dockingOrBoltzNoScores;
 }
