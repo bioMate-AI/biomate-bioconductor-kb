@@ -144,10 +144,6 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
-import {
-  collectCandidateDatasetIds,
-  ensureDeferredDatasetsMaterialized,
-} from "./deferred-materialize";
 import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
