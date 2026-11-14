@@ -72,8 +72,8 @@ Samplesheet/`input`/`matrix` accept table kinds; `reads`+CSV blocks before Batch
 
 ## Still open (from checklist high-value Missing / residual Partial)
 
-1. Reproducibility pack zip
-2. Pre-run cost estimate badge restore
+1. ~~Reproducibility pack zip~~ → **Have** (`GET /api/runs/:id/reproducibility-pack`, 2026-11-13)
+2. Pre-run cost estimate badge restore (honesty redesign — historical/prior; do not uncomment static table)
 3. BAM/VCF viewers without IT; datatype converters; workflow landings; storage purge; in-app notifications
 4. Live E2E for remote FTP + deferred materialize (API smoke) after sync
 5. Samplesheet E2E attach assert requires feature commit on live

@@ -4743,6 +4743,22 @@ export function NextflowWorkflowViewer({
                   >
                     {tOr('panel.report', 'Report')}
                   </button>
+                  <span className="sep">·</span>
+                  <button
+                    className="linkish"
+                    disabled={!runId}
+                    onClick={() => {
+                      if (!runId) return;
+                      window.open(`/api/runs/${encodeURIComponent(runId)}/reproducibility-pack`, '_blank');
+                    }}
+                    data-testid="button-download-repro-pack"
+                    title={tOr(
+                      'panel.repro_pack_title',
+                      'Provenance pack: methods snapshot, software, citations, run record, RO-Crate',
+                    )}
+                  >
+                    {tOr('panel.repro_pack', 'Repro pack')}
+                  </button>
                   {(availableQcProfiles.length > 0 || qcGateData !== null) && (
                     <>
                       <span className="sep">·</span>

@@ -48,7 +48,7 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Collections / HDCA create | **Partial** | `POST /api/collections*`; `createDatasetCollection` in proxy; **no** client UI; Nextflow rejects HDCA (`workflow-input-gate.ts`) |
 | Pre-run cost estimate badge | **Partial** | `GET\|POST /api/workflows/estimate_cost` wired; `CostEstimateBadge` removed from panel (`wiring-contracts.test.ts` asserts absent); billing page shows usage after the fact |
 | Post-run cost on Runs / panel strip | **Partial** | Billing ledger + panel vCPU meter (`nextflow-workflow-viewer.tsx`); no estimate-vs-actual Runs-row strip |
-| Reproducibility pack (one zip) | **Partial** | Methods / software / citations / RO-Crate pieces exist; no single “download pack” zip; `ReproducibilityRecordTab` commented out in `AfterRunReport.tsx` |
+| Reproducibility pack (one zip) | **Have** | `GET /api/runs/:id/reproducibility-pack` (`reproducibility-pack.ts` + `routes.ts`); AfterRun + panel `button-download-repro-pack` — methods snapshot + software + citations + run-record + run RO-Crate (2026-11-13). Not Galaxy `/tmp` bundle; not download-all |
 | Perception → Confirm & Run datatype gate | **Have** | `perceptionMismatch` in `input-mapping-status.ts` → `isPrereqBlocked` (2026-11-13); strong kinds only |
 | Native Galaxy `.ga` invoke | **Partial** | Upload accepts `.ga` into `personal_workflows` (`POST /api/workflows/upload-file`); execute path is Nextflow/`file_content`-oriented — not honest Galaxy-engine invoke UX |
 | Galaxy invoke API (proxy) | **Partial** | `invokeWorkflow` + `/api/galaxy/workflows/...` exist; product default engine is Nextflow |
@@ -94,7 +94,7 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 
 Cap for chat summary; full Missing rows remain in the table.
 
-1. Reproducibility pack zip (methods + software + citations + RO-Crate)  
+1. ~~Reproducibility pack zip~~ → **Have** (2026-11-13)  
 2. Inline estimate vs actual run cost  
 3. BAM/VCF/(h5ad) viewers without IT (IGV.js-class)  
 4. Datatype auto-converters before Batch  

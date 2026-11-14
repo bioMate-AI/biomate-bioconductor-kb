@@ -1350,6 +1350,7 @@ function OutputsTab({
   const totalCount = scientificOutputs.length;
   const metadataCount = metadataOutputs.length;
   const reproUrl = `/api/runs/${encodeURIComponent(runId)}/reproducibility-record?download=1`;
+  const reproPackUrl = `/api/runs/${encodeURIComponent(runId)}/reproducibility-pack`;
   // Phase 1 of docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md §11 — bulk ZIP is now
   // produced asynchronously by the jobs subsystem; the user clicks a
   // <JobButton> which polls until ready, then we trigger the actual download.
@@ -1611,6 +1612,22 @@ function OutputsTab({
               ? 'No scientific outputs — only Nextflow run metadata is available.'
               : 'No output files registered yet.'}
         </p>
+        {runId && (
+          <div style={styles.bulkActions}>
+            <button
+              type="button"
+              data-testid="button-download-repro-pack"
+              onClick={() => triggerDownload(reproPackUrl)}
+              title={tOr(
+                'afterrun.repro_pack_title',
+                'Provenance pack: methods snapshot, software, citations, run record, RO-Crate (not scientific outputs)',
+              )}
+              style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary, cursor: 'pointer', border: '1px solid var(--border)' }}
+            >
+              {tOr('afterrun.repro_pack', 'Reproducibility pack')}
+            </button>
+          </div>
+        )}
         {metadataSection}
       </div>
     );
@@ -1629,6 +1646,21 @@ function OutputsTab({
             onReady={triggerDownload}
             className="afterrun-download-all-btn"
           />
+        )}
+        {runId && (
+          <button
+            type="button"
+            data-testid="button-download-repro-pack"
+            className="afterrun-download-repro-pack-btn"
+            onClick={() => triggerDownload(reproPackUrl)}
+            title={tOr(
+              'afterrun.repro_pack_title',
+              'Provenance pack: methods snapshot, software, citations, run record, RO-Crate (not scientific outputs)',
+            )}
+            style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary, cursor: 'pointer', border: '1px solid var(--border)' }}
+          >
+            {tOr('afterrun.repro_pack', 'Reproducibility pack')}
+          </button>
         )}
 
         {/* Save-to-Project affordance */}
