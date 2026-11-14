@@ -284,7 +284,9 @@ if cli is None and not _has_pkg:
     sys.exit(3)
 
 def _run_reinvent(cfg_toml):
-    """Run reinvent sampling config; return CompletedProcess."""
+    # Run reinvent sampling config; return CompletedProcess.
+    # NOTE: do not use Python """ docstrings here — they terminate the
+    # outer Nextflow script: """ block (Groovy: No such variable: Run).
     if cli:
         return subprocess.run([cli, cfg_toml], capture_output=True, text=True)
     # Installed or source-tree package: call the public entrypoint.
