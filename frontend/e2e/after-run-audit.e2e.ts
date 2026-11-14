@@ -22,10 +22,11 @@
  * Wallclock: 5–15 minutes (Batch cold start + 4-phase exec).
  */
 import { test, expect, type Page } from "@playwright/test";
+import { resolveE2eBaseUrl } from "./_e2e-base-url";
 import * as fs from "fs";
 import * as path from "path";
 
-const BASE_URL = (process.env.BIOMATE_URL || "http://localhost:5001").replace(/\/+$/, "");
+const BASE_URL = resolveE2eBaseUrl("http://localhost:5001").replace(/\/+$/, "");
 const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "";
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";

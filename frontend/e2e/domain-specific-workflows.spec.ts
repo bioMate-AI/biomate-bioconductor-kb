@@ -13,8 +13,9 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { resolveE2eBaseUrl } from "./_e2e-base-url";
 
-const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
+const BASE_URL = resolveE2eBaseUrl('http://localhost:5000');
 
 async function typeNaturally(locator: any, text: string) {
   await locator.click();

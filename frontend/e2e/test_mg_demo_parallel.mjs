@@ -10,8 +10,9 @@
  * All three submit to AWS Batch in parallel.
  */
 import { chromium } from '@playwright/test';
+import { resolveE2eBaseUrl } from './_e2e-base-url.ts';
 
-const DEV_URL = process.env.BIOMATE_URL || 'https://dev-public.biomate.ai';
+const DEV_URL = resolveE2eBaseUrl('https://dev-public.biomate.ai');
 const EMAIL = 'lifeifei163361@163.com';
 const PASSWORD = 'WpmFixture!2026';
 const E2E_TOKEN = 'biomate-e2e-bypass-token-dev-only';

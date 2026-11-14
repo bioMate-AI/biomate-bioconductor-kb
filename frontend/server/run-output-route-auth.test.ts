@@ -25,6 +25,8 @@ const protectedRoutes = [
   "/api/outputs/:id/parse",
   "/api/invocations/:id/download-all",
   "/api/invocations/:id/report",
+  "/api/runs/:anyId/reproducibility-pack",
+  "/api/runs/:anyId/reproducibility-record",
 ];
 
 describe("run output/findings route authentication wiring", () => {
@@ -33,6 +35,26 @@ describe("run output/findings route authentication wiring", () => {
     expect(start).toBeGreaterThan(-1);
     const registration = routes.slice(start, routes.indexOf("=>", start));
     expect(registration).toContain("authenticateToken");
+  });
+
+  it("POST /api/datasets/:id/materialize requires authenticateToken + userProxy", () => {
+    const start = routes.indexOf('app.post("/api/datasets/:id/materialize"');
+    expect(start).toBeGreaterThan(-1);
+    const registration = routes.slice(start, routes.indexOf("=>", start));
+    expect(registration).toContain("authenticateToken");
+    const body = routes.slice(start, start + 800);
+    expect(body).toContain("userProxy(req)");
+    expect(body).not.toMatch(/galaxyAPIProxy\.materializeDeferredDataset/);
+  });
+
+  it("Nextflow execute path fail-closes deferred materialize before Batch staging", () => {
+    expect(routes).toContain('from "./deferred-materialize"');
+    expect(routes).toContain("ensureDeferredDatasetsMaterialized");
+    expect(routes).toContain("deferred_materialize_failed");
+    const mat = routes.indexOf("ensureDeferredDatasetsMaterialized");
+    const stage = routes.indexOf("stageLocalFilesForBatch(", mat);
+    expect(mat).toBeGreaterThan(-1);
+    expect(stage).toBeGreaterThan(mat);
   });
 
   it("does not proxy unregistered raw chain IDs without an owned run", () => {
