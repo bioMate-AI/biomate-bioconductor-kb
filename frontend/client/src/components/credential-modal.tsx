@@ -99,7 +99,7 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
 
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" data-testid="credential-modal">
         <DialogHeader>
           <DialogTitle>{tool.display_name} Credentials</DialogTitle>
           <DialogDescription>
@@ -141,6 +141,7 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
               <Label htmlFor="cred-license-key">License key</Label>
               <Input
                 id="cred-license-key"
+                data-testid="credential-license-key"
                 type="password"
                 value={licenseKey}
                 onChange={e => setLicenseKey(e.target.value)}
@@ -256,7 +257,7 @@ export function CredentialModal({ tool, onSaved, onClose }: CredentialModalProps
             <Button type="button" variant="outline" size="sm" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={saving}>
+            <Button type="submit" size="sm" disabled={saving} data-testid="credential-save">
               {saving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               {tool.type === 'license_agreement' ? 'Confirm' : 'Save credentials'}
             </Button>
