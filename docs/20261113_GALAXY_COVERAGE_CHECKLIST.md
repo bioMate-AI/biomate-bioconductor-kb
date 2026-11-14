@@ -94,16 +94,17 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 
 Cap for chat summary; full Missing rows remain in the table.
 
-1. ~~Reproducibility pack zip~~ → **Have** (2026-11-13)  
-2. Inline estimate vs actual run cost  
-3. BAM/VCF/(h5ad) viewers without IT (IGV.js-class)  
-4. Datatype auto-converters before Batch  
-5. Workflow landing / shareable pre-filled run links  
-6. Storage archive/purge for abandoned S3 data  
-7. In-app run-complete / QC notifications  
-8. Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling  
+1. ~~Deferred materialize on Confirm & Run~~ → **Have** (2026-11-13)  
+2. ~~Reproducibility pack zip~~ → **Have** (2026-11-13)  
+3. Inline estimate vs actual run cost  
+4. BAM/VCF/(h5ad) viewers without IT (IGV.js-class)  
+5. Datatype auto-converters before Batch  
+6. Workflow landing / shareable pre-filled run links  
+7. Storage archive/purge for abandoned S3 data  
+8. In-app run-complete / QC notifications  
+9. Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling  
 
-Shipped from this list on 2026-11-13 (deep session): remote browse → project_files; FASTQ samplesheet-as-one Analysis input; perception Confirm & Run datatype gate; deferred import in primary chat/Data Hub UX; **materialize-on-Confirm&Run** (`deferred-materialize.ts` in execute path).
+Shipped from this list on 2026-11-13 (deep session): remote browse → project_files; FASTQ samplesheet-as-one Analysis input; perception Confirm & Run datatype gate; deferred import in primary chat/Data Hub UX; materialize-on-Confirm&Run; reproducibility pack zip.
 
 ---
 

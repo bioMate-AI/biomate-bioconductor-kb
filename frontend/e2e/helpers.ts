@@ -8,9 +8,8 @@
  *   Redis is unavailable (local dev). Always writes to console for audit.
  */
 import { Page, APIRequestContext, expect } from "@playwright/test";
-import { BASE_URL } from "./_e2e-base-url";
 
-export { BASE_URL };
+export const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 
 // ---------------------------------------------------------------------------
 // Auth helpers

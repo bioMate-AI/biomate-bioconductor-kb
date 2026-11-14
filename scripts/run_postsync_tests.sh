@@ -23,9 +23,7 @@ COMMIT="${1:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo un
 DATE="$(date +%Y%m%d_%H%M%S)"
 LOG_DIR="$REPO_ROOT/docs/postsync_test_results"
 LOG_FILE="$LOG_DIR/${DATE}_${COMMIT}.log"
-# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
-export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://dev-public.biomate.ai}}"
-export BASE_URL="$BIOMATE_URL"
+BIOMATE_URL="${BIOMATE_URL:-https://dev-public.biomate.ai}"
 FRONTEND_DIR="$REPO_ROOT/frontend"
 
 mkdir -p "$LOG_DIR"

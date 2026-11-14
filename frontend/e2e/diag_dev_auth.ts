@@ -1,7 +1,6 @@
 import { chromium } from 'playwright';
-import { BASE_URL } from "./_e2e-base-url";
 
-
+const BASE_URL = 'https://dev-public.biomate.ai';
 const E2E_TOKEN = 'biomate-e2e-bypass-token-dev-only';
 
 (async () => {

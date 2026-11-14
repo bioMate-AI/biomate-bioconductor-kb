@@ -18,9 +18,7 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND="$REPO_ROOT/frontend"
-# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
-export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://dev-public.biomate.ai}}"
-export BASE_URL="$BIOMATE_URL"
+export BIOMATE_URL="${BIOMATE_URL:-https://dev-public.biomate.ai}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 OUT_DIR="${LIVE_JOURNEYS_OUT:-$FRONTEND/e2e/reports}"
 mkdir -p "$OUT_DIR"

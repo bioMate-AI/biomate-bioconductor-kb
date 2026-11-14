@@ -1,32 +1,20 @@
 {
   "ok": true,
   "baseUrl": "https://dev-public.biomate.ai",
-  "liveCommit": "ecf9fedc4dd70a9428a20872ffd7364432a41d59",
-  "projectId": "55cd1ff5-a4e5-4754-900e-1e200d282a44",
+  "liveCommit": "562908a3e7280631adae5cb413e9699f27976f31",
+  "projectId": "8691d0bd-e7de-4830-bd1d-5d85bd3753cd",
   "folder": "pairs",
-  "nested": "pairs/lane1",
-  "fileCount": 5,
-  "nestedCount": 2,
-  "emptyStatus": 404,
+  "fileCount": 3,
   "apiFileNames": [
-    "pairs/lane1/N1_R1.fastq.gz",
-    "pairs/lane1/N1_R2.fastq.gz",
     "pairs/S1_R1.fastq.gz",
     "pairs/S1_R2.fastq.gz",
     "pairs/S2_R1.fastq.gz"
   ],
   "chipTexts": [
-    "pairs/lane1/N1_R1.fastq.gz",
-    "pairs/lane1/N1_R2.fastq.gz",
     "pairs/S1_R1.fastq.gz",
     "pairs/S1_R2.fastq.gz",
     "pairs/S2_R1.fastq.gz"
   ],
-  "modelsFolderLabel": "pairs/ (5 files)",
-  "samplesheet": {
-    "status": 201,
-    "id": "3dc106f5-f555-47ac-bc51-75b0b5e106f5",
-    "name": "pairs/samplesheet.csv"
-  },
-  "at": "2026-11-13T22:43:31.834Z"
+  "modelsFolderLabel": "pairs/ (3 files)",
+  "at": "2026-11-13T18:57:35.697Z"
 }

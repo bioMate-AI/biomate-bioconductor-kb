@@ -15,17 +15,15 @@
  * × qemu × GPU stack mismatch that this suite intentionally side-steps.
  * The same code paths are exercised by direct HTTP calls.
  *
- * Configurable target (precedence via e2e/_e2e-base-url.ts):
- *   BASE_URL / PLAYWRIGHT_BASE_URL / BIOMATE_URL
+ * Configurable target:
+ *   BIOMATE_URL=https://dev-public.biomate.ai    (default: localhost:5000)
  *   E2E_FIXTURE_EMAIL / E2E_FIXTURE_PASSWORD     (in .env.test.local)
  *   E2E_TEST_TOKEN                               (in .env)
  */
 
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { BASE_URL } from "./_e2e-base-url";
-const BASE = BASE_URL;
 
-
+const BASE = process.env.BIOMATE_URL || "http://localhost:5000";
 const TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 const EMAIL = process.env.E2E_FIXTURE_EMAIL || "e2e-admet-fixture@biomate.test";
 const PASS = process.env.E2E_FIXTURE_PASSWORD || "AdmetE2ETest!2026";

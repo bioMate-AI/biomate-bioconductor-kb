@@ -22,9 +22,41 @@
  *     --reporter=line --project=chromium
  */
 import { test, expect, type Page } from "@playwright/test";
-import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
+const BASE_URL = (process.env.BIOMATE_URL || "http://localhost:5000").replace(/\/+$/, "");
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
+const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 
+async function loginShared(page: Page): Promise<boolean> {
+  await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
+  await page.context().clearCookies();
+  let resp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
+  });
+  let token = "";
+  if (resp.ok()) {
+    token = (await resp.json())?.token || "";
+  } else {
+    // NEVER register-on-fail. Per CLAUDE.md the fixture user must already
+    // exist. Surface auth failures instead of polluting the user list.
+    console.error(`[login] FAILED status=${resp.status()} — fixture user must already exist; not registering`);
+    return false;
+  }
+  if (!token) return false;
+  const url = new URL(BASE_URL);
+  await page.context().addCookies([{
+    name: "biomate_token",
+    value: token,
+    domain: url.hostname,
+    path: "/",
+    httpOnly: true,
+    secure: BASE_URL.startsWith("https"),
+    sameSite: "Strict",
+  }]);
+  return true;
+}
 
 async function sendChatViaUI(page: Page, query: string) {
   const input = page
@@ -99,7 +131,8 @@ test.describe("ParamClarificationCard end-to-end", () => {
       });
     });
 
-    await loginAsFixture(page);
+    const ok = await loginShared(page);
+    expect(ok, "fixture login").toBeTruthy();
 
     await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForLoadState("load").catch(() => {});

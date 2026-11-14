@@ -8,6 +8,9 @@ import { backendPassthrough } from "./backend-passthrough";
 import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
 import { isModelTrainingRun } from "./model-training-activity";
 import { parseMlTrainingFindings, looksLikeMlTrainingFluff } from "./ml-training-findings";
+import { parseCryoEmFindings } from "./cryo-em-findings";
+import { parseMultiqcFindings } from "./multiqc-findings";
+import { parseDeseq2Findings, parseEnrichGoFindings, parseRarediseaseFindings } from "./genomics-flat-findings";
 import { looksLikeHollowFindings, scoreFindingsSampleName } from "./findings-quality";
 import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
@@ -91,8 +94,7 @@ import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
-import { promises as fs, createReadStream, createWriteStream, existsSync, readdirSync, readFileSync } from "fs";
-import { pipeline } from "stream/promises";
+import { promises as fs, createReadStream, existsSync, readdirSync, readFileSync } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
@@ -137,10 +139,6 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
-import {
-  collectCandidateDatasetIds,
-  ensureDeferredDatasetsMaterialized,
-} from "./deferred-materialize";
 import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
@@ -1467,6 +1465,8 @@ async function stageLocalFilesForBatch(
     });
   }
 
+  const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   const staged = { ...params };
   for (const [key, val] of Object.entries(params)) {
     if (typeof val !== 'string') continue;
@@ -1482,10 +1482,8 @@ async function stageLocalFilesForBatch(
       if (!stat.isFile()) continue;
       localPath = val;
       filename = path.basename(val);
-    } else if (uuidFilePaths?.[val]) {
-      // Resolved Galaxy dataset id (UUID *or* encoded hex) → local file.
-      // Hex HDAs are common for deferred URL imports; UUID-only matching
-      // silently left Batch params as bare ids after materialize-on-Confirm&Run.
+    } else if (_UUID_RE.test(val) && uuidFilePaths?.[val]) {
+      // Galaxy dataset UUID — look up the local file path from session registry
       const entry = uuidFilePaths[val];
       let stat: any;
       try { stat = await fs.stat(entry.filePath); } catch { continue; }
@@ -12703,78 +12701,6 @@ ${paramLines || '(none recorded)'}`;
             if (entry.s3Uri) _uuidS3Uris[id] = entry.s3Uri;
           }
 
-          // Deferred URL HDAs: materialize + download before Batch staging.
-          // Product promise from UrlImportForm: "BioMate fetches when a workflow needs the data."
-          {
-            const proxy = userProxy(req);
-            const candidates = collectCandidateDatasetIds(rawParams, inputs, _sessionDs);
-            const alreadyResolved = new Set([
-              ...Object.keys(_uuidFilePaths),
-              ...Object.keys(_uuidS3Uris),
-            ]);
-            const mat = await ensureDeferredDatasetsMaterialized(
-              candidates,
-              {
-                getMetadata: (id) => proxy.getDatasetMetadata(id),
-                materialize: (id) => proxy.materializeDeferredDataset(id),
-                downloadToFile: async (id, localPath) => {
-                  await fs.mkdir(path.dirname(localPath), { recursive: true });
-                  const stream = await proxy.downloadDataset(id);
-                  if (!stream) throw new Error("Galaxy did not return a download stream");
-                  await pipeline(stream, createWriteStream(localPath));
-                },
-              },
-              { uploadDir, alreadyResolved },
-            );
-            if (mat.failures.length > 0) {
-              const first = mat.failures[0];
-              console.error(
-                `[Execute] deferred materialize failed for ${mat.failures.length} dataset(s); first=${first.id} reason=${first.reason}`,
-              );
-              return res.status(409).json({
-                error: "deferred_materialize_failed",
-                message:
-                  "A deferred (URL) dataset could not be downloaded before launch. Fix the URL or import immediately, then retry.",
-                failures: mat.failures,
-              });
-            }
-            for (const [id, entry] of Object.entries(mat.filePaths)) {
-              _uuidFilePaths[id] = entry;
-              // Rewrite launch params that still hold the bare HDA id so
-              // stageLocalFilesForBatch sees a real local path (or resolves
-              // via _uuidFilePaths for hex/UUID keys alike).
-              for (const [k, v] of Object.entries(rawParams)) {
-                if (typeof v === "string" && v === id) {
-                  rawParams[k] = entry.filePath;
-                }
-              }
-              if (req.session) {
-                if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
-                const existing = (req.session.uploadedDatasets as any[]).find(
-                  (d: any) => d.galaxy_dataset_id === id || d.dataset_id === id,
-                );
-                if (existing) {
-                  existing.file_path = entry.filePath;
-                  existing.deferred = false;
-                  existing.name = entry.name || existing.name;
-                } else {
-                  (req.session.uploadedDatasets as any[]).push({
-                    dataset_id: id,
-                    galaxy_dataset_id: id,
-                    name: entry.name,
-                    file_path: entry.filePath,
-                    deferred: false,
-                  });
-                }
-              }
-            }
-            if (mat.materializedIds.length > 0) {
-              console.log(
-                `[Execute] materialized deferred datasets: ${mat.materializedIds.join(",")}`,
-              );
-            }
-          }
-
           // Pre-substitute UUIDs that already have s3 URIs from upload-time staging.
           // This avoids a redundant re-upload and ensures the param is an s3:// URI
           // before stageLocalFilesForBatch runs (which handles the remaining UUIDs).
@@ -16634,147 +16560,21 @@ Rules:
   }
 
   function _parseDeseq2Output(outputSamples: Array<{name: string; content: string}>): {
-    context: string; numbers: Set<string>
+    context: string; numbers: Set<string>; findings?: Record<string, any>
   } | null {
-    const f = outputSamples.find(s =>
-      /deseq2|de_results|differential/i.test(s.name) ||
-      (s.name.endsWith('.csv') && s.content.includes('log2FoldChange'))
-    );
-    if (!f) return null;
-    const lines = f.content.split('\n').filter(l => l.trim());
-    if (lines.length < 2) return null;
-    // autodelim (audit S3#2): BioMate's own de_results.tsv is TAB; nf-core *_DESeq2_results.csv is
-    // comma. The comma-only split returned null on a parseable TSV → EMPTY findings on a successful
-    // DE run. Detect the delimiter from the header.
-    const delim = lines[0].includes('\t') ? '\t' : ',';
-    const header = lines[0].split(delim).map(h => h.replace(/"/g, '').trim());
-    let geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
-    const lfcIdx = header.findIndex(h => /log2fold/i.test(h) && !/se$/i.test(h));
-    const padjIdx = header.findIndex(h => /^(padj|p\.adj|fdr|bh|q\.value)$/i.test(h));
-    if (lfcIdx === -1 || padjIdx === -1) return null;
-    // (audit S3#3) nf-core write.csv(row.names=TRUE) puts gene IDs in the UNLABELED first column
-    // (header ""). Fall back to column 0 ONLY in that true row-name case — committee Opus-3: a blind
-    // `geneIdx=0` mislabels genes with a numeric value when col 0 is numeric or IS the LFC/padj
-    // column. When no gene column matches and col 0 isn't the row-name column, keep geneIdx=-1 and
-    // emit honest synthetic gene_N rather than a number.
-    if (geneIdx === -1 && header[0] === '' && lfcIdx !== 0 && padjIdx !== 0) geneIdx = 0;
-    type Gene = {gene: string; lfc: number; padj: number};
-    const genes: Gene[] = [];
-    for (const line of lines.slice(1)) {
-      const cols = line.split(delim).map(c => c.replace(/"/g, '').trim());
-      const lfc = parseFloat(cols[lfcIdx]);
-      const padj = parseFloat(cols[padjIdx]);
-      if (isNaN(lfc) || isNaN(padj)) continue;
-      genes.push({ gene: (geneIdx >= 0 && cols[geneIdx]) ? cols[geneIdx] : `gene_${genes.length + 1}`, lfc, padj });
-    }
-    const sig = genes.filter(g => g.padj < 0.05);
-    const topUp = [...sig].sort((a, b) => b.lfc - a.lfc).slice(0, 8);
-    const topDown = [...sig].sort((a, b) => a.lfc - b.lfc).slice(0, 8);
-    const fmt = (n: number) => n.toFixed(2);
-    const fmtP = (n: number) => n < 0.001 ? n.toExponential(1) : n.toFixed(3);
-    const contextLines = [
-      `### DESeq2 Differential Expression Results`,
-      `Total genes tested: ${genes.length}`,
-      `Significant at padj < 0.05: ${sig.length} (${sig.filter(g => g.lfc > 0).length} up, ${sig.filter(g => g.lfc < 0).length} down)`,
-      ``, `Top upregulated genes:`,
-      ...topUp.map(g => `  ${g.gene}: LFC=${fmt(g.lfc)}, padj=${fmtP(g.padj)}`),
-      ``, `Top downregulated genes:`,
-      ...topDown.map(g => `  ${g.gene}: LFC=${fmt(g.lfc)}, padj=${fmtP(g.padj)}`),
-      ``, `Source file: ${f.name}`,
-    ];
-    const numbers = new Set<string>([String(sig.length), String(genes.length)]);
-    for (const g of [...topUp, ...topDown]) { numbers.add(fmt(g.lfc)); numbers.add(fmtP(g.padj)); }
-    return { context: contextLines.join('\n'), numbers };
+    return parseDeseq2Findings(outputSamples);
   }
 
   function _parseEnrichGoOutput(outputSamples: Array<{name: string; content: string}>): {
-    context: string; numbers: Set<string>
+    context: string; numbers: Set<string>; findings?: Record<string, any>
   } | null {
-    const f = outputSamples.find(s =>
-      /enrichgo|enrich_go|go_enrich|clusterprofiler|gsea|pathway/i.test(s.name) ||
-      (s.name.endsWith('.csv') && (s.content.includes('p.adjust') || s.content.includes('GeneRatio')))
-    );
-    if (!f) return null;
-    const lines = f.content.split('\n').filter(l => l.trim());
-    if (lines.length < 2) return null;
-    const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const descIdx = header.findIndex(h => /^(description|term|pathway|name)$/i.test(h));
-    const padjIdx = header.findIndex(h => /^(p\.adjust|padj|fdr|qvalue)$/i.test(h));
-    const ratioIdx = header.findIndex(h => /^(generatio|gene_ratio|ratio)$/i.test(h));
-    const countIdx = header.findIndex(h => /^(count|gene_count)$/i.test(h));
-    if (descIdx === -1 || padjIdx === -1) return null;
-    type Term = {desc: string; padj: number; ratio: string; count: string};
-    const terms: Term[] = [];
-    for (const line of lines.slice(1)) {
-      const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
-      const padj = parseFloat(cols[padjIdx]);
-      if (isNaN(padj)) continue;
-      terms.push({ desc: cols[descIdx] || '', padj, ratio: ratioIdx >= 0 ? cols[ratioIdx] : '', count: countIdx >= 0 ? cols[countIdx] : '' });
-    }
-    terms.sort((a, b) => a.padj - b.padj);
-    const sig = terms.filter(t => t.padj < 0.05);
-    const top12 = terms.slice(0, 12);
-    const fmtP = (n: number) => n < 0.001 ? n.toExponential(2) : n.toFixed(4);
-    const contextLines = [
-      `### Gene Ontology / Pathway Enrichment Results`,
-      `Significantly enriched terms (p.adjust < 0.05): ${sig.length}`,
-      ``, `Top enriched terms:`,
-      ...top12.map(t => {
-        const extras = [t.ratio && `GeneRatio=${t.ratio}`, t.count && `Count=${t.count}`].filter(Boolean);
-        return `  ${t.desc}: p.adj=${fmtP(t.padj)}${extras.length ? `, ${extras.join(', ')}` : ''}`;
-      }),
-      ``, `Source file: ${f.name}`,
-    ];
-    const numbers = new Set<string>([String(sig.length)]);
-    for (const t of top12) numbers.add(fmtP(t.padj));
-    return { context: contextLines.join('\n'), numbers };
+    return parseEnrichGoFindings(outputSamples);
   }
 
   function _parseRarediseaseOutput(outputSamples: Array<{name: string; content: string}>): {
-    context: string; numbers: Set<string>
+    context: string; numbers: Set<string>; findings?: Record<string, any>
   } | null {
-    const f = outputSamples.find(s =>
-      /variant|annotated|vep|snpeff|filtered/i.test(s.name) && /\.(tsv|txt|csv|vcf)$/i.test(s.name)
-    );
-    if (!f) return null;
-    const lines = f.content.split('\n').filter(l => l.trim() && !l.startsWith('##'));
-    if (lines.length < 2) return null;
-    const sep = f.name.endsWith('.csv') ? ',' : '\t';
-    const header = lines[0].split(sep).map(h => h.replace(/^#/, '').trim());
-    const geneIdx = header.findIndex(h => /gene|gene\.refgene|symbol/i.test(h));
-    const impactIdx = header.findIndex(h => /^(impact|severity)$/i.test(h));
-    const funcIdx = header.findIndex(h => /func|consequence|exonicfunc/i.test(h));
-    if (geneIdx === -1 && impactIdx === -1) return null;
-    type Variant = {gene: string; impact: string; func: string};
-    // (audit S3#5) Parse ALL rows and count by impact over the full set. The old
-    // `slice(1,201)` with no impact-sort hid HIGH-impact (candidate causal) variants beyond
-    // row 200 and undercounted — in a position-sorted table the diagnostic variant can be lost.
-    const variants: Variant[] = lines.slice(1).map(line => {
-      const cols = line.split(sep);
-      return { gene: geneIdx >= 0 ? cols[geneIdx] : '', impact: impactIdx >= 0 ? cols[impactIdx] : '', func: funcIdx >= 0 ? cols[funcIdx] : '' };
-    });
-    // (audit S3#4) MODIFIER must NOT be counted as MODERATE — `/mod/` is a substring of
-    // "MODIFIER" (usually the majority of variants). Match each category exactly.
-    const high = variants.filter(v => /^high$/i.test(v.impact.trim()));
-    const mod = variants.filter(v => /^moderate$/i.test(v.impact.trim()));
-    const low = variants.filter(v => /^low$/i.test(v.impact.trim()));
-    const modifier = variants.filter(v => /^modifier$/i.test(v.impact.trim()));
-    const contextLines = [
-      `### Rare Disease Variant Analysis`,
-      // committee Opus-1: counts are over the SAMPLED output (parser now reads up to ~1MB — most
-      // annotated tables fit, but a very large table is still sampled), so label them "sampled" and
-      // do NOT whitelist the total as an authoritative "variants analyzed" count for the LLM narrative.
-      `Variants in sampled output: ${variants.length}`,
-      `HIGH impact (sampled): ${high.length}`,
-      `MODERATE impact (sampled): ${mod.length}`,
-      `LOW impact (sampled): ${low.length}`,
-      `MODIFIER (sampled): ${modifier.length}`,
-      ...(high.length > 0 ? [``, `HIGH impact (sampled):`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
-      ...(mod.length > 0 ? [``, `MODERATE impact (sampled, top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
-      ``, `Source file: ${f.name}`,
-    ];
-    const numbers = new Set<string>([String(high.length), String(mod.length), String(low.length), String(modifier.length)]);
-    return { context: contextLines.join('\n'), numbers };
+    return parseRarediseaseFindings(outputSamples);
   }
 
   function preProcessForFindings(
@@ -16790,6 +16590,25 @@ Rules:
     if (opts?.isMlTraining || /ml_training|chemprop|ludwig|potency predictor|sklearn|model.?train/i.test(workflowName)) {
       const ml = parseMlTrainingFindings(outputSamples, workflowName);
       if (ml) return ml;
+    }
+    // cryo-EM: assemble FSC / particle / acquisition score card from step reports.
+    if (/cryo|cryosparc|relion|spa\b|electron.?microscop/i.test(workflowName)) {
+      const cryo = parseCryoEmFindings(outputSamples, workflowName);
+      if (cryo) return { context: cryo.summary, numbers: new Set(cryo.key_results.map(k => k.value.replace(/[^\d.eE+-]/g, '')).filter(Boolean)), findings: cryo };
+    }
+    // RNA-seq / WGS QC without a DE / enrichment table: MultiQC general stats → Key Results.
+    // Never outrank DESeq2/enrichGO content — those go through matchDescriptor → documentToLegacy.
+    const hasDeOrEnrich = outputSamples.some(f =>
+      /log2FoldChange/i.test(f.content)
+      || /GeneRatio/i.test(f.content)
+      || /(deseq2|de_results|enrichgo|enrich_go)/i.test(f.name),
+    );
+    if (!hasDeOrEnrich && (
+      /rnaseq|rna.?seq|sarek|wgs|chipseq|atac|multiqc/i.test(workflowName)
+      || outputSamples.some(f => /multiqc_data\.json$/i.test(f.name))
+    )) {
+      const mq = parseMultiqcFindings(outputSamples, workflowName);
+      if (mq) return { context: mq.summary, numbers: new Set(mq.key_results.map(k => k.value.replace(/[^\d.eE+-]/g, '')).filter(Boolean)), findings: mq };
     }
     return null;
   }
@@ -18427,29 +18246,6 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         file_type
       );
 
-      // Session hint so Confirm & Run can find deferred ids even if params only
-      // carry the Galaxy HDA id (no local file_path yet).
-      if (req.session) {
-        if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
-        const existing = (req.session.uploadedDatasets as any[]).find(
-          (d: any) => d.galaxy_dataset_id === dataset.id || d.dataset_id === dataset.id,
-        );
-        if (!existing) {
-          (req.session.uploadedDatasets as any[]).push({
-            dataset_id: dataset.id,
-            galaxy_dataset_id: dataset.id,
-            name: remoteName,
-            deferred: true,
-            source_url: remoteUrl,
-            file_path: null,
-          });
-        } else {
-          existing.deferred = true;
-          existing.source_url = remoteUrl;
-          existing.name = existing.name || remoteName;
-        }
-      }
-
       res.json({
         ...dataset,
         galaxy_history_id: historyId,
@@ -18465,13 +18261,12 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
     }
   });
 
-  // Materialize a deferred dataset (trigger actual download).
-  // Prefer execute-path auto-materialize; this route remains for explicit UX / smoke.
-  app.post("/api/datasets/:id/materialize", authenticateToken, async (req, res) => {
+  // Materialize a deferred dataset (trigger actual download)
+  app.post("/api/datasets/:id/materialize", async (req, res) => {
     try {
       const { id } = req.params;
 
-      const result = await userProxy(req).materializeDeferredDataset(id);
+      const result = await galaxyAPIProxy.materializeDeferredDataset(id);
 
       res.json({
         ...result,

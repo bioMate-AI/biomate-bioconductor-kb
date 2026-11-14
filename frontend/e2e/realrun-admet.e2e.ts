@@ -33,13 +33,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { resolveE2eBaseUrl } from "./_e2e-base-url";
-const BASE_URL = resolveE2eBaseUrl("https://dev-public.biomate.ai");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-
+const BASE_URL = process.env.BIOMATE_URL || "https://dev-public.biomate.ai";
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";

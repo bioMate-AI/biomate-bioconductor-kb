@@ -68,10 +68,10 @@ const EXEC_TIMEOUT_MS  = 30 * 60_000; // 30 min — AWS Batch cold start
 
 // S3 is available when running against the dev server (which has S3 configured server-side)
 // even without local AWS credentials, or when local credentials are explicitly set.
-// Use resolved BASE_URL (honors BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL).
+const _BIOMATE_URL = process.env.BIOMATE_URL || '';
 const S3_AVAILABLE = !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET_NAME)
-  || BASE_URL.includes('dev-public.biomate.ai')
-  || BASE_URL.includes('biomate.ai');
+  || _BIOMATE_URL.includes('dev-public.biomate.ai')
+  || _BIOMATE_URL.includes('biomate.ai');
 
 // Research goal keyword baked in so the LLM context injection test can verify it
 const RESEARCH_GOAL = 'Study rheumatoid arthritis GWAS data to identify causal genetic variants';

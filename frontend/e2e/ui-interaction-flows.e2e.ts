@@ -35,15 +35,55 @@
 import { test, expect, type Page } from "@playwright/test";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ── Config ─────────────────────────────────────────────────────────────────────
+const BASE_URL = (process.env.BIOMATE_URL || "http://localhost:5000").replace(/\/+$/, "");
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
+const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 
 const SHOT_DIR = path.join(__dirname, "screenshots", "ui-flows");
 const LLM_TIMEOUT = 90_000;      // 90 s for LLM routing
 const EXEC_TIMEOUT = 20 * 60_000; // 20 min for AWS Batch execution
+
+// ── Auth ───────────────────────────────────────────────────────────────────────
+
+async function loginAsFixture(page: Page): Promise<void> {
+  await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
+  await page.context().clearCookies();
+  const resp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
+  });
+  if (!resp.ok()) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(
+      `loginAsFixture failed (${resp.status()}) for ${FIXTURE_EMAIL}: ` +
+      JSON.stringify(body)
+    );
+  }
+  const body = await resp.json();
+  const token: string = body.token;
+  if (!token) throw new Error("loginAsFixture: no token in response");
+
+  const url = new URL(BASE_URL);
+  await page.context().addCookies([{
+    name: "biomate_token",
+    value: token,
+    domain: url.hostname,
+    path: "/",
+    httpOnly: false,
+    secure: BASE_URL.startsWith("https"),
+    sameSite: "Lax",
+  }]);
+  await page.context().setExtraHTTPHeaders({
+    Authorization: `Bearer ${token}`,
+    "X-E2E-Test-Token": E2E_TOKEN,
+    "X-Forwarded-Proto": "https",
+  });
+}
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 

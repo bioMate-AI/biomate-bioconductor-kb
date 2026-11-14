@@ -235,10 +235,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Live view of this session's messages for window-event handlers registered
   // once for the component lifetime (the clarification bridge below reads the
-  // attachments off the user's turns).
-  const sessionMessagesRef = useRef<Array<{ role?: string; content?: unknown }>>([])
+  // attachments off the user's turns, and opens the panel from message metadata
+  // when Confirm-and-configure fires with no panelWorkflow yet).
+  const sessionMessagesRef = useRef<Array<{ role?: string; content?: unknown; id?: string; metadata?: any }>>([])
   useEffect(() => {
-    sessionMessagesRef.current = (currentChatSession?.messages ?? []) as Array<{ role?: string; content?: unknown }>
+    sessionMessagesRef.current = (currentChatSession?.messages ?? []) as Array<{
+      role?: string; content?: unknown; id?: string; metadata?: any
+    }>
   }, [currentChatSession?.messages])
 
   // True while the AI is streaming a response — used to show a skeleton in the panel.
@@ -549,24 +552,56 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // picks a chip; we patch the value onto the open workflow's inline_parameters
   // so the panel pre-fills the field. Skip just removes the clarification from
   // the message metadata so the card hides.
+  //
+  // 2026-11-13 clinic hell: chat can say "ready in the panel" with a ClarifyCard
+  // while panelWorkflow is still null (panel never auto-opened). The prior
+  // `if (!prev) return prev` made "Confirm and configure" a silent no-op — the
+  // right panel stayed closed. Resolve the workflow from the message metadata
+  // and open the panel so Movies Path / required inputs are editable.
   useEffect(() => {
+    const workflowFromMessage = (messageId?: string): any | null => {
+      if (!messageId) return null
+      const msg = sessionMessagesRef.current.find((m) => m.id === messageId)
+      const md = msg?.metadata || {}
+      return (
+        md.workflow ||
+        md.generatedWorkflow?.workflow_ga ||
+        md.generatedWorkflow ||
+        md.workflow_ga ||
+        null
+      )
+    }
     const onResolved = (e: Event) => {
       const ce = e as CustomEvent<{ messageId?: string; paramName: string; value: string }>
-      const { paramName, value } = ce.detail || ({} as any)
+      const { messageId, paramName, value } = ce.detail || ({} as any)
       if (!paramName) return
+      let openedFromMessage = false
       setPanelWorkflow((prev: any) => {
-        if (!prev) return prev
+        const base = prev || workflowFromMessage(messageId)
+        if (!base) {
+          console.warn('[clarify-bridge] no panel workflow to bind; messageId=', messageId)
+          return prev
+        }
+        if (!prev) openedFromMessage = true
         // An answer that refers to an attachment ("use the attached file",
         // "用附件", or the file's name) binds THAT FILE's dataset reference, not
         // the sentence the user typed — otherwise the panel keeps showing the
         // required input as unset (founder report: "Confirm and configure" did
         // nothing). Any other answer is a real value and passes through.
-        const applied = applyClarificationAnswer(prev, { paramName, value }, sessionMessagesRef.current)
+        const applied = applyClarificationAnswer(base, { paramName, value }, sessionMessagesRef.current)
         if (applied.file) {
           console.log(`[clarify-bridge] ${paramName} ← attached file "${applied.file.name}"`)
         }
         return applied.workflow
       })
+      // Ensure the right panel is visible after Confirm and configure — even when
+      // the bound value is empty (user still needs to edit Movies Path etc.).
+      setPanelOpen(true)
+      onWorkflowPanelOpenChange?.(true)
+      if (messageId) setPanelWorkflowMessageId(messageId)
+      if (openedFromMessage) {
+        console.log('[clarify-bridge] opened panel from message workflow after Confirm and configure')
+      }
     }
     const onSkipped = (_e: Event) => {
       // No-op: the card visually disappears once the user clicks skip
@@ -579,7 +614,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       window.removeEventListener('biomate:param-clarification-resolved', onResolved as EventListener)
       window.removeEventListener('biomate:param-clarification-skipped', onSkipped as EventListener)
     }
-  }, [])
+  }, [onWorkflowPanelOpenChange])
 
   // IntentClarificationCard → re-submit with intentOverride.
   // When the card emits `biomate:intent-clarification-resolved`, re-send

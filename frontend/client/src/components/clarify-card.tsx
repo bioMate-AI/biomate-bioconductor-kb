@@ -186,9 +186,20 @@ export function ClarifyCard({
   // Emit answers for every question that has a genuine selection (a recommended
   // pick, a user click, or free text). Questions still at NONE — an enum with no
   // pre-select the user never chose — emit nothing: no resolved value is applied.
+  // Exception (2026-11-13 clinic hell): a file/path prompt with zero typed opts
+  // only offers the fretext escape hatch. Confirm with NONE used to emit nothing,
+  // so "Confirm and configure" silently left the right panel closed while chat
+  // claimed the workflow was ready. Treat that as empty fretext so the panel
+  // bridge opens and the user can fill Movies Path / etc.
   const emit = (pk: number[]) => {
     const answers = questions
-      .map((qq, j) => (pk[j] === NONE ? null : answerFor(qq, pk[j], own)))
+      .map((qq, j) => {
+        if (pk[j] === NONE) {
+          if (qq.opts.length === 0) return answerFor(qq, FREETEXT, own)
+          return null
+        }
+        return answerFor(qq, pk[j], own)
+      })
       .filter((a): a is ClarifyAnswer => a !== null)
     answers.forEach((a) => dispatchAnswer(a, messageId))
     onDone?.(answers)

@@ -10,11 +10,7 @@
 
 set -euo pipefail
 
-# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
-
-export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://dev-public.biomate.ai}}"
-
-export BASE_URL="$BIOMATE_URL"
+BIOMATE_URL="${BIOMATE_URL:-https://dev-public.biomate.ai}"
 EMAIL="lifeifei163361@163.com"
 PASSWORD="${E2E_FIXTURE_PASSWORD:-WpmFixture!2026}"
 E2E_TOKEN="${E2E_TEST_TOKEN:-biomate-e2e-bypass-token-dev-only}"

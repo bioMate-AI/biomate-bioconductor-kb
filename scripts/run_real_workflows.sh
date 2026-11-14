@@ -30,11 +30,7 @@ mkdir -p "$LOG_DIR"
 TS="$(date +%Y%m%d_%H%M%S)"
 SUMMARY="$LOG_DIR/${TS}_summary.txt"
 
-# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
-
-export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://dev-public.biomate.ai}}"
-
-export BASE_URL="$BIOMATE_URL"
+export BIOMATE_URL="${BIOMATE_URL:-https://dev-public.biomate.ai}"
 export E2E_TEST_TOKEN="${E2E_TEST_TOKEN:-biomate-e2e-bypass-token-dev-only}"
 export E2E_FIXTURE_PASSWORD="${E2E_FIXTURE_PASSWORD:-}"
 

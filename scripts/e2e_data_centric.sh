@@ -61,11 +61,7 @@ mkdir -p "$LOG_DIR"
 TS="$(date +%Y%m%d_%H%M%S)"
 RUN_LOG="$LOG_DIR/${TS}_data_centric.log"
 
-# Precedence: BASE_URL > BIOMATE_URL > default (matches e2e/_e2e-base-url.ts)
-
-export BIOMATE_URL="${BASE_URL:-${BIOMATE_URL:-https://dev-public.biomate.ai}}"
-
-export BASE_URL="$BIOMATE_URL"
+BIOMATE_URL="${BIOMATE_URL:-https://dev-public.biomate.ai}"
 E2E_TEST_TOKEN="${E2E_TEST_TOKEN:-biomate-e2e-bypass-token-dev-only}"
 FIXTURE_EMAIL="${FIXTURE_EMAIL:-lifeifei163361@163.com}"
 FIXTURE_PASSWORD="${FIXTURE_PASSWORD:-WpmFixture!2026}"

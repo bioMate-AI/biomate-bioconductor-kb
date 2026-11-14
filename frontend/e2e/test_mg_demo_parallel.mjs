@@ -9,11 +9,9 @@
  * Wall-clock time: max(45, 30, 5) min ≈ 45 min instead of 80 min sequential.
  * All three submit to AWS Batch in parallel.
  */
-// Precedence must match e2e/_e2e-base-url.ts: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > fallback
-const DEV_URL = (process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || process.env.BIOMATE_URL || "https://dev-public.biomate.ai").replace(/\/+$/, "");
 import { chromium } from '@playwright/test';
 
-
+const DEV_URL = process.env.BIOMATE_URL || 'https://dev-public.biomate.ai';
 const EMAIL = 'lifeifei163361@163.com';
 const PASSWORD = 'WpmFixture!2026';
 const E2E_TOKEN = 'biomate-e2e-bypass-token-dev-only';

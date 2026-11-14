@@ -6,8 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Precedence must match e2e/_e2e-base-url.ts: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > fallback
-const FRONTEND_URL = (process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || process.env.BIOMATE_URL || "http://localhost:5000").replace(/\/+$/, "");
+const FRONTEND_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 const DEMO_PROMPT =
   process.env.DEMO_PROMPT ||
   "Build a cryo-EM single-particle analysis workflow from movies through refinement and resolution/QC checks.";

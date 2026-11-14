@@ -43,6 +43,22 @@ describe('scoreFindingsSampleName', () => {
     }
     expect(scoreFindingsSampleName('results/metrics.json')).toBeGreaterThan(scoreFindingsSampleName('model_hyperparameters.json'));
   });
+
+  it('ranks vina results and boltz qc_metrics above Nextflow bookkeeping', () => {
+    expect(scoreFindingsSampleName('docking_autodock_vina_results.json'))
+      .toBeGreaterThan(scoreFindingsSampleName('.nextflow.log'));
+    expect(scoreFindingsSampleName('qc_metrics.json'))
+      .toBeGreaterThan(scoreFindingsSampleName('model_hyperparameters.json'));
+    expect(scoreFindingsSampleName('boltz_summary.json'))
+      .toBeGreaterThan(scoreFindingsSampleName('_timeline.html'));
+  });
+
+  it('ranks cryo FSC / workflow_summary above Nextflow bookkeeping', () => {
+    expect(scoreFindingsSampleName('fsc_validation.json'))
+      .toBeGreaterThan(scoreFindingsSampleName('.nextflow.log'));
+    expect(scoreFindingsSampleName('workflow_summary.json'))
+      .toBeGreaterThan(scoreFindingsSampleName('model_hyperparameters.json'));
+  });
 });
 
 describe('looksLikeHollowFindings (class gate)', () => {
@@ -73,6 +89,19 @@ describe('looksLikeHollowFindings (class gate)', () => {
       key_results: [{ metric: 'Test MAE', value: '0.7920', source_file: 'metrics.json' }],
       caveats: ['Scores are read directly from the trainer metrics.json'],
     })).toBe(false);
+  });
+
+  it('flags docking/structure summaries that admit missing scores with empty key_results', () => {
+    expect(looksLikeHollowFindings({
+      summary: 'Docking finished but no affinities could be extracted.',
+      key_results: [],
+      caveats: [],
+    })).toBe(true);
+    expect(looksLikeHollowFindings({
+      summary: 'Structure prediction completed; confidence metrics are missing.',
+      key_results: [],
+      caveats: ['No pLDDT scores present'],
+    })).toBe(true);
   });
 });
 

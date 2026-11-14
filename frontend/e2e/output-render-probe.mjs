@@ -14,10 +14,8 @@
 import { chromium } from "playwright";
 import { randomBytes } from "crypto";
 
-// Precedence must match e2e/_e2e-base-url.ts: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > fallback
-const BASE = (process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || process.env.BIOMATE_URL || "https://dev-public.biomate.ai").replace(/\/+$/, "");
 const RID = process.argv[2] || "3f5678de-cefa-4f24-a4e7-c3c3a7d24df0";
-
+const BASE = process.env.BIOMATE_URL || "https://dev-public.biomate.ai";
 const TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 
 const log = (label, value) => console.log(`[${label}]`, typeof value === "string" ? value : JSON.stringify(value).slice(0, 800));

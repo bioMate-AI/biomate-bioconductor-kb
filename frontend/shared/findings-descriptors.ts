@@ -176,7 +176,80 @@ const VARIANT: PatternDescriptor = {
   evidenceClass: 'Table',
 };
 
-export const DESCRIPTORS: PatternDescriptor[] = [ADMET_REPORT, ADMET, DESEQ2, ENRICHGO, VARIANT];
+// ── AutoDock Vina / docking (compound entity; more-negative affinity = better) ──
+const VINA: PatternDescriptor = {
+  id: 'vina_docking',
+  match: {
+    fileRegex: /docking.*vina|vina.*result|autodock_vina|docking_score/i,
+    contentIncludes: ['best_affinity_kcal_mol'],
+  },
+  parse: 'jsonReport',
+  entity: { type: 'compound', arrayPath: 'results', idField: 'smiles', scheme: 'SMILES' },
+  metrics: [
+    {
+      name: 'best affinity',
+      source: 'best_affinity_kcal_mol',
+      units: 'kcal/mol',
+      label: 'Vina binding affinity',
+    },
+    { name: 'n poses', source: 'n_poses', label: 'poses generated' },
+  ],
+  select: { sort: { metric: 'best affinity', mode: 'asc' }, topN: 20 },
+  evidenceClass: 'Table',
+};
+
+// ── Boltz / structure-prediction QC (batch metrics from qc_metrics.json) ──
+// Boltz writes mean_plddt / confident_fraction on qc_metrics.json (not boltz_summary.json).
+const BOLTZ_QC: PatternDescriptor = {
+  id: 'boltz_qc',
+  // Content-gated: do NOT match bare qc_metrics.json by name (cryo/other domains).
+  // mean_plddt is the Boltz/structure-prediction score-card marker.
+  match: { contentIncludes: ['mean_plddt'] },
+  parse: 'jsonReport',
+  // No per-entity array — scores are run-level. Dummy path yields []; batch carries metrics.
+  entity: { type: 'protein', arrayPath: '__none__', idField: 'id' },
+  metrics: [],
+  batch: {
+    path: '',
+    metrics: [
+      {
+        name: 'mean pLDDT',
+        source: 'mean_plddt',
+        threshold: { value: 70, direction: 'low_bad', label: 'structure confidence (pLDDT≥70 ready for docking)' },
+        label: 'mean predicted LDDT',
+      },
+      {
+        name: 'confident fraction',
+        source: 'confident_fraction',
+        threshold: { value: 0.7, direction: 'low_bad', label: 'fraction residues with pLDDT>70' },
+        label: 'fraction residues pLDDT>70',
+      },
+      { name: 'max PAE', source: 'max_pae', units: 'Å', label: 'max predicted aligned error' },
+      { name: 'structures predicted', source: 'structures_predicted', label: 'structures written' },
+    ],
+  },
+  evidenceClass: 'Structure',
+};
+
+// ── Boltz summary fallback (structures_predicted when qc_metrics absent) ──
+const BOLTZ_SUMMARY: PatternDescriptor = {
+  id: 'boltz_summary',
+  match: { fileRegex: /boltz_summary\.json$/i, contentIncludes: ['structures_predicted'] },
+  parse: 'jsonReport',
+  entity: { type: 'protein', arrayPath: '__none__', idField: 'id' },
+  metrics: [],
+  batch: {
+    path: '',
+    metrics: [
+      { name: 'structures predicted', source: 'structures_predicted', label: 'structures written' },
+    ],
+  },
+  evidenceClass: 'Structure',
+};
+
+export const DESCRIPTORS: PatternDescriptor[] = [
+  ADMET_REPORT, ADMET, DESEQ2, ENRICHGO, VARIANT, VINA, BOLTZ_QC, BOLTZ_SUMMARY,
+];
 
 /** Pick the first descriptor whose match hits for (workflowName, files). */
 export function matchDescriptor(

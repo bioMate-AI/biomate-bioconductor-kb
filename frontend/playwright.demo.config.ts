@@ -14,7 +14,6 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 import { config as dotenvConfig } from 'dotenv';
-import { resolveE2eBaseUrl } from './e2e/_e2e-base-url';
 
 dotenvConfig();
 
@@ -34,8 +33,7 @@ export default defineConfig({
   timeout: 7_200_000,
 
   use: {
-    // Precedence: BASE_URL > PLAYWRIGHT_BASE_URL > BIOMATE_URL > localhost.
-    baseURL: resolveE2eBaseUrl(),
+    baseURL: process.env.BIOMATE_URL || 'http://localhost:5000',
 
     // Video on — primary output artifact
     // 2560×1440 with deviceScaleFactor:2 renders internally at 5120×2880

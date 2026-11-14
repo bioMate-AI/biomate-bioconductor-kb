@@ -21,7 +21,6 @@
 
 import { Page, expect } from "@playwright/test";
 import Anthropic from "@anthropic-ai/sdk";
-import { BASE_URL } from "../_e2e-base-url";
 
 export interface SimulatedUserConfig {
   /** The goal the user is trying to accomplish */
@@ -35,6 +34,8 @@ export interface SimulatedUserConfig {
   /** Extra context the user "knows" */
   context?: Record<string, string>;
 }
+
+const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 
 function detectsClarificationRequest(responseText: string): boolean {
   const text = responseText.toLowerCase();
