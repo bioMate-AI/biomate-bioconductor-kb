@@ -22,9 +22,9 @@ Outputs (S3 / Galaxy)
 |--------|-------|-----|------|----------|
 | **ml_training** | LLM narrated Ludwig hyperparams; ignored `metrics.json` MAE | `parseMlTrainingFindings`; fluff refuse; sample rank | `ml-training-findings.test.ts`, `findings-quality.test.ts` | Live S3 sidecar `727de1b4` MAE-first (`evidence_version=ml-training-metrics-v1`) |
 | **ADMET** | Dual flat vs document liability mismatch | Descriptor merge + `reconcileFindingsDocument` (prior) | `findings-extract.test.ts` | Prior live; class refuse still on |
-| **DESeq2 / RNA-seq** | Generic “Assessment completed…” buried top genes; LLM when descriptor miss | Domain summary + Key Results; documentToLegacy cutover | `findings-extract.test.ts` (DESeq2 summary) | Unit |
-| **enrichGO** | TSV enrichment tables failed comma-only split → LLM | Autodelim in `_parseEnrichGoOutput` | Covered by descriptor autodelim + quality rank | Unit |
-| **variant / WGS** | HIGH impact buried; hollow LLM | Descriptor → documentToLegacy; summary counts HIGH/MODERATE | `findings-extract` variant path | Unit |
+| **DESeq2 / RNA-seq** | Generic “Assessment completed…” buried top genes; LLM when descriptor miss | Domain summary + Key Results; documentToLegacy + `parseDeseq2Findings` flat belt | `findings-extract` + `genomics-flat-findings.test.ts` | Unit |
+| **enrichGO** | TSV enrichment tables failed comma-only split → LLM | Autodelim + `parseEnrichGoFindings` flat belt | `genomics-flat-findings.test.ts` | Unit |
+| **variant / WGS / raredisease** | HIGH impact buried; context-only → LLM | Descriptor → documentToLegacy + `parseRarediseaseFindings` flat belt | `findings-extract` + genomics-flat | Unit |
 | **docking / Vina** | No deterministic affinity parser | `vina_docking` descriptor + score-first summary | `findings-extract.test.ts` Vina | Unit (sample JSON from research runs) |
 | **Boltz / structure** | pLDDT only in `qc_metrics.json`; LLM fluff risk | `boltz_qc` content-gated on `mean_plddt` | `findings-extract.test.ts` Boltz | Unit |
 | **sampling (all)** | Bookkeeping crowded score cards | `scoreFindingsSampleName` +8 vina/boltz | `findings-quality.test.ts` | Unit |

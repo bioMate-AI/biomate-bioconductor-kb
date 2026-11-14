@@ -112,6 +112,23 @@ vi.mock("../../services/runs-outputs-service", () => ({
   },
 }));
 
+// Never hit real AWS — cold credential/network resolution blew past the default
+// 5s vitest timeout when the S3 mock was only a per-test spy.
+vi.mock("@aws-sdk/client-s3", () => {
+  class S3Client {
+    send = vi.fn(async () => ({
+      Body: Readable.from([Buffer.from('{"metrics":{"test_mae":0.79}}')]),
+      Contents: [],
+      IsTruncated: false,
+    }));
+  }
+  return {
+    S3Client,
+    GetObjectCommand: class GetObjectCommand { input: any; constructor(input: any) { this.input = input; } },
+    ListObjectsV2Command: class ListObjectsV2Command { input: any; constructor(input: any) { this.input = input; } },
+  };
+});
+
 // Mock GalaxyAPIProxy so downloadDataset returns a small in-memory stream.
 vi.mock("../../galaxy-api-proxy", () => {
   class GalaxyAPIProxy {
@@ -124,11 +141,16 @@ vi.mock("../../galaxy-api-proxy", () => {
 
 let tmpDir: string;
 
-beforeEach(() => {
+beforeEach(async () => {
   store = [];
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "biomate-jobtest-"));
   process.env.BIOMATE_ARTIFACT_DIR = tmpDir;
   vi.resetModules();
+  // resetModules re-instantiates the mocked service — pin the empty-list default
+  // so a prior test's mockResolvedValue cannot leak real-I/O paths.
+  const { runsOutputsService } = await import("../../services/runs-outputs-service");
+  (runsOutputsService.list as any).mockResolvedValue([]);
+  (runsOutputsService.resolve as any).mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -159,16 +181,20 @@ function seedQueuedJob(): FakeRow {
   return row;
 }
 
-async function waitFor(pred: () => boolean, timeoutMs = 10000): Promise<void> {
+async function waitFor(pred: () => boolean, timeoutMs = 20_000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (pred()) return;
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 10));
   }
   throw new Error("waitFor: timeout");
 }
 
-describe("download_all_zip handler", () => {
+// Suite timeout > default 5s: cold transform + async dispatch can exceed 5s even
+// when handler work itself is fast. File-level timeout means plain `vitest run`
+// (no --testTimeout) stays green. 45s covers cold transform under parallel load
+// (observed ~25s first-case wall time when vitest cache is cold).
+describe("download_all_zip handler", { timeout: 45_000 }, () => {
   it("produces a non-empty artifact and transitions to ready", async () => {
     // Importing the handler module registers the kind on the executor.
     await import("../handlers/download-all-zip");
@@ -177,8 +203,8 @@ describe("download_all_zip handler", () => {
     const row = seedQueuedJob();
     dispatch(row.id);
 
-    await waitFor(() => row.state === "ready" || row.state === "failed");
-    expect(row.state).toBe("ready");
+    await waitFor(() => row.state === "ready" || row.state === "failed", 25_000);
+    expect(row.state, `job error=${row.error}`).toBe("ready");
     expect(row.artifact_bytes ?? 0).toBeGreaterThan(0);
 
     const artifactPath = path.join(tmpDir, row.id);
@@ -191,12 +217,6 @@ describe("download_all_zip handler", () => {
   });
 
   it("uses canonical Outputs when Galaxy invocation has zero OutputDatasets (727de1b4 class)", async () => {
-    // Stub S3 GetObject so executeCanonicalOutputs can stream the file.
-    const { S3Client } = await import("@aws-sdk/client-s3");
-    const sendSpy = vi.spyOn(S3Client.prototype as any, "send").mockResolvedValue({
-      Body: Readable.from([Buffer.from('{"metrics":{"test_mae":0.79}}')]),
-    });
-
     const { runsOutputsService } = await import("../../services/runs-outputs-service");
     (runsOutputsService.list as any).mockResolvedValue([
       {
@@ -223,7 +243,6 @@ describe("download_all_zip handler", () => {
     dispatch(row.id);
 
     await waitFor(() => row.state === "ready" || row.state === "failed");
-    sendSpy.mockRestore();
     expect(row.state).toBe("ready");
     expect(row.artifact_bytes ?? 0).toBeGreaterThan(0);
     expect(runsOutputsService.list).toHaveBeenCalled();
