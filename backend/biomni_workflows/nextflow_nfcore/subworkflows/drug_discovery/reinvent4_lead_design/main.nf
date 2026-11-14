@@ -242,10 +242,16 @@ process GENERATE_REINVENT4 {
         """
         set -euo pipefail
         export REINVENT4_DEVICE='${use_gpu}'
+        # Live ECR reinvent4-nf:x86 (2026-11-10) ships a git checkout at /opt/REINVENT4
+        # without a PATH `reinvent` console script and without staged .prior files
+        # (priors/ only has a Zenodo README). The repo Dockerfile that pip-installs
+        # reinvent + curls priors was never what got pushed. Bridge both layouts:
+        export PYTHONPATH="/opt/REINVENT4:/opt/biomate:\${PYTHONPATH:-}"
+        export PATH="/opt/conda/bin:/usr/local/bin:\${PATH}"
         export REINVENT4_PRIORS="\${REINVENT4_PRIORS:-/opt/reinvent4/priors}"
 
         python3 << 'PYEOF'
-import json, os, csv, sys, subprocess, tempfile, shutil
+import json, os, csv, sys, subprocess, tempfile, shutil, urllib.request
 
 with open('${input_config}') as f:
     cfg = json.load(f)
@@ -253,27 +259,93 @@ with open('${input_config}') as f:
 seed_smi = cfg['validated_smiles'].replace('[*]', '').strip()
 mode     = cfg['mode']
 n_want   = min(${n_smiles}, 5000)   # cap sampling budget; sampling is cheap vs RL
-priors   = os.environ.get('REINVENT4_PRIORS', '/opt/reinvent4/priors')
 device   = os.environ.get('REINVENT4_DEVICE', 'cpu')
 
-# Pick prior + REINVENT4 run mode.
-denovo = mode in ('de_novo',) or not seed_smi
-prior_file = os.path.join(priors, 'reinvent.prior' if denovo else 'mol2mol_similarity.prior')
-
-# Locate the reinvent CLI (PATH first, module fallback).
+# Locate reinvent: PATH CLI, then importable package under /opt/REINVENT4
+# (live ECR image is a git checkout without console_scripts). Prefer
+# reinvent.Reinvent.main_script over `python -m reinvent` (no __main__).
+for src_root in ('/opt/REINVENT4', '/opt/reinvent4', '/opt/reinvent'):
+    if os.path.isdir(os.path.join(src_root, 'reinvent')):
+        os.environ['PYTHONPATH'] = src_root + os.pathsep + os.environ.get('PYTHONPATH', '')
+        if src_root not in sys.path:
+            sys.path.insert(0, src_root)
 cli = shutil.which('reinvent')
-argv0 = [cli] if cli else [sys.executable, '-m', 'reinvent']
-if cli is None:
-    try:
-        import importlib.util
-        if importlib.util.find_spec('reinvent') is None:
-            print('ERROR: REINVENT4 CLI/package not found in container', file=sys.stderr)
-            sys.exit(3)
-    except Exception:
-        print('ERROR: REINVENT4 CLI/package not found in container', file=sys.stderr)
-        sys.exit(3)
-if not os.path.isfile(prior_file):
-    print(f'ERROR: REINVENT4 prior missing: {prior_file}', file=sys.stderr)
+_has_pkg = False
+try:
+    import importlib.util
+    _has_pkg = importlib.util.find_spec('reinvent') is not None
+except Exception:
+    _has_pkg = False
+if cli is None and not _has_pkg:
+    print('ERROR: REINVENT4 CLI/package not found in container '
+          f'(python={sys.executable} PATH={os.environ.get("PATH","")!r} '
+          f'PYTHONPATH={os.environ.get("PYTHONPATH","")!r})',
+          file=sys.stderr)
+    sys.exit(3)
+
+def _run_reinvent(cfg_toml):
+    """Run reinvent sampling config; return CompletedProcess."""
+    if cli:
+        return subprocess.run([cli, cfg_toml], capture_output=True, text=True)
+    # Installed or source-tree package: call the public entrypoint.
+    runner = (
+        'import sys\\n'
+        'from reinvent.Reinvent import main_script\\n'
+        'sys.argv = ["reinvent", sys.argv[1]]\\n'
+        'main_script()\\n'
+    )
+    return subprocess.run(
+        [sys.executable, '-c', runner, cfg_toml],
+        capture_output=True, text=True,
+        env=os.environ.copy(),
+    )
+
+# Priors: prefer staged dirs; else fetch public Zenodo REINVENT4 priors
+# (record 20701824 / DOI 10.5281/zenodo.15641296). ECR image only had README.
+_PRIOR_DIRS = [
+    os.environ.get('REINVENT4_PRIORS', '/opt/reinvent4/priors'),
+    '/opt/reinvent4/priors',
+    '/opt/REINVENT4/priors',
+    '/opt/reinvent/priors',
+]
+# Zenodo no longer ships classic reinvent.prior / mol2mol_similarity.prior;
+# reinvent_pubchem.prior is the public Reinvent prior used for sampling.
+_ZENODO = {
+    'reinvent.prior': 'https://zenodo.org/api/records/20701824/files/reinvent_pubchem.prior/content',
+    'reinvent_pubchem.prior': 'https://zenodo.org/api/records/20701824/files/reinvent_pubchem.prior/content',
+    'libinvent.prior': 'https://zenodo.org/api/records/20701824/files/libinvent.prior/content',
+    'linkinvent.prior': 'https://zenodo.org/api/records/20701824/files/linkinvent.prior/content',
+}
+
+def _find_or_fetch_prior(names):
+    for d in _PRIOR_DIRS:
+        for name in names:
+            p = os.path.join(d, name)
+            if os.path.isfile(p) and os.path.getsize(p) > 1_000_000:
+                return p
+    cache = os.path.join(tempfile.gettempdir(), 'reinvent4_priors')
+    os.makedirs(cache, exist_ok=True)
+    for name in names:
+        url = _ZENODO.get(name)
+        if not url:
+            continue
+        dest = os.path.join(cache, name)
+        if not (os.path.isfile(dest) and os.path.getsize(dest) > 1_000_000):
+            print(f'Fetching REINVENT4 prior {name} from Zenodo…', flush=True)
+            urllib.request.urlretrieve(url, dest)
+        if os.path.isfile(dest) and os.path.getsize(dest) > 1_000_000:
+            return dest
+    return None
+
+denovo = mode in ('de_novo',) or not seed_smi
+# mol2mol_similarity.prior is not on Zenodo; use public reinvent prior for sampling
+# (seed still passed via smiles_file when present).
+prior_file = _find_or_fetch_prior(
+    ['reinvent.prior', 'reinvent_pubchem.prior'] if denovo
+    else ['mol2mol_similarity.prior', 'reinvent.prior', 'reinvent_pubchem.prior']
+)
+if not prior_file:
+    print('ERROR: REINVENT4 prior missing (checked staged dirs + Zenodo fetch)', file=sys.stderr)
     sys.exit(4)
 
 work = tempfile.mkdtemp(prefix='reinvent4_')
@@ -300,8 +372,9 @@ with open(cfg_path, 'w') as cf:
     cf.write('\\n'.join(lines) + '\\n')
 
 log_lines = [f'REINVENT4 sampling | prior={os.path.basename(prior_file)} | '
-             f'mode={"de_novo" if denovo else "mol2mol"} | device={device} | n={n_want}']
-proc = subprocess.run(argv0 + [cfg_path], capture_output=True, text=True)
+             f'mode={"de_novo" if denovo else "mol2mol"} | device={device} | n={n_want} | '
+             f'via={"cli" if cli else "main_script"}']
+proc = _run_reinvent(cfg_path)
 log_lines.append(proc.stdout[-2000:])
 log_lines.append(proc.stderr[-2000:])
 if proc.returncode != 0:

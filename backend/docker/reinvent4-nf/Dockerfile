@@ -30,6 +30,10 @@ USER root
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV REINVENT4_PRIORS=/opt/reinvent4/priors
+# Nextflow AWS Batch replaces ENTRYPOINT with `bash -c …`, so micromamba's
+# activate-on-entrypoint never runs. Pin conda bin permanently.
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH=/opt/conda/bin:/usr/local/bin:/usr/bin:/bin
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates procps libxrender1 libxext6 \
@@ -46,10 +50,13 @@ RUN pip install --no-cache-dir \
     && pip install --no-cache-dir \
         reinvent==4.5.* \
         rdkit \
-    && python3 -c "import reinvent; print('reinvent import OK')"
+    && python3 -c "import reinvent; print('reinvent import OK')" \
+    && ln -sf "$(command -v reinvent)" /usr/local/bin/reinvent
 
-# Verify the CLI entrypoint resolves.
-RUN reinvent --help >/dev/null 2>&1 || (echo "FATAL: reinvent CLI not on PATH" && exit 1)
+# Verify the CLI entrypoint resolves WITHOUT micromamba entrypoint (Batch shape).
+RUN env -i PATH="/opt/conda/bin:/usr/local/bin:/usr/bin:/bin" HOME=/root \
+        reinvent --help >/dev/null 2>&1 \
+    || (echo "FATAL: reinvent CLI not on PATH when entrypoint is stripped" && exit 1)
 
 # ── Layer 2: Prior checkpoints (Apache-2.0, shipped in the REINVENT4 repo) ──
 # The priors live in the REINVENT4 GitHub repo under priors/. We fetch the exact
@@ -57,17 +64,23 @@ RUN reinvent --help >/dev/null 2>&1 || (echo "FATAL: reinvent CLI not on PATH" &
 #   $REINVENT4_PRIORS/reinvent.prior             (de-novo Reinvent prior)
 #   $REINVENT4_PRIORS/mol2mol_similarity.prior   (Mol2Mol scaffold-hop/analog prior)
 # Pinned to a REINVENT4 release tag so the checksums are reproducible.
-ARG REINVENT4_REF=v4.5.5
+# Priors: GitHub raw tags 404 / LFS; public checkpoints live on Zenodo
+# (DOI 10.5281/zenodo.15641296 → record 20701824). Stage reinvent_pubchem as
+# reinvent.prior (sampling default). mol2mol_similarity is no longer published —
+# GENERATE_REINVENT4 falls back to reinvent_pubchem when mol2mol is requested.
 RUN mkdir -p ${REINVENT4_PRIORS} \
     && curl -fSL --retry 3 --retry-delay 5 \
         -o ${REINVENT4_PRIORS}/reinvent.prior \
-        https://raw.githubusercontent.com/MolecularAI/REINVENT4/${REINVENT4_REF}/priors/reinvent.prior \
+        https://zenodo.org/api/records/20701824/files/reinvent_pubchem.prior/content \
     && curl -fSL --retry 3 --retry-delay 5 \
-        -o ${REINVENT4_PRIORS}/mol2mol_similarity.prior \
-        https://raw.githubusercontent.com/MolecularAI/REINVENT4/${REINVENT4_REF}/priors/mol2mol_similarity.prior \
+        -o ${REINVENT4_PRIORS}/reinvent_pubchem.prior \
+        https://zenodo.org/api/records/20701824/files/reinvent_pubchem.prior/content \
+    && curl -fSL --retry 3 --retry-delay 5 \
+        -o ${REINVENT4_PRIORS}/libinvent.prior \
+        https://zenodo.org/api/records/20701824/files/libinvent.prior/content \
     && test -s ${REINVENT4_PRIORS}/reinvent.prior \
-    && test -s ${REINVENT4_PRIORS}/mol2mol_similarity.prior \
-    || (echo "FATAL: REINVENT4 priors not staged" && exit 1)
+    && test "$(wc -c < ${REINVENT4_PRIORS}/reinvent.prior)" -gt 1000000 \
+    || (echo "FATAL: REINVENT4 priors not staged from Zenodo" && exit 1)
 
 # ── Layer 3: BioMate drug-discovery Python modules (Reinvent4Generator etc.) ─
 RUN mkdir -p /opt/biomate/drug_discovery
