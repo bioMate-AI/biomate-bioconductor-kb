@@ -52,4 +52,5 @@ cd frontend && npx vitest run \
 2. **Chat stream prose** from original turns is not rewritten — After-run Findings/report only.
 3. **Cryo FSC** often empty in older SPA reports (`fsc_curve: []`) — parser still surfaces particle/acquisition scores; resolution appears when `fsc_0143_resolution` is present.
 4. **QC auto-loop** gate cards are separate from Findings; no change this round beyond chip ranking.
-5. **Live sync** — DEV tip was `ecf9fedc` before this batch; land with `BIOMATE_SYNC_DB=0` after commit.
+5. **Live sync blocked in this agent env** — branch pushed at `3245597fe2` (contains `67cb30ede2` + genomics belt + live tip merge `1001dec42f`). `scripts/sync_to_dev.sh` cannot reach `ssm.us-west-2.amazonaws.com` / STS from Cursor (proxy CONNECT 403 or DNS fail when proxy cleared). Operator: from a host with AWS creds + working SSM:
+   `BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh` on worktree `/Users/kky/biomate-nextphase-ci-fix` @ `3245597fe2`.
