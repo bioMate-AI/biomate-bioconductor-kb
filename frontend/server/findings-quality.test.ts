@@ -103,6 +103,25 @@ describe('looksLikeHollowFindings (class gate)', () => {
       caveats: ['No pLDDT scores present'],
     })).toBe(true);
   });
+
+  it('flags docking/Boltz summaries with empty key_results even without an explicit missing admit', () => {
+    expect(looksLikeHollowFindings({
+      summary: 'Docking (Vina) completed for 12 ligands. See Outputs for pose files.',
+      key_results: [],
+      caveats: [],
+    })).toBe(true);
+    expect(looksLikeHollowFindings({
+      summary: 'Boltz structure prediction finished successfully.',
+      key_results: [],
+      caveats: [],
+    })).toBe(true);
+    // Score-bearing summaries stay accepted even with empty table (rare but not fluff).
+    expect(looksLikeHollowFindings({
+      summary: 'Docking (Vina): 3 ligand(s). Best affinity -6.1 kcal/mol.',
+      key_results: [],
+      caveats: [],
+    })).toBe(false);
+  });
 });
 
 describe('parseMlTrainingFindings — report / chip order', () => {

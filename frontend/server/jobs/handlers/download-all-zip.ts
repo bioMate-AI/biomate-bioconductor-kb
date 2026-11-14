@@ -318,6 +318,7 @@ async function executeCanonicalOutputs(
 
   const total = outputs.length;
   let done = 0;
+  let filesAdded = 0;
   for (const o of outputs) {
     if (ctx.checkCancelled()) {
       try { (archive as any).abort?.(); } catch { /* ignore */ }
@@ -338,6 +339,7 @@ async function executeCanonicalOutputs(
       if (!bucket || !key) { done += 1; continue; }
       const resp = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
       archive.append(resp.Body as any, { name: o.name || key.split("/").pop() || key });
+      filesAdded += 1;
     } catch (err) {
       console.error(`[jobs/download_all_zip] canonical S3 fetch failed for ${o.name}:`, err);
     }
@@ -345,6 +347,18 @@ async function executeCanonicalOutputs(
     if (done % 5 === 0 || done === total) {
       await ctx.setProgress(Math.round((100 * done) / total));
     }
+  }
+
+  if (filesAdded === 0) {
+    try { (archive as any).abort?.(); } catch { /* ignore */ }
+    try {
+      await new Promise<void>((resolve) => {
+        (sink.stream as any).end(() => resolve());
+      });
+    } catch { /* ignore */ }
+    throw new Error(
+      `download_all_empty: listed ${outputs.length} canonical outputs but fetched 0 from S3`,
+    );
   }
 
   await archive.finalize();
@@ -376,6 +390,7 @@ async function executePipelineSource(invocation: PipelineSource, ctx: ExecutorCo
 
   const total = keys.length;
   let done = 0;
+  let filesAdded = 0;
   for (const { bucket, key } of keys) {
     if (ctx.checkCancelled()) {
       try { (archive as any).abort?.(); } catch { /* ignore */ }
@@ -390,14 +405,28 @@ async function executePipelineSource(invocation: PipelineSource, ctx: ExecutorCo
       const resp = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
       const relName = key.startsWith(prefixForStrip) ? key.slice(prefixForStrip.length) : key;
       archive.append(resp.Body as any, { name: relName });
+      filesAdded += 1;
     } catch (err) {
       console.error(`[jobs/download_all_zip] S3 fetch failed for ${key}:`, err);
-      // Continue on per-file errors — partial bundles are better than none.
+      // Continue on per-file errors — partial bundles are better than none,
+      // but zero successful fetches must fail (Bugbot Medium #7).
     }
     done += 1;
     if (done % 5 === 0 || done === total) {
       await ctx.setProgress(Math.round((100 * done) / total));
     }
+  }
+
+  if (filesAdded === 0) {
+    try { (archive as any).abort?.(); } catch { /* ignore */ }
+    try {
+      await new Promise<void>((resolve) => {
+        (sink.stream as any).end(() => resolve());
+      });
+    } catch { /* ignore */ }
+    throw new Error(
+      `download_all_empty: listed ${keys.length} S3 keys under ${invocation.s3Uri} but fetched 0`,
+    );
   }
 
   await archive.finalize();

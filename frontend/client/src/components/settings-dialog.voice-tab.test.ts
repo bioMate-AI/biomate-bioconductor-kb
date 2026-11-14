@@ -31,4 +31,15 @@ describe('settings-dialog voice tab', () => {
     expect(enabledIdx).toBeGreaterThan(gateEnd)
     expect(handsFreeIdx).toBeGreaterThan(gateEnd)
   })
+
+  it('wires Voice-in-chat + Hands-free to updateSetting (not dead markup)', () => {
+    const enabledIdx = src.indexOf('data-testid="switch-voice-enabled"')
+    const handsFreeIdx = src.indexOf('data-testid="switch-voice-hands-free"')
+    // onCheckedChange sits just above the testid in the JSX.
+    const enabledChunk = src.slice(Math.max(0, enabledIdx - 220), enabledIdx + 80)
+    const handsChunk = src.slice(Math.max(0, handsFreeIdx - 280), handsFreeIdx + 80)
+    expect(enabledChunk).toMatch(/updateSetting\(\s*['"]voiceEnabled['"]/)
+    expect(handsChunk).toMatch(/updateSetting\(\s*['"]voiceHandsFree['"]/)
+    expect(handsChunk).toMatch(/disabled=\{settings\.voiceEnabled !== true\}/)
+  })
 })

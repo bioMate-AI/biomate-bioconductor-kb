@@ -57,27 +57,29 @@ test("cryo panel settled: Movies Path + no Cs Image", async ({ page }) => {
   expect(body).not.toMatch(/dkr\.ecr\./i);
   expect(body).not.toMatch(/\bcs_image\b/i);
 
-  // Confirm button should not launch when movies empty — prefer disabled or Fix now
+  // Confirm button should not launch when movies empty — prefer disabled or Fix now.
+  // API gate always runs (even if Confirm is missing from the DOM) so an empty
+  // panel cannot false-green the suite (Bugbot Medium #6).
   const confirm = page.getByRole("button", { name: /confirm\s*&?\s*run/i });
-  if ((await confirm.count()) > 0) {
-    const disabled =
-      (await confirm.first().isDisabled().catch(() => false)) ||
-      (await confirm.first().getAttribute("aria-disabled")) === "true";
-    const api = await page.request.post(`${BASE_URL}/api/workflows/execute`, {
-      data: {
-        workflowDefinition: {
-          name: "CryoSPARC Standard SPA",
-          nextflow_path:
-            "biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
-          required_params: [{ name: "movies_path", type: "file", required: true, value: null }],
-          optional_params: [],
-        },
-        params: {},
+  const disabled =
+    (await confirm.count()) > 0
+      ? (await confirm.first().isDisabled().catch(() => false)) ||
+        (await confirm.first().getAttribute("aria-disabled")) === "true"
+      : null;
+  const api = await page.request.post(`${BASE_URL}/api/workflows/execute`, {
+    data: {
+      workflowDefinition: {
+        name: "CryoSPARC Standard SPA",
+        nextflow_path:
+          "biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
+        required_params: [{ name: "movies_path", type: "file", required: true, value: null }],
+        optional_params: [],
       },
-    });
-    const j = await api.json();
-    expect(api.status()).toBe(400);
-    expect(JSON.stringify(j)).toMatch(/movies_path/);
-    console.log("[cryo] confirmDisabled=", disabled, "apiBlocks=", true);
-  }
+      params: {},
+    },
+  });
+  const j = await api.json();
+  expect(api.status()).toBe(400);
+  expect(JSON.stringify(j)).toMatch(/movies_path/);
+  console.log("[cryo] confirmDisabled=", disabled, "apiBlocks=", true);
 });
