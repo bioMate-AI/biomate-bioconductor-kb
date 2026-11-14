@@ -303,98 +303,46 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
     await shot(page, "A4_license_saved_confirm_enabled");
     console.log("[A4] user license saved → Confirm enabled — pass");
 
-    // license-requirements now reports source=user
-    const licAfter = await withGalaxyRetry("license-requirements-after-save", async () => {
-      const lic = await req.get(
-        BASE_URL +
-          "/api/workflows/license-requirements?nextflow_path=" +
-          encodeURIComponent("cryosparc_standard_spa/main.nf"),
-      );
-      if (!lic.ok()) throw new Error(`license-requirements HTTP ${lic.status()}`);
-      return lic.json();
-    });
-    const cryoAfter = (licAfter.requirements || []).find((r: any) => r.tool_id === "cryosparc");
-    expect(cryoAfter?.source, "saved key must show as user credential").toBe("user");
+    // license-requirements must flip to source=user (retry until it does).
+    const cryoAfter = await withGalaxyRetry(
+      "license-requirements-after-save",
+      async () => {
+        const lic = await req.get(
+          BASE_URL +
+            "/api/workflows/license-requirements?nextflow_path=" +
+            encodeURIComponent("cryosparc_standard_spa/main.nf"),
+          { timeout: 20_000 },
+        );
+        if (!lic.ok()) throw new Error(`license-requirements HTTP ${lic.status()}`);
+        const body = await lic.json();
+        const row = (body.requirements || []).find((r: any) => r.tool_id === "cryosparc");
+        if (!row || row.source !== "user") {
+          throw new Error(`cryosparc source=${row?.source ?? "missing"}`);
+        }
+        return row;
+      },
+      { attempts: 8 },
+    );
+    console.log("[A4b] after-save requirement:", JSON.stringify(cryoAfter));
 
     // ── A5: Confirm & Run — must pass the license gate (not 402) ──
-    // Dig tip 1001dec4: execute can take a long time (GPU warm-up) then return
-    // 500 cryosparc_execution_failed + runId — not 402. Panel may flip to Running
-    // before the HTTP body arrives; do not fail solely on waitForResponse timeout.
-    const execPromise = page
-      .waitForResponse(
-        (r) => r.url().includes("/api/workflows/execute") && r.request().method() === "POST",
-        { timeout: 240_000 },
-      )
-      .then(async (execResp) => {
-        const code = execResp.status();
-        const json = await execResp.json().catch(() => ({}));
-        return { code, json, via: "http" as const };
-      })
-      .catch(() => null);
-
+    // Dig may return 500 cryosparc_execution_failed + runId (GPU warming) — still
+    // proves license cleared. Cap wait; cancel immediately after.
+    console.log("[A5] clicking Confirm & Run…");
+    const execWait = page.waitForResponse(
+      (r) => r.url().includes("/api/workflows/execute") && r.request().method() === "POST",
+      { timeout: 120_000 },
+    );
     await confirm.click();
-
-    // Race: HTTP execute outcome OR panel leaving idle (run accepted past license).
-    let panelSawNonIdle = false;
-    const panelPromise = page
-      .waitForFunction(
-        () => {
-          const el = document.querySelector('[data-testid="workflow-overall-status-badge"]');
-          const st = el?.getAttribute("data-status") || "";
-          const bar = document.querySelector('[data-testid="panel-action-bar"]');
-          const barSt = bar?.getAttribute("data-status") || "";
-          return /running|queued|configuring|failed|completed/i.test(st || barSt);
-        },
-        undefined,
-        { timeout: 240_000 },
-      )
-      .then(() => {
-        panelSawNonIdle = true;
-        return true;
-      })
-      .catch(() => false);
-
-    const raced = await Promise.race([
-      execPromise.then((r) => ({ kind: "http" as const, r })),
-      panelPromise.then((ok) => ({ kind: "panel" as const, ok })),
-    ]);
-
-    let execCode = 0;
-    let execJson: any = {};
-    let via = "none";
-
-    if (raced.kind === "http" && raced.r) {
-      execCode = raced.r.code;
-      execJson = raced.r.json;
-      via = "http";
-    } else {
-      // Panel moved first (or alone) — give HTTP a short grace, then accept panel proof.
-      const late = await Promise.race([
-        execPromise,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 20_000)),
-      ]);
-      if (late) {
-        execCode = late.code;
-        execJson = late.json;
-        via = "http-after-panel";
-      } else {
-        via = "panel";
-        // Synthetic non-license success — Confirm was enabled and panel left idle.
-        execCode = 200;
-        execJson = {};
-      }
-    }
-
+    const execResp = await execWait;
+    const execCode = execResp.status();
+    const execJson = await execResp.json().catch(() => ({}));
     console.log(
       "[A5] Confirm & Run execute →",
-      via,
       execCode,
       JSON.stringify(execJson).slice(0, 400),
     );
-    expect(
-      execCode,
-      "with a user license, execute must NOT be cryosparc_license_required 402",
-    ).not.toBe(402);
+    expect(execCode, "must not be cryosparc_license_required 402").not.toBe(402);
     expect(String(execJson.error || execJson.message || "")).not.toMatch(
       /cryosparc_license_required/i,
     );
@@ -405,64 +353,15 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
       execJson.id ||
       execJson.executionId ||
       null;
-
-    // If HTTP hung but panel is running, resolve runId from the runs list for cancel.
-    if (!launchedRunId) {
-      const runs = await req
-        .get(BASE_URL + "/api/workflows/runs?limit=20", { timeout: 60_000 })
-        .then((r) => (r.ok() ? r.json() : []))
-        .catch(() => []);
-      const active = (runs as Array<{ id?: string; status?: string; workflowName?: string; name?: string; execution?: { status?: string } }>).find(
-        (r) => {
-          const st = String(r.execution?.status || r.status || "");
-          const name = String(r.workflowName || r.name || "");
-          return /configuring|queued|running|paused/i.test(st) && /cryo|spa/i.test(name);
-        },
-      );
-      if (active?.id) {
-        launchedRunId = String(active.id);
-        console.log("[A5] runId from runs list (panel/HTTP race):", launchedRunId);
-      }
-    }
-
+    // License cleared if we got a runId OR a non-license error (infra warming).
     const execErr = String(execJson.error || execJson.message || "");
-    const notLicenseBlock =
-      execCode !== 402 && !/cryosparc_license_required/i.test(execErr);
-    const infraOrExecFail = /cryosparc_execution_failed|warming|infra/i.test(execErr);
-    const nonLicenseHttpOk =
-      (execCode >= 200 && execCode < 300) ||
-      (execCode >= 400 && execCode < 500 && execCode !== 402);
-    const afterStatusEarly =
-      (await badge.getAttribute("data-status").catch(() => null)) ||
-      (await page.getByTestId("panel-action-bar").getAttribute("data-status").catch(() => null));
-    const panelNonIdle =
-      panelSawNonIdle ||
-      via === "panel" ||
-      via === "http-after-panel" ||
-      /running|queued|configuring|failed|completed/i.test(String(afterStatusEarly || ""));
-    const licenseCleared =
-      notLicenseBlock &&
-      (!!launchedRunId || nonLicenseHttpOk || infraOrExecFail || !!panelNonIdle);
     expect(
-      licenseCleared,
-      `Confirm & Run must clear the license gate (via=${via}, HTTP ${execCode}, error=${execErr.slice(0, 120)}, runId=${launchedRunId})`,
+      !!launchedRunId || /cryosparc_execution_failed|warming|infra/i.test(execErr) || (execCode >= 200 && execCode < 300),
+      `expected runId or infra error past license (HTTP ${execCode}, ${execErr.slice(0, 120)})`,
     ).toBe(true);
 
-    const afterStatus = afterStatusEarly;
-    console.log(
-      "[A5] panel status after Confirm & Run:",
-      afterStatus,
-      "runId=",
-      launchedRunId,
-      "via=",
-      via,
-      "execCode=",
-      execCode,
-      "execErr=",
-      execErr.slice(0, 80),
-    );
     await shot(page, "A5_confirm_run_past_license_gate");
-    console.log("[A5] Confirm & Run past license gate — pass");
+    console.log("[A5] Confirm & Run past license gate — pass (runId=", launchedRunId, ")");
   } finally {
     // Cancel any launched / in-flight cryosparc run so we do not burn a full SPA GPU cycle.
     const cancelIds = new Set<string>();
