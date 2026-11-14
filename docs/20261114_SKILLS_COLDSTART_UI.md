@@ -1,77 +1,87 @@
-# Skills + cold-start UI restore (2026-11-14)
+# 2026-11-14 — Skills UI “fallback again” + cold-start attachment previews
 
-## User complaints
+## Root cause of “why the ui fallback again”
 
-1. Skills set showing **long descriptions** again (“why the ui fallback again”)
-2. Top / default skill not preselected when the set opens
-3. Cold-start examples that attach files show **no file preview** (unlike normal uploads)
+Not a runtime rendering fallback branch. The compact Skills & experts UI
+(foldable groups + locked default + 2-line clamped descriptions) **was
+landed** (`9bff602b6e` / `e93a461c16` / `ef6356502c`) and is reachable in
+the commit DAG from live tip `8c946897dd`, but **sync merges kept the
+ancestry tip while taking the other parent’s tree** for
+`skills-selector.tsx` (and related files).
 
-## Root cause — “fallback again”
+Documented drop merges:
 
-Not a separate runtime “fallback renderer.” The compact Skills & experts UI
-(foldable groups + 2-line clamp + locked `biomate-universe`) and the short
-`generator-adaptation` frontmatter **were landed** (`9bff602b6e` /
-`e93a461c16` / `ef6356502c`) but later **ours-style sync merges kept ancestry
-tips while dropping the tree content**:
+| Merge | What happened |
+|-------|----------------|
+| `8c0663692f` `merge(sync): record deployed tip e93a461c … (keep PR398 voice settings tree)` | Parent `e93a461c16` had clamp; merge result kept PR398’s flat list (no `WebkitLineClamp`) |
+| `429c3dbc52` `merge(dig): bring live tip …` | Same class: parent with clamp, result without |
+| `007df6898e` on `fix/skills-restore-on-live` | Re-lost clamp when merging live tip onto the restore line |
 
-| Merge | Effect |
-|-------|--------|
-| `8c0663692f` `merge(sync): record deployed tip e93a461c … (keep PR398 voice settings tree)` | Parent² had clamp + short desc; merge result kept PR398 flat list + long desc |
-| Later dig/sync merges (e.g. `429c3dbc52`) | Same pattern: clamp present on one parent, absent in result |
-| `007df6898e` on `fix/skills-restore-on-live` | Re-dropped clamp again when bringing live tip `8c946897dd` |
+Symptom: composer Skills & experts again showed **full skill frontmatter
+prose** (especially `generator-adaptation`) instead of short blurbs +
+line clamp — looking like a “fallback” UI even though the compact path
+never ran.
 
-So live/local tip could **claim** the restore commit as an ancestor while the
-deployed `skills-selector.tsx` was still the verbose flat list. That is the
-“fallback again” the user saw.
+## Fixes restored (this session)
 
-## Fixes
-
-| Area | Change |
-|------|--------|
-| Composer Skills & experts | Restore groups (Default / BioMate experts / Your skills), `WebkitLineClamp: 2`, locked default auto-selected |
-| `generator-adaptation.md` | Short UI blurb again (routing detail stays in body / `operation-skills.ts`) |
-| Send path | Omit default-only `skillPackIds` so server auto-detects; always merge `biomate-universe` server-side (`withDefaultSkill`) |
-| Project skills card | `line-clamp-2` on descriptions (same wall-of-prose class) |
-| Cold-start attach preview | Stable example-file applicator ref; preview text exts include `smi`/`pdb`/`cif`/…; chips get `data-demo` + preview testid |
+1. **Compact skills selector** — `skills-selector.tsx`: Default group
+   (`biomate-universe` locked + auto-preselected), BioMate experts /
+   Your skills foldable groups, `WebkitLineClamp: 2` on descriptions.
+2. **Top skill preselected** — `DEFAULT_SKILL_ID` exported; `useEffect`
+   auto-adds `biomate-universe` when the pack is present.
+3. **Short generator UI blurb** — `generator-adaptation.md` description
+   trimmed; routing detail stays in the skill body /
+   `operation-skills.ts`.
+4. **Auto-detect contract** — composer omits `skillPackIds` when only
+   the locked default is on; server `withDefaultSkill` always merges
+   `biomate-universe` (`galaxy-assistant.ts` + `build-skill-block.test.ts`).
+5. **Cold-start file previews** — example `File[]` injection keeps a
+   stable applicator ref; preview allowlist includes cold-start formats
+   (`smi`, `pdb`, `cif`, `faa`, …); chips get
+   `data-testid="composer-attached-file-preview"`.
+6. **Project skills card** — long descriptions `line-clamp-2` (title
+   retains full text).
 
 ## Files changed
 
 - `frontend/client/src/components/skills-selector.tsx` (+ test)
-- `frontend/client/src/components/chat-input.tsx` (+ `skill-autodetect` / `example-files` tests)
-- `frontend/client/src/components/chat-interface.tsx` (example-files registration comment)
+- `frontend/client/src/components/chat-input.tsx`
+- `frontend/client/src/components/chat-input.skill-autodetect.test.tsx`
+- `frontend/client/src/components/chat-input.example-files.test.tsx`
+- `frontend/client/src/components/chat-interface.tsx`
 - `frontend/client/src/components/project-guidance-cards.tsx`
 - `frontend/client/src/locales/en/common.json`, `zh/common.json`
-- `frontend/server/galaxy-assistant.ts`, `build-skill-block.test.ts`
+- `frontend/server/galaxy-assistant.ts`
+- `frontend/server/build-skill-block.test.ts`
 - `backend/lib/galaxy/ai/skills/generator-adaptation.md`
-- `backend/lib/galaxy/ai/skills/evidence-based-writer.md` (restored with skills land)
+- `backend/lib/galaxy/ai/skills/evidence-based-writer.md`
 
-## How to verify in UI
+## Verify in UI
 
-1. **Compact skills** — New Chat → composer **Skills & experts** → popover shows
-   Default (locked) + foldable BioMate experts; descriptions are ≤2 lines, not a
-   wall of prose (esp. Generator Adaptation).
-2. **Preselect** — Opening the popover with an empty project selection shows
-   Default on (`· 1 on`); `biomate-universe` cannot be toggled off.
-3. **Cold-start previews** — Data analysis → pick an example with sample data
-   (e.g. ADMET / DESeq2 airway) → composer shows `composer-attached-file` chips
-   → click the filename → dialog shows table/text content (not metadata-only for
-   csv/smi/pdb).
+1. New chat → open **Skills & experts**:
+   - Default row locked/checked (`biomate-universe`).
+   - Expert descriptions are **two lines max**, not a wall of prose.
+   - Count shows at least **1 on** without a manual click.
+2. Click a Data analysis / Design cold-start example that attaches files:
+   - Composer shows `composer-attached-file` chips with sizes.
+   - Click a chip name → dialog shows table/text content (CSV / SMI / PDB).
+3. Send with only default skill on → request must **not** send
+   `skillPackIds: ["biomate-universe"]` alone (auto-detect still runs).
 
 ## Tests
 
 ```bash
-cd frontend && npx vitest run \
+cd frontend && npx tsc --noEmit -p .
+npx vitest run \
   client/src/components/skills-selector.test.tsx \
   client/src/components/chat-input.skill-autodetect.test.tsx \
   client/src/components/chat-input.example-files.test.tsx \
   server/build-skill-block.test.ts
-# 26 passed
-cd frontend && npx tsc --noEmit -p .
 ```
 
 ## Sync note
 
-Ancestry-only sync merges that “record deployed tip X (keep Y tree)” will drop
-this UI again unless the **tree** for `skills-selector.tsx` /
-`generator-adaptation.md` is preserved. Prefer content-preserving merge (or
-cherry-pick this restore) over tip-recording ours merges.
+Do **not** re-introduce ancestry-only merges that keep a skills tip SHA
+while resolving `skills-selector.tsx` from the non-skills parent. Prefer
+content-preserving merge / explicit restore of the files above.
+See also `docs/20261113_FDR_AND_SKILLS_DIG_UPDATE.md` / sync ancestry gates.
