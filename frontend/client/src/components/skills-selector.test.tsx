@@ -126,3 +126,45 @@ describe("normalizeSkillPack", () => {
     expect(normalizeSkillPack({ id: "pack-1" })).toEqual({ id: "pack-1", label: "pack-1", description: undefined })
   })
 })
+
+describe("<SkillsSelector> groups + locked default", () => {
+  const GROUPED: SkillPack[] = [
+    { id: "biomate-universe", label: "BioMate Platform", description: "Capability map.", source: "expert" },
+    { id: "clinical-expert", label: "Clinical Expert", source: "expert" },
+    { id: "my-skill", label: "My Custom Skill", description: "User-provided.", source: "custom" },
+  ]
+
+  it("puts the default pack in its own locked group and never toggles it", () => {
+    const onChange = vi.fn()
+    render(<SkillsSelector selectedIds={["biomate-universe"]} onChange={onChange} packs={GROUPED} />)
+    fireEvent.click(screen.getByTestId("composer-experts-toggle"))
+    expect(screen.getByTestId("composer-experts-group-default")).toBeInTheDocument()
+    const def = screen.getByTestId("composer-expert-pack-biomate-universe")
+    expect(def).toBeDisabled()
+    expect(def).toHaveAttribute("data-locked", "true")
+    fireEvent.click(def)
+    expect(onChange).not.toHaveBeenCalled() // locked: click is a no-op
+  })
+
+  it("auto-applies the default pack when present and not yet selected", () => {
+    const onChange = vi.fn()
+    render(<SkillsSelector selectedIds={[]} onChange={onChange} packs={GROUPED} />)
+    expect(onChange).toHaveBeenCalledWith(["biomate-universe"])
+  })
+
+  it("separates BioMate expert and user (custom) skills into their own groups", () => {
+    render(<SkillsSelector selectedIds={["biomate-universe"]} onChange={() => {}} packs={GROUPED} />)
+    fireEvent.click(screen.getByTestId("composer-experts-toggle"))
+    expect(screen.getByTestId("composer-experts-group-expert")).toBeInTheDocument()
+    expect(screen.getByTestId("composer-experts-group-user")).toBeInTheDocument()
+    expect(screen.getByText("My Custom Skill")).toBeInTheDocument()
+  })
+
+  it("folds a group to hide its packs", () => {
+    render(<SkillsSelector selectedIds={["biomate-universe"]} onChange={() => {}} packs={GROUPED} />)
+    fireEvent.click(screen.getByTestId("composer-experts-toggle"))
+    expect(screen.getByTestId("composer-expert-pack-clinical-expert")).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId("composer-experts-group-expert-header"))
+    expect(screen.queryByTestId("composer-expert-pack-clinical-expert")).not.toBeInTheDocument()
+  })
+})

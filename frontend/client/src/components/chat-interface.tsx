@@ -2349,7 +2349,12 @@ export function ChatInterface({
             onRegisterSetDraft?.(setter)
           }}
           onRegisterAddFiles={(adder) => { localAddFilesRef.current = adder }}
-          onRegisterExampleFiles={(setter) => { localExampleFilesRef.current = setter }}
+          onRegisterExampleFiles={(setter) => {
+            // Always keep the latest ChatInput applicator — cold-start prepare is
+            // async (fetch demo blobs) and a stale setter would seed the draft
+            // without painting attachment chips / previews.
+            localExampleFilesRef.current = setter
+          }}
           /* Surface session-wide attached-dataset count so the
              X / MAX_DATASET_REFS indicator in the input strip reflects
              the server-side cap (frontend/server/dataset-cap.ts). */
