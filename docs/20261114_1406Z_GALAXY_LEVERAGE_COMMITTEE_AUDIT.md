@@ -2,7 +2,8 @@
 
 **File stamp:** `20261114_1406Z` (UTC)  
 **Branch:** `devline/ds-audit-20261112`  
-**Live tip at audit start:** `0b63d793` (matched `/build-info.json`)  
+**Live tip at audit start:** `0b63d793`  
+**Live tip after audit fixes:** `3b06062f` (SYNC healthy 2026-11-14)  
 **Scope:** Deep Galaxy leverage (folder/samplesheet/deferred/FTP/datatype/repro pack) + E2E `BASE_URL` class
 
 ---
@@ -87,12 +88,12 @@ Two parallel reviews (capability committee + Bugbot-style security/correctness) 
 
 ## Test plan executed in this audit fix
 
-1. Unit: `deferred-materialize.test.ts`, `reproducibility-pack.test.ts`  
-2. Wiring: `run-output-route-auth.test.ts`, `e2e/_e2e-base-url-class.test.ts`  
-3. `npx tsc --noEmit -p frontend`  
-4. Live E2E: `folder-attach-all-files.e2e.ts` with `BASE_URL=https://dev-public.biomate.ai` only  
-5. Live probes: materialize unauth → 401; repro-pack unauth → 401  
-6. Sync to dev after green local gates (ancestry merge if tip moved)
+1. Unit: `deferred-materialize` 6/6, `reproducibility-pack` 4/4  
+2. Wiring: `run-output-route-auth` 20/20 (incl. materialize + execute-path order), `e2e-base-url-class` 1/1 — **31/31**  
+3. `npx tsc --noEmit -p frontend` → **exit 0**  
+4. Live E2E chromium: `folder-attach-all-files.e2e.ts` with `BASE_URL` only → **PASS** (5 chips + samplesheet 201)  
+5. Live probes on `3b06062f`: materialize unauth → **401**; repro-pack unauth → **401**  
+6. Sync: `SYNC_EXIT=0` / `result=healthy` at `3b06062f`
 
 ---
 
