@@ -22,8 +22,9 @@
  */
 
 import { test, expect, request as pwRequest } from "@playwright/test";
+import { resolveE2eBaseUrl } from "./_e2e-base-url";
 
-const BASE = process.env.BIOMATE_URL || "http://localhost:5000";
+const BASE = resolveE2eBaseUrl("http://localhost:5000");
 const TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 const EMAIL = process.env.E2E_FIXTURE_EMAIL || "e2e-admet-fixture@biomate.test";
 const PASS = process.env.E2E_FIXTURE_PASSWORD || "AdmetE2ETest!2026";

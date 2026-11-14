@@ -22,13 +22,14 @@
  */
 
 import { test } from '@playwright/test';
+import { resolveE2eBaseUrl } from "./_e2e-base-url";
 import { shot, pause } from './demo-helpers.js';
 
 const DEMO  = 'demo-07-cro-tutorial';
 const EMAIL = 'demo_cro_tutorial@biomate.test';
 const PASS  = 'DemoPass123!';
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';
-const BASE_URL  = process.env.BIOMATE_URL    || 'http://localhost:5000';
+const BASE_URL = resolveE2eBaseUrl('http://localhost:5000');
 
 // How long to linger on each tour step before clicking Next (ms).
 const STEP_PAUSE: Record<number, number> = {
